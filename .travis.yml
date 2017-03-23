@@ -53,11 +53,14 @@ install:
   - echo "[System]" >> $SITE_CFG
   - echo "udunits2_path = $PREFIX/lib/libudunits2.so" >> $SITE_CFG
 
-   # Build Iris
+  # Build Iris
   - python setup.py --quiet --with-unpack build
   - python setup.py --quiet --with-unpack install
+
+  # CD back to IMPROVER
   - cd -
 
 script:
   - python -c "import iris"
-  - python -m unittest discover lib/improver
+  - cd lib
+  - python -m unittest discover
