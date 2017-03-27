@@ -63,4 +63,6 @@ install:
 script:
   - python -c "import iris"
   - cd lib
+  - pep8 improver
+  - pylint -E improver
   - python -m unittest discover
