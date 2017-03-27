@@ -57,6 +57,9 @@ install:
   - python setup.py --quiet --with-unpack build
   - python setup.py --quiet --with-unpack install
 
+  # Get pylint
+  - pip install pylint
+
   # CD back to IMPROVER
   - cd -
 
