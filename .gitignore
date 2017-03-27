@@ -14,3 +14,6 @@
 \#*
 \.\#*
 *.swp
+
+# Site-specific setup
+etc/site-init
