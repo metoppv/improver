@@ -33,7 +33,7 @@
 
 import argparse
 
-import iris
+#import iris
 
 from improver.nbhood import BasicNeighbourhoodProcessing
 

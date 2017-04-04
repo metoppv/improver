@@ -17,8 +17,8 @@
 #------------------------------------------------------------------------------
 
 set -eu
-export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
 
+export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
 
 # List all improver subcommands or operations.
 get_operations() {

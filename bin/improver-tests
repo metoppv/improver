@@ -1,0 +1,24 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+#------------------------------------------------------------------------------
+# NAME
+#    improver tests - Run IMPROVER self-tests
+#
+# SYNOPSIS
+#    improver tests
+#
+# DESCRIPTION
+#    Launch all IMPROVER self-tests.
+#------------------------------------------------------------------------------
+
+set -eu
+
+PATH="$IMPROVER_DIR/tests/bin/:$PATH"
+# Put our library and scripts in the paths.
+if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
+    prove -j $(nproc) -r -e "bats --tap" \
+        --ext ".bats" "$IMPROVER_DIR/tests/"
+else
+    bats $(find "$IMPROVER_DIR/tests/" -name "*.bats")
+fi

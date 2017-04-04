@@ -31,7 +31,7 @@
 """Module containing neighbourhood processing utilities."""
 
 
-import iris
+#import iris
 import numpy as np
 import scipy.ndimage.filters
 
