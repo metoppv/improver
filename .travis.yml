@@ -1,5 +1,5 @@
 
-# Iris setup credit to github.com/scitools/iris 07bbaf4.
+# Iris setup credit to github.com/SciTools/iris 07bbaf4.
 #
 
 language: python
@@ -31,7 +31,7 @@ install:
 
   # Download Iris 1.12.
   - wget https://github.com/SciTools/iris/archive/v1.12.0.tar.gz -O $HOME/iris.tar.gz
-  - tar xvf $HOME/iris.tar.gz -C $HOME
+  - tar -xvf $HOME/iris.tar.gz -C $HOME
   - cd $HOME/iris-1.12.0
 
   # Add scitools requirements
@@ -50,7 +50,7 @@ install:
 
   # Set config paths
   - SITE_CFG=$IRIS/etc/site.cfg
-  - echo "[System]" >> $SITE_CFG
+  - echo "[System]" > $SITE_CFG
   - echo "udunits2_path = $PREFIX/lib/libudunits2.so" >> $SITE_CFG
 
   # Build Iris
