@@ -1,0 +1,71 @@
+
+# Iris setup credit to github.com/SciTools/iris 07bbaf4.
+#
+
+language: python
+python:
+  - 2.7
+sudo: false
+
+git:
+  depth: 10000
+
+install:
+  # Install miniconda
+  # -----------------
+  - export CONDA_BASE=https://repo.continuum.io/miniconda/Miniconda
+  - wget ${CONDA_BASE}2-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+
+  # Create the basic testing environment
+  # ------------------------------------
+  # Explicitly add defaults channel, see https://github.com/conda/conda/issues/2675
+  - conda config --add channels defaults
+  - conda config --set always_yes yes --set changeps1 no
+  - conda config --set show_channel_urls True
+  - conda update --quiet conda
+  - ENV_NAME='test-environment'
+  - conda create --quiet -n $ENV_NAME python=$TRAVIS_PYTHON_VERSION
+  - source activate $ENV_NAME
+
+  # Download Iris 1.12.
+  - wget https://github.com/SciTools/iris/archive/v1.12.0.tar.gz -O $HOME/iris.tar.gz
+  - tar -xvf $HOME/iris.tar.gz -C $HOME
+  - cd $HOME/iris-1.12.0
+
+  # Add scitools requirements
+  - conda config --add channels scitools
+  - conda install --quiet --file conda-requirements.txt
+  - PREFIX=$HOME/miniconda/envs/$ENV_NAME
+
+  # Output debug info
+  - conda list
+  - conda info -a
+
+  # Setup
+  - python setup.py --with-unpack build_ext --include-dirs=${PREFIX}/include --library-dirs=${PREFIX}/lib
+  - IRIS=$(ls -d1 build/lib*/iris)
+  - mkdir $IRIS/etc
+
+  # Set config paths
+  - SITE_CFG=$IRIS/etc/site.cfg
+  - echo "[System]" > $SITE_CFG
+  - echo "udunits2_path = $PREFIX/lib/libudunits2.so" >> $SITE_CFG
+
+  # Build Iris
+  - python setup.py --quiet --with-unpack build
+  - python setup.py --quiet --with-unpack install
+
+  # Get pylint
+  - pip install pylint
+
+  # CD back to IMPROVER
+  - cd -
+
+script:
+  - python -c "import iris"
+  - cd lib
+  - pep8 improver
+  - pylint -E improver
+  - python -m unittest discover
