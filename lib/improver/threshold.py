@@ -47,7 +47,7 @@ class BasicThreshold(object):
 
     def __init__(self, threshold, fuzzy_factor,
                  below_thresh_ok=False):
-        """Set up processing for an in-or-out of threshold binary field.
+        """Set up for processing an in-or-out of threshold binary field.
 
         Parameters
         ----------
@@ -87,9 +87,8 @@ class BasicThreshold(object):
         Parameters
         ----------
 
-        cube - iris.cube.Cube
-            Cube to threshold. The code is dimension-agnostic, so any
-            setup should work.
+        cube : iris.cube.Cube
+            Cube to threshold. The code is dimension-agnostic.
 
         """
         lower_threshold = self.threshold * self.fuzzy_factor
