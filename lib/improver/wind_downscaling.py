@@ -355,8 +355,9 @@ class RoughnessCorrectionUtilities(object):
         cond = hgrid < (self.h_ref).reshape(self.h_ref.shape+(1,))
         unew[cond] = (
             ustar.reshape(ustar.shape+(1,))*np.ones(unew.shape)
-            )[cond]*(np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,))
-                                   * np.ones(unew.shape)))[cond])/VONKARMAN
+            )[cond] * (
+                np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,)) *
+                              np.ones(unew.shape)))[cond])/VONKARMAN
         return unew
 
     def calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
@@ -392,11 +393,11 @@ class RoughnessCorrectionUtilities(object):
                                             h_in, 0.0), axis=2)
 
         if h_in.ndim == 3:
-            hup = h_in.take(upidx.flatten()+np.arange(0, upidx.size
-                                                      * h_in.shape[2],
+            hup = h_in.take(upidx.flatten()+np.arange(0, upidx.size *
+                                                      h_in.shape[2],
                                                       h_in.shape[2]))
-            hlow = h_in.take(loidx.flatten()+np.arange(0, loidx.size
-                                                       * h_in.shape[2],
+            hlow = h_in.take(loidx.flatten()+np.arange(0, loidx.size *
+                                                       h_in.shape[2],
                                                        h_in.shape[2]))
         elif h_in.ndim == 1:
             hup = h_in[upidx].flatten()
@@ -445,8 +446,8 @@ class RoughnessCorrectionUtilities(object):
         diffs = (xup - xlow)
         interp[diffs != 0] = (
             ylow[diffs != 0]+((at_x[diffs != 0]-xlow[diffs != 0]) /
-                              diffs[diffs != 0]*(yup[diffs != 0]
-                                                 - ylow[diffs != 0])))
+                              diffs[diffs != 0]*(yup[diffs != 0] -
+                                                 ylow[diffs != 0])))
         interp[diffs == 0] = at_x[diffs == 0]/xup[diffs == 0]*(yup[diffs == 0])
         return interp
 
