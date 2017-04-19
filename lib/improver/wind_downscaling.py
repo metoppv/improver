@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind downscaling plugins."""
 
+
 import copy
 import itertools
 
@@ -38,6 +39,7 @@ import iris
 import numpy as np
 
 from improver.constants import RMDI
+
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04

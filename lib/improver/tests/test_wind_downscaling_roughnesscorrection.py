@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for plugin wind_downscaling.RoughnessCorrection."""
 
-import unittest
 
+import unittest
 
 from cf_units import Unit
 import iris
@@ -125,18 +125,18 @@ class TestMultiPoint(object):
 
         Parameters
         ----------
-            nxny: a scalar or an np.array([x,y])
-                Sets dimension for tests.
-            AoS: float or 1D or 2D array
-                Silhouette roughness field
-            Sigma: float or 1D or 2D array
-                Standard deviation field of height in grid cell
-            z_0: float or 1D or 2D array
-                Vegetative roughness field
-            pporog: float or 1D or 2D array
-                Unsmoothed orography field on post-processing grid
-            modelorog: float or 1D or 2D array
-                Model orography field on post-processing grid
+        nxny: a scalar or an np.array([x,y])
+            Sets dimension for tests.
+        AoS: float or 1D or 2D array
+            Silhouette roughness field
+        Sigma: float or 1D or 2D array
+            Standard deviation field of height in grid cell
+        z_0: float or 1D or 2D array
+            Vegetative roughness field
+        pporog: float or 1D or 2D array
+            Unsmoothed orography field on post-processing grid
+        modelorog: float or 1D or 2D array
+            Model orography field on post-processing grid
 
         """
         if isinstance(nx_ny, int):
@@ -257,19 +257,18 @@ class TestSinglePoint(object):
 
         Parameters
         ----------
-
-            AoS: float
-                Silhouette roughness field
-            Sigma: float
-                Standard deviation field of height in grid cell
-            z_0: float
-                Vegetative roughness field
-            pporog: float
-                Unsmoothed orography on post-processing grid
-            modelorog: float
-                Model orography on post-processing grid
-            heightlevels: 1D np.array
-                Height level array
+        AoS: float
+            Silhouette roughness field
+        Sigma: float
+            Standard deviation field of height in grid cell
+        z_0: float
+            Vegetative roughness field
+        pporog: float
+            Unsmoothed orography on post-processing grid
+        modelorog: float
+            Model orography on post-processing grid
+        heightlevels: 1D np.array
+            Height level array
 
         """
         self.w_cube = None
@@ -297,10 +296,10 @@ class TestSinglePoint(object):
 
         Parameters
         ----------
-            wind: 1 or 2D array
-                Array of wind speeds
-            height: float, default None
-                Value for height in metres for zeroth slice of wind
+        wind: 1 or 2D array
+            Array of wind speeds
+        height: float, default None
+            Value for height in metres for zeroth slice of wind
 
         """
         wind = np.array(wind)
