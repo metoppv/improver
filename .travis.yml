@@ -67,5 +67,5 @@ script:
   - python -c "import iris"
   - cd lib
   - pep8 improver
-  - pylint --extension-pkg-whitelist=numpy -E improver
+  - pylint --extension-pkg-whitelist=numpy -E --rcfile=../etc/pylintrc improver
   - python -m unittest discover

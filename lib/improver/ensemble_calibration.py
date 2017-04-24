@@ -531,6 +531,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         optimised_coeffs = {}
         coeff_names = ["gamma", "delta", "a", "beta"]
 
+        # Set default values for whether there are NaN values within the
+        # initial guess.
+        nan_in_initial_guess = False
+
         for var in [self.current_forecast, self.historic_forecast,
                     self.truth]:
             if (isinstance(var, iris.cube.Cube) or
@@ -624,15 +628,17 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             # Computing initial guess for EMOS coefficients
             # If no initial guess from a previous iteration, or if there
             # are NaNs in the initial guess, calculate an initial guess.
-            if ("initial_guess" not in locals() or
-                    np.any(np.isnan(initial_guess))):
+            if "initial_guess" not in locals() or nan_in_initial_guess:
                 initial_guess = self.compute_initial_guess(
                     truth_cube, forecast_predictor,
                     self.predictor_of_mean_flag,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     no_of_members=no_of_members)
 
-            if not np.any(np.isnan(initial_guess)):
+            if np.any(np.isnan(initial_guess)):
+                nan_in_initial_guess = True
+
+            if not nan_in_initial_guess:
                 # Need to access the x attribute returned by the
                 # minimisation function.
                 optimised_coeffs[date] = (
