@@ -1,2 +1,2 @@
 [TYPECHECK]
-ignored-classes=tuple,WeightedAggregator
+ignored-classes=numpy,tuple,WeightedAggregator
