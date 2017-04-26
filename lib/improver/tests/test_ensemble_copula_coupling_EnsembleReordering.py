@@ -29,8 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the `ensemble_calibration.EnsembleReordering`
-class.
+Unit tests for the
+`ensemble_copula_coupling.EnsembleReordering`
 
 """
 import unittest
@@ -39,8 +39,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration.ensemble_calibration import (
-    EnsembleReordering as Plugin)
+from improver.ensemble_copula_coupling import EnsembleReordering as Plugin
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube,
     add_forecast_reference_time_and_forecast_period)

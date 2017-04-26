@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_calibration.GeneratePercentilesFromMeanAndVariance`
-class.
+`ensemble_copula_coupling.GeneratePercentilesFromMeanAndVariance`
 
 """
 import unittest
@@ -42,7 +41,7 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration.ensemble_calibration import (
+from improver.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, add_forecast_reference_time_and_forecast_period)
