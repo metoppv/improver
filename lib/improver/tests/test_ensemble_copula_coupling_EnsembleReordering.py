@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_copula_coupling.EnsembleReordering`
+`ensemble_copula_coupling.EnsembleReordering` plugin.
 
 """
 import unittest
@@ -41,8 +41,96 @@ import numpy as np
 
 from improver.ensemble_copula_coupling import EnsembleReordering as Plugin
 from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_temperature_cube,
-    add_forecast_reference_time_and_forecast_period)
+    set_up_cube, set_up_temperature_cube,
+    _add_forecast_reference_time_and_forecast_period)
+
+
+class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
+
+    """
+    Test the mismatch_between_length_of_raw_members_and_percentiles
+    method in the EnsembleReordering plugin.
+    """
+
+    def setUp(self):
+        """
+        Create a cube with forecast_reference_time and
+        forecast_period coordinates.
+        """
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(data, "air_temperature", "degreesC")
+        self.realization_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+        cube.coord("realization").rename("percentile")
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube))
+
+    def test_types_length_of_percentiles_equals_length_of_members(self):
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertIsInstance(result, tuple)
+        for aresult in result:
+            self.assertIsInstance(aresult, Cube)
+
+    def test_types_length_of_percentiles_greater_than_length_of_members(self):
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        for aresult in result:
+            self.assertIsInstance(aresult, Cube)
+
+    def test_types_length_of_percentiles_less_than_length_of_members(self):
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        post_processed_forecast_percentiles = (
+            post_processed_forecast_percentiles[:2, :, :, :])
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        for aresult in result:
+            self.assertIsInstance(aresult, Cube)
+
+    def test_realization_for_equal(self):
+        data = [0, 1, 2]
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(
+            data, result[1].coord("realization").points)
+
+    def test_realization_for_greater_than(self):
+        data = [0, 1, 2]
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(
+            data, result[1].coord("realization").points)
+
+    def test_realization_for_less_than(self):
+        data = [0, 1]
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        post_processed_forecast_percentiles = (
+            post_processed_forecast_percentiles[:2, :, :, :])
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(
+            data, result[1].coord("realization").points)
 
 
 class Test_rank_ecc(IrisTest):
@@ -290,6 +378,97 @@ class Test_rank_ecc(IrisTest):
         result.transpose([1, 0])
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    def test_2d_cube_random_ordering(self):
+        """
+        Test that the plugin returns the correct cube data for a
+        2d input cube, if random ordering is selected.
+        """
+        raw_data = np.array([[3],
+                             [2],
+                             [1]])
+
+        calibrated_data = np.array([[1],
+                                    [2],
+                                    [3]])
+
+        result_data_first = np.array([[1],
+                                      [2],
+                                      [3]])
+
+        result_data_second = np.array([[1],
+                                      [3],
+                                      [2]])
+
+        result_data_third = np.array([[2],
+                                      [1],
+                                      [3]])
+
+        result_data_fourth = np.array([[2],
+                                      [3],
+                                      [1]])
+
+        result_data_fifth = np.array([[3],
+                                      [1],
+                                      [2]])
+
+        result_data_sixth = np.array([[3],
+                                      [2],
+                                      [1]])
+
+        cube = self.cube.copy()
+        cube = cube[:, :, 0, 0]
+        raw_cube = cube.copy()
+        raw_cube.data = raw_data
+        calibrated_cube = cube.copy()
+        calibrated_cube.data = calibrated_data
+
+        plugin = Plugin()
+        result = plugin.rank_ecc(calibrated_cube, raw_cube,
+                                 random_ordering=True)
+        result.transpose([1, 0])
+
+        err_count = 0
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_first)
+        except Exception as err1:
+            err_count += 1
+
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_second)
+        except Exception as err2:
+            err_count += 1
+
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_third)
+        except Exception as err3:
+            err_count += 1
+
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_fourth)
+        except Exception as err4:
+            err_count += 1
+
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_fifth)
+        except Exception as err5:
+            err_count += 1
+
+        try:
+            self.assertArrayAlmostEqual(result.data, result_data_sixth)
+        except Exception as err6:
+            err_count += 1
+
+        if err_count == 6:
+            raise ValueError("Exceptions raised as all accepted forms of the "
+                              "calibrated data were not matched."
+                              "1. {}"
+                              "2. {}"
+                              "3. {}"
+                              "4. {}"
+                              "5. {}"
+                              "6. {}".format(err1, err2, err3,
+                                             err4, err5, err6))
+
 
 class Test_process(IrisTest):
 
@@ -306,11 +485,12 @@ class Test_process(IrisTest):
         self.calibrated_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
+        self.calibrated_cube.coord("realization").rename("percentile")
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         plugin = Plugin()
-        result = plugin.process(self.raw_cube, self.calibrated_cube)
+        result = plugin.process(self.calibrated_cube, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
 

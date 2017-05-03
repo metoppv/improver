@@ -41,38 +41,69 @@ import cf_units as unit
 import iris
 
 from ensemble_calibration_utilities import (
-    concatenate_cubes, rename_coordinate)
+    concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
+from ensemble_copula_coupling_constants import bounds_for_ecdf
 
 
-class GeneratePercentilesFromMeanAndVariance(object):
+class EnsembleCopulaCouplingUtilities(object):
     """
-    Plugin focussing on generating percentiles from mean and variance.
-    In combination with the EnsembleReordering plugin, this is Ensemble
-    Copula Coupling.
+    Class containing utilities used to enable Ensemble Copula Coupling.
     """
-
-    def __init__(self, calibrated_forecast_predictor_and_variance,
-                 raw_forecast):
+    @staticmethod
+    def create_percentiles(
+            no_of_percentiles, sampling="quantile"):
         """
-        Initialise the class.
+        Function to create percentiles.
 
         Parameters
         ----------
-        calibrated_forecast_predictor_and_variance : Iris CubeList
-            CubeList containing the calibrated forecast predictor and
-            calibrated forecast variance.
-        raw_forecast : Iris Cube or CubeList
-            Cube or CubeList that is expected to be the raw
-            (uncalibrated) forecast.
+        no_of_percentiles : Int
+            Number of percentiles.
+        sampling : String
+            Type of sampling of the distribution to produce a set of
+            percentiles e.g. quantile or random.
+            Accepted options for sampling are:
+            Quantile: A regular set of equally-spaced percentiles aimed
+                      at dividing a Cumulative Distribution Function into
+                      blocks of equal probability.
+            Random: A random set of ordered percentiles.
+
+        For further details, Flowerdew, J., 2014.
+        Calibrating ensemble reliability whilst preserving spatial structure.
+        Tellus, Series A: Dynamic Meteorology and Oceanography, 66(1), pp.1-20.
+        Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
+        Uncertainty Quantification in Complex Simulation Models Using Ensemble
+        Copula Coupling.
+        Statistical Science, 28(4), pp.616-640.
+
+        Returns
+        -------
+        percentiles : List
+            Percentiles calculated using the sampling technique specified.
 
         """
-        (self.calibrated_forecast_predictor,
-         self.calibrated_forecast_variance) = (
-             calibrated_forecast_predictor_and_variance)
-        self.raw_forecast = raw_forecast
+        if sampling in ["quantile"]:
+            percentiles = np.linspace(
+                1/float(1+no_of_percentiles),
+                no_of_percentiles/float(1+no_of_percentiles),
+                no_of_percentiles).tolist()
+        elif sampling in ["random"]:
+            percentiles = []
+            for _ in range(no_of_percentiles):
+                percentiles.append(
+                    random.uniform(
+                        1/float(1+no_of_percentiles),
+                        no_of_percentiles/float(1+no_of_percentiles)))
+            percentiles = sorted(percentiles)
+        else:
+            msg = "The {} sampling option is not yet implemented.".format(
+                sampling)
+            raise ValueError(msg)
+        return percentiles
 
-    def _create_cube_with_percentiles(
-            self, percentiles, template_cube, cube_data):
+    @staticmethod
+    def create_cube_with_percentiles(
+            percentiles, template_cube, cube_data):
         """
         Create a cube with a percentile coordinate based on a template cube.
 
@@ -118,6 +149,177 @@ class GeneratePercentilesFromMeanAndVariance(object):
         cube.attributes = template_cube.attributes
         cube.cell_methods = template_cube.cell_methods
         return cube
+
+
+class GeneratePercentilesFromProbabilities(object):
+    """
+    Class for generating percentiles from probabilities.
+    In combination with the Ensemble Reordering plugin, this is Ensemble
+    Copula Coupling.
+    """
+
+    def __init__(self):
+        """
+        Initialise the class.
+        """
+        pass
+
+    def _add_bounds_to_thresholds_and_probabilities(
+            self, threshold_points, probabilities_for_cdf, bounds_pairing):
+        """
+        Padding of the lower and upper bounds for a given phenomenon for the
+        threshold_points, and padding of probabilities of 0 and 1 to the
+        forecast probabilities.
+
+        Parameters
+        ----------
+        threshold_points : Numpy array
+            Array of threshold values used to calculate the probabilities.
+        probabilities_for_cdf : Numpy array
+            Array containing the probabilities used for constructing an
+            empirical cumulative distribution function i.e. probabilities
+            below threshold.
+
+        Returns
+        -------
+        threshold_points : Numpy array
+            Array of threshold values padded with the lower and upper bound.
+        probabilities_for_cdf : Numpy array
+            Array containing the probabilities padded with 0 and 1 at each end.
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function.
+
+        """
+        lower_bound, upper_bound = bounds_pairing
+        threshold_points = np.insert(threshold_points, 0, lower_bound)
+        threshold_points = np.append(threshold_points, upper_bound)
+        zeroes_array = np.zeros((probabilities_for_cdf.shape[0], 1))
+        ones_array = np.ones((probabilities_for_cdf.shape[0], 1))
+        probabilities_for_cdf = np.concatenate(
+            (zeroes_array, probabilities_for_cdf, ones_array), axis=1)
+        return threshold_points, probabilities_for_cdf
+
+    def _probabilities_to_percentiles(
+            self, forecast_probabilities, percentiles, bounds_pairing):
+        """
+        Conversion of probabilities to percentiles through the construction
+        of an empirical cumulative distribution function. This is effectively
+        constructed by linear interpolation from the probabilities associated
+        with each threshold to a set of percentiles.
+
+        Parameters
+        ----------
+        forecast_probabilities : Iris cube
+            Cube with a probability_above_threshold coordinate.
+        percentiles : Numpy array
+            Array of percentiles, at which the corresponding values will be
+            calculated.
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function.
+
+        Returns
+        -------
+        percentile_cube : Iris cube
+            Cube with probabilities at the required percentiles.
+
+        """
+        threshold_points = (
+            forecast_probabilities.coord("probability_above_threshold").points)
+
+        prob_slices = convert_cube_data_to_2d(
+            forecast_probabilities, coord="probability_above_threshold")
+
+        # Invert probabilities
+        probabilities_for_cdf = 1 - prob_slices
+
+        threshold_points, probabilities_for_cdf = (
+            self._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, bounds_pairing))
+
+        forecast_at_percentiles = (
+            np.empty((probabilities_for_cdf.shape[0], len(percentiles))))
+        for index in range(probabilities_for_cdf.shape[0]):
+            forecast_at_percentiles[index, :] = np.interp(
+                percentiles, probabilities_for_cdf[index, :],
+                threshold_points)
+
+        t_coord = forecast_probabilities.coord("time")
+        y_coord = forecast_probabilities.coord(axis="y")
+        x_coord = forecast_probabilities.coord(axis="x")
+
+        forecast_at_percentiles = forecast_at_percentiles.reshape(
+            len(percentiles), len(t_coord.points), len(y_coord.points),
+            len(x_coord.points))
+        percentile_cube = (
+            EnsembleCopulaCouplingUtilities.create_cube_with_percentiles(
+                percentiles, forecast_probabilities, forecast_at_percentiles))
+        percentile_cube.cell_methods = {}
+        return percentile_cube
+
+    def process(self, forecast_probabilities, no_of_percentiles=None,
+                sampling="quantile"):
+        """
+        1. Concatenates cubes with a probability_above_threshold coordinate.
+        2. Creates a list of percentiles.
+        3. Accesses the lower and upper bound pair to find the ends of the
+           empirical cumulative distribution function.
+        4. Convert the probability_above_threshold coordinate into
+           values at a set of percentiles.
+
+        Parameters
+        ----------
+        forecast_probabilities : Iris CubeList or Iris Cube
+            Cube or CubeList expected to contain a probability_above_threshold
+            coordinate.
+        no_of_percentiles : Integer
+            Number of percentiles
+        sampling : String
+            Type of sampling of the distribution to produce a set of
+            percentiles e.g. quantile or random.
+            Accepted options for sampling are:
+            Quantile: A regular set of equally-spaced percentiles aimed
+                      at dividing a Cumulative Distribution Function into
+                      blocks of equal probability.
+            Random: A random set of ordered percentiles.
+
+        Returns
+        -------
+        forecast_at_percentiles : Iris cube
+            Cube with forecast values at the desired set of percentiles.
+
+        """
+        forecast_probabilities = concatenate_cubes(forecast_probabilities)
+
+        if no_of_percentiles is None:
+            no_of_percentiles = (
+                len(forecast_probabilities.coord(
+                    "probability_above_threshold").points))
+
+        percentiles = EnsembleCopulaCouplingUtilities.create_percentiles(
+            no_of_percentiles, sampling=sampling)
+
+        # Extract bounds from dictionary of constants.
+        bounds_pairing = bounds_for_ecdf[forecast_probabilities.name()]
+
+        forecast_at_percentiles = self._probabilities_to_percentiles(
+            forecast_probabilities, percentiles, bounds_pairing)
+        return forecast_at_percentiles
+
+
+class GeneratePercentilesFromMeanAndVariance(object):
+    """
+    Plugin focussing on generating percentiles from mean and variance.
+    In combination with the EnsembleReordering plugin, this is Ensemble
+    Copula Coupling.
+    """
+
+    def __init__(self):
+        """
+        Initialise the class.
+        """
+        pass
 
     def _mean_and_variance_to_percentiles(
             self, calibrated_forecast_predictor, calibrated_forecast_variance,
@@ -190,66 +392,26 @@ class GeneratePercentilesFromMeanAndVariance(object):
         result = result.reshape(
             len(percentiles), len(t_coord.points), len(y_coord.points),
             len(x_coord.points))
-        percentile_cube = self._create_cube_with_percentiles(
-            percentiles, calibrated_forecast_predictor, result)
+        percentile_cube = (
+            EnsembleCopulaCouplingUtilities.create_cube_with_percentiles(
+                percentiles, calibrated_forecast_predictor, result))
 
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def _create_percentiles(
-            self, no_of_percentiles, sampling="quantile"):
+    def process(self, calibrated_forecast_predictor_and_variance,
+                raw_forecast):
         """
-        Function to create percentiles.
+        Generate ensemble percentiles from the mean and variance.
 
         Parameters
         ----------
-        no_of_percentiles : Int
-            Number of percentiles.
-        sampling : String
-            Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
-            Accepted options for sampling are:
-            Quantile: A regular set of equally-spaced percentiles aimed
-                      at dividing a Cumulative Distribution Function into
-                      blocks of equal probability.
-            Random: A random set of ordered percentiles.
-
-        For further details, Flowerdew, J., 2014.
-        Calibrating ensemble reliability whilst preserving spatial structure.
-        Tellus, Series A: Dynamic Meteorology and Oceanography, 66(1), pp.1-20.
-        Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
-        Uncertainty Quantification in Complex Simulation Models Using Ensemble
-        Copula Coupling.
-        Statistical Science, 28(4), pp.616-640.
-
-        Returns
-        -------
-        percentiles : List
-            Percentiles calculated using the sampling technique specified.
-
-        """
-        if sampling in ["quantile"]:
-            percentiles = np.linspace(
-                1/float(1+no_of_percentiles),
-                no_of_percentiles/float(1+no_of_percentiles),
-                no_of_percentiles).tolist()
-        elif sampling in ["random"]:
-            percentiles = []
-            for _ in range(no_of_percentiles):
-                percentiles.append(
-                    random.uniform(
-                        1/float(1+no_of_percentiles),
-                        no_of_percentiles/float(1+no_of_percentiles)))
-            percentiles = sorted(percentiles)
-        else:
-            msg = "The {} sampling option is not yet implemented.".format(
-                sampling)
-            raise ValueError(msg)
-        return percentiles
-
-    def process(self):
-        """
-        Generate ensemble percentiles from the mean and variance.
+        calibrated_forecast_predictor_and_variance : Iris CubeList
+            CubeList containing the calibrated forecast predictor and
+            calibrated forecast variance.
+        raw_forecast : Iris Cube or CubeList
+            Cube or CubeList that is expected to be the raw
+            (uncalibrated) forecast.
 
         Returns
         -------
@@ -257,20 +419,22 @@ class GeneratePercentilesFromMeanAndVariance(object):
             Cube for calibrated percentiles.
 
         """
-        raw_forecast = self.raw_forecast
+        (calibrated_forecast_predictor, calibrated_forecast_variance) = (
+             calibrated_forecast_predictor_and_variance)
 
         calibrated_forecast_predictor = concatenate_cubes(
-            self.calibrated_forecast_predictor)
+            calibrated_forecast_predictor)
         calibrated_forecast_variance = concatenate_cubes(
-            self.calibrated_forecast_variance)
+            calibrated_forecast_variance)
         rename_coordinate(
-            self.raw_forecast, "ensemble_member_id", "realization")
-        raw_forecast_members = concatenate_cubes(self.raw_forecast)
+            raw_forecast, "ensemble_member_id", "realization")
+        raw_forecast_members = concatenate_cubes(raw_forecast)
 
         no_of_percentiles = len(
             raw_forecast_members.coord("realization").points)
 
-        percentiles = self._create_percentiles(no_of_percentiles)
+        percentiles = EnsembleCopulaCouplingUtilities.create_percentiles(
+            no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,
@@ -293,37 +457,79 @@ class EnsembleReordering(object):
     Statistical Science, 28(4), pp.616-640.
 
     """
-    def __init__(self, calibrated_forecast, raw_forecast):
-        """
-        Parameters
-        ----------
-        calibrated_forecast : Iris Cube or CubeList
-            The cube or cubelist containing the calibrated forecast members.
-        raw_forecast : Iris Cube or CubeList
-            The cube or cubelist containing the raw (uncalibrated) forecast.
+    def __init__(self):
+        """Initialise the class"""
+        pass
 
+    def mismatch_between_length_of_raw_members_and_percentiles(
+            self, post_processed_forecast_percentiles, raw_forecast_members):
         """
-        self.calibrated_forecast = calibrated_forecast
-        self.raw_forecast = raw_forecast
-
-    def rank_ecc(self, calibrated_forecast_percentiles, raw_forecast_members):
-        """
-        Function to apply Ensemble Copula Coupling. This ranks the calibrated
-        forecast members based on a ranking determined from the raw forecast
-        members.
+        Function to determine whether there is a mismatch between the number
+        of percentiles and the number of raw forecast members. If more
+        percentiles are requested than ensemble members, then the ensemble
+        members are recycled. If fewer percentiles are requested than
+        ensemble members, then only the first n ensemble members are used.
 
         Parameters
         ----------
-        calibrated_forecast_percentiles : cube
-            Cube for calibrated percentiles. The percentiles are assumed to be
-            in ascending order.
+        post_processed_forecast_percentiles : cube
+            Cube for post-processed percentiles. The percentiles are assumed
+            to be in ascending order.
         raw_forecast_members : cube
-            Cube containing the raw (uncalibrated) forecasts.
+            Cube containing the raw (not post-processed) forecasts.
 
         Returns
         -------
         Iris cube
-            Cube for calibrated members where at a particular grid point,
+            Cube for post-processed members where at a particular grid point,
+            the ranking of the values within the ensemble matches the ranking
+            from the raw ensemble.
+
+        """
+        plen = len(
+            post_processed_forecast_percentiles.coord("percentile").points)
+        mlen = len(raw_forecast_members.coord("realization").points)
+        if plen == mlen:
+            pass
+        elif plen > mlen or plen < mlen:
+            raw_forecast_members_extended = iris.cube.CubeList()
+            realization_list = []
+            mpoints = raw_forecast_members.coord("realization").points
+            for index in range(plen):
+                realization_list.append(mpoints[index % len(mpoints)])
+            for realization, index in zip(realization_list, range(plen)):
+                constr = iris.Constraint(realization=realization)
+                raw_forecast_member = raw_forecast_members.extract(constr)
+                raw_forecast_member.coord("realization").points = index
+                raw_forecast_members_extended.append(raw_forecast_member)
+            raw_forecast_members = (
+                concatenate_cubes(raw_forecast_members_extended))
+        return post_processed_forecast_percentiles, raw_forecast_members
+
+    def rank_ecc(
+            self, post_processed_forecast_percentiles, raw_forecast_members,
+            random_ordering=False):
+        """
+        Function to apply Ensemble Copula Coupling. This ranks the
+        post-processed forecast members based on a ranking determined from
+        the raw forecast members.
+
+        Parameters
+        ----------
+        post_processed_forecast_percentiles : cube
+            Cube for post-processed percentiles. The percentiles are assumed
+            to be in ascending order.
+        raw_forecast_members : cube
+            Cube containing the raw (not post-processed) forecasts.
+        random_ordering : Logical
+            If random_ordering is True, the post-processed forecasts are
+            reordered randomly, rather than using the ordering of the
+            raw ensemble.
+
+        Returns
+        -------
+        Iris cube
+            Cube for post-processed members where at a particular grid point,
             the ranking of the values within the ensemble matches the ranking
             from the raw ensemble.
 
@@ -331,37 +537,64 @@ class EnsembleReordering(object):
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
                 raw_forecast_members.slices_over("time"),
-                calibrated_forecast_percentiles.slices_over("time")):
+                post_processed_forecast_percentiles.slices_over("time")):
             random_data = np.random.random(rawfc.data.shape)
-            # Lexsort returns the indices sorted firstly by the primary key,
-            # the raw forecast data, and secondly by the secondary key, an
-            # array of random data, in order to split tied values randomly.
-            sorting_index = np.lexsort((random_data, rawfc.data), axis=0)
+            # Lexsort returns the indices sorted firstly by the
+            # primary key, the raw forecast data (unless random_ordering
+            # is enabled), and secondly by the secondary key, an array of
+            # random data, in order to split tied values randomly.
+            if random_ordering:
+                fake_rawfc_data = np.random.random(rawfc.data.shape)
+                sorting_index = (
+                    np.lexsort((random_data, fake_rawfc_data), axis=0))
+            else:
+                sorting_index = np.lexsort((random_data, rawfc.data), axis=0)
             # Returns the indices that would sort the array.
             ranking = np.argsort(sorting_index, axis=0)
-            # Index the calibrated forecast data using the ranking array.
+            # Index the post-processed forecast data using the ranking array.
             # np.choose allows indexing of a 3d array using a 3d array,
             calfc.data = np.choose(ranking, calfc.data)
             results.append(calfc)
         return concatenate_cubes(results)
 
-    def process(self):
+    def process(
+            self, post_processed_forecast, raw_forecast,
+            random_ordering=False):
         """
+        Reorder post-processed forecast using the ordering of the
+        raw ensemble.
+
+        Parameters
+        ----------
+        post_processed_forecast : Iris Cube or CubeList
+            The cube or cubelist containing the post-processed
+            forecast members.
+        raw_forecast : Iris Cube or CubeList
+            The cube or cubelist containing the raw (not post-processed)
+            forecast.
+        random_ordering : Logical
+            If random_ordering is True, the post-processed forecasts are
+            reordered randomly, rather than using the ordering of the
+            raw ensemble.
+
         Returns
         -------
-        calibrated_forecast_members : cube
+        post-processed_forecast_members : cube
             Cube for a new ensemble member where all points within the dataset
             are representative of a specified probability threshold across the
             whole domain.
         """
         rename_coordinate(
-            self.raw_forecast, "ensemble_member_id", "realization")
-        calibrated_forecast_percentiles = concatenate_cubes(
-            self.calibrated_forecast,
+            raw_forecast, "ensemble_member_id", "realization")
+        post_processed_forecast_percentiles = concatenate_cubes(
+            post_processed_forecast,
             coords_to_slice_over=["percentile", "time"])
-        raw_forecast_members = concatenate_cubes(self.raw_forecast)
-        calibrated_forecast_members = self.rank_ecc(
-            calibrated_forecast_percentiles, raw_forecast_members)
+        raw_forecast_members = concatenate_cubes(raw_forecast)
+        post_processed_forecast_percentiles, raw_forecast_members = (
+            self.mismatch_between_length_of_raw_members_and_percentiles(
+                post_processed_forecast_percentiles, raw_forecast_members))
+        post_processed_forecast_members = self.rank_ecc(
+            post_processed_forecast_percentiles, raw_forecast_members)
         rename_coordinate(
-            calibrated_forecast_members, "percentile", "realization")
-        return calibrated_forecast_members
+            post_processed_forecast_members, "percentile", "realization")
+        return post_processed_forecast_members
