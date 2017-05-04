@@ -598,7 +598,7 @@ class RoughnessCorrectionUtilities(object):
         mask_rc[(uorig == RMDI).any(axis=2)] = False
         mask_hc = np.copy(self.hcmask)
         mask_hc[(uorig == RMDI).any(axis=2)] = False
-        if not self.l_no_winddownscale:
+        if self.z_0 is not None:
             unew = self.calc_roughness_correction(hgrid, uorig, mask_rc)
         else:
             unew = uorig
