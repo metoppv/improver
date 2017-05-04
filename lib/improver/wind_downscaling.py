@@ -92,16 +92,26 @@ class FrictionVelocity(object):
     def calc_ustar(self):
         """Function to calculate the friction velocity.
 
+        ustar = K * u_href / ln(h_ref / z_0)
+
+        where ustar is the friction velocity, K is Von Karman's
+        constant, u_ref is the wind speed at the reference height,
+        h_ref is the reference height and z_0 is the vegetative
+        roughness length.
+
         Returns:
         --------
         ustar:  2D array (float)
             friction velocity
 
         """
-        ustar = np.ones(self.u_href.shape) * RMDI
-        ustar[self.mask] = VONKARMAN * (self.u_href[self.mask]/np.log
-                                        (self.h_ref[self.mask] /
-                                         self.z_0[self.mask]))
+        ustar = np.full(self.u_href.shape, RMDI)
+        ustar[self.mask] = (
+            VONKARMAN * (
+                self.u_href[self.mask] /
+                np.log(self.h_ref[self.mask] / self.z_0[self.mask])
+            )
+        )
         return ustar
 
 
@@ -111,7 +121,8 @@ class RoughnessCorrectionUtilities(object):
 
     This holds functions to calculate the roughness and height
     corrections given the ancil files:
-    * standard deviation of hight in grid cell as sigma (model grid on pp grid)
+    * standard deviation of height in grid cell as sigma (model grid on
+      pp grid)
     * Silhouette roughness as a_over_s (model grid on pp grid)
     * vegetative roughness length z_0 (model grid on pp grid)
     * post-processing grid orography pporo
@@ -132,7 +143,9 @@ class RoughnessCorrectionUtilities(object):
         ----------
         a_over_s: 2D array (float)
             Silhouette roughness field, dimensionless ancillary data,
-            calculated according to Robinson (2008)
+            calculated according to Robinson, D. (2008) - Ancillary
+            file creation for the UM, Unified Model Documentation Paper
+            73.
         sigma: 2D array (float)
             Standard deviation field of height in the grid cell, units
             of length
@@ -150,26 +163,22 @@ class RoughnessCorrectionUtilities(object):
         """
         self.a_over_s = a_over_s
         self.z_0 = z_0
-        if z_0 is None:
-            self.l_no_winddownscale = True
-        else:
-            self.l_no_winddownscale = False
         self.pporo = pporo
         self.modoro = modoro
         self.h_over_2 = self.sigma2hover2(sigma)  # half peak to trough height
-        self.hcmask, self.rcmask = self.setmask()  # HC mask, RC mask
-        if not self.l_no_winddownscale:
+        self.hcmask, self.rcmask = self._setmask()  # HC mask, RC mask
+        if self.z_0 is not None:
             self.z_0[z_0 <= 0] = Z0M_SEA
         self.dx_min = ppres/2.  # scales smaller than this not resolved in pp
         # the original code had hardcoded 500
         self.dx_max = 3.*modres  # scales larger than this resolved in model
         # the original code had hardcoded 4000
-        self.wavenum = self.calc_wav()  # k = 2*pi / L
-        self.h_ref = self.calc_h_ref()
-        self.refinemask()  # HC mask needs to be updated for missing orography
-        self.h_at0 = self.delta_height()  # pp orography - model orography
+        self.wavenum = self._calc_wav()  # k = 2*pi / L
+        self.h_ref = self._calc_h_ref()
+        self._refinemask()  # HC mask needs to be updated for missing orography
+        self.h_at0 = self._delta_height()  # pp orography - model orography
 
-    def refinemask(self):
+    def _refinemask(self):
         """Remask over RMDI and NaN orography.
 
         The mask for HC needs to be False where either of the
@@ -184,7 +193,7 @@ class RoughnessCorrectionUtilities(object):
         self.hcmask[np.isnan(self.pporo)] = False
         self.hcmask[np.isnan(self.modoro)] = False
 
-    def setmask(self):
+    def _setmask(self):
         """Create a ~land-sea mask.
 
         Create a mask that is basically a land-sea mask:
@@ -206,7 +215,7 @@ class RoughnessCorrectionUtilities(object):
         hcmask[np.isnan(self.h_over_2)] = False
         hcmask[np.isnan(self.a_over_s)] = False
         rcmask = np.copy(hcmask)
-        if not self.l_no_winddownscale:
+        if self.z_0 is not None:
             rcmask[self.z_0 <= 0] = False
             rcmask[np.isnan(self.z_0)] = False
         return hcmask, rcmask
@@ -239,11 +248,11 @@ class RoughnessCorrectionUtilities(object):
             RMDI.
 
         """
-        h_o_2 = np.ones(sigma.shape) * RMDI
+        h_o_2 = np.full(sigma.shape, RMDI)
         h_o_2[sigma > 0] = sigma[sigma > 0] * np.sqrt(2.0)
         return h_o_2
 
-    def calc_wav(self):
+    def _calc_wav(self):
         """Calculate wavenumber k of typical orographic lengthscale.
 
         Function to calculate wavenumber k of typical orographic
@@ -276,15 +285,17 @@ class RoughnessCorrectionUtilities(object):
             wavenumber in units of inverse units of supplied h_over_2.
 
         """
-        wavn = np.ones(self.a_over_s.shape) * RMDI
-        wavn[self.hcmask] = (self.a_over_s[self.hcmask] /
-                             self.h_over_2[self.hcmask]*np.pi)
+        wavn = np.full(self.a_over_s.shape, RMDI)
+        wavn[self.hcmask] = (
+            (self.a_over_s[self.hcmask] * np.pi) /
+            self.h_over_2[self.hcmask]
+        )
         wavn[wavn > np.pi/self.dx_min] = np.pi/self.dx_min
         wavn[self.h_over_2 == 0] = RMDI
         wavn[abs(wavn) < np.pi/self.dx_max] = np.pi/self.dx_max
         return wavn
 
-    def calc_h_ref(self):
+    def _calc_h_ref(self):
         """Calculate the reference height for roughness correction.
 
         The reference height below which the flow is in equilibrium
@@ -296,6 +307,9 @@ class RoughnessCorrectionUtilities(object):
         epsilon (ABSOLUTE_CORRECTION_TOL). The factor alpha
         implements eq. 1.3 in Clark (2009): UK Climatology - Wind
         Screening Tool. See also Vosper (2009) for a motivation.
+        For a freely available external reference, see the Virtual Met
+        Mast Version 1 Methodology and Verification paper under
+        www.thecrownestate.co.uk.
 
         alpha is the log of scale parameter to determine reference
         height which is currently set to 0.04 (this corresponds to
@@ -308,20 +322,23 @@ class RoughnessCorrectionUtilities(object):
 
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
-        aparam = np.ones(self.wavenum.shape) * RMDI
-        h_ref = np.ones(self.wavenum.shape) * RMDI
-        aparam[self.hcmask] = alpha + np.log(self.wavenum[self.hcmask] *
-                                             self.h_over_2[self.hcmask])
-        aparam[aparam > 1.0] = 1.0
-        aparam[aparam < 0.0] = 0.0
-        h_ref[self.hcmask] = aparam[self.hcmask] / self.wavenum[self.hcmask]
+        tunable_param = np.full(self.wavenum.shape, RMDI)
+        h_ref = np.full(self.wavenum.shape, RMDI)
+        tunable_param[self.hcmask] = (
+            alpha + np.log(self.wavenum[self.hcmask] *
+                           self.h_over_2[self.hcmask])
+        )
+        tunable_param[tunable_param > 1.0] = 1.0
+        tunable_param[tunable_param < 0.0] = 0.0
+        h_ref[self.hcmask] = (
+            tunable_param[self.hcmask] / self.wavenum[self.hcmask])
         h_ref[h_ref < 1.0] = 1.0
-        h_ref = np.minimum(h_ref, HREF_SCALE*self.h_over_2)
+        h_ref = np.minimum(h_ref, HREF_SCALE * self.h_over_2)
         h_ref[h_ref < 1.0] = 1.0
         h_ref[~self.hcmask] = 0.0
         return h_ref
 
-    def roughness_correction_sub(self, hgrid, uold, mask):
+    def calc_roughness_correction(self, hgrid, uold, mask):
         """Function to perform the roughness correction.
 
         Parameters:
@@ -339,28 +356,28 @@ class RoughnessCorrectionUtilities(object):
 
         Comments:
             Replace the windspeed profile below the reference height with one
-            that increases logarithmic with height, bound by the original
+            that increases logarithmically with height, bound by the original
             velocity uhref at the reference height h_ref and by a 0 velocity at
             the vegetative roughness height z_0
 
         """
-        uhref = self.calc_u_at_h(uold, hgrid, self.h_ref, mask)
+        uhref = self._calc_u_at_h(uold, hgrid, self.h_ref, mask)
         if hgrid.ndim == 1:
-            hgrid = hgrid.reshape((1, 1, )+(hgrid.shape[0],))
+            hgrid = hgrid[np.newaxis, np.newaxis, :]
         ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
                                  mask).calc_ustar()
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI
-        cond = hgrid < (self.h_ref).reshape(self.h_ref.shape+(1,))
+        cond = hgrid < self.h_ref[:, np.newaxis]
         unew[cond] = (
-            ustar.reshape(ustar.shape+(1,))*np.ones(unew.shape)
+            ustar[:, np.newaxis]*np.ones(unew.shape)
             )[cond] * (
                 np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,)) *
                               np.ones(unew.shape)))[cond])/VONKARMAN
         return unew
 
-    def calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
+    def _calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
         """Function to interpolate u_in on h_in at hhere.
 
         Parameters:
@@ -371,7 +388,9 @@ class RoughnessCorrectionUtilities(object):
             height layer array
         hhere: 2D array (float)
             height grid to interpolate at
-        (dolog: scalar (logial)
+        mask: 2D array (logical)
+            mask the final result for uath
+        (dolog: scalar (logical)
             if True, log interpolation, default False)
 
         Returns:
@@ -387,9 +406,9 @@ class RoughnessCorrectionUtilities(object):
 
         # Ignores the height at the position where u_in is RMDI,"hops over"
         hhere = np.ma.masked_less(hhere, 0.0)
-        upidx = np.argmax(h_in > hhere.reshape(hhere.shape+(1,)), axis=2)
+        upidx = np.argmax(h_in > hhere[:, np.newaxis], axis=2)
         # loidx = np.maximum(upidx-1, 0) #if RMDI, need below
-        loidx = np.argmin(np.ma.masked_less(hhere.reshape(hhere.shape+(1,)) -
+        loidx = np.argmin(np.ma.masked_less(hhere[:, np.newaxis] -
                                             h_in, 0.0), axis=2)
 
         if h_in.ndim == 3:
@@ -409,26 +428,26 @@ class RoughnessCorrectionUtilities(object):
         mask = mask.flatten()
         uath = np.full(mask.shape, RMDI, dtype=float)
         if dolog:
-            uath[mask] = self.loginterpol(hup[mask], hlow[mask],
-                                          hhere.flatten()[mask],
-                                          uup[mask], ulow[mask])
+            uath[mask] = self._interpolate_log(hup[mask], hlow[mask],
+                                               hhere.flatten()[mask],
+                                               uup[mask], ulow[mask])
         else:
-            uath[mask] = self.interp1d(hup[mask], hlow[mask],
-                                       hhere.flatten()[mask],
-                                       uup[mask], ulow[mask])
+            uath[mask] = self._interpolate_1d(hup[mask], hlow[mask],
+                                              hhere.flatten()[mask],
+                                              uup[mask], ulow[mask])
         uath = np.reshape(uath, hhere.shape)
         return uath
 
     @staticmethod
-    def interp1d(xup, xlow, at_x, yup, ylow):
+    def _interpolate_1d(xup, xlow, at_x, yup, ylow):
         """Simple 1D linear interpolation for 2D grid inputs level.
 
         Parameters:
         ----------
-        xlow: 2D np.array (float)
-            lower x-bins
         xup: 2D np.array (float)
             upper x-bins
+        xlow: 2D np.array (float)
+            lower x-bins
         at_x: 2D np.array (float)
             x values to interpolate y at
         yup: 2D np.array(float)
@@ -452,42 +471,42 @@ class RoughnessCorrectionUtilities(object):
         return interp
 
     @staticmethod
-    def loginterpol(x_u, x_l, at_x, y_u, y_l):
+    def _interpolate_log(xup, xlow, at_x, yup, ylow):
         """Simple 1D log interpolation y(x), except if lowest layer is
         ground level.
 
         Parameters:
         ----------
-        x_l: 2D np.array (float)
-            lower x-bins
-        x_u: 2D np.array (float)
+        xup: 2D np.array (float)
             upper x-bins
+        xlow: 2D np.array (float)
+            lower x-bins
         at_x: 2D np.array (float)
             x values to interpolate y at
-        y_u: 2D np.array (float)
-            y(x_u)
-        y_l: 2D np.array (float)
-            y(x_l)
+        yup: 2D np.array(float)
+            y(xup)
+        ylow: 2D np.array (float)
+            y(xlow)
 
         Returns:
         -------
         loginterp: 2D np.array (float)
-            y(at_x) assuming a log function between x_l and x_u
+            y(at_x) assuming a log function between xlow and xup
 
         """
-        ain = np.full(x_u.shape, RMDI, dtype=float)
-        loginterp = np.full(x_u.shape, RMDI, dtype=float)
-        mfrac = x_u/x_l
-        mtest = (x_u/x_l != 1) & (at_x != x_u)
-        ain[mtest] = (y_u[mtest] - y_l[mtest])/np.log(mfrac[mtest])
-        loginterp[mtest] = ain[mtest]*np.log(at_x[mtest]/x_u[mtest])+y_u[mtest]
-        mtest = (x_u/x_l == 1)  # below lowest layer, make lin interp
-        loginterp[mtest] = at_x[mtest]/x_u[mtest] * (y_u[mtest])
-        mtest = (at_x == x_u)  # just use y_u
-        loginterp[mtest] = y_u[mtest]
+        ain = np.full(xup.shape, RMDI, dtype=float)
+        loginterp = np.full(xup.shape, RMDI, dtype=float)
+        mfrac = xup/xlow
+        mtest = (xup/xlow != 1) & (at_x != xup)
+        ain[mtest] = (yup[mtest] - ylow[mtest])/np.log(mfrac[mtest])
+        loginterp[mtest] = ain[mtest]*np.log(at_x[mtest]/xup[mtest])+yup[mtest]
+        mtest = (xup/xlow == 1)  # below lowest layer, make lin interp
+        loginterp[mtest] = at_x[mtest]/xup[mtest] * (yup[mtest])
+        mtest = (at_x == xup)  # just use yup
+        loginterp[mtest] = yup[mtest]
         return loginterp
 
-    def height_corr_sub(self, u_a, heightg, mask, onemfrac):
+    def _calc_height_corr(self, u_a, heightg, mask, onemfrac):
         """Function to calculate the additive height correction.
 
         Parameters:
@@ -496,6 +515,8 @@ class RoughnessCorrectionUtilities(object):
             outer velocity, e.g. velocity at h_ref_orig
         heightg: 1D or 3D array
             heights above orography
+        mask: 3D array(logical)
+            Masks the hc_add result
         onemfrac: currently, scalar = 1.
             In principle, it is a function of position and height, e.g.
             a 3D array (float)
@@ -511,30 +532,32 @@ class RoughnessCorrectionUtilities(object):
             offset h_at0 (the higher the unresolved hill), the larger
             is the disturbance.
 
-            The more smooth the distrubance (the larger the horizontal
+            The more smooth the disturbance (the larger the horizontal
             scale of the disturbance), the smaller the height
             correction (hence, a larger wavenumber results in a larger
             disturbance).
-            hc_add = exp(-height*wavenumber)*u(href)*h_at_0*k
+            hc_add = exp(-height*wavenumber)*u(href)*h_at_0*wavenumber
+
+            A final factor of 1 is assumed and omitted for the Bessel
+            function term.
 
         """
         (xdim, ydim) = u_a.shape
         if heightg.ndim == 1:
             zdim = heightg.shape[0]
-            heightg = heightg.reshape((1, 1, zdim))
+            heightg = heightg[np.newaxis, np.newaxis, :]
         elif heightg.ndim == 3:
             zdim = heightg.shape[2]
         ml2 = self.h_at0*self.wavenum
         expon = np.ones([xdim, ydim, zdim])
-        mult = (self.wavenum).reshape(self.wavenum.shape+(1,))*heightg
+        mult = self.wavenum[:, np.newaxis]*heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
-            expon*u_a.reshape(u_a.shape+(1,)) *
-            ml2.reshape(ml2.shape+(1,))*onemfrac)
+            expon*u_a[:, np.newaxis] * ml2[:, np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
-    def delta_height(self):
+    def _delta_height(self):
         """Function to calculate pp-grid diff from model grid.
 
         Calculate the difference between pp-grid height and model
@@ -542,7 +565,7 @@ class RoughnessCorrectionUtilities(object):
 
         Returns:
         -------
-        deltZ: 2D np.array (float)
+        delt_z: 2D np.array (float)
             height difference, ppgrid-model
 
         """
@@ -550,7 +573,7 @@ class RoughnessCorrectionUtilities(object):
         delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
         return delt_z
 
-    def do_rc_hc_all(self, hgrid, uorig):
+    def _do_rc_hc_all(self, hgrid, uorig):
         """Function to call HC and RC (height and roughness corrections).
 
         Parameters:
@@ -576,14 +599,14 @@ class RoughnessCorrectionUtilities(object):
         mask_hc = np.copy(self.hcmask)
         mask_hc[(uorig == RMDI).any(axis=2)] = False
         if not self.l_no_winddownscale:
-            unew = self.roughness_correction_sub(hgrid, uorig, mask_rc)
+            unew = self.calc_roughness_correction(hgrid, uorig, mask_rc)
         else:
             unew = uorig
-        uhref_orig = self.calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
+        uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
         mask_hc[uhref_orig <= 0] = False
         onemfrac = 1.0
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
-        hc_add = self.height_corr_sub(uhref_orig, hgrid, mask_hc, onemfrac)
+        hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
         result[result < 0.] = 0  # HC can be negative if pporo<modeloro
         return result
@@ -953,8 +976,8 @@ class RoughnessCorrection(object):
                 msg = ('{} has invalid wind data')
                 raise ValueError(msg.format(time_slice.coord(self.t_name)))
             rc_hc = copy.deepcopy(time_slice)
-            rc_hc.data = roughness_correction.do_rc_hc_all(hld,
-                                                           time_slice.data)
+            rc_hc.data = roughness_correction._do_rc_hc_all(hld,
+                                                            time_slice.data)
             rchc_list.append(rc_hc)
         cube = rchc_list.merge()[0]
         # reorder wind and cube as original
