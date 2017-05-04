@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Functions for use within unit tests for `plugins_ensemble_calibration` plugins.
+Functions for use within unit tests for `ensemble_calibration` plugins.
 
 """
 
@@ -39,7 +39,7 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 import numpy as np
 
-from improver.ensemble_calibration_utilities import (
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
 
 

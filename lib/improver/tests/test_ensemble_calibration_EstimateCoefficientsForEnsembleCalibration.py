@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`plugins_ensemble_calibration.EstimateCoefficientsForEnsembleCalibration`
+`ensemble_calibration.EstimateCoefficientsForEnsembleCalibration`
 class.
 
 """
@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 import numpy as np
 import warnings
 
-from improver.ensemble_calibration import (
+from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, set_up_wind_speed_cube,
@@ -91,9 +91,7 @@ class Test__init__(IrisTest):
 
         if not statsmodels_found:
             with warnings.catch_warnings(record=True) as warning_list:
-                plugin = Plugin(current_forecast_predictor,
-                                historic_forecasts, truth, distribution,
-                                desired_units,
+                plugin = Plugin(distribution, desired_units,
                                 predictor_of_mean_flag=predictor_of_mean_flag)
                 self.assertTrue(len(warning_list) == 0)
 
@@ -130,9 +128,7 @@ class Test__init__(IrisTest):
 
         if not statsmodels_found:
             with warnings.catch_warnings(record=True) as warning_list:
-                plugin = Plugin(current_forecast_predictor,
-                                historic_forecasts, truth, distribution,
-                                desired_units,
+                plugin = Plugin(distribution, desired_units,
                                 predictor_of_mean_flag=predictor_of_mean_flag)
                 self.assertTrue(len(warning_list) == 1)
                 self.assertTrue(any(item.category == UserWarning
@@ -157,14 +153,6 @@ class Test_compute_initial_guess(IrisTest):
         """
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
         truth = cube.collapsed("realization", iris.analysis.MAX)
@@ -173,10 +161,7 @@ class Test_compute_initial_guess(IrisTest):
         predictor_of_mean_flag = "mean"
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
@@ -190,14 +175,6 @@ class Test_compute_initial_guess(IrisTest):
         """
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.copy()
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
@@ -206,9 +183,7 @@ class Test_compute_initial_guess(IrisTest):
         no_of_members = 3
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
@@ -226,14 +201,6 @@ class Test_compute_initial_guess(IrisTest):
 
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
         truth = cube.collapsed("realization", iris.analysis.MAX)
@@ -242,9 +209,7 @@ class Test_compute_initial_guess(IrisTest):
         predictor_of_mean_flag = "mean"
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
@@ -260,14 +225,6 @@ class Test_compute_initial_guess(IrisTest):
         data = [1, 1, 0, 1, 1, 1]
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
         truth = cube.collapsed("realization", iris.analysis.MAX)
@@ -277,9 +234,7 @@ class Test_compute_initial_guess(IrisTest):
         no_of_members = 3
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
@@ -296,14 +251,6 @@ class Test_compute_initial_guess(IrisTest):
 
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
         truth = cube.collapsed("realization", iris.analysis.MAX)
@@ -312,9 +259,7 @@ class Test_compute_initial_guess(IrisTest):
         predictor_of_mean_flag = "mean"
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
@@ -343,14 +288,6 @@ class Test_compute_initial_guess(IrisTest):
 
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
@@ -359,9 +296,7 @@ class Test_compute_initial_guess(IrisTest):
         no_of_members = 3
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
@@ -379,14 +314,6 @@ class Test_compute_initial_guess(IrisTest):
 
         cube = self.cube
 
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
         truth = cube.collapsed("realization", iris.analysis.MAX)
@@ -397,9 +324,7 @@ class Test_compute_initial_guess(IrisTest):
 
         current_forecast_predictor.data[0][0][0] = np.nan
 
-        plugin = Plugin(current_forecast_predictor,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
@@ -445,10 +370,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
         self.assertIsInstance(optimised_coeffs, dict)
         self.assertIsInstance(coeff_names, list)
@@ -475,10 +399,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
         for key in optimised_coeffs.keys():
@@ -503,11 +426,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
         for key in optimised_coeffs.keys():
@@ -544,11 +465,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         desired_units = "degreesC"
         predictor_of_mean_flag = "members"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units,
+        plugin = Plugin(distribution, desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr()
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
         for key in optimised_coeffs.keys():
@@ -585,11 +505,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         desired_units = "m s^-1"
         predictor_of_mean_flag = "members"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units,
+        plugin = Plugin(distribution, desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr()
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
         for key in optimised_coeffs.keys():
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
@@ -609,13 +528,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "fake"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
         msg = "Distribution requested"
         with self.assertRaisesRegexp(KeyError, msg):
-            plugin.estimate_coefficients_for_ngr()
+            plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
 
     def test_truth_unit_conversion(self):
         """
@@ -636,11 +553,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
         for key in optimised_coeffs.keys():
@@ -665,11 +580,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
         for key in optimised_coeffs.keys():
@@ -694,11 +607,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
-        result = plugin.estimate_coefficients_for_ngr()
+        plugin = Plugin(distribution, desired_units)
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
         for key in optimised_coeffs.keys():
@@ -718,13 +629,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
         msg = "The input data within the"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.estimate_coefficients_for_ngr()
+            plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
 
     def test_historic_forecast_is_empty_cubelist(self):
         """
@@ -743,12 +652,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr()
+        result = plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
         self.assertFalse(optimised_coeffs)
         self.assertItemsEqual(coeff_names, desired_coeff_names)
@@ -767,14 +674,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -795,14 +700,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -823,13 +726,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -850,14 +752,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -878,14 +778,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -906,13 +804,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution, desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -934,14 +831,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
 
-        plugin = Plugin(current_forecast,
-                        historic_forecasts,
-                        truth, distribution,
-                        desired_units)
+        plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr()
+            result = plugin.estimate_coefficients_for_ngr(
+                current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))

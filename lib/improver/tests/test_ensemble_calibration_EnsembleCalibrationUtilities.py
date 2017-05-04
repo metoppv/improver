@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the `utilities_ensemble_calibration`
+Unit tests for the utilities within the `ensemble_calibration_utilities`
 module.
 
 """
@@ -43,7 +43,7 @@ from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration_utilities import (
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, concatenate_cubes,
     _associate_any_coordinate_with_master_coordinate,
     _slice_over_coordinate, _strip_var_names, rename_coordinate, _renamer,

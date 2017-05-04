@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the `plugins_ensemble_calibration.EnsembleCalibration` class.
+Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 
 """
 import unittest
@@ -38,7 +38,8 @@ from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration import EnsembleCalibration as Plugin
+from improver.ensemble_calibration.ensemble_calibration import (
+    EnsembleCalibration as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, set_up_wind_speed_cube,
     _add_forecast_reference_time_and_forecast_period,
@@ -80,12 +81,11 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
-        plugin = Plugin(
+        plugin = Plugin(calibration_method, distribution, desired_units)
+        result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units)
-        result = plugin.process()
+            self.temperature_truth_cube)
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
@@ -100,12 +100,12 @@ class Test_process(IrisTest):
         desired_units = "degreesC"
         predictor_of_mean_flag = "members"
         plugin = Plugin(
+            calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag)
+        result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process()
+            self.temperature_truth_cube)
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
@@ -118,12 +118,11 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        plugin = Plugin(
+        plugin = Plugin(calibration_method, distribution, desired_units)
+        result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube, calibration_method,
-            distribution, desired_units)
-        result = plugin.process()
+            self.wind_speed_truth_cube)
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
@@ -138,12 +137,12 @@ class Test_process(IrisTest):
         desired_units = "m s^-1"
         predictor_of_mean_flag = "members"
         plugin = Plugin(
+            calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag)
+        result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube, calibration_method,
-            distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process()
+            self.wind_speed_truth_cube)
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
@@ -166,12 +165,11 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output_statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
-        plugin = Plugin(
+        plugin = Plugin(calibration_method, distribution, desired_units)
+        result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units)
-        result = plugin.process()
+            self.temperature_truth_cube)
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
@@ -214,12 +212,12 @@ class Test_process(IrisTest):
         desired_units = "degreesC"
         predictor_of_mean_flag = "members"
         plugin = Plugin(
+            calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag)
+        result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process()
+            self.temperature_truth_cube)
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
@@ -242,12 +240,11 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        plugin = Plugin(
+        plugin = Plugin(calibration_method, distribution, desired_units)
+        result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube, calibration_method,
-            distribution, desired_units)
-        result = plugin.process()
+            self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
@@ -290,12 +287,12 @@ class Test_process(IrisTest):
         desired_units = "m s^-1"
         predictor_of_mean_flag = "members"
         plugin = Plugin(
+            calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag)
+        result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube, calibration_method,
-            distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process()
+            self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
@@ -307,12 +304,11 @@ class Test_process(IrisTest):
         calibration_method = "nonhomogeneous gaussian regression"
         distribution = "gaussian"
         desired_units = "degreesC"
-        plugin = Plugin(
+        plugin = Plugin(calibration_method, distribution, desired_units)
+        result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units)
-        result = plugin.process()
+            self.temperature_truth_cube)
         self.assertIsInstance(result, CubeList)
 
     def test_unknown_calibration_method(self):
@@ -324,14 +320,13 @@ class Test_process(IrisTest):
         calibration_method = "unknown"
         distribution = "gaussian"
         desired_units = "degreesC"
-        plugin = Plugin(
-            self.current_temperature_forecast_cube,
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube, calibration_method,
-            distribution, desired_units)
+        plugin = Plugin(calibration_method, distribution, desired_units)
         msg = "unknown"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process()
+            plugin.process(
+                self.current_temperature_forecast_cube,
+                self.historic_temperature_forecast_cube,
+                self.temperature_truth_cube)
 
 
 if __name__ == '__main__':

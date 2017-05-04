@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`plugins_ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers`
+`ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers`
 class.
 
 """
@@ -43,9 +43,10 @@ import numpy as np
 from scipy.optimize import OptimizeResult
 import warnings
 
-from improver.ensemble_calibration import (
+from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin)
-from improver.ensemble_calibration_utilities import convert_cube_data_to_2d
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
+    convert_cube_data_to_2d)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, set_up_wind_speed_cube)
 

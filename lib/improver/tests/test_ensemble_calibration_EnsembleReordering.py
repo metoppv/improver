@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the `plugins_ensemble_calibration.EnsembleReordering`
+Unit tests for the `ensemble_calibration.EnsembleReordering`
 class.
 
 """
@@ -39,7 +39,8 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration import EnsembleReordering as Plugin
+from improver.ensemble_calibration.ensemble_calibration import (
+    EnsembleReordering as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube,
     _add_forecast_reference_time_and_forecast_period)
@@ -85,7 +86,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube.copy()
         calibrated_cube.data = calibrated_data
 
-        plugin = Plugin(calibrated_cube, raw_cube)
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         self.assertIsInstance(result, Cube)
 
@@ -112,7 +113,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube.copy()
         calibrated_cube.data = calibrated_data
 
-        plugin = Plugin(calibrated_cube, raw_cube)
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         result.transpose([1, 0, 2, 3])
         self.assertArrayAlmostEqual(result.data, calibrated_data)
@@ -163,8 +164,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = self.cube.copy()
         calibrated_cube.data = calibrated_data
 
-        plugin = Plugin(calibrated_cube, raw_cube)
-
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         result.transpose([1, 0, 2, 3])
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -198,7 +198,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = cube.copy()
         calibrated_cube.data = calibrated_data
 
-        plugin = Plugin(calibrated_cube, raw_cube)
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
 
         result.transpose([1, 0, 2])
@@ -243,7 +243,7 @@ class Test_rank_ecc(IrisTest):
 
         calibrated_cube = cube.copy()
         calibrated_cube.data = calibrated_data
-        plugin = Plugin(calibrated_cube, raw_cube)
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         result.transpose([1, 0, 2])
 
@@ -286,7 +286,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = cube.copy()
         calibrated_cube.data = calibrated_data
 
-        plugin = Plugin(calibrated_cube, raw_cube)
+        plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         result.transpose([1, 0])
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -310,8 +310,8 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        plugin = Plugin(self.raw_cube, self.calibrated_cube)
-        result = plugin.process()
+        plugin = Plugin()
+        result = plugin.process(self.raw_cube, self.calibrated_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
 

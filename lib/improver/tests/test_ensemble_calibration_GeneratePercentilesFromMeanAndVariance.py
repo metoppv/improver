@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`plugins_ensemble_calibration.GeneratePercentilesFromMeanAndVariance`
+`ensemble_calibration.GeneratePercentilesFromMeanAndVariance`
 class.
 
 """
@@ -42,7 +42,7 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_calibration import (
+from improver.ensemble_calibration.ensemble_calibration import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
@@ -63,7 +63,7 @@ class Test__create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube_data = cube.data + 2
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertIsInstance(result, Cube)
@@ -79,7 +79,7 @@ class Test__create_cube_with_percentiles(IrisTest):
             [len(percentiles), len(cube.coord("time").points),
              len(cube.coord("latitude").points),
              len(cube.coord("longitude").points)])
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertEqual(cube_data.shape, result.data.shape)
@@ -95,7 +95,7 @@ class Test__create_cube_with_percentiles(IrisTest):
             [len(percentiles), len(cube.coord("time").points),
              len(cube.coord("latitude").points),
              len(cube.coord("longitude").points)])
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         msg = "could not convert string to float"
         with self.assertRaisesRegexp(ValueError, msg):
             plugin._create_cube_with_percentiles(
@@ -109,7 +109,7 @@ class Test__create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube_data = cube.data + 2
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
@@ -152,7 +152,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
             percentiles)
@@ -194,7 +194,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
             percentiles)
@@ -233,7 +233,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
             percentiles)
@@ -276,7 +276,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
             percentiles)
@@ -295,7 +295,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = np.linspace(0.01, 0.99, num=1000, endpoint=True)
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance, percentiles)
         self.assertIsInstance(result, Cube)
@@ -313,7 +313,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         current_forecast_predictor_and_variance = (
             current_forecast_predictor, current_forecast_variance)
         percentiles = [-0.1, 0.1]
-        plugin = Plugin(current_forecast_predictor_and_variance, cube)
+        plugin = Plugin()
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegexp(ValueError, msg):
             result = plugin._mean_and_variance_to_percentiles(
@@ -338,7 +338,7 @@ class Test_create_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_percentiles(no_of_percentiles)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), no_of_percentiles)
@@ -352,7 +352,7 @@ class Test_create_percentiles(IrisTest):
 
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_percentiles(no_of_percentiles)
         self.assertArrayAlmostEqual(result, data)
 
@@ -363,7 +363,7 @@ class Test_create_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
         result = plugin._create_percentiles(
             no_of_percentiles, sampling="random")
         self.assertIsInstance(result, list)
@@ -376,7 +376,7 @@ class Test_create_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        plugin = Plugin([cube, cube], cube)
+        plugin = Plugin()
 
         msg = "The unknown sampling option is not yet implemented"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -406,8 +406,8 @@ class Test_process(IrisTest):
         predictor_and_variance = CubeList(
             [current_forecast_predictor, current_forecast_variance])
 
-        plugin = Plugin(predictor_and_variance, raw_forecast)
-        result = plugin.process()
+        plugin = Plugin()
+        result = plugin.process(predictor_and_variance, raw_forecast)
         self.assertIsInstance(result, Cube)
 
     def test_number_of_percentiles(self):
@@ -425,8 +425,8 @@ class Test_process(IrisTest):
         predictor_and_variance = CubeList(
             [current_forecast_predictor, current_forecast_variance])
 
-        plugin = Plugin(predictor_and_variance, raw_forecast)
-        result = plugin.process()
+        plugin = Plugin()
+        result = plugin.process(predictor_and_variance, raw_forecast)
         self.assertEqual(len(raw_forecast.coord("realization").points),
                          len(result.coord("percentile").points))
 
