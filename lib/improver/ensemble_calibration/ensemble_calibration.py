@@ -370,12 +370,12 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     def __str__(self):
         result = ('<EstimateCoefficientsForEnsembleCalibration: '
                   'distribution: {};' +
-                  'current_forecast: {}>' +
-                  'historic_forecast: {}>' +
-                  'truth')
+                  'desired_units: {}>' +
+                  'predictor_of_mean_flag: {}>' +
+                  'minimiser: {}')
         return result.format(
-            self.distribution, self.current_forecast,
-            self.historic_forecast, self.truth)
+            self.distribution, self.desired_units,
+            self.predictor_of_mean_flag, self.minimiser)
 
     def compute_initial_guess(
             self, truth, forecast_predictor, predictor_of_mean_flag,
