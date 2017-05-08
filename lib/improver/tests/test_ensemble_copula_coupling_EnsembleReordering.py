@@ -460,14 +460,14 @@ class Test_rank_ecc(IrisTest):
 
         if err_count == 6:
             raise ValueError("Exceptions raised as all accepted forms of the "
-                              "calibrated data were not matched."
-                              "1. {}"
-                              "2. {}"
-                              "3. {}"
-                              "4. {}"
-                              "5. {}"
-                              "6. {}".format(err1, err2, err3,
-                                             err4, err5, err6))
+                             "calibrated data were not matched."
+                             "1. {}"
+                             "2. {}"
+                             "3. {}"
+                             "4. {}"
+                             "5. {}"
+                             "6. {}".format(err1, err2, err3,
+                                            err4, err5, err6))
 
 
 class Test_process(IrisTest):
