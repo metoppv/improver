@@ -36,7 +36,6 @@ Unit tests for the
 import unittest
 
 import iris
-from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
@@ -83,8 +82,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
@@ -125,8 +122,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
@@ -164,8 +159,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
@@ -207,8 +200,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
@@ -226,8 +217,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = np.linspace(0.01, 0.99, num=1000, endpoint=True)
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
@@ -244,8 +233,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [-0.1, 0.1]
         plugin = Plugin()
         msg = "NaNs are present within the result for the"
@@ -259,7 +246,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cube containing mean and variance is passed in.
         The resulting data values are the percentiles, which have been
-        generated.
+        generated for a spot forecast.
         """
         data = np.array([[[225.56812863, 236.81812863, 248.06812863,
                            259.31812863, 270.56812863, 281.81812863,
@@ -276,8 +263,6 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        current_forecast_predictor_and_variance = (
-            current_forecast_predictor, current_forecast_variance)
         percentiles = [0.1, 0.5, 0.9]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(

@@ -32,12 +32,10 @@
 This module defines the plugins required for Ensemble Copula Coupling.
 
 """
-import copy
 import numpy as np
-import random
 from scipy.stats import norm
 
-import cf_units as unit
+
 import iris
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
@@ -389,9 +387,9 @@ class EnsembleReordering(object):
         Returns
         -------
         Iris cube
-            Cube for post-processed members where at a particular grid point,
-            the ranking of the values within the ensemble matches the ranking
-            from the raw ensemble.
+            Cube for the raw ensemble forecast, where the raw ensemble members
+            have either been recycled or constrained, depending upon the
+            number of percentiles present in the post-processed forecast cube.
 
         """
         plen = len(
@@ -412,7 +410,7 @@ class EnsembleReordering(object):
                 raw_forecast_members_extended.append(raw_forecast_member)
             raw_forecast_members = (
                 concatenate_cubes(raw_forecast_members_extended))
-        return post_processed_forecast_percentiles, raw_forecast_members
+        return raw_forecast_members
 
     def rank_ecc(
             self, post_processed_forecast_percentiles, raw_forecast_members,
@@ -498,11 +496,12 @@ class EnsembleReordering(object):
             post_processed_forecast,
             coords_to_slice_over=["percentile", "time"])
         raw_forecast_members = concatenate_cubes(raw_forecast)
-        post_processed_forecast_percentiles, raw_forecast_members = (
+        raw_forecast_members = (
             self.mismatch_between_length_of_raw_members_and_percentiles(
                 post_processed_forecast_percentiles, raw_forecast_members))
         post_processed_forecast_members = self.rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            random_ordering=random_ordering)
         rename_coordinate(
             post_processed_forecast_members, "percentile", "realization")
         return post_processed_forecast_members

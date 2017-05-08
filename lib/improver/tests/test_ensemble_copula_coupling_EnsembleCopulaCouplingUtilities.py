@@ -34,17 +34,15 @@ Unit tests for the
 """
 import unittest
 
-import iris
 from iris.coords import DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import create_percentiles, create_cube_with_percentiles
 from improver.tests.helper_functions_ensemble_calibration import (
-    set_up_spot_temperature_cube, set_up_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
 
 
 class Test_create_cube_with_percentiles(IrisTest):
@@ -129,18 +127,11 @@ class Test_create_percentiles(IrisTest):
 
     """Test the create_percentiles plugin."""
 
-    def setUp(self):
-        """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
-
     def test_basic(self):
         """
         Test that the plugin returns a list with the expected number of
         percentiles.
         """
-        cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
         result = create_percentiles(no_of_percentiles)
         self.assertIsInstance(result, list)
@@ -152,8 +143,6 @@ class Test_create_percentiles(IrisTest):
         for the percentiles.
         """
         data = np.array([0.25, 0.5, 0.75])
-
-        cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
         result = create_percentiles(no_of_percentiles)
         self.assertArrayAlmostEqual(result, data)
@@ -163,7 +152,6 @@ class Test_create_percentiles(IrisTest):
         Test that the plugin returns a list with the expected number of
         percentiles, if the random sampling option is selected.
         """
-        cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
         result = create_percentiles(no_of_percentiles, sampling="random")
         self.assertIsInstance(result, list)
@@ -174,7 +162,6 @@ class Test_create_percentiles(IrisTest):
         Test that the plugin returns the expected error message,
         if an unknown sampling option is selected.
         """
-        cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
         msg = "The unknown sampling option is not yet implemented"
         with self.assertRaisesRegexp(ValueError, msg):

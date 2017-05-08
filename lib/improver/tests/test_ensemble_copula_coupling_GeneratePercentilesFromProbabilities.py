@@ -38,9 +38,8 @@ import numpy as np
 import unittest
 
 from cf_units import Unit
-import iris
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -73,21 +72,24 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
 def set_up_temperature_cube():
     """Create a cube with metadata and values suitable for air temperature."""
     data = np.array([[[[1.0, 0.9, 1.0],
-                      [0.8, 0.9, 0.5],
-                      [0.5, 0.2, 0.0]]],
-                    [[[1.0, 0.5, 1.0],
-                      [0.5, 0.5, 0.3],
-                      [0.2, 0.0, 0.0]]],
-                    [[[1.0, 0.2, 0.5],
-                      [0.2, 0.0, 0.1],
-                      [0.0, 0.0, 0.0]]]])
+                       [0.8, 0.9, 0.5],
+                       [0.5, 0.2, 0.0]]],
+                     [[[1.0, 0.5, 1.0],
+                       [0.5, 0.5, 0.3],
+                       [0.2, 0.0, 0.0]]],
+                     [[[1.0, 0.2, 0.5],
+                       [0.2, 0.0, 0.1],
+                       [0.0, 0.0, 0.0]]]])
     return set_up_cube(data, "air_temperature", "1")
 
 
 def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units,
                      forecast_thresholds=[8, 10, 12],
                      y_dimension_length=9, x_dimension_length=9):
-    """Create a cube containing multiple realizations."""
+    """
+    Create a cube containing multiple realizations, where one of the
+    dimensions is an index used for spot forecasts.
+    """
     cube = Cube(data, standard_name=phenomenon_standard_name,
                 units=phenomenon_units)
     cube.add_dim_coord(
@@ -108,7 +110,10 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units,
 
 
 def set_up_spot_temperature_cube():
-    """Create a cube with metadata and values suitable for air temperature."""
+    """
+    Create a cube with metadata and values suitable for air temperature
+    for spot forecasts.
+    """
     data = np.array([[[1.0, 0.9, 1.0,
                        0.8, 0.9, 0.5,
                        0.5, 0.2, 0.0]],
@@ -145,7 +150,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_check_data(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles.
+        """
         data = np.array([[[[15.8, 31., 46.2],
                            [8., 10., 31.],
                            [10.4, 12., 42.4]]],
@@ -165,7 +173,11 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_check_single_threshold(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles, if a single threshold is used for
+        constructing the percentiles.
+        """
         data = np.array([[[[12.2, 29., 45.8],
                            [8., 26.66666667, 45.33333333],
                            [12.2, 29., 45.8]]],
@@ -188,7 +200,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_lots_of_probability_thresholds(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles, if there are lots of thresholds.
+        """
         input_probs_1d = np.linspace(1, 0, 30)
         input_probs = np.tile(input_probs_1d, (3, 3, 1, 1)).T
 
@@ -215,7 +230,11 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_lots_of_percentiles(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles, if lots of percentile values are
+        requested.
+        """
         data = np.array([[[[13.9, 15.8, 17.7],
                            [19.6, 21.5, 23.4],
                            [25.3, 27.2, 29.1]]],
@@ -263,7 +282,7 @@ class Test__probabilities_to_percentiles(IrisTest):
                            [11.5, -37., -34.]]],
                          [[[-31., -28., -25.],
                            [-22., -19., -16.],
-                           [-13., -10.,  -7.]]],
+                           [-13., -10., -7.]]],
                          [[[-4., -1., 2.],
                            [5., 8., 8.5],
                            [9., 9.5, -37.6]]],
@@ -282,7 +301,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_check_data_spot_forecasts(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles for spot forecasts.
+        """
         data = np.array([[[15.8, 31., 46.2,
                            8., 10., 31.,
                            10.4, 12., 42.4]],
@@ -312,7 +334,10 @@ class Test_process(IrisTest):
                 set_up_temperature_cube()))
 
     def test_check_data_specifying_percentiles(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for a specific number of percentiles.
+        """
         data = np.array([[[[21.5, 31., 40.5],
                            [8.75, 10., 11.66666667],
                            [11., 12., 31.]]],
@@ -331,7 +356,10 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_check_data_not_specifying_percentiles(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values without specifying the number of percentiles.
+        """
         data = np.array([[[[21.5, 31., 40.5],
                            [8.75, 10., 11.66666667],
                            [11., 12., 31.]]],
