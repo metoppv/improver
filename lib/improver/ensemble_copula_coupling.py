@@ -40,7 +40,7 @@ from scipy.stats import norm
 import cf_units as unit
 import iris
 
-from ensemble_calibration_utilities import (
+from ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
 from ensemble_copula_coupling_constants import bounds_for_ecdf
 

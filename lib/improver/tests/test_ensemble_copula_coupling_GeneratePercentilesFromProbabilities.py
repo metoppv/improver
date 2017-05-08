@@ -166,7 +166,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = (
             _add_forecast_reference_time_and_forecast_period(
                 set_up_cube(input_probs, "air_temperature", "1",
-                    forecast_thresholds=temperature_values)))
+                            forecast_thresholds=temperature_values)))
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -176,7 +176,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
     def test_lots_of_percentiles(self):
         """Test that the plugin returns an Iris.cube.Cube."""
-        data = np.array([[[[ 13.9, 15.8, 17.7],
+        data = np.array([[[[13.9, 15.8, 17.7],
                            [19.6, 21.5, 23.4],
                            [25.3, 27.2, 29.1]]],
                          [[[31., 32.9, 34.8],
