@@ -118,7 +118,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         """
         Test to check the behaviour whether the number of percentiles equals
         the number of members. For when the length of the percentiles equals
-        the length of the members, check that the points of the realization 
+        the length of the members, check that the points of the realization
         coordinate is as expected.
         """
         data = [0, 1, 2]
