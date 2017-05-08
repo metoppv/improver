@@ -40,10 +40,11 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_copula_coupling import (
-    EnsembleCopulaCouplingUtilities as Plugin)
-from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
+    import create_percentiles, create_cube_with_percentiles
+from improver.tests.helper_functions_ensemble_calibration import (
+    set_up_spot_temperature_cube, set_up_temperature_cube,
+    _add_forecast_reference_time_and_forecast_period)
 
 
 class Test_create_cube_with_percentiles(IrisTest):
@@ -55,13 +56,16 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
+        self.current_temperature_spot_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_temperature_cube()))
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         cube = self.current_temperature_forecast_cube
         cube_data = cube.data + 2
         percentiles = [0.1, 0.5, 0.9]
-        result = Plugin.create_cube_with_percentiles(
+        result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertIsInstance(result, Cube)
 
@@ -76,7 +80,7 @@ class Test_create_cube_with_percentiles(IrisTest):
             [len(percentiles), len(cube.coord("time").points),
              len(cube.coord("latitude").points),
              len(cube.coord("longitude").points)])
-        result = Plugin.create_cube_with_percentiles(
+        result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertEqual(cube_data.shape, result.data.shape)
 
@@ -93,8 +97,7 @@ class Test_create_cube_with_percentiles(IrisTest):
              len(cube.coord("longitude").points)])
         msg = "could not convert string to float"
         with self.assertRaisesRegexp(ValueError, msg):
-            Plugin.create_cube_with_percentiles(
-                percentiles, cube, cube_data)
+            create_cube_with_percentiles(percentiles, cube, cube_data)
 
     def test_percentile_points(self):
         """
@@ -104,8 +107,19 @@ class Test_create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube_data = cube.data + 2
         percentiles = [0.1, 0.5, 0.9]
-        result = Plugin.create_cube_with_percentiles(
+        result = create_cube_with_percentiles(percentiles, cube, cube_data)
+        self.assertIsInstance(result.coord("percentile"), DimCoord)
+        self.assertArrayAlmostEqual(
+            result.coord("percentile").points, percentiles)
+
+    def test_spot_forecasts_percentile_points(self):
+        """Test that the plugin returns an Iris.cube.Cube."""
+        cube = self.current_temperature_spot_forecast_cube
+        cube_data = cube.data + 2
+        percentiles = [0.1, 0.5, 0.9]
+        result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
+        self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
         self.assertArrayAlmostEqual(
             result.coord("percentile").points, percentiles)
@@ -128,7 +142,7 @@ class Test_create_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        result = Plugin.create_percentiles(no_of_percentiles)
+        result = create_percentiles(no_of_percentiles)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), no_of_percentiles)
 
@@ -141,7 +155,7 @@ class Test_create_percentiles(IrisTest):
 
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        result = Plugin.create_percentiles(no_of_percentiles)
+        result = create_percentiles(no_of_percentiles)
         self.assertArrayAlmostEqual(result, data)
 
     def test_random(self):
@@ -151,8 +165,7 @@ class Test_create_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
-        result = Plugin.create_percentiles(
-            no_of_percentiles, sampling="random")
+        result = create_percentiles(no_of_percentiles, sampling="random")
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), no_of_percentiles)
 
@@ -165,5 +178,8 @@ class Test_create_percentiles(IrisTest):
         no_of_percentiles = 3
         msg = "The unknown sampling option is not yet implemented"
         with self.assertRaisesRegexp(ValueError, msg):
-            Plugin.create_percentiles(
-                no_of_percentiles, sampling="unknown")
+            create_percentiles(no_of_percentiles, sampling="unknown")
+
+
+if __name__ == '__main__':
+    unittest.main()

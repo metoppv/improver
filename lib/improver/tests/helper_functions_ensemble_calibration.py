@@ -35,7 +35,7 @@ Functions for use within unit tests for `ensemble_calibration` plugins.
 
 from cf_units import Unit
 import iris
-from iris.coords import DimCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 import numpy as np
 
@@ -69,6 +69,36 @@ def set_up_temperature_cube():
     data[1] += 2
     data[2] += 4
     return set_up_cube(data, "air_temperature", "K")
+
+
+def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
+    """Create a cube containing multiple realizations."""
+    cube = Cube(data, standard_name=phenomenon_standard_name,
+                units=phenomenon_units)
+    cube.add_dim_coord(DimCoord([0, 1, 2], 'realization',
+                                units='1'), 0)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.add_dim_coord(DimCoord([402192.5],
+                                "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
+                                units="1"), 2)
+    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, 9), 'latitude',
+                                units='degrees'), data_dims=2)
+    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, 9), 'longitude',
+                                units='degrees'), data_dims=2)
+    return cube
+
+
+def set_up_spot_temperature_cube():
+    """Create a cube with metadata and values suitable for air temperature."""
+    data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 1, 9) +
+            273.15)
+    data[0] -= 2
+    data[1] += 2
+    data[2] += 4
+    return set_up_spot_cube(data, "air_temperature", "K")
 
 
 def set_up_wind_speed_cube():

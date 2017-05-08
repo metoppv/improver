@@ -41,10 +41,11 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_copula_coupling import (
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_temperature_cube, add_forecast_reference_time_and_forecast_period)
+    set_up_spot_temperature_cube, set_up_temperature_cube,
+    _add_forecast_reference_time_and_forecast_period)
 
 
 class Test__mean_and_variance_to_percentiles(IrisTest):
@@ -56,6 +57,9 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
+        self.current_temperature_spot_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_spot_temperature_cube()))
 
     def test_check_data(self):
         """
@@ -249,6 +253,38 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             result = plugin._mean_and_variance_to_percentiles(
                 current_forecast_predictor, current_forecast_variance,
                 percentiles)
+
+    def test_spot_forecasts_check_data(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube matching the expected
+        data values when a cube containing mean and variance is passed in.
+        The resulting data values are the percentiles, which have been
+        generated.
+        """
+        data = np.array([[[225.56812863, 236.81812863, 248.06812863,
+                           259.31812863, 270.56812863, 281.81812863,
+                           293.06812863, 304.31812863, 315.56812863]],
+                         [[229.48333333, 240.73333333, 251.98333333,
+                           263.23333333, 274.48333333, 285.73333333,
+                           296.98333333, 308.23333333, 319.48333333]],
+                         [[233.39853804, 244.64853804, 255.89853804,
+                           267.14853804, 278.39853804, 289.64853804,
+                           300.89853804, 312.14853804, 323.39853804]]])
+
+        cube = self.current_temperature_spot_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        current_forecast_predictor_and_variance = (
+            current_forecast_predictor, current_forecast_variance)
+        percentiles = [0.1, 0.5, 0.9]
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
 
 
 class Test_process(IrisTest):

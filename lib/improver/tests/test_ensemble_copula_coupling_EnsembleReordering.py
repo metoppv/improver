@@ -39,7 +39,8 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.ensemble_copula_coupling import EnsembleReordering as Plugin
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    EnsembleReordering as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_cube, set_up_temperature_cube,
     _add_forecast_reference_time_and_forecast_period)

@@ -40,115 +40,12 @@ from scipy.stats import norm
 import cf_units as unit
 import iris
 
-from ensemble_calibration.ensemble_calibration_utilities import (
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
-from ensemble_copula_coupling_constants import bounds_for_ecdf
-
-
-class EnsembleCopulaCouplingUtilities(object):
-    """
-    Class containing utilities used to enable Ensemble Copula Coupling.
-    """
-    @staticmethod
-    def create_percentiles(
-            no_of_percentiles, sampling="quantile"):
-        """
-        Function to create percentiles.
-
-        Parameters
-        ----------
-        no_of_percentiles : Int
-            Number of percentiles.
-        sampling : String
-            Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
-            Accepted options for sampling are:
-            Quantile: A regular set of equally-spaced percentiles aimed
-                      at dividing a Cumulative Distribution Function into
-                      blocks of equal probability.
-            Random: A random set of ordered percentiles.
-
-        For further details, Flowerdew, J., 2014.
-        Calibrating ensemble reliability whilst preserving spatial structure.
-        Tellus, Series A: Dynamic Meteorology and Oceanography, 66(1), pp.1-20.
-        Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
-        Uncertainty Quantification in Complex Simulation Models Using Ensemble
-        Copula Coupling.
-        Statistical Science, 28(4), pp.616-640.
-
-        Returns
-        -------
-        percentiles : List
-            Percentiles calculated using the sampling technique specified.
-
-        """
-        if sampling in ["quantile"]:
-            percentiles = np.linspace(
-                1/float(1+no_of_percentiles),
-                no_of_percentiles/float(1+no_of_percentiles),
-                no_of_percentiles).tolist()
-        elif sampling in ["random"]:
-            percentiles = []
-            for _ in range(no_of_percentiles):
-                percentiles.append(
-                    random.uniform(
-                        1/float(1+no_of_percentiles),
-                        no_of_percentiles/float(1+no_of_percentiles)))
-            percentiles = sorted(percentiles)
-        else:
-            msg = "The {} sampling option is not yet implemented.".format(
-                sampling)
-            raise ValueError(msg)
-        return percentiles
-
-    @staticmethod
-    def create_cube_with_percentiles(
-            percentiles, template_cube, cube_data):
-        """
-        Create a cube with a percentile coordinate based on a template cube.
-
-        Parameters
-        ----------
-        percentiles : List
-            Ensemble percentiles.
-        template_cube : Iris cube
-            Cube to copy majority of coordinate definitions from.
-        cube_data : Numpy array
-            Data to insert into the template cube.
-            The data is expected to have the shape of
-            percentiles (0th dimension), time (1st dimension),
-            y_coord (2nd dimension), x_coord (3rd dimension).
-
-        Returns
-        -------
-        String
-            Coordinate name of the matched coordinate.
-
-        """
-        percentile_coord = iris.coords.DimCoord(
-            np.float32(percentiles), long_name="percentile",
-            units=unit.Unit("1"), var_name="percentile")
-
-        time_coord = template_cube.coord("time")
-        y_coord = template_cube.coord(axis="y")
-        x_coord = template_cube.coord(axis="x")
-
-        dim_coords_and_dims = [
-            (percentile_coord, 0), (time_coord, 1),
-            (y_coord, 2), (x_coord, 3)]
-
-        frt_coord = template_cube.coord("forecast_reference_time")
-        fp_coord = template_cube.coord("forecast_period")
-        aux_coords_and_dims = [(frt_coord, 1), (fp_coord, 1)]
-
-        metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
-
-        cube = iris.cube.Cube(
-            cube_data, dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims, **metadata_dict)
-        cube.attributes = template_cube.attributes
-        cube.cell_methods = template_cube.cell_methods
-        return cube
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
+    import bounds_for_ecdf
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
+    import create_cube_with_percentiles, create_percentiles
 
 
 class GeneratePercentilesFromProbabilities(object):
@@ -245,16 +142,22 @@ class GeneratePercentilesFromProbabilities(object):
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
 
-        t_coord = forecast_probabilities.coord("time")
-        y_coord = forecast_probabilities.coord(axis="y")
-        x_coord = forecast_probabilities.coord(axis="x")
+        if forecast_probabilities.coords("locnum"):
+            t_coord = forecast_probabilities.coord("time")
+            locnum_coord = forecast_probabilities.coord("locnum")
+            forecast_at_percentiles = forecast_at_percentiles.reshape(
+                len(percentiles), len(t_coord.points),
+                len(locnum_coord.points))
+        else:
+            t_coord = forecast_probabilities.coord("time")
+            y_coord = forecast_probabilities.coord(axis="y")
+            x_coord = forecast_probabilities.coord(axis="x")
+            forecast_at_percentiles = forecast_at_percentiles.reshape(
+                len(percentiles), len(t_coord.points), len(y_coord.points),
+                len(x_coord.points))
 
-        forecast_at_percentiles = forecast_at_percentiles.reshape(
-            len(percentiles), len(t_coord.points), len(y_coord.points),
-            len(x_coord.points))
-        percentile_cube = (
-            EnsembleCopulaCouplingUtilities.create_cube_with_percentiles(
-                percentiles, forecast_probabilities, forecast_at_percentiles))
+        percentile_cube = create_cube_with_percentiles(
+            percentiles, forecast_probabilities, forecast_at_percentiles)
         percentile_cube.cell_methods = {}
         return percentile_cube
 
@@ -297,7 +200,7 @@ class GeneratePercentilesFromProbabilities(object):
                 len(forecast_probabilities.coord(
                     "probability_above_threshold").points))
 
-        percentiles = EnsembleCopulaCouplingUtilities.create_percentiles(
+        percentiles = create_percentiles(
             no_of_percentiles, sampling=sampling)
 
         # Extract bounds from dictionary of constants.
@@ -385,16 +288,22 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         result = result.T
 
-        t_coord = calibrated_forecast_predictor.coord("time")
-        y_coord = calibrated_forecast_predictor.coord(axis="y")
-        x_coord = calibrated_forecast_predictor.coord(axis="x")
+        if calibrated_forecast_predictor.coords("locnum"):
+            t_coord = calibrated_forecast_predictor.coord("time")
+            locnum_coord = calibrated_forecast_predictor.coord("locnum")
+            result = result.reshape(
+                len(percentiles), len(t_coord.points),
+                len(locnum_coord.points))
+        else:
+            t_coord = calibrated_forecast_predictor.coord("time")
+            y_coord = calibrated_forecast_predictor.coord(axis="y")
+            x_coord = calibrated_forecast_predictor.coord(axis="x")
+            result = result.reshape(
+                len(percentiles), len(t_coord.points), len(y_coord.points),
+                len(x_coord.points))
 
-        result = result.reshape(
-            len(percentiles), len(t_coord.points), len(y_coord.points),
-            len(x_coord.points))
-        percentile_cube = (
-            EnsembleCopulaCouplingUtilities.create_cube_with_percentiles(
-                percentiles, calibrated_forecast_predictor, result))
+        percentile_cube = create_cube_with_percentiles(
+            percentiles, calibrated_forecast_predictor, result)
 
         percentile_cube.cell_methods = {}
         return percentile_cube
@@ -433,8 +342,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
         no_of_percentiles = len(
             raw_forecast_members.coord("realization").points)
 
-        percentiles = EnsembleCopulaCouplingUtilities.create_percentiles(
-            no_of_percentiles)
+        percentiles = create_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,

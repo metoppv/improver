@@ -39,11 +39,11 @@ import unittest
 
 from cf_units import Unit
 import iris
-from iris.coords import DimCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
-from improver.ensemble_copula_coupling import (
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period)
@@ -84,6 +84,43 @@ def set_up_temperature_cube():
     return set_up_cube(data, "air_temperature", "1")
 
 
+def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units,
+                     forecast_thresholds=[8, 10, 12],
+                     y_dimension_length=9, x_dimension_length=9):
+    """Create a cube containing multiple realizations."""
+    cube = Cube(data, standard_name=phenomenon_standard_name,
+                units=phenomenon_units)
+    cube.add_dim_coord(
+        DimCoord(forecast_thresholds,
+                 long_name='probability_above_threshold', units='degreesC'), 0)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.add_dim_coord(DimCoord([402192.5],
+                                "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
+                                units="1"), 2)
+    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+                                'latitude', units='degrees'), data_dims=2)
+    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length),
+                                'longitude', units='degrees'), data_dims=2)
+    return cube
+
+
+def set_up_spot_temperature_cube():
+    """Create a cube with metadata and values suitable for air temperature."""
+    data = np.array([[[1.0, 0.9, 1.0,
+                       0.8, 0.9, 0.5,
+                       0.5, 0.2, 0.0]],
+                     [[1.0, 0.5, 1.0,
+                       0.5, 0.5, 0.3,
+                       0.2, 0.0, 0.0]],
+                     [[1.0, 0.2, 0.5,
+                       0.2, 0.0, 0.1,
+                       0.0, 0.0, 0.0]]])
+    return set_up_spot_cube(data, "air_temperature", "1")
+
+
 class Test__probabilities_to_percentiles(IrisTest):
 
     """Test the _create_cube_with_percentiles plugin."""
@@ -93,6 +130,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
+        self.current_temperature_spot_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_spot_temperature_cube()))
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
@@ -235,6 +275,25 @@ class Test__probabilities_to_percentiles(IrisTest):
                            [0.8, 3.2, 5.6]]]])
         cube = self.current_temperature_forecast_cube
         percentiles = np.arange(0.05, 1.0, 0.05)
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        result = plugin._probabilities_to_percentiles(
+            cube, percentiles, bounds_pairing)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_check_data_spot_forecasts(self):
+        """Test that the plugin returns an Iris.cube.Cube."""
+        data = np.array([[[15.8, 31., 46.2,
+                           8., 10., 31.,
+                           10.4, 12., 42.4]],
+                         [[-16., 10, 31.,
+                           8., 10., 11.6,
+                           -30.4, 8., 12.]],
+                         [[-30.4, 8., 11.,
+                           -34., -10., 9,
+                           -35.2, -16., 3.2]]])
+        cube = self.current_temperature_spot_forecast_cube
+        percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._probabilities_to_percentiles(
