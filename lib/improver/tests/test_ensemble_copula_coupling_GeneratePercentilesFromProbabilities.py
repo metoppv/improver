@@ -44,6 +44,8 @@ from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
+    import bounds_for_ecdf, units_of_bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period)
 
@@ -124,6 +126,62 @@ def set_up_spot_temperature_cube():
                        0.2, 0.0, 0.1,
                        0.0, 0.0, 0.0]]])
     return set_up_spot_cube(data, "air_temperature", "1")
+
+
+class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
+
+    """Test the _add_bounds_to_thresholds_and_probabilities plugin."""
+
+    def setUp(self):
+        self.current_temperature_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_temperature_cube()))
+
+    def test_basic(self):
+        """Test that the plugin returns two numpy arrays."""
+        cube = self.current_temperature_forecast_cube
+        threshold_points = cube.coord("probability_above_threshold").points
+        probabilities_for_cdf = cube.data.reshape(3, 9)
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        result = plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing)
+        self.assertIsInstance(result[0], np.ndarray)
+        self.assertIsInstance(result[1], np.ndarray)
+
+    def test_bounds_of_threshold_points(self):
+        """
+        Test that the plugin returns the expected results for the
+        threshold_points, where they've been padded with the values from
+        the bounds_pairing.
+        """
+        cube = self.current_temperature_forecast_cube
+        threshold_points = cube.coord("probability_above_threshold").points
+        probabilities_for_cdf = cube.data.reshape(3, 9)
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        result = plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing)
+        self.assertArrayAlmostEqual(result[0][0], bounds_pairing[0])
+        self.assertArrayAlmostEqual(result[0][-1], bounds_pairing[1])
+
+    def test_probability_data(self):
+        """
+        Test that the plugin returns the expected results for the
+        probabilities, where they've been padded with zeros and ones to
+        represent the extreme ends of the Cumulative Distribution Function.
+        """
+        cube = self.current_temperature_forecast_cube
+        threshold_points = cube.coord("probability_above_threshold").points
+        probabilities_for_cdf = cube.data.reshape(3, 9)
+        zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
+        one_array = np.ones(probabilities_for_cdf[:, 0].shape)
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        result = plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing)
+        self.assertArrayAlmostEqual(result[1][:, 0], zero_array)
+        self.assertArrayAlmostEqual(result[1][:, -1], one_array)
 
 
 class Test__probabilities_to_percentiles(IrisTest):
@@ -321,6 +379,64 @@ class Test__probabilities_to_percentiles(IrisTest):
         result = plugin._probabilities_to_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
+
+
+class Test__convert_bounds_units(IrisTest):
+
+    """Test the _convert_bounds_units plugin."""
+
+    def setUp(self):
+        self.current_temperature_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_temperature_cube()))
+
+    def test_basic(self):
+        """Test that the result is a numpy array."""
+        cube = self.current_temperature_forecast_cube
+        plugin = Plugin()
+        result = plugin._convert_bounds_units(cube)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_check_data(self):
+        """
+        Test that the expected results are returned for the bounds_pairing.
+        """
+        cube = self.current_temperature_forecast_cube
+        bounds_pairing = bounds_for_ecdf["air_temperature"]
+        plugin = Plugin()
+        result = plugin._convert_bounds_units(cube)
+        self.assertArrayAlmostEqual(result, bounds_pairing)
+
+    def test_check_unit_conversion(self):
+        """
+        Test that the expected results are returned for the bounds_pairing,
+        if the units of the bounds_pairings need to be converted to match
+        the units of the forecast.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube.coord("probability_above_threshold").convert_units("fahrenheit")
+        fahrenheit_units = cube.coord("probability_above_threshold").units
+        bounds_pairing = bounds_for_ecdf["air_temperature"]
+        bounds_pairing_units = units_of_bounds_for_ecdf["air_temperature"]
+        bounds_pairing_units = Unit(bounds_pairing_units)
+        bounds_pairing = bounds_pairing_units.convert(
+            np.array(bounds_pairing), fahrenheit_units)
+        plugin = Plugin()
+        result = plugin._convert_bounds_units(cube)
+        self.assertArrayAlmostEqual(result, bounds_pairing)
+
+    def test_check_exception_is_raised(self):
+        """
+        Test that the expected results are returned for the bounds_pairing.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube.standard_name = None
+        cube.long_name = "Nonsense"
+        bounds_pairing = bounds_for_ecdf["air_temperature"]
+        plugin = Plugin()
+        msg = "The forecast_probabilities name"
+        with self.assertRaisesRegexp(KeyError, msg):
+            result = plugin._convert_bounds_units(cube)
 
 
 class Test_process(IrisTest):

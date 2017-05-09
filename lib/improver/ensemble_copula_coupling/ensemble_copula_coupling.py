@@ -37,11 +37,12 @@ from scipy.stats import norm
 
 
 import iris
+import cf_units as unit
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf
+    import bounds_for_ecdf, units_of_bounds_for_ecdf
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import create_cube_with_percentiles, create_percentiles
 
@@ -159,6 +160,28 @@ class GeneratePercentilesFromProbabilities(object):
         percentile_cube.cell_methods = {}
         return percentile_cube
 
+    def _convert_bounds_units(self, forecast_probabilities):
+        """
+        Convert the units of the bounds_pairing to the units of the
+        forecast.
+        """
+        fp_units = (
+            forecast_probabilities.coord("probability_above_threshold").units)
+        # Extract bounds from dictionary of constants.
+        try:
+            bounds_pairing = bounds_for_ecdf[forecast_probabilities.name()]
+            bounds_pairing_units = (
+                units_of_bounds_for_ecdf[forecast_probabilities.name()])
+        except KeyError as err:
+            msg = ("The forecast_probabilities name: {} is not recognised"
+                   "within bounds_for_ecdf / units_of_bounds_for_ecdf: {}.\n"
+                   "Error: {}")
+            raise KeyError(msg)
+        bounds_pairing_units = unit.Unit(bounds_pairing_units)
+        bounds_pairing = bounds_pairing_units.convert(
+            np.array(bounds_pairing), fp_units)
+        return bounds_pairing
+
     def process(self, forecast_probabilities, no_of_percentiles=None,
                 sampling="quantile"):
         """
@@ -201,8 +224,7 @@ class GeneratePercentilesFromProbabilities(object):
         percentiles = create_percentiles(
             no_of_percentiles, sampling=sampling)
 
-        # Extract bounds from dictionary of constants.
-        bounds_pairing = bounds_for_ecdf[forecast_probabilities.name()]
+        bounds_pairing = self._convert_bounds_units(forecast_probabilities)
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
