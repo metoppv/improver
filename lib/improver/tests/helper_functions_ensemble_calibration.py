@@ -87,15 +87,19 @@ def _add_forecast_reference_time_and_forecast_period(
     to the input cube.
     """
     cube.coord("time").points = time_point
+    coord_position = cube.coord_dims("time")
+    if not isinstance(fp_point, list):
+        fp_point = [fp_point]
     fp_points = fp_point
-    frt_points = cube.coord("time").points[0] - fp_points
+    frt_points = cube.coord("time").points[0] - fp_points[0]
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
     cube.add_aux_coord(
         DimCoord([frt_points], "forecast_reference_time", units=tunit))
     cube.add_aux_coord(
-        DimCoord([fp_points], "forecast_period", units="hours"))
+        DimCoord(fp_points, "forecast_period", units="hours"),
+        data_dims=coord_position)
     return cube
 
 

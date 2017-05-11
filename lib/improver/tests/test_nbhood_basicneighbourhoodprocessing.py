@@ -34,15 +34,19 @@
 import unittest
 
 from cf_units import Unit
+import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.coord_systems import OSGB
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np
 
 
 from improver.grids.osgb import OSGBGRID
 from improver.nbhood import BasicNeighbourhoodProcessing as NBHood
+from improver.tests.helper_functions_ensemble_calibration import (
+    _add_forecast_reference_time_and_forecast_period)
 
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
@@ -163,7 +167,59 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
     return cube
 
 
-class Test_operation_radius_to_grid_cells(IrisTest):
+class Test_find_required_lead_times(IrisTest):
+
+    """Test determining of the lead times present within the input cube."""
+
+    RADIUS_IN_KM = 6.1
+
+    def test_basic(self):
+        """Test that a list is returned."""
+        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin.find_required_lead_times(cube)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_check_coordinate(self):
+        """
+        Test that the data within the list is as expected, when
+        the input cube has a forecast_period coordinate.
+        """
+        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin.find_required_lead_times(cube)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_check_coordinate_without_forecast_period(self):
+        """
+        Test that the data within the list is as expected, when
+        the input cube has a time coordinate and a forecast_reference_time
+        coordinate.
+        """
+        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.remove_coord("forecast_period")
+        expected_result = (
+            cube.coord("time").points -
+            cube.coord("forecast_reference_time").points)
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin.find_required_lead_times(cube)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_exception_raised(self):
+        """
+        Test that a CoordinateNotFoundError exception is raised if the
+        forecast_period, or the time and forecast_reference_time,
+        are not present.
+        """
+        cube = set_up_cube()
+        plugin = NBHood(self.RADIUS_IN_KM)
+        msg = "The forecast period coordinate is not available"
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            plugin.find_required_lead_times(cube)
+
+
+class Test_get_grid_x_y_kernel_ranges(IrisTest):
 
     """Test conversion of kernel radius in kilometres to grid cells."""
 
@@ -186,7 +242,7 @@ class Test_operation_radius_to_grid_cells(IrisTest):
         self.assertEqual(result, (3, 3))
 
 
-class Test_operation_neighbourhooding(IrisTest):
+class Test_apply_kernel_for_smoothing(IrisTest):
 
     """Test neighbourhood processing plugin on the OS National Grid."""
 
@@ -196,7 +252,7 @@ class Test_operation_neighbourhooding(IrisTest):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube()
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.process(cube)
+        result = plugin.apply_kernel_for_smoothing(cube)
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -205,7 +261,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][5 + index][5:10] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
@@ -221,7 +277,10 @@ class Test_operation_neighbourhooding(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][5 + index][5:10] = slice_
         radius_in_km = 4.2  # Equivalent to a range of 2.
-        result = NBHood(radius_in_km, unweighted_mode=True).process(cube)
+        result = (
+            NBHood(
+                 radius_in_km,
+                 unweighted_mode=True).apply_kernel_for_smoothing(cube))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -235,16 +294,8 @@ class Test_operation_neighbourhooding(IrisTest):
             expected[0][8 + index][8:13] = slice_
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[1][5 + index][5:10] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_nan(self):
-        """Test behaviour for a single NaN grid cell."""
-        cube = set_up_cube()
-        cube.data[0][6][7] = np.NAN
-        msg = "NaN detected in input cube data"
-        with self.assertRaisesRegexp(ValueError, msg):
-            NBHood(self.RADIUS_IN_KM).process(cube)
 
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
@@ -252,7 +303,7 @@ class Test_operation_neighbourhooding(IrisTest):
         msg = "Invalid grid: projection_x/y coords required"
         expected = np.zeros_like(cube.data)
         with self.assertRaisesRegexp(ValueError, msg):
-            NBHood(self.RADIUS_IN_KM).process(cube)
+            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -270,7 +321,7 @@ class Test_operation_neighbourhooding(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[time_index][5 + index][5:10] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -287,7 +338,7 @@ class Test_operation_neighbourhooding(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[time_index][5 + index][5:10] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_negative(self):
@@ -295,7 +346,7 @@ class Test_operation_neighbourhooding(IrisTest):
         cube = set_up_cube()
         msg = "negative dimensions are not allowed"
         with self.assertRaisesRegexp(ValueError, msg):
-            NBHood(-1.0 * self.RADIUS_IN_KM).process(cube)
+            NBHood(-1.0 * self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
@@ -303,7 +354,7 @@ class Test_operation_neighbourhooding(IrisTest):
         msg = "radius of 0.005 km gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             expected = np.zeros_like(cube.data)
-            NBHood(0.005).process(cube)
+            NBHood(0.005).apply_kernel_for_smoothing(cube)
 
     def test_single_point_range_1(self):
         """Test behaviour with a non-zero point with unit range."""
@@ -311,7 +362,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         expected[0][7][7] = 0.0
         radius_in_km = 2.1  # Equivalent to a range of 1 grid cell.
-        result = NBHood(radius_in_km).process(cube)
+        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -322,7 +373,7 @@ class Test_operation_neighbourhooding(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
                 expected[time_index][3 + index][3:12] = slice_
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
-        result = NBHood(radius_in_km).process(cube)
+        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
@@ -339,7 +390,7 @@ class Test_operation_neighbourhooding(IrisTest):
              [0.97944502, 0.97841727, 0.97944502, 0.98252826]]
         ])
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
-        result = NBHood(radius_in_km).process(cube)
+        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_lots(self):
@@ -348,7 +399,7 @@ class Test_operation_neighbourhooding(IrisTest):
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             expected = np.zeros_like(cube.data)
-            NBHood(500000.0).process(cube)
+            NBHood(500000.0).apply_kernel_for_smoothing(cube)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
@@ -364,7 +415,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(expected_snippet):
             expected[0][5 + index][4:11] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -374,7 +425,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][5 + index][0:5] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -384,7 +435,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][5 + index][0:4] = slice_[1:]
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -407,7 +458,7 @@ class Test_operation_neighbourhooding(IrisTest):
         ])
         for index, slice_ in enumerate(expected_centroid):
             expected[0][5 + index][0:3] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
@@ -417,7 +468,7 @@ class Test_operation_neighbourhooding(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][index][0:5] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
@@ -429,7 +480,7 @@ class Test_operation_neighbourhooding(IrisTest):
             if index == 0:
                 continue
             expected[0][index - 1][0:4] = slice_[1:]
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -450,8 +501,30 @@ class Test_operation_neighbourhooding(IrisTest):
         ])
         for index, slice_ in enumerate(expected_centroid):
             expected[0][index][0:3] = slice_
-        result = NBHood(self.RADIUS_IN_KM).process(cube)
+        result = NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube)
         self.assertArrayAlmostEqual(result.data, expected)
+
+
+class Test_process(IrisTest):
+
+    """Tests for the process method of BasicNeighbourhoodProcessing."""
+
+    RADIUS_IN_KM = 6.3  # Gives 3 grid cells worth.
+
+    def test_basic(self):
+        """Test that the plugin returns an iris.cube.Cube."""
+        cube = set_up_cube()
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin.process(cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_single_point_nan(self):
+        """Test behaviour for a single NaN grid cell."""
+        cube = set_up_cube()
+        cube.data[0][6][7] = np.NAN
+        msg = "NaN detected in input cube data"
+        with self.assertRaisesRegexp(ValueError, msg):
+            NBHood(self.RADIUS_IN_KM).process(cube)
 
     def test_fail_multiple_realisations(self):
         """Test failing when the array has a realisation dimension."""
@@ -489,7 +562,124 @@ class Test_operation_neighbourhooding(IrisTest):
                                     standard_name="realization"), 0)
         msg = "Does not operate across realizations"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin = NBHood(self.RADIUS_IN_KM).process(cube)
+            plugin = (
+                 NBHood(self.RADIUS_IN_KM).process(cube))
+
+    def test_radii_varying_with_lead_time(self):
+        """
+        Test that a cube is returned when the radius varies with lead time.
+        """
+        cube = set_up_cube(num_time_points=3)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = _add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [10, 20, 30]
+        lead_times = [2, 3, 4]
+        print "before nbhood cube = ", cube
+        plugin = NBHood(radii_in_km, lead_times)
+        result = plugin.process(cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_radii_varying_with_lead_time_check_data(self):
+        """
+        Test that the expected data is produced when the radius
+        varies with lead time.
+        """
+        cube = set_up_cube(
+            zero_point_indices=((0, 7, 7), (1, 7, 7,), (2, 7, 7)),
+            num_time_points=3)
+        print "cube.data = ", cube.data
+        expected = np.ones_like(cube.data)
+        expected[0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+
+        expected[1, 5:10, 5:10] = (
+            [0.992, 0.968, 0.96, 0.968, 0.992],
+            [0.968, 0.944, 0.936, 0.944, 0.968],
+            [0.96, 0.936, 0.928, 0.936, 0.96],
+            [0.968, 0.944, 0.936, 0.944, 0.968],
+            [0.992, 0.968, 0.96, 0.968, 0.992])
+
+        expected[2, 4:11, 4:11] = (
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9825, 0.97, 0.9625, 0.96, 0.9625, 0.97, 0.9825],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1])
+
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = _add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [6, 8, 10]
+        lead_times = [2, 3, 4]
+        plugin = NBHood(radii_in_km, lead_times)
+        result = plugin.process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_radii_varying_with_lead_time_with_interpolation(self):
+        """
+        Test that a cube is returned when the radius varies with lead time
+        and linearly interpolation is required, in order to .
+        """
+        cube = set_up_cube(num_time_points=3)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = _add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [10, 30]
+        lead_times = [2, 4]
+        print "before nbhood cube = ", cube
+        plugin = NBHood(radii_in_km, lead_times)
+        result = plugin.process(cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_radii_varying_with_lead_time_with_interpolation_check_data(self):
+        """Test behaviour when the radius varies with lead time."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 7, 7), (1, 7, 7,), (2, 7, 7)),
+            num_time_points=3)
+        print "cube.data = ", cube.data
+        expected = np.ones_like(cube.data)
+        expected[0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+
+        expected[1, 5:10, 5:10] = (
+            [0.992, 0.968, 0.96, 0.968, 0.992],
+            [0.968, 0.944, 0.936, 0.944, 0.968],
+            [0.96, 0.936, 0.928, 0.936, 0.96],
+            [0.968, 0.944, 0.936, 0.944, 0.968],
+            [0.992, 0.968, 0.96, 0.968, 0.992])
+
+        expected[2, 4:11, 4:11] = (
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9825, 0.97, 0.9625, 0.96, 0.9625, 0.97, 0.9825],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1])
+
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = _add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [6, 10]
+        lead_times = [2, 4]
+        plugin = NBHood(radii_in_km, lead_times)
+        result = plugin.process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
 
 if __name__ == '__main__':
