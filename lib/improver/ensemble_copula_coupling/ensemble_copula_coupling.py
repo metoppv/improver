@@ -141,19 +141,17 @@ class GeneratePercentilesFromProbabilities(object):
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
 
-        if forecast_probabilities.coords("locnum"):
-            t_coord = forecast_probabilities.coord("time")
-            locnum_coord = forecast_probabilities.coord("locnum")
-            forecast_at_percentiles = forecast_at_percentiles.reshape(
-                len(percentiles), len(t_coord.points),
-                len(locnum_coord.points))
-        else:
-            t_coord = forecast_probabilities.coord("time")
-            y_coord = forecast_probabilities.coord(axis="y")
-            x_coord = forecast_probabilities.coord(axis="x")
-            forecast_at_percentiles = forecast_at_percentiles.reshape(
-                len(percentiles), len(t_coord.points), len(y_coord.points),
-                len(x_coord.points))
+        # Reshape forecast_at_percentiles, so the percentiles dimension is
+        # first, and any other dimension coordinates follow.
+        shape_to_reshape_to = list(forecast_probabilities.shape)
+        if forecast_probabilities.coord_dims("probability_above_threshold"):
+            pat_coord_position = (
+                forecast_probabilities.coord_dims("probability_above_threshold"))
+            shape_to_reshape_to.pop(pat_coord_position[0])
+        shape_to_reshape_to = [len(percentiles)] + shape_to_reshape_to
+
+        forecast_at_percentiles = (
+            forecast_at_percentiles.reshape(shape_to_reshape_to))
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, forecast_probabilities, forecast_at_percentiles)
@@ -308,19 +306,16 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         result = result.T
 
-        if calibrated_forecast_predictor.coords("locnum"):
-            t_coord = calibrated_forecast_predictor.coord("time")
-            locnum_coord = calibrated_forecast_predictor.coord("locnum")
-            result = result.reshape(
-                len(percentiles), len(t_coord.points),
-                len(locnum_coord.points))
-        else:
-            t_coord = calibrated_forecast_predictor.coord("time")
-            y_coord = calibrated_forecast_predictor.coord(axis="y")
-            x_coord = calibrated_forecast_predictor.coord(axis="x")
-            result = result.reshape(
-                len(percentiles), len(t_coord.points), len(y_coord.points),
-                len(x_coord.points))
+        # Reshape forecast_at_percentiles, so the percentiles dimension is
+        # first, and any other dimension coordinates follow.
+        shape_to_reshape_to = list(calibrated_forecast_predictor.shape)
+        if calibrated_forecast_predictor.coord_dims("realization"):
+            realization_coord_position = (
+                calibrated_forecast_predictor.coord_dims("realization"))
+            shape_to_reshape_to.pop(realization_coord_position[0])
+        shape_to_reshape_to = [len(percentiles)] + shape_to_reshape_to
+
+        result = result.reshape(shape_to_reshape_to)
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, calibrated_forecast_predictor, result)

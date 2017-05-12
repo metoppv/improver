@@ -39,6 +39,7 @@ import random
 
 import cf_units as unit
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 
 def create_percentiles(no_of_percentiles, sampling="quantile"):
@@ -114,27 +115,60 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
         Coordinate name of the matched coordinate.
 
     """
+    def _append_to_aux_coords_and_dims(coord_name, aux_coords_and_dims):
+        """
+        Try to append a tuple containing a desired auxiliary coordinate,
+        if the auxiliary coordinate is present on the template cube.
+
+        Parameters
+        ----------
+        coord_name : String
+            The name of the desired auxiliary coordinate.
+        aux_coords_and_dims : List of tuples
+            List of format: [(aux_coord1, dim_coord_to_be_associated_with),
+                             (aux_coord2, dim_coord_to_be_associated_with)]
+            For example: [(forecast_period, 1), (forecast_reference_time, 1)]
+
+        """
+        try:
+            coord = template_cube.coord(coord_name)
+            for coord_tuple in dim_coords_and_dims:
+                if coord_tuple[0].name() in ["time"]:
+                    time_dim = coord_tuple[1]
+                    break
+            aux_coords_and_dims.append((coord, time_dim))
+        except CoordinateNotFoundError:
+            pass
+
     percentile_coord = iris.coords.DimCoord(
         np.float32(percentiles), long_name="percentile",
         units=unit.Unit("1"), var_name="percentile")
 
-    if template_cube.coords("locnum"):
-        time_coord = template_cube.coord("time")
-        locnum_coord = template_cube.coord("locnum")
-        dim_coords_and_dims = [
-            (percentile_coord, 0), (time_coord, 1),
-            (locnum_coord, 2)]
-    else:
-        time_coord = template_cube.coord("time")
-        y_coord = template_cube.coord(axis="y")
-        x_coord = template_cube.coord(axis="x")
-        dim_coords_and_dims = [
-            (percentile_coord, 0), (time_coord, 1),
-            (y_coord, 2), (x_coord, 3)]
+    # Aim to create a list of tuples for setting the dim_coords_and_dims
+    # required for a cube. The "realization" or "probability_above_threshold"
+    # coordinates on the cube are ignored, with all other coordinates being
+    # added to the dim_coords_and_dims list. The percentile coordinate tuple
+    # is prepended to this list.
+    dim_coords = []
+    dims = []
+    index = 1
+    for coord in template_cube.dim_coords:
+        if coord.name() in ["realization", "probability_above_threshold"]:
+            continue
+        dim_coords.append(coord)
+        dims.append(index)
+        index += 1
 
-    frt_coord = template_cube.coord("forecast_reference_time")
-    fp_coord = template_cube.coord("forecast_period")
-    aux_coords_and_dims = [(frt_coord, 1), (fp_coord, 1)]
+    dim_coords_and_dims = []
+    for coord, dim in zip(dim_coords, dims):
+        dim_coords_and_dims.append((coord, dim))
+    dim_coords_and_dims = [(percentile_coord, 0)] + dim_coords_and_dims
+
+    aux_coords_and_dims = []
+    _append_to_aux_coords_and_dims(
+        "forecast_reference_time", aux_coords_and_dims)
+    _append_to_aux_coords_and_dims(
+        "forecast_period", aux_coords_and_dims)
 
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
 
