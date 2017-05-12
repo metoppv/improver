@@ -67,12 +67,14 @@ class BasicNeighbourhoodProcessing(object):
         Parameters
         ----------
 
-        radii_in_km : float
+        radii_in_km : float or List (if defining lead times)
             The radii in kilometres of the neighbourhood kernel to
             apply. Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x/y coords.
-
+        lead_times : List
+            List of lead times or forecast periods, at which the radii
+            within radii_in_km are defined.
         unweighted_mode : boolean
             If True, use a circle with constant weighting.
             If False, use a circle for neighbourhood kernel with
@@ -105,9 +107,9 @@ class BasicNeighbourhoodProcessing(object):
 
         Returns
         -------
-        cube : Iris.cube.Cube
-            Cube after applying a kernel, so that the resulting field is
-            smoothed.
+        required_lead_times : Numpy array
+            Array containing the lead times, at which the radii need to be
+            calculated.
 
         """
         if cube.coords("forecast_period"):
@@ -140,11 +142,21 @@ class BasicNeighbourhoodProcessing(object):
         radii_in_km : Float
             Radius in kilometres for use in specifying the number of
             grid cells used to create a kernel.
+
+        Returns
+        -------
+        grid_cells_x : Integer
+            Number of grid cells in the x direction to be used to create the
+            kernel.
+        grid_cells_y : Integer
+            Number of grid cells in the y direction to be used to create the
+            kernel.
+
         """
         try:
             x_coord = cube.coord("projection_x_coordinate").copy()
             y_coord = cube.coord("projection_y_coordinate").copy()
-        except iris.exceptions.CoordinateNotFoundError:
+        except CoordinateNotFoundError:
             raise ValueError("Invalid grid: projection_x/y coords required")
         x_coord.convert_units("metres")
         y_coord.convert_units("metres")
@@ -155,14 +167,20 @@ class BasicNeighbourhoodProcessing(object):
         if grid_cells_x == 0 or grid_cells_y == 0:
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(self.radii_in_km[0]) +
+                 "{0} km ".format(radii_in_km) +
                  "gives zero cell extent")
+            )
+        elif grid_cells_x < 0 or grid_cells_y < 0:
+            raise ValueError(
+                ("Neighbourhood processing radius of " +
+                 "{0} km ".format(radii_in_km) +
+                 "gives a negative cell extent")
             )
         if (grid_cells_x > self.MAX_KERNEL_CELL_RADIUS or
                 grid_cells_y > self.MAX_KERNEL_CELL_RADIUS):
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(self.radii_in_km[0]) +
+                 "{0} km ".format(radii_in_km) +
                  "exceeds maximum grid cell extent")
             )
         return grid_cells_x, grid_cells_y
@@ -182,13 +200,22 @@ class BasicNeighbourhoodProcessing(object):
             Number of grid cells in the x and y direction used to create
             the kernel.
 
+        Returns
+        -------
+        cube : Iris.cube.Cube
+            Cube containing the smoothed field after the kernel has been
+            applied.
+
         """
         data = cube.data
         fullranges = np.zeros([np.ndim(data)])
         axes = []
-        for coord_name in ['projection_x_coordinate',
-                           'projection_y_coordinate']:
-            axes.append(cube.coord_dims(coord_name)[0])
+        try:
+            for coord_name in ['projection_x_coordinate',
+                               'projection_y_coordinate']:
+                axes.append(cube.coord_dims(coord_name)[0])
+        except CoordinateNotFoundError:
+            raise ValueError("Invalid grid: projection_x/y coords required")
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
         # Define the size of the kernel based on the number of grid cells

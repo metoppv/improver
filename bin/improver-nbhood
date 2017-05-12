@@ -58,13 +58,11 @@ def main():
                         help='The output path for the processed NetCDF')
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
-    result = BasicNeighbourhoodProcessing(args.radius_in_km).process(cube)
-    cube = iris.load_cube(args.input_filepath)
     radius_in_km = args.radius_in_km_by_lead_time[0]
-    leadtimes = args.radius_in_km_by_lead_time[1]
+    lead_times = args.radius_in_km_by_lead_time[1]
     result = (
         BasicNeighbourhoodProcessing(
-            radius_in_km=args.radius_in_km,
+            args.radius_in_km,
             lead_times=lead_times).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
