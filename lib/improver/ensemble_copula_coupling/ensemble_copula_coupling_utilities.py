@@ -96,85 +96,49 @@ def create_percentiles(no_of_percentiles, sampling="quantile"):
 def create_cube_with_percentiles(percentiles, template_cube, cube_data):
     """
     Create a cube with a percentile coordinate based on a template cube.
+    The resulting cube will have an extra percentile coordinate compared with
+    the input cube. The shape of the cube_data should be the shape of the
+    desired output cube.
 
     Parameters
     ----------
     percentiles : List
         Ensemble percentiles.
     template_cube : Iris cube
-        Cube to copy majority of coordinate definitions from.
+        Cube to copy all coordinates from.
+        Metadata is also copied from this cube.
     cube_data : Numpy array
         Data to insert into the template cube.
-        The data is expected to have the shape of
-        percentiles (0th dimension), time (1st dimension),
-        y_coord (2nd dimension), x_coord (3rd dimension).
+        The shape of the cube_data, excluding the dimension associated with
+        the percentile coordinate, should be the same as the shape of
+        template_cube.
+        For example, template_cube shape is (3, 3, 3), whilst the cube_data
+        is (10, 3, 3, 3), where there are 10 percentiles.
 
     Returns
     -------
-    String
-        Coordinate name of the matched coordinate.
+    result : Iris.cube.Cube
+        Cube containing a percentile coordinate as the zeroth dimension
+        coordinate.
 
     """
-    def _append_to_aux_coords_and_dims(coord_name, aux_coords_and_dims):
-        """
-        Try to append a tuple containing a desired auxiliary coordinate,
-        if the auxiliary coordinate is present on the template cube.
-
-        Parameters
-        ----------
-        coord_name : String
-            The name of the desired auxiliary coordinate.
-        aux_coords_and_dims : List of tuples
-            List of format: [(aux_coord1, dim_coord_to_be_associated_with),
-                             (aux_coord2, dim_coord_to_be_associated_with)]
-            For example: [(forecast_period, 1), (forecast_reference_time, 1)]
-
-        """
-        try:
-            coord = template_cube.coord(coord_name)
-            for coord_tuple in dim_coords_and_dims:
-                if coord_tuple[0].name() in ["time"]:
-                    time_dim = coord_tuple[1]
-                    break
-            aux_coords_and_dims.append((coord, time_dim))
-        except CoordinateNotFoundError:
-            pass
-
     percentile_coord = iris.coords.DimCoord(
         np.float32(percentiles), long_name="percentile",
         units=unit.Unit("1"), var_name="percentile")
 
-    # Aim to create a list of tuples for setting the dim_coords_and_dims
-    # required for a cube. The "realization" or "probability_above_threshold"
-    # coordinates on the cube are ignored, with all other coordinates being
-    # added to the dim_coords_and_dims list. The percentile coordinate tuple
-    # is prepended to this list.
-    dim_coords = []
-    dims = []
-    index = 1
-    for coord in template_cube.dim_coords:
-        if coord.name() in ["realization", "probability_above_threshold"]:
-            continue
-        dim_coords.append(coord)
-        dims.append(index)
-        index += 1
-
-    dim_coords_and_dims = []
-    for coord, dim in zip(dim_coords, dims):
-        dim_coords_and_dims.append((coord, dim))
-    dim_coords_and_dims = [(percentile_coord, 0)] + dim_coords_and_dims
-
-    aux_coords_and_dims = []
-    _append_to_aux_coords_and_dims(
-        "forecast_reference_time", aux_coords_and_dims)
-    _append_to_aux_coords_and_dims(
-        "forecast_period", aux_coords_and_dims)
-
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
+    result = iris.cube.Cube(cube_data, **metadata_dict)
+    result.add_dim_coord(percentile_coord, 0)
 
-    cube = iris.cube.Cube(
-        cube_data, dim_coords_and_dims=dim_coords_and_dims,
-        aux_coords_and_dims=aux_coords_and_dims, **metadata_dict)
-    cube.attributes = template_cube.attributes
-    cube.cell_methods = template_cube.cell_methods
-    return cube
+    for coord in template_cube.dim_coords:
+        dim, = template_cube.coord_dims(coord)
+        result.add_dim_coord(coord.copy(), dim+1)
+    for coord in template_cube.aux_coords:
+        dims = template_cube.coord_dims(coord)
+        dims = tuple([dim+1 for dim in dims])
+        result.add_aux_coord(coord.copy(), dims)
+    for coord in template_cube.derived_coords:
+        dims = template_cube.coord_dims(coord)
+        dims = tuple([dim+1 for dim in dims])
+        result.add_aux_coord(coord.copy(), dims)
+    return result

@@ -42,7 +42,8 @@ import numpy as np
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import create_percentiles, create_cube_with_percentiles
 from improver.tests.helper_functions_ensemble_calibration import (
-    set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
+    set_up_temperature_cube, set_up_spot_temperature_cube,
+    _add_forecast_reference_time_and_forecast_period)
 
 
 class Test_create_cube_with_percentiles(IrisTest):
@@ -51,17 +52,34 @@ class Test_create_cube_with_percentiles(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
+        current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
-        self.current_temperature_spot_forecast_cube = (
+
+        self.cube_data = current_temperature_forecast_cube.data
+
+        current_temperature_spot_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+                set_up_spot_temperature_cube()))
+        self.cube_spot_data = (
+            current_temperature_spot_forecast_cube.data)
+
+        for cube in current_temperature_forecast_cube.slices_over(
+                "realization"):
+            cube.remove_coord("realization")
+            break
+        self.current_temperature_forecast_cube = cube
+
+        for cube in current_temperature_spot_forecast_cube.slices_over(
+                "realization"):
+            cube.remove_coord("realization")
+            break
+        self.current_temperature_spot_forecast_cube = cube
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         cube = self.current_temperature_forecast_cube
-        cube_data = cube.data + 2
+        cube_data = self.cube_data + 2
         percentiles = [0.1, 0.5, 0.9]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
@@ -103,7 +121,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         with a percentile coordinate with the desired points.
         """
         cube = self.current_temperature_forecast_cube
-        cube_data = cube.data + 2
+        cube_data = self.cube_data + 2
         percentiles = [0.1, 0.5, 0.9]
         result = create_cube_with_percentiles(percentiles, cube, cube_data)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
@@ -117,7 +135,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         for an input spot forecast.
         """
         cube = self.current_temperature_spot_forecast_cube
-        cube_data = cube.data + 2
+        cube_data = self.cube_spot_data + 2
         percentiles = [0.1, 0.5, 0.9]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
@@ -125,46 +143,6 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.assertIsInstance(result.coord("percentile"), DimCoord)
         self.assertArrayAlmostEqual(
             result.coord("percentile").points, percentiles)
-
-    def test_no_forecast_period(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube, when there is no
-        forecast_period on the input cube.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.remove_coord("forecast_period")
-        cube_data = cube.data + 2
-        percentiles = [0.1, 0.5, 0.9]
-        result = create_cube_with_percentiles(
-            percentiles, cube, cube_data)
-        self.assertIsInstance(result, Cube)
-
-    def test_no_forecast_reference_time(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube, when there is no
-        forecast_reference_time on the input cube.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.remove_coord("forecast_reference_time")
-        cube_data = cube.data + 2
-        percentiles = [0.1, 0.5, 0.9]
-        result = create_cube_with_percentiles(
-            percentiles, cube, cube_data)
-        self.assertIsInstance(result, Cube)
-
-    def test_no_forecast_period_or_forecast_reference_time(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube, when there is no
-        forecast_period and no forecast_reference_time on the input cube.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.remove_coord("forecast_period")
-        cube.remove_coord("forecast_reference_time")
-        cube_data = cube.data + 2
-        percentiles = [0.1, 0.5, 0.9]
-        result = create_cube_with_percentiles(
-            percentiles, cube, cube_data)
-        self.assertIsInstance(result, Cube)
 
 
 class Test_create_percentiles(IrisTest):

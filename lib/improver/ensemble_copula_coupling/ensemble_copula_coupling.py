@@ -154,8 +154,12 @@ class GeneratePercentilesFromProbabilities(object):
         forecast_at_percentiles = (
             forecast_at_percentiles.reshape(shape_to_reshape_to))
 
+        for template_cube in forecast_probabilities.slices_over(
+                "probability_above_threshold"):
+            template_cube.remove_coord("probability_above_threshold")
+            break
         percentile_cube = create_cube_with_percentiles(
-            percentiles, forecast_probabilities, forecast_at_percentiles)
+            percentiles, template_cube, forecast_at_percentiles)
         percentile_cube.cell_methods = {}
         return percentile_cube
 
@@ -318,8 +322,12 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         result = result.reshape(shape_to_reshape_to)
 
+        for template_cube in calibrated_forecast_predictor.slices_over(
+                "realization"):
+            template_cube.remove_coord("realization")
+            break
         percentile_cube = create_cube_with_percentiles(
-            percentiles, calibrated_forecast_predictor, result)
+            percentiles, template_cube, result)
 
         percentile_cube.cell_methods = {}
         return percentile_cube
