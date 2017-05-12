@@ -402,7 +402,13 @@ class Test__convert_bounds_units(IrisTest):
         Test that the expected results are returned for the bounds_pairing.
         """
         cube = self.current_temperature_forecast_cube
+        fp_units = (
+            cube.coord("probability_above_threshold").units)
         bounds_pairing = bounds_for_ecdf["air_temperature"]
+        bounds_pairing_units = units_of_bounds_for_ecdf["air_temperature"]
+        bounds_pairing_units = Unit(bounds_pairing_units)
+        bounds_pairing = (
+            bounds_pairing_units.convert(np.array(bounds_pairing), fp_units))
         plugin = Plugin()
         result = plugin._convert_bounds_units(cube)
         self.assertArrayAlmostEqual(result, bounds_pairing)
