@@ -146,7 +146,8 @@ class GeneratePercentilesFromProbabilities(object):
         shape_to_reshape_to = list(forecast_probabilities.shape)
         if forecast_probabilities.coord_dims("probability_above_threshold"):
             pat_coord_position = (
-                forecast_probabilities.coord_dims("probability_above_threshold"))
+                forecast_probabilities.coord_dims(
+                    "probability_above_threshold"))
             shape_to_reshape_to.pop(pat_coord_position[0])
         shape_to_reshape_to = [len(percentiles)] + shape_to_reshape_to
 
