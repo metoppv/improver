@@ -72,7 +72,7 @@ class BasicNeighbourhoodProcessing(object):
             apply. Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x/y coords.
-        lead_times : List
+        lead_times : None or List
             List of lead times or forecast periods, at which the radii
             within radii_in_km are defined.
         unweighted_mode : boolean
@@ -86,6 +86,12 @@ class BasicNeighbourhoodProcessing(object):
         else:
             self.radii_in_km = float(radii_in_km)
         self.lead_times = lead_times
+        if self.lead_times is not None:
+            if len(radii_in_km) != len(lead_times):
+                msg = ("There is a mismatch in the number of radii "
+                       "and the number of lead times. "
+                       "Unable to continue due to mismatch.")
+                raise ValueError(msg)
         self.unweighted_mode = bool(unweighted_mode)
 
     def __str__(self):

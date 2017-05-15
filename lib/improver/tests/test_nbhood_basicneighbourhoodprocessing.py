@@ -167,6 +167,26 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
     return cube
 
 
+class Test__init__(IrisTest):
+
+    def test_radii_varying_with_lead_time_mismatch(self):
+        """
+        Test that the desired error message is raised, if there is a mismatch
+        between the number of radii and the number of lead times.
+        """
+        cube = set_up_cube(num_time_points=3)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = _add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [10, 20, 30]
+        lead_times = [2, 3]
+        msg = "There is a mismatch in the number of radii"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin = NBHood(radii_in_km, lead_times)
+
+
 class Test_find_required_lead_times(IrisTest):
 
     """Test determining of the lead times present within the input cube."""
