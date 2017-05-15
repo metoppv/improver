@@ -34,8 +34,9 @@ Unit tests for the
 """
 import unittest
 
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np
 
@@ -186,6 +187,24 @@ class Test_create_cube_with_percentiles(IrisTest):
             percentiles, cube, cube_data)
         self.assertDictEqual(
             cube.metadata._asdict(), result.metadata._asdict())
+
+    def test_coordinate_copy(self):
+        """
+        Test that the coordinates within the input cube, are
+        also present on the output cube.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube.attributes = {"source": "ukv"}
+        cube_data = self.cube_data + 2
+        percentiles = [0.1, 0.5, 0.9]
+        result = create_cube_with_percentiles(
+            percentiles, cube, cube_data)
+        for coord in cube.coords():
+            if coord not in result.coords():
+                msg = (
+                    "Coordinate: {} not found in cube {}".format(
+                        coord, result))
+                raise CoordinateNotFoundError(msg)
 
 
 class Test_create_percentiles(IrisTest):
