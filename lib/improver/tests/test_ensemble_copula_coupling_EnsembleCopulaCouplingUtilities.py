@@ -144,6 +144,49 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("percentile").points, percentiles)
 
+    def test_percentile_length_too_short(self):
+        """
+        Test that the plugin raises the default ValueError, if the number
+        of percentiles is fewer than the length of the zeroth dimension within
+        the cube.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube_data = self.cube_data + 2
+        percentiles = [0.1, 0.5]
+        msg = "Unequal lengths"
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = create_cube_with_percentiles(
+                percentiles, cube, cube_data)
+
+    def test_percentile_length_too_long(self):
+        """
+        Test that the plugin raises the default ValueError, if the number
+        of percentiles exceeds the length of the zeroth dimension within
+        the cube.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube = cube[0, :, :, :]
+        cube_data = self.cube_data + 2
+        percentiles = [0.1, 0.5, 0.9]
+        msg = "Unequal lengths"
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = create_cube_with_percentiles(
+                percentiles, cube, cube_data)
+
+    def test_metadata_copy(self):
+        """
+        Test that the metadata dictionaries within the input cube, are
+        also present on the output cube.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube.attributes = {"source": "ukv"}
+        cube_data = self.cube_data + 2
+        percentiles = [0.1, 0.5, 0.9]
+        result = create_cube_with_percentiles(
+            percentiles, cube, cube_data)
+        self.assertDictEqual(
+            cube.metadata._asdict(), result.metadata._asdict())
+
 
 class Test_create_percentiles(IrisTest):
 
