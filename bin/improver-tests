@@ -15,8 +15,8 @@
 set -eu
 
 cd $IMPROVER_DIR/lib
-pep8 improver
-pylint -E --extension-pkg-whitelist=numpy --rcfile=../etc/pylintrc improver
+${PEP8:-pep8} improver
+${PYLINT:-pylint} -E --rcfile=../etc/pylintrc improver
 python -m unittest discover
 
 
@@ -28,3 +28,6 @@ if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
 else
     bats $(find "$IMPROVER_DIR/tests/" -name "*.bats")
 fi
+
+echo
+echo "All tests passed OK."
