@@ -14,20 +14,33 @@
 
 set -eu
 
+function echo_ok {
+    echo -e "\033[1;32m[OK]\033[0m $1"
+}
+
 cd $IMPROVER_DIR/lib
+
+# PEP8 testing.
 ${PEP8:-pep8} improver
+echo_ok "pep8"
+
+# Pylint obvious-errors-only testing.
 ${PYLINT:-pylint} -E --rcfile=../etc/pylintrc improver
+echo_ok "pylint -E"
+
+# Unit tests.
 python -m unittest discover
+echo_ok "Unit tests"
 
-
+# CLI testing.
 PATH="$IMPROVER_DIR/tests/bin/:$PATH"
-# Put our library and scripts in the paths.
 if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
     prove -j $(nproc) -r -e "bats --tap" \
         --ext ".bats" "$IMPROVER_DIR/tests/"
 else
     bats $(find "$IMPROVER_DIR/tests/" -name "*.bats")
 fi
+echo_ok "CLI tests"
 
-echo
-echo "All tests passed OK."
+# No errors found (or script would have exited).
+echo_ok "All tests passed."
