@@ -52,6 +52,16 @@ class GeneratePercentilesFromProbabilities(object):
     Class for generating percentiles from probabilities.
     In combination with the Ensemble Reordering plugin, this is Ensemble
     Copula Coupling.
+
+    This class includes the ability to interpolate between probability
+    thresholds in order to generate the percentiles, see Figure 1 from
+    Flowerdew, 2014.
+
+    Scientific Reference:
+    Flowerdew, J., 2014.
+    Calibrated ensemble reliability whilst preserving spatial structure.
+    Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
+
     """
 
     def __init__(self):
@@ -63,9 +73,9 @@ class GeneratePercentilesFromProbabilities(object):
     def _add_bounds_to_thresholds_and_probabilities(
             self, threshold_points, probabilities_for_cdf, bounds_pairing):
         """
-        Padding of the lower and upper bounds for a given phenomenon for the
-        threshold_points, and padding of probabilities of 0 and 1 to the
-        forecast probabilities.
+        Padding of the lower and upper bounds of the distribution for a
+        given phenomenon for the threshold_points, and padding of
+        probabilities of 0 and 1 to the forecast probabilities.
 
         Parameters
         ----------
@@ -75,16 +85,17 @@ class GeneratePercentilesFromProbabilities(object):
             Array containing the probabilities used for constructing an
             empirical cumulative distribution function i.e. probabilities
             below threshold.
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function.
 
         Returns
         -------
         threshold_points : Numpy array
-            Array of threshold values padded with the lower and upper bound.
+            Array of threshold values padded with the lower and upper bound
+            of the distribution.
         probabilities_for_cdf : Numpy array
             Array containing the probabilities padded with 0 and 1 at each end.
-        bounds_pairing : Tuple
-            Lower and upper bound to be used as the ends of the
-            empirical cumulative distribution function.
 
         """
         lower_bound, upper_bound = bounds_pairing
@@ -94,6 +105,14 @@ class GeneratePercentilesFromProbabilities(object):
         ones_array = np.ones((probabilities_for_cdf.shape[0], 1))
         probabilities_for_cdf = np.concatenate(
             (zeroes_array, probabilities_for_cdf, ones_array), axis=1)
+        if np.any(np.diff(threshold_points) < 0):
+            msg = ("The end points added to the threshold values for "
+                   "constructing the Cumulative Distribution Function (CDF) "
+                   "must result in an ascending order. "
+                   "In this case, the threshold points {} must be outside the "
+                   "allowable range given by the bounds {}".format(
+                       threshold_points, bounds_pairing))
+            raise ValueError(msg)
         return threshold_points, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
@@ -118,7 +137,8 @@ class GeneratePercentilesFromProbabilities(object):
         Returns
         -------
         percentile_cube : Iris cube
-            Cube with probabilities at the required percentiles.
+            Cube containing values for the required diagnostic e.g.
+            air_temperature at the required percentiles.
 
         """
         threshold_points = (
@@ -129,6 +149,14 @@ class GeneratePercentilesFromProbabilities(object):
 
         # Invert probabilities
         probabilities_for_cdf = 1 - prob_slices
+
+        if np.any(np.diff(probabilities_for_cdf) < 0):
+            msg = ("The probability values used to construct the "
+                   "Cumulative Distribution Function (CDF) "
+                   "must be ascending i.e. in order to yield "
+                   "a monotonically increasing CDF."
+                   "The probabilities are {}".format(probabilities_for_cdf))
+            raise ValueError(msg)
 
         threshold_points, probabilities_for_cdf = (
             self._add_bounds_to_thresholds_and_probabilities(
@@ -163,10 +191,29 @@ class GeneratePercentilesFromProbabilities(object):
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def _convert_bounds_units(self, forecast_probabilities):
+    def _get_bounds_of_distribution(self, forecast_probabilities):
         """
-        Convert the units of the bounds_pairing to the units of the
-        forecast.
+        Gets the bounds of the distribution and converts the units of the
+        bounds_pairing to the units of the forecast.
+
+        This method gets the bounds values and units from the imported
+        dictionaries: bounds_for_ecdf and units_of_bounds_for_ecdf.
+        The units of the bounds are converted to be the units of the input
+        cube.
+
+        Parameters
+        ----------
+        forecast_probabilities : Iris Cube
+            Cube expected to contain a probability_above_threshold
+            coordinate.
+
+        Returns
+        -------
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function, converted to have
+            the same units as the input cube.
+
         """
         fp_units = (
             forecast_probabilities.coord("probability_above_threshold").units)
@@ -177,8 +224,11 @@ class GeneratePercentilesFromProbabilities(object):
                 units_of_bounds_for_ecdf[forecast_probabilities.name()])
         except KeyError as err:
             msg = ("The forecast_probabilities name: {} is not recognised"
-                   "within bounds_for_ecdf / units_of_bounds_for_ecdf: {}.\n"
-                   "Error: {}")
+                   "within bounds_for_ecdf {} or "
+                   "units_of_bounds_for_ecdf: {}. \n"
+                   "Error: {}".format(
+                       forecast_probabilities.name(), bounds_for_ecdf,
+                       units_of_bounds_for_ecdf, err))
             raise KeyError(msg)
         bounds_pairing_units = unit.Unit(bounds_pairing_units)
         bounds_pairing = bounds_pairing_units.convert(
@@ -193,15 +243,18 @@ class GeneratePercentilesFromProbabilities(object):
         3. Accesses the lower and upper bound pair to find the ends of the
            empirical cumulative distribution function.
         4. Convert the probability_above_threshold coordinate into
-           values at a set of percentiles.
+           values at a set of percentiles using linear interpolation,
+           see Figure 1 from Flowerdew, 2014.
 
         Parameters
         ----------
         forecast_probabilities : Iris CubeList or Iris Cube
             Cube or CubeList expected to contain a probability_above_threshold
             coordinate.
-        no_of_percentiles : Integer
+        no_of_percentiles : Integer or None
             Number of percentiles
+            If None, the number of thresholds within the input
+            forecast_probabilities cube is used as the number of percentiles.
         sampling : String
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -227,7 +280,8 @@ class GeneratePercentilesFromProbabilities(object):
         percentiles = create_percentiles(
             no_of_percentiles, sampling=sampling)
 
-        bounds_pairing = self._convert_bounds_units(forecast_probabilities)
+        bounds_pairing = (
+            self._get_bounds_of_distribution(forecast_probabilities))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
