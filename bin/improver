@@ -13,7 +13,8 @@
 #
 # DESCRIPTION
 #    Launch particular operations for post-processing or verification of
-#    meteorological data.
+#    meteorological data. This script is a central launcher for all
+#    IMPROVER subcommands (improver-xxxx) and central help.
 #------------------------------------------------------------------------------
 
 set -eu
@@ -23,7 +24,7 @@ export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
 # List all improver subcommands or operations.
 get_operations() {
     cd "$IMPROVER_DIR/bin/"
-    ls improver-* | sort | sed "s/^improver-//"
+    ls improver-*[^~] | sort | sed "s/^improver-//"
 }
 
 # Print generic or operation specific help.
@@ -37,8 +38,7 @@ print_help() {
         sed -n '/^# NAME/,/^#---/{/^#\-/d; s/^#//; s/^ //; p}' "$0"
         echo
         echo "OPERATIONS"
-        echo -n "   improver "
-        get_operations | sed "s/ /\n   improver /g"
+        get_operations | sed "s/^/   improver /"
     fi
 }
 
@@ -71,7 +71,7 @@ if [[ -f "$IMPROVER_DIR/etc/site-init" ]]; then
 fi
 
 # Put our library and scripts in the paths.
-export PYTHONPATH="$IMPROVER_DIR/lib/:$PYTHONPATH"
+export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 
 exec improver-$OPER "$@"

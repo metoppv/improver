@@ -14,6 +14,12 @@
 
 set -eu
 
+cd $IMPROVER_DIR/lib
+pep8 improver
+pylint -E --extension-pkg-whitelist=numpy --rcfile=../etc/pylintrc improver
+python -m unittest discover
+
+
 PATH="$IMPROVER_DIR/tests/bin/:$PATH"
 # Put our library and scripts in the paths.
 if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
