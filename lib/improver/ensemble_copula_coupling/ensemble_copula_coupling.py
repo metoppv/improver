@@ -477,12 +477,19 @@ class EnsembleReordering(object):
         mlen = len(raw_forecast_members.coord("realization").points)
         if plen == mlen:
             pass
-        elif plen > mlen or plen < mlen:
+        else:
             raw_forecast_members_extended = iris.cube.CubeList()
             realization_list = []
             mpoints = raw_forecast_members.coord("realization").points
+            # Loop over the number of percentiles and finding the
+            # corresponding ensemble member number. The ensemble member
+            # numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
             for index in range(plen):
                 realization_list.append(mpoints[index % len(mpoints)])
+            # Extract the members required in the realization_list from
+            # the raw_forecast_members. Edit the member number as appropriate
+            # and append to a cubelist containing rebadged raw ensemble
+            # members.
             for realization, index in zip(realization_list, range(plen)):
                 constr = iris.Constraint(realization=realization)
                 raw_forecast_member = raw_forecast_members.extract(constr)

@@ -33,6 +33,7 @@ Unit tests for the
 `ensemble_copula_coupling.EnsembleReordering` plugin.
 
 """
+import itertools
 import unittest
 
 from iris.cube import Cube
@@ -70,50 +71,6 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         self.percentile_cube = (
             _add_forecast_reference_time_and_forecast_period(cube))
 
-    def test_types_length_of_percentiles_equals_length_of_members(self):
-        """
-        Test to check the behaviour whether the number of percentiles equals
-        the number of members. For when the length of the percentiles equals
-        the length of the members, check that a Cube is returned.
-        """
-        post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
-            post_processed_forecast_percentiles, raw_forecast_members)
-        self.assertIsInstance(result, Cube)
-
-    def test_types_length_of_percentiles_greater_than_length_of_members(self):
-        """
-        Test to check the behaviour whether the number of percentiles is
-        greater than the number of members. For when the length of the
-        percentiles is greater than the length of the members, check that a
-        Cube is returned.
-        """
-        post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        raw_forecast_members = raw_forecast_members[:2, :, :, :]
-        plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
-            post_processed_forecast_percentiles, raw_forecast_members)
-        self.assertIsInstance(result, Cube)
-
-    def test_types_length_of_percentiles_less_than_length_of_members(self):
-        """
-        Test to check the behaviour whether the number of percentiles is
-        less than the number of members. For when the length of the
-        percentiles is less than the length of the members, check that a
-        Cube is returned.
-        """
-        post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        post_processed_forecast_percentiles = (
-            post_processed_forecast_percentiles[:2, :, :, :])
-        plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
-            post_processed_forecast_percentiles, raw_forecast_members)
-        self.assertIsInstance(result, Cube)
-
     def test_realization_for_equal(self):
         """
         Test to check the behaviour whether the number of percentiles equals
@@ -127,6 +84,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         plugin = Plugin()
         result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
 
@@ -144,6 +102,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         plugin = Plugin()
         result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
 
@@ -162,8 +121,138 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         plugin = Plugin()
         result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
+
+    def test_realization_for_equal_check_data(self):
+        """
+        Test to check the behaviour whether the number of percentiles equals
+        the number of members. For when the length of the percentiles equals
+        the length of the members, check that the points of the realization
+        coordinate is as expected.
+        """
+        data = [0, 1, 2]
+        data = np.array([[[[4., 4.625, 5.25],
+                           [5.875, 6.5, 7.125],
+                           [7.75, 8.375, 9.]]],
+                         [[[6., 6.625, 7.25],
+                           [7.875, 8.5, 9.125],
+                           [9.75, 10.375, 11.]]],
+                         [[[8., 8.625, 9.25],
+                           [9.875, 10.5, 11.125],
+                           [11.75, 12.375, 13.]]]])
+
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(data, result.data)
+
+    def test_realization_for_greater_than_check_data(self):
+        """
+        Test to check the behaviour whether the number of percentiles is
+        greater than the number of members. For when the length of the
+        percentiles is greater than the length of the members, check that the
+        points of the realization coordinate is as expected.
+        """
+        data = np.array([[[[4., 4.625, 5.25],
+                           [5.875, 6.5, 7.125],
+                           [7.75, 8.375, 9.]],
+                          [[6., 6.625, 7.25],
+                           [7.875, 8.5, 9.125],
+                           [9.75, 10.375, 11.]],
+                          [[4., 4.625, 5.25],
+                           [5.875, 6.5, 7.125],
+                           [7.75, 8.375, 9.]]]])
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        # Slice number of raw forecast members, so that there are fewer
+        # members than percentiles.
+        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(data, result.data)
+
+    def test_realization_for_less_than_check_data(self):
+        """
+        Test to check the behaviour whether the number of percentiles is
+        less than the number of members. For when the length of the
+        percentiles is less than the length of the members, check that the
+        points of the realization coordinate is as expected.
+        """
+        data = np.array([[[[4., 4.625, 5.25],
+                           [5.875, 6.5, 7.125],
+                           [7.75, 8.375, 9.]],
+                          [[6., 6.625, 7.25],
+                           [7.875, 8.5, 9.125],
+                           [9.75, 10.375, 11.]]]])
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        post_processed_forecast_percentiles = (
+            post_processed_forecast_percentiles[:2, :, :, :])
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(data, result.data)
+
+    def test_realization_for_greater_than_check_data_lots_of_members(self):
+        """
+        Test to check the behaviour whether the number of percentiles is
+        greater than the number of members. For when the length of the
+        percentiles is greater than the length of the members, check that the
+        points of the realization coordinate is as expected.
+        """
+        data = np.tile(np.linspace(5, 10, 9), 9).reshape(9, 1, 3, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(
+            data, "air_temperature", "degreesC",
+            realizations=np.arange(0, 9))
+
+        self.realization_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+        cube.coord("realization").rename("percentile")
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube))
+
+        expected = np.array([[[[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]],
+                              [[6., 6.625, 7.25],
+                               [7.875, 8.5, 9.125],
+                               [9.75, 10.375, 11.]],
+                              [[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]],
+                              [[6., 6.625, 7.25],
+                               [7.875, 8.5, 9.125],
+                               [9.75, 10.375, 11.]],
+                              [[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]],
+                              [[6., 6.625, 7.25],
+                               [7.875, 8.5, 9.125],
+                               [9.75, 10.375, 11.]],
+                              [[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]],
+                              [[6., 6.625, 7.25],
+                               [7.875, 8.5, 9.125],
+                               [9.75, 10.375, 11.]],
+                              [[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]]]])
+        post_processed_forecast_percentiles = self.percentile_cube
+        raw_forecast_members = self.realization_cube
+        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        plugin = Plugin()
+        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members)
+        self.assertArrayAlmostEqual(expected, result.data)
 
 
 class Test_rank_ecc(IrisTest):
@@ -427,30 +516,6 @@ class Test_rank_ecc(IrisTest):
                                     [2],
                                     [3]])
 
-        result_data_first = np.array([[1],
-                                      [2],
-                                      [3]])
-
-        result_data_second = np.array([[1],
-                                       [3],
-                                       [2]])
-
-        result_data_third = np.array([[2],
-                                      [1],
-                                      [3]])
-
-        result_data_fourth = np.array([[2],
-                                       [3],
-                                       [1]])
-
-        result_data_fifth = np.array([[3],
-                                      [1],
-                                      [2]])
-
-        result_data_sixth = np.array([[3],
-                                      [2],
-                                      [1]])
-
         cube = self.cube.copy()
         cube = cube[:, :, 0, 0]
         raw_cube = cube.copy()
@@ -463,47 +528,11 @@ class Test_rank_ecc(IrisTest):
                                  random_ordering=True)
         result.transpose([1, 0])
 
-        err_count = 0
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_first)
-        except AssertionError as err1:
-            err_count += 1
+        permutations = list(itertools.permutations(raw_data))
+        permutations = [np.array(permutation) for permutation in permutations]
 
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_second)
-        except AssertionError as err2:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_third)
-        except AssertionError as err3:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_fourth)
-        except AssertionError as err4:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_fifth)
-        except AssertionError as err5:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_sixth)
-        except AssertionError as err6:
-            err_count += 1
-
-        if err_count == 6:
-            raise ValueError("Exceptions raised as all accepted forms of the "
-                             "calibrated data were not matched."
-                             "1. {}"
-                             "2. {}"
-                             "3. {}"
-                             "4. {}"
-                             "5. {}"
-                             "6. {}".format(err1, err2, err3,
-                                            err4, err5, err6))
+        matches = [all(aresult == result.data) for aresult in permutations]
+        self.assertIn(True, matches)
 
 
 class Test_process(IrisTest):
@@ -546,30 +575,6 @@ class Test_process(IrisTest):
                                     [2],
                                     [3]])
 
-        result_data_first = np.array([[1],
-                                      [2],
-                                      [3]])
-
-        result_data_second = np.array([[1],
-                                       [3],
-                                       [2]])
-
-        result_data_third = np.array([[2],
-                                      [1],
-                                      [3]])
-
-        result_data_fourth = np.array([[2],
-                                       [3],
-                                       [1]])
-
-        result_data_fifth = np.array([[3],
-                                      [1],
-                                      [2]])
-
-        result_data_sixth = np.array([[3],
-                                      [2],
-                                      [1]])
-
         raw_cube = self.raw_cube[:, :, 0, 0]
         raw_cube.data = raw_data
         calibrated_cube = self.calibrated_cube[:, :, 0, 0]
@@ -580,47 +585,11 @@ class Test_process(IrisTest):
                                 random_ordering=True)
         result.transpose([1, 0])
 
-        err_count = 0
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_first)
-        except AssertionError as err1:
-            err_count += 1
+        permutations = list(itertools.permutations(raw_data))
+        permutations = [np.array(permutation) for permutation in permutations]
 
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_second)
-        except AssertionError as err2:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_third)
-        except AssertionError as err3:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_fourth)
-        except AssertionError as err4:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_fifth)
-        except AssertionError as err5:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_sixth)
-        except AssertionError as err6:
-            err_count += 1
-
-        if err_count == 6:
-            raise ValueError("Exceptions raised as all accepted forms of the "
-                             "calibrated data were not matched."
-                             "1. {}"
-                             "2. {}"
-                             "3. {}"
-                             "4. {}"
-                             "5. {}"
-                             "6. {}".format(err1, err2, err3,
-                                            err4, err5, err6))
+        matches = [all(aresult == result.data) for aresult in permutations]
+        self.assertIn(True, matches)
 
 
 if __name__ == '__main__':

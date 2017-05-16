@@ -43,11 +43,12 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
 
 
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units):
+def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
+                realizations=[0, 1, 2]):
     """Create a cube containing multiple realizations."""
     cube = Cube(data, standard_name=phenomenon_standard_name,
                 units=phenomenon_units)
-    cube.add_dim_coord(DimCoord([0, 1, 2], 'realization',
+    cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
