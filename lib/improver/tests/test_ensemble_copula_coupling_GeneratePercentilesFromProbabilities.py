@@ -183,6 +183,21 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         self.assertArrayAlmostEqual(result[1][:, 0], zero_array)
         self.assertArrayAlmostEqual(result[1][:, -1], one_array)
 
+    def test_endpoints_of_distribution_exceeded(self):
+        """
+        Test that the plugin raises a ValueError when the constant
+        end points of the distribution are exceeded by a threshold value
+        used in the forecast.
+        """
+        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+        threshold_points = np.array([8, 10, 60])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        msg = "The end points added to the threshold values for"
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = plugin._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, bounds_pairing)
+
 
 class Test__probabilities_to_percentiles(IrisTest):
 
@@ -254,46 +269,6 @@ class Test__probabilities_to_percentiles(IrisTest):
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         msg = "The probability values used to construct the"
-        with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin._probabilities_to_percentiles(
-                cube, percentiles, bounds_pairing)
-
-    def test_thresholds_not_monotonically_increasing(self):
-        """
-        Test that the plugin raises a ValueError, if threshold points
-        are added to the cube, which are non monotonically increasing.
-        """
-        data = 1 - np.array([0.05, 0.7, 0.95])
-        data = data[:, np.newaxis, np.newaxis, np.newaxis]
-        msg = "The points array must be strictly monotonic"
-        with self.assertRaisesRegexp(ValueError, msg):
-            self.current_temperature_forecast_cube = (
-                _add_forecast_reference_time_and_forecast_period(
-                    set_up_cube(
-                        data, "air_temperature", "1",
-                        forecast_thresholds=[8, 12, 10], y_dimension_length=1,
-                        x_dimension_length=1)))
-
-    def test_endpoints_of_distribution_exceeded(self):
-        """
-        Test that the plugin raises a ValueError when the constant
-        end points of the distribution are exceeded by a threshold value
-        used in the forecast.
-        """
-        data = 1 - np.array([0.05, 0.7, 0.95])
-        data = data[:, np.newaxis, np.newaxis, np.newaxis]
-
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_cube(
-                    data, "air_temperature", "1",
-                    forecast_thresholds=[8, 10, 60], y_dimension_length=1,
-                    x_dimension_length=1)))
-        cube = self.current_temperature_forecast_cube
-        percentiles = [0.1, 0.5, 0.9]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        msg = "The end points added to the threshold values for"
         with self.assertRaisesRegexp(ValueError, msg):
             result = plugin._probabilities_to_percentiles(
                 cube, percentiles, bounds_pairing)
