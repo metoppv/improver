@@ -461,58 +461,6 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
 
-class Test__get_bounds_of_distribution(IrisTest):
-
-    """Test the _get_bounds_of_distribution plugin."""
-
-    def setUp(self):
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
-
-    def test_basic(self):
-        """Test that the result is a numpy array."""
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
-        result = plugin._get_bounds_of_distribution(cube)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_check_data(self):
-        """
-        Test that the expected results are returned for the bounds_pairing.
-        """
-        cube = self.current_temperature_forecast_cube
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._get_bounds_of_distribution(cube)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
-
-    def test_check_unit_conversion(self):
-        """
-        Test that the expected results are returned for the bounds_pairing,
-        if the units of the bounds_pairings need to be converted to match
-        the units of the forecast.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.coord("probability_above_threshold").convert_units("fahrenheit")
-        bounds_pairing = (-40, 122)  # In fahrenheit
-        plugin = Plugin()
-        result = plugin._get_bounds_of_distribution(cube)
-        self.assertArrayAlmostEqual(result, bounds_pairing)
-
-    def test_check_exception_is_raised(self):
-        """
-        Test that the expected results are returned for the bounds_pairing.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.standard_name = None
-        cube.long_name = "Nonsense"
-        plugin = Plugin()
-        msg = "The forecast_probabilities name"
-        with self.assertRaisesRegexp(KeyError, msg):
-            plugin._get_bounds_of_distribution(cube)
-
-
 class Test_process(IrisTest):
 
     """Test the _create_cube_with_percentiles plugin."""
