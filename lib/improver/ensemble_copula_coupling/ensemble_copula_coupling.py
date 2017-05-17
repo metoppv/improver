@@ -90,6 +90,48 @@ class GeneratePercentilesFromProbabilities(object):
         """
         pass
 
+    def _add_bounds_to_thresholds_and_probabilities(
+            self, threshold_points, probabilities_for_cdf, bounds_pairing):
+        """
+        Padding of the lower and upper bounds of the distribution for a
+        given phenomenon for the threshold_points, and padding of
+        probabilities of 0 and 1 to the forecast probabilities.
+        Parameters
+        ----------
+        threshold_points : Numpy array
+            Array of threshold values used to calculate the probabilities.
+        probabilities_for_cdf : Numpy array
+            Array containing the probabilities used for constructing an
+            empirical cumulative distribution function i.e. probabilities
+            below threshold.
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function.
+        Returns
+        -------
+        threshold_points : Numpy array
+            Array of threshold values padded with the lower and upper bound
+            of the distribution.
+        probabilities_for_cdf : Numpy array
+            Array containing the probabilities padded with 0 and 1 at each end.
+        """
+        lower_bound, upper_bound = bounds_pairing
+        threshold_points = np.insert(threshold_points, 0, lower_bound)
+        threshold_points = np.append(threshold_points, upper_bound)
+        zeroes_array = np.zeros((probabilities_for_cdf.shape[0], 1))
+        ones_array = np.ones((probabilities_for_cdf.shape[0], 1))
+        probabilities_for_cdf = np.concatenate(
+            (zeroes_array, probabilities_for_cdf, ones_array), axis=1)
+        if np.any(np.diff(threshold_points) < 0):
+            msg = ("The end points added to the threshold values for "
+                   "constructing the Cumulative Distribution Function (CDF) "
+                   "must result in an ascending order. "
+                   "In this case, the threshold points {} must be outside the "
+                   "allowable range given by the bounds {}".format(
+                       threshold_points, bounds_pairing))
+            raise ValueError(msg)
+        return threshold_points, probabilities_for_cdf
+
     def _probabilities_to_percentiles(
             self, forecast_probabilities, percentiles, bounds_pairing):
         """
@@ -212,7 +254,8 @@ class GeneratePercentilesFromProbabilities(object):
             no_of_percentiles, sampling=sampling)
 
         bounds_pairing = (
-            _get_bounds_of_distribution(forecast_probabilities))
+            _get_bounds_of_distribution(
+                forecast_probabilities, "probability_above_threshold"))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
