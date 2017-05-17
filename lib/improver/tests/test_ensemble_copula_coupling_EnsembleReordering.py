@@ -547,10 +547,11 @@ class Test_process(IrisTest):
         self.raw_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
-        self.calibrated_cube = (
-            add_forecast_reference_time_and_forecast_period(
+        self.post_processed_percentiles = (
+            _add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
-        self.calibrated_cube.coord("realization").rename("percentile")
+        self.post_processed_percentiles.coord("realization").rename(
+            "percentile")
 
     def test_basic(self):
         """
@@ -558,7 +559,7 @@ class Test_process(IrisTest):
         realization coordinate.
         """
         plugin = Plugin()
-        result = plugin.process(self.calibrated_cube, self.raw_cube)
+        result = plugin.process(self.post_processed_percentiles, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
 
@@ -571,23 +572,87 @@ class Test_process(IrisTest):
                              [2],
                              [1]])
 
-        calibrated_data = np.array([[1],
-                                    [2],
-                                    [3]])
+        post_processed_percentiles_data = np.array([[1],
+                                                    [2],
+                                                    [3]])
 
         raw_cube = self.raw_cube[:, :, 0, 0]
         raw_cube.data = raw_data
-        calibrated_cube = self.calibrated_cube[:, :, 0, 0]
-        calibrated_cube.data = calibrated_data
+        post_processed_percentiles = (
+            self.post_processed_percentiles[:, :, 0, 0])
+        post_processed_percentiles.data = post_processed_percentiles_data
 
         plugin = Plugin()
-        result = plugin.process(calibrated_cube, raw_cube,
+        result = plugin.process(post_processed_percentiles, raw_cube,
                                 random_ordering=True)
         result.transpose([1, 0])
 
         permutations = list(itertools.permutations(raw_data))
         permutations = [np.array(permutation) for permutation in permutations]
 
+        matches = [all(aresult == result.data) for aresult in permutations]
+        self.assertIn(True, matches)
+
+    def test_2d_cube_recycling_raw_ensemble_members(self):
+        """
+        Test that the plugin returns the correct cube data for a
+        2d input cube, if the number of raw ensemble members is fewer
+        than the number of percentiles required, and therefore, raw
+        ensemble member recycling is required.
+
+        Case where two raw ensemble members are exactly the same,
+        after the raw ensemble members have been recycled.
+        The number of raw ensemble members are recycled in order to match
+        the number of percentiles.
+
+        After recycling the raw _data will be
+        raw_data = np.array([[1],
+                             [2],
+                             [1]])
+
+        If there's a tie, the re-ordering randomly allocates the ordering
+        for the data from the raw ensemble members, which is why there are
+        two possible options for the resulting post-processed ensemble members.
+
+        Raw ensemble members
+        1,  2
+        Post-processed percentiles
+        1,  2,  3
+        After recycling raw ensemble members
+        1,  2,  1
+        As the second ensemble member(with a data value of 2), is the highest
+        value, the highest value from the post-processed percentiles will
+        be the second ensemble member data value within the post-processed
+        members. The data values of 1 and 2 from the post-processed
+        percentiles will then be split between the first and third
+        post-processed ensemble members.
+
+        """
+        raw_data = np.array([[1],
+                             [2]])
+
+        post_processed_percentiles_data = np.array([[1],
+                                                    [2],
+                                                    [3]])
+
+        expected_first = np.array([[1],
+                                   [3],
+                                   [2]])
+
+        expected_second = np.array([[2],
+                                    [3],
+                                    [1]])
+
+        raw_cube = self.raw_cube[:2, :, 0, 0]
+        raw_cube.data = raw_data
+        post_processed_percentiles = (
+            self.post_processed_percentiles[:, :, 0, 0])
+        post_processed_percentiles.data = post_processed_percentiles_data
+
+        plugin = Plugin()
+        result = plugin.process(post_processed_percentiles, raw_cube)
+        result.transpose([1, 0])
+        permutations = [expected_first, expected_second]
         matches = [all(aresult == result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
