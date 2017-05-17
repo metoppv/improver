@@ -44,7 +44,27 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
     import bounds_for_ecdf, units_of_bounds_for_ecdf
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import create_cube_with_percentiles, create_percentiles
+    import (add_bounds_to_thresholds_and_probabilities,
+            create_cube_with_percentiles, create_percentiles,
+            get_bounds_of_distribution)
+
+
+class ResamplePercentiles(object):
+    """
+    Class for resampling percentiles from an existing set of percentiles.
+    In combination with the Ensemble Reordering plugin, this is Ensemble
+    Copula Coupling.
+
+    This class includes the ability to interpolate from an input set of
+    percentiles to a different output set of percentiles.
+
+    """
+
+    def __init__(self):
+        """
+        Initialise the class.
+        """
+        pass
 
 
 class GeneratePercentilesFromProbabilities(object):
@@ -69,51 +89,6 @@ class GeneratePercentilesFromProbabilities(object):
         Initialise the class.
         """
         pass
-
-    def _add_bounds_to_thresholds_and_probabilities(
-            self, threshold_points, probabilities_for_cdf, bounds_pairing):
-        """
-        Padding of the lower and upper bounds of the distribution for a
-        given phenomenon for the threshold_points, and padding of
-        probabilities of 0 and 1 to the forecast probabilities.
-
-        Parameters
-        ----------
-        threshold_points : Numpy array
-            Array of threshold values used to calculate the probabilities.
-        probabilities_for_cdf : Numpy array
-            Array containing the probabilities used for constructing an
-            empirical cumulative distribution function i.e. probabilities
-            below threshold.
-        bounds_pairing : Tuple
-            Lower and upper bound to be used as the ends of the
-            empirical cumulative distribution function.
-
-        Returns
-        -------
-        threshold_points : Numpy array
-            Array of threshold values padded with the lower and upper bound
-            of the distribution.
-        probabilities_for_cdf : Numpy array
-            Array containing the probabilities padded with 0 and 1 at each end.
-
-        """
-        lower_bound, upper_bound = bounds_pairing
-        threshold_points = np.insert(threshold_points, 0, lower_bound)
-        threshold_points = np.append(threshold_points, upper_bound)
-        zeroes_array = np.zeros((probabilities_for_cdf.shape[0], 1))
-        ones_array = np.ones((probabilities_for_cdf.shape[0], 1))
-        probabilities_for_cdf = np.concatenate(
-            (zeroes_array, probabilities_for_cdf, ones_array), axis=1)
-        if np.any(np.diff(threshold_points) < 0):
-            msg = ("The end points added to the threshold values for "
-                   "constructing the Cumulative Distribution Function (CDF) "
-                   "must result in an ascending order. "
-                   "In this case, the threshold points {} must be outside the "
-                   "allowable range given by the bounds {}".format(
-                       threshold_points, bounds_pairing))
-            raise ValueError(msg)
-        return threshold_points, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
             self, forecast_probabilities, percentiles, bounds_pairing):
@@ -159,7 +134,7 @@ class GeneratePercentilesFromProbabilities(object):
             raise ValueError(msg)
 
         threshold_points, probabilities_for_cdf = (
-            self._add_bounds_to_thresholds_and_probabilities(
+            _add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing))
 
         forecast_at_percentiles = (
@@ -190,50 +165,6 @@ class GeneratePercentilesFromProbabilities(object):
             percentiles, template_cube, forecast_at_percentiles)
         percentile_cube.cell_methods = {}
         return percentile_cube
-
-    def _get_bounds_of_distribution(self, forecast_probabilities):
-        """
-        Gets the bounds of the distribution and converts the units of the
-        bounds_pairing to the units of the forecast.
-
-        This method gets the bounds values and units from the imported
-        dictionaries: bounds_for_ecdf and units_of_bounds_for_ecdf.
-        The units of the bounds are converted to be the units of the input
-        cube.
-
-        Parameters
-        ----------
-        forecast_probabilities : Iris Cube
-            Cube expected to contain a probability_above_threshold
-            coordinate.
-
-        Returns
-        -------
-        bounds_pairing : Tuple
-            Lower and upper bound to be used as the ends of the
-            empirical cumulative distribution function, converted to have
-            the same units as the input cube.
-
-        """
-        fp_units = (
-            forecast_probabilities.coord("probability_above_threshold").units)
-        # Extract bounds from dictionary of constants.
-        try:
-            bounds_pairing = bounds_for_ecdf[forecast_probabilities.name()]
-            bounds_pairing_units = (
-                units_of_bounds_for_ecdf[forecast_probabilities.name()])
-        except KeyError as err:
-            msg = ("The forecast_probabilities name: {} is not recognised"
-                   "within bounds_for_ecdf {} or "
-                   "units_of_bounds_for_ecdf: {}. \n"
-                   "Error: {}".format(
-                       forecast_probabilities.name(), bounds_for_ecdf,
-                       units_of_bounds_for_ecdf, err))
-            raise KeyError(msg)
-        bounds_pairing_units = unit.Unit(bounds_pairing_units)
-        bounds_pairing = bounds_pairing_units.convert(
-            np.array(bounds_pairing), fp_units)
-        return bounds_pairing
 
     def process(self, forecast_probabilities, no_of_percentiles=None,
                 sampling="quantile"):
@@ -281,7 +212,7 @@ class GeneratePercentilesFromProbabilities(object):
             no_of_percentiles, sampling=sampling)
 
         bounds_pairing = (
-            self._get_bounds_of_distribution(forecast_probabilities))
+            _get_bounds_of_distribution(forecast_probabilities))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
