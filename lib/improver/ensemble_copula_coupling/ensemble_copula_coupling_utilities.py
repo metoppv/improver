@@ -39,7 +39,6 @@ import random
 
 import cf_units as unit
 import iris
-from iris.exceptions import CoordinateNotFoundError
 
 
 def create_percentiles(no_of_percentiles, sampling="quantile"):
