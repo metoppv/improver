@@ -455,21 +455,10 @@ class Test_rank_ecc(IrisTest):
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
         result.transpose([1, 0, 2])
-
-        err_count = 0
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_first)
-        except Exception as err1:
-            err_count += 1
-
-        try:
-            self.assertArrayAlmostEqual(result.data, result_data_second)
-        except Exception as err2:
-            err_count += 1
-
-        if err_count == 2:
-            raise ValueError("Exceptions raised by both accepted forms of the "
-                             "calibrated data. {} {}".format(err1, err2))
+        permutations = [result_data_first, result_data_second]
+        matches = [
+            np.array_equal(aresult, result.data) for aresult in permutations]
+        self.assertIn(True, matches)
 
     def test_2d_cube(self):
         """
@@ -531,7 +520,8 @@ class Test_rank_ecc(IrisTest):
         permutations = list(itertools.permutations(raw_data))
         permutations = [np.array(permutation) for permutation in permutations]
 
-        matches = [all(aresult == result.data) for aresult in permutations]
+        matches = [
+            np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
 
@@ -590,7 +580,8 @@ class Test_process(IrisTest):
         permutations = list(itertools.permutations(raw_data))
         permutations = [np.array(permutation) for permutation in permutations]
 
-        matches = [all(aresult == result.data) for aresult in permutations]
+        matches = [
+            np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
     def test_2d_cube_recycling_raw_ensemble_members(self):
@@ -653,7 +644,8 @@ class Test_process(IrisTest):
         result = plugin.process(post_processed_percentiles, raw_cube)
         result.transpose([1, 0])
         permutations = [expected_first, expected_second]
-        matches = [all(aresult == result.data) for aresult in permutations]
+        matches = [
+            np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
 

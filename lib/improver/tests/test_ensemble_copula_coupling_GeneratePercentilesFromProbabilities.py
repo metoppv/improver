@@ -45,7 +45,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf, units_of_bounds_for_ecdf
+    import bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period)
 
@@ -195,7 +195,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         plugin = Plugin()
         msg = "The end points added to the threshold values for"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin._add_bounds_to_thresholds_and_probabilities(
+            plugin._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing)
 
 
@@ -270,7 +270,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         plugin = Plugin()
         msg = "The probability values used to construct the"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin._probabilities_to_percentiles(
+            plugin._probabilities_to_percentiles(
                 cube, percentiles, bounds_pairing)
 
     def test_result_cube_has_no_probability_above_threshold_coordinate(self):
@@ -507,11 +507,10 @@ class Test__get_bounds_of_distribution(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube.standard_name = None
         cube.long_name = "Nonsense"
-        bounds_pairing = bounds_for_ecdf["air_temperature"]
         plugin = Plugin()
         msg = "The forecast_probabilities name"
         with self.assertRaisesRegexp(KeyError, msg):
-            result = plugin._get_bounds_of_distribution(cube)
+            plugin._get_bounds_of_distribution(cube)
 
 
 class Test_process(IrisTest):

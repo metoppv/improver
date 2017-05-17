@@ -34,7 +34,7 @@ Unit tests for the
 """
 import unittest
 
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
@@ -156,7 +156,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         percentiles = [0.1, 0.5]
         msg = "Unequal lengths"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = create_cube_with_percentiles(
+            create_cube_with_percentiles(
                 percentiles, cube, cube_data)
 
     def test_percentile_length_too_long(self):
@@ -171,7 +171,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         msg = "Unequal lengths"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = create_cube_with_percentiles(
+            create_cube_with_percentiles(
                 percentiles, cube, cube_data)
 
     def test_metadata_copy(self):

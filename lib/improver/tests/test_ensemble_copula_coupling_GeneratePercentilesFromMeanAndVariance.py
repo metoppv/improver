@@ -237,7 +237,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         plugin = Plugin()
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin._mean_and_variance_to_percentiles(
+            plugin._mean_and_variance_to_percentiles(
                 current_forecast_predictor, current_forecast_variance,
                 percentiles)
 
