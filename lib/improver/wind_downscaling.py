@@ -369,9 +369,9 @@ class RoughnessCorrectionUtilities(object):
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI
-        cond = hgrid < self.h_ref[:, np.newaxis]
+        cond = hgrid < self.h_ref[:, :, np.newaxis]
         unew[cond] = (
-            ustar[:, np.newaxis]*np.ones(unew.shape)
+            ustar[:, :, np.newaxis]*np.ones(unew.shape)
             )[cond] * (
                 np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,)) *
                               np.ones(unew.shape)))[cond])/VONKARMAN
@@ -406,9 +406,9 @@ class RoughnessCorrectionUtilities(object):
 
         # Ignores the height at the position where u_in is RMDI,"hops over"
         hhere = np.ma.masked_less(hhere, 0.0)
-        upidx = np.argmax(h_in > hhere[:, np.newaxis], axis=2)
+        upidx = np.argmax(h_in > hhere[:, :, np.newaxis], axis=2)
         # loidx = np.maximum(upidx-1, 0) #if RMDI, need below
-        loidx = np.argmin(np.ma.masked_less(hhere[:, np.newaxis] -
+        loidx = np.argmin(np.ma.masked_less(hhere[:, :, np.newaxis] -
                                             h_in, 0.0), axis=2)
 
         if h_in.ndim == 3:
@@ -550,10 +550,10 @@ class RoughnessCorrectionUtilities(object):
             zdim = heightg.shape[2]
         ml2 = self.h_at0*self.wavenum
         expon = np.ones([xdim, ydim, zdim])
-        mult = self.wavenum[:, np.newaxis]*heightg
+        mult = self.wavenum[:, :, np.newaxis]*heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
-            expon*u_a[:, np.newaxis] * ml2[:, np.newaxis] * onemfrac)
+            expon*u_a[:, :, np.newaxis] * ml2[:, :, np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
