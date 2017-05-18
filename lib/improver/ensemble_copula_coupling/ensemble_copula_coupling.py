@@ -66,8 +66,8 @@ class ResamplePercentiles(object):
         """
         pass
 
-    def _add_bounds_to_percentiles_and_forecast_values(
-            self, percentiles, forecast_values, bounds_pairing):
+    def _add_bounds_to_percentiles_and_forecast_at_percentiles(
+            self, percentiles, forecast_at_percentiles, bounds_pairing):
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
@@ -77,7 +77,7 @@ class ResamplePercentiles(object):
         ----------
         percentiles : Numpy array
             Array of percentiles from a Cumulative Distribution Function.
-        forecast_values : Numpy array
+        forecast_at_percentiles : Numpy array
             Array containing the underlying forecast values at each percentile.
         bounds_pairing : Tuple
             Lower and upper bound to be used as the ends of the
@@ -86,25 +86,27 @@ class ResamplePercentiles(object):
         -------
         percentiles : Numpy array
             Array of percentiles from a Cumulative Distribution Function.
-        forecast_values : Numpy array
+        forecast_at_percentiles : Numpy array
             Array containing the underlying forecast values at each percentile.
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = np.insert(percentiles, 0, 0)
         percentiles = np.append(percentiles, 1)
-        lower_array = np.full((forecast_values.shape[0], 1), lower_bound)
-        upper_array = np.full((forecast_values.shape[0], 1), upper_bound)
-        forecast_values = np.concatenate(
-            (lower_array, forecast_values, upper_array), axis=1)
-        if np.any(np.diff(forecast_values) < 0):
-            msg = ("The end points added to the forecast values "
-                   "representing for each percentile must result in "
+        lower_array = (
+            np.full((forecast_at_percentiles.shape[0], 1), lower_bound))
+        upper_array = (
+            np.full((forecast_at_percentiles.shape[0], 1), upper_bound))
+        forecast_at_percentiles = np.concatenate(
+            (lower_array, forecast_at_percentiles, upper_array), axis=1)
+        if np.any(np.diff(forecast_at_percentiles) < 0):
+            msg = ("The end points added to the forecast at percentiles "
+                   "values representing for each percentile must result in "
                    "an ascending order. "
                    "In this case, the forecast values {} must be outside the "
                    "allowable range given by the bounds {}".format(
-                       forecast_values, bounds_pairing))
+                       forecast_at_percentiles, bounds_pairing))
             raise ValueError(msg)
-        return percentiles, forecast_values
+        return percentiles, forecast_at_percentiles
 
     def _sample_percentiles(
         self, forecast_at_percentiles, desired_percentiles):
@@ -135,7 +137,7 @@ class ResamplePercentiles(object):
             forecast_at_percentiles, coord="percentiles")
 
         original_percentiles, forecast_at_reshaped_percentiles = (
-            _add_bounds_to_percentiles_and_forecast_values(
+            _add_bounds_to_percentiles_and_forecast_at_percentiles(
                 original_percentiles, forecast_at_reshaped_percentiles,
                 bounds_pairing))
 

@@ -29,141 +29,54 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the
-`ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
-
+Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
-import numpy as np
-import unittest
 
-from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube
-from iris.tests import IrisTest
-
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromProbabilities as Plugin)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf
-from improver.tests.helper_functions_ensemble_calibration import(
-    _add_forecast_reference_time_and_forecast_period)
-
-
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                forecast_thresholds=[8, 10, 12],
-                y_dimension_length=3, x_dimension_length=3):
-    """Create a cube containing multiple realizations."""
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
-                                "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
-                                'latitude', units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
-                                'longitude', units='degrees'), 3)
-    return cube
-
-
-def set_up_temperature_cube():
-    """Create a cube with metadata and values suitable for air temperature."""
-    data = np.array([[[[1.0, 0.9, 1.0],
-                       [0.8, 0.9, 0.5],
-                       [0.5, 0.2, 0.0]]],
-                     [[[1.0, 0.5, 1.0],
-                       [0.5, 0.5, 0.3],
-                       [0.2, 0.0, 0.0]]],
-                     [[[1.0, 0.2, 0.5],
-                       [0.2, 0.0, 0.1],
-                       [0.0, 0.0, 0.0]]]])
-    return set_up_cube(data, "air_temperature", "1")
-
-
-def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units,
-                     forecast_thresholds=[8, 10, 12],
-                     y_dimension_length=9, x_dimension_length=9):
-    """
-    Create a cube containing multiple realizations, where one of the
-    dimensions is an index used for spot forecasts.
-    """
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
-                                "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
-                                units="1"), 2)
-    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, y_dimension_length),
-                                'latitude', units='degrees'), data_dims=2)
-    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length),
-                                'longitude', units='degrees'), data_dims=2)
-    return cube
-
-
-def set_up_spot_temperature_cube():
-    """
-    Create a cube with metadata and values suitable for air temperature
-    for spot forecasts.
-    """
-    data = np.array([[[1.0, 0.9, 1.0,
-                       0.8, 0.9, 0.5,
-                       0.5, 0.2, 0.0]],
-                     [[1.0, 0.5, 1.0,
-                       0.5, 0.5, 0.3,
-                       0.2, 0.0, 0.0]],
-                     [[1.0, 0.2, 0.5,
-                       0.2, 0.0, 0.1,
-                       0.0, 0.0, 0.0]]])
-    return set_up_spot_cube(data, "air_temperature", "1")
-
-
-class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
+class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
 
     """
-    Test the _add_bounds_to_thresholds_and_probabilities method of the
-    GeneratePercentilesFromProbabilities.
+    Test the _add_bounds_to_percentiles_and_forecast_values method of the
+    ResamplePercentiles plugin.
     """
 
     def setUp(self):
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(data, "air_temperature", "degreesC")
+        self.realization_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+        cube.coord("realization").rename("percentile")
+        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube))
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
-        cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
-        probabilities_for_cdf = cube.data.reshape(3, 9)
+        cube = self.percentile_cube
+        percentiles = cube.coord("percentile").points
+        forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+        result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertIsInstance(result[0], np.ndarray)
         self.assertIsInstance(result[1], np.ndarray)
 
-    def test_bounds_of_threshold_points(self):
+    def test_bounds_of_percentiles(self):
         """
         Test that the plugin returns the expected results for the
-        threshold_points, where they've been padded with the values from
+        percentiles, where they've been padded with the values from
         the bounds_pairing.
         """
-        cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
-        probabilities_for_cdf = cube.data.reshape(3, 9)
+        cube = self.percentile_cube
+        percentiles = cube.coord("percentile").points
+        forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+        result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result[0][0], bounds_pairing[0])
         self.assertArrayAlmostEqual(result[0][-1], bounds_pairing[1])
 
@@ -173,15 +86,15 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         probabilities, where they've been padded with zeros and ones to
         represent the extreme ends of the Cumulative Distribution Function.
         """
-        cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
-        probabilities_for_cdf = cube.data.reshape(3, 9)
-        zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
-        one_array = np.ones(probabilities_for_cdf[:, 0].shape)
+        cube = self.percentile_cube
+        percentiles = cube.coord("percentile").points
+        forecast_at_percentiles = cube.data.reshape(3, 9)
+        zero_array = np.zeros(forecast_at_percentiles[:, 0].shape)
+        one_array = np.ones(forecast_at_percentiles[:, 0].shape)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+        result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result[1][:, 0], zero_array)
         self.assertArrayAlmostEqual(result[1][:, -1], one_array)
 
@@ -191,31 +104,33 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         end points of the distribution are exceeded by a threshold value
         used in the forecast.
         """
-        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
-        threshold_points = np.array([8, 10, 60])
+        forecast_at_percentiles = np.array([[0.05, 0.7, 0.95]])
+        percentiles = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         msg = "The end points added to the threshold values for"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing)
+            plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                percentiles, forecast_at_percentiles, bounds_pairing)
 
 
-class Test__probabilities_to_percentiles(IrisTest):
+class Test__sample_percentiles(IrisTest):
 
     """
-    Test the _probabilities_to_percentiles method of the
-    GeneratePercentilesFromProbabilities plugin.
+    Test the _sample_percentiles method of the ResamplePercentiles plugin.
     """
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
-        self.current_temperature_spot_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_spot_temperature_cube()))
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(data, "air_temperature", "degreesC")
+        self.realization_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+        cube.coord("realization").rename("percentile")
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube))
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
@@ -468,16 +383,19 @@ class Test__probabilities_to_percentiles(IrisTest):
 
 class Test_process(IrisTest):
 
-    """
-    Test the process method of the GeneratePercentilesFromProbabilities
-    plugin.
-    """
+    """Test the process plugin of the Resample Percentiles plugin."""
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(data, "air_temperature", "degreesC")
+        self.realization_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+        cube.coord("realization").rename("percentile")
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(cube))
 
     def test_check_data_specifying_percentiles(self):
         """
@@ -494,8 +412,8 @@ class Test_process(IrisTest):
                            [-25., -10., 5.],
                            [-28., -16., -4.]]]])
 
-        cube = self.current_temperature_forecast_cube
-        percentiles = [0.1, 0.5, 0.9]
+        cube = self.percentile_cube
+        percentiles = [0.25, 0.5, 0.75]
         plugin = Plugin()
         result = plugin.process(
             cube, no_of_percentiles=len(percentiles))
@@ -516,11 +434,8 @@ class Test_process(IrisTest):
                            [-25., -10., 5.],
                            [-28., -16., -4.]]]])
 
-        cube = self.current_temperature_forecast_cube
+        cube = self.percentile_cube
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, data)
 
-
-if __name__ == '__main__':
-    unittest.main()
