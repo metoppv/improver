@@ -44,9 +44,10 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
     import bounds_for_ecdf, units_of_bounds_for_ecdf
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import (add_bounds_to_thresholds_and_probabilities,
+    import (concatenate_2d_array_with_2darray_endpoints,
             create_cube_with_percentiles, create_percentiles,
-            get_bounds_of_distribution)
+            get_bounds_of_distribution,
+            insert_lower_and_upper_endpoint_to_1d_array)
 
 
 class ResamplePercentiles(object):
@@ -90,26 +91,23 @@ class ResamplePercentiles(object):
             Array containing the underlying forecast values at each percentile.
         """
         lower_bound, upper_bound = bounds_pairing
-        percentiles = np.insert(percentiles, 0, 0)
-        percentiles = np.append(percentiles, 1)
-        lower_array = (
-            np.full((forecast_at_percentiles.shape[0], 1), lower_bound))
-        upper_array = (
-            np.full((forecast_at_percentiles.shape[0], 1), upper_bound))
-        forecast_at_percentiles = np.concatenate(
-            (lower_array, forecast_at_percentiles, upper_array), axis=1)
+        percentiles = insert_lower_and_upper_endpoint_to_1d_array(
+            percentiles, percentiles, 0, 1)
+        forecast_at_percentiles = concatenate_2d_array_with_2darray_endpoints(
+            forecast_at_percentiles, lower_bound, upper_bound)
         if np.any(np.diff(forecast_at_percentiles) < 0):
             msg = ("The end points added to the forecast at percentiles "
                    "values representing for each percentile must result in "
                    "an ascending order. "
-                   "In this case, the forecast values {} must be outside the "
-                   "allowable range given by the bounds {}".format(
+                   "In this case, the forecast at percentile values {} "
+                   "must be outside the allowable range given by the "
+                   "bounds {}".format(
                        forecast_at_percentiles, bounds_pairing))
             raise ValueError(msg)
         return percentiles, forecast_at_percentiles
 
     def _sample_percentiles(
-        self, forecast_at_percentiles, desired_percentiles):
+        self, forecast_at_percentiles, desired_percentiles, bounds_pairing):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -122,6 +120,9 @@ class ResamplePercentiles(object):
             Cube or CubeList expected to contain a percentile coordinate.
         desired_percentiles : Numpy array
             Array of the desired percentiles.
+        bounds_pairing : Tuple
+            Lower and upper bound to be used as the ends of the
+            empirical cumulative distribution function.
 
         Returns
         -------
@@ -251,6 +252,7 @@ class GeneratePercentilesFromProbabilities(object):
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
         probabilities of 0 and 1 to the forecast probabilities.
+
         Parameters
         ----------
         threshold_points : Numpy array
@@ -271,19 +273,18 @@ class GeneratePercentilesFromProbabilities(object):
             Array containing the probabilities padded with 0 and 1 at each end.
         """
         lower_bound, upper_bound = bounds_pairing
-        threshold_points = np.insert(threshold_points, 0, lower_bound)
-        threshold_points = np.append(threshold_points, upper_bound)
-        zeroes_array = np.zeros((probabilities_for_cdf.shape[0], 1))
-        ones_array = np.ones((probabilities_for_cdf.shape[0], 1))
-        probabilities_for_cdf = np.concatenate(
-            (zeroes_array, probabilities_for_cdf, ones_array), axis=1)
+        threshold_points = insert_lower_and_upper_endpoint_to_1d_array(
+            threshold_points, lower_bound, upper_bound)
+        probabilities_for_cdf = concatenate_2d_array_with_2darray_endpoints(
+            probabilities_for_cdf, 0, 1)
         if np.any(np.diff(threshold_points) < 0):
             msg = ("The end points added to the threshold values for "
-                   "constructing the Cumulative Distribution Function (CDF) "
-                   "must result in an ascending order. "
-                   "In this case, the threshold points {} must be outside the "
-                   "allowable range given by the bounds {}".format(
-                       threshold_points, bounds_pairing))
+                    "constructing the Cumulative Distribution Function (CDF) "
+                    "must result in an ascending order. "
+                    "In this case, the threshold points {} must be "
+                    "outside the allowable range given by the "
+                    "bounds {}".format(
+                        threshold_points, bounds_pairing))
             raise ValueError(msg)
         return threshold_points, probabilities_for_cdf
 

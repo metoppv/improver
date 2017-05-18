@@ -41,6 +41,50 @@ import cf_units as unit
 import iris
 
 
+def insert_lower_and_upper_endpoint_to_1d_array(
+        array_1d, low_endpoint, high_endpoint):
+    """
+    For a 1d array, add a lower and upper endpoint.
+
+    Parameters
+    ----------
+    array_1d : Numpy array
+        1d array of values
+    low_endpoint : Number
+        Number of use as the lower endpoint.
+    high_endpoint : Number
+        Number of use as the upper endpoint.
+    """
+    percentiles = np.insert(percentiles, 0, low_endpoint)
+    percentiles = np.append(percentiles, high_endpoint)
+    return percentiles
+
+
+def concatenate_2d_array_with_2darray_endpoints(
+        array_2d, low_endpoint, high_endpoint):
+    """
+    For a 2d array, add a 2d array as the lower and upper endpoints.
+
+    Parameters
+    ----------
+    array_2d : Numpy array
+        2d array of values
+    low_endpoint : Number
+        Number of used to create a 2d array of a constant value
+        as the lower endpoint.
+    high_endpoint : Number
+        Number of used to create a 2d array of a constant value
+        as the upper endpoint.
+    """
+    lower_array = (
+        np.full((array_2d.shape[0], 1), low_endpoint))
+    upper_array = (
+        np.full((array_2d.shape[0], 1), high_endpoint))
+    array_2d = np.concatenate(
+        (lower_array, array_2d, upper_array), axis=1)
+    return array_2d
+
+
 def create_percentiles(no_of_percentiles, sampling="quantile"):
     """
     Function to create percentiles.
