@@ -608,13 +608,11 @@ class RoughnessCorrectionUtilities(object):
             unew = uorig
         uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
         mask_hc[uhref_orig <= 0] = False
-        
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
         # Example usage if the Bessel function was not set to 1 is:
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
         onemfrac = 1.0
-        
         hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
         result[result < 0.] = 0  # HC can be negative if pporo<modeloro
