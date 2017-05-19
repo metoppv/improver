@@ -41,7 +41,9 @@ from improver.nbhood import BasicNeighbourhoodProcessing
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description='Do some basic neighbourhood processing')
+        description='Apply basic weighted circle smoothing via ' +
+                    'the BasicNeighbourhoodProcessing plugin ' +
+                    'to a file with one cube.')
     parser.add_argument('--radius-in-km', metavar='RADIUS', type=float,
                         help='The kernel radius for neighbourhood processing')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
@@ -51,7 +53,6 @@ def main():
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
     result = BasicNeighbourhoodProcessing(args.radius_in_km).process(cube)
-    print 'Writing output:', args.output_filepath
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

@@ -5,4 +5,4 @@ Iris (https://github.com/SciTools/iris), LGPL:
   - .gitignore used as basis for ours
 
 BATS (https://github.com/sstephenson/bats), MIT-style:
-  - tests/bin/bats\*, unaltered
+  - tests/bin/bats\*, unaltered, from commit 0360811
