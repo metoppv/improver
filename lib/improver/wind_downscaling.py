@@ -574,7 +574,7 @@ class RoughnessCorrectionUtilities(object):
         delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
         return delt_z
 
-    def _do_rc_hc_all(self, hgrid, uorig):
+    def do_rc_hc_all(self, hgrid, uorig):
         """Function to call HC and RC (height and roughness corrections).
 
         Parameters:
@@ -664,9 +664,6 @@ class RoughnessCorrection(object):
             self.z_0 = next(z0_cube.slices([y_name, x_name]))
         except AttributeError:
             self.z_0 = z0_cube
-        except Exception as exc:
-            emsg = "'{0}' while z0 setting. Arguments '{1}'."
-            raise ValueError(emsg.format(exc.message, exc.args))
         self.pp_oro = next(pporo_cube.slices([y_name, x_name]))
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))
         self.ppres = self.calc_av_ppgrid_res(pporo_cube)
@@ -701,28 +698,24 @@ class RoughnessCorrection(object):
                      range(len(cube.coords()))])
         try:
             xname = cube.coord(axis="x").name()
-        except Exception as exc:
+        except CoordinateNotFoundError as exc:
             print("'{0}' while xname setting. Args: {1}.".format(exc.message,
                                                                  exc.args))
         try:
             yname = cube.coord(axis="y").name()
-        except Exception as exc:
+        except CoordinateNotFoundError as exc:
             print("'{0}' while yname setting. Args: {1}.".format(exc.message,
                                                                  exc.args))
-        try:
+        if clist.intersection(self.zcoordnames):
             zname = list(clist.intersection(self.zcoordnames))[0]
-        except IndexError:
+        else:
             zname = None
-        except Exception as exc:
-            print("'{0}' while zname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
-        try:
+
+        if clist.intersection(self.tcoordnames):
             tname = list(clist.intersection(self.tcoordnames))[0]
-        except IndexError:
+        else:
             tname = None
-        except Exception as exc:
-            print("'{0}' while tname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
+
         return xname, yname, zname, tname
 
     def calc_av_ppgrid_res(self, a_cube):
@@ -792,8 +785,8 @@ class RoughnessCorrection(object):
         unwanted_coord_list = [
             "time", "height", "model_level_number", "forecast_time",
             "forecast_reference_time", "forecast_period"]
-        for field, exp_unit in zip(ancil_list, [None, Unit("m"), Unit("m"),
-                                           Unit("m")]):
+        for field, exp_unit in zip(ancil_list, [None, Unit("m"),
+                                                Unit("m"), Unit("m")]):
             for unwanted_coord in unwanted_coord_list:
                 try:
                     field.remove_coord(unwanted_coord)
@@ -861,8 +854,7 @@ class RoughnessCorrection(object):
                 coord_dimension = np.nan
             positions.append(coord_dimension)
 
-        xpos, ypos, zpos, tpos = positions
-        return xpos, ypos, zpos, tpos
+        return positions
 
     def find_heightgrid(self, wind):
         """Setup the height grid.
@@ -968,8 +960,8 @@ class RoughnessCorrection(object):
                 msg = ('{} has invalid wind data')
                 raise ValueError(msg.format(time_slice.coord(self.t_name)))
             rc_hc = copy.deepcopy(time_slice)
-            rc_hc.data = roughness_correction._do_rc_hc_all(hld,
-                                                            time_slice.data)
+            rc_hc.data = roughness_correction.do_rc_hc_all(
+                hld, time_slice.data)
             rchc_list.append(rc_hc)
         output_cube = rchc_list.merge_cube()
         # reorder input_cube and output_cube as original
