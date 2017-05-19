@@ -48,6 +48,10 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 
+.PHONY: apidoc
+apidoc:
+	sphinx-apidoc -e -P -f -o source ../lib/improver
+
 .PHONY: html
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
