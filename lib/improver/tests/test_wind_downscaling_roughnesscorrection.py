@@ -70,7 +70,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
                 cube.add_aux_coord(
                     AuxCoord(height[i_idx], "height", units=Unit("meter")))
             cubel1.append(cube)
-        cubel.append(cubel1.merge()[0])
+        cubel.append(cubel1.merge_cube())
     cubel = cubel.merge(0)
     cube = cubel[0]
     if data is not None:
@@ -125,7 +125,7 @@ class TestMultiPoint(object):
 
         Parameters
         ----------
-        nxny: a scalar or an np.array([x,y])
+        nx_ny: a scalar or an np.array([x,y])
             Sets dimension for tests.
         AoS: float or 1D or 2D array
             Silhouette roughness field
