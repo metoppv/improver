@@ -36,6 +36,7 @@ import itertools
 
 from cf_units import Unit
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.constants import RMDI
@@ -369,9 +370,9 @@ class RoughnessCorrectionUtilities(object):
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI
-        cond = hgrid < self.h_ref[:, np.newaxis]
+        cond = hgrid < self.h_ref[:, :, np.newaxis]
         unew[cond] = (
-            ustar[:, np.newaxis]*np.ones(unew.shape)
+            ustar[:, :, np.newaxis]*np.ones(unew.shape)
             )[cond] * (
                 np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,)) *
                               np.ones(unew.shape)))[cond])/VONKARMAN
@@ -406,9 +407,9 @@ class RoughnessCorrectionUtilities(object):
 
         # Ignores the height at the position where u_in is RMDI,"hops over"
         hhere = np.ma.masked_less(hhere, 0.0)
-        upidx = np.argmax(h_in > hhere[:, np.newaxis], axis=2)
+        upidx = np.argmax(h_in > hhere[:, :, np.newaxis], axis=2)
         # loidx = np.maximum(upidx-1, 0) #if RMDI, need below
-        loidx = np.argmin(np.ma.masked_less(hhere[:, np.newaxis] -
+        loidx = np.argmin(np.ma.masked_less(hhere[:, :, np.newaxis] -
                                             h_in, 0.0), axis=2)
 
         if h_in.ndim == 3:
@@ -550,10 +551,10 @@ class RoughnessCorrectionUtilities(object):
             zdim = heightg.shape[2]
         ml2 = self.h_at0*self.wavenum
         expon = np.ones([xdim, ydim, zdim])
-        mult = self.wavenum[:, np.newaxis]*heightg
+        mult = self.wavenum[:, :, np.newaxis]*heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
-            expon*u_a[:, np.newaxis] * ml2[:, np.newaxis] * onemfrac)
+            expon*u_a[:, :, np.newaxis] * ml2[:, :, np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
@@ -573,7 +574,7 @@ class RoughnessCorrectionUtilities(object):
         delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
         return delt_z
 
-    def _do_rc_hc_all(self, hgrid, uorig):
+    def do_rc_hc_all(self, hgrid, uorig):
         """Function to call HC and RC (height and roughness corrections).
 
         Parameters:
@@ -588,6 +589,9 @@ class RoughnessCorrectionUtilities(object):
             result: 3D array
                 sum of  unew: 3D array (float) RC corrected windspeed
                 on levels HC: 3D array (float) HC additional part
+
+        Friedrich, M. M., 2016
+        Wind Downscaling Program (Internal Met Office Report)
 
         """
         if hgrid.ndim == 3:
@@ -604,8 +608,11 @@ class RoughnessCorrectionUtilities(object):
             unew = uorig
         uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
         mask_hc[uhref_orig <= 0] = False
-        onemfrac = 1.0
+        # Setting this value to 1, is equivalent to setting the
+        # Bessel function to 1. (Friedrich, 2016)
+        # Example usage if the Bessel function was not set to 1 is:
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
+        onemfrac = 1.0
         hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
         result[result < 0.] = 0  # HC can be negative if pporo<modeloro
@@ -617,8 +624,6 @@ class RoughnessCorrection(object):
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]
-    xcoordnames = ["projection_x_coordinate", "grid_longitude", "longitude"]
-    ycoordnames = ["projection_y_coordinate", "grid_latitude", "latitude"]
     tcoordnames = ["time", "forecast_time"]
 
     def __init__(self, a_over_s_cube, sigma_cube, pporo_cube,
@@ -646,19 +651,6 @@ class RoughnessCorrection(object):
             any RC
 
         """
-        if hasattr(a_over_s_cube, "operation"):
-            a_over_s_cube = a_over_s_cube.operation()
-        if hasattr(sigma_cube, "operation"):
-            sigma_cube = sigma_cube.operation()
-        if hasattr(pporo_cube, "operation"):
-            pporo_cube = pporo_cube.operation()
-        if hasattr(modoro_cube, "operation"):
-            modoro_cube = modoro_cube.operation()
-        if hasattr(z0_cube, "operation"):
-            z0_cube = z0_cube.operation()
-        if hasattr(height_levels_cube, "operation"):
-            height_levels_cube = height_levels_cube.operation()
-
         x_name, y_name, _, _ = self.find_coord_names(pporo_cube)
         # Some checking that all the grids match
         if not (self.check_ancils(a_over_s_cube, sigma_cube, z0_cube,
@@ -671,18 +663,11 @@ class RoughnessCorrection(object):
             self.z_0 = next(z0_cube.slices([y_name, x_name]))
         except AttributeError:
             self.z_0 = z0_cube
-        except Exception as exc:
-            emsg = "'{0}' while z0 setting. Arguments '{1}'."
-            raise ValueError(emsg.format(exc.message, exc.args))
         self.pp_oro = next(pporo_cube.slices([y_name, x_name]))
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))
         self.ppres = self.calc_av_ppgrid_res(pporo_cube)
         self.modres = modres
         self.height_levels = height_levels_cube
-        if z0_cube is None:
-            self.l_no_winddownscale = True
-        else:
-            self.l_no_winddownscale = False
         self.x_name = None
         self.y_name = None
         self.z_name = None
@@ -711,33 +696,24 @@ class RoughnessCorrection(object):
         clist = set([cube.coords()[iii].name() for iii in
                      range(len(cube.coords()))])
         try:
-            xname = list(clist.intersection(self.xcoordnames))[0]
-        except IndexError:
-            xname = None
-        except Exception as exc:
+            xname = cube.coord(axis="x").name()
+        except CoordinateNotFoundError as exc:
             print("'{0}' while xname setting. Args: {1}.".format(exc.message,
                                                                  exc.args))
         try:
-            yname = list(clist.intersection(self.ycoordnames))[0]
-        except IndexError:
-            yname = None
-        except Exception as exc:
+            yname = cube.coord(axis="y").name()
+        except CoordinateNotFoundError as exc:
             print("'{0}' while yname setting. Args: {1}.".format(exc.message,
                                                                  exc.args))
-        try:
+        if clist.intersection(self.zcoordnames):
             zname = list(clist.intersection(self.zcoordnames))[0]
-        except IndexError:
+        else:
             zname = None
-        except Exception as exc:
-            print("'{0}' while zname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
-        try:
+
+        if clist.intersection(self.tcoordnames):
             tname = list(clist.intersection(self.tcoordnames))[0]
-        except IndexError:
+        else:
             tname = None
-        except Exception as exc:
-            print("'{0}' while tname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
         return xname, yname, zname, tname
 
     def calc_av_ppgrid_res(self, a_cube):
@@ -760,12 +736,14 @@ class RoughnessCorrection(object):
         exp_unit = Unit("m")
         if (x_name is not exp_xname) or (y_name is not exp_yname):
             raise ValueError("cannot currently calculate resolution")
-        try:
-            xres = (np.diff(a_cube.coord(x_name).bounds)).mean()
-            yres = (np.diff(a_cube.coord(y_name).bounds)).mean()
-        except Exception:
+
+        if (a_cube.coord(x_name).bounds is None and
+                a_cube.coord(y_name).bounds is None):
             xres = (np.diff(a_cube.coord(x_name).points)).mean()
             yres = (np.diff(a_cube.coord(y_name).points)).mean()
+        else:
+            xres = (np.diff(a_cube.coord(x_name).bounds)).mean()
+            yres = (np.diff(a_cube.coord(y_name).bounds)).mean()
         if (
                 (a_cube.coord(x_name).units != exp_unit) or
                 (a_cube.coord(y_name).units != exp_unit)):
@@ -784,7 +762,7 @@ class RoughnessCorrection(object):
         Parameters:
         ----------
         a_over_s_cube: iris cube
-            holding the silhoutte roughness field
+            holding the silhouette roughness field
         sigma_cube: iris cube
             holding the standard deviation of height in a grid cell
         z0_cube: iris cube or None
@@ -800,16 +778,16 @@ class RoughnessCorrection(object):
             describing whether or not the tests passed
 
         """
-        alist = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
+        ancil_list = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
         unwanted_coord_list = [
             "time", "height", "model_level_number", "forecast_time",
             "forecast_reference_time", "forecast_period"]
-        for field, exp_unit in zip(alist, [None, Unit("m"), Unit("m"),
-                                           Unit("m")]):
+        for field, exp_unit in zip(ancil_list, [None, Unit("m"),
+                                                Unit("m"), Unit("m")]):
             for unwanted_coord in unwanted_coord_list:
                 try:
                     field.remove_coord(unwanted_coord)
-                except Exception:
+                except CoordinateNotFoundError:
                     pass
             if field.units != exp_unit:
                 msg = ('{} ancil field has unexpected unit:'
@@ -817,20 +795,24 @@ class RoughnessCorrection(object):
                 raise ValueError(
                     msg.format(field.name(), exp_unit, field.units))
         if z0_cube is not None:
-            alist.append(z0_cube)
+            ancil_list.append(z0_cube)
             for unwanted_coord in unwanted_coord_list:
                 try:
                     z0_cube.remove_coord(unwanted_coord)
-                except Exception:
+                except CoordinateNotFoundError:
                     pass
             if z0_cube.units != Unit('m'):
                 msg = ("z0 ancil has unexpected unit: should be {} "
                        "is {}")
                 raise ValueError(msg.format(Unit('m'), z0_cube.units))
-        mlist = list(itertools.permutations(alist, 2))
+        permutated_ancil_list = list(itertools.permutations(ancil_list, 2))
         oklist = []
-        for entr in mlist:
-            oklist.append(entr[0].coords() == entr[1].coords())
+        for entry in permutated_ancil_list:
+            x_axis_flag = (
+                entry[0].coord(axis="y") == entry[1].coord(axis="y"))
+            y_axis_flag = (
+                entry[0].coord(axis="x") == entry[1].coord(axis="x"))
+            oklist.append(x_axis_flag & y_axis_flag)
             # HybridHeightToPhenomOnPressure._cube_compatibility_check(entr[0],
             # entr[1])
         return np.array(oklist).all()  # replace by a return value of True
@@ -838,10 +820,9 @@ class RoughnessCorrection(object):
     def find_coord_order(self, mcube):
         """Extract coordinate ordering within a cube.
 
-        Figure out the order of the xyzt dimensions in a cube.
-        iris.cube.Cube.slices seems not always to return the order one
-        specifies, hence I need to find out the order and work with
-        transpose instead.
+        Use coord_dims to assess the dimension associated with a particular
+        dimension coordinate. If a coordinate is not a dimension coordinate,
+        then a NaN value will be returned for that coordinate.
 
         Parameters:
         ----------
@@ -860,20 +841,12 @@ class RoughnessCorrection(object):
             position of t axis.
 
         """
-        xpos = ypos = zpos = tpos = np.nan
-        for iii, mcc in enumerate(mcube.coords()):
-            try:
-                if mcc == mcube.coord(self.x_name):
-                    xpos = iii
-                elif mcc == mcube.coord(self.y_name):
-                    ypos = iii
-                elif mcc == mcube.coord(self.z_name):
-                    zpos = iii
-                elif mcc == mcube.coord(self.t_name):
-                    tpos = iii
-            except Exception:
-                pass
-        return xpos, ypos, zpos, tpos
+        coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]
+        positions = [np.nan, np.nan, np.nan, np.nan]
+        for coord_index, coord_name in enumerate(coord_names):
+            if mcube.coords(coord_name, dim_coords=True):
+                positions[coord_index] = mcube.coord_dims(coord_name)[0]
+        return positions
 
     def find_heightgrid(self, wind):
         """Setup the height grid.
@@ -903,13 +876,17 @@ class RoughnessCorrection(object):
                 try:
                     xap, yap, zap, _ = self.find_coord_order(hld)
                     hld.transpose([yap, xap, zap])
-                except Exception:
+                except KeyError:
                     raise ValueError("height grid different from wind grid")
-            else:
+            elif hld.ndim == 1:
                 try:
                     hld = next(hld.slices([self.z_name]))
-                except Exception:
+                except CoordinateNotFoundError:
                     raise ValueError("height z coordinate differs from wind z")
+            else:
+                raise ValueError("hld must have a dimension length of "
+                                 "either 3 or 1"
+                                 "hld.ndim is {}".format(hld.ndim))
             hld = hld.data
         return hld
 
@@ -919,7 +896,8 @@ class RoughnessCorrection(object):
         Check if wind and ancillary files are on the same grid and if
         they have the same ordering.
 
-        Parameters:
+        Parameters
+        ----------
         xwp: integer
             representing the position of the x-axis in the wind cube
         ywp: integer
@@ -933,35 +911,34 @@ class RoughnessCorrection(object):
             else:
                 raise ValueError("xy-orientation: ancillary differ from wind")
 
-    def process(self, cube):
+    def process(self, input_cube):
         """Adjust the 4d wind field - cube - (x, y, z including times).
 
         Parameters
         ----------
-        cube - iris.cube.Cube
+        input_cube - iris.cube.Cube
             The wind cube to be operated upon. Should be wind speed on
             height_levels for all desired forecast times.
 
         Returns
         -------
-        cube
+        output_cube
             The 4d wind field with roughness and height correction
             applied in the same order as the input cube.
 
         """
-        wind = cube
-        if not isinstance(wind, iris.cube.Cube):
+        if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
-            raise ValueError(msg.format(type(wind)))
+            raise ValueError(msg.format(type(input_cube)))
         (self.x_name, self.y_name, self.z_name,
-         self.t_name) = self.find_coord_names(wind)
-        xwp, ywp, zwp, twp = self.find_coord_order(wind)
-        try:
-            wind.transpose([ywp, xwp, zwp, twp])  # problems with slices
-        except ValueError:
-            wind.transpose([ywp, xwp, zwp])
+         self.t_name) = self.find_coord_names(input_cube)
+        xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
+        if np.isnan(twp):
+            input_cube.transpose([ywp, xwp, zwp])
+        else:
+            input_cube.transpose([ywp, xwp, zwp, twp])  # problems with slices
         rchc_list = iris.cube.CubeList()
-        if self.l_no_winddownscale:
+        if self.z_0 is None:
             z0_data = None
         else:
             z0_data = self.z_0.data
@@ -969,22 +946,21 @@ class RoughnessCorrection(object):
             self.a_over_s.data, self.sigma.data, z0_data, self.pp_oro.data,
             self.model_oro.data, self.ppres, self.modres)
         self.check_wind_ancil(xwp, ywp)
-        hld = self.find_heightgrid(wind)
-        for time_slice in wind.slices([self.y_name, self.x_name, self.z_name],
-                                      ordered=False):
+        hld = self.find_heightgrid(input_cube)
+        for time_slice in input_cube.slices_over("time"):
             if np.isnan(time_slice.data).any() or (time_slice.data < 0.).any():
                 msg = ('{} has invalid wind data')
                 raise ValueError(msg.format(time_slice.coord(self.t_name)))
             rc_hc = copy.deepcopy(time_slice)
-            rc_hc.data = roughness_correction._do_rc_hc_all(hld,
-                                                            time_slice.data)
+            rc_hc.data = roughness_correction.do_rc_hc_all(
+                hld, time_slice.data)
             rchc_list.append(rc_hc)
-        cube = rchc_list.merge()[0]
-        # reorder wind and cube as original
-        try:
-            wind.transpose(np.argsort([ywp, xwp, zwp, twp]))
-            cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
-        except ValueError:
-            wind.transpose(np.argsort([ywp, xwp, zwp]))
-            cube.transpose(np.argsort([ywp, xwp, zwp]))
-        return cube
+        output_cube = rchc_list.merge_cube()
+        # reorder input_cube and output_cube as original
+        if np.isnan(twp):
+            input_cube.transpose(np.argsort([ywp, xwp, zwp]))
+            output_cube.transpose(np.argsort([ywp, xwp, zwp]))
+        else:
+            input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
+            output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+        return output_cube
