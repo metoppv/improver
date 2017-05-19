@@ -50,7 +50,7 @@ clean:
 
 .PHONY: apidoc
 apidoc:
-	sphinx-apidoc -e -P -f -o source ../lib/improver
+	sphinx-apidoc -e -P -f -o source ../lib/improver ../lib/improver/tests
 
 .PHONY: html
 html:
