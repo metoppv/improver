@@ -608,12 +608,13 @@ class RoughnessCorrectionUtilities(object):
             unew = uorig
         uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
         mask_hc[uhref_orig <= 0] = False
+        
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
         # Example usage if the Bessel function was not set to 1 is:
         # onemfrac = 1.0 - BfuncFrac(nx,ny,nz,heightvec,z_0,waveno, Ustar, UI)
         onemfrac = 1.0
-
+        
         hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
         result[result < 0.] = 0  # HC can be negative if pporo<modeloro
@@ -715,7 +716,6 @@ class RoughnessCorrection(object):
             tname = list(clist.intersection(self.tcoordnames))[0]
         else:
             tname = None
-
         return xname, yname, zname, tname
 
     def calc_av_ppgrid_res(self, a_cube):
@@ -746,7 +746,6 @@ class RoughnessCorrection(object):
         else:
             xres = (np.diff(a_cube.coord(x_name).bounds)).mean()
             yres = (np.diff(a_cube.coord(y_name).bounds)).mean()
-
         if (
                 (a_cube.coord(x_name).units != exp_unit) or
                 (a_cube.coord(y_name).units != exp_unit)):
