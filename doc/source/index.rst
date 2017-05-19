@@ -6,11 +6,8 @@
 Welcome to Improver's documentation!
 ====================================
 
-Contents:
-
-.. toctree::
-   :maxdepth: 2
-
+This should contain a link to the API documentation.
+See :doc:`improver`
 
 
 Indices and tables
