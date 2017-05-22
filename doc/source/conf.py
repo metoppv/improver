@@ -134,7 +134,10 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+'font_size': '16px',    # slightly smaller (default 17px)
+'page_width': '1080px'  # so 80 chars of code fit (default 940px)
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
