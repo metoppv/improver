@@ -191,7 +191,6 @@ class ResamplePercentiles(object):
                 (forecast_at_reshaped_percentiles.shape[0],
                  len(desired_percentiles))))
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            print "forecast_at_reshaped_percentiles[index, :] = ", forecast_at_reshaped_percentiles[index, :]
             forecast_at_interpolated_percentiles[index, :] = np.interp(
                 desired_percentiles, original_percentiles,
                 forecast_at_reshaped_percentiles[index, :])

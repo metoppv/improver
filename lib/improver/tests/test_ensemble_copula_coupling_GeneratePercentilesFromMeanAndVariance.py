@@ -60,74 +60,74 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             _add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
 
-    #def test_check_data(self):
-        #"""
-        #Test that the plugin returns an Iris.cube.Cube matching the expected
-        #data values when a cube containing mean and variance is passed in.
-        #The resulting data values are the percentiles, which have been
-        #generated.
-        #"""
-        #data = np.array([[[[225.56812863, 229.48333333, 233.39853804],
-                           #[236.81812863, 240.73333333, 244.64853804],
-                           #[248.06812863, 251.98333333, 255.89853804]]],
-                         #[[[259.31812863, 263.23333333, 267.14853804],
-                           #[270.56812863, 274.48333333, 278.39853804],
-                           #[281.81812863, 285.73333333, 289.64853804]]],
-                         #[[[293.06812863, 296.98333333, 300.89853804],
-                           #[304.31812863, 308.23333333, 312.14853804],
-                           #[315.56812863, 319.48333333, 323.39853804]]]])
+    def test_check_data(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube matching the expected
+        data values when a cube containing mean and variance is passed in.
+        The resulting data values are the percentiles, which have been
+        generated.
+        """
+        data = np.array([[[[225.56812863, 229.48333333, 233.39853804],
+                           [236.81812863, 240.73333333, 244.64853804],
+                           [248.06812863, 251.98333333, 255.89853804]]],
+                         [[[259.31812863, 263.23333333, 267.14853804],
+                           [270.56812863, 274.48333333, 278.39853804],
+                           [281.81812863, 285.73333333, 289.64853804]]],
+                         [[[293.06812863, 296.98333333, 300.89853804],
+                           [304.31812863, 308.23333333, 312.14853804],
+                           [315.56812863, 319.48333333, 323.39853804]]]])
 
-        #cube = self.current_temperature_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = [0.1, 0.5, 0.9]
-        #plugin = Plugin()
-        #result = plugin._mean_and_variance_to_percentiles(
-            #current_forecast_predictor, current_forecast_variance,
-            #percentiles)
-        #self.assertIsInstance(result, Cube)
-        #self.assertArrayAlmostEqual(result.data, data)
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [0.1, 0.5, 0.9]
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
 
-    #def test_simple_data(self):
-        #"""
-        #Test that the plugin returns the expected values for the generated
-        #percentiles when an idealised set of data values between 1 and 3
-        #is used to create the mean and the variance.
-        #"""
-        #data = np.array([[[[1, 1, 1],
-                           #[1, 1, 1],
-                           #[1, 1, 1]]],
-                         #[[[2, 2, 2],
-                           #[2, 2, 2],
-                           #[2, 2, 2]]],
-                         #[[[3, 3, 3],
-                           #[3, 3, 3],
-                           #[3, 3, 3]]]])
+    def test_simple_data(self):
+        """
+        Test that the plugin returns the expected values for the generated
+        percentiles when an idealised set of data values between 1 and 3
+        is used to create the mean and the variance.
+        """
+        data = np.array([[[[1, 1, 1],
+                           [1, 1, 1],
+                           [1, 1, 1]]],
+                         [[[2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2]]],
+                         [[[3, 3, 3],
+                           [3, 3, 3],
+                           [3, 3, 3]]]])
 
-        #result_data = np.array([[[[0.71844843, 0.71844843, 0.71844843],
-                                  #[0.71844843, 0.71844843, 0.71844843],
-                                  #[0.71844843, 0.71844843, 0.71844843]]],
-                                #[[[2., 2., 2.],
-                                  #[2., 2., 2.],
-                                  #[2., 2., 2.]]],
-                                #[[[3.28155157, 3.28155157, 3.28155157],
-                                  #[3.28155157, 3.28155157, 3.28155157],
-                                  #[3.28155157, 3.28155157, 3.28155157]]]])
+        result_data = np.array([[[[0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157]]],
+                                [[[0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157]]],
+                                [[[0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157],
+                                  [0.71844843, 2., 3.28155157]]]])
 
-        #cube = self.current_temperature_forecast_cube
-        #cube.data = data
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = [0.1, 0.5, 0.9]
-        #plugin = Plugin()
-        #result = plugin._mean_and_variance_to_percentiles(
-            #current_forecast_predictor, current_forecast_variance,
-            #percentiles)
-        #self.assertArrayAlmostEqual(result.data, result_data)
+        cube = self.current_temperature_forecast_cube
+        cube.data = data
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [0.1, 0.5, 0.9]
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertArrayAlmostEqual(result.data, result_data)
 
     def test_if_identical_data(self):
         """
@@ -164,160 +164,159 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
             percentiles)
-        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, result_data)
 
-    #def test_if_nearly_identical_data(self):
-        #"""
-        #Test that the plugin returns the expected values, if every
-        #percentile has an identical value. This causes an issue because
-        #the default for the underlying scipy function is to yield a NaN for
-        #tied values. For this application, any NaN values are overwritten with
-        #the predicted mean value for all probability thresholds.
-        #"""
-        #data = np.array([[[[1., 1., 1.],
-                           #[4., 2., 2.],
-                           #[3., 3., 3.]]],
-                         #[[[1., 1., 1.],
-                           #[2., 2., 2.],
-                           #[3., 3., 3.]]],
-                         #[[[1., 1., 1.],
-                           #[2., 2., 2.],
-                           #[3., 3., 3.]]]])
+    def test_if_nearly_identical_data(self):
+        """
+        Test that the plugin returns the expected values, if every
+        percentile has an identical value. This causes an issue because
+        the default for the underlying scipy function is to yield a NaN for
+        tied values. For this application, any NaN values are overwritten with
+        the predicted mean value for all probability thresholds.
+        """
+        data = np.array([[[[1., 1., 1.],
+                           [4., 2., 2.],
+                           [3., 3., 3.]]],
+                         [[[1., 1., 1.],
+                           [2., 2., 2.],
+                           [3., 3., 3.]]],
+                         [[[1., 1., 1.],
+                           [2., 2., 2.],
+                           [3., 3., 3.]]]])
 
-        #result_data = np.array([[[[1., 1., 1.],
-                                  #[1.186858, 2., 2.],
-                                  #[3., 3., 3.]]],
-                                #[[[1., 1., 1.],
-                                  #[2.66666667, 2., 2.],
-                                  #[3., 3., 3.]]],
-                                #[[[1., 1., 1.],
-                                  #[4.14647495, 2., 2.],
-                                  #[3., 3., 3.]]]])
+        result_data = np.array([[[[1., 1., 1.],
+                                  [1., 1., 1.],
+                                  [1., 1., 1.]]],
+                                [[[1.18685838, 2.66666667, 4.14647495],
+                                  [2., 2., 2.],
+                                  [2., 2., 2.]]],
+                                [[[3., 3., 3.],
+                                  [3., 3., 3.],
+                                  [3., 3., 3.]]]])
 
-        #cube = self.current_temperature_forecast_cube
-        #cube.data = data
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = [0.1, 0.5, 0.9]
-        #plugin = Plugin()
-        #result = plugin._mean_and_variance_to_percentiles(
-            #current_forecast_predictor, current_forecast_variance,
-            #percentiles)
-        #self.assertArrayAlmostEqual(result.data, result_data)
+        cube = self.current_temperature_forecast_cube
+        cube.data = data
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [0.1, 0.5, 0.9]
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertArrayAlmostEqual(result.data, result_data)
 
-    #def test_many_percentiles(self):
-        #"""
-        #Test that the plugin returns an iris.cube.Cube if many percentiles
-        #are requested.
-        #"""
-        #cube = self.current_temperature_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = np.linspace(0.01, 0.99, num=1000, endpoint=True)
-        #plugin = Plugin()
-        #result = plugin._mean_and_variance_to_percentiles(
-            #current_forecast_predictor, current_forecast_variance, percentiles)
-        #self.assertIsInstance(result, Cube)
+    def test_many_percentiles(self):
+        """
+        Test that the plugin returns an iris.cube.Cube if many percentiles
+        are requested.
+        """
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = np.linspace(0.01, 0.99, num=1000, endpoint=True)
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance, percentiles)
+        self.assertIsInstance(result, Cube)
 
-    #def test_negative_percentiles(self):
-        #"""
-        #Test that the plugin returns the expected values for the
-        #percentiles if negative probabilities are requested.
-        #"""
-        #cube = self.current_temperature_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = [-0.1, 0.1]
-        #plugin = Plugin()
-        #msg = "NaNs are present within the result for the"
-        #with self.assertRaisesRegexp(ValueError, msg):
-            #plugin._mean_and_variance_to_percentiles(
-                #current_forecast_predictor, current_forecast_variance,
-                #percentiles)
+    def test_negative_percentiles(self):
+        """
+        Test that the plugin returns the expected values for the
+        percentiles if negative probabilities are requested.
+        """
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [-0.1, 0.1]
+        plugin = Plugin()
+        msg = "NaNs are present within the result for the"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin._mean_and_variance_to_percentiles(
+                current_forecast_predictor, current_forecast_variance,
+                percentiles)
 
-    #def test_spot_forecasts_check_data(self):
-        #"""
-        #Test that the plugin returns an Iris.cube.Cube matching the expected
-        #data values when a cube containing mean and variance is passed in.
-        #The resulting data values are the percentiles, which have been
-        #generated for a spot forecast.
-        #"""
-        #data = np.array([[[225.56812863, 236.81812863, 248.06812863,
-                           #259.31812863, 270.56812863, 281.81812863,
-                           #293.06812863, 304.31812863, 315.56812863]],
-                         #[[229.48333333, 240.73333333, 251.98333333,
-                           #263.23333333, 274.48333333, 285.73333333,
-                           #296.98333333, 308.23333333, 319.48333333]],
-                         #[[233.39853804, 244.64853804, 255.89853804,
-                           #267.14853804, 278.39853804, 289.64853804,
-                           #300.89853804, 312.14853804, 323.39853804]]])
+    def test_spot_forecasts_check_data(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube matching the expected
+        data values when a cube containing mean and variance is passed in.
+        The resulting data values are the percentiles, which have been
+        generated for a spot forecast.
+        """
+        data = np.array([[[225.56812863, 229.48333333, 233.39853804,
+                           236.81812863, 240.73333333, 244.64853804,
+                           248.06812863, 251.98333333, 255.89853804]],
+                         [[259.31812863, 263.23333333, 267.14853804,
+                           270.56812863, 274.48333333, 278.39853804,
+                           281.81812863, 285.73333333, 289.64853804]],
+                         [[293.06812863, 296.98333333, 300.89853804,
+                           304.31812863, 308.23333333, 312.14853804,
+                           315.56812863, 319.48333333, 323.39853804]]])
 
-        #cube = self.current_temperature_spot_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #percentiles = [0.1, 0.5, 0.9]
-        #plugin = Plugin()
-        #result = plugin._mean_and_variance_to_percentiles(
-            #current_forecast_predictor, current_forecast_variance,
-            #percentiles)
-        #self.assertIsInstance(result, Cube)
-        #self.assertArrayAlmostEqual(result.data, data)
+        cube = self.current_temperature_spot_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [0.1, 0.5, 0.9]
+        plugin = Plugin()
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
 
 
-#class Test_process(IrisTest):
+class Test_process(IrisTest):
 
-    #"""Test the process plugin."""
+    """Test the process plugin."""
 
-    #def setUp(self):
-        #"""Set up temperature cube."""
-        #self.current_temperature_forecast_cube = (
-            #_add_forecast_reference_time_and_forecast_period(
-                #set_up_temperature_cube()))
+    def setUp(self):
+        """Set up temperature cube."""
+        self.current_temperature_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_temperature_cube()))
 
-    #def test_basic(self):
-        #"""Test that the plugin returns an Iris.cube.Cube."""
-        #cube = self.current_temperature_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #raw_forecast = cube.copy()
+    def test_basic(self):
+        """Test that the plugin returns an Iris.cube.Cube."""
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        raw_forecast = cube.copy()
 
-        #predictor_and_variance = CubeList(
-            #[current_forecast_predictor, current_forecast_variance])
+        predictor_and_variance = CubeList(
+            [current_forecast_predictor, current_forecast_variance])
 
-        #plugin = Plugin()
-        #result = plugin.process(predictor_and_variance, raw_forecast)
-        #self.assertIsInstance(result, Cube)
+        plugin = Plugin()
+        result = plugin.process(predictor_and_variance, raw_forecast)
+        self.assertIsInstance(result, Cube)
 
-    #def test_number_of_percentiles(self):
-        #"""
-        #Test that the plugin returns a cube with the expected number of
-        #percentiles.
-        #"""
-        #cube = self.current_temperature_forecast_cube
-        #current_forecast_predictor = cube.collapsed(
-            #"realization", iris.analysis.MEAN)
-        #current_forecast_variance = cube.collapsed(
-            #"realization", iris.analysis.VARIANCE)
-        #raw_forecast = cube.copy()
+    def test_number_of_percentiles(self):
+        """
+        Test that the plugin returns a cube with the expected number of
+        percentiles.
+        """
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        raw_forecast = cube.copy()
 
-        #predictor_and_variance = CubeList(
-            #[current_forecast_predictor, current_forecast_variance])
+        predictor_and_variance = CubeList(
+            [current_forecast_predictor, current_forecast_variance])
 
-        #plugin = Plugin()
-        #result = plugin.process(predictor_and_variance, raw_forecast)
-        #self.assertEqual(len(raw_forecast.coord("realization").points),
-                         #len(result.coord("percentile").points))
+        plugin = Plugin()
+        result = plugin.process(predictor_and_variance, raw_forecast)
+        self.assertEqual(len(raw_forecast.coord("realization").points),
+                         len(result.coord("percentile").points))
 
 
 if __name__ == '__main__':

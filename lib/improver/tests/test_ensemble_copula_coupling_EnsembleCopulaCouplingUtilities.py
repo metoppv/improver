@@ -76,7 +76,7 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         expected contents.
         """
         expected = np.array(
-           [[-100, -40, 200, 1000, 10000], [-100, -40, 200, 1000, 10000]])
+            [[-100, -40, 200, 1000, 10000], [-100, -40, 200, 1000, 10000]])
         percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
         result = concatenate_2d_array_with_2d_array_endpoints(
             percentiles, -100, 10000)
@@ -438,7 +438,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         """
         Test that the data has been reshaped correctly.
         """
-        expected = np.array([[[[ 4., 6.],
+        expected = np.array([[[[4., 6.],
                                [8., 6.85714286]],
                               [[8.85714286, 10.85714286],
                                [5.42857143, 7.42857143]]],

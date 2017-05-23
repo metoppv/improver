@@ -292,9 +292,7 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
         msg = ("A {} coordinate is not available on the {} cube.".format(
                input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
-    print "array_to_reshape = ", array_to_reshape
     array_to_reshape = array_to_reshape.T
     shape_to_reshape_to = (
         [output_probabilistic_dimension_length] + shape_to_reshape_to)
-    print "shape_to_reshape_to = ", shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
