@@ -32,6 +32,7 @@
 
 
 import iris
+import numpy as np
 
 
 class BasicWeightedAverage(object):
@@ -40,56 +41,73 @@ class BasicWeightedAverage(object):
     """
 
     def __init__(self, coord, coord_adjust=None):
-        """Set up for processing an in-or-out of threshold binary field.
+        """Set up for a Basic Weighted Average Blending plugin
 
-        Parameters
-        ----------
+        Args:
+            coord : string
+                     The name/s of a coordinate dimension/s in the cube
 
-        coord : string
-            The name of a coordinate dimension in the cube
-
-        coord_adjust :
-
+            coord_adjust : Function to apply to the coordinate after
+                           collapsing the cube to correct the values
+                           for example for time windowing and
+                           cycle averaging the follow function would
+                           adjust the time coordinates
+            e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
         """
         self.coord = coord
         self.coord_adjust = coord_adjust
 
-    def __str__(self):
+    def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<BasicWeightedAverage: coord {0:s}>').format(self.coord)
+            '<BasicWeightedAverage: coord = {0:s}>').format(self.coord)
 
     def process(self, cube, weights=None):
-        """Convert each point to a fuzzy truth value based on threshold.
+        """Calculated weighted mean across the chosen coord
 
-        Parameters
-        ----------
+        Args:
+            cube : iris.cube.Cube
+                   Cube to blend across the coord.
 
-        cube : iris.cube.Cube
-            Cube to blend across the coord.
+            weights: Optional list or np.array of weights
+                     or None (equivalent to equal weights)
 
-        weights: array of weights
+        Returns:
+            result : iris.cube.Cube
 
         """
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError('the first argument must be an instance of ' +
                              'iris.cube.Cube')
         if not cube.coords(self.coord):
-            raise ValueError('the second argument must be ' +
+            raise ValueError('the coord for this plugin must be ' +
                              'an existing coordinate in the input cube')
+        # Find the coords dimension.
+        # If coord is a scalar_coord try adding it
         collapse_dim = cube.coord_dims(self.coord)
         if not collapse_dim:
+            print 'Warning: Could not find collapse dimension ' + \
+                'will try adding it'
             cube = iris.util.new_axis(cube, self.coord)
             collapse_dim = cube.coord_dims(self.coord)
+        # supply weights as an array of weights whose shape matches the cube
+        weights_array = None
         if weights is not None:
-            weights = iris.util.broadcast_to_shape(np.array(weights),
-                                                   cube.shape, collapse_dim)
-        result = cube.collapsed(coord, iris.analysis.MEAN, weights=weights)
+            if np.array(weights).shape != cube.coord(self.coord).points.shape:
+                raise ValueError('the weights array must match the shape ' +
+                                 'of the coordinate in the input cube')
+            weights_array = iris.util.broadcast_to_shape(np.array(weights),
+                                                         cube.shape,
+                                                         collapse_dim)
+        # Calculate the weighted average
+        result = cube.collapsed(self.coord,
+                                iris.analysis.MEAN, weights=weights_array)
+        # if set adjust values of collapsed coordinates
         if self.coord_adjust is not None:
-            # adjust values of collapsed coordinates
             for crd in result.coords():
                 if cube.coord_dims(crd.name()) == collapse_dim:
                     pnts = cube.coord(crd.name()).points
                     crd.points = np.array(self.coord_adjust(pnts),
                                           dtype=crd.points.dtype)
+
         return result
