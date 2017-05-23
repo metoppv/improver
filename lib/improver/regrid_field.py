@@ -153,7 +153,7 @@ def regrid_field(field, grid):
         (this would indicate the input field domain was smaller than the
          standard grid) UNLESS: grid is global field.l
     '''
-    if grid is 'glm':
+    if grid == 'glm':
         field = field.regrid(STANDARD_GRIDS[grid],
                              iris.analysis.Linear())
     else:
