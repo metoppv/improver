@@ -32,7 +32,6 @@
 
 import argparse
 import multiprocessing as mp
-from os import environ as Environ
 
 from improver.spotdata.read_input import Load
 from improver.spotdata.neighbour_finding import PointSelection
@@ -46,7 +45,8 @@ from improver.spotdata.times import get_forecast_times
 from improver.spotdata.configurations import define_diagnostics
 
 
-def run_framework(config_name, latitudes=None, longitudes=None,
+def run_framework(config_name, data_path, ancillary_path, site_path=None,
+                  latitudes=None, longitudes=None,
                   altitudes=None, site_ids=None, forecast_date=None,
                   forecast_time=None, forecast_length=None,
                   use_multiprocessing=False):
@@ -63,6 +63,11 @@ def run_framework(config_name, latitudes=None, longitudes=None,
                           to run the spotdata system. e.g. pws_default which
                           will produce the required diagnostics for this
                           product.
+    data_path           : String giving path to diagnostic data files.
+    ancillary_path      : String giving path to ancillary data files.
+    site_path           : String giving path to site data file if in use. If
+                          no lats/lons are specified at the command line, this
+                          file path is needed.
     latitudes           : A list of latitudes for running on the fly for a
                           custom set of sites. The order should correspond
                           to the subsequent latitudes and altitudes variables
@@ -112,17 +117,21 @@ def run_framework(config_name, latitudes=None, longitudes=None,
     # Clumsy implementation of grabbing the BD pickle file if no sites are
     # specified.
     if latitudes is None or longitudes is None:
-        site_path = Environ.get('SITE_PATH')
-        site_path = (site_path + '/bestdata2_locsDB.pkl')
-        sites = ImportSiteData('pickle_file').process(site_path)
+        if site_path is None:
+            raise Exception('Site path required to get site data if no sites '
+                            'are specified at runtime.')
+        else:
+            site_path = (site_path + '/bestdata2_locsDB.pkl')
+            sites = ImportSiteData('pickle_file').process(site_path)
 
     # Use the selected config to estabilish which diagnostics are required.
     # Also gets the default method of selecting grid point neighbours for the
     # given configuration.
-    neighbour_finding_default, diagnostics = define_diagnostics(config_name)
+    neighbour_finding_default, diagnostics = define_diagnostics(config_name,
+                                                                data_path)
 
     # Load ancillary data files; fields that don't vary in time.
-    ancillary_data = get_ancillary_data(diagnostics)
+    ancillary_data = get_ancillary_data(diagnostics, ancillary_path)
 
     # Construct a set of neighbour_finding methods to be used in this run.
     neighbour_schemes = list(
@@ -230,6 +239,15 @@ if __name__ == '__main__':
                         help='Configuration to use, defining which diagnostics'
                              ' to produce.'
                         )
+    parser.add_argument('data_path', type=str,
+                        help='Path to diagnostic data files.'
+                        )
+    parser.add_argument('ancillary_path', type=str,
+                        help='Path to ancillary (time invariant) data files.'
+                        )
+    parser.add_argument('--site_path', type=str,
+                        help='Path to site data file.'
+                        )
     parser.add_argument('--latitudes', type=int, choices=range(-90, 90),
                         nargs='+',
                         help='Latitude of site of interest.'
@@ -261,7 +279,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    run_framework(args.config_name, latitudes=args.latitudes,
+    run_framework(args.config_name, args.data_path, args.ancillary_path,
+                  site_path=args.site_path, latitudes=args.latitudes,
                   longitudes=args.longitudes, altitudes=args.altitudes,
                   site_ids=args.site_ids,
                   forecast_date=args.start_date, forecast_time=args.start_time,

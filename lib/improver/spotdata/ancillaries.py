@@ -35,11 +35,10 @@ land masks.
 
 """
 
-from os import environ as Environ
 from improver.spotdata.read_input import Load
 
 
-def get_ancillary_data(diagnostics):
+def get_ancillary_data(diagnostics, ancillary_path):
     '''
     Takes in a list of desired diagnostics and determines which ancillary
     (i.e. non-time dependent) fields are required given their neighbour
@@ -58,12 +57,10 @@ def get_ancillary_data(diagnostics):
                  name and the item is the iris.cube.Cube of data.
 
     '''
-    ANCILLARY_PATH = Environ.get('ANCILLARY_PATH')
-
     ancillary_data = {}
 
     orography = Load('single_file').process(
-        ANCILLARY_PATH + '/orography.nc', 'surface_altitude')
+        ancillary_path + '/orography.nc', 'surface_altitude')
 
     ancillary_data.update({'orography': orography})
 
@@ -72,7 +69,7 @@ def get_ancillary_data(diagnostics):
             for key in diagnostics.keys()]):
 
         land = Load('single_file').process(
-            ANCILLARY_PATH + '/land_mask.nc', 'land_binary_mask')
+            ancillary_path + '/land_mask.nc', 'land_binary_mask')
 
         ancillary_data.update({'land': land})
 

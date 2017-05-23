@@ -30,11 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Test data extraction configuration"""
 
-from os import environ as Environ
-DIAGNOSTIC_FILE_PATH = Environ.get('DIAGNOSTIC_FILE_PATH')
 
-
-def all_diagnostics():
+def all_diagnostics(diagnostic_data_path):
     '''
     Defines how all available diagnostics should be processed. A custom name
     used to key the returned dictionary allows for multiple variations on the
@@ -49,10 +46,14 @@ def all_diagnostics():
                          use_nearest data extraction to simply take the value
                          from that neighbouring point.
 
+    Args:
+    -----
+    diagnostic_data_path : A string containing the file path of the diagnostic
+                           data to be read in.
     '''
     diagnostic_recipes = {
         'temperature': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'temperature_at_screen_level' + '*'),
             'diagnostic_name': 'air_temperature',
             'neighbour_finding': 'default',
@@ -60,7 +61,7 @@ def all_diagnostics():
             'extrema': True
             },
         'temperature_orog': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'temperature_at_screen_level' + '*'),
             'diagnostic_name': 'air_temperature',
             'neighbour_finding': 'default',
@@ -68,7 +69,7 @@ def all_diagnostics():
             'extrema': True
             },
         'wind_speed': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'horizontal_wind_speed_and_direction_at_10m' + '*'),
             'diagnostic_name': 'wind_speed',
             'neighbour_finding': 'default',
@@ -76,7 +77,7 @@ def all_diagnostics():
             'extrema': False
             },
         'wind_direction': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'horizontal_wind_speed_and_direction_at_10m' + '*'),
             'diagnostic_name': 'wind_from_direction',
             'neighbour_finding': 'default',
@@ -84,7 +85,7 @@ def all_diagnostics():
             'extrema': False
             },
         'visibility': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'visibility_at_screen_level' + '*'),
             'diagnostic_name': 'visibility_in_air',
             'neighbour_finding': 'default',
@@ -92,7 +93,7 @@ def all_diagnostics():
             'extrema': True
             },
         'relative_humidity': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'relative_humidity_at_screen_level' + '*'),
             'diagnostic_name': 'relative_humidity',
             'neighbour_finding': 'default',
@@ -100,7 +101,7 @@ def all_diagnostics():
             'extrema': False
             },
         'surface_pressure': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'surface_pressure' + '*'),
             'diagnostic_name': 'surface_air_pressure',
             'neighbour_finding': 'default',
@@ -108,7 +109,7 @@ def all_diagnostics():
             'extrema': False
             },
         'low_cloud_amount': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'low_cloud_amount' + '*'),
             'diagnostic_name': 'low_type_cloud_area_fraction',
             'neighbour_finding': 'default',
@@ -116,7 +117,7 @@ def all_diagnostics():
             'extrema': False
             },
         'medium_cloud_amount': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'medium_cloud_amount' + '*'),
             'diagnostic_name': 'medium_type_cloud_area_fraction',
             'neighbour_finding': 'default',
@@ -124,7 +125,7 @@ def all_diagnostics():
             'extrema': False
             },
         'high_cloud_amount': {
-            'filepath': (DIAGNOSTIC_FILE_PATH + '/*/*' +
+            'filepath': (diagnostic_data_path + '/*/*' +
                          'high_cloud_amount' + '*'),
             'diagnostic_name': 'high_type_cloud_area_fraction',
             'neighbour_finding': 'default',
@@ -132,7 +133,7 @@ def all_diagnostics():
             'extrema': False
             },
         'total_cloud_amount': {
-            'filepath': DIAGNOSTIC_FILE_PATH + '/*/*' + 'total_cloud' + '*',
+            'filepath': diagnostic_data_path + '/*/*' + 'total_cloud' + '*',
             'diagnostic_name': 'cloud_area_fraction',
             'neighbour_finding': 'default',
             'interpolation_method': 'use_nearest',
@@ -142,7 +143,7 @@ def all_diagnostics():
     return diagnostic_recipes
 
 
-def define_diagnostics(configuration):
+def define_diagnostics(configuration, data_path):
     '''
     Define the configurations with which spotdata may be run. These
     configurations specify which diagnostic definitions to include
@@ -162,7 +163,7 @@ def define_diagnostics(configuration):
     of how to process them.
 
     '''
-    diagnostics = all_diagnostics()
+    diagnostics = all_diagnostics(data_path)
 
     configuration_dict = {
         'pws_default':
