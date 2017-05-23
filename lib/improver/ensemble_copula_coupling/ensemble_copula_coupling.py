@@ -529,8 +529,6 @@ class GeneratePercentilesFromMeanAndVariance(object):
                        "function.")
                 raise ValueError(msg)
 
-        result = result.T
-
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         result = (

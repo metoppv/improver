@@ -423,7 +423,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
     def test_size_of_array(self):
         """
         Test that the result have the expected size for the
-       probabilistic dimension and is generally of the expected size.
+        probabilistic dimension and is generally of the expected size.
         """
         cube = self.current_temperature_forecast_cube
         input_array = cube.data
