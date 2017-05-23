@@ -121,8 +121,9 @@ def set_up_probability_above_threshold_spot_temperature_cube():
                      [[1.0, 0.2, 0.5,
                        0.2, 0.0, 0.1,
                        0.0, 0.0, 0.0]]])
-    return set_up_probability_above_threshold_spot_cube(
-               data, "air_temperature", "1")
+    return (
+        set_up_probability_above_threshold_spot_cube(
+            data, "air_temperature", "1"))
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,

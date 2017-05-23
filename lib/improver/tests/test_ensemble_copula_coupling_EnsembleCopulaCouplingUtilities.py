@@ -55,7 +55,7 @@ from improver.tests.helper_functions_ensemble_calibration import (
 
 
 class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
-          IrisTest):
+        IrisTest):
 
     """Test the insert_lower_and_upper_endpoint_to_1d_array."""
 

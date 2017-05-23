@@ -276,8 +276,8 @@ class Test__sample_percentiles(IrisTest):
         data values for the percentiles, if there are lots of thresholds.
         """
         input_forecast_values_1d = np.linspace(10, 20, 30)
-        input_forecast_values = np.tile(input_forecast_values_1d, (3, 3, 1, 1)).T
-        #print "input_percentiles = ", input_percentiles
+        input_forecast_values = (
+            np.tile(input_forecast_values_1d, (3, 3, 1, 1)).T)
 
         data = np.array([[[[11., 15., 19.],
                            [11., 15., 19.],

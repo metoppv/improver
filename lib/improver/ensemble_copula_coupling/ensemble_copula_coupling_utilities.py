@@ -211,11 +211,11 @@ def get_bounds_of_distribution(cube_name, cube_units):
             units_of_bounds_for_ecdf[cube_name])
     except KeyError as err:
         msg = ("The forecast_cube name: {} is not recognised"
-                "within bounds_for_ecdf {} or "
-                "units_of_bounds_for_ecdf: {}. \n"
-                "Error: {}".format(
-                    cube_name, bounds_for_ecdf,
-                    units_of_bounds_for_ecdf, err))
+               "within bounds_for_ecdf {} or "
+               "units_of_bounds_for_ecdf: {}. \n"
+               "Error: {}".format(
+                   cube_name, bounds_for_ecdf,
+                   units_of_bounds_for_ecdf, err))
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(
@@ -268,12 +268,12 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
     """
     shape_to_reshape_to = list(original_cube.shape)
     if original_cube.coords(
-           input_probabilistic_dimension_name, dim_coords=True):
+            input_probabilistic_dimension_name, dim_coords=True):
         pat_coord_position = (
             original_cube.coord_dims(input_probabilistic_dimension_name))
         shape_to_reshape_to.pop(pat_coord_position[0])
     elif original_cube.coords(
-           input_probabilistic_dimension_name, dim_coords=False):
+            input_probabilistic_dimension_name, dim_coords=False):
         pass
     else:
         msg = ("A {} coordinate is not available on the {} cube.".format(

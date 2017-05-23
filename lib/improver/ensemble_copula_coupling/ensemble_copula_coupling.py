@@ -319,12 +319,12 @@ class GeneratePercentilesFromProbabilities(object):
             probabilities_for_cdf, 0, 1)
         if np.any(np.diff(threshold_points) < 0):
             msg = ("The end points added to the threshold values for "
-                    "constructing the Cumulative Distribution Function (CDF) "
-                    "must result in an ascending order. "
-                    "In this case, the threshold points {} must be "
-                    "outside the allowable range given by the "
-                    "bounds {}".format(
-                        threshold_points, bounds_pairing))
+                   "constructing the Cumulative Distribution Function (CDF) "
+                   "must result in an ascending order. "
+                   "In this case, the threshold points {} must be "
+                   "outside the allowable range given by the "
+                   "bounds {}".format(
+                       threshold_points, bounds_pairing))
             raise ValueError(msg)
         return threshold_points, probabilities_for_cdf
 
@@ -578,7 +578,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         """
         (calibrated_forecast_predictor, calibrated_forecast_variance) = (
-             calibrated_forecast_predictor_and_variance)
+            calibrated_forecast_predictor_and_variance)
 
         calibrated_forecast_predictor = concatenate_cubes(
             calibrated_forecast_predictor)
