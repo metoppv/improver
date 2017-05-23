@@ -69,7 +69,7 @@ class RebadgePercentilesAsMembers(object):
         """
         Rebadge percentiles as ensemble members. The ensemble member numbering
         will depend upon the number of percentiles in the input cube i.e.
-        0, 1, 2, 3, ..., n, if there are n percentiles.
+        0, 1, 2, 3, ..., n-1, if there are n percentiles.
 
         Parameters
         ----------
@@ -92,11 +92,11 @@ class RebadgePercentilesAsMembers(object):
 class ResamplePercentiles(object):
     """
     Class for resampling percentiles from an existing set of percentiles.
-    In combination with the Ensemble Reordering plugin, this is Ensemble
-    Copula Coupling.
+    In combination with the Ensemble Reordering plugin, this is a variant of
+    Ensemble Copula Coupling.
 
-    This class includes the ability to interpolate from an input set of
-    percentiles to a different output set of percentiles.
+    This class includes the ability to linearly interpolate from an
+    input set of percentiles to a different output set of percentiles.
 
     """
 
@@ -191,6 +191,7 @@ class ResamplePercentiles(object):
                 (forecast_at_reshaped_percentiles.shape[0],
                  len(desired_percentiles))))
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
+            print "forecast_at_reshaped_percentiles[index, :] = ", forecast_at_reshaped_percentiles[index, :]
             forecast_at_interpolated_percentiles[index, :] = np.interp(
                 desired_percentiles, original_percentiles,
                 forecast_at_reshaped_percentiles[index, :])
@@ -228,7 +229,7 @@ class ResamplePercentiles(object):
         no_of_percentiles : Integer or None
             Number of percentiles
             If None, the number of percentiles within the input
-            forecast_percentiles cube is used as the number of percentiles.
+            forecast_at_percentiles cube is used as the number of percentiles.
         sampling : String
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -266,8 +267,8 @@ class ResamplePercentiles(object):
 class GeneratePercentilesFromProbabilities(object):
     """
     Class for generating percentiles from probabilities.
-    In combination with the Ensemble Reordering plugin, this is Ensemble
-    Copula Coupling.
+    In combination with the Ensemble Reordering plugin, this is a variant
+    Ensemble Copula Coupling.
 
     This class includes the ability to interpolate between probability
     thresholds in order to generate the percentiles, see Figure 1 from

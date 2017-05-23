@@ -45,9 +45,12 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 
 def set_up_probability_above_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,
-        forecast_thresholds=[8, 10, 12],
+        forecast_thresholds=[8, 10, 12], timesteps=1,
         y_dimension_length=3, x_dimension_length=3):
-    """Create a cube containing multiple realizations."""
+    """
+    Create a cube containing multiple probability_above_threshold
+    values for the coordinate.
+    """
     cube = Cube(data, standard_name=phenomenon_standard_name,
                 units=phenomenon_units)
     cube.add_dim_coord(
@@ -56,7 +59,7 @@ def set_up_probability_above_threshold_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
+    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
                                 'latitude', units='degrees'), 2)
@@ -66,7 +69,9 @@ def set_up_probability_above_threshold_cube(
 
 
 def set_up_probability_above_threshold_temperature_cube():
-    """Create a cube with metadata and values suitable for air temperature."""
+    """
+    Create a cube with metadata and values suitable for air temperature.
+    """
     data = np.array([[[[1.0, 0.9, 1.0],
                        [0.8, 0.9, 0.5],
                        [0.5, 0.2, 0.0]]],
@@ -127,8 +132,8 @@ def set_up_probability_above_threshold_spot_temperature_cube():
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                realizations=[0, 1, 2], y_dimension_length=3,
-                x_dimension_length=3):
+                realizations=[0, 1, 2], timesteps=1,
+                y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     cube = Cube(data, standard_name=phenomenon_standard_name,
                 units=phenomenon_units)
@@ -137,7 +142,7 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
+    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
                                 'latitude', units='degrees'), 2)

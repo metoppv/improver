@@ -213,15 +213,15 @@ class Test__sample_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles.
         """
-        data = np.array([[[[4.5, 6.5, 7.5],
-                           [5.125, 7.125, 8.125],
-                           [5.75, 7.75, 8.75]]],
-                         [[[6.375, 8.375, 9.375],
-                           [7., 9., 10.],
-                           [7.625, 9.625, 10.625]]],
-                         [[[8.25, 10.25, 11.25],
-                           [8.875, 10.875, 11.875],
-                           [9.5, 11.5, 12.5]]]])
+        data = np.array([[[[4.5, 5.125, 5.75],
+                           [6.375, 7., 7.625],
+                           [8.25 , 8.875, 9.5]]],
+                         [[[6.5  , 7.125, 7.75],
+                           [8.375, 9., 9.625],
+                           [10.25 , 10.875, 11.5]]],
+                         [[[7.5  ,  8.125, 8.75],
+                           [9.375, 10., 10.625],
+                           [11.25 , 11.875, 12.5]]]])
 
         cube = self.percentile_cube
         percentiles = [0.2, 0.6, 0.8]
@@ -231,21 +231,62 @@ class Test__sample_percentiles(IrisTest):
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
 
+    def test_check_data_multiple_timesteps(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for the percentiles.
+        """
+        expected = np.array([[[[4.5, 5.21428571],
+                               [5.92857143, 6.64285714]],
+                              [[7.35714286, 8.07142857],
+                               [8.78571429, 9.5]]],
+                             [[[6.5, 7.21428571],
+                               [7.92857143, 8.64285714]],
+                              [[9.35714286, 10.07142857],
+                               [10.78571429, 11.5]]],
+                             [[[7.5, 8.21428571],
+                               [8.92857143, 9.64285714]],
+                              [[10.35714286, 11.07142857],
+                               [11.78571429, 12.5]]]])
+
+        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        print "data = ", data
+        cube = set_up_cube(data, "air_temperature", "degreesC",
+                           timesteps=2, x_dimension_length=2,
+                           y_dimension_length=2)
+        cube.coord("realization").rename("percentile")
+        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        self.percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                cube, time_point=np.array([402295.0, 402296.0])))
+        cube = self.percentile_cube
+        percentiles = [0.2, 0.6, 0.8]
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        print "cube.data = ", cube.data
+        result = plugin._sample_percentiles(
+            cube, percentiles, bounds_pairing)
+        print "result.data = ", repr(result.data)
+        self.assertArrayAlmostEqual(result.data, expected)
+
     def test_check_single_threshold(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles, if a single percentile is used within
         the input set of percentiles.
         """
-        expected = np.array([[[[4., 24.44444444, 44.88888889],
-                               [4.625, 24.79166667, 44.95833333],
-                               [5.25, 25.13888889, 45.02777778]]],
-                             [[[5.875, 25.48611111, 45.09722222],
-                               [6.5, 25.83333333, 45.16666667],
-                               [7.125, 26.18055556, 45.23611111]]],
-                             [[[7.75, 26.52777778, 45.30555556],
-                               [8.375, 26.875, 45.375],
-                               [9., 27.22222222, 45.44444444]]]])
+        expected = np.array([[[[4., 4.625, 5.25],
+                               [5.875, 6.5, 7.125],
+                               [7.75, 8.375, 9.]]],
+                             [[[24.44444444, 24.79166667, 25.13888889],
+                               [25.48611111, 25.83333333, 26.18055556],
+                               [26.52777778, 26.875, 27.22222222]]],
+                             [[[44.88888889, 44.95833333, 45.02777778],
+                               [45.09722222, 45.16666667, 45.23611111],
+                               [45.30555556, 45.375, 45.44444444]]]])
 
         data = np.array([8])
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
@@ -268,6 +309,7 @@ class Test__sample_percentiles(IrisTest):
         plugin = Plugin()
         result = plugin._sample_percentiles(
             cube, percentiles, bounds_pairing)
+
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_lots_of_input_percentiles(self):
@@ -279,15 +321,15 @@ class Test__sample_percentiles(IrisTest):
         input_forecast_values = (
             np.tile(input_forecast_values_1d, (3, 3, 1, 1)).T)
 
-        data = np.array([[[[11., 15., 19.],
-                           [11., 15., 19.],
-                           [11., 15., 19.]]],
-                         [[[11., 15., 19.],
-                           [11., 15., 19.],
-                           [11., 15., 19.]]],
-                         [[[11., 15., 19.],
-                           [11., 15., 19.],
-                           [11., 15., 19.]]]])
+        data = np.array([[[[11., 11., 11.],
+                          [11., 11., 11.],
+                          [11., 11., 11.]]],
+                        [[[15., 15., 15.],
+                          [15., 15., 15.],
+                          [15., 15., 15.]]],
+                        [[[19., 19., 19.],
+                          [19., 19., 19.],
+                          [19., 19., 19.]]]])
 
         percentiles_values = np.linspace(0, 1, 30)
         cube = (
@@ -309,36 +351,37 @@ class Test__sample_percentiles(IrisTest):
         data values for the percentiles, if lots of percentile values are
         requested.
         """
-        data = np.array([[[[-18., 4.25, 4.75],
-                           [5.25, 5.75, 6.25],
-                           [6.75, 7.25, 7.75]]],
-                         [[[29., -17.6875, 4.875],
-                           [5.375, 5.875, 6.375],
-                           [6.875, 7.375, 7.875]]],
-                         [[[8.375, 29.3125, -17.375],
-                           [5.5, 6., 6.5],
-                           [7., 7.5, 8.]]],
-                         [[[8.5, 9., 29.625],
-                           [-17.0625, 6.125, 6.625],
-                           [7.125, 7.625, 8.125]]],
-                         [[[8.625, 9.125, 9.625],
-                           [29.9375, -16.75, 6.75],
-                           [7.25, 7.75, 8.25]]],
-                         [[[8.75, 9.25, 9.75],
-                           [10.25, 30.25, -16.4375],
-                           [7.375, 7.875, 8.375]]],
-                         [[[8.875, 9.375, 9.875],
-                           [10.375, 10.875, 30.5625],
-                           [-16.125, 8., 8.5]]],
-                         [[[9., 9.5, 10.],
-                           [10.5, 11., 11.5],
-                           [30.875, -15.8125, 8.625]]],
-                         [[[9.125, 9.625, 10.125],
-                           [10.625, 11.125, 11.625],
-                           [12.125, 31.1875, -15.5]]],
-                         [[[9.25, 9.75, 10.25],
-                           [10.75, 11.25, 11.75],
-                           [12.25, 12.75, 31.5]]]])
+        data = np.array([[[[-18., -17.6875, -17.375],
+                           [-17.0625, -16.75, -16.4375],
+                           [-16.125, -15.8125, -15.5]]],
+                         [[[4.25, 4.875, 5.5],
+                           [6.125, 6.75, 7.375],
+                           [8., 8.625, 9.25]]],
+                         [[[4.75, 5.375, 6.],
+                           [6.625, 7.25, 7.875],
+                           [8.5, 9.125, 9.75]]],
+                         [[[5.25, 5.875, 6.5],
+                           [7.125, 7.75, 8.375],
+                           [9., 9.625, 10.25]]],
+                         [[[5.75, 6.375, 7.],
+                           [7.625, 8.25, 8.875],
+                           [9.5, 10.125, 10.75]]],
+                         [[[6.25, 6.875, 7.5],
+                           [8.125, 8.75, 9.375],
+                           [10., 10.625, 11.25]]],
+                         [[[6.75, 7.375, 8.],
+                           [8.625, 9.25, 9.875],
+                            [10.5, 11.125, 11.75]]],
+                         [[[7.25, 7.875, 8.5],
+                           [9.125, 9.75, 10.375],
+                           [11., 11.625, 12.25]]],
+                         [[[7.75, 8.375, 9.],
+                           [9.625, 10.25, 10.875],
+                           [11.5, 12.125, 12.75]]],
+                         [[[29., 29.3125, 29.625],
+                           [29.9375, 30.25, 30.5625],
+                           [30.875, 31.1875, 31.5]]]])
+
         cube = self.percentile_cube
         percentiles = np.arange(0.05, 1.0, 0.1)
         bounds_pairing = (-40, 50)
@@ -352,9 +395,9 @@ class Test__sample_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles for spot forecasts.
         """
-        data = np.array([[[5., 5., 5., 7.5, 7.5, 7.5, 10., 10., 10.]],
-                         [[5., 5., 5., 7.5, 7.5, 7.5, 10., 10., 10.]],
-                         [[5., 5., 5., 7.5, 7.5, 7.5, 10., 10., 10.]]])
+        data = np.array([[[5., 7.5, 10., 5., 7.5, 10., 5., 7.5, 10.]],
+                         [[5., 7.5, 10., 5., 7.5, 10., 5., 7.5, 10.]],
+                         [[5., 7.5, 10., 5., 7.5, 10., 5., 7.5, 10.]]])
         cube = self.spot_percentile_cube
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
@@ -384,20 +427,21 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific number of percentiles.
         """
-        data = np.array([[[[4.75, 6., 7.25],
-                          [5.375, 6.625, 7.875],
-                          [6., 7.25, 8.5]]],
-                        [[[6.625, 7.875, 9.125],
-                          [7.25, 8.5, 9.75],
-                          [7.875, 9.125, 10.375]]],
-                        [[[8.5, 9.75, 11.],
-                          [9.125, 10.375, 11.625],
-                          [9.75, 11., 12.25]]]])
+        data = np.array([[[[4.75, 5.375, 6.],
+                           [6.625, 7.25, 7.875],
+                           [8.5, 9.125, 9.75]]],
+                         [[[6., 6.625, 7.25],
+                           [7.875, 8.5, 9.125],
+                           [9.75, 10.375, 11.]]],
+                         [[[7.25, 7.875, 8.5],
+                           [9.125, 9.75, 10.375],
+                           [11., 11.625, 12.25]]]])
 
         cube = self.percentile_cube
         percentiles = [0.25, 0.5, 0.75]
         plugin = Plugin()
         result = plugin.process(cube, no_of_percentiles=len(percentiles))
+        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_check_data_not_specifying_percentiles(self):
@@ -405,15 +449,15 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values without specifying the number of percentiles.
         """
-        data = np.array([[[[4.75, 6., 7.25],
-                          [5.375, 6.625, 7.875],
-                          [6., 7.25, 8.5]]],
-                        [[[6.625, 7.875, 9.125],
-                          [7.25, 8.5, 9.75],
-                          [7.875, 9.125, 10.375]]],
-                        [[[8.5, 9.75, 11.],
-                          [9.125, 10.375, 11.625],
-                          [9.75, 11., 12.25]]]])
+        data = np.array([[[[4.75, 5.375, 6.],
+                           [6.625, 7.25, 7.875],
+                           [8.5, 9.125, 9.75]]],
+                         [[[6., 6.625, 7.25],
+                           [7.875, 8.5, 9.125],
+                           [9.75, 10.375, 11.]]],
+                         [[[7.25, 7.875, 8.5],
+                           [9.125, 9.75, 10.375],
+                           [11., 11.625, 12.25]]]])
 
         cube = self.percentile_cube
         plugin = Plugin()

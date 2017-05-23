@@ -77,6 +77,8 @@ class Test_process(IrisTest):
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertEqual(len(result.coord("realization").points), plen)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, np.array([0, 1, 2]))
 
     def test_no_percentile_coord(self):
         """"""

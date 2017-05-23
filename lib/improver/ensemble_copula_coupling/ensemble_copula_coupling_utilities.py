@@ -60,6 +60,11 @@ def concatenate_2d_array_with_2d_array_endpoints(
     high_endpoint : Number
         Number of used to create a 2d array of a constant value
         as the upper endpoint.
+    Returns
+    -------
+    array_2d : Numpy array
+        2d array of values after padding with the low_endpoint and
+        high_endpoint.
     """
     lower_array = (
         np.full((array_2d.shape[0], 1), low_endpoint))
@@ -236,6 +241,10 @@ def insert_lower_and_upper_endpoint_to_1d_array(
         Number of use as the lower endpoint.
     high_endpoint : Number
         Number of use as the upper endpoint.
+    Returns
+    -------
+    array_1d : Numpy array
+        1d array of values padded with the low_endpoint and high_endpoint.
     """
     array_1d = np.insert(array_1d, 0, low_endpoint)
     array_1d = np.append(array_1d, high_endpoint)
@@ -256,14 +265,18 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
         The array that requires reshaping.
     original_cube : Iris.cube.Cube
         Cube containing the desired shape to be reshaped to, apart from the
-        ensemble dimension, for example,
-        [ensemble_dimension, time, y, x].
+        probabilistic dimension, for example,
+        [probabilistic_dimension, time, y, x].
     input_probabilistic_dimension_name : String
         Name of the dimension within the original cube, which represents the
         probabilistic dimension.
     output_probabilistic_dimension_length : Integer
         Length of the probabilistic dimension, which will be used to create
         the shape to which the array_to_reshape will be reshaped to.
+    Returns
+    -------
+    Numpy array
+        The array after reshaping.
 
     """
     shape_to_reshape_to = list(original_cube.shape)
@@ -279,7 +292,9 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
         msg = ("A {} coordinate is not available on the {} cube.".format(
                input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
-
+    print "array_to_reshape = ", array_to_reshape
+    array_to_reshape = array_to_reshape.T
     shape_to_reshape_to = (
         [output_probabilistic_dimension_length] + shape_to_reshape_to)
+    print "shape_to_reshape_to = ", shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
