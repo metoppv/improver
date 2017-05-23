@@ -41,10 +41,161 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import create_percentiles, create_cube_with_percentiles
+    import (create_percentiles, create_cube_with_percentiles,
+            insert_lower_and_upper_endpoint_to_1d_array,
+            concatenate_2d_array_with_2d_array_endpoints,
+            get_bounds_of_distribution,
+            reshape_array_to_have_probabilistic_dimension_at_the_front)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
+    import bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import (
     set_up_temperature_cube, set_up_spot_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    _add_forecast_reference_time_and_forecast_period,
+    set_up_probability_above_threshold_temperature_cube)
+
+
+class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
+          IrisTest):
+
+    """Test the insert_lower_and_upper_endpoint_to_1d_array."""
+
+    def setUp(self):
+        """Set up temperature cube."""
+        cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_temperature_cube()))
+        percentile_points = np.arange(len(cube.coord("realization").points))
+        cube.coord("realization").points = percentile_points
+        cube.coord("realization").rename("percentile")
+        self.current_temperature_forecast_cube = cube
+
+    def test_basic(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        cube = self.current_temperature_forecast_cube
+        input_array = cube.data
+        plen = len(cube.coord("percentile").points)
+        reshaped_array = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                cube.data, cube, "percentile", plen))
+        self.assertIsInstance(reshaped_array, np.ndarray)
+
+    def test_size_of_array(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        cube = self.current_temperature_forecast_cube
+        input_array = cube.data
+        plen = len(cube.coord("percentile").points)
+        reshaped_array = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                cube.data, cube, "percentile", plen))
+        self.assertEqual(reshaped_array.shape[0], plen)
+        self.assertEqual(reshaped_array.shape, (3, 1, 3, 3))
+
+    def test_percentile_is_not_a_dimension_coordinate(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        cube = self.current_temperature_forecast_cube
+        for cube_slice in cube.slices_over("percentile"):
+            break
+        input_array = cube_slice.data
+        plen = len(cube_slice.coord("percentile").points)
+        reshaped_array = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                cube_slice.data, cube_slice, "percentile", plen))
+
+    def test_missing_coordinate(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        cube = self.current_temperature_forecast_cube
+        input_array = cube.data
+        plen = len(cube.coord("percentile").points)
+        msg = "coordinate is not available"
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                cube.data, cube, "nonsense", plen)
+
+
+class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
+
+    """Test the insert_lower_and_upper_endpoint_to_1d_array."""
+
+    def test_basic(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        expected = [0, 0.2, 0.5, 0.8, 1]
+        percentiles = [0.2, 0.5, 0.8]
+        result = insert_lower_and_upper_endpoint_to_1d_array(
+            percentiles, 0, 1)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_another_example(self):
+        """
+        Another basic test that the result is a numpy array with the
+        expected contents.
+        """
+        expected = [-100, -40, 200, 1000, 10000]
+        percentiles = [-40, 200, 1000]
+        result = insert_lower_and_upper_endpoint_to_1d_array(
+            percentiles, -100, 10000)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
+
+
+class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
+
+    """Test the concatenate_2d_array_with_2d_array_endpoints."""
+
+    def test_basic(self):
+        """
+        Basic test that the result is a numpy array with the expected contents.
+        """
+        expected = np.array([[0, 0.2, 0.5, 0.8, 1]])
+        percentiles = np.array([[0.2, 0.5, 0.8]])
+        result = concatenate_2d_array_with_2d_array_endpoints(
+            percentiles, 0, 1)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_another_example(self):
+        """
+        Another basic test that the result is a numpy array with the
+        expected contents.
+        """
+        expected = np.array([[-100, -40, 200, 1000, 10000]])
+        percentiles = np.array([[-40, 200, 1000]])
+        result = concatenate_2d_array_with_2d_array_endpoints(
+            percentiles, -100, 10000)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_1d_input(self):
+        """
+        Test that a 1d input array results in the expected error.
+        """
+        expected = np.array([-100, -40, 200, 1000, 10000])
+        percentiles = np.array([-40, 200, 1000])
+        msg = "all the input arrays must have same number of dimensions"
+        with self.assertRaisesRegexp(ValueError, msg):
+            concatenate_2d_array_with_2d_array_endpoints(
+                percentiles, -100, 10000)
+
+    def test_3d_input(self):
+        """
+        Test that a 3d input array results in the expected error.
+        """
+        expected = np.array([[[-100, -40, 200, 1000, 10000]]])
+        percentiles = np.array([[[-40, 200, 1000]]])
+        msg = "all the input arrays must have same number of dimensions"
+        with self.assertRaisesRegexp(ValueError, msg):
+            concatenate_2d_array_with_2d_array_endpoints(
+                percentiles, -100, 10000)
 
 
 class Test_create_cube_with_percentiles(IrisTest):
@@ -259,12 +410,13 @@ class Test_get_bounds_of_distribution(IrisTest):
     def setUp(self):
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+                set_up_probability_above_threshold_temperature_cube()))
 
     def test_basic(self):
         """Test that the result is a numpy array."""
         cube = self.current_temperature_forecast_cube
-        result = get_bounds_of_distribution(cube)
+        cube_units = cube.coord("probability_above_threshold").units
+        result = get_bounds_of_distribution(cube.name(), cube_units)
         self.assertIsInstance(result, np.ndarray)
 
     def test_check_data(self):
@@ -272,8 +424,10 @@ class Test_get_bounds_of_distribution(IrisTest):
         Test that the expected results are returned for the bounds_pairing.
         """
         cube = self.current_temperature_forecast_cube
+        cube_units = cube.coord("probability_above_threshold").units
         bounds_pairing = (-40, 50)
-        result = get_bounds_of_distribution(cube)
+        result = (
+            get_bounds_of_distribution(cube.name(), cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
 
     def test_check_unit_conversion(self):
@@ -284,8 +438,10 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         cube.coord("probability_above_threshold").convert_units("fahrenheit")
+        cube_units = cube.coord("probability_above_threshold").units
         bounds_pairing = (-40, 122)  # In fahrenheit
-        result = get_bounds_of_distribution(cube)
+        result = (
+            get_bounds_of_distribution(cube.name(), cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
 
     def test_check_exception_is_raised(self):
@@ -295,9 +451,10 @@ class Test_get_bounds_of_distribution(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube.standard_name = None
         cube.long_name = "Nonsense"
-        msg = "The forecast_probabilities name"
+        cube_units = cube.coord("probability_above_threshold").units
+        msg = "The forecast_cube name"
         with self.assertRaisesRegexp(KeyError, msg):
-            get_bounds_of_distribution(cube)
+            get_bounds_of_distribution(cube.name(), cube_units)
 
 
 if __name__ == '__main__':

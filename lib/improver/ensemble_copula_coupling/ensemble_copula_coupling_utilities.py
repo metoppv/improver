@@ -39,28 +39,13 @@ import random
 
 import cf_units as unit
 import iris
+from iris.exceptions import CoordinateNotFoundError
+
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
+    import bounds_for_ecdf, units_of_bounds_for_ecdf
 
 
-def insert_lower_and_upper_endpoint_to_1d_array(
-        array_1d, low_endpoint, high_endpoint):
-    """
-    For a 1d array, add a lower and upper endpoint.
-
-    Parameters
-    ----------
-    array_1d : Numpy array
-        1d array of values
-    low_endpoint : Number
-        Number of use as the lower endpoint.
-    high_endpoint : Number
-        Number of use as the upper endpoint.
-    """
-    percentiles = np.insert(percentiles, 0, low_endpoint)
-    percentiles = np.append(percentiles, high_endpoint)
-    return percentiles
-
-
-def concatenate_2d_array_with_2darray_endpoints(
+def concatenate_2d_array_with_2d_array_endpoints(
         array_2d, low_endpoint, high_endpoint):
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.
@@ -193,7 +178,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
     return result
 
 
-def get_bounds_of_distribution(forecast_cube, coord_for_units):
+def get_bounds_of_distribution(cube_name, cube_units):
     """
     Gets the bounds of the distribution and converts the units of the
     bounds_pairing to the units of the forecast.
@@ -205,10 +190,11 @@ def get_bounds_of_distribution(forecast_cube, coord_for_units):
 
     Parameters
     ----------
-    forecast_cube : Iris Cube
-        Input cube containing the coordinate from which the units
-        of the bounds_pairing should be converted to.
-        coordinate.
+    cube_name : String
+        Name of cube, which is used as the key for the bounds_for_ecdf and
+        units_of_bounds_for_ecdf dictionaries.
+    cube_units : cf_units.Unit
+        Units to which the bounds_pairing will be converted.
 
     Returns
     -------
@@ -218,22 +204,82 @@ def get_bounds_of_distribution(forecast_cube, coord_for_units):
         the same units as the input cube.
 
     """
-    cube_units = (
-        forecast_cube.coord(coord_for_units).units)
     # Extract bounds from dictionary of constants.
     try:
-        bounds_pairing = bounds_for_ecdf[forecast_cube.name()]
+        bounds_pairing = bounds_for_ecdf[cube_name]
         bounds_pairing_units = (
-            units_of_bounds_for_ecdf[forecast_cube.name()])
+            units_of_bounds_for_ecdf[cube_name])
     except KeyError as err:
         msg = ("The forecast_cube name: {} is not recognised"
                 "within bounds_for_ecdf {} or "
                 "units_of_bounds_for_ecdf: {}. \n"
                 "Error: {}".format(
-                    forecast_cube.name(), bounds_for_ecdf,
+                    cube_name, bounds_for_ecdf,
                     units_of_bounds_for_ecdf, err))
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(
         np.array(bounds_pairing), cube_units)
     return bounds_pairing
+
+
+def insert_lower_and_upper_endpoint_to_1d_array(
+        array_1d, low_endpoint, high_endpoint):
+    """
+    For a 1d array, add a lower and upper endpoint.
+
+    Parameters
+    ----------
+    array_1d : Numpy array
+        1d array of values
+    low_endpoint : Number
+        Number of use as the lower endpoint.
+    high_endpoint : Number
+        Number of use as the upper endpoint.
+    """
+    array_1d = np.insert(array_1d, 0, low_endpoint)
+    array_1d = np.append(array_1d, high_endpoint)
+    return array_1d
+
+
+def reshape_array_to_have_probabilistic_dimension_at_the_front(
+        array_to_reshape, original_cube, input_probabilistic_dimension_name,
+        output_probabilistic_dimension_length):
+    """
+    Reshape a 2d array, so the ensemble or probabilistic dimension
+    e.g. percentile, or probability is first, and any other dimension
+    coordinates follow.
+
+    Parameters
+    ----------
+    array_to_reshape : Numpy array
+        The array that requires reshaping.
+    original_cube : Iris.cube.Cube
+        Cube containing the desired shape to be reshaped to, apart from the
+        ensemble dimension, for example,
+        [ensemble_dimension, time, y, x].
+    input_probabilistic_dimension_name : String
+        Name of the dimension within the original cube, which represents the
+        probabilistic dimension.
+    output_probabilistic_dimension_length : Integer
+        Length of the probabilistic dimension, which will be used to create
+        the shape to which the array_to_reshape will be reshaped to.
+
+    """
+    shape_to_reshape_to = list(original_cube.shape)
+    if original_cube.coords(
+           input_probabilistic_dimension_name, dim_coords=True):
+        pat_coord_position = (
+            original_cube.coord_dims(input_probabilistic_dimension_name))
+        shape_to_reshape_to.pop(pat_coord_position[0])
+    elif original_cube.coords(
+           input_probabilistic_dimension_name, dim_coords=False):
+        pass
+    else:
+        msg = ("A {} coordinate is not available on the {} cube.".format(
+               input_probabilistic_dimension_name, original_cube))
+        raise CoordinateNotFoundError(msg)
+
+    shape_to_reshape_to = (
+        [output_probabilistic_dimension_length] + shape_to_reshape_to)
+    return array_to_reshape.reshape(shape_to_reshape_to)

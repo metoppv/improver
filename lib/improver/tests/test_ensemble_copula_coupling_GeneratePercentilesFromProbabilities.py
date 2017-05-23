@@ -46,85 +46,11 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
     import bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import(
-    _add_forecast_reference_time_and_forecast_period)
-
-
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                forecast_thresholds=[8, 10, 12],
-                y_dimension_length=3, x_dimension_length=3):
-    """Create a cube containing multiple realizations."""
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
-                                "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
-                                'latitude', units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
-                                'longitude', units='degrees'), 3)
-    return cube
-
-
-def set_up_temperature_cube():
-    """Create a cube with metadata and values suitable for air temperature."""
-    data = np.array([[[[1.0, 0.9, 1.0],
-                       [0.8, 0.9, 0.5],
-                       [0.5, 0.2, 0.0]]],
-                     [[[1.0, 0.5, 1.0],
-                       [0.5, 0.5, 0.3],
-                       [0.2, 0.0, 0.0]]],
-                     [[[1.0, 0.2, 0.5],
-                       [0.2, 0.0, 0.1],
-                       [0.0, 0.0, 0.0]]]])
-    return set_up_cube(data, "air_temperature", "1")
-
-
-def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units,
-                     forecast_thresholds=[8, 10, 12],
-                     y_dimension_length=9, x_dimension_length=9):
-    """
-    Create a cube containing multiple realizations, where one of the
-    dimensions is an index used for spot forecasts.
-    """
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
-                                "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
-                                units="1"), 2)
-    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, y_dimension_length),
-                                'latitude', units='degrees'), data_dims=2)
-    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length),
-                                'longitude', units='degrees'), data_dims=2)
-    return cube
-
-
-def set_up_spot_temperature_cube():
-    """
-    Create a cube with metadata and values suitable for air temperature
-    for spot forecasts.
-    """
-    data = np.array([[[1.0, 0.9, 1.0,
-                       0.8, 0.9, 0.5,
-                       0.5, 0.2, 0.0]],
-                     [[1.0, 0.5, 1.0,
-                       0.5, 0.5, 0.3,
-                       0.2, 0.0, 0.0]],
-                     [[1.0, 0.2, 0.5,
-                       0.2, 0.0, 0.1,
-                       0.0, 0.0, 0.0]]])
-    return set_up_spot_cube(data, "air_temperature", "1")
+    _add_forecast_reference_time_and_forecast_period,
+    set_up_probability_above_threshold_cube,
+    set_up_probability_above_threshold_temperature_cube,
+    set_up_probability_above_threshold_spot_cube,
+    set_up_probability_above_threshold_spot_temperature_cube)
 
 
 class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
@@ -137,7 +63,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
     def setUp(self):
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+                set_up_probability_above_threshold_temperature_cube()))
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
@@ -212,10 +138,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+                set_up_probability_above_threshold_temperature_cube()))
         self.current_temperature_spot_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_spot_temperature_cube()))
+                set_up_probability_above_threshold_spot_temperature_cube()))
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
@@ -242,7 +168,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_cube(
+                set_up_probability_above_threshold_cube(
                     data, "air_temperature", "1",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
                     x_dimension_length=1)))
@@ -265,7 +191,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_cube(
+                set_up_probability_above_threshold_cube(
                     data, "air_temperature", "1",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
                     x_dimension_length=1)))
@@ -363,8 +289,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         temperature_values = np.arange(0, 30)
         cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_cube(input_probs, "air_temperature", "1",
-                            forecast_thresholds=temperature_values)))
+                set_up_probability_above_threshold_cube(
+                    input_probs, "air_temperature", "1",
+                    forecast_thresholds=temperature_values)))
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -477,7 +404,7 @@ class Test_process(IrisTest):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
             _add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+                set_up_probability_above_threshold_temperature_cube()))
 
     def test_check_data_specifying_percentiles(self):
         """

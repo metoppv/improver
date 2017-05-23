@@ -37,6 +37,7 @@ from scipy.stats import norm
 
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import cf_units as unit
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
@@ -44,10 +45,48 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
     import bounds_for_ecdf, units_of_bounds_for_ecdf
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import (concatenate_2d_array_with_2darray_endpoints,
+    import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, create_percentiles,
             get_bounds_of_distribution,
-            insert_lower_and_upper_endpoint_to_1d_array)
+            insert_lower_and_upper_endpoint_to_1d_array,
+            reshape_array_to_have_probabilistic_dimension_at_the_front)
+
+
+class RebadgePercentilesAsMembers(object):
+    """
+    Class to rebadge percentiles as ensemble realizations.
+    This will allow the quantisation to percentiles to be completed, without
+    a subsequent EnsembleReordering step to restore spatial correlations,
+    if required.
+    """
+    def __init__(self):
+        """
+        Initialise the class.
+        """
+        pass
+
+    def process(self, cube):
+        """
+        Rebadge percentiles as ensemble members. The ensemble member numbering
+        will depend upon the number of percentiles in the input cube i.e.
+        0, 1, 2, 3, ..., n, if there are n percentiles.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+        Cube containing a percentile coordinate, which will be rebadged as
+        ensemble member.
+
+        """
+        if not cube.coords("percentile"):
+            msg = ("The percentile coordinate could not be found within"
+                   "the input cube: {}.".format(cube))
+            raise CoordinateNotFoundError(msg)
+
+        plen = len(cube.coord("percentile").points)
+        cube.coord("percentile").points = np.arange(plen)
+        cube.coord("percentile").rename("realization")
+        return cube
 
 
 class ResamplePercentiles(object):
@@ -92,8 +131,8 @@ class ResamplePercentiles(object):
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(
-            percentiles, percentiles, 0, 1)
-        forecast_at_percentiles = concatenate_2d_array_with_2darray_endpoints(
+            percentiles, 0, 1)
+        forecast_at_percentiles = concatenate_2d_array_with_2d_array_endpoints(
             forecast_at_percentiles, lower_bound, upper_bound)
         if np.any(np.diff(forecast_at_percentiles) < 0):
             msg = ("The end points added to the forecast at percentiles "
@@ -104,10 +143,15 @@ class ResamplePercentiles(object):
                    "bounds {}".format(
                        forecast_at_percentiles, bounds_pairing))
             raise ValueError(msg)
+        if np.any(np.diff(percentiles) < 0):
+            msg = ("The percentiles must be in ascending order."
+                   "The input percentiles were {}".format(percentiles))
+            raise ValueError(msg)
         return percentiles, forecast_at_percentiles
 
     def _sample_percentiles(
-        self, forecast_at_percentiles, desired_percentiles, bounds_pairing):
+            self, forecast_at_percentiles, desired_percentiles,
+            bounds_pairing):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -132,44 +176,38 @@ class ResamplePercentiles(object):
 
         """
         original_percentiles = (
-            forecast_at_percentiles.coord("percentiles").points)
+            forecast_at_percentiles.coord("percentile").points)
 
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord="percentiles")
+            forecast_at_percentiles, coord="percentile")
 
         original_percentiles, forecast_at_reshaped_percentiles = (
-            _add_bounds_to_percentiles_and_forecast_at_percentiles(
+            self._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 original_percentiles, forecast_at_reshaped_percentiles,
                 bounds_pairing))
 
         forecast_at_interpolated_percentiles = (
             np.empty(
                 (forecast_at_reshaped_percentiles.shape[0],
-                 len(original_percentiles))))
+                 len(desired_percentiles))))
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
             forecast_at_interpolated_percentiles[index, :] = np.interp(
-                desired_percentiles,
-                forecast_at_reshaped_percentiles[index, :],
-                originial_percentiles)
+                desired_percentiles, original_percentiles,
+                forecast_at_reshaped_percentiles[index, :])
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        shape_to_reshape_to = list(forecast_at_percentiles.shape)
-        if forecast_at_percentiles.coord_dims("percentiles"):
-            pat_coord_position = (
-                forecast_at_percentiles.coord_dims("percentiles"))
-            shape_to_reshape_to.pop(pat_coord_position[0])
-        shape_to_reshape_to = [len(desired_percentiles)] + shape_to_reshape_to
-
-        forecast_at_percentiles = (
-            forecast_at_percentiles.reshape(shape_to_reshape_to))
+        forecast_at_percentiles_data = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                forecast_at_interpolated_percentiles, forecast_at_percentiles,
+                "percentile", len(desired_percentiles)))
 
         for template_cube in forecast_at_percentiles.slices_over(
-                "percentiles"):
-            template_cube.remove_coord("percentiles")
+                "percentile"):
+            template_cube.remove_coord("percentile")
             break
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles)
+            desired_percentiles, template_cube, forecast_at_percentiles_data)
         percentile_cube.cell_methods = {}
         return percentile_cube
 
@@ -210,13 +248,15 @@ class ResamplePercentiles(object):
 
         if no_of_percentiles is None:
             no_of_percentiles = (
-                len(forecast_at_percentiles.coord("percentiles").points))
+                len(forecast_at_percentiles.coord("percentile").points))
 
         percentiles = create_percentiles(
             no_of_percentiles, sampling=sampling)
 
+        cube_units = forecast_at_percentiles.units
         bounds_pairing = (
-            get_bounds_of_distribution(forecast_at_percentiles, "percentiles"))
+            get_bounds_of_distribution(
+                forecast_at_percentiles.name(), cube_units))
 
         forecast_at_percentiles = self._sample_percentiles(
             forecast_at_percentiles, percentiles, bounds_pairing)
@@ -275,7 +315,7 @@ class GeneratePercentilesFromProbabilities(object):
         lower_bound, upper_bound = bounds_pairing
         threshold_points = insert_lower_and_upper_endpoint_to_1d_array(
             threshold_points, lower_bound, upper_bound)
-        probabilities_for_cdf = concatenate_2d_array_with_2darray_endpoints(
+        probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
             probabilities_for_cdf, 0, 1)
         if np.any(np.diff(threshold_points) < 0):
             msg = ("The end points added to the threshold values for "
@@ -332,7 +372,7 @@ class GeneratePercentilesFromProbabilities(object):
             raise ValueError(msg)
 
         threshold_points, probabilities_for_cdf = (
-            _add_bounds_to_thresholds_and_probabilities(
+            self._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing))
 
         forecast_at_percentiles = (
@@ -344,16 +384,10 @@ class GeneratePercentilesFromProbabilities(object):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        shape_to_reshape_to = list(forecast_probabilities.shape)
-        if forecast_probabilities.coord_dims("probability_above_threshold"):
-            pat_coord_position = (
-                forecast_probabilities.coord_dims(
-                    "probability_above_threshold"))
-            shape_to_reshape_to.pop(pat_coord_position[0])
-        shape_to_reshape_to = [len(percentiles)] + shape_to_reshape_to
-
         forecast_at_percentiles = (
-            forecast_at_percentiles.reshape(shape_to_reshape_to))
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                forecast_at_percentiles, forecast_probabilities,
+                "probability_above_threshold", len(percentiles)))
 
         for template_cube in forecast_probabilities.slices_over(
                 "probability_above_threshold"):
@@ -409,9 +443,11 @@ class GeneratePercentilesFromProbabilities(object):
         percentiles = create_percentiles(
             no_of_percentiles, sampling=sampling)
 
+        cube_units = (
+            forecast_probabilities.coord("probability_above_threshold").units)
         bounds_pairing = (
             get_bounds_of_distribution(
-                forecast_probabilities, "probability_above_threshold"))
+                forecast_probabilities.name(), cube_units))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
@@ -497,6 +533,11 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
+        result = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                result, calibrated_forecast_predictor,
+                "realization", len(percentiles)))
+
         shape_to_reshape_to = list(calibrated_forecast_predictor.shape)
         if calibrated_forecast_predictor.coord_dims("realization"):
             realization_coord_position = (
