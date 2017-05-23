@@ -38,5 +38,3 @@ R_DRY_AIR = 287.0
 
 # Specific heat capacity of dry air (J K-1 kg-1)
 CP_DRY_AIR = 1005.0
-
-
