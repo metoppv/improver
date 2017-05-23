@@ -41,9 +41,7 @@ from iris import coord_systems
 from iris.coord_systems import GeogCS
 from iris.cube import (Cube,
                        CubeList)
-from iris import Constraint
 from iris.tests import IrisTest
-from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 from collections import OrderedDict
 from iris import FUTURE
@@ -88,7 +86,6 @@ class TestExtractData(IrisTest):
                                 calendar='gregorian'))
 
         time_dt = [dt(2017, 02, 17, 06, 00)]
-        # time_extract = Constraint(time=PartialDateTime(2017, 02, 17, 06, 00))
 
         cube = Cube(data,
                     long_name="test_data",
@@ -250,7 +247,7 @@ class TestExtractData(IrisTest):
         plugin = ExtractData(method)
         msg = "Ancillary data"
         with self.assertRaisesRegexp(Exception, msg):
-            result = plugin.process(
+            plugin.process(
                 self.cubes, self.sites, self.neighbour_list,
                 self.time_dt, additional_data, **kwargs)
 
@@ -259,7 +256,7 @@ class TestExtractData(IrisTest):
         plugin = ExtractData(method)
         msg = "Required additional data is unset"
         with self.assertRaisesRegexp(Exception, msg):
-            result = plugin.process(
+            plugin.process(
                 self.cubes, self.sites, self.neighbour_list,
                 self.time_dt, additional_data, **kwargs)
 
@@ -366,12 +363,15 @@ class model_level_temperature_lapse_rate(TestExtractData):
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = -20.
-        plugin = ExtractData(self.method)
         self.different_projection(self.method, self.ad, expected,
                                   ancillary_data=self.ancillary_data)
 
     def test_missing_additional_data(self):
-        plugin = ExtractData(self.method)
+        """
+        Test for appropriate error message when required additional
+        diagnostics are unavailable.
+
+        """
         self.missing_additional_data(self.method, None,
                                      ancillary_data=self.ancillary_data)
 
