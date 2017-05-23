@@ -33,7 +33,7 @@
 
 import numpy as np
 import cartopy.crs as ccrs
-from iris.analysis.trajectory import interpolate
+# from iris.analysis.trajectory import interpolate
 from improver.spotdata.ancillaries import data_from_ancillary
 from improver.spotdata.common_functions import (ConditionalListExtract,
                                                 nearest_n_neighbours,
