@@ -185,11 +185,11 @@ def run_framework(config_name, data_path, ancillary_path, site_path=None,
         for key in diagnostics.keys():
             diagnostic = diagnostics[key]
             process_diagnostic(diagnostic, neighbours, sites, forecast_times,
-                               ancillary_data)
+                               data_path, ancillary_data)
 
 
 def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
-                       ancillary_data):
+                       data_path, ancillary_data):
     '''
     Extract data and write output for a given diagnostic.
 
@@ -218,7 +218,7 @@ def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
     neighbour_list = neighbours[diagnostic['neighbour_finding']]
 
     additional_data = get_method_prerequisites(
-        diagnostic['interpolation_method'])
+        diagnostic['interpolation_method'], data_path)
 
     cubes_out = ExtractData(
         diagnostic['interpolation_method']

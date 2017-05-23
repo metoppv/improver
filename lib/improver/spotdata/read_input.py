@@ -78,7 +78,8 @@ class Load(object):
         return load(filepath, diagnostic)
 
 
-def get_additional_diagnostics(diagnostic_name, time_extract=None):
+def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
+                               time_extract=None):
     """
     Load additional diagnostics needed for particular spot data processes.
 
@@ -95,10 +96,9 @@ def get_additional_diagnostics(diagnostic_name, time_extract=None):
                       data, with a single entry is time_extract is provided.
 
     """
-    from improver.spotdata.configurations import diagnostic_file_path
     with FUTURE.context(cell_datetime_objects=True):
         cubes = Load('multi_file').process(
-            diagnostic_file_path + '/*/*' + diagnostic_name + '*',
+            diagnostic_data_path + '/*/*' + diagnostic_name + '*',
             None)
         if time_extract is not None:
             cube = cubes.extract(time_extract)

@@ -51,6 +51,7 @@ from improver.spotdata.extract_data import ExtractData
 
 FUTURE.cell_datetime_objects = True
 
+
 class TestExtractData(IrisTest):
 
     """Test the extract data plugin."""
@@ -162,13 +163,14 @@ class TestExtractData(IrisTest):
               'surface_pressure': surface_pressure}
 
         sites = OrderedDict()
-        sites.update({'100':
-                          {'latitude': 4.74,
-                           'longitude': 9.47,
-                           'altitude': 10,
-                           'gmtoffset': 0
-                           }
-                      })
+        sites.update(
+            {'100':
+                {'latitude': 4.74,
+                 'longitude': 9.47,
+                 'altitude': 10,
+                 'gmtoffset': 0
+                 }
+             })
 
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
                                             ('j', 'i8'),
@@ -183,7 +185,6 @@ class TestExtractData(IrisTest):
         self.sites = sites
         self.neighbour_list = neighbour_list
         self.time_dt = time_dt
-
 
     def return_type(self, method, additional_data, **kwargs):
         """Test that the plugin returns an iris.cube.CubeList."""
@@ -200,7 +201,8 @@ class TestExtractData(IrisTest):
                                 self.time_dt, additional_data, **kwargs)
         self.assertAlmostEqual(result[0].data, expected)
 
-    def different_projection(self, method, additional_data, expected, **kwargs):
+    def different_projection(self, method, additional_data, expected,
+                             **kwargs):
         """Test that the plugin copes with non-lat/lon grids."""
 
         trg_crs = None
