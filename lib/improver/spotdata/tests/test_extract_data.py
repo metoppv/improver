@@ -61,7 +61,7 @@ class TestExtractData(IrisTest):
         """
         Create a cube containing a regular lat-lon grid.
 
-        Data is formatted to increase linearly in x/y dimensions, 
+        Data is formatted to increase linearly in x/y dimensions,
         e.g.
               0 1 2 3
               1 2 3 4
@@ -69,8 +69,8 @@ class TestExtractData(IrisTest):
               3 4 5 6
 
         """
-        data = np.arange(0,20,1)
-        for i in range(1,20):
+        data = np.arange(0, 20, 1)
+        for i in range(1, 20):
             data = np.append(data, np.arange(i, 20+i))
 
         data.resize(1, 20, 20)
@@ -82,9 +82,10 @@ class TestExtractData(IrisTest):
                              units='degrees', coord_system=GeogCS(6371229.0))
 
         # Use time of 2017-02-17 06:00:00
-        time = DimCoord([1487311200], standard_name='time',
-                units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
-                calendar='gregorian'))
+        time = DimCoord(
+            [1487311200], standard_name='time',
+            units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
+                                calendar='gregorian'))
 
         time_dt = [dt(2017, 02, 17, 06, 00)]
         # time_extract = Constraint(time=PartialDateTime(2017, 02, 17, 06, 00))
@@ -99,7 +100,7 @@ class TestExtractData(IrisTest):
         cubes = CubeList()
         cubes.append(cube)
 
-        orography = Cube(np.ones((20,20)),
+        orography = Cube(np.ones((20, 20)),
                          long_name="surface_altitude",
                          dim_coords_and_dims=[(latitude, 0),
                                               (longitude, 1)],
@@ -119,42 +120,42 @@ class TestExtractData(IrisTest):
         # Create additional vertical data used to calculate temperature lapse
         # rates from model levels.
 
-        Tlevel0 = np.ones((1, 20, 20))*20.
-        Tlevel1 = np.ones((1, 20, 20))*-20.
-        Tlevel2 = np.ones((1, 20, 20))*-60.
-        Tdata = np.vstack((Tlevel0, Tlevel1, Tlevel2))
-        Tdata.resize((1, 3, 20, 20))
+        t_level0 = np.ones((1, 20, 20))*20.
+        t_level1 = np.ones((1, 20, 20))*-20.
+        t_level2 = np.ones((1, 20, 20))*-60.
+        t_data = np.vstack((t_level0, t_level1, t_level2))
+        t_data.resize((1, 3, 20, 20))
 
-        Plevel0 = np.ones((1, 20, 20))*1000.
-        Plevel1 = np.ones((1, 20, 20))*900.
-        Plevel2 = np.ones((1, 20, 20))*800.
-        Pdata = np.vstack((Plevel0, Plevel1, Plevel2))
-        Pdata.resize((1, 3, 20, 20))
-        
+        p_level0 = np.ones((1, 20, 20))*1000.
+        p_level1 = np.ones((1, 20, 20))*900.
+        p_level2 = np.ones((1, 20, 20))*800.
+        p_data = np.vstack((p_level0, p_level1, p_level2))
+        p_data.resize((1, 3, 20, 20))
+
         height = DimCoord([0., 50., 100.], standard_name='height', units='m')
 
         temperature_on_height_levels = CubeList()
         temperature_on_height_levels.append(
             Cube(
-                Tdata,
+                t_data,
                 long_name="temperature_on_height_levels",
-                dim_coords_and_dims=[(time, 0), (height,1),
+                dim_coords_and_dims=[(time, 0), (height, 1),
                                      (latitude, 2), (longitude, 3)],
                 units="degree_Celsius"))
 
         pressure_on_height_levels = CubeList()
         pressure_on_height_levels.append(
             Cube(
-                Pdata,
+                p_data,
                 long_name="pressure_on_height_levels",
-                dim_coords_and_dims=[(time, 0), (height,1),
+                dim_coords_and_dims=[(time, 0), (height, 1),
                                      (latitude, 2), (longitude, 3)],
                 units="hPa"))
 
         surface_pressure = CubeList()
         surface_pressure.append(
             Cube(
-                Pdata[0,0].reshape(1, 20, 20),
+                p_data[0, 0].reshape(1, 20, 20),
                 long_name="surface_pressure",
                 dim_coords_and_dims=[(time, 0), (latitude, 1), (longitude, 2)],
                 units="hPa"))
@@ -164,11 +165,12 @@ class TestExtractData(IrisTest):
               'surface_pressure': surface_pressure}
 
         sites = OrderedDict()
-        sites.update({'100': {'latitude': 4.74,
-                              'longitude': 9.47,
-                              'altitude': 10,
-                              'gmtoffset': 0
-                              }
+        sites.update({'100':
+                          {'latitude': 4.74,
+                           'longitude': 9.47,
+                           'altitude': 10,
+                           'gmtoffset': 0
+                           }
                       })
 
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
@@ -190,7 +192,7 @@ class TestExtractData(IrisTest):
         """Test that the plugin returns an iris.cube.CubeList."""
         plugin = ExtractData(method)
         result = plugin.process(self.cubes, self.sites, self.neighbour_list,
-                                  self.time_dt, additional_data, **kwargs)
+                                self.time_dt, additional_data, **kwargs)
 
         self.assertIsInstance(result, CubeList)
 
@@ -198,7 +200,7 @@ class TestExtractData(IrisTest):
         """Test that the plugin returns the correct value."""
         plugin = ExtractData(method)
         result = plugin.process(self.cubes, self.sites, self.neighbour_list,
-                                  self.time_dt, additional_data, **kwargs)
+                                self.time_dt, additional_data, **kwargs)
         self.assertAlmostEqual(result[0].data, expected)
 
     def different_projection(self, method, additional_data, expected, **kwargs):
@@ -219,9 +221,9 @@ class TestExtractData(IrisTest):
             y.append(y_trg)
 
         new_x = AuxCoord(x, standard_name='projection_x_coordinate',
-                            units='m', coord_system=trg_crs_iris)
+                         units='m', coord_system=trg_crs_iris)
         new_y = AuxCoord(y, standard_name='projection_y_coordinate',
-                             units='m', coord_system=trg_crs_iris)
+                         units='m', coord_system=trg_crs_iris)
 
         cube = Cube(self.cubes[0].data,
                     long_name="test_data",
@@ -234,7 +236,7 @@ class TestExtractData(IrisTest):
 
         plugin = ExtractData(method)
         result = plugin.process(cubes, self.sites, self.neighbour_list,
-                                  self.time_dt, additional_data, **kwargs)
+                                self.time_dt, additional_data, **kwargs)
 
         self.assertEqual(cubes[0].coord_system(), trg_crs_iris)
         self.assertAlmostEqual(result[0].data, expected)
@@ -242,7 +244,6 @@ class TestExtractData(IrisTest):
         self.assertEqual(result[0].coord(axis='x').name(), 'longitude')
         self.assertAlmostEqual(result[0].coord(axis='y').points, 4.74)
         self.assertAlmostEqual(result[0].coord(axis='x').points, 9.47)
-        
 
     def missing_ancillary_data(self, method, additional_data, **kwargs):
         """Test that the plugin copes with missing ancillary data."""
@@ -269,16 +270,17 @@ class use_nearest(TestExtractData):
 
     def test_return_type(self):
         self.return_type(self.method, None, ancillary_data=None)
-        
+
     def test_extracted_value(self):
         """Test that the plugin returns the correct value."""
-        expected  = 20
+        expected = 20
         self.extracted_value(self.method, None, expected, ancillary_data=None)
 
     def test_different_projection(self):
         """Test that the plugin copes with non-lat/lon grids."""
-        expected=20.
-        self.different_projection(self.method, None, expected, ancillary_data=None)
+        expected = 20.
+        self.different_projection(self.method, None, expected,
+                                  ancillary_data=None)
 
 
 class orography_derived_temperature_lapse_rate(TestExtractData):
@@ -287,7 +289,7 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
 
     def test_return_type(self):
         self.return_type(self.method, None, ancillary_data=self.ancillary_data)
-        
+
     def test_extracted_value(self):
         """
         Test that the plugin returns the correct value.
@@ -296,13 +298,14 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
         Site defined with has altitude=10, so T+expected = 20.5.
 
         """
-        expected  = 20.5
-        self.extracted_value(self.method, None, expected, ancillary_data=self.ancillary_data)
+        expected = 20.5
+        self.extracted_value(self.method, None, expected,
+                             ancillary_data=self.ancillary_data)
 
     def test_different_projection(self):
         """
         Test that the plugin copes with non-lat/lon grids.
-        
+
         Cube is transformed into a LambertConformal projection. The usual
         latitude/longitude coordinates are used to query the grid, with iris
         functionality used to convert the query coordinates to the correct
@@ -314,8 +317,9 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
         case above.
 
         """
-        expected=20.5
-        self.different_projection(self.method, None, expected, ancillary_data=self.ancillary_data)
+        expected = 20.5
+        self.different_projection(self.method, None, expected,
+                                  ancillary_data=self.ancillary_data)
 
     def test_missing_ancillary_data(self):
         self.missing_ancillary_data(self.method, None, ancillary_data=None)
@@ -326,8 +330,9 @@ class model_level_temperature_lapse_rate(TestExtractData):
     method = 'model_level_temperature_lapse_rate'
 
     def test_return_type(self):
-        self.return_type(self.method, self.ad, ancillary_data=self.ancillary_data)
-        
+        self.return_type(self.method, self.ad,
+                         ancillary_data=self.ancillary_data)
+
     def test_extracted_value(self):
         """
         Test that the plugin returns the correct value.
@@ -339,13 +344,14 @@ class model_level_temperature_lapse_rate(TestExtractData):
         """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
-        expected  = -20.
-        self.extracted_value(self.method, self.ad, expected, ancillary_data=self.ancillary_data)
+        expected = -20.
+        self.extracted_value(self.method, self.ad, expected,
+                             ancillary_data=self.ancillary_data)
 
     def test_different_projection(self):
         """
         Test that the plugin copes with non-lat/lon grids.
-        
+
         Cube is transformed into a LambertConformal projection. The usual
         latitude/longitude coordinates are used to query the grid, with iris
         functionality used to convert the query coordinates to the correct
@@ -359,13 +365,15 @@ class model_level_temperature_lapse_rate(TestExtractData):
         """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
-        expected  = -20.
+        expected = -20.
         plugin = ExtractData(self.method)
-        self.different_projection(self.method, self.ad, expected, ancillary_data=self.ancillary_data)
+        self.different_projection(self.method, self.ad, expected,
+                                  ancillary_data=self.ancillary_data)
 
     def test_missing_additional_data(self):
         plugin = ExtractData(self.method)
-        self.missing_additional_data(self.method, None, ancillary_data=self.ancillary_data)
+        self.missing_additional_data(self.method, None,
+                                     ancillary_data=self.ancillary_data)
 
 
 if __name__ == '__main__':

@@ -93,7 +93,7 @@ class TestNeighbourFinding(IrisTest):
         """Test that the plugin returns a numpy array."""
         plugin = PointSelection(method)
         result = plugin.process(self.cube, self.sites,
-                                  ancillary_data=self.ancillary_data)
+                                ancillary_data=self.ancillary_data)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, self.neighbour_list.dtype)
 
@@ -101,7 +101,7 @@ class TestNeighbourFinding(IrisTest):
         """Test that the plugin returns the expected neighbour"""
         plugin = PointSelection(method)
         result = plugin.process(self.cube, self.sites,
-                                  ancillary_data=self.ancillary_data)
+                                ancillary_data=self.ancillary_data)
         self.assertEqual(result['i'], i_expected)
         self.assertEqual(result['j'], j_expected)
         self.assertEqual(result['dz'], dz_expected)
