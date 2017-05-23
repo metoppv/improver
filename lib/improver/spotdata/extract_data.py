@@ -307,7 +307,7 @@ class ExtractData(object):
         return self.make_cube(cube, data, sites)
 
 
-def get_method_prerequisites(method):
+def get_method_prerequisites(method, diagnostic_data_path):
     '''
     Determine which additional diagnostics are required for a given
     method of data extraction.
@@ -332,5 +332,8 @@ def get_method_prerequisites(method):
 
     ad = {}
     for item in additional_diagnostics:
-        ad.update({item: get_additional_diagnostics(item)})
+        ad.update({item:
+                   get_additional_diagnostics(
+                       item, diagnostic_data_path)
+                   })
     return ad

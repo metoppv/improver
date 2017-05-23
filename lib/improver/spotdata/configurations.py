@@ -57,6 +57,7 @@ def all_diagnostics(diagnostic_data_path):
                          'temperature_at_screen_level' + '*'),
             'diagnostic_name': 'air_temperature',
             'neighbour_finding': 'default',
+            # 'interpolation_method': 'model_level_temperature_lapse_rate',
             'interpolation_method': 'use_nearest',
             'extrema': True
             },
