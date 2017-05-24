@@ -34,19 +34,15 @@ Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 import numpy as np
 import unittest
 
-from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles as Plugin)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period,
-    set_up_cube, set_up_temperature_cube, set_up_spot_cube,
-    set_up_spot_temperature_cube)
+    set_up_cube, set_up_spot_cube, set_up_spot_temperature_cube)
 
 
 class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):

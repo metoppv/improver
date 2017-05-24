@@ -38,12 +38,11 @@ from scipy.stats import norm
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
-import cf_units as unit
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf, units_of_bounds_for_ecdf
+    import bounds_for_ecdf
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, create_percentiles,

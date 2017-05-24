@@ -45,7 +45,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 
 def set_up_probability_above_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,
-        forecast_thresholds=[8, 10, 12], timesteps=1,
+        forecast_thresholds=np.array([8, 10, 12]), timesteps=1,
         y_dimension_length=3, x_dimension_length=3):
     """
     Create a cube containing multiple probability_above_threshold
@@ -87,7 +87,7 @@ def set_up_probability_above_threshold_temperature_cube():
 
 def set_up_probability_above_threshold_spot_cube(
         data, phenomenon_standard_name, phenomenon_units,
-        forecast_thresholds=[8, 10, 12],
+        forecast_thresholds=np.array([8, 10, 12]),
         y_dimension_length=9, x_dimension_length=9):
     """
     Create a cube containing multiple realizations, where one of the
@@ -132,7 +132,7 @@ def set_up_probability_above_threshold_spot_temperature_cube():
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                realizations=[0, 1, 2], timesteps=1,
+                realizations=np.array([0, 1, 2]), timesteps=1,
                 y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     cube = Cube(data, standard_name=phenomenon_standard_name,

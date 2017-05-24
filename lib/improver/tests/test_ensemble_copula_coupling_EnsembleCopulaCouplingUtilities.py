@@ -47,8 +47,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             concatenate_2d_array_with_2d_array_endpoints,
             get_bounds_of_distribution,
             reshape_array_to_have_probabilistic_dimension_at_the_front)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf
 from improver.tests.helper_functions_ensemble_calibration import (
     set_up_cube,
     set_up_temperature_cube, set_up_spot_temperature_cube,
@@ -88,7 +86,6 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         """
         Test that a 1d input array results in the expected error.
         """
-        expected = np.array([-100, -40, 200, 1000, 10000])
         input_array = np.array([-40, 200, 1000])
         msg = "all the input arrays must have same number of dimensions"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -99,7 +96,6 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         """
         Test that a 3d input array results in the expected error.
         """
-        expected = np.array([[[-100, -40, 200, 1000, 10000]]])
         input_array = np.array([[[-40, 200, 1000]]])
         msg = "all the input arrays must have same number of dimensions"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -395,8 +391,6 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
         Another basic test that the result is a numpy array with the
         expected contents.
         """
-        expected = np.array([[-100, -40, 200, 1000, 10000],
-                             [-100, -40, 200, 1000, 10000]])
         percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
         msg = "all the input arrays must have same number of dimensions"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -437,7 +431,6 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         probabilistic dimension and is generally of the expected size.
         """
         cube = self.current_temperature_forecast_cube
-        input_array = cube.data
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
@@ -458,7 +451,6 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         cube = self.current_temperature_forecast_cube
         for cube_slice in cube.slices_over("percentile"):
             break
-        input_array = cube_slice.data
         plen = len(cube_slice.coord("percentile").points)
         reshaped_array = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
