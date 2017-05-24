@@ -153,6 +153,32 @@ class Test__probabilities_to_percentiles(IrisTest):
             cube, percentiles, bounds_pairing)
         self.assertIsInstance(result, Cube)
 
+    def test_transpose_cube_dimensions(self):
+        """
+        Test that the plugin returns an the expected data, when comparing
+        input cubes which have dimensions in a different order.
+        """
+        # Calculate result for nontransposed cube.
+        cube = self.current_temperature_forecast_cube
+        percentiles = [0.1, 0.5, 0.9]
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        nontransposed_result = plugin._probabilities_to_percentiles(
+            cube, percentiles, bounds_pairing)
+
+        # Calculate result for transposed cube.
+        # Original cube dimensions are [P, T, Y, X].
+        # Transposed cube dimensions are [X, Y, T, P].
+        cube.transpose([3, 2, 1, 0])
+        transposed_result = plugin._probabilities_to_percentiles(
+            cube, percentiles, bounds_pairing)
+
+        # Result cube will be [P, X, Y, T]
+        # Transpose cube to be [P, T, Y, X]
+        transposed_result.transpose([0, 3, 2, 1])
+        self.assertArrayAlmostEqual(
+            nontransposed_result.data, transposed_result.data)
+
     def test_simple_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

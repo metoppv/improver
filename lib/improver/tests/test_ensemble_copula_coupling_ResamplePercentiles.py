@@ -182,6 +182,32 @@ class Test__sample_percentiles(IrisTest):
             cube, percentiles, bounds_pairing)
         self.assertIsInstance(result, Cube)
 
+    def test_transpose_cube_dimensions(self):
+        """
+        Test that the plugin returns an the expected data, when comparing
+        input cubes which have dimensions in a different order.
+        """
+        # Calculate result for nontransposed cube.
+        cube = self.percentile_cube
+        percentiles = [0.1, 0.5, 0.9]
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        nontransposed_result = plugin._sample_percentiles(
+            cube, percentiles, bounds_pairing)
+
+        # Calculate result for transposed cube.
+        # Original cube dimensions are [P, T, Y, X].
+        # Transposed cube dimensions are [X, Y, T, P].
+        cube.transpose([3, 2, 1, 0])
+        transposed_result = plugin._sample_percentiles(
+            cube, percentiles, bounds_pairing)
+
+        # Result cube will be [P, X, Y, T]
+        # Transpose cube to be [P, T, Y, X]
+        transposed_result.transpose([0, 3, 2, 1])
+        self.assertArrayAlmostEqual(
+            nontransposed_result.data, transposed_result.data)
+
     def test_simple_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -253,7 +279,6 @@ class Test__sample_percentiles(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        print "data = ", data
         cube = set_up_cube(data, "air_temperature", "degreesC",
                            timesteps=2, x_dimension_length=2,
                            y_dimension_length=2)
@@ -266,10 +291,8 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.2, 0.6, 0.8]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        print "cube.data = ", cube.data
         result = plugin._sample_percentiles(
             cube, percentiles, bounds_pairing)
-        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_check_single_threshold(self):
@@ -441,7 +464,6 @@ class Test_process(IrisTest):
         percentiles = [0.25, 0.5, 0.75]
         plugin = Plugin()
         result = plugin.process(cube, no_of_percentiles=len(percentiles))
-        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_check_data_not_specifying_percentiles(self):

@@ -188,16 +188,12 @@ class ResamplePercentiles(object):
 
         forecast_at_interpolated_percentiles = (
             np.empty(
-                (forecast_at_reshaped_percentiles.shape[0],
-                 len(desired_percentiles))))
+                (len(desired_percentiles),
+                 forecast_at_reshaped_percentiles.shape[0])))
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            forecast_at_interpolated_percentiles[index, :] = np.interp(
+            forecast_at_interpolated_percentiles[:, index] = np.interp(
                 desired_percentiles, original_percentiles,
                 forecast_at_reshaped_percentiles[index, :])
-
-        # Transpose data
-        forecast_at_interpolated_percentiles = (
-            forecast_at_interpolated_percentiles.T)
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -367,6 +363,10 @@ class GeneratePercentilesFromProbabilities(object):
         # Invert probabilities
         probabilities_for_cdf = 1 - prob_slices
 
+        threshold_points, probabilities_for_cdf = (
+            self._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, bounds_pairing))
+
         if np.any(np.diff(probabilities_for_cdf) < 0):
             msg = ("The probability values used to construct the "
                    "Cumulative Distribution Function (CDF) "
@@ -375,19 +375,12 @@ class GeneratePercentilesFromProbabilities(object):
                    "The probabilities are {}".format(probabilities_for_cdf))
             raise ValueError(msg)
 
-        threshold_points, probabilities_for_cdf = (
-            self._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing))
-
         forecast_at_percentiles = (
-            np.empty((probabilities_for_cdf.shape[0], len(percentiles))))
+            np.empty((len(percentiles), probabilities_for_cdf.shape[0])))
         for index in range(probabilities_for_cdf.shape[0]):
-            forecast_at_percentiles[index, :] = np.interp(
+            forecast_at_percentiles[:, index] = np.interp(
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
-
-        # Transpose data
-        forecast_at_percentiles = forecast_at_percentiles.T
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -511,15 +504,15 @@ class GeneratePercentilesFromMeanAndVariance(object):
         calibrated_forecast_variance_data = (
             calibrated_forecast_variance.data.flatten())
 
-        result = np.zeros((calibrated_forecast_predictor_data.shape[0],
-                           len(percentiles)))
+        result = np.zeros((len(percentiles),
+                           calibrated_forecast_predictor_data.shape[0]))
 
         # Loop over percentiles, and use a normal distribution with the mean
         # and variance to calculate the values at each percentile.
         for index, percentile in enumerate(percentiles):
             percentile_list = np.repeat(
                 percentile, len(calibrated_forecast_predictor_data))
-            result[:, index] = norm.ppf(
+            result[index, :] = norm.ppf(
                 percentile_list, loc=calibrated_forecast_predictor_data,
                 scale=np.sqrt(calibrated_forecast_variance_data))
             # If percent point function (PPF) returns NaNs, fill in
@@ -527,17 +520,14 @@ class GeneratePercentilesFromMeanAndVariance(object):
             # variance is zero. Therefore, if the variance is zero, the mean
             # value is used for all gridpoints with a NaN.
             if np.any(calibrated_forecast_variance_data == 0):
-                nan_index = np.argwhere(np.isnan(result[:, index]))
-                result[nan_index, index] = (
+                nan_index = np.argwhere(np.isnan(result[index, :]))
+                result[index, nan_index] = (
                     calibrated_forecast_predictor_data[nan_index])
             if np.any(np.isnan(result)):
                 msg = ("NaNs are present within the result for the {} "
                        "percentile. Unable to calculate the percent point "
                        "function.")
                 raise ValueError(msg)
-
-        # Transpose data
-        result = result.T
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
