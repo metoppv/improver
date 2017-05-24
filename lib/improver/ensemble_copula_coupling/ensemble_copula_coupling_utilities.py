@@ -248,8 +248,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     """
     lower_array = np.array([low_endpoint])
     upper_array = np.array([high_endpoint])
-    array_1d = np.concatenate(
-        (lower_array, array_1d, upper_array), axis=1)
+    array_1d = np.concatenate((lower_array, array_1d, upper_array))
     return array_1d
 
 
