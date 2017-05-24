@@ -195,6 +195,10 @@ class ResamplePercentiles(object):
                 desired_percentiles, original_percentiles,
                 forecast_at_reshaped_percentiles[index, :])
 
+        # Transpose data
+        forecast_at_interpolated_percentiles = (
+            forecast_at_interpolated_percentiles.T)
+
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles_data = (
@@ -382,6 +386,9 @@ class GeneratePercentilesFromProbabilities(object):
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
 
+        # Transpose data
+        forecast_at_percentiles = forecast_at_percentiles.T
+
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = (
@@ -529,21 +536,15 @@ class GeneratePercentilesFromMeanAndVariance(object):
                        "function.")
                 raise ValueError(msg)
 
+        # Transpose data
+        result = result.T
+
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         result = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
                 result, calibrated_forecast_predictor,
                 "realization", len(percentiles)))
-
-        shape_to_reshape_to = list(calibrated_forecast_predictor.shape)
-        if calibrated_forecast_predictor.coord_dims("realization"):
-            realization_coord_position = (
-                calibrated_forecast_predictor.coord_dims("realization"))
-            shape_to_reshape_to.pop(realization_coord_position[0])
-        shape_to_reshape_to = [len(percentiles)] + shape_to_reshape_to
-
-        result = result.reshape(shape_to_reshape_to)
 
         for template_cube in calibrated_forecast_predictor.slices_over(
                 "realization"):

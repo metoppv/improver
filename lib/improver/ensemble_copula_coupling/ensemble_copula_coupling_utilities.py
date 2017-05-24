@@ -246,8 +246,10 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     array_1d : Numpy array
         1d array of values padded with the low_endpoint and high_endpoint.
     """
-    array_1d = np.insert(array_1d, 0, low_endpoint)
-    array_1d = np.append(array_1d, high_endpoint)
+    lower_array = np.array([low_endpoint])
+    upper_array = np.array([high_endpoint])
+    array_1d = np.concatenate(
+        (lower_array, array_1d, upper_array), axis=1)
     return array_1d
 
 
@@ -292,7 +294,6 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
         msg = ("A {} coordinate is not available on the {} cube.".format(
                input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
-    array_to_reshape = array_to_reshape.T
     shape_to_reshape_to = (
         [output_probabilistic_dimension_length] + shape_to_reshape_to)
     return array_to_reshape.reshape(shape_to_reshape_to)

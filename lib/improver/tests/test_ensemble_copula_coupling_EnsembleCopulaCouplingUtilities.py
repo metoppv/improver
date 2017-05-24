@@ -34,6 +34,7 @@ Unit tests for the
 """
 import unittest
 
+from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -64,9 +65,9 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         Basic test that the result is a numpy array with the expected contents.
         """
         expected = np.array([[0, 0.2, 0.5, 0.8, 1]])
-        percentiles = np.array([[0.2, 0.5, 0.8]])
+        input_array = np.array([[0.2, 0.5, 0.8]])
         result = concatenate_2d_array_with_2d_array_endpoints(
-            percentiles, 0, 1)
+            input_array, 0, 1)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -77,9 +78,9 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         """
         expected = np.array(
             [[-100, -40, 200, 1000, 10000], [-100, -40, 200, 1000, 10000]])
-        percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
+        input_array = np.array([[-40, 200, 1000], [-40, 200, 1000]])
         result = concatenate_2d_array_with_2d_array_endpoints(
-            percentiles, -100, 10000)
+            input_array, -100, 10000)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -88,22 +89,22 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         Test that a 1d input array results in the expected error.
         """
         expected = np.array([-100, -40, 200, 1000, 10000])
-        percentiles = np.array([-40, 200, 1000])
+        input_array = np.array([-40, 200, 1000])
         msg = "all the input arrays must have same number of dimensions"
         with self.assertRaisesRegexp(ValueError, msg):
             concatenate_2d_array_with_2d_array_endpoints(
-                percentiles, -100, 10000)
+                input_array, -100, 10000)
 
     def test_3d_input(self):
         """
         Test that a 3d input array results in the expected error.
         """
         expected = np.array([[[-100, -40, 200, 1000, 10000]]])
-        percentiles = np.array([[[-40, 200, 1000]]])
+        input_array = np.array([[[-40, 200, 1000]]])
         msg = "all the input arrays must have same number of dimensions"
         with self.assertRaisesRegexp(ValueError, msg):
             concatenate_2d_array_with_2d_array_endpoints(
-                percentiles, -100, 10000)
+                input_array, -100, 10000)
 
 
 class Test_create_cube_with_percentiles(IrisTest):
@@ -322,20 +323,20 @@ class Test_get_bounds_of_distribution(IrisTest):
 
     def test_basic(self):
         """Test that the result is a numpy array."""
-        cube = self.current_temperature_forecast_cube
-        cube_units = cube.coord("probability_above_threshold").units
-        result = get_bounds_of_distribution(cube.name(), cube_units)
+        cube_name = "air_temperature"
+        cube_units = Unit("degreesC")
+        result = get_bounds_of_distribution(cube_name, cube_units)
         self.assertIsInstance(result, np.ndarray)
 
     def test_check_data(self):
         """
         Test that the expected results are returned for the bounds_pairing.
         """
-        cube = self.current_temperature_forecast_cube
-        cube_units = cube.coord("probability_above_threshold").units
+        cube_name = "air_temperature"
+        cube_units = Unit("degreesC")
         bounds_pairing = (-40, 50)
         result = (
-            get_bounds_of_distribution(cube.name(), cube_units))
+            get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
 
     def test_check_unit_conversion(self):
@@ -344,25 +345,22 @@ class Test_get_bounds_of_distribution(IrisTest):
         if the units of the bounds_pairings need to be converted to match
         the units of the forecast.
         """
-        cube = self.current_temperature_forecast_cube
-        cube.coord("probability_above_threshold").convert_units("fahrenheit")
-        cube_units = cube.coord("probability_above_threshold").units
+        cube_name = "air_temperature"
+        cube_units = Unit("fahrenheit")
         bounds_pairing = (-40, 122)  # In fahrenheit
         result = (
-            get_bounds_of_distribution(cube.name(), cube_units))
+            get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
 
     def test_check_exception_is_raised(self):
         """
         Test that the expected results are returned for the bounds_pairing.
         """
-        cube = self.current_temperature_forecast_cube
-        cube.standard_name = None
-        cube.long_name = "Nonsense"
-        cube_units = cube.coord("probability_above_threshold").units
+        cube_name = "nonsense"
+        cube_units = Unit("degreesC")
         msg = "The forecast_cube name"
         with self.assertRaisesRegexp(KeyError, msg):
-            get_bounds_of_distribution(cube.name(), cube_units)
+            get_bounds_of_distribution(cube_name, cube_units)
 
 
 class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
@@ -392,6 +390,19 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
+    def test_2d_example(self):
+        """
+        Another basic test that the result is a numpy array with the
+        expected contents.
+        """
+        expected = np.array([[-100, -40, 200, 1000, 10000],
+                             [-100, -40, 200, 1000, 10000]])
+        percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
+        msg = "all the input arrays must have same number of dimensions"
+        with self.assertRaisesRegexp(ValueError, msg):
+            insert_lower_and_upper_endpoint_to_1d_array(
+                percentiles, -100, 10000)
+
 
 class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         IrisTest):
@@ -420,7 +431,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
                 cube.data, cube, "percentile", plen))
         self.assertIsInstance(reshaped_array, np.ndarray)
 
-    def test_size_of_array(self):
+    def test_percentile_is_dimension_coordinate(self):
         """
         Test that the result have the expected size for the
         probabilistic dimension and is generally of the expected size.
@@ -432,48 +443,18 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
             reshape_array_to_have_probabilistic_dimension_at_the_front(
                 cube.data, cube, "percentile", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
-        self.assertEqual(reshaped_array.shape, (3, 1, 3, 3))
+        self.assertEqual(reshaped_array.shape, cube.data.shape)
+        self.assertArrayAlmostEqual(reshaped_array, cube.data)
 
-    def test_data_check(self):
-        """
-        Test that the data has been reshaped correctly.
-        """
-        expected = np.array([[[[4., 6.],
-                               [8., 6.85714286]],
-                              [[8.85714286, 10.85714286],
-                               [5.42857143, 7.42857143]]],
-                             [[[9.42857143, 8.28571429],
-                               [10.28571429, 12.28571429]],
-                              [[4.71428571, 6.71428571],
-                               [8.71428571, 7.57142857]]],
-                             [[[9.57142857, 11.57142857],
-                               [6.14285714, 8.14285714]],
-                              [[10.14285714, 9.],
-                               [11., 13.]]]])
-
-        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
-        data[0] -= 1
-        data[1] += 1
-        data[2] += 3
-        cube = set_up_cube(data, "air_temperature", "degreesC",
-                           timesteps=2, x_dimension_length=2,
-                           y_dimension_length=2)
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
-        plen = len(cube.coord("percentile").points)
-        percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                cube, time_point=np.array([402295.0, 402296.0])))
-        reshaped_array = (
-            reshape_array_to_have_probabilistic_dimension_at_the_front(
-                percentile_cube.data, percentile_cube, "percentile", plen))
-        self.assertArrayAlmostEqual(reshaped_array, expected)
-
-    def test_percentile_is_not_a_dimension_coordinate(self):
+    def test_percentile_is_not_dimension_coordinate(self):
         """
         Test the array size, if the percentile coordinate is not a dimension
         coordinate on the cube.
         """
+        expected = np.array([[[[226.15, 237.4, 248.65],
+                               [259.9, 271.15, 282.4],
+                               [293.65, 304.9, 316.15]]]])
+
         cube = self.current_temperature_forecast_cube
         for cube_slice in cube.slices_over("percentile"):
             break
@@ -484,6 +465,51 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
                 cube_slice.data, cube_slice, "percentile", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, (1, 1, 3, 3))
+        self.assertArrayAlmostEqual(reshaped_array, expected)
+
+    def test_percentile_is_dimension_coordinate_multiple_timesteps(self):
+        """
+        Test that the data has been reshaped correctly when multiple timesteps
+        are in the cube.
+        """
+        expected = np.array([[[[4., 4.71428571],
+                               [5.42857143, 6.14285714]],
+                              [[6.85714286, 7.57142857],
+                               [8.28571429, 9.]]]])
+
+        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        cube = set_up_cube(data, "air_temperature", "degreesC",
+                           timesteps=2, x_dimension_length=2,
+                           y_dimension_length=2)
+        cube.coord("realization").rename("percentile")
+        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        plen = 1
+        percentile_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                cube, time_point=np.array([402295.0, 402296.0])))
+        reshaped_array = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                percentile_cube[0].data, percentile_cube, "percentile", plen))
+        self.assertArrayAlmostEqual(reshaped_array, expected)
+
+    def test_percentile_is_dimension_coordinate_flattened_data(self):
+        """
+        Test the array size, if the percentile coordinate is not a dimension
+        coordinate on the cube.
+        """
+        cube = self.current_temperature_forecast_cube
+        flattened_data = cube.data.flatten()
+        input_array = cube.data
+        plen = len(cube.coord("percentile").points)
+        reshaped_array = (
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                flattened_data, cube, "percentile", plen))
+        self.assertEqual(reshaped_array.shape[0], plen)
+        self.assertEqual(reshaped_array.shape, (3, 1, 3, 3))
+        self.assertArrayAlmostEqual(reshaped_array, cube.data)
 
     def test_missing_coordinate(self):
         """
