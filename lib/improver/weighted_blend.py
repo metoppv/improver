@@ -29,16 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing Weighted Blend classes."""
+import warnings
 
-
-import iris
 import numpy as np
+import iris
 
 
 class BasicWeightedAverage(object):
-    """Apply a Basic Weighted Average to a cube.
-
-    """
+    """Apply a Basic Weighted Average to a cube."""
 
     def __init__(self, coord, coord_adjust=None):
         """Set up for a Basic Weighted Average Blending plugin
@@ -46,7 +44,6 @@ class BasicWeightedAverage(object):
         Args:
             coord : string
                      The name/s of a coordinate dimension/s in the cube
-
             coord_adjust : Function to apply to the coordinate after
                            collapsing the cube to correct the values
                            for example for time windowing and
@@ -68,7 +65,6 @@ class BasicWeightedAverage(object):
         Args:
             cube : iris.cube.Cube
                    Cube to blend across the coord.
-
             weights: Optional list or np.array of weights
                      or None (equivalent to equal weights)
 
@@ -77,24 +73,26 @@ class BasicWeightedAverage(object):
 
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('the first argument must be an instance of ' +
-                             'iris.cube.Cube')
+            raise ValueError('The first argument must be an instance of ' +
+                             'iris.cube.Cube but is' +
+                             ' {0:s}'.format(type(cube)))
         if not cube.coords(self.coord):
-            raise ValueError('the coord for this plugin must be ' +
+            raise ValueError('The coord for this plugin must be ' +
                              'an existing coordinate in the input cube')
         # Find the coords dimension.
         # If coord is a scalar_coord try adding it
         collapse_dim = cube.coord_dims(self.coord)
         if not collapse_dim:
-            print 'Warning: Could not find collapse dimension ' + \
-                'will try adding it'
+            msg = ('Could not find collapse dimension, ' +
+                   'will try adding it')
+            warnings.warn(msg)
             cube = iris.util.new_axis(cube, self.coord)
             collapse_dim = cube.coord_dims(self.coord)
         # supply weights as an array of weights whose shape matches the cube
         weights_array = None
         if weights is not None:
             if np.array(weights).shape != cube.coord(self.coord).points.shape:
-                raise ValueError('the weights array must match the shape ' +
+                raise ValueError('The weights array must match the shape ' +
                                  'of the coordinate in the input cube')
             weights_array = iris.util.broadcast_to_shape(np.array(weights),
                                                          cube.shape,
