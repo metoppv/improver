@@ -47,10 +47,10 @@ from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period)
 
 
-class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
+class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
 
     """
-    Test the mismatch_between_length_of_raw_members_and_percentiles
+    Test the _mismatch_between_length_of_raw_members_and_percentiles
     method in the EnsembleReordering plugin.
     """
 
@@ -82,7 +82,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = self.percentile_cube
         raw_forecast_members = self.realization_cube
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -100,7 +100,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         raw_forecast_members = self.realization_cube
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -119,7 +119,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -146,7 +146,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = self.percentile_cube
         raw_forecast_members = self.realization_cube
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -172,7 +172,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         # members than percentiles.
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -194,7 +194,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -250,7 +250,7 @@ class Test_mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         raw_forecast_members = self.realization_cube
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plugin = Plugin()
-        result = plugin.mismatch_between_length_of_raw_members_and_percentiles(
+        result = plugin._mismatch_between_length_of_raw_members_and_percentiles(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(expected, result.data)
 

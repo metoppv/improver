@@ -32,7 +32,6 @@
 This module defines all the "plugins" specific for ensemble calibration.
 
 """
-import copy
 import numpy as np
 from scipy import stats
 from scipy.optimize import minimize

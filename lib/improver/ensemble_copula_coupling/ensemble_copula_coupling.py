@@ -64,7 +64,8 @@ class RebadgePercentilesAsMembers(object):
         """
         pass
 
-    def process(self, cube):
+    @staticmethod
+    def process(cube):
         """
         Rebadge percentiles as ensemble members. The ensemble member numbering
         will depend upon the number of percentiles in the input cube i.e.
@@ -105,8 +106,9 @@ class ResamplePercentiles(object):
         """
         pass
 
+    @staticmethod
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
-            self, percentiles, forecast_at_percentiles, bounds_pairing):
+            percentiles, forecast_at_percentiles, bounds_pairing):
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
@@ -285,8 +287,9 @@ class GeneratePercentilesFromProbabilities(object):
         """
         pass
 
+    @staticmethod
     def _add_bounds_to_thresholds_and_probabilities(
-            self, threshold_points, probabilities_for_cdf, bounds_pairing):
+            threshold_points, probabilities_for_cdf, bounds_pairing):
         """
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
@@ -466,8 +469,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
         """
         pass
 
+    @staticmethod
     def _mean_and_variance_to_percentiles(
-            self, calibrated_forecast_predictor, calibrated_forecast_variance,
+            calibrated_forecast_predictor, calibrated_forecast_variance,
             percentiles):
         """
         Function returning percentiles based on the supplied
@@ -606,8 +610,9 @@ class EnsembleReordering(object):
         """Initialise the class"""
         pass
 
-    def mismatch_between_length_of_raw_members_and_percentiles(
-            self, post_processed_forecast_percentiles, raw_forecast_members):
+    @staticmethod
+    def _mismatch_between_length_of_raw_members_and_percentiles(
+            post_processed_forecast_percentiles, raw_forecast_members):
         """
         Function to determine whether there is a mismatch between the number
         of percentiles and the number of raw forecast members. If more
@@ -658,8 +663,9 @@ class EnsembleReordering(object):
                 concatenate_cubes(raw_forecast_members_extended))
         return raw_forecast_members
 
+    @staticmethod
     def rank_ecc(
-            self, post_processed_forecast_percentiles, raw_forecast_members,
+            post_processed_forecast_percentiles, raw_forecast_members,
             random_ordering=False):
         """
         Function to apply Ensemble Copula Coupling. This ranks the
@@ -743,7 +749,7 @@ class EnsembleReordering(object):
             coords_to_slice_over=["percentile", "time"])
         raw_forecast_members = concatenate_cubes(raw_forecast)
         raw_forecast_members = (
-            self.mismatch_between_length_of_raw_members_and_percentiles(
+            self._mismatch_between_length_of_raw_members_and_percentiles(
                 post_processed_forecast_percentiles, raw_forecast_members))
         post_processed_forecast_members = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
