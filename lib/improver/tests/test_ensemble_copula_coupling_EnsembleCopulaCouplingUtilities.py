@@ -418,7 +418,6 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         Basic test that the result is a numpy array with the expected contents.
         """
         cube = self.current_temperature_forecast_cube
-        input_array = cube.data
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
@@ -494,7 +493,6 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         """
         cube = self.current_temperature_forecast_cube
         flattened_data = cube.data.flatten()
-        input_array = cube.data
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
@@ -508,7 +506,6 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         Basic test that the result is a numpy array with the expected contents.
         """
         cube = self.current_temperature_forecast_cube
-        input_array = cube.data
         plen = len(cube.coord("percentile").points)
         msg = "coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):

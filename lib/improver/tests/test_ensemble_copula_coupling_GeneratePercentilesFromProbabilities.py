@@ -36,7 +36,6 @@ Unit tests for the
 import numpy as np
 import unittest
 
-from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
