@@ -35,8 +35,6 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.coverage',
-    'sphinx.ext.imgmath',
-    'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
 ]
 
