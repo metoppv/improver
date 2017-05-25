@@ -32,6 +32,7 @@
 """Gridded data extraction for the Improver site specific process chain."""
 
 import numpy as np
+import warnings
 from iris import FUTURE
 from iris.coords import AuxCoord, DimCoord
 from iris import Constraint
@@ -105,7 +106,13 @@ class ExtractData(object):
         function = getattr(self, self.method)
         for a_time in forecast_times:
             time_extract = datetime_constraint(a_time)
-            cube_in, = cubes.extract(time_extract)
+            try:
+                cube_in, = cubes.extract(time_extract)
+            except:
+                msg = ('Forecast time {} not found within data cubes.'.format(
+                        a_time.strftime("%Y-%m-%d:%H:%M")))
+                warnings.warn(msg)
+                continue
 
             if additional_data is not None:
                 for key in additional_data.keys():
