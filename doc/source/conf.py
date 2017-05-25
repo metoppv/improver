@@ -133,7 +133,6 @@ html_theme = 'alabaster'
 # documentation.
 #
 html_theme_options = {
-'font_size': '16px',    # slightly smaller (default 17px)
 'page_width': '1080px'  # so 80 chars of code fit (default 940px)
 }
 
