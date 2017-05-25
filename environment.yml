@@ -2,38 +2,40 @@
 # Use this file to create a conda environment using:
 # conda create -n <name> --file environment.yml
 
-iris
+name: iris
+channels:
+  - conda-forge
+dependencies:
+  - iris=1.11.*
+  - biggus
+  - cartopy
+  - matplotlib<1.9
+  - netcdf4
+  - numpy
+  - pyke
+  - udunits2
+  - cf_units
 
-# Mandatory dependencies
-biggus
-cartopy
-matplotlib<1.9
-netcdf4
-numpy
-pyke
-udunits2
-cf_units
-
-# Iris build dependencies
-setuptools
-
-# Iris testing/documentation dependencies
-mock
-nose
-pep8
-sphinx
-iris-sample-data
-filelock
-imagehash
-requests
-
-# Optional iris dependencies
-nc_time_axis
-iris-grib
-esmpy>=7.0
-gdal
-libmo_unpack
-pandas
-pyugrid
-mo_pack
-python-stratify
+## Iris build dependencies
+#setuptools
+#
+## Iris testing/documentation dependencies
+#mock
+#nose
+#pep8
+#sphinx
+#iris-sample-data
+#filelock
+#imagehash
+#requests
+#
+## Optional iris dependencies
+#nc_time_axis
+#iris-grib
+#esmpy>=7.0
+#gdal
+#libmo_unpack
+#pandas
+#pyugrid
+#mo_pack
+##python-stratify
