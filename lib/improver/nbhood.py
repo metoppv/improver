@@ -100,7 +100,8 @@ class BasicNeighbourhoodProcessing(object):
         return result.format(
             self.radii_in_km, self.unweighted_mode)
 
-    def find_required_lead_times(self, cube):
+    @staticmethod
+    def _find_required_lead_times(cube):
         """
         Determine the lead times within a cube, either by reading the
         forecast_period coordinate, or by calculating the difference between
@@ -134,7 +135,7 @@ class BasicNeighbourhoodProcessing(object):
                 raise CoordinateNotFoundError(msg)
         return required_lead_times
 
-    def get_grid_x_y_kernel_ranges(self, cube, radii_in_km):
+    def _get_grid_x_y_kernel_ranges(self, cube, radii_in_km):
         """
         Return the number of grid cells in the x and y direction
         to be used to create the kernel.
@@ -191,7 +192,7 @@ class BasicNeighbourhoodProcessing(object):
             )
         return grid_cells_x, grid_cells_y
 
-    def apply_kernel_for_smoothing(self, cube, ranges):
+    def _apply_kernel_for_smoothing(self, cube, ranges):
         """
         Return the number of grid cells in the x and y direction
         to be used to create the kernel.
@@ -277,10 +278,10 @@ class BasicNeighbourhoodProcessing(object):
 
         if self.lead_times is None:
             radii_in_km = self.radii_in_km
-            ranges = self.get_grid_x_y_kernel_ranges(cube, radii_in_km)
-            cube = self.apply_kernel_for_smoothing(cube, ranges)
+            ranges = self._get_grid_x_y_kernel_ranges(cube, radii_in_km)
+            cube = self._apply_kernel_for_smoothing(cube, ranges)
         else:
-            required_lead_times = self.find_required_lead_times(cube)
+            required_lead_times = self._find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
             required_radii_in_km = (
                 np.interp(
@@ -290,10 +291,10 @@ class BasicNeighbourhoodProcessing(object):
             # and then apply the kernel to smooth the field.
             for cube_slice, radii_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
-                ranges = self.get_grid_x_y_kernel_ranges(
+                ranges = self._get_grid_x_y_kernel_ranges(
                     cube_slice, radii_in_km)
                 cube_slice = (
-                        self.apply_kernel_for_smoothing(cube_slice, ranges))
+                        self._apply_kernel_for_smoothing(cube_slice, ranges))
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
             cube = concatenate_cubes(cubes)

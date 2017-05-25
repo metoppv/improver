@@ -184,10 +184,10 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin = NBHood(radii_in_km, lead_times)
+            NBHood(radii_in_km, lead_times)
 
 
-class Test_find_required_lead_times(IrisTest):
+class Test__find_required_lead_times(IrisTest):
 
     """Test determining of the lead times present within the input cube."""
 
@@ -197,7 +197,7 @@ class Test_find_required_lead_times(IrisTest):
         """Test that a list is returned."""
         cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.find_required_lead_times(cube)
+        result = plugin._find_required_lead_times(cube)
         self.assertIsInstance(result, np.ndarray)
 
     def test_check_coordinate(self):
@@ -208,7 +208,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.find_required_lead_times(cube)
+        result = plugin._find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_coordinate_without_forecast_period(self):
@@ -223,7 +223,7 @@ class Test_find_required_lead_times(IrisTest):
             cube.coord("time").points -
             cube.coord("forecast_reference_time").points)
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.find_required_lead_times(cube)
+        result = plugin._find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_exception_raised(self):
@@ -236,10 +236,10 @@ class Test_find_required_lead_times(IrisTest):
         plugin = NBHood(self.RADIUS_IN_KM)
         msg = "The forecast period coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            plugin.find_required_lead_times(cube)
+            plugin._find_required_lead_times(cube)
 
 
-class Test_get_grid_x_y_kernel_ranges(IrisTest):
+class Test__get_grid_x_y_kernel_ranges(IrisTest):
 
     """Test conversion of kernel radius in kilometres to grid cells."""
 
@@ -249,7 +249,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         """Test the lat-long radius-to-grid-cell conversion."""
         cube = set_up_cube()
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
+        result = plugin._get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
         self.assertEqual(result, (3, 3))
 
     def test_basic_radius_to_grid_cells_km_grid(self):
@@ -258,7 +258,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         cube.coord("projection_x_coordinate").convert_units("kilometres")
         cube.coord("projection_y_coordinate").convert_units("kilometres")
         plugin = NBHood(self.RADIUS_IN_KM)
-        result = plugin.get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
+        result = plugin._get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
         self.assertEqual(result, (3, 3))
 
     def test_single_point_lat_long(self):
@@ -267,9 +267,8 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         plugin = NBHood(self.RADIUS_IN_KM)
         msg = "Invalid grid: projection_x/y coords required"
         expected = np.zeros_like(cube.data)
-        ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
+            plugin._get_grid_x_y_kernel_ranges(cube, self.RADIUS_IN_KM)
 
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
@@ -278,7 +277,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         plugin = NBHood(radius_in_km)
         msg = "radius of -6.1 km gives a negative cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.get_grid_x_y_kernel_ranges(cube, radius_in_km)
+            plugin._get_grid_x_y_kernel_ranges(cube, radius_in_km)
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
@@ -288,7 +287,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 0.005 km gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             expected = np.zeros_like(cube.data)
-            plugin.get_grid_x_y_kernel_ranges(cube, radius_in_km)
+            plugin._get_grid_x_y_kernel_ranges(cube, radius_in_km)
 
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
@@ -298,10 +297,10 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             expected = np.zeros_like(cube.data)
-            plugin.get_grid_x_y_kernel_ranges(cube, radius_in_km)
+            plugin._get_grid_x_y_kernel_ranges(cube, radius_in_km)
 
 
-class Test_apply_kernel_for_smoothing(IrisTest):
+class Test__apply_kernel_for_smoothing(IrisTest):
 
     """Test neighbourhood processing plugin on the OS National Grid."""
 
@@ -312,7 +311,7 @@ class Test_apply_kernel_for_smoothing(IrisTest):
         cube = set_up_cube()
         plugin = NBHood(self.RADIUS_IN_KM)
         ranges = (3, 3)
-        result = plugin.apply_kernel_for_smoothing(cube, ranges)
+        result = plugin._apply_kernel_for_smoothing(cube, ranges)
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -323,7 +322,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
@@ -343,7 +343,7 @@ class Test_apply_kernel_for_smoothing(IrisTest):
         result = (
             NBHood(
                  radius_in_km,
-                 unweighted_mode=True).apply_kernel_for_smoothing(
+                 unweighted_mode=True)._apply_kernel_for_smoothing(
                      cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -360,7 +360,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[1][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
@@ -370,7 +371,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
         expected = np.zeros_like(cube.data)
         ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges)
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -390,7 +392,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
                 expected[time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -409,7 +412,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
                 expected[time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -419,7 +423,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
         expected[0][7][7] = 0.0
         radius_in_km = 2.1  # Equivalent to a range of 1 grid cell.
         ranges = (1, 1)
-        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube, ranges)
+        result = NBHood(radius_in_km)._apply_kernel_for_smoothing(
+            cube, ranges)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -431,7 +436,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
                 expected[time_index][3 + index][3:12] = slice_
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
-        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube, ranges)
+        result = NBHood(radius_in_km)._apply_kernel_for_smoothing(
+            cube, ranges)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
@@ -449,7 +455,7 @@ class Test_apply_kernel_for_smoothing(IrisTest):
         ])
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
-        result = NBHood(radius_in_km).apply_kernel_for_smoothing(cube, ranges)
+        result = NBHood(radius_in_km)._apply_kernel_for_smoothing(cube, ranges)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -468,7 +474,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][5 + index][4:11] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -480,7 +487,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][5 + index][0:5] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -492,7 +500,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][5 + index][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -517,7 +526,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][5 + index][0:3] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
@@ -529,7 +539,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][index][0:5] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
@@ -543,7 +554,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][index - 1][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -566,7 +578,8 @@ class Test_apply_kernel_for_smoothing(IrisTest):
             expected[0][index][0:3] = slice_
         ranges = (3, 3)
         result = (
-            NBHood(self.RADIUS_IN_KM).apply_kernel_for_smoothing(cube, ranges))
+            NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
+                cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
 
@@ -627,8 +640,7 @@ class Test_process(IrisTest):
                                     standard_name="realization"), 0)
         msg = "Does not operate across realizations"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin = (
-                 NBHood(self.RADIUS_IN_KM).process(cube))
+            NBHood(self.RADIUS_IN_KM).process(cube)
 
     def test_radii_varying_with_lead_time(self):
         """
