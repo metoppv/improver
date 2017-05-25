@@ -44,6 +44,17 @@ import numpy as np
 from improver.weighted_blend import BasicWeightedAverage
 
 
+def example_coord_adjust(pnts):
+    """ Example function for coord_adjust.
+        A Function to apply to the coordinate after
+        collapsing the cube to correct the values.
+
+        Args:
+            pnts : numpy.ndarray
+    """
+    return pnts[len(pnts)-1]
+
+
 class TestBasicWeightedAverage(IrisTest):
 
     """Test the Basic Weighted Average plugin."""
@@ -80,7 +91,7 @@ class TestBasicWeightedAverage(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_fails_coord_not_in_cube(self):
-        """Test it Raises a Value Error if coord not in the cube"""
+        """Test it Raises a Value Error if coord not in the cube."""
         coord = "notset"
         plugin = BasicWeightedAverage(coord)
         msg = ('The coord for this plugin must be ' +
@@ -89,7 +100,7 @@ class TestBasicWeightedAverage(IrisTest):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
-        """Test it Raises a Value Error if not supplied with a cube"""
+        """Test it Raises a Value Error if not supplied with a cube."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         notacube = 0.0
@@ -100,7 +111,7 @@ class TestBasicWeightedAverage(IrisTest):
 
     def test_fails_weights_shape(self):
         """Test it Raises a Value Error if weights shape does not match
-           coord shape"""
+           coord shape."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         weights = [0.1, 0.2, 0.7]
@@ -110,15 +121,15 @@ class TestBasicWeightedAverage(IrisTest):
             plugin.process(self.cube, weights)
 
     def test_coord_adjust_set(self):
-        """Test it works with coord adjust set"""
+        """Test it works with coord adjust set."""
         coord = "time"
-        coord_adjust = lambda pnts: pnts[len(pnts)-1]
+        coord_adjust = example_coord_adjust
         plugin = BasicWeightedAverage(coord, coord_adjust)
         result = plugin.process(self.cube)
         self.assertAlmostEquals(result.coord(coord).points, [402193.5])
 
     def test_scalar_coord(self):
-        """Test it works on scalar coord"""
+        """Test it works on scalar coord."""
         coord = "dummy_scalar_coord"
         plugin = BasicWeightedAverage(coord)
         weights = np.array([1.0])
@@ -130,11 +141,10 @@ class TestBasicWeightedAverage(IrisTest):
             warning_msg = "Could not find collapse dimension"
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
-            print warning_list
             self.assertArrayAlmostEqual(result.data, self.cube.data)
 
     def test_weights_equal_none(self):
-        """Test it works with weights set to None"""
+        """Test it works with weights set to None."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         weights = None
@@ -143,7 +153,7 @@ class TestBasicWeightedAverage(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_weights_equal_list(self):
-        """Test it work with weights set to list [0.2, 0.8]"""
+        """Test it work with weights set to list [0.2, 0.8]."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         weights = [0.2, 0.8]
@@ -152,7 +162,7 @@ class TestBasicWeightedAverage(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_weights_equal_array(self):
-        """Test it works with weights set to array (0.8, 0.2)"""
+        """Test it works with weights set to array (0.8, 0.2)."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         weights = np.array([0.8, 0.2])

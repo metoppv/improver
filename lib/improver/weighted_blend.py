@@ -43,12 +43,12 @@ class BasicWeightedAverage(object):
 
         Args:
             coord : string
-                     The name/s of a coordinate dimension/s in the cube
+                     The name of a coordinate dimension in the cube.
             coord_adjust : Function to apply to the coordinate after
-                           collapsing the cube to correct the values
+                           collapsing the cube to correct the values,
                            for example for time windowing and
                            cycle averaging the follow function would
-                           adjust the time coordinates
+                           adjust the time coordinates.
             e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
         """
         self.coord = coord
@@ -75,12 +75,12 @@ class BasicWeightedAverage(object):
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError('The first argument must be an instance of ' +
                              'iris.cube.Cube but is' +
-                             ' {0:s}'.format(type(cube)))
+                             ' {0:s}.'.format(type(cube)))
         if not cube.coords(self.coord):
             raise ValueError('The coord for this plugin must be ' +
-                             'an existing coordinate in the input cube')
+                             'an existing coordinate in the input cube.')
         # Find the coords dimension.
-        # If coord is a scalar_coord try adding it
+        # If coord is a scalar_coord try adding it.
         collapse_dim = cube.coord_dims(self.coord)
         if not collapse_dim:
             msg = ('Could not find collapse dimension, ' +
@@ -88,7 +88,7 @@ class BasicWeightedAverage(object):
             warnings.warn(msg)
             cube = iris.util.new_axis(cube, self.coord)
             collapse_dim = cube.coord_dims(self.coord)
-        # supply weights as an array of weights whose shape matches the cube
+        # Supply weights as an array of weights whose shape matches the cube.
         weights_array = None
         if weights is not None:
             if np.array(weights).shape != cube.coord(self.coord).points.shape:
@@ -97,10 +97,10 @@ class BasicWeightedAverage(object):
             weights_array = iris.util.broadcast_to_shape(np.array(weights),
                                                          cube.shape,
                                                          collapse_dim)
-        # Calculate the weighted average
+        # Calculate the weighted average.
         result = cube.collapsed(self.coord,
                                 iris.analysis.MEAN, weights=weights_array)
-        # if set adjust values of collapsed coordinates
+        # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
                 if cube.coord_dims(crd.name()) == collapse_dim:
