@@ -8,14 +8,14 @@ channels:
   - conda-forge
 dependencies:
   - sphinx
-  - iris:
-    - biggus
-    - cartopy
-    - matplotlib<1.9
-    - netcdf4
-    - numpy
-    - pyke
-    - udunits2
-    - cf_units
-    - setuptools
-    - mo_pack
+  - iris
+  - biggus
+  - cartopy
+  - matplotlib<1.9
+  - netcdf4
+  - numpy
+  - pyke
+  - udunits2
+  - cf_units
+  - setuptools
+  - mo_pack
