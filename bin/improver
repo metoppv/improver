@@ -1,0 +1,77 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+#------------------------------------------------------------------------------
+# NAME
+#    improver - IMPROVER post-processing and verification operations
+#
+# SYNOPSIS
+#    improver OPERATION [OPTIONS] [ARGS...] # Invoke an IMPROVER operation
+#    improver help                     # Generic help across operations
+#    improver help OPERATION           # Specific help for a particular operation
+#    improver version                  # Print out version information
+#
+# DESCRIPTION
+#    Launch particular operations for post-processing or verification of
+#    meteorological data. This script is a central launcher for all
+#    IMPROVER subcommands (improver-xxxx) and central help.
+#------------------------------------------------------------------------------
+
+set -eu
+
+export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
+
+# List all improver subcommands or operations.
+get_operations() {
+    cd "$IMPROVER_DIR/bin/"
+    ls improver-*[^~] | sort | sed "s/^improver-//"
+}
+
+# Print generic or operation specific help.
+print_help() {
+    OPER=${1:-}
+    if [[ -n "$OPER" ]] && [[ $OPER != all ]]; then
+        # Operation-specific help.
+        "$IMPROVER_DIR/bin/improver" "$OPER" --help
+    else
+        # General help.
+        sed -n '/^# NAME/,/^#---/{/^#\-/d; s/^#//; s/^ //; p}' "$0"
+        echo
+        echo "OPERATIONS"
+        get_operations | sed "s/^/   improver /"
+    fi
+}
+
+# Print the version.
+print_version() {
+    cat "$IMPROVER_DIR/etc/VERSION"
+}
+
+
+HELP_TARGET=all
+if (($# == 0)); then
+    print_help
+    exit 0
+fi
+if [[ $1 == help ]] || [[ $1 == --help ]]; then
+    print_help ${2:-}
+    exit 0
+fi
+if [[ $1 == version ]] || [[ $1 == --version ]]; then
+    print_version
+    exit 0
+fi
+
+OPER=$1
+shift
+
+# Apply site-specific setup if necessary.
+if [[ -f "$IMPROVER_DIR/etc/site-init" ]]; then
+    . "$IMPROVER_DIR/etc/site-init"
+fi
+
+# Put our library and scripts in the paths.
+export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
+export PATH="$IMPROVER_DIR/bin/:$PATH"
+
+exec improver-$OPER "$@"

@@ -1,2 +1,6 @@
+[MASTER]
+extension-pkg-whitelist=numpy,scipy
+
 [TYPECHECK]
-ignored-classes=numpy,tuple,WeightedAggregator
+ignored-classes=tuple,WeightedAggregator,MaskedArray
+ignored-modules=numpy,scipy,scipy.stats
