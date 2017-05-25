@@ -4,7 +4,6 @@
 
 name: improver
 channels:
-  - scitools
   - conda-forge
 dependencies:
   - sphinx
