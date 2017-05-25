@@ -352,3 +352,6 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
+
+# Get napoleon to document constructor methods.
+napoleon_include_init_with_doc = True
