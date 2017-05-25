@@ -842,10 +842,10 @@ class RoughnessCorrection(object):
 
         """
         coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]
-        positions = [np.nan, np.nan, np.nan, np.nan]
+        positions = len(coord_names) * [np.nan]
         for coord_index, coord_name in enumerate(coord_names):
             if mcube.coords(coord_name, dim_coords=True):
-                positions[coord_index] = mcube.coord_dims(coord_name)[0]
+                positions[coord_index], = mcube.coord_dims(coord_name)
         return positions
 
     def find_heightgrid(self, wind):
