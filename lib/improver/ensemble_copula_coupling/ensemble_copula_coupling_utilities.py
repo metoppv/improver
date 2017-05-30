@@ -49,6 +49,8 @@ def concatenate_2d_array_with_2d_array_endpoints(
         array_2d, low_endpoint, high_endpoint):
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.
+    The concatenation to add the lower and upper endpoints to the 2d array
+    are performed along the second (index 1) dimension.
 
     Parameters
     ----------
@@ -75,7 +77,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
     return array_2d
 
 
-def create_percentiles(no_of_percentiles, sampling="quantile"):
+def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     """
     Function to create percentiles.
 
@@ -107,11 +109,15 @@ def create_percentiles(no_of_percentiles, sampling="quantile"):
 
     """
     if sampling in ["quantile"]:
+        # Generate percentiles from 1/N+1 to N/N+1.
         percentiles = np.linspace(
             1/float(1+no_of_percentiles),
             no_of_percentiles/float(1+no_of_percentiles),
             no_of_percentiles).tolist()
     elif sampling in ["random"]:
+        # Generate percentiles from 1/N+1 to N/N+1.
+        # Random sampling doesn't currently sample the ends of the
+        # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
         percentiles = []
         for _ in range(no_of_percentiles):
             percentiles.append(
@@ -130,7 +136,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
-    the input cube. The shape of the cube_data should be the shape of the
+    the template cube. The shape of the cube_data should be the shape of the
     desired output cube.
 
     Parameters
@@ -140,6 +146,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
         as the first dimension of cube_data.
     template_cube : Iris cube
         Cube to copy all coordinates from.
+        The template_cube does not contain any existing percentile coordinate.
         Metadata is also copied from this cube.
     cube_data : Numpy array
         Data to insert into the template cube.
@@ -183,22 +190,21 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
     return result
 
 
-def get_bounds_of_distribution(cube_name, cube_units):
+def get_bounds_of_distribution(bounds_pairing_key, desired_units):
     """
     Gets the bounds of the distribution and converts the units of the
-    bounds_pairing to the units of the forecast.
+    bounds_pairing to the desired_units.
 
     This method gets the bounds values and units from the imported
     dictionaries: bounds_for_ecdf and units_of_bounds_for_ecdf.
-    The units of the bounds are converted to be the units of the input
-    cube.
+    The units of the bounds are converted to be the desired units.
 
     Parameters
     ----------
-    cube_name : String
-        Name of cube, which is used as the key for the bounds_for_ecdf and
-        units_of_bounds_for_ecdf dictionaries.
-    cube_units : cf_units.Unit
+    bounds_pairing_key : String
+        Name of key to be used for the bounds_for_ecdf dictionary, in order
+        to get the desired bounds_pairing.
+    desired_units : cf_units.Unit
         Units to which the bounds_pairing will be converted.
 
     Returns
@@ -206,22 +212,22 @@ def get_bounds_of_distribution(cube_name, cube_units):
     bounds_pairing : Tuple
         Lower and upper bound to be used as the ends of the
         empirical cumulative distribution function, converted to have
-        the same units as the input cube.
+        the desired units.
 
     """
     # Extract bounds from dictionary of constants.
     try:
-        bounds_pairing = bounds_for_ecdf[cube_name].value
-        bounds_pairing_units = bounds_for_ecdf[cube_name].units
+        bounds_pairing = bounds_for_ecdf[bounds_pairing_key].value
+        bounds_pairing_units = bounds_for_ecdf[bounds_pairing_key].units
     except KeyError as err:
-        msg = ("The forecast_cube name: {} is not recognised"
+        msg = ("The bounds_pairing_key: {} is not recognised "
                "within bounds_for_ecdf {}. \n"
                "Error: {}".format(
-                   cube_name, bounds_for_ecdf, err))
+                   bounds_pairing_key, bounds_for_ecdf, err))
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(
-        np.array(bounds_pairing), cube_units)
+        np.array(bounds_pairing), desired_units)
     return bounds_pairing
 
 
@@ -280,9 +286,18 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
     shape_to_reshape_to = list(original_cube.shape)
     if original_cube.coords(
             input_probabilistic_dimension_name, dim_coords=True):
-        pat_coord_position = (
-            original_cube.coord_dims(input_probabilistic_dimension_name))
-        shape_to_reshape_to.pop(pat_coord_position[0])
+        if original_cube.coord_dims(
+               input_probabilistic_dimension_name)[0] == 0:
+            pat_coord_position = (
+                original_cube.coord_dims(input_probabilistic_dimension_name))
+            shape_to_reshape_to.pop(pat_coord_position[0])
+        else:
+            msg = ("The {} coordinate is a dimension coordinate but is not "
+                   "the first dimension coordinate in the cube: {}.\n"
+                   "The ensure_dimension_is_the_first_dimension function "
+                   "may be useful. ".format(
+                       input_probabilistic_dimension_name, original_cube))
+            raise ValueError(msg)
     elif original_cube.coords(
             input_probabilistic_dimension_name, dim_coords=False):
         pass
@@ -291,5 +306,5 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
                input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
     shape_to_reshape_to = (
-        [output_probabilistic_dimension_length] + shape_to_reshape_to)
+       [output_probabilistic_dimension_length] + shape_to_reshape_to)
     return array_to_reshape.reshape(shape_to_reshape_to)

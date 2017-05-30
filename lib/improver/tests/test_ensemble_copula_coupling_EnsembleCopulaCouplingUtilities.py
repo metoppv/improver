@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import (create_percentiles, create_cube_with_percentiles,
+    import (choose_set_of_percentiles, create_cube_with_percentiles,
             insert_lower_and_upper_endpoint_to_1d_array,
             concatenate_2d_array_with_2d_array_endpoints,
             get_bounds_of_distribution,
@@ -263,9 +263,9 @@ class Test_create_cube_with_percentiles(IrisTest):
                 raise CoordinateNotFoundError(msg)
 
 
-class Test_create_percentiles(IrisTest):
+class Test_choose_set_of_percentiles(IrisTest):
 
-    """Test the create_percentiles plugin."""
+    """Test the choose_set_of_percentiles plugin."""
 
     def test_basic(self):
         """
@@ -273,7 +273,7 @@ class Test_create_percentiles(IrisTest):
         percentiles.
         """
         no_of_percentiles = 3
-        result = create_percentiles(no_of_percentiles)
+        result = choose_set_of_percentiles(no_of_percentiles)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), no_of_percentiles)
 
@@ -284,7 +284,7 @@ class Test_create_percentiles(IrisTest):
         """
         data = np.array([0.25, 0.5, 0.75])
         no_of_percentiles = 3
-        result = create_percentiles(no_of_percentiles)
+        result = choose_set_of_percentiles(no_of_percentiles)
         self.assertArrayAlmostEqual(result, data)
 
     def test_random(self):
@@ -293,7 +293,8 @@ class Test_create_percentiles(IrisTest):
         percentiles, if the random sampling option is selected.
         """
         no_of_percentiles = 3
-        result = create_percentiles(no_of_percentiles, sampling="random")
+        result = choose_set_of_percentiles(
+            no_of_percentiles, sampling="random")
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), no_of_percentiles)
 
@@ -305,7 +306,7 @@ class Test_create_percentiles(IrisTest):
         no_of_percentiles = 3
         msg = "The unknown sampling option is not yet implemented"
         with self.assertRaisesRegexp(ValueError, msg):
-            create_percentiles(no_of_percentiles, sampling="unknown")
+            choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
 
 class Test_get_bounds_of_distribution(IrisTest):
@@ -354,7 +355,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube_name = "nonsense"
         cube_units = Unit("degreesC")
-        msg = "The forecast_cube name"
+        msg = "The bounds_pairing_key"
         with self.assertRaisesRegexp(KeyError, msg):
             get_bounds_of_distribution(cube_name, cube_units)
 
@@ -428,6 +429,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         """
         Test that the result have the expected size for the
         probabilistic dimension and is generally of the expected size.
+        The array contents is also checked.
         """
         cube = self.current_temperature_forecast_cube
         plen = len(cube.coord("percentile").points)
@@ -438,10 +440,25 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         self.assertEqual(reshaped_array.shape, cube.data.shape)
         self.assertArrayAlmostEqual(reshaped_array, cube.data)
 
+    def test_if_percentile_is_not_first_dimension_coordinate(self):
+        """
+        Test that the result have the expected size for the
+        probabilistic dimension and is generally of the expected size.
+        The array contents is also checked.
+        """
+        cube = self.current_temperature_forecast_cube
+        cube.transpose([3, 2, 1, 0])
+        plen = len(cube.coord("percentile").points)
+        msg = "coordinate is a dimension coordinate but is not"
+        with self.assertRaisesRegexp(ValueError, msg):
+            reshape_array_to_have_probabilistic_dimension_at_the_front(
+                cube.data, cube, "percentile", plen)
+
     def test_percentile_is_not_dimension_coordinate(self):
         """
         Test the array size, if the percentile coordinate is not a dimension
         coordinate on the cube.
+        The array contents is also checked.
         """
         expected = np.array([[[[226.15, 237.4, 248.65],
                                [259.9, 271.15, 282.4],
@@ -462,6 +479,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         """
         Test that the data has been reshaped correctly when multiple timesteps
         are in the cube.
+        The array contents is also checked.
         """
         expected = np.array([[[[4., 4.71428571],
                                [5.42857143, 6.14285714]],
@@ -490,6 +508,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         """
         Test the array size, if the percentile coordinate is not a dimension
         coordinate on the cube.
+        The array contents is also checked.
         """
         cube = self.current_temperature_forecast_cube
         flattened_data = cube.data.flatten()
@@ -504,6 +523,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
     def test_missing_coordinate(self):
         """
         Basic test that the result is a numpy array with the expected contents.
+        The array contents is also checked.
         """
         cube = self.current_temperature_forecast_cube
         plen = len(cube.coord("percentile").points)

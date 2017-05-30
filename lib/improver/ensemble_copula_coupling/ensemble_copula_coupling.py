@@ -40,10 +40,11 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    concatenate_cubes, convert_cube_data_to_2d, rename_coordinate)
+    concatenate_cubes, convert_cube_data_to_2d,
+    ensure_dimension_is_the_first_dimension, rename_coordinate)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
-            create_cube_with_percentiles, create_percentiles,
+            create_cube_with_percentiles, choose_set_of_percentiles,
             get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             reshape_array_to_have_probabilistic_dimension_at_the_front)
@@ -177,6 +178,11 @@ class ResamplePercentiles(object):
         original_percentiles = (
             forecast_at_percentiles.coord("percentile").points)
 
+        # Ensure that the percentile dimension is first, so that the
+        # conversion to a 2d array produces data in the desired order.
+        forecast_at_percentiles = (
+            ensure_dimension_is_the_first_dimension(
+                forecast_at_percentiles, "percentile"))
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
             forecast_at_percentiles, coord="percentile")
 
@@ -249,7 +255,7 @@ class ResamplePercentiles(object):
             no_of_percentiles = (
                 len(forecast_at_percentiles.coord("percentile").points))
 
-        percentiles = create_percentiles(
+        percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
 
         cube_units = forecast_at_percentiles.units
@@ -357,6 +363,11 @@ class GeneratePercentilesFromProbabilities(object):
         threshold_points = (
             forecast_probabilities.coord("probability_above_threshold").points)
 
+        # Ensure that the percentile dimension is first, so that the
+        # conversion to a 2d array produces data in the desired order.
+        forecast_probabilities = (
+            ensure_dimension_is_the_first_dimension(
+                forecast_probabilities, "probability_above_threshold"))
         prob_slices = convert_cube_data_to_2d(
             forecast_probabilities, coord="probability_above_threshold")
 
@@ -440,7 +451,7 @@ class GeneratePercentilesFromProbabilities(object):
                 len(forecast_probabilities.coord(
                     "probability_above_threshold").points))
 
-        percentiles = create_percentiles(
+        percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
 
         cube_units = (
@@ -499,6 +510,13 @@ class GeneratePercentilesFromMeanAndVariance(object):
         if not calibrated_forecast_variance.coord_dims("time"):
             calibrated_forecast_variance = iris.util.new_axis(
                 calibrated_forecast_variance, "time")
+
+        calibrated_forecast_predictor = (
+            ensure_dimension_is_the_first_dimension(
+                calibrated_forecast_predictor, "realization"))
+        calibrated_forecast_variance = (
+            ensure_dimension_is_the_first_dimension(
+                calibrated_forecast_variance, "realization"))
 
         calibrated_forecast_predictor_data = (
             calibrated_forecast_predictor.data.flatten())
@@ -581,7 +599,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
         no_of_percentiles = len(
             raw_forecast_members.coord("realization").points)
 
-        percentiles = create_percentiles(no_of_percentiles)
+        percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,

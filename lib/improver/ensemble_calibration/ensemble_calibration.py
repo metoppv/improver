@@ -42,8 +42,9 @@ import cf_units as unit
 import iris
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, concatenate_cubes, rename_coordinate,
-    check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, concatenate_cubes,
+    ensure_dimension_is_the_first_dimension,
+    rename_coordinate, check_predictor_of_mean_flag)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -162,6 +163,9 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             forecast_var_data = forecast_var.data.flatten()
         elif predictor_of_mean_flag.lower() in ["members"]:
             truth_data = truth.data.flatten()
+            forecast_predictor = (
+                ensure_dimension_is_the_first_dimension(
+                    forecast_predictor, "realization"))
             forecast_predictor_data = convert_cube_data_to_2d(
                 forecast_predictor)
             forecast_var_data = forecast_var.data.flatten()
@@ -443,6 +447,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             elif predictor_of_mean_flag.lower() in ["members"]:
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
+                    forecast_predictor = (
+                        ensure_dimension_is_the_first_dimension(
+                            forecast_predictor, "realization"))
                     forecast_data = np.array(
                         convert_cube_data_to_2d(
                             forecast_predictor, transpose=False))
@@ -945,6 +952,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     beta = np.concatenate(
                         [[optimised_coeffs_at_date["a"]],
                          optimised_coeffs_at_date["beta"]**2])
+                    forecast_predictor = (
+                        ensure_dimension_is_the_first_dimension(
+                            forecast_predictor, "realization"))
                     forecast_predictor_flat = (
                         convert_cube_data_to_2d(
                             forecast_predictor_at_date))
