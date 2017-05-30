@@ -44,11 +44,15 @@ def normalise_weights(weights):
         Returns:
             normalised_weights : array of weights where
                                  sum = 1.0.
-
     """
+    if weights.min() < 0.0:
+        msg = 'Weights must be positive, at least one value < 0.0'
+        raise ValueError(msg)
+
     sumval = weights.sum()
     if sumval == 0:
-        raise ValueError('Sum of weights must be > 0.0')
+        msg = 'Sum of weights must be > 0.0'
+        raise ValueError(msg)
 
     normalised_weights = weights / sumval
     return normalised_weights
@@ -73,10 +77,15 @@ def nonlinear_weights(num_of_weights, cval):
 
     """
     if not isinstance(num_of_weights, int) or num_of_weights <= 0:
-        raise ValueError('Number of weights must be integer > 0')
+        msg = ('Number of weights must be integer > 0, '
+               'num = {0:s}'.format(str(num_of_weights)))
+        raise ValueError(msg)
     if cval <= 0.0 or cval > 1.0:
-        raise ValueError('cval must be greater than 0.0 and less ' +
-                         'than or equal to 1.0')
+        msg = ('cval must be greater than 0.0 and less '
+               'than or equal to 1.0 '
+               'cval = {0:s}'.format(str(cval)))
+        raise ValueError(msg)
+
     weights_list = []
     for tval_minus1 in range(0, num_of_weights):
         weights_list.append(cval**(tval_minus1))
@@ -91,8 +100,9 @@ def linear_weights(num_of_weights, y0val=1.0, slope=0.0,
     """Create linear weights
 
         Args:
-            num_of_weights : Positive Integer - Number of weights to create.
-            y0val = float: relative value of starting point. Default = 1.0
+            num_of_weights : Positive Integer: Number of weights to create.
+            y0val = positive float:
+                    relative value of starting point. Default = 1.0
 
             AND EITHER:
             slope = float: slope of the line. Default = 0.0 (equal weights)
@@ -105,13 +115,25 @@ def linear_weights(num_of_weights, y0val=1.0, slope=0.0,
 
     """
     if not isinstance(num_of_weights, int) or num_of_weights <= 0:
-        raise ValueError('Number of weights must be interger > 0')
+        msg = ('Number of weights must be integer > 0 '
+               'num = {0:s}'.format(str(num_of_weights)))
+        raise ValueError(msg)
+    # Special case num_of_weighs == 1 i.e. Scalar coordinate.
+    if num_of_weights == 1:
+        weights = np.array([1.0])
+        return weights
+    if not isinstance(y0val, float) or y0val <= 0.0:
+        msg = ('y0val must be a float > 0.0, '
+               'y0val = {0:s}'.format(str(y0val)))
+        raise ValueError(msg)
     if ynval is not None:
         if slope != 0.0:
-            raise ValueError('Relative end weight or slope must be set' +
-                             ' but not both.')
+            msg = ('Relative end point weight or slope must be set'
+                   ' but not both.')
+            raise ValueError(msg)
         else:
             slope = (ynval - y0val)/(num_of_weights - 1.0)
+
     weights_list = []
     for tval in range(0, num_of_weights):
         weights_list.append(slope*tval + y0val)
@@ -126,7 +148,7 @@ class ChooseDefaultWeightsLinear(object):
 
     def __init__(self, y0val=None, slope=0.0, ynval=None):
         """Set up for calculating default weights using linear function
-            y0val = None or flaot: relative value of starting point.
+            y0val = None or positive float: relative value of starting point.
             slope = float: slope of the line. Default = 0.0 (equal weights)
             ynval = float or None: relative weights of last point.
                              Default value is None
@@ -136,6 +158,8 @@ class ChooseDefaultWeightsLinear(object):
             If y0val value is not set or set to None
             then the code assumes that the ultimate default values of
             y0val = 20.0 and ynval = 2.0 are required
+
+            equal weights when slope = 0.0 or y0val = ynval
         """
         self.slope = slope
         self.ynval = ynval
@@ -157,12 +181,16 @@ class ChooseDefaultWeightsLinear(object):
                 weights : array of weights, sum of all weights = 1.0
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('The first argument must be an instance of ' +
-                             'iris.cube.Cube but is' +
-                             ' {0:s}'.format(type(cube)))
-        if not cube.coord(coord):
-            raise ValueError('The coord for this plugin must be ' +
-                             'an existing coordinate in the input cube')
+            msg = ('The first argument must be an instance of '
+                   'iris.cube.Cube but is'
+                   ' {0:s}'.format(type(cube)))
+            raise ValueError(msg)
+
+        if not cube.coords(coord):
+            msg = ('The coord for this plugin must be '
+                   'an existing coordinate in the input cube')
+            raise ValueError(msg)
+
         num_of_weights = len(cube.coord(coord).points)
 
         weights = linear_weights(num_of_weights, y0val=self.y0val,
@@ -187,6 +215,7 @@ class ChooseDefaultWeightsNonLinear(object):
         """Set up for calculating default weights using lnon-inear function
             cval = float: value greater than 0, less than equal 1.0
                    default = 0.85
+                   equal weights when cval = 1.0
         """
         self.cval = cval
 
@@ -202,12 +231,14 @@ class ChooseDefaultWeightsNonLinear(object):
                 weights : array of weights, sum of all weights = 1.0
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('The first argument must be an instance of ' +
-                             'iris.cube.Cube but is' +
-                             ' {0:s}'.format(type(cube)))
-        if not cube.coord(coord):
-            raise ValueError('The coord for this plugin must be ' +
-                             'an existing coordinate in the input cube')
+            msg = ('The first argument must be an instance of '
+                   'iris.cube.Cube but is'
+                   ' {0:s}'.format(type(cube)))
+            raise ValueError(msg)
+        if not cube.coords(coord):
+            msg = ('The coord for this plugin must be '
+                   'an existing coordinate in the input cube')
+            raise ValueError(msg)
         num_of_weights = len(cube.coord(coord).points)
 
         weights = nonlinear_weights(num_of_weights, cval=self.cval)
