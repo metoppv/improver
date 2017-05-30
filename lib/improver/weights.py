@@ -175,9 +175,9 @@ class ChooseDefaultWeightsLinear(object):
         """Represent the configured plugin instance as a string."""
         desc = '<ChooseBasicLinearWeights y0val={0:4.1f}'.format(self.y0val)
         if self.ynval is None:
-            desc += ', slope={0,6.2f}>'.format(self.slope)
+            desc += ', slope={0:6.2f}>'.format(self.slope)
         else:
-            desc += ', ynval={0,4.1f}>'.format(self.slope)
+            desc += ', ynval={0:4.1f}>'.format(self.slope)
         return desc
 
 
