@@ -42,7 +42,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf, units_of_bounds_for_ecdf
+    import bounds_for_ecdf
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
@@ -211,16 +211,13 @@ def get_bounds_of_distribution(cube_name, cube_units):
     """
     # Extract bounds from dictionary of constants.
     try:
-        bounds_pairing = bounds_for_ecdf[cube_name]
-        bounds_pairing_units = (
-            units_of_bounds_for_ecdf[cube_name])
+        bounds_pairing = bounds_for_ecdf[cube_name].value
+        bounds_pairing_units = bounds_for_ecdf[cube_name].units
     except KeyError as err:
         msg = ("The forecast_cube name: {} is not recognised"
-               "within bounds_for_ecdf {} or "
-               "units_of_bounds_for_ecdf: {}. \n"
+               "within bounds_for_ecdf {}. \n"
                "Error: {}".format(
-                   cube_name, bounds_for_ecdf,
-                   units_of_bounds_for_ecdf, err))
+                   cube_name, bounds_for_ecdf, err))
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(

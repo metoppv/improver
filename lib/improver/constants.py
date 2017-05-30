@@ -32,3 +32,6 @@
 
 # Real Missing Data Indicator
 RMDI = -32767.0
+
+# 0 Kelvin in degrees C
+ABSOLUTE_ZERO = 273.15
