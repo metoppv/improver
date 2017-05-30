@@ -91,7 +91,7 @@ class TestBasicWeightedAverage(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_fails_coord_not_in_cube(self):
-        """Test it Raises a Value Error if coord not in the cube."""
+        """Test it raises a Value Error if coord not in the cube."""
         coord = "notset"
         plugin = BasicWeightedAverage(coord)
         msg = ('The coord for this plugin must be ' +
@@ -100,7 +100,7 @@ class TestBasicWeightedAverage(IrisTest):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
-        """Test it Raises a Value Error if not supplied with a cube."""
+        """Test it raises a Value Error if not supplied with a cube."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
         notacube = 0.0
@@ -110,7 +110,7 @@ class TestBasicWeightedAverage(IrisTest):
             plugin.process(notacube)
 
     def test_fails_weights_shape(self):
-        """Test it Raises a Value Error if weights shape does not match
+        """Test it raises a Value Error if weights shape does not match
            coord shape."""
         coord = "time"
         plugin = BasicWeightedAverage(coord)
@@ -129,7 +129,11 @@ class TestBasicWeightedAverage(IrisTest):
         self.assertAlmostEquals(result.coord(coord).points, [402193.5])
 
     def test_scalar_coord(self):
-        """Test it works on scalar coord."""
+        """Test it works on scalar coordinate
+           and check that a warning has been raised
+           if the dimension that you want to blend on
+           is a scalar coordinate.
+        """
         coord = "dummy_scalar_coord"
         plugin = BasicWeightedAverage(coord)
         weights = np.array([1.0])

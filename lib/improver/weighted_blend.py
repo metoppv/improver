@@ -60,7 +60,7 @@ class BasicWeightedAverage(object):
             '<BasicWeightedAverage: coord = {0:s}>').format(self.coord)
 
     def process(self, cube, weights=None):
-        """Calculated weighted mean across the chosen coord
+        """Calculate weighted mean across the chosen coord
 
         Args:
             cube : iris.cube.Cube
@@ -70,20 +70,23 @@ class BasicWeightedAverage(object):
 
         Returns:
             result : iris.cube.Cube
+                     containing the weighted mean across the chosen coord
 
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('The first argument must be an instance of ' +
-                             'iris.cube.Cube but is' +
-                             ' {0:s}.'.format(type(cube)))
+            msg = ('The first argument must be an instance of '
+                   'iris.cube.Cube but is'
+                   ' {0:s}.'.format(type(cube)))
+            raise ValueError(msg)
         if not cube.coords(self.coord):
-            raise ValueError('The coord for this plugin must be ' +
-                             'an existing coordinate in the input cube.')
+            msg = ('The coord for this plugin must be '
+                   'an existing coordinate in the input cube.')
+            raise ValueError(msg)
         # Find the coords dimension.
         # If coord is a scalar_coord try adding it.
         collapse_dim = cube.coord_dims(self.coord)
         if not collapse_dim:
-            msg = ('Could not find collapse dimension, ' +
+            msg = ('Could not find collapse dimension, '
                    'will try adding it')
             warnings.warn(msg)
             cube = iris.util.new_axis(cube, self.coord)
@@ -92,8 +95,13 @@ class BasicWeightedAverage(object):
         weights_array = None
         if weights is not None:
             if np.array(weights).shape != cube.coord(self.coord).points.shape:
-                raise ValueError('The weights array must match the shape ' +
-                                 'of the coordinate in the input cube')
+                msg = ('The weights array must match the shape '
+                       'of the coordinate in the input cube; '
+                       'weight shape is '
+                       '{0:s}'.format(np.array(weights).shape) +
+                       ', cube shape is '
+                       '{0:s}'.format(cube.coord(self.coord).points.shape))
+                raise ValueError(msg)
             weights_array = iris.util.broadcast_to_shape(np.array(weights),
                                                          cube.shape,
                                                          collapse_dim)
