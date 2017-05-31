@@ -42,6 +42,11 @@ bounds = namedtuple("bounds", "value units")
 # as a first approximation of likely climatological lower and upper bounds.
 # The units for the end points of the distribution are specified for each
 # phenomenon. SI units are used exclusively.
+# Scientific Reference:
+# Flowerdew, J., 2014.
+# Calibrated ensemble reliability whilst preserving spatial structure.
+# Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
+
 bounds_for_ecdf = {
     "air_temperature": bounds((-40+ABSOLUTE_ZERO, 50+ABSOLUTE_ZERO), "Kelvin"),
     "wind_speed": bounds((0, 50), "m s^-1"),

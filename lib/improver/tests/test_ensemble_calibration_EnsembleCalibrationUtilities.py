@@ -44,7 +44,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, ensure_dimension_is_the_first_dimension,
+    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension,
     concatenate_cubes, _associate_any_coordinate_with_master_coordinate,
     _slice_over_coordinate, _strip_var_names, rename_coordinate, _renamer,
     check_predictor_of_mean_flag)
@@ -197,10 +197,10 @@ class Test_convert_cube_data_to_2d(IrisTest):
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_ensure_dimension_is_the_first_dimension(IrisTest):
+class Test_ensure_dimension_is_the_zeroth_dimension(IrisTest):
 
     """
-    Test the ensure_dimension_is_the_first_dimension
+    Test the ensure_dimension_is_the_zeroth_dimension
     utility.
     """
 
@@ -211,7 +211,7 @@ class Test_ensure_dimension_is_the_first_dimension(IrisTest):
     def test_basic(self):
         """Test that the function returns an iris.cube.Cube."""
         result = (
-            ensure_dimension_is_the_first_dimension(self.cube, "realization"))
+            ensure_dimension_is_the_zeroth_dimension(self.cube, "realization"))
         self.assertIsInstance(result, Cube)
 
     def test_if_probabilistic_dimension_is_first(self):
@@ -220,7 +220,7 @@ class Test_ensure_dimension_is_the_first_dimension(IrisTest):
         the probabilistic dimension is the first dimension coordinate.
         """
         result = (
-            ensure_dimension_is_the_first_dimension(self.cube, "realization"))
+            ensure_dimension_is_the_zeroth_dimension(self.cube, "realization"))
         self.assertArrayAlmostEqual(result.data, self.cube.data)
 
     def test_if_probabilistic_dimension_is_not_first(self):
@@ -235,7 +235,7 @@ class Test_ensure_dimension_is_the_first_dimension(IrisTest):
         cube = self.cube.copy()
         cube.transpose([3, 2, 1, 0])
         result = (
-            ensure_dimension_is_the_first_dimension(cube, "realization"))
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization"))
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_if_probabilistic_dimension_is_scalar(self):
@@ -245,7 +245,7 @@ class Test_ensure_dimension_is_the_first_dimension(IrisTest):
         """
         cube = self.cube[0, :, :, :]
         result = (
-            ensure_dimension_is_the_first_dimension(cube, "realization"))
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization"))
         self.assertArrayAlmostEqual(result.data, [cube.data])
 
     def test_if_probabilistic_dimension_not_available(self):
@@ -257,7 +257,7 @@ class Test_ensure_dimension_is_the_first_dimension(IrisTest):
         cube.remove_coord("realization")
         msg = "not a dimension coordinate"
         with self.assertRaisesRegexp(ValueError, msg):
-            ensure_dimension_is_the_first_dimension(cube, "realization")
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization")
 
 
 class Test_concatenate_cubes(IrisTest):

@@ -52,7 +52,10 @@ def convert_cube_data_to_2d(
         The data will be flattened along this coordinate.
     transpose : Logical
         If True, the resulting flattened data is transposed.
+        This will transpose a 2d array of the format [:, coord]
+        to [coord, :].
         If False, the resulting flattened data is not transposed.
+        This will result in a 2d array of format [:, coord].
 
     Returns
     -------
@@ -68,7 +71,7 @@ def convert_cube_data_to_2d(
     return np.array(forecast_data)
 
 
-def ensure_dimension_is_the_first_dimension(cube, coord):
+def ensure_dimension_is_the_zeroth_dimension(cube, coord):
     """
     Function to ensure that the requested coordinate within the cube is
     the first dimension within the cube.

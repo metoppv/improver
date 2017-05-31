@@ -287,7 +287,7 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
     if original_cube.coords(
             input_probabilistic_dimension_name, dim_coords=True):
         if original_cube.coord_dims(
-               input_probabilistic_dimension_name)[0] == 0:
+                input_probabilistic_dimension_name)[0] == 0:
             pat_coord_position = (
                 original_cube.coord_dims(input_probabilistic_dimension_name))
             shape_to_reshape_to.pop(pat_coord_position[0])
@@ -306,5 +306,5 @@ def reshape_array_to_have_probabilistic_dimension_at_the_front(
                input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
     shape_to_reshape_to = (
-       [output_probabilistic_dimension_length] + shape_to_reshape_to)
+        [output_probabilistic_dimension_length] + shape_to_reshape_to)
     return array_to_reshape.reshape(shape_to_reshape_to)

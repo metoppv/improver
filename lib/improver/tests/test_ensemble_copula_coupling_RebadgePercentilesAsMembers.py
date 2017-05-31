@@ -63,15 +63,36 @@ class Test_process(IrisTest):
         self.current_temperature_cube = cube
 
     def test_basic(self):
-        """"""
+        """
+        Test that a cube is produced is produced and the realization
+        coordinate is a dimension coordinate, after the percentile coordinate
+        is rebadged.
+        """
         cube = self.current_temperature_cube
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("realization"), DimCoord)
 
+    def test_specify_member_numbers(self):
+        """
+        Use the ensemble_member_numbers optional argument to specify particular
+        values for the ensemble member numbers.
+        """
+        cube = self.current_temperature_cube
+        plen = len(cube.coord("percentile").points)
+        ensemble_member_numbers = np.arange(plen)+12
+        plugin = Plugin()
+        result = plugin.process(cube, ensemble_member_numbers)
+        self.assertEqual(len(result.coord("realization").points), plen)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, np.array([12, 13, 14]))
+
     def test_number_of_members(self):
-        """"""
+        """
+        Check the values for the realization coordinate generated without
+        specifying the ensemble_member_numbers argument.
+        """
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile").points)
         plugin = Plugin()
@@ -81,7 +102,10 @@ class Test_process(IrisTest):
             result.coord("realization").points, np.array([0, 1, 2]))
 
     def test_no_percentile_coord(self):
-        """"""
+        """
+        Check that requesting the desired percentile coordinate results in an
+        exception.
+        """
         cube = self.current_temperature_cube
         cube.coord("percentile").rename("realization")
         plugin = Plugin()

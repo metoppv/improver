@@ -293,9 +293,10 @@ class Test_process(IrisTest):
 
         predictor_and_variance = CubeList(
             [current_forecast_predictor, current_forecast_variance])
+        no_of_percentiles = len(raw_forecast.coord("realization").points)
 
         plugin = Plugin()
-        result = plugin.process(predictor_and_variance, raw_forecast)
+        result = plugin.process(predictor_and_variance, no_of_percentiles)
         self.assertIsInstance(result, Cube)
 
     def test_number_of_percentiles(self):
@@ -313,8 +314,10 @@ class Test_process(IrisTest):
         predictor_and_variance = CubeList(
             [current_forecast_predictor, current_forecast_variance])
 
+        no_of_percentiles = len(raw_forecast.coord("realization").points)
+
         plugin = Plugin()
-        result = plugin.process(predictor_and_variance, raw_forecast)
+        result = plugin.process(predictor_and_variance, no_of_percentiles)
         self.assertEqual(len(raw_forecast.coord("realization").points),
                          len(result.coord("percentile").points))
 

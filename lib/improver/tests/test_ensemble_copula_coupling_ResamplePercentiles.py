@@ -142,10 +142,10 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
                 percentiles, forecast_at_percentiles, bounds_pairing)
 
 
-class Test__sample_percentiles(IrisTest):
+class Test__interpolate_percentiles(IrisTest):
 
     """
-    Test the _sample_percentiles method of the ResamplePercentiles plugin.
+    Test the _interpolate_percentiles method of the ResamplePercentiles plugin.
     """
 
     def setUp(self):
@@ -173,7 +173,8 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        print "cube = ", cube
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertIsInstance(result, Cube)
 
@@ -187,14 +188,14 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        nontransposed_result = plugin._sample_percentiles(
+        nontransposed_result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
 
         # Calculate result for transposed cube.
         # Original cube dimensions are [P, T, Y, X].
         # Transposed cube dimensions are [X, Y, T, P].
         cube.transpose([3, 2, 1, 0])
-        transposed_result = plugin._sample_percentiles(
+        transposed_result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
 
         # Result cube will be [P, X, Y, T]
@@ -225,7 +226,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -248,7 +249,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.2, 0.6, 0.8]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -286,7 +287,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.2, 0.6, 0.8]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -325,7 +326,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
 
         self.assertArrayAlmostEqual(result.data, expected)
@@ -359,7 +360,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -404,7 +405,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = np.arange(0.05, 1.0, 0.1)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -420,7 +421,7 @@ class Test__sample_percentiles(IrisTest):
         percentiles = [0.1, 0.5, 0.9]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        result = plugin._sample_percentiles(
+        result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, data)
 

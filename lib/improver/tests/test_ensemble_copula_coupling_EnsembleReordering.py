@@ -47,10 +47,10 @@ from improver.tests.helper_functions_ensemble_calibration import(
     _add_forecast_reference_time_and_forecast_period)
 
 
-class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
+class Test__recycle_raw_ensemble_members(IrisTest):
 
     """
-    Test the _mismatch_between_length_of_raw_members_and_percentiles
+    Test the _recycle_raw_ensemble_members
     method in the EnsembleReordering plugin.
     """
 
@@ -82,7 +82,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = self.percentile_cube
         raw_forecast_members = self.realization_cube
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -95,12 +95,13 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         percentiles is greater than the length of the members, check that the
         points of the realization coordinate is as expected.
         """
-        data = [0, 1, 2]
+        data = [12, 13, 14]
         post_processed_forecast_percentiles = self.percentile_cube
         raw_forecast_members = self.realization_cube
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        raw_forecast_members.coord("realization").points = [12, 13]
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -119,7 +120,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -146,7 +147,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = self.percentile_cube
         raw_forecast_members = self.realization_cube
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -172,7 +173,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         # members than percentiles.
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -194,7 +195,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(data, result.data)
 
@@ -250,7 +251,7 @@ class Test__mismatch_between_length_of_raw_members_and_percentiles(IrisTest):
         raw_forecast_members = self.realization_cube
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plu = Plugin()
-        result = plu._mismatch_between_length_of_raw_members_and_percentiles(
+        result = plu._recycle_raw_ensemble_members(
             post_processed_forecast_percentiles, raw_forecast_members)
         self.assertArrayAlmostEqual(expected, result.data)
 
@@ -542,6 +543,8 @@ class Test_process(IrisTest):
                 set_up_temperature_cube()))
         self.post_processed_percentiles.coord("realization").rename(
             "percentile")
+        self.post_processed_percentiles.coord("percentile").points = (
+            [0.1, 0.5, 0.9])
 
     def test_basic(self):
         """
@@ -552,6 +555,8 @@ class Test_process(IrisTest):
         result = plugin.process(self.post_processed_percentiles, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, [0, 1, 2])
 
     def test_2d_cube_random_ordering(self):
         """
