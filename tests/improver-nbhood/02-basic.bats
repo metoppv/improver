@@ -5,7 +5,7 @@
   if [[ -z "${IMPROVER_ACC_TEST_DIR:-}" ]]; then
     skip "Acceptance test directory not defined"
   fi
-  if ! which nccmp 1>/dev/null 2>&1; then
+  if ! type -f nccmp 1>/dev/null 2>&1; then
     skip "nccmp not installed"
   fi
   # Run neighbourhood processing and check it passes.
