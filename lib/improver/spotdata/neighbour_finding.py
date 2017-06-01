@@ -32,7 +32,6 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import numpy as np
-import cartopy.crs as ccrs
 from improver.spotdata.ancillaries import data_from_ancillary
 from improver.spotdata.common_functions import (ConditionalListExtract,
                                                 nearest_n_neighbours,
@@ -158,12 +157,12 @@ class PointSelection(object):
         Args:
         -----
         cube/sites : See process() above.
-        
+
         orography : numpy.array
             Array of orography data extracted from an iris.cube.Cube that
             corresponds to the grids on which all other input diagnostics
             will be provided (iris.cube.Cube.data).
-        
+
         Returns:
         --------
         neighbours: See process() above.

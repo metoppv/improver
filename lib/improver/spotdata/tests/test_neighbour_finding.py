@@ -72,12 +72,12 @@ class TestNeighbourFinding(IrisTest):
         ancillary_data.update({'land_mask': land})
 
         sites = OrderedDict()
-        sites.update({'100': {'latitude': 50,
-                              'longitude': 0,
-                              'altitude': 10,
-                              'gmtoffset': 0
-                              }
-                      })
+        sites['100'] = {
+            'latitude': 50,
+            'longitude': 0,
+            'altitude': 10,
+            'gmtoffset': 0
+            }
 
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
                                             ('j', 'i8'),
@@ -105,7 +105,8 @@ class TestNeighbourFinding(IrisTest):
         self.assertEqual(result['j'], j_expected)
         self.assertEqual(result['dz'], dz_expected)
 
-    def without_ancillary_data(self, method, vertical_bias=None, land_constraint=False):
+    def without_ancillary_data(self, method, vertical_bias=None,
+                               land_constraint=False):
         """Test plugins behaviour with no ancillary data provided"""
         plugin = PointSelection(method, vertical_bias, land_constraint)
         if method == 'fast_nearest_neighbour':
@@ -121,7 +122,7 @@ class miscellaneous(TestNeighbourFinding):
     def test_invalid_method(self):
         """
         Test that the plugin can handle an invalid method being passed in.
-        
+
         """
         plugin = PointSelection('smallest distance')
         msg = 'Unknown method'
@@ -134,7 +135,7 @@ class miscellaneous(TestNeighbourFinding):
         when relaxing the 'nearest' condition. Make the smallest displacement
         point 2-grid cells away, so it should be captured with no_neighbours
         set to 25.
-        
+
         """
         self.ancillary_data['orography'].data[13, 10] = 10.
         plugin = PointSelection(method='minimum_height_error_neighbour',
@@ -189,7 +190,7 @@ class min_dz_no_bias(TestNeighbourFinding):
     '''
 
     method = 'minimum_height_error_neighbour'
-    #min_dz_no_bias
+    # min_dz_no_bias
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -319,7 +320,7 @@ class min_dz_biased_below(TestNeighbourFinding):
     '''
 
     method = 'minimum_height_error_neighbour'
-    #min_dz_biased_below'
+    # min_dz_biased_below'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''

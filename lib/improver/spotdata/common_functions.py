@@ -37,7 +37,7 @@ Plugins written for the Improver site specific process chain.
 import numpy as np
 from iris import Constraint
 from iris.time import PartialDateTime
-
+import cartopy.crs as ccrs
 
 class ConditionalListExtract(object):
     """
@@ -109,6 +109,7 @@ class ConditionalListExtract(object):
             data[[array_of_indices[0],
                   array_of_indices[1]]] != comparison_value
             )
+
 
 def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
     """
@@ -398,9 +399,10 @@ def xy_transform(trg_crs, latitude, longitude):
         return trg_crs.transform_point(longitude, latitude,
                                        ccrs.PlateCarree())
 
-def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+
+def isclose(val1, val2, rel_tol=1e-09, abs_tol=0.0):
     """
     Floating point comparison for nearly equal.
 
     """
-    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    return abs(val1-val2) <= max(rel_tol * max(abs(val1), abs(val2)), abs_tol)
