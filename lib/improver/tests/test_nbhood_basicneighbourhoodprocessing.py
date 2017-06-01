@@ -233,7 +233,7 @@ class Test__find_required_lead_times(IrisTest):
         other than the desired units of hours.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points
+        expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("forecast_period").convert_units("seconds")
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._find_required_lead_times(cube)
@@ -246,7 +246,7 @@ class Test__find_required_lead_times(IrisTest):
         other than the desired units of hours since 1970-01-01 00:00:00.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points
+        expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._find_required_lead_times(cube)
