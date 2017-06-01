@@ -17,6 +17,3 @@
 
 # Site-specific setup
 etc/site-init
-
-# Output data
-*.nc
