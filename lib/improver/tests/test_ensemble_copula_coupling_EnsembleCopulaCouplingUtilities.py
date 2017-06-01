@@ -45,7 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (choose_set_of_percentiles, create_cube_with_percentiles,
             insert_lower_and_upper_endpoint_to_1d_array,
             concatenate_2d_array_with_2d_array_endpoints,
-            get_bounds_of_distribution,
+            find_coordinate, get_bounds_of_distribution,
             reshape_array_to_have_probabilistic_dimension_at_the_front)
 from improver.tests.helper_functions_ensemble_calibration import (
     set_up_cube,
@@ -309,6 +309,46 @@ class Test_choose_set_of_percentiles(IrisTest):
             choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
 
+class Test_find_coordinate(IrisTest):
+
+    """Test the find_coordinate function."""
+
+    def setUp(self):
+        self.current_temperature_forecast_cube = (
+            _add_forecast_reference_time_and_forecast_period(
+                set_up_probability_above_threshold_temperature_cube()))
+
+    def test_full_match(self):
+        """
+        Test that the returned value is a dimension coordinate with the
+        expected name where the full name of the coordinate is provided.
+        """
+        cube = self.current_temperature_forecast_cube
+        result = find_coordinate(cube, "air_temperature_threshold")
+        self.assertIsInstance(result, DimCoord)
+        self.assertIn("air_temperature_threshold", result.name())
+
+    def test_partial_match(self):
+        """
+        Test that the returned value is a dimension coordinate with the
+        expected name where a partial name for the coordinate is provided.
+        """
+        cube = self.current_temperature_forecast_cube
+        result = find_coordinate(cube, "threshold")
+        self.assertIsInstance(result, DimCoord)
+        self.assertIn("threshold", result.name())
+
+    def test_exception_raised(self):
+        """
+        Test that an exception is raised, if the desired coordinate is not
+        within the cube being searched.
+        """
+        cube = self.current_temperature_forecast_cube
+        msg = "The coordinate of name"
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            find_coordinate(cube, "nonsense")
+
+
 class Test_get_bounds_of_distribution(IrisTest):
 
     """Test the get_bounds_of_distribution plugin."""
@@ -320,7 +360,7 @@ class Test_get_bounds_of_distribution(IrisTest):
 
     def test_basic(self):
         """Test that the result is a numpy array."""
-        cube_name = "air_temperature"
+        cube_name = "air_temperature_threshold"
         cube_units = Unit("degreesC")
         result = get_bounds_of_distribution(cube_name, cube_units)
         self.assertIsInstance(result, np.ndarray)
@@ -329,7 +369,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         Test that the expected results are returned for the bounds_pairing.
         """
-        cube_name = "air_temperature"
+        cube_name = "air_temperature_threshold"
         cube_units = Unit("degreesC")
         bounds_pairing = (-40, 50)
         result = (
@@ -342,7 +382,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         if the units of the bounds_pairings need to be converted to match
         the units of the forecast.
         """
-        cube_name = "air_temperature"
+        cube_name = "air_temperature_threshold"
         cube_units = Unit("fahrenheit")
         bounds_pairing = (-40, 122)  # In fahrenheit
         result = (

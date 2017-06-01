@@ -69,9 +69,9 @@ def concatenate_2d_array_with_2d_array_endpoints(
         high_endpoint.
     """
     lower_array = (
-        np.full((array_2d.shape[0], 1), low_endpoint))
+        np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype))
     upper_array = (
-        np.full((array_2d.shape[0], 1), high_endpoint))
+        np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype))
     array_2d = np.concatenate(
         (lower_array, array_2d, upper_array), axis=1)
     return array_2d
@@ -188,6 +188,33 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
         dims = tuple([dim+1 for dim in dims])
         result.add_aux_coord(coord.copy(), dims)
     return result
+
+
+def find_coordinate(cube, name_of_desired_coord):
+    """
+    Find whether the requested coordinate name is within the
+    coordinates available on the cube. The matching will
+    work for either a full name match e.g. air_temperature == air_temperature,
+    or if the desired coord is a substring of the coordinate_name e.g.
+    'threshold' will match 'air_temperature_threshold'.
+
+    Parameters
+    ----------
+    cube : Iris.cube.Cube
+        Cube to search for the desired coordinate.
+    name_of_desired_coord : String
+        Name or partial name of the coordinate to search for.
+
+    """
+    for coord in cube.coords():
+        if name_of_desired_coord in coord.name():
+            break
+    else:
+        msg = ("The coordinate of name: {} was not found "
+               "within {}".format(
+                   name_of_desired_coord, cube.coords))
+        raise CoordinateNotFoundError(msg)
+    return coord
 
 
 def get_bounds_of_distribution(bounds_pairing_key, desired_units):

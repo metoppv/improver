@@ -435,7 +435,7 @@ class Test_process(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        cube = set_up_cube(data, "air_temperature", "degreesC")
+        cube = set_up_cube(data, "air_temperature_threshold", "degreesC")
         cube.coord("realization").rename("percentile")
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         self.percentile_cube = (

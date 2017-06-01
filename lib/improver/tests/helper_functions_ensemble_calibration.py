@@ -51,11 +51,14 @@ def set_up_probability_above_threshold_cube(
     Create a cube containing multiple probability_above_threshold
     values for the coordinate.
     """
-    cube = Cube(data, standard_name=phenomenon_standard_name,
+    cube_long_name = (
+        "probability_of_{}_above_threshold".format(phenomenon_standard_name))
+    cube = Cube(data, long_name=cube_long_name,
                 units=phenomenon_units)
+    coord_long_name = "{}_threshold".format(phenomenon_standard_name)
     cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
+        DimCoord(forecast_thresholds, long_name=coord_long_name,
+                 units='degreesC'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
@@ -93,11 +96,14 @@ def set_up_probability_above_threshold_spot_cube(
     Create a cube containing multiple realizations, where one of the
     dimensions is an index used for spot forecasts.
     """
-    cube = Cube(data, standard_name=phenomenon_standard_name,
+    cube_long_name = (
+        "probability_of_{}_above_threshold".format(phenomenon_standard_name))
+    cube = Cube(data, long_name=cube_long_name,
                 units=phenomenon_units)
+    coord_long_name = "{}_threshold".format(phenomenon_standard_name)
     cube.add_dim_coord(
-        DimCoord(forecast_thresholds,
-                 long_name='probability_above_threshold', units='degreesC'), 0)
+        DimCoord(forecast_thresholds, long_name=coord_long_name,
+                 units='degreesC'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)

@@ -63,7 +63,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
+        threshold_points = cube.coord("air_temperature_threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -79,7 +79,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         the bounds_pairing.
         """
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
+        threshold_points = cube.coord("air_temperature_threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -95,7 +95,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         represent the extreme ends of the Cumulative Distribution Function.
         """
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("probability_above_threshold").points
+        threshold_points = cube.coord("air_temperature_threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
         one_array = np.ones(probabilities_for_cdf[:, 0].shape)
@@ -270,10 +270,10 @@ class Test__probabilities_to_percentiles(IrisTest):
             plugin._probabilities_to_percentiles(
                 cube, percentiles, bounds_pairing)
 
-    def test_result_cube_has_no_probability_above_threshold_coordinate(self):
+    def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
         Test that the plugin returns a cube with coordinates that
-        do not include the probability_above_threshold coordinate.
+        do not include the air_temperature_threshold coordinate.
         """
         cube = self.current_temperature_forecast_cube
         percentiles = [0.1, 0.5, 0.9]
@@ -282,7 +282,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         result = plugin._probabilities_to_percentiles(
             cube, percentiles, bounds_pairing)
         for coord in result.coords():
-            self.assertNotEqual(coord.name(), "probability_above_threshold")
+            self.assertNotEqual(coord.name(), "air_temperature_threshold")
 
     def test_check_data(self):
         """
@@ -324,7 +324,7 @@ class Test__probabilities_to_percentiles(IrisTest):
                            [41.6, 29., 3.2]]]])
 
         for acube in self.current_temperature_forecast_cube.slices_over(
-                "probability_above_threshold"):
+                "air_temperature_threshold"):
             cube = acube
             break
         percentiles = [0.1, 0.5, 0.9]

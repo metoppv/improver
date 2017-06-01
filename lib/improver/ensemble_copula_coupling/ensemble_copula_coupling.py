@@ -45,7 +45,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, choose_set_of_percentiles,
-            get_bounds_of_distribution,
+            find_coordinate, get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             reshape_array_to_have_probabilistic_dimension_at_the_front)
 
@@ -277,9 +277,9 @@ class GeneratePercentilesFromProbabilities(object):
     In combination with the Ensemble Reordering plugin, this is a variant
     Ensemble Copula Coupling.
 
-    This class includes the ability to interpolate between probability
-    thresholds in order to generate the percentiles, see Figure 1 from
-    Flowerdew, 2014.
+    This class includes the ability to interpolate between probabilities
+    specified using multiple thresholds in order to generate the percentiles,
+    see Figure 1 from Flowerdew, 2014.
 
     Scientific Reference:
     Flowerdew, J., 2014.
@@ -348,7 +348,7 @@ class GeneratePercentilesFromProbabilities(object):
         Parameters
         ----------
         forecast_probabilities : Iris cube
-            Cube with a probability_above_threshold coordinate.
+            Cube with a threshold coordinate.
         percentiles : Numpy array
             Array of percentiles, at which the corresponding values will be
             calculated.
@@ -363,16 +363,16 @@ class GeneratePercentilesFromProbabilities(object):
             air_temperature at the required percentiles.
 
         """
-        threshold_points = (
-            forecast_probabilities.coord("probability_above_threshold").points)
+        threshold_coord = find_coordinate(forecast_probabilities, "threshold")
+        threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_probabilities = (
             ensure_dimension_is_the_zeroth_dimension(
-                forecast_probabilities, "probability_above_threshold"))
+                forecast_probabilities, threshold_coord.name()))
         prob_slices = convert_cube_data_to_2d(
-            forecast_probabilities, coord="probability_above_threshold")
+            forecast_probabilities, coord=threshold_coord.name())
 
         # Invert probabilities
         probabilities_for_cdf = 1 - prob_slices
@@ -401,11 +401,11 @@ class GeneratePercentilesFromProbabilities(object):
         forecast_at_percentiles = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
                 forecast_at_percentiles, forecast_probabilities,
-                "probability_above_threshold", len(percentiles)))
+                threshold_coord.name(), len(percentiles)))
 
         for template_cube in forecast_probabilities.slices_over(
-                "probability_above_threshold"):
-            template_cube.remove_coord("probability_above_threshold")
+                threshold_coord.name()):
+            template_cube.remove_coord(threshold_coord.name())
             break
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_cube, forecast_at_percentiles)
@@ -414,19 +414,18 @@ class GeneratePercentilesFromProbabilities(object):
     def process(self, forecast_probabilities, no_of_percentiles=None,
                 sampling="quantile"):
         """
-        1. Concatenates cubes with a probability_above_threshold coordinate.
+        1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
         3. Accesses the lower and upper bound pair to find the ends of the
            cumulative distribution function.
-        4. Convert the probability_above_threshold coordinate into
+        4. Convert the threshold coordinate into
            values at a set of percentiles using linear interpolation,
            see Figure 1 from Flowerdew, 2014.
 
         Parameters
         ----------
         forecast_probabilities : Iris CubeList or Iris Cube
-            Cube or CubeList expected to contain a probability_above_threshold
-            coordinate.
+            Cube or CubeList expected to contain a threshold coordinate.
         no_of_percentiles : Integer or None
             Number of percentiles
             If None, the number of thresholds within the input
@@ -448,20 +447,21 @@ class GeneratePercentilesFromProbabilities(object):
 
         """
         forecast_probabilities = concatenate_cubes(forecast_probabilities)
+        threshold_coord = find_coordinate(forecast_probabilities, "threshold")
 
         if no_of_percentiles is None:
             no_of_percentiles = (
                 len(forecast_probabilities.coord(
-                    "probability_above_threshold").points))
+                    threshold_coord.name()).points))
 
         percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
 
         cube_units = (
-            forecast_probabilities.coord("probability_above_threshold").units)
+            forecast_probabilities.coord(threshold_coord.name()).units)
         bounds_pairing = (
             get_bounds_of_distribution(
-                forecast_probabilities.name(), cube_units))
+                threshold_coord.name(), cube_units))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
@@ -757,9 +757,9 @@ class EnsembleReordering(object):
         Returns
         -------
         post-processed_forecast_members : cube
-            Cube for a new ensemble member where all points within the dataset
-            are representative of a specified probability threshold across the
-            whole domain.
+            Cube containing the new ensemble members where all points within
+            the dataset have been reordered in comparison to the input
+            percentiles.
         """
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
