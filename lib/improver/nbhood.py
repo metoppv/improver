@@ -73,7 +73,8 @@ class BasicNeighbourhoodProcessing(object):
             at the zero indices of the cube projection-x/y coords.
         lead_times : None or List
             List of lead times or forecast periods, at which the radii
-            within radii_in_km are defined.
+            within radii_in_km are defined. The lead times are expected
+            in hours.
         unweighted_mode : boolean
             If True, use a circle with constant weighting.
             If False, use a circle for neighbourhood kernel with

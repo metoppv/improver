@@ -23,6 +23,9 @@ optional arguments:
   --radii-in-km-by-lead-time RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME
                         The kernel radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
+                        The radii are in km whilst the lead time has units of
+                        hours.The radii and lead times are expected as comma-
+                        separated lists e.g. 10,12,14.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
