@@ -69,7 +69,7 @@ class TestNeighbourFinding(IrisTest):
 
         ancillary_data = {}
         ancillary_data.update({'orography': orography})
-        ancillary_data.update({'land': land})
+        ancillary_data.update({'land_mask': land})
 
         sites = OrderedDict()
         sites.update({'100': {'latitude': 50,
@@ -82,40 +82,78 @@ class TestNeighbourFinding(IrisTest):
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
                                             ('j', 'i8'),
                                             ('dz', 'f8'),
-                                            ('edge', 'bool_')])
+                                            ('edgepoint', 'bool_')])
 
         self.cube = cube
         self.ancillary_data = ancillary_data
         self.sites = sites
         self.neighbour_list = neighbour_list
 
-    def return_types(self, method):
+    def return_types(self, method, vertical_bias=None, land_constraint=False):
         """Test that the plugin returns a numpy array."""
-        plugin = PointSelection(method)
-        result = plugin.process(self.cube, self.sites,
-                                ancillary_data=self.ancillary_data)
+        plugin = PointSelection(method, vertical_bias, land_constraint)
+        result = plugin.process(self.cube, self.sites, self.ancillary_data)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, self.neighbour_list.dtype)
 
-    def correct_neighbour(self, method, i_expected, j_expected, dz_expected):
+    def correct_neighbour(self, method, i_expected, j_expected, dz_expected,
+                          vertical_bias=None, land_constraint=False):
         """Test that the plugin returns the expected neighbour"""
-        plugin = PointSelection(method)
-        result = plugin.process(self.cube, self.sites,
-                                ancillary_data=self.ancillary_data)
+        plugin = PointSelection(method, vertical_bias, land_constraint)
+        result = plugin.process(self.cube, self.sites, self.ancillary_data)
         self.assertEqual(result['i'], i_expected)
         self.assertEqual(result['j'], j_expected)
         self.assertEqual(result['dz'], dz_expected)
 
-    def without_ancillary_data(self, method):
+    def without_ancillary_data(self, method, vertical_bias=None, land_constraint=False):
         """Test plugins behaviour with no ancillary data provided"""
-        plugin = PointSelection(method)
+        plugin = PointSelection(method, vertical_bias, land_constraint)
         if method == 'fast_nearest_neighbour':
-            result = plugin.process(self.cube, self.sites)
+            result = plugin.process(self.cube, self.sites, {})
             self.assertIsInstance(result, np.ndarray)
         else:
             msg = 'Ancillary data'
             with self.assertRaisesRegexp(Exception, msg):
-                result = plugin.process(self.cube, self.sites)
+                result = plugin.process(self.cube, self.sites, {})
+
+
+class miscellaneous(TestNeighbourFinding):
+    def test_invalid_method(self):
+        """
+        Test that the plugin can handle an invalid method being passed in.
+        
+        """
+        plugin = PointSelection('smallest distance')
+        msg = 'Unknown method'
+        with self.assertRaisesRegexp(AttributeError, msg):
+            result = plugin.process(self.cube, self.sites, self.ancillary_data)
+
+    def test_variable_no_neighbours(self):
+        """
+        Test that the plugin can handle a variable number of neigbours to use
+        when relaxing the 'nearest' condition. Make the smallest displacement
+        point 2-grid cells away, so it should be captured with no_neighbours
+        set to 25.
+        
+        """
+        self.ancillary_data['orography'].data[13, 10] = 10.
+        plugin = PointSelection(method='minimum_height_error_neighbour',
+                                vertical_bias=None,
+                                land_constraint=False)
+        result = plugin.process(self.cube, self.sites, self.ancillary_data,
+                                no_neighbours=25)
+        self.assertEqual(result['i'], 13)
+        self.assertEqual(result['j'], 10)
+        self.assertEqual(result['dz'], 0.)
+
+    def test_invalid_no_neighbours(self):
+        plugin = PointSelection(method='minimum_height_error_neighbour',
+                                vertical_bias=None,
+                                land_constraint=False)
+        msg = 'Invalid nearest no'
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = plugin.process(self.cube, self.sites, self.ancillary_data,
+                                    no_neighbours=20)
 
 
 class fast_nearest_neighbour(TestNeighbourFinding):
@@ -150,7 +188,8 @@ class min_dz_no_bias(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_no_bias'
+    method = 'minimum_height_error_neighbour'
+    #min_dz_no_bias
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -181,7 +220,7 @@ class min_dz_no_bias(TestNeighbourFinding):
         vertical displacement. No relative altitude bias in selection.
 
         In this case of equal minimum vertical grid point displacements above
-        and below the site the code will select the first occurence of this
+        and below the site the code will select the first occurrence of this
         smallest dz that is comes across; (14, 10) is tested before (16, 10).
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
@@ -211,22 +250,23 @@ class min_dz_biased_above(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_biased_above'
+    method = 'minimum_height_error_neighbour'
+    # min_dz_biased_above
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
-        self.return_types(self.method)
+        self.return_types(self.method, vertical_bias='above')
 
     def test_without_ancillary_data(self):
         '''
         Ensure an exception is raised if needed ancillary fields are
         missing.
         '''
-        self.without_ancillary_data(self.method)
+        self.without_ancillary_data(self.method, vertical_bias='above')
 
     def test_correct_neighbour_no_orography(self):
         '''Nearest neighbouring grid point with no other conditions'''
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above')
 
     def test_correct_neighbour_orography(self):
         '''
@@ -235,7 +275,7 @@ class min_dz_biased_above(TestNeighbourFinding):
         altitudes above the site if these are available.
         '''
         self.ancillary_data['orography'].data[14, 10] = 10.
-        self.correct_neighbour(self.method, 14, 10, 0.)
+        self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='above')
 
     def test_correct_neighbour_orography_equal_displacement(self):
         '''
@@ -250,7 +290,7 @@ class min_dz_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 16, 10, -1.)
+        self.correct_neighbour(self.method, 16, 10, -1., vertical_bias='above')
 
     def test_correct_neighbour_orography_unequal_displacement(self):
         '''
@@ -265,7 +305,7 @@ class min_dz_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 12.
-        self.correct_neighbour(self.method, 16, 10, -2.)
+        self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above')
 
 
 class min_dz_biased_below(TestNeighbourFinding):
@@ -278,22 +318,23 @@ class min_dz_biased_below(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_biased_below'
+    method = 'minimum_height_error_neighbour'
+    #min_dz_biased_below'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
-        self.return_types(self.method)
+        self.return_types(self.method, vertical_bias='below')
 
     def test_without_ancillary_data(self):
         '''
         Ensure an exception is raised if needed ancillary fields are
         missing.
         '''
-        self.without_ancillary_data(self.method)
+        self.without_ancillary_data(self.method, vertical_bias='below')
 
     def test_correct_neighbour_no_orography(self):
         '''Nearest neighbouring grid point with no other conditions'''
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below')
 
     def test_correct_neighbour_orography(self):
         '''
@@ -302,7 +343,7 @@ class min_dz_biased_below(TestNeighbourFinding):
         altitudes below the site if these are available.
         '''
         self.ancillary_data['orography'].data[14, 10] = 10.
-        self.correct_neighbour(self.method, 14, 10, 0.)
+        self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='below')
 
     def test_correct_neighbour_orography_equal_displacement(self):
         '''
@@ -317,7 +358,7 @@ class min_dz_biased_below(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 14, 10, 1.)
+        self.correct_neighbour(self.method, 14, 10, 1., vertical_bias='below')
 
     def test_correct_neighbour_orography_unequal_displacement(self):
         '''
@@ -332,7 +373,7 @@ class min_dz_biased_below(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 14, 10, 2.)
+        self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below')
 
 
 class min_dz_land_no_bias(TestNeighbourFinding):
@@ -349,22 +390,23 @@ class min_dz_land_no_bias(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_land_no_bias'
+    method = 'minimum_height_error_neighbour'
+    # min_dz_land_no_bias'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
-        self.return_types(self.method)
+        self.return_types(self.method, land_constraint=True)
 
     def test_without_ancillary_data(self):
         '''
         Ensure an exception is raised if needed ancillary fields are
         missing.
         '''
-        self.without_ancillary_data(self.method)
+        self.without_ancillary_data(self.method, land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
         '''Nearest neighbouring grid point with no other conditions'''
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.correct_neighbour(self.method, 15, 10, 10., land_constraint=True)
 
     def test_correct_neighbour_orography(self):
         '''
@@ -372,7 +414,7 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         vertical displacement. No relative altitude bias in selection.
         '''
         self.ancillary_data['orography'].data[14, 10] = 10.
-        self.correct_neighbour(self.method, 14, 10, 0.)
+        self.correct_neighbour(self.method, 14, 10, 0., land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
         '''
@@ -380,12 +422,12 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         vertical displacement. No relative altitude bias in selection.
 
         In this case of equal minimum vertical grid point displacements above
-        and below the site the code will select the first occurence of this
+        and below the site the code will select the first occurrence of this
         smallest dz that is comes across; (14, 10) is tested before (16, 10).
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 14, 10, 1.)
+        self.correct_neighbour(self.method, 14, 10, 1., land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
         '''
@@ -397,7 +439,7 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 16, 10, -1.)
+        self.correct_neighbour(self.method, 16, 10, -1., land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
         '''
@@ -405,8 +447,8 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         and leaves coordinates unchanged (dz should not vary over the sea).
 
         '''
-        self.ancillary_data['land'].data[15, 10] = 0.
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.ancillary_data['land_mask'].data[15, 10] = 0.
+        self.correct_neighbour(self.method, 15, 10, 10., land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
         '''
@@ -420,8 +462,8 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.ancillary_data['land'].data[14, 10] = 0.
-        self.correct_neighbour(self.method, 16, 10, -1.)
+        self.ancillary_data['land_mask'].data[14, 10] = 0.
+        self.correct_neighbour(self.method, 16, 10, -1., land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
         '''
@@ -435,8 +477,8 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.ancillary_data['land'].data[16, 10] = 0.
-        self.correct_neighbour(self.method, 14, 10, 2.)
+        self.ancillary_data['land_mask'].data[16, 10] = 0.
+        self.correct_neighbour(self.method, 14, 10, 2., land_constraint=True)
 
 
 class min_dz_land_biased_above(TestNeighbourFinding):
@@ -454,22 +496,26 @@ class min_dz_land_biased_above(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_land_biased_above'
+    method = 'minimum_height_error_neighbour'
+    # min_dz_land_biased_above'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
-        self.return_types(self.method)
+        self.return_types(self.method, vertical_bias='above',
+                          land_constraint=True)
 
     def test_without_ancillary_data(self):
         '''
         Ensure an exception is raised if needed ancillary fields are
         missing.
         '''
-        self.without_ancillary_data(self.method)
+        self.without_ancillary_data(self.method, vertical_bias='above',
+                                    land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
         '''Nearest neighbouring grid point with no other conditions'''
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography(self):
         '''
@@ -478,7 +524,8 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         altitudes above the site if these are available.
         '''
         self.ancillary_data['orography'].data[14, 10] = 10.
-        self.correct_neighbour(self.method, 14, 10, 0.)
+        self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
         '''
@@ -493,7 +540,8 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 16, 10, -1.)
+        self.correct_neighbour(self.method, 16, 10, -1., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
         '''
@@ -508,7 +556,8 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 12.
-        self.correct_neighbour(self.method, 16, 10, -2.)
+        self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
         '''
@@ -516,8 +565,9 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         and leaves coordinates unchanged (dz should not vary over the sea).
 
         '''
-        self.ancillary_data['land'].data[15, 10] = 0.
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.ancillary_data['land_mask'].data[15, 10] = 0.
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
         '''
@@ -533,8 +583,9 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.ancillary_data['land'].data[16, 10] = 0.
-        self.correct_neighbour(self.method, 14, 10, 1.)
+        self.ancillary_data['land_mask'].data[16, 10] = 0.
+        self.correct_neighbour(self.method, 14, 10, 1., vertical_bias='above',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
         '''
@@ -551,8 +602,9 @@ class min_dz_land_biased_above(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.ancillary_data['land'].data[16, 10] = 0.
-        self.correct_neighbour(self.method, 14, 10, 2.)
+        self.ancillary_data['land_mask'].data[16, 10] = 0.
+        self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='above',
+                               land_constraint=True)
 
 
 class min_dz_land_biased_below(TestNeighbourFinding):
@@ -570,22 +622,26 @@ class min_dz_land_biased_below(TestNeighbourFinding):
 
     '''
 
-    method = 'min_dz_land_biased_below'
+    method = 'minimum_height_error_neighbour'
+    # min_dz_land_biased_below'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
-        self.return_types(self.method)
+        self.return_types(self.method, vertical_bias='below',
+                          land_constraint=True)
 
     def test_without_ancillary_data(self):
         '''
         Ensure an exception is raised if needed ancillary fields are
         missing.
         '''
-        self.without_ancillary_data(self.method)
+        self.without_ancillary_data(self.method, vertical_bias='below',
+                                    land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
         '''Nearest neighbouring grid point with no other conditions'''
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography(self):
         '''
@@ -594,7 +650,8 @@ class min_dz_land_biased_below(TestNeighbourFinding):
         altitudes below the site if these are available.
         '''
         self.ancillary_data['orography'].data[14, 10] = 10.
-        self.correct_neighbour(self.method, 14, 10, 0.)
+        self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
         '''
@@ -609,7 +666,8 @@ class min_dz_land_biased_below(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 14, 10, 1.)
+        self.correct_neighbour(self.method, 14, 10, 1., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
         '''
@@ -624,7 +682,8 @@ class min_dz_land_biased_below(TestNeighbourFinding):
         '''
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.correct_neighbour(self.method, 14, 10, 2.)
+        self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
         '''
@@ -632,8 +691,9 @@ class min_dz_land_biased_below(TestNeighbourFinding):
         and leaves coordinates unchanged (dz should not vary over the sea).
 
         '''
-        self.ancillary_data['land'].data[15, 10] = 0.
-        self.correct_neighbour(self.method, 15, 10, 10.)
+        self.ancillary_data['land_mask'].data[15, 10] = 0.
+        self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
         '''
@@ -651,8 +711,9 @@ class min_dz_land_biased_below(TestNeighbourFinding):
             self.ancillary_data['orography'].data + 20.)
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
-        self.ancillary_data['land'].data[14, 10] = 0.
-        self.correct_neighbour(self.method, 16, 10, -1.)
+        self.ancillary_data['land_mask'].data[14, 10] = 0.
+        self.correct_neighbour(self.method, 16, 10, -1., vertical_bias='below',
+                               land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
         '''
@@ -671,8 +732,9 @@ class min_dz_land_biased_below(TestNeighbourFinding):
             self.ancillary_data['orography'].data + 20.)
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 12.
-        self.ancillary_data['land'].data[14, 10] = 0.
-        self.correct_neighbour(self.method, 16, 10, -2.)
+        self.ancillary_data['land_mask'].data[14, 10] = 0.
+        self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='below',
+                               land_constraint=True)
 
 
 if __name__ == '__main__':

@@ -39,39 +39,49 @@ from improver.spotdata.read_input import Load
 
 
 def get_ancillary_data(diagnostics, ancillary_path):
-    '''
+    """
     Takes in a list of desired diagnostics and determines which ancillary
     (i.e. non-time dependent) fields are required given their neighbour
     finding or data extraction methods.
 
     Args:
     -----
-    diagnostics: dictionary containing each diagnostic to be processed with
-                 associated options for how they should be produced, e.g.
-                 method of neighbour selection, method of data extraction etc.
+    diagnostics : dict
+        Dictionary containing each diagnostic to be processed with associated
+        options for how they should be produced, e.g. method of neighbour
+        selection, method of data extraction etc.
 
     Returns:
     --------
-    ancillary_data:
-                 dictionary containing named ancillary data; the key gives the
-                 name and the item is the iris.cube.Cube of data.
+    ancillary_data : dict
+        Dictionary containing named ancillary data; the key gives the name and
+        the item is the iris.cube.Cube of data.
 
-    '''
+    Raises:
+    -------
+    IOError if required input files are not found.
+
+    """
     ancillary_data = {}
 
-    orography = Load('single_file').process(
-        ancillary_path + '/orography.nc', 'surface_altitude')
+    try:
+        orography = Load('single_file').process(
+            ancillary_path + '/orography.nc', 'surface_altitude')
+    except:
+        raise IOError('Orography file not found.')
 
-    ancillary_data.update({'orography': orography})
+    ancillary_data['orography'] = orography
 
     # Check if the land mask is used for any diagnostics.
-    if any([('land' in diagnostics[key]['neighbour_finding'])
+    if any([(diagnostics[key]['neighbour_finding']['land_constraint'])
             for key in diagnostics.keys()]):
+        try:
+            land = Load('single_file').process(
+                ancillary_path + '/land_mask.nc', 'land_binary_mask')
+        except:
+            raise IOError('Land mask file not found.')
 
-        land = Load('single_file').process(
-            ancillary_path + '/land_mask.nc', 'land_binary_mask')
-
-        ancillary_data.update({'land': land})
+        ancillary_data['land_mask'] = land
 
     return ancillary_data
 
@@ -80,27 +90,31 @@ def get_ancillary_data(diagnostics, ancillary_path):
 # raises an exception if it is missing.
 
 def data_from_ancillary(ancillary_data, key):
-    '''
+    """
     Check for an iris.cube.Cube of <key> information in the ancillary data
     dictionary.
 
     Args:
     -----
-    ancillary_data : ancillary_data dictionary defined by get_ancillary_data
-                     function.
-    key            : name of ancillary field requested.
+    ancillary_data : dict
+        Dictionary defined by get_ancillary_data function that contains
+        iris.cube.Cube ancillary data.
+
+    key : string
+        Name of ancillary field requested.
 
     Returns:
     --------
-    iris.cube.Cube.data from the <key>.
+    data : numpy.array
+        Ancillary data array extracted from iris.cube.Cube.
 
     Raises:
     -------
     Exception if the <key> cube has not been loaded.
 
-    '''
+    """
 
-    if ancillary_data is not None and ancillary_data[key]:
+    if key in ancillary_data.keys():
         return ancillary_data[key].data
     else:
         raise Exception('Ancillary data {} has not been loaded.'.format(key))

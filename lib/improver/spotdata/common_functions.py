@@ -40,32 +40,38 @@ from iris.time import PartialDateTime
 
 
 class ConditionalListExtract(object):
-    '''
+    """
     Performs a numerical comparison, the type selected with method, of data
     in an array and returns an array of indices in that data array that
     fulfill the comparison.
 
     Args:
     -----
-    method          : which comparison to make, e.g. not_equal_to.
-    data            : array of values to be filtered.
-    indices_list    : list of indices in the data array that should be
-                      considered.
-    comparison_value: the value against which numbers in data are to be
-                      compared.
+    method : string
+        Which comparison to make, e.g. not_equal_to.
+
+    data : numpy.array
+        Array of values to be filtered.
+
+    indices_list : list
+        Indices in the data array that should be considered.
+
+    comparison_value: float
+        Value against which numbers in data are to be compared.
 
     Returns:
     --------
-    array_of_indices.tolist():
-                  a list of the the indices of data values that fulfill the
-                  comparison condition.
-    '''
+    array_of_indices.tolist(): list
+        A list of the the indices of data values that fulfill the comparison
+        condition.
+
+    """
 
     def __init__(self, method):
         self.method = method
 
     def process(self, data, indices_list, comparison_value):
-        ''' Call the data comparison method passed in'''
+        """ Call the data comparison method passed in"""
         array_of_indices = np.array(indices_list)
         function = getattr(self, self.method)
         subset = function(data, array_of_indices, comparison_value)
@@ -74,7 +80,7 @@ class ConditionalListExtract(object):
 
     @staticmethod
     def less_than(data, array_of_indices, comparison_value):
-        ''' Return indices of array for which value < comparison_value '''
+        """ Return indices of array for which value < comparison_value """
         return np.where(
             data[[array_of_indices[0],
                   array_of_indices[1]]] < comparison_value
@@ -82,7 +88,7 @@ class ConditionalListExtract(object):
 
     @staticmethod
     def greater_than(data, array_of_indices, comparison_value):
-        ''' Return indices of array for which value > comparison_value '''
+        """ Return indices of array for which value > comparison_value """
         return np.where(
             data[[array_of_indices[0],
                   array_of_indices[1]]] > comparison_value
@@ -90,7 +96,7 @@ class ConditionalListExtract(object):
 
     @staticmethod
     def equal_to(data, array_of_indices, comparison_value):
-        ''' Return indices of array for which value == comparison_value '''
+        """ Return indices of array for which value == comparison_value """
         return np.where(
             data[[array_of_indices[0],
                   array_of_indices[1]]] == comparison_value
@@ -98,17 +104,14 @@ class ConditionalListExtract(object):
 
     @staticmethod
     def not_equal_to(data, array_of_indices, comparison_value):
-        ''' Return indices of array for which value != comparison_value '''
+        """ Return indices of array for which value != comparison_value """
         return np.where(
             data[[array_of_indices[0],
                   array_of_indices[1]]] != comparison_value
             )
 
-
-# Common shared functions
-
 def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
-    '''
+    """
     Returns a coordinate list of n points comprising the original
     coordinate (i,j) plus the n-1 neighbouring points on a cartesian grid.
     e.g. n = 9
@@ -127,21 +130,26 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
 
     Args:
     -----
-    i, j            : central coordinate about which to find neighbours.
-    no_neighbours   : no. of neighbours to return (9, 25, 49, etc).
-    exclude_self    : boolean, if True, (i,j) excluded from returned list.
+    i, j : ints
+        Central coordinate about which to find neighbours.
+
+    no_neighbours : int
+        No. of neighbours to return (9, 25, 49, etc).
+
+    exclude_self : boolean
+        If True, the central coordinate (i,j) is excluded from returned list.
 
     Returns:
     --------
-    list of array indices that neighbour the central (i,j) point.
+    Array of neighbouring indices : numpy.array
 
-    '''
+    """
     # Check n is a valid no. for neighbour finding.
     root_no_neighbours = np.sqrt(no_neighbours)
     delta_neighbours = (root_no_neighbours - 1)/2
     if not np.mod(delta_neighbours, 1) == 0 or delta_neighbours < 1:
         raise ValueError(
-            'Invalid neareat no. of neighbours request. N={} is not a valid '
+            'Invalid nearest no. of neighbours request. N={} is not a valid '
             'square no. (sqrt N must be odd)'.format(no_neighbours))
 
     delta_neighbours = int(delta_neighbours)
@@ -156,7 +164,7 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
 
 
 def node_edge_test(node_list, cube):
-    '''
+    """
     Node lists produced using the nearest_n_neighbours function may overspill
     the domain of the array from which data is to be extracted. This function
     checks whether the cube of interest is a global domain with a wrapped
@@ -166,16 +174,20 @@ def node_edge_test(node_list, cube):
 
     Args
     ----
-    node_list : list[[i],[j]] of indices.
-    cube      : the cube for which data will be extracted using the
-                indices (e.g. cube.data[node_list]).
+    node_list : list
+        List of indices with a structure [[i],[j]].
+    cube : iris.cube.Cube
+        A cube containing the grid from which the i,j coordinates have been
+        selected, and which will be used to determine if these points fall
+        on the edge of the domain.
 
     Returns
     -------
-    node_list : modified node_list with points beyond the cube boundary
-                either changed or discarded as appropriate.
+    node_list : list
+        Modified node_list with points beyond the cube boundary either changed
+        or discarded as appropriate.
 
-    '''
+    """
 
     node_list = np.array(node_list)
 
@@ -194,28 +206,58 @@ def node_edge_test(node_list, cube):
     return node_list.tolist()
 
 
-def get_nearest_coords(cube, latitude, longitude):
-    '''
+def get_nearest_coords(cube, latitude, longitude, iname, jname):
+    """
     Uses the iris cube method nearest_neighbour_index to find the nearest grid
     points to a given latitude-longitude position.
-    '''
 
-    i_latitude = (cube.coord(axis='y').nearest_neighbour_index(latitude))
-    j_longitude = (cube.coord(axis='x').nearest_neighbour_index(longitude))
+    Args:
+    -----
+    cube : iris.cube.Cube
+        Cube containing a representative grid.
+
+    latitude/longitude : floats
+        Latitude/longitude coordinates of spot data site of interest.
+
+    iname/jname : strings
+        Strings giving the names of the y/x coordinates to be searched.
+
+    Returns:
+    -------
+    i_latitude/j_latitude : ints
+        Grid coordinates of the nearest grid point to the spot data site.
+
+    """
+    i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
+    j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
     return i_latitude, j_longitude
 
 
 def index_of_minimum_difference(whole_list, subset_list=None):
-    '''
+    """
     Returns the index of the minimum value in a list.
-    '''
+
+    Args:
+    -----
+    whole_list : numpy.array
+        Array to be searched for a minimum value.
+
+    subset_list : numpy.array/None
+        Array of indices to include in the search. If None the entirity of
+        whole_list is searched.
+
+    Returns:
+    --------
+    Index of the minimum value in whole_list.
+
+    """
     if subset_list is None:
         subset_list = np.arange(len(whole_list))
     return subset_list[np.argmin(abs(whole_list[subset_list]))]
 
 
 def list_entry_from_index(list_in, index_in):
-    '''
+    """
     Extracts index_in element from each list in a list of lists, and returns
     as a list.
     e.g.
@@ -223,18 +265,142 @@ def list_entry_from_index(list_in, index_in):
          index_in = 1
          Returns [1,6,9]
 
-    '''
-    n_columns = len(list_in)
-    return [list_in[n_col][index_in] for n_col in range(n_columns)]
+    """
+    return list(zip(*list_in)[index_in])
 
 
 def datetime_constraint(time_in):
-    '''
+    """
     Constructs an iris equivalence constraint from a python datetime object.
 
-    '''
+    Args:
+    -----
+    time_in : datetime.datetime object
+        The time to be used to build an iris constraint.
+
+    Returns: iris.Constraint
+        An iris constraint to be used in extracting data at the given time from
+        a cube.
+
+    """
     return Constraint(
-        time=PartialDateTime(*[int(time_in.strftime("%{}".format(x)))
-                               for x in
-                               ['Y', 'm', 'd', 'H']])
-        )
+        time=PartialDateTime(time_in.year, time_in.month,
+                             time_in.day, time_in.hour))
+
+
+def construct_neighbour_hash(neighbour_finding):
+    """
+    Constructs a hash from the various neighbour finding options. This is used
+    to avoid repeating the same neighbour search more than once.
+
+    Args:
+    -----
+    neighbour_finding : dict
+        A dictionary containing the method, vertical_bias, and land_constraint
+        options for neighbour finding.
+
+    Returns:
+    --------
+    neighbour_hash : string
+        A concatenated string of the options
+        e.g. 'fast_nearest_neighbour-None-False'
+
+    """
+    return '{}-{}-{}'.format(neighbour_finding['method'],
+                             neighbour_finding['vertical_bias'],
+                             neighbour_finding['land_constraint'])
+
+
+def apply_bias(vertical_bias, dzs):
+    """
+    Bias neighbour selection to look for grid points with an
+    altitude that is above or below the site if vertical_bias is
+    not None.
+
+    Args:
+    -----
+    vertical_bias : string/None
+        Sets the preferred vertical displacement of the grid point
+        relative to the site; above/below/None.
+
+    dzs : numpy.array
+        Array of vertical displacments calculated as the subtraction of grid
+        orography altitudes from spot site altitudes.
+
+    Returns:
+    --------
+    dz_subset : numpy.array
+        Indices of grid points that satisfy bias condition if any are
+        available, otherwise it returns the whole set.
+
+    """
+    if vertical_bias == 'above':
+        dz_subset, = np.where(dzs <= 0)
+    elif vertical_bias == 'below':
+        dz_subset, = np.where(dzs >= 0)
+
+    if (vertical_bias is None or len(dz_subset) == 0
+            or len(dz_subset) == len(dzs)):
+        dz_subset = np.arange(len(dzs))
+
+    return dz_subset
+
+
+def xy_test(cube):
+    """
+    Test whether a diagnostic cube is on a latitude/longitude grid or uses an
+    alternative projection.
+
+    Args:
+    -----
+    cube : iris.cube.Cube
+        A diagnostic cube to examine for coordinate system.
+
+    Returns:
+    --------
+    trg_crs : cartopy.crs/None
+        Coordinate system of the diagnostic cube in a cartopy format unless it
+        is already a latitude/longitude grid, in which case None is returned.
+
+    """
+    trg_crs = None
+    if (not cube.coord(axis='x').name() == 'longitude' or
+            not cube.coord(axis='y').name() == 'latitude'):
+        trg_crs = cube.coord_system().as_cartopy_crs()
+    return trg_crs
+
+
+def xy_transform(trg_crs, latitude, longitude):
+    """
+    Transforms latitude/longitude coordinate pairs from a latitude/longitude
+    grid into an alternative projection defined by trg_crs.
+
+    Args:
+    -----
+    trg_crs : cartopy.crs/None
+        Target coordinate system in cartopy format or None.
+
+    latitude : float
+        Latitude coordinate.
+
+    longitude : float
+        Longitude coordinate.
+
+    Returns:
+    --------
+    x, y : floats
+        Longitude and latitude transformed into the target coordinate system.
+
+    """
+    if trg_crs is None:
+        return longitude, latitude
+    else:
+        return trg_crs.transform_point(longitude, latitude,
+                                       ccrs.PlateCarree())
+
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    """
+    Floating point comparison for nearly equal.
+
+    """
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
