@@ -30,11 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-import numpy as np
-import scipy.ndimage.filters
-
 import iris
 from iris.exceptions import CoordinateNotFoundError
+import numpy as np
+import scipy.ndimage.filters
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
@@ -105,7 +104,11 @@ class BasicNeighbourhoodProcessing(object):
         """
         Determine the lead times within a cube, either by reading the
         forecast_period coordinate, or by calculating the difference between
-        the time and the forecast_reference_time.
+        the time and the forecast_reference_time. If the forecast_period
+        coordinate is present, the points are assumed to represent the
+        desired lead times with the bounds not being considered. The units of
+        the forecast_period, time and forecast_reference_time coordinates are
+        converted, if required.
 
         Parameters
         ----------
@@ -120,9 +123,22 @@ class BasicNeighbourhoodProcessing(object):
 
         """
         if cube.coords("forecast_period"):
+            try:
+                cube.coord("forecast_period").convert_units("hours")
+            except ValueError as err:
+                msg = "For forecast_period: {}".format(err)
+                raise ValueError(msg)
             required_lead_times = cube.coord("forecast_period").points
         else:
             if cube.coords("time") and cube.coords("forecast_reference_time"):
+                try:
+                    cube.coord("time").convert_units(
+                        "hours since 1970-01-01 00:00:00")
+                    cube.coord("forecast_reference_time").convert_units(
+                        "hours since 1970-01-01 00:00:00")
+                except ValueError as err:
+                    msg = "For time/forecast_reference_time: {}".format(err)
+                    raise ValueError(msg)
                 required_lead_times = (
                     cube.coord("time").points -
                     cube.coord("forecast_reference_time").points)
@@ -135,7 +151,7 @@ class BasicNeighbourhoodProcessing(object):
                 raise CoordinateNotFoundError(msg)
         return required_lead_times
 
-    def _get_grid_x_y_kernel_ranges(self, cube, radii_in_km):
+    def _get_grid_x_y_kernel_ranges(self, cube, radius_in_km):
         """
         Return the number of grid cells in the x and y direction
         to be used to create the kernel.
@@ -145,8 +161,8 @@ class BasicNeighbourhoodProcessing(object):
         cube : Iris.cube.Cube
             Cube containing the x and y coordinates, which will be used for
             calculating the number of grid cells in the x and y direction,
-            which equates to the size of the desired radii.
-        radii_in_km : Float
+            which equates to the size of the desired radius.
+        radius_in_km : Float
             Radius in kilometres for use in specifying the number of
             grid cells used to create a kernel.
 
@@ -169,25 +185,25 @@ class BasicNeighbourhoodProcessing(object):
         y_coord.convert_units("metres")
         d_north_metres = y_coord.points[1] - y_coord.points[0]
         d_east_metres = x_coord.points[1] - x_coord.points[0]
-        grid_cells_y = int(radii_in_km * 1000 / abs(d_north_metres))
-        grid_cells_x = int(radii_in_km * 1000 / abs(d_east_metres))
+        grid_cells_y = int(radius_in_km * 1000 / abs(d_north_metres))
+        grid_cells_x = int(radius_in_km * 1000 / abs(d_east_metres))
         if grid_cells_x == 0 or grid_cells_y == 0:
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radii_in_km) +
+                 "{0} km ".format(radius_in_km) +
                  "gives zero cell extent")
             )
         elif grid_cells_x < 0 or grid_cells_y < 0:
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radii_in_km) +
+                 "{0} km ".format(radius_in_km) +
                  "gives a negative cell extent")
             )
         if (grid_cells_x > self.MAX_KERNEL_CELL_RADIUS or
                 grid_cells_y > self.MAX_KERNEL_CELL_RADIUS):
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radii_in_km) +
+                 "{0} km ".format(radius_in_km) +
                  "exceeds maximum grid cell extent")
             )
         return grid_cells_x, grid_cells_y
@@ -229,10 +245,10 @@ class BasicNeighbourhoodProcessing(object):
         # contained within the desired radius.
         kernel = np.ones([int(1 + x * 2) for x in fullranges])
         # Create an open multi-dimensional meshgrid.
-        meshgrid = np.ogrid[tuple([slice(-x, x+1) for x in ranges])]
+        open_grid = np.ogrid[tuple([slice(-x, x+1) for x in ranges])]
         if self.unweighted_mode:
             mask = np.reshape(
-                np.sum([x ** 2 for x in meshgrid]) > np.cumprod(ranges)[-1],
+                np.sum([x ** 2 for x in open_grid]) > np.cumprod(ranges)[-1],
                 np.shape(kernel)
             )
         else:
@@ -240,7 +256,7 @@ class BasicNeighbourhoodProcessing(object):
             # highest weighting, with the weighting decreasing with distance
             # away from the central grid point.
             kernel[:] = (
-                (np.cumprod(ranges)[-1] - np.sum([x**2. for x in meshgrid])) /
+                (np.cumprod(ranges)[-1] - np.sum([x**2. for x in open_grid])) /
                 np.cumprod(ranges)[-1]
             )
             mask = kernel < 0.
@@ -289,10 +305,10 @@ class BasicNeighbourhoodProcessing(object):
             cubes = iris.cube.CubeList([])
             # Find the number of grid cells required for creating the kernel,
             # and then apply the kernel to smooth the field.
-            for cube_slice, radii_in_km in (
+            for cube_slice, radius_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
                 ranges = self._get_grid_x_y_kernel_ranges(
-                    cube_slice, radii_in_km)
+                    cube_slice, radius_in_km)
                 cube_slice = (
                         self._apply_kernel_for_smoothing(cube_slice, ranges))
                 cube_slice = iris.util.new_axis(cube_slice, "time")

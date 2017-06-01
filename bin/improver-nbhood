@@ -51,7 +51,10 @@ def main():
                        metavar='RADIUS_BY_LEAD_TIME', nargs=2,
                        help='The kernel radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
-                       'valid.')
+                       'valid. The radii are in km whilst the lead time'
+                       'has units of hours.'
+                       'The radii and lead times are expected as '
+                       'comma-separated lists e.g. 10,12,14')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
@@ -62,8 +65,8 @@ def main():
         radius_or_radii_in_km = args.radius_in_km
         lead_times = None
     elif args.radii_in_km_by_lead_time:
-        radius_or_radii_in_km = args.radii_in_km_by_lead_time[0]
-        lead_times = args.radius_in_km_by_lead_time[1]
+        radius_or_radii_in_km = args.radii_in_km_by_lead_time[0].split(",")
+        lead_times = args.radii_in_km_by_lead_time[1].split(",")
     result = (
         BasicNeighbourhoodProcessing(
             radius_or_radii_in_km,

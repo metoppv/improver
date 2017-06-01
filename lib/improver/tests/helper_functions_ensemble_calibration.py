@@ -80,7 +80,7 @@ def set_up_wind_speed_cube():
     return set_up_cube(data, "wind_speed", "m s^-1")
 
 
-def _add_forecast_reference_time_and_forecast_period(
+def add_forecast_reference_time_and_forecast_period(
         cube, time_point=402295.0, fp_point=4.0):
     """
     Function to add forecast_reference_time and forecast_period coordinates

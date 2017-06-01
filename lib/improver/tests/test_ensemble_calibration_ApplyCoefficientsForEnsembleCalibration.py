@@ -51,7 +51,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    add_forecast_reference_time_and_forecast_period)
 
 
 def datetime_from_timestamp(timestamp):
@@ -94,7 +94,7 @@ class Test__find_coords_of_length_one(IrisTest):
     def test_check_all_coords(self):
         """Test that the plugin returns a DimCoord inside the list."""
         current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         plugin = Plugin(
             current_temperature_forecast_cube,
@@ -308,7 +308,7 @@ class Test_apply_params_entry(IrisTest):
         self.cube = set_up_temperature_cube()
 
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
         self.coeff_names = ["gamma", "delta", "a", "beta"]
@@ -423,7 +423,7 @@ class Test__apply_params(IrisTest):
         self.cube = set_up_temperature_cube()
 
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
         self.coeff_names = ["gamma", "delta", "a", "beta"]

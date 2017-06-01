@@ -46,7 +46,7 @@ import numpy as np
 from improver.grids.osgb import OSGBGRID
 from improver.nbhood import BasicNeighbourhoodProcessing as NBHood
 from improver.tests.helper_functions_ensemble_calibration import (
-    _add_forecast_reference_time_and_forecast_period)
+    add_forecast_reference_time_and_forecast_period)
 
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
@@ -178,7 +178,7 @@ class Test__init__(IrisTest):
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = _add_forecast_reference_time_and_forecast_period(
+        cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 20, 30]
         lead_times = [2, 3]
@@ -195,7 +195,7 @@ class Test__find_required_lead_times(IrisTest):
 
     def test_basic(self):
         """Test that a list is returned."""
-        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._find_required_lead_times(cube)
         self.assertIsInstance(result, np.ndarray)
@@ -205,7 +205,7 @@ class Test__find_required_lead_times(IrisTest):
         Test that the data within the list is as expected, when
         the input cube has a forecast_period coordinate.
         """
-        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._find_required_lead_times(cube)
@@ -217,7 +217,7 @@ class Test__find_required_lead_times(IrisTest):
         the input cube has a time coordinate and a forecast_reference_time
         coordinate.
         """
-        cube = _add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         cube.remove_coord("forecast_period")
         expected_result = (
             cube.coord("time").points -
@@ -225,6 +225,61 @@ class Test__find_required_lead_times(IrisTest):
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_check_forecast_period_unit_conversion(self):
+        """
+        Test that the data within the list is as expected, when
+        the input cube has a forecast_period coordinate with units
+        other than the desired units of hours.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points
+        cube.coord("forecast_period").convert_units("seconds")
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin._find_required_lead_times(cube)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_check_time_unit_conversion(self):
+        """
+        Test that the data within the list is as expected, when
+        the input cube has a time coordinate with units
+        other than the desired units of hours since 1970-01-01 00:00:00.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points
+        cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin._find_required_lead_times(cube)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_check_forecast_period_unit_conversion_exception(self):
+        """
+        Test that an exception is raised, when the input cube has a
+        forecast_period coordinate with units that can not be converted
+        into hours.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points
+        cube.coord("forecast_period").units = Unit("Celsius")
+        plugin = NBHood(self.RADIUS_IN_KM)
+        msg = "For forecast_period"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin._find_required_lead_times(cube)
+
+    def test_check_forecast_reference_time_unit_conversion_exception(self):
+        """
+        Test that an exception is raised, when the input cube has a
+        forecast_reference_time coordinate with units that can not be
+        converted into hours.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.remove_coord("forecast_period")
+        expected_result = cube.coord("forecast_reference_time").points
+        cube.coord("forecast_reference_time").units = Unit("Celsius")
+        plugin = NBHood(self.RADIUS_IN_KM)
+        msg = "For time/forecast_reference_time"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin._find_required_lead_times(cube)
 
     def test_exception_raised(self):
         """
@@ -650,7 +705,7 @@ class Test_process(IrisTest):
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = _add_forecast_reference_time_and_forecast_period(
+        cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 20, 30]
         lead_times = [2, 3, 4]
@@ -672,12 +727,7 @@ class Test_process(IrisTest):
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667])
 
-        expected[1, 5:10, 5:10] = (
-            [0.992, 0.968, 0.96, 0.968, 0.992],
-            [0.968, 0.944, 0.936, 0.944, 0.968],
-            [0.96, 0.936, 0.928, 0.936, 0.96],
-            [0.968, 0.944, 0.936, 0.944, 0.968],
-            [0.992, 0.968, 0.96, 0.968, 0.992])
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
         expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
@@ -691,7 +741,7 @@ class Test_process(IrisTest):
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = _add_forecast_reference_time_and_forecast_period(
+        cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [6, 8, 10]
         lead_times = [2, 3, 4]
@@ -708,7 +758,7 @@ class Test_process(IrisTest):
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = _add_forecast_reference_time_and_forecast_period(
+        cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 30]
         lead_times = [2, 4]
@@ -727,12 +777,7 @@ class Test_process(IrisTest):
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667])
 
-        expected[1, 5:10, 5:10] = (
-            [0.992, 0.968, 0.96, 0.968, 0.992],
-            [0.968, 0.944, 0.936, 0.944, 0.968],
-            [0.96, 0.936, 0.928, 0.936, 0.96],
-            [0.968, 0.944, 0.936, 0.944, 0.968],
-            [0.992, 0.968, 0.96, 0.968, 0.992])
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
         expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
@@ -746,7 +791,7 @@ class Test_process(IrisTest):
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = _add_forecast_reference_time_and_forecast_period(
+        cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [6, 10]
         lead_times = [2, 4]

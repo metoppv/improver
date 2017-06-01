@@ -43,7 +43,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleReordering as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    add_forecast_reference_time_and_forecast_period)
 
 
 class Test_rank_ecc(IrisTest):
@@ -56,7 +56,7 @@ class Test_rank_ecc(IrisTest):
         forecast_period coordinates.
         """
         self.cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):
@@ -302,10 +302,10 @@ class Test_process(IrisTest):
         forecast_period coordinates.
         """
         self.raw_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         self.calibrated_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):

@@ -45,7 +45,7 @@ import numpy as np
 from improver.ensemble_calibration.ensemble_calibration import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
+    set_up_temperature_cube, add_forecast_reference_time_and_forecast_period)
 
 
 class Test__create_cube_with_percentiles(IrisTest):
@@ -55,7 +55,7 @@ class Test__create_cube_with_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):
@@ -124,7 +124,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_check_data(self):
@@ -328,7 +328,7 @@ class Test_create_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):
@@ -391,7 +391,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):
