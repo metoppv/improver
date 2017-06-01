@@ -116,5 +116,5 @@ def data_from_ancillary(ancillary_data, key):
 
     if key in ancillary_data.keys():
         return ancillary_data[key].data
-    else:
-        raise Exception('Ancillary data {} has not been loaded.'.format(key))
+
+    raise Exception('Ancillary data {} has not been loaded.'.format(key))
