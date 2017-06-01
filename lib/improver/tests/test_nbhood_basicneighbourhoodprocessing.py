@@ -259,7 +259,6 @@ class Test__find_required_lead_times(IrisTest):
         into hours.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points
         cube.coord("forecast_period").units = Unit("Celsius")
         plugin = NBHood(self.RADIUS_IN_KM)
         msg = "For forecast_period"
@@ -274,7 +273,6 @@ class Test__find_required_lead_times(IrisTest):
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         cube.remove_coord("forecast_period")
-        expected_result = cube.coord("forecast_reference_time").points
         cube.coord("forecast_reference_time").units = Unit("Celsius")
         plugin = NBHood(self.RADIUS_IN_KM)
         msg = "For time/forecast_reference_time"
