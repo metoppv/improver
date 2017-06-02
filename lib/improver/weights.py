@@ -36,14 +36,14 @@ import iris
 
 
 def normalise_weights(weights):
-    """Ensures all weights add up to one
+    """Ensures all weights add up to one.
 
         Args:
             weights : array of weights.
 
         Returns:
-            normalised_weights : array of weights where
-                                 sum = 1.0.
+            normalised_weights : array of weights
+                                 where sum = 1.0
     """
     if weights.min() < 0.0:
         msg = 'Weights must be positive, at least one value < 0.0'
@@ -59,12 +59,14 @@ def normalise_weights(weights):
 
 
 def nonlinear_weights(num_of_weights, cval):
-    """Create nonlinear weights
+    """Create nonlinear weights.
 
         Args:
-            num_of_weights : Positive Integer - Number of weights to create.
+            num_of_weights : Positive Integer
+                             Number of weights to create.
 
-            cval : Float -  greater than 0.0 but less than or equal to 1,0,
+            cval : Float
+                   greater than 0.0 but less than or equal to 1,0,
                    to be used for the nonlinear weights function.
                    1.0 = equal weights for all.
 
@@ -100,18 +102,22 @@ def linear_weights(num_of_weights, y0val=1.0, slope=0.0,
     """Create linear weights
 
         Args:
-            num_of_weights : Positive Integer: Number of weights to create.
-            y0val = positive float:
+            num_of_weights : Positive Integer
+                             Number of weights to create.
+            y0val : Positive float
                     relative value of starting point. Default = 1.0
 
             AND EITHER:
-            slope = float: slope of the line. Default = 0.0 (equal weights)
+            slope : float
+                    slope of the line. Default = 0.0 (equal weights)
             OR
-            ynval = float or None: relative weights of last point.
-                             Default value is None
+            ynval : Positive float or None
+                    Relative weights of last point.
+                    Default value is None
 
         Returns:
-            weights : array of weights, sum of all weights = 1.0
+            weights : array of weights
+                      sum of all weights = 1.0
 
     """
     if not isinstance(num_of_weights, int) or num_of_weights <= 0:
@@ -148,16 +154,21 @@ class ChooseDefaultWeightsLinear(object):
 
     def __init__(self, y0val=None, slope=0.0, ynval=None):
         """Set up for calculating default weights using linear function
-            y0val = None or positive float: relative value of starting point.
-            slope = float: slope of the line. Default = 0.0 (equal weights)
-            ynval = float or None: relative weights of last point.
-                             Default value is None
 
-            slope OR ynval should be set but NOT BOTH
+            Args:
+                y0val : None or positive float
+                        Relative value of starting point.
+                slope : float
+                        Slope of the line. Default = 0.0 (equal weights).
+                ynval : float or None
+                        Relative weights of last point.
+                        Default value is None
 
-            If y0val value is not set or set to None
-            then the code assumes that the ultimate default values of
-            y0val = 20.0 and ynval = 2.0 are required
+            slope OR ynval should be set but NOT BOTH.
+
+            If y0val value is not set or set to None then the code
+            assumes that the ultimate default values of
+            y0val = 20.0 and ynval = 2.0 are required.
 
             equal weights when slope = 0.0 or y0val = ynval
         """
@@ -170,7 +181,7 @@ class ChooseDefaultWeightsLinear(object):
             self.y0val = y0val
 
     def process(self, cube, coord):
-        """Calculated weights for a given cube and coord
+        """Calculated weights for a given cube and coord.
 
             Args:
                 cube : iris.cube.Cube
@@ -188,7 +199,7 @@ class ChooseDefaultWeightsLinear(object):
 
         if not cube.coords(coord):
             msg = ('The coord for this plugin must be '
-                   'an existing coordinate in the input cube')
+                   'an existing coordinate in the input cube.')
             raise ValueError(msg)
 
         num_of_weights = len(cube.coord(coord).points)
@@ -201,7 +212,7 @@ class ChooseDefaultWeightsLinear(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = '<ChooseBasicLinearWeights y0val={0:4.1f}'.format(self.y0val)
+        desc = '<ChooseDefaultWeightsLinear y0val={0:4.1f}'.format(self.y0val)
         if self.ynval is None:
             desc += ', slope={0:6.2f}>'.format(self.slope)
         else:
@@ -212,15 +223,18 @@ class ChooseDefaultWeightsLinear(object):
 class ChooseDefaultWeightsNonLinear(object):
     """ Calculate Default Weights using NonLinear Function. """
     def __init__(self, cval=0.85):
-        """Set up for calculating default weights using lnon-inear function
-            cval = float: value greater than 0, less than equal 1.0
-                   default = 0.85
-                   equal weights when cval = 1.0
+        """Set up for calculating default weights using non-linear function.
+
+            Args:
+                cval = float
+                       Value greater than 0, less than equal 1.0
+                       default = 0.85
+                       equal weights when cval = 1.0
         """
         self.cval = cval
 
     def process(self, cube, coord):
-        """Calculated weights for a given cube and coord
+        """Calculated weights for a given cube and coord.
 
             Args:
                 cube : iris.cube.Cube
@@ -247,5 +261,6 @@ class ChooseDefaultWeightsNonLinear(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = '<ChooseBasicNonLinearWeights cval={0:4.1f}>'.format(self.cval)
+        desc = ('<ChooseDefaultWeightsNonLinear '
+                'cval={0:4.1f}>'.format(self.cval))
         return desc

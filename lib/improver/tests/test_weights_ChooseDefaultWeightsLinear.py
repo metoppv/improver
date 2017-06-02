@@ -44,12 +44,15 @@ from improver.weights import ChooseDefaultWeightsLinear as LinearWeights
 
 
 def add_realizations(cube, num):
-    """ Create num realizations of input cube
+    """ Create num realizations of input cube.
         Args:
-            cube =iris.cube.Cube - input cube
-            num = integer - Number of realizations
-        Returns
-            cubeout = iris.cube.Cube - copy of cube with num realizations added
+            cube : iris.cube.Cube
+                   Input cube.
+            num : integer
+                  Number of realizations.
+        Returns:
+            cubeout : iris.cube.Cube
+                      Copy of cube with num realizations added.
     """
     cubelist = iris.cube.CubeList()
     for i in range(0, num):
@@ -63,7 +66,7 @@ def add_realizations(cube, num):
 
 
 class TestChooseDefaultWeightsLinear(IrisTest):
-    """ Test the Default Linear Weights plugin """
+    """Test the Default Linear Weights plugin. """
 
     def setUp(self):
         data = np.zeros((2, 2, 2))
@@ -87,21 +90,21 @@ class TestChooseDefaultWeightsLinear(IrisTest):
         self.cube = cube
 
     def test_basic(self):
-        """ Test that the plugin retuns an array of weights """
+        """Test that the plugin returns an array of weights. """
         coord = "time"
         plugin = LinearWeights()
         result = plugin.process(self.cube, coord)
         self.assertIsInstance(result, np.ndarray)
 
     def test_array_sum_equals_one(self):
-        """ Test that the resulting weights add up to one """
+        """Test that the resulting weights add up to one. """
         coord = "time"
         plugin = LinearWeights()
         result = plugin.process(self.cube, coord)
         self.assertAlmostEquals(result.sum(), 1.0)
 
     def test_fails_coord_not_in_cube(self):
-        """Test it raises a Value Error if coord not in the cube."""
+        """Test it raises a Value Error if coord not in the cube. """
         coord = "notset"
         plugin = LinearWeights()
         msg = ('The coord for this plugin must be '
@@ -110,7 +113,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
             plugin.process(self.cube, coord)
 
     def test_fails_input_not_a_cube(self):
-        """Test it raises a Value Error if not supplied with a cube."""
+        """Test it raises a Value Error if not supplied with a cube. """
         coord = "time"
         plugin = LinearWeights()
         notacube = 0.0
@@ -120,7 +123,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
             plugin.process(notacube, coord)
 
     def test_fails_y0val_lessthan_zero(self):
-        """ Test it raises a Value Error if y0val less than zero """
+        """Test it raises a Value Error if y0val less than zero. """
         coord = "time"
         plugin = LinearWeights(y0val=-10.0)
         msg = ('y0val must be a float > 0.0')
@@ -128,7 +131,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
             plugin.process(self.cube, coord)
 
     def test_fails_ynval_and_slope_set(self):
-        """ Test it raises a Value Error if slope and ynval set """
+        """Test it raises a Value Error if slope and ynval set. """
         coord = "time"
         plugin = LinearWeights(y0val=10.0, slope=-5.0, ynval=5.0)
         msg = ('Relative end point weight or slope must be set'
@@ -137,7 +140,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
             plugin.process(self.cube, coord)
 
     def test_fails_weights_negative(self):
-        """ Test it raises a Value Error if weights become negative """
+        """Test it raises a Value Error if weights become negative. """
         coord = "realization"
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
         cubenew = add_realizations(self.cube, 6)
@@ -146,14 +149,14 @@ class TestChooseDefaultWeightsLinear(IrisTest):
             plugin.process(cubenew, coord)
 
     def test_works_scalar_coord(self):
-        """Test it works if scalar coordinate."""
+        """Test it works if scalar coordinate. """
         coord = 'scalar_coord'
         plugin = LinearWeights()
         result = plugin.process(self.cube, coord)
         self.assertArrayAlmostEqual(result, np.array([1.0]))
 
     def test_works_defaults_used(self):
-        """Test it works if scalar coordinate."""
+        """Test it works if defaults used. """
         coord = "time"
         plugin = LinearWeights()
         result = plugin.process(self.cube, coord)
@@ -161,7 +164,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_y0val_and_slope_set(self):
-        """Test it works if y0val and slope_set."""
+        """Test it works if y0val and slope_set. """
         coord = "time"
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
         result = plugin.process(self.cube, coord)
@@ -169,7 +172,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_y0val_and_ynval_set(self):
-        """Test it works if scalar coordinate."""
+        """Test it works if y0val and ynval set. """
         coord = "time"
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
         result = plugin.process(self.cube, coord)
@@ -177,7 +180,7 @@ class TestChooseDefaultWeightsLinear(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_with_larger_num(self):
-        """Test it works with larger num_of_vals"""
+        """Test it works with larger num_of_vals. """
         coord = "realization"
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
         cubenew = add_realizations(self.cube, 6)
