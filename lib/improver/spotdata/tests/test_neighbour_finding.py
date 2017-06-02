@@ -115,7 +115,7 @@ class TestPointSelection(IrisTest):
         else:
             msg = 'Data '
             with self.assertRaisesRegexp(Exception, msg):
-                result = plugin.process(self.cube, self.sites, {})
+                plugin.process(self.cube, self.sites, {})
 
 
 class miscellaneous(TestPointSelection):
@@ -127,7 +127,7 @@ class miscellaneous(TestPointSelection):
         plugin = PointSelection('smallest distance')
         msg = 'Unknown method'
         with self.assertRaisesRegexp(AttributeError, msg):
-            result = plugin.process(self.cube, self.sites, self.ancillary_data)
+            plugin.process(self.cube, self.sites, self.ancillary_data)
 
     def test_variable_no_neighbours(self):
         """
@@ -158,8 +158,8 @@ class miscellaneous(TestPointSelection):
                                 land_constraint=False)
         msg = 'Invalid nearest no'
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin.process(self.cube, self.sites, self.ancillary_data,
-                                    no_neighbours=20)
+            plugin.process(self.cube, self.sites, self.ancillary_data,
+                           no_neighbours=20)
 
 
 class fast_nearest_neighbour(TestPointSelection):
