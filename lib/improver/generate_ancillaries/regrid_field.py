@@ -60,8 +60,7 @@ def regrid_field(field, grid):
                              iris.analysis.Linear())
     else:
         field = field.regrid(
-            STANDARD_GRIDS[grid],
-            iris.analysis.Linear(extrapolation_mode='nan'))
+            UK_LAEA_GRID, iris.analysis.Linear(extrapolation_mode='nan'))
     if np.any(np.isnan(field.data)):
         msg = 'Model domain must be larger than Standard grid domain'
         raise ValueError(msg)

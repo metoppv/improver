@@ -85,7 +85,7 @@ def _make_mask_cube(mask_data, key, coords,
 
 
 def find_standard_ancil(grid, stage_ancil, model_ancil,
-                         stash=None):
+                        stash=None):
     """
     Finds standard ancillary, either by reading
     the stage version or regridding the model version.
