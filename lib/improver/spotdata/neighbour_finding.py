@@ -32,14 +32,11 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import numpy as np
-from improver.spotdata.ancillaries import data_from_ancillary
-from improver.spotdata.common_functions import (ConditionalListExtract,
-                                                nearest_n_neighbours,
-                                                get_nearest_coords,
-                                                index_of_minimum_difference,
-                                                list_entry_from_index,
-                                                node_edge_test, apply_bias,
-                                                xy_test, xy_transform, isclose)
+from improver.spotdata.read_input import data_from_dictionary
+from improver.spotdata.common_functions import (
+    ConditionalListExtract, nearest_n_neighbours, get_nearest_coords,
+    index_of_minimum_difference, list_entry_from_index, node_edge_test,
+    apply_bias, xy_test, xy_transform, isclose)
 
 
 class PointSelection(object):
@@ -109,6 +106,7 @@ class PointSelection(object):
 
         default_neighbours/no_neighbours : see minimum_height_error_neighbour()
                                            below.
+
         Returns:
         --------
         neighbours : numpy.dtype (fields: i, j, dz, edgepoint)
@@ -121,17 +119,19 @@ class PointSelection(object):
         """
         if self.method == 'fast_nearest_neighbour':
             if 'orography' in ancillary_data.keys():
-                orography = data_from_ancillary(ancillary_data, 'orography')
+                orography = data_from_dictionary(
+                    ancillary_data, 'orography').data
             else:
                 orography = None
             return self.fast_nearest_neighbour(cube, sites,
                                                orography=orography)
         elif self.method == 'minimum_height_error_neighbour':
-            orography = data_from_ancillary(ancillary_data, 'orography')
+            orography = data_from_dictionary(ancillary_data, 'orography').data
 
             land_mask = None
             if self.land_constraint:
-                land_mask = data_from_ancillary(ancillary_data, 'land_mask')
+                land_mask = data_from_dictionary(
+                    ancillary_data, 'land_mask').data
 
             return self.minimum_height_error_neighbour(
                 cube, sites, orography, land_mask=land_mask,
@@ -279,11 +279,11 @@ class PointSelection(object):
                 # one neighbouring point is also land. If not no modification
                 # is made to the nearest neighbour coordinates.
 
-                exclude_self = nearest_n_neighbours(i, j, no_neighbours,
-                                                    exclude_self=True)
+                neighbour_nodes = nearest_n_neighbours(i, j, no_neighbours,
+                                                       exclude_self=True)
                 if edgepoint:
-                    exclude_self = node_edge_test(exclude_self, cube)
-                if not land_mask[i, j] or not any(land_mask[exclude_self]):
+                    neighbour_nodes = node_edge_test(neighbour_nodes, cube)
+                if not land_mask[i, j] or not any(land_mask[neighbour_nodes]):
                     continue
 
                 # Filter the node_list to keep only land points

@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the spotdata.NeighbourFinding plugin."""
+"""Unit tests for the spotdata.PointSelection plugin."""
 
 
 import unittest
@@ -42,9 +42,9 @@ import numpy as np
 from improver.spotdata.neighbour_finding import PointSelection
 
 
-class TestNeighbourFinding(IrisTest):
+class TestPointSelection(IrisTest):
 
-    """Test the neighbour finding plugin."""
+    """Test the point selection (grid point neighbour finding) plugin."""
 
     def setUp(self):
         """Create a cube containing a regular lat-lon grid."""
@@ -72,12 +72,12 @@ class TestNeighbourFinding(IrisTest):
         ancillary_data.update({'land_mask': land})
 
         sites = OrderedDict()
-        sites['100'] = {
-            'latitude': 50,
-            'longitude': 0,
-            'altitude': 10,
-            'gmtoffset': 0
-            }
+        sites.update({'100': {'latitude': 50,
+                              'longitude': 0,
+                              'altitude': 10,
+                              'gmtoffset': 0
+                              }
+                      })
 
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
                                             ('j', 'i8'),
@@ -98,7 +98,7 @@ class TestNeighbourFinding(IrisTest):
 
     def correct_neighbour(self, method, i_expected, j_expected, dz_expected,
                           vertical_bias=None, land_constraint=False):
-        """Test that the plugin returns the expected neighbour"""
+        """Test that the plugin returns the expected neighbour."""
         plugin = PointSelection(method, vertical_bias, land_constraint)
         result = plugin.process(self.cube, self.sites, self.ancillary_data)
         self.assertEqual(result['i'], i_expected)
@@ -107,18 +107,18 @@ class TestNeighbourFinding(IrisTest):
 
     def without_ancillary_data(self, method, vertical_bias=None,
                                land_constraint=False):
-        """Test plugins behaviour with no ancillary data provided"""
+        """Test plugins behaviour with no ancillary data provided."""
         plugin = PointSelection(method, vertical_bias, land_constraint)
         if method == 'fast_nearest_neighbour':
             result = plugin.process(self.cube, self.sites, {})
             self.assertIsInstance(result, np.ndarray)
         else:
-            msg = 'Ancillary data'
+            msg = 'Data '
             with self.assertRaisesRegexp(Exception, msg):
                 result = plugin.process(self.cube, self.sites, {})
 
 
-class miscellaneous(TestNeighbourFinding):
+class miscellaneous(TestPointSelection):
     def test_invalid_method(self):
         """
         Test that the plugin can handle an invalid method being passed in.
@@ -127,7 +127,7 @@ class miscellaneous(TestNeighbourFinding):
         plugin = PointSelection('smallest distance')
         msg = 'Unknown method'
         with self.assertRaisesRegexp(AttributeError, msg):
-            plugin.process(self.cube, self.sites, self.ancillary_data)
+            result = plugin.process(self.cube, self.sites, self.ancillary_data)
 
     def test_variable_no_neighbours(self):
         """
@@ -148,16 +148,21 @@ class miscellaneous(TestNeighbourFinding):
         self.assertEqual(result['dz'], 0.)
 
     def test_invalid_no_neighbours(self):
+        """
+        Test use of a larger but invalid no of neighbours over which to find
+        the minimum vertical displacement.
+
+        """
         plugin = PointSelection(method='minimum_height_error_neighbour',
                                 vertical_bias=None,
                                 land_constraint=False)
         msg = 'Invalid nearest no'
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(self.cube, self.sites, self.ancillary_data,
-                           no_neighbours=20)
+            result = plugin.process(self.cube, self.sites, self.ancillary_data,
+                                    no_neighbours=20)
 
 
-class fast_nearest_neighbour(TestNeighbourFinding):
+class fast_nearest_neighbour(TestPointSelection):
     '''
     Tests for fast_nearest_neighbour method. No other conditions beyond
     proximity are considered.
@@ -170,7 +175,7 @@ class fast_nearest_neighbour(TestNeighbourFinding):
         self.return_types(self.method)
 
     def test_correct_neighbour(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10.)
 
     def test_without_ancillary_data(self):
@@ -180,17 +185,18 @@ class fast_nearest_neighbour(TestNeighbourFinding):
         self.without_ancillary_data(self.method)
 
 
-class min_dz_no_bias(TestNeighbourFinding):
+class minimum_height_error_neighbour_no_bias(TestPointSelection):
     '''
-    Tests for min_dz_no_bias method. This method seeks to minimise
-    the vertical displacement between a site and the selected neigbouring
-    grid point. There is no bias as to whether dz is positive (grid point
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is no bias as to whether dz is positive (grid point
     below site) or dz is negative (grid point above site).
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_no_bias
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -204,7 +210,7 @@ class min_dz_no_bias(TestNeighbourFinding):
         self.without_ancillary_data(self.method)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10.)
 
     def test_correct_neighbour_orography(self):
@@ -241,18 +247,19 @@ class min_dz_no_bias(TestNeighbourFinding):
         self.correct_neighbour(self.method, 16, 10, -1.)
 
 
-class min_dz_biased_above(TestNeighbourFinding):
+class minimum_height_error_neighbour_bias_above(TestPointSelection):
     '''
-    Tests for min_dz_biased_above. This method seeks to minimise
-    the vertical displacement between a site and the selected neigbouring
-    grid point. There is a bias towards dz being negative (grid point above
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is a bias towards dz being negative (grid point ABOVE
     site), but if this condition cannot be met, a minimum positive dz (grid
     point below site) neighbour will be returned.
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_biased_above
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -266,7 +273,7 @@ class min_dz_biased_above(TestNeighbourFinding):
         self.without_ancillary_data(self.method, vertical_bias='above')
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above')
 
     def test_correct_neighbour_orography(self):
@@ -309,18 +316,19 @@ class min_dz_biased_above(TestNeighbourFinding):
         self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above')
 
 
-class min_dz_biased_below(TestNeighbourFinding):
+class minimum_height_error_neighbour_bias_below(TestPointSelection):
     '''
-    Tests for min_dz_biased_below. This method seeks to minimise
-    the vertical displacement between a site and the selected neigbouring
-    grid point. There is a bias towards dz being positive (grid point below
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is a bias towards dz being positive (grid point BELOW
     site), but if this condition cannot be met, a minimum negative dz (grid
     point above site) neighbour will be returned.
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_biased_below'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -334,7 +342,7 @@ class min_dz_biased_below(TestNeighbourFinding):
         self.without_ancillary_data(self.method, vertical_bias='below')
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below')
 
     def test_correct_neighbour_orography(self):
@@ -377,22 +385,23 @@ class min_dz_biased_below(TestNeighbourFinding):
         self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below')
 
 
-class min_dz_land_no_bias(TestNeighbourFinding):
+class minimum_height_error_neighbour_land_no_bias(TestPointSelection):
     '''
-    Tests for min_dz_land_no_bias method. This method seeks to
-    minimise the vertical displacement between a site and the selected
-    neigbouring grid point. There is no bias as to whether dz is positive
-    (grid point below site) or dz is negative (grid point above site).
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is no bias as to whether dz is positive (grid point
+    below site) or dz is negative (grid point above site).
 
     A neighbouring grid point is REQUIRED to be a land point if the site's
     first guess nearest neigbour is a land point. If the first guess neighbour
-    is a sea point, the site is assumed to be a sea point as well the
+    is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_land_no_bias'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -406,7 +415,7 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         self.without_ancillary_data(self.method, land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10., land_constraint=True)
 
     def test_correct_neighbour_orography(self):
@@ -482,23 +491,24 @@ class min_dz_land_no_bias(TestNeighbourFinding):
         self.correct_neighbour(self.method, 14, 10, 2., land_constraint=True)
 
 
-class min_dz_land_biased_above(TestNeighbourFinding):
+class minimum_height_error_neighbour_land_bias_above(TestPointSelection):
     '''
-    Tests for min_dz_land_biased_above. This method seeks to minimise
-    the vertical displacement between a site and the selected neigbouring
-    grid point. There is a bias towards dz being negative (grid point above
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is a bias towards dz being negative (grid point ABOVE
     site), but if this condition cannot be met, a minimum positive dz (grid
     point below site) neighbour will be returned.
 
     A neighbouring grid point is REQUIRED to be a land point if the site's
     first guess nearest neigbour is a land point. If the first guess neighbour
-    is a sea point, the site is assumed to be a sea point as well the
+    is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_land_biased_above'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -514,7 +524,7 @@ class min_dz_land_biased_above(TestNeighbourFinding):
                                     land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above',
                                land_constraint=True)
 
@@ -608,23 +618,24 @@ class min_dz_land_biased_above(TestNeighbourFinding):
                                land_constraint=True)
 
 
-class min_dz_land_biased_below(TestNeighbourFinding):
+class minimum_height_error_neighbour_land_bias_below(TestPointSelection):
     '''
-    Tests for min_dz_land_biased_below. This method seeks to minimise
-    the vertical displacement between a site and the selected neigbouring
-    grid point. There is a bias towards dz being positive (grid point below
+    Tests for the minimum_height_error neighbour method of point selection.
+    This method seeks to minimise the vertical displacement between a spotdata
+    site and a neigbouring grid point.
+
+    In this case there is a bias towards dz being positive (grid point BELOW
     site), but if this condition cannot be met, a minimum negative dz (grid
     point above site) neighbour will be returned.
 
     A neighbouring grid point is REQUIRED to be a land point if the site's
     first guess nearest neigbour is a land point. If the first guess neighbour
-    is a sea point, the site is assumed to be a sea point as well the
+    is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
     '''
 
     method = 'minimum_height_error_neighbour'
-    # min_dz_land_biased_below'
 
     def test_return_type(self):
         '''Ensure a numpy array of the format expected is returned.'''
@@ -640,7 +651,7 @@ class min_dz_land_biased_below(TestNeighbourFinding):
                                     land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions'''
+        '''Nearest neighbouring grid point with no other conditions.'''
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below',
                                land_constraint=True)
 

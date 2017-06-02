@@ -51,6 +51,9 @@ def get_ancillary_data(diagnostics, ancillary_path):
         options for how they should be produced, e.g. method of neighbour
         selection, method of data extraction etc.
 
+    ancillary_path : string
+        String giving the path of ancillary files to be used.
+
     Returns:
     --------
     ancillary_data : dict
@@ -84,37 +87,3 @@ def get_ancillary_data(diagnostics, ancillary_path):
         ancillary_data['land_mask'] = land
 
     return ancillary_data
-
-
-# Function that checks the presence of ancillary data when it is used and
-# raises an exception if it is missing.
-
-def data_from_ancillary(ancillary_data, key):
-    """
-    Check for an iris.cube.Cube of <key> information in the ancillary data
-    dictionary.
-
-    Args:
-    -----
-    ancillary_data : dict
-        Dictionary defined by get_ancillary_data function that contains
-        iris.cube.Cube ancillary data.
-
-    key : string
-        Name of ancillary field requested.
-
-    Returns:
-    --------
-    data : numpy.array
-        Ancillary data array extracted from iris.cube.Cube.
-
-    Raises:
-    -------
-    Exception if the <key> cube has not been loaded.
-
-    """
-
-    if key in ancillary_data.keys():
-        return ancillary_data[key].data
-
-    raise Exception('Ancillary data {} has not been loaded.'.format(key))

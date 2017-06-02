@@ -34,44 +34,56 @@ Plugins written for the Improver site specific process chain.
 
 """
 
+import warnings
 import numpy as np
 from iris import Constraint
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 
+
 class ConditionalListExtract(object):
-    """
+    '''
     Performs a numerical comparison, the type selected with method, of data
     in an array and returns an array of indices in that data array that
     fulfill the comparison.
 
-    Args:
-    -----
-    method : string
-        Which comparison to make, e.g. not_equal_to.
-
-    data : numpy.array
-        Array of values to be filtered.
-
-    indices_list : list
-        Indices in the data array that should be considered.
-
-    comparison_value: float
-        Value against which numbers in data are to be compared.
-
-    Returns:
-    --------
-    array_of_indices.tolist(): list
-        A list of the the indices of data values that fulfill the comparison
-        condition.
-
-    """
+    '''
 
     def __init__(self, method):
+        """
+        Get selected method of comparison.
+
+        Args:
+        -----
+        method : string
+            Which comparison to make, e.g. not_equal_to.
+
+        """
         self.method = method
 
     def process(self, data, indices_list, comparison_value):
-        """ Call the data comparison method passed in"""
+        """
+        Call the data comparison method passed in.
+
+        Args:
+        -----
+        data : numpy.array
+            Array of values to be filtered.
+
+        indices_list : list
+            Indices in the data array that should be considered.
+
+        comparison_value: float
+            Value against which numbers in data are to be compared.
+
+        Returns:
+        --------
+        array_of_indices.tolist(): list
+            A list of the the indices of data values that fulfill the
+            comparison condition.
+
+        """
+
         array_of_indices = np.array(indices_list)
         function = getattr(self, self.method)
         subset = function(data, array_of_indices, comparison_value)
@@ -302,7 +314,7 @@ def construct_neighbour_hash(neighbour_finding):
 
     Returns:
     --------
-    neighbour_hash : string
+    <string>
         A concatenated string of the options
         e.g. 'fast_nearest_neighbour-None-False'
 
@@ -325,7 +337,7 @@ def apply_bias(vertical_bias, dzs):
         relative to the site; above/below/None.
 
     dzs : numpy.array
-        Array of vertical displacments calculated as the subtraction of grid
+        Array of vertical displacements calculated as the subtraction of grid
         orography altitudes from spot site altitudes.
 
     Returns:
@@ -406,3 +418,68 @@ def isclose(val1, val2, rel_tol=1e-09, abs_tol=0.0):
 
     """
     return abs(val1-val2) <= max(rel_tol * max(abs(val1), abs(val2)), abs_tol)
+
+
+def extract_cube_at_time(cubes, time, time_extract):
+    """
+    Extract a single cube at a given time from a cubelist.
+
+    Args:
+    -----
+    cubes : iris.cube.CubeList
+        CubeList of a given diagnostic over several times.
+
+    time : datetime.datetime object
+        Time at which forecast data is needed.
+
+    time_extract : iris.Constraint
+        Iris constraint for the desired time.
+
+    Returns:
+    --------
+    cube : iris.cube.Cube
+        Cube of data at the desired time.
+
+    Raises:
+    -------
+    ValueError if the desired time is not available within the cubelist.
+
+    """
+    try:
+        cube_in, = cubes.extract(time_extract)
+        return cube_in
+    except ValueError:
+        msg = ('Forecast time {} not found within data cubes.'.format(
+            time.strftime("%Y-%m-%d:%H:%M")))
+        warnings.warn(msg)
+        return None
+
+
+def extract_ad_at_time(additional_diagnostics, time, time_extract):
+    """
+    Extracts additional diagnostics at the required time.
+
+    Args:
+    -----
+    additional_diagnostics : dict
+        Dictionary of additional time varying diagnostics needed
+        for the extraction method in use.
+
+    time : datetime.datetime object
+        Time at which forecast data is needed.
+
+    time_extract : iris.Constraint
+        Iris constraint for the desired time.
+
+    Returns:
+    --------
+    ad_extracted : dict
+        Dictionary of the additional diagnostics but only data
+        at the desired time.
+
+    """
+    ad_extracted = {}
+    for key in additional_diagnostics.keys():
+        cubes = additional_diagnostics[key]
+        ad_extracted[key] = extract_cube_at_time(cubes, time, time_extract)
+    return ad_extracted
