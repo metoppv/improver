@@ -28,41 +28,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing temporary regridding utility for improver
-   ancillary generation module"""
+"""Unit tests for the generate_ancillary.GenerateLandAncil plugin."""
 
-import iris
+
+import unittest
+from iris.cube import Cube
+from iris.tests import IrisTest
 import numpy as np
 
-from improver.grids.laea import UK_LAEA_GRID
-from improver.grids.latlon import GLOBAL_LATLON_GRID
+from improver.generate_ancillaries.generate_ancillary import (
+    GenerateLandAncil as GenLandAncil)
 
 
-def regrid_field(field, grid):
-    '''
-    Regrids fields onto the standard grid
+class Test_process(IrisTest):
+    """Test the land mask ancillary generation plugin."""
+    def setUp(self):
+        """setting up paths to test ancillary files"""
+        landmask_data = np.array([[0.2, 0., 0.],
+                                  [0.7, 0.4, 0.05],
+                                  [1, 0.95, 0.7]])
+        self.landmask = Cube(landmask_data, long_name='test land')
+        self.expected_mask = np.array([[0.25, 0., 0.],
+                                       [0.75, 0.25, 0.],
+                                       [1., 1., 0.75]])
 
-    Inputs
-    -------
-    field : cube
-        cube to be regridded onto Standard_Grid
-    grid : string
-        the grid we wish to interpolate to
+    def test_landmask(self):
+        """Test landmask generation"""
+        result = GenLandAncil().process(self.landmask)
+        self.assertEqual(result.name(), 'test land')
+        self.assertArrayEqual(result.data, self.expected_mask)
 
-    Exceptions
-    -----------
-    - Raises a ValueError if NaNs are found in the field following regridding
-        (this would indicate the input field domain was smaller than the
-         standard grid) UNLESS: grid is global field.
-    '''
-    if grid == 'glm':
-        field = field.regrid(STANDARD_GRIDS[grid],
-                             iris.analysis.Linear())
-    else:
-        field = field.regrid(
-            STANDARD_GRIDS[grid],
-            iris.analysis.Linear(extrapolation_mode='nan'))
-    if np.any(np.isnan(field.data)):
-        msg = 'Model domain must be larger than Standard grid domain'
-        raise ValueError(msg)
-    return field
+
+if __name__ == "__main__":
+    unittest.main()

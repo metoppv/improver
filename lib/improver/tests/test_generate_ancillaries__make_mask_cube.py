@@ -35,7 +35,7 @@ from iris.tests import IrisTest
 from iris.coords import DimCoord
 import numpy as np
 
-from improver.generate_ancillary import _make_mask_cube
+from improver.generate_ancillaries.generate_ancillary import _make_mask_cube
 
 
 class TestMakeCube(IrisTest):
@@ -79,3 +79,7 @@ class TestMakeCube(IrisTest):
                          self.upper)
         self.assertEqual(result.coords('topographic_bound_lower')[0].points,
                          self.lower)
+
+
+if __name__ == "__main__":
+    unittest.main()

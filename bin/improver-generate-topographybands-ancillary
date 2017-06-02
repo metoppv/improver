@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
@@ -35,54 +36,60 @@ import os
 import iris
 from glob import glob
 
-from improver.generate_ancillary import GenerateOrographyBandAncils
-from improver.generate_ancillary import _find_standard_ancil
+from improver.generate_ancillaries.generate_ancillary import (
+    GenerateOrographyBandAncils)
+from improver.generate_ancillaries.generate_ancillary import (
+     find_standard_ancil)
 
-THRESHOLD_DICT = {'land': [[-500, 0], [0, 50], [50, 100], [100, 150],
+
+THRESHOLDS_DICT = {'land': [[-500, 0], [0, 50], [50, 100], [100, 150],
                            [150, 200], [200, 250], [250, 300], [300, 400],
                            [400, 500], [500, 600]],
-                  'max land threshold': [[600]]}
+                  'max_land_threshold': [[600]]}
 
 
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read the model landmask, interpolate ' +
-                     'to the standard grid and add mostly ' +
+        description=('Read the model landmask, interpolate '
+                     'to the standard grid and add mostly '
                      'land and mostly sea points.'))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
-                        help=('If True, ancillaries will be generated even ' +
+                        help=('If True, ancillaries will be generated even '
                               'if doing so will overwrite existing files'))
-    parser.add_argument('input_filepath_stage', metavar='INPUT_FILE_STAGE',
-                        help=('A path to an input NetCDF file (from StaGE) ' +
-                              'to be processed'))
+    parser.add_argument('input_filepath_stage_orography',
+                        metavar='INPUT_FILE_STAGE',
+                        help=('A path to an input NetCDF file (from StaGE) '
+                              'containing the orography to be processed.'))
     parser.add_argument('input_filepath_landmask', metavar='INPUT_FILE_LAND',
-                        help='A path to an input land mask file')
-    parser.add_argument('input_filepath_um', metavar='INPUT_FILE_MODEL',
-                        help=('A path to an input FF file (from UM) ' +
-                              'to be processed'))
+                        help='A path to an input land mask file.')
+    parser.add_argument('input_filepath_um_orography',
+                        metavar='INPUT_FILE_MODEL',
+                        help=('A path to an input FF file (from UM) '
+                              'containing the orography to be processed.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
+                        help='The output path for the processed NetCDF.')
     parser.add_argument('grid', metavar='STANDARD_GRID',
-                        help='The standard grid to process landmask on')
+                        help='The standard grid to process landmask on.')
+    parser.add_argument('--stash', metavar='STASH_CODE', default=None
+                        help='The stash code to use for loading the required'
+                             'orography ancillaries.')
     args = parser.parse_args()
 
     if not os.path.exists(args.output_filepath) or args.force:
-        orography = _find_standard_ancil(args.grid,
-                                         args.input_filepath_stage,
-                                         args.input_filepath_um)
+        orography = find_standard_ancil(
+            args.grid, args.input_filepath_stage, args.input_filepath_um)
         if len(glob(args.input_filepath_stage)) == 0:
             iris.save(orography, args.input_filepath_stage)
         try:
             landmask = iris.load(args.input_filepath_landmask)[0]
         except IOError:
-            msg = ('Cannot locate land mask at {}; ' +
-                   'run improver-generateancil_landmask first')
+            msg = ('Cannot locate land mask at {}; '
+                   'run improver-generateancil_landmask first.')
             raise IOError(msg.format(args.input_filepath_landmask))
-        result = GenerateOrographyBandAncils().process(orography,
-                                                       landmask,
-                                                       THRESHOLD_DICT)
+        result = GenerateOrographyBandAncils().process(
+            orography, landmask, THRESHOLDS_DICT)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath

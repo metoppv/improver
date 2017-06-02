@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
@@ -34,38 +35,42 @@ import argparse
 import os
 import iris
 
-from improver.generate_ancillary import GenerateLandAncil
-from improver.generate_ancillary import _find_standard_ancil
+from improver.generate_ancillaries.generate_ancillary import GenerateLandAncil
+from improver.generate_ancillaries.generate_ancillary import (
+    find_standard_ancil)
 
 
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read the model landmask, interpolate ' +
-                     'to the standard grid and add mostly ' +
+        description=('Read the model landmask, interpolate '
+                     'to the standard grid and add mostly '
                      'land and mostly sea points.'))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
-                        help=('If True, ancillaries will be generated ' +
-                              'even if doing so will overwrite existing ' +
-                              'files'))
+                        help=('If True, ancillaries will be generated '
+                              'even if doing so will overwrite existing '
+                              'files.'))
     parser.add_argument('input_filepath_stage', metavar='INPUT_FILE_STAGE',
-                        help=('A path to an input NetCDF file (from StaGE) ' +
-                              'to be processed'))
+                        help=('A path to an input NetCDF file (from StaGE) '
+                              'to be processed.'))
     parser.add_argument('input_filepath_um', metavar='INPUT_FILE_MODEL',
-                        help=('A path to an input FF file (from UM) ' +
-                              'to be processed'))
+                        help=('A path to an input FF file (from UM) '
+                              'to be processed.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
     parser.add_argument('grid', metavar='STANDARD_GRID',
-                        help='The standard grid to process landmask on')
+                        help='The standard grid to process landmask on.')
+    parser.add_argument('--stash', metavar='STASH_CODE', default=None
+                        help='The stash code to use for loading the required'
+                             'orography ancillaries.')
     args = parser.parse_args()
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
-        landmask = _find_standard_ancil(args.grid,
-                                        args.input_filepath_stage,
-                                        args.input_filepath_um)
+        landmask = find_standard_ancil(
+            args.grid, args.input_filepath_stage, args.input_filepath_um,
+            stash=args.stash)
         result = GenerateLandAncil().process(landmask)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:

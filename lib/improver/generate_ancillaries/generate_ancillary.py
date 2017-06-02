@@ -34,32 +34,33 @@ import iris
 import numpy as np
 import os
 from glob import glob
-from improver.regrid_field import regrid_field
+
+from improver.generate_ancillaries.regrid_field import regrid_field
 
 
 def _make_mask_cube(mask_data, key, coords,
                     upper_threshold=None, lower_threshold=None):
     """
-    Makes cube from numpy masked array generated from orography fields
+    Makes cube from numpy masked array generated from orography fields.
 
-    Inputs
-    -------
+    Parameters
+    ----------
     mask_data : numpy masked array
-        The numpy array to make a cube from
+        The numpy array to make a cube from.
     key : string
-        Key from THRESHOLD_DICT which descibes type of topography band
+        Key from THRESHOLD_DICT which descibes type of topography band.
     coords : dictionary
         Dictionary of coordinate on the model ancillary file.
     upper_threshold : float
-        Upper topographic bound defining the mask
+        Upper topographic bound defining the mask.
     lower_threshold : float
-        Lower topographic bound defining the mask
+        Lower topographic bound defining the mask.
 
     Returns
     -------
     mask_cube : cube
         Cube containing the mask_data array, with appropriate coordinate
-        and attribute information
+        and attribute information.
     """
     mask_cube = iris.cube.Cube(mask_data, long_name='Topography mask')
     if lower_threshold or lower_threshold == 0:
@@ -83,7 +84,7 @@ def _make_mask_cube(mask_data, key, coords,
     return mask_cube
 
 
-def _find_standard_ancil(grid, stage_ancil, model_ancil,
+def find_standard_ancil(grid, stage_ancil, model_ancil,
                          stash=None):
     """
     Finds standard ancillary, either by reading
@@ -101,7 +102,7 @@ def _find_standard_ancil(grid, stage_ancil, model_ancil,
       Location of model ancillaries
 
     stash : string (optional)
-      The stash to contrain by for model ancillary laoding
+      The stash to constrain by for model ancillary loading
 
     Returns
     --------
@@ -120,12 +121,11 @@ def _find_standard_ancil(grid, stage_ancil, model_ancil,
     elif os.path.exists(model_ancil):
         if stash is not None:
             attribute = iris.AttributeConstraint(STASH=stash)
-            standard_ancil = regrid_field(iris.load(model_ancil,
-                                                    attribute)[0],
-                                          grid)
+            standard_ancil = regrid_field(
+                iris.load(model_ancil, attribute)[0], grid)
         else:
-            standard_ancil = regrid_field(iris.load(model_ancil)[0],
-                                          grid)
+            standard_ancil = regrid_field(
+                iris.load(model_ancil)[0], grid)
     else:
         msg = 'Cannot find input ancillary. Tried UM: {} and StaGE: {}'
         raise IOError(msg.format(model_ancil, stage_ancil))
@@ -134,23 +134,25 @@ def _find_standard_ancil(grid, stage_ancil, model_ancil,
 
 class GenerateLandAncil(object):
     """
-    Create land-sea mask ancillary file
+    Create land-sea mask ancillary file.
 
     Correct interpolated binary masks, or land fractions, to
     give an indication of whether grid point is 'land', 'sea',
-    'mostly-land' or 'mostly-sea'
+    'mostly-land' or 'mostly-sea'.
     """
+    def __init__(self):
+        pass
 
-    def __str__(self):
+    def __repr__(self):
         """Represent the configured plugin instance as a string"""
         result = ('<GenerateLandAncils:')
         return result
 
     def process(self, standard_landmask):
-        """Read in the land-sea mask on standard grid
+        """Read in the land-sea mask on standard grid.
 
          If there are points outside the binary mask,
-         designate them as mostly-sea, mostly-land etc
+         designate them as mostly-sea, mostly-land etc.
 
         Parameters
         ----------
@@ -180,63 +182,64 @@ class GenerateOrographyBandAncils(object):
        the standard grids.
 
        Checks for StaGE output files first, and if not found regrids UM
-       ancillaries onto standard grids (using improver.regrid_field)
+       ancillaries onto standard grids (using improver.regrid_field).
     """
+    def __init__(self):
+        pass
 
-    def __str__(self):
+    def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<GenerateOrographyBandAncils')
         return result
 
-    def gen_orographymasks(self, standard_orography, coords, key, thresholds,
-                           standard_landmask):
+    def gen_orography_masks(
+            self, standard_orography, standard_landmask, key, thresholds):
         """
-        Function to generate topographical band masks
+        Function to generate topographical band masks.
 
         Parameters
         -----------
         standard_orography : cube
-            The standard' orography, found by regridding the model orography
-            onto the standard grid
-        coords : dictionary
-            Dictionary of model ancillary file coordinates
+            The standard orography, found by regridding the model orography
+            onto the standard grid.
         key : string
-            Key from THRESHOLD_DICT which descibes type of topography band
+            Key from THRESHOLD_DICT which descibes type of topography band.
         thresholds: float or list
-            Upper and/or lower thresholds of the current topographical band
+            Upper and/or lower thresholds of the current topographical band.
         standard_landmask : cube
-            The landmask generated by gen_landmask
+            The landmask generated by gen_landmask.
 
         Returns
-        --------
+        -------
         mask_cube : cube
-            Cube containing topographical band mask
+            Cube containing topographical band mask.
 
         Raises
-        -------
-        KeyError: if the key does not match any in THESHOLD_DICT
+        ------
+        KeyError: if the key does not match any in THRESHOLD_DICT.
         """
-        if key == 'max land threshold':  # mask everything above max bound
-            orog_band = np.ma.masked_greater(standard_orography.data,
-                                             thresholds[0]).mask.astype(int)
-            mask_data = np.ma.masked_where(standard_landmask.data < 0.25,
-                                           orog_band)
+        coords = standard_orography.coords()
+        if key == 'max_land_threshold':  # mask everything above max bound
+            orog_band = np.ma.masked_greater(
+                standard_orography.data, thresholds[0]).mask.astype(int)
+            mask_data = np.ma.masked_where(
+                standard_landmask.data < 0.25, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(mask_data, key, coords,
                                         lower_threshold=thresholds)
         elif key == 'land':  # regular topographical bands above land
             old_threshold, threshold = thresholds
-            orog_band = np.ma.masked_inside(standard_orography.data,
-                                            old_threshold,
-                                            threshold).mask.astype(int)
-            mask_data = np.ma.masked_where(standard_landmask.data < 0.25,
-                                           orog_band)
+            orog_band = np.ma.masked_inside(
+                standard_orography.data, old_threshold,
+                threshold).mask.astype(int)
+            mask_data = np.ma.masked_where(
+                standard_landmask.data < 0.25, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
-            mask_cube = _make_mask_cube(mask_data, key, coords,
-                                        lower_threshold=old_threshold,
-                                        upper_threshold=threshold)
+            mask_cube = _make_mask_cube(
+                mask_data, key, coords, lower_threshold=old_threshold,
+                upper_threshold=threshold)
         else:
             msg = 'Unknown threshold_dict key: {}'
             raise KeyError(msg.format(key))
@@ -250,37 +253,26 @@ class GenerateOrographyBandAncils(object):
         Parameters
         ----------
         orography : cube
-          orography on standard grid
+          orography on standard grid.
 
         landmask : cube
-          land mask on standard grid
+          land mask on standard grid.
 
         threshold_dict : dictionary
-          definition of orography bands required
+          definition of orography bands required.
 
         Returns
         -------
         cubelist : cubelist
-          list of orographic band mask cubes
+          list of orographic band mask cubes.
         """
         cubelist = iris.cube.CubeList()
         for dict_key, dict_bound in thresholds_dict.iteritems():
             if len(dict_bound) == 0:
                 msg = 'No threshold(s) found for topographic type: {}'
                 raise ValueError(msg.format(dict_key))
-            elif len(dict_bound) > 1:
-                for limits in dict_bound:
-                    oro_band = self.gen_orographymasks(orography,
-                                                       orography.coords(),
-                                                       dict_key,
-                                                       limits,
-                                                       landmask)
-                    cubelist.append(oro_band)
-            else:
-                oro_band = self.gen_orographymasks(orography,
-                                                   orography.coords(),
-                                                   dict_key,
-                                                   dict_bound[0],
-                                                   landmask)
-                cubelist.append(oro_band)
+            for limits in dict_bound:
+                oro_band = self.gen_orography_masks(
+                    orography, landmask, dict_key, limits)
+            cubelist.append(oro_band)
         return cubelist

@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module providing the OSGB Ordance Survey UK National Grid."""
 
-
 import iris.coord_systems
 import iris.coords
 import iris.cube
@@ -72,5 +71,5 @@ def _make_osgb_grid():
     return cube
 
 
-# Standard UK grid
+# OSGB UK grid
 OSGBGRID = _make_osgb_grid()

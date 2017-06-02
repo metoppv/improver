@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the generate_ancillary._find_standard_ancil function."""
+"""Unit tests for the generate_ancillary.find_standard_ancil function."""
 
 
 import unittest
@@ -43,7 +43,8 @@ from iris.fileformats.pp import EARTH_RADIUS
 from iris import save
 import numpy as np
 
-from improver.generate_ancillary import _find_standard_ancil
+from improver.generate_ancillaries.generate_ancillary import (
+    find_standard_ancil)
 
 
 def _make_test_cube(long_name, stash=None):
@@ -63,8 +64,8 @@ def _make_test_cube(long_name, stash=None):
     return cube
 
 
-class TestFindAncil(IrisTest):
-    """Test private function to find input for ancillary generation."""
+class Test_find_standard_ancil(IrisTest):
+    """Test function to find input for ancillary generation."""
 
     def setUp(self):
         """setting up test dir and test files"""
@@ -85,13 +86,13 @@ class TestFindAncil(IrisTest):
 
     def test_findstage(self):
         """test case where stage file is present and read"""
-        result = _find_standard_ancil(self.grid, self.stage, self.model)
+        result = find_standard_ancil(self.grid, self.stage, self.model)
         self.assertEqual(result.name(), 'stage test')
 
     def test_findmodel(self):
         """test case where stage file is absent: read and regrid model"""
         os.remove(self.stage)
-        result = _find_standard_ancil(self.grid, self.stage, self.model)
+        result = find_standard_ancil(self.grid, self.stage, self.model)
         self.assertEqual(result.name(), 'model test')
         self.assertEqual(len(result.coord('latitude').points), 1920)
 
@@ -103,8 +104,8 @@ class TestFindAncil(IrisTest):
         cubelist = CubeList([_make_test_cube('model test', stash='m02sTEiSTY'),
                              _make_test_cube('model test', stash=test_stash)])
         save(cubelist, self.model)
-        result = _find_standard_ancil(self.grid, self.stage, self.model,
-                                      stash=test_stash)
+        result = find_standard_ancil(self.grid, self.stage, self.model,
+                                     stash=test_stash)
         self.assertEqual(result.name(), 'model test')
         self.assertEqual(result.attributes['STASH'], test_stash)
 
@@ -114,4 +115,7 @@ class TestFindAncil(IrisTest):
         os.remove(self.stage)
         os.remove(self.model)
         with self.assertRaisesRegexp(IOError, 'Cannot find input ancillary'):
-            result = _find_standard_ancil(self.grid, self.stage, self.model)
+            find_standard_ancil(self.grid, self.stage, self.model)
+
+if __name__ == "__main__":
+    unittest.main()

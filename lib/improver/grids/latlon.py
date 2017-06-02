@@ -28,41 +28,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing temporary regridding utility for improver
-   ancillary generation module"""
+"""Module providing the latitude-longitude grid."""
 
 import iris
 import numpy as np
+from iris.coord_systems import GeogCS
+from iris.fileformats.pp import EARTH_RADIUS
 
-from improver.grids.laea import UK_LAEA_GRID
-from improver.grids.latlon import GLOBAL_LATLON_GRID
+from improver.grids import _make_grid_cube
 
 
-def regrid_field(field, grid):
-    '''
-    Regrids fields onto the standard grid
+def _make_global_grid(n_lat, min_lat, max_lat, n_lon, min_lon, max_lon,
+                      bounds=True):
+    """
+    Creates a two-dimensional Cube that represents the standard global grid.
 
-    Inputs
+    Returns
     -------
-    field : cube
-        cube to be regridded onto Standard_Grid
-    grid : string
-        the grid we wish to interpolate to
+    Cube
+        A global grid with the requested resolution.
 
-    Exceptions
-    -----------
-    - Raises a ValueError if NaNs are found in the field following regridding
-        (this would indicate the input field domain was smaller than the
-         standard grid) UNLESS: grid is global field.
-    '''
-    if grid == 'glm':
-        field = field.regrid(STANDARD_GRIDS[grid],
-                             iris.analysis.Linear())
-    else:
-        field = field.regrid(
-            STANDARD_GRIDS[grid],
-            iris.analysis.Linear(extrapolation_mode='nan'))
-    if np.any(np.isnan(field.data)):
-        msg = 'Model domain must be larger than Standard grid domain'
-        raise ValueError(msg)
-    return field
+    """
+    cs = GeogCS(EARTH_RADIUS)
+    lat_coord = iris.coords.DimCoord(np.linspace(min_lat, max_lat, n_lat),
+                                     'latitude', units='degrees',
+                                     coord_system=cs)
+    lon_coord = iris.coords.DimCoord(np.linspace(min_lon, max_lon, n_lon),
+                                     'longitude', units='degrees',
+                                     coord_system=cs)
+    return _make_grid_cube(lat_coord, lon_coord, bounds=bounds)
+
+
+GLOBAL_LATLON_GRID = _make_global_grid(
+    1920, -89.953125, 89.953125, 2560, -180.0, 179.859375)

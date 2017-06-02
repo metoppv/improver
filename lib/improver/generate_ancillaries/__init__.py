@@ -28,31 +28,3 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the generate_ancillary.GenerateLandAncil plugin."""
-
-
-import unittest
-from iris.cube import Cube
-from iris.tests import IrisTest
-import numpy as np
-
-from improver.generate_ancillary import GenerateLandAncil as GenLandAncil
-
-
-class TestGenAncil(IrisTest):
-    """Test the land mask ancillary generation plugin."""
-    def setUp(self):
-        """setting up paths to test ancillary files"""
-        landmask_data = np.array([[0.2, 0., 0.],
-                                  [0.7, 0.4, 0.05],
-                                  [1, 0.95, 0.7]])
-        self.landmask = Cube(landmask_data, long_name='test land')
-        self.expected_mask = np.array([[0.25, 0., 0.],
-                                       [0.75, 0.25, 0.],
-                                       [1., 1., 0.75]])
-
-    def test_landmask(self):
-        """Test landmask generation"""
-        result = GenLandAncil().process(self.landmask)
-        self.assertEqual(result.name(), 'test land')
-        self.assertArrayEqual(result.data, self.expected_mask)
