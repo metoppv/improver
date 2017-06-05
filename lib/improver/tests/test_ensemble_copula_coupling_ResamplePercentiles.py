@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
-    _add_forecast_reference_time_and_forecast_period,
+    add_forecast_reference_time_and_forecast_period,
     set_up_cube, set_up_spot_temperature_cube)
 
 
@@ -58,11 +58,11 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         data[2] += 3
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+            add_forecast_reference_time_and_forecast_period(cube.copy()))
         cube.coord("realization").rename("percentile")
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube))
+            add_forecast_reference_time_and_forecast_period(cube))
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
@@ -157,9 +157,9 @@ class Test__interpolate_percentiles(IrisTest):
         cube.coord("realization").rename("percentile")
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube))
+            add_forecast_reference_time_and_forecast_period(cube))
         spot_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
         spot_cube.convert_units("degreesC")
         spot_cube.coord("realization").rename("percentile")
@@ -216,7 +216,7 @@ class Test__interpolate_percentiles(IrisTest):
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_cube(
                     data, "air_temperature", "1",
                     y_dimension_length=1, x_dimension_length=1)))
@@ -281,8 +281,9 @@ class Test__interpolate_percentiles(IrisTest):
         cube.coord("realization").rename("percentile")
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                cube, time_point=np.array([402295.0, 402296.0])))
+            add_forecast_reference_time_and_forecast_period(
+                cube, time_point=np.array([402295.0, 402296.0]),
+                fp_point=[2.0, 3.0]))
         cube = self.percentile_cube
         percentiles = [0.2, 0.6, 0.8]
         bounds_pairing = (-40, 50)
@@ -311,7 +312,7 @@ class Test__interpolate_percentiles(IrisTest):
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_cube(
                     data, "air_temperature", "1",
                     realizations=[0],
@@ -352,7 +353,7 @@ class Test__interpolate_percentiles(IrisTest):
 
         percentiles_values = np.linspace(0, 1, 30)
         cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_cube(input_forecast_values, "air_temperature", "1",
                             realizations=np.arange(30))))
         cube.coord("realization").rename("percentile")
@@ -439,7 +440,7 @@ class Test_process(IrisTest):
         cube.coord("realization").rename("percentile")
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube))
+            add_forecast_reference_time_and_forecast_period(cube))
 
     def test_check_data_specifying_percentiles(self):
         """

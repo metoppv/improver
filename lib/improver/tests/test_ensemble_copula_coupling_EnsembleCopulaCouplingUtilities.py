@@ -50,7 +50,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
 from improver.tests.helper_functions_ensemble_calibration import (
     set_up_cube,
     set_up_temperature_cube, set_up_spot_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period,
+    add_forecast_reference_time_and_forecast_period,
     set_up_probability_above_threshold_temperature_cube)
 
 
@@ -110,13 +110,13 @@ class Test_create_cube_with_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
         self.cube_data = current_temperature_forecast_cube.data
 
         current_temperature_spot_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
         self.cube_spot_data = (
             current_temperature_spot_forecast_cube.data)
@@ -315,7 +315,7 @@ class Test_find_coordinate(IrisTest):
 
     def setUp(self):
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
     def test_full_match(self):
@@ -355,7 +355,7 @@ class Test_get_bounds_of_distribution(IrisTest):
 
     def setUp(self):
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
     def test_basic(self):
@@ -447,7 +447,7 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
     def setUp(self):
         """Set up temperature cube."""
         cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points
@@ -537,8 +537,9 @@ class Test_reshape_array_to_have_probabilistic_dimension_at_the_front(
         cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
         plen = 1
         percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                cube, time_point=np.array([402295.0, 402296.0])))
+            add_forecast_reference_time_and_forecast_period(
+                cube, time_point=np.array([402295.0, 402296.0]),
+                fp_point=[2.0, 3.0]))
         reshaped_array = (
             reshape_array_to_have_probabilistic_dimension_at_the_front(
                 percentile_cube[0].data, percentile_cube, "percentile", plen))

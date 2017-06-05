@@ -44,7 +44,7 @@ import numpy as np
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsMembers as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import (
-    set_up_temperature_cube, _add_forecast_reference_time_and_forecast_period)
+    set_up_temperature_cube, add_forecast_reference_time_and_forecast_period)
 
 
 class Test_process(IrisTest):
@@ -55,7 +55,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points

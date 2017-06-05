@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
-    _add_forecast_reference_time_and_forecast_period,
+    add_forecast_reference_time_and_forecast_period,
     set_up_probability_above_threshold_cube,
     set_up_probability_above_threshold_temperature_cube,
     set_up_probability_above_threshold_spot_temperature_cube)
@@ -57,7 +57,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 
     def setUp(self):
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
     def test_basic(self):
@@ -132,10 +132,10 @@ class Test__probabilities_to_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
         self.current_temperature_spot_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_spot_temperature_cube()))
 
     def test_basic(self):
@@ -188,7 +188,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
                     data, "air_temperature", "1",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
@@ -236,8 +236,9 @@ class Test__probabilities_to_percentiles(IrisTest):
             data, "air_temperature", "degreesC", timesteps=2,
             x_dimension_length=2, y_dimension_length=2)
         self.probability_cube = (
-            _add_forecast_reference_time_and_forecast_period(
-                cube, time_point=np.array([402295.0, 402296.0])))
+            add_forecast_reference_time_and_forecast_period(
+                cube, time_point=np.array([402295.0, 402296.0]),
+                fp_point=[2.0, 3.0]))
         cube = self.probability_cube
         percentiles = [0.2, 0.6, 0.8]
         bounds_pairing = (-40, 50)
@@ -256,7 +257,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
                     data, "air_temperature", "1",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
@@ -354,7 +355,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         temperature_values = np.arange(0, 30)
         cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
                     input_probs, "air_temperature", "1",
                     forecast_thresholds=temperature_values)))
@@ -444,7 +445,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
     def test_check_data_specifying_percentiles(self):

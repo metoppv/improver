@@ -44,7 +44,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     EnsembleReordering as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_cube, set_up_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    add_forecast_reference_time_and_forecast_period)
 
 
 class Test__recycle_raw_ensemble_members(IrisTest):
@@ -66,10 +66,10 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         data[2] += 3
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+            add_forecast_reference_time_and_forecast_period(cube.copy()))
         cube.coord("realization").rename("percentile")
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube))
+            add_forecast_reference_time_and_forecast_period(cube))
 
     def test_realization_for_equal(self):
         """
@@ -215,10 +215,10 @@ class Test__recycle_raw_ensemble_members(IrisTest):
             realizations=np.arange(0, 9))
 
         self.realization_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube.copy()))
+            add_forecast_reference_time_and_forecast_period(cube.copy()))
         cube.coord("realization").rename("percentile")
         self.percentile_cube = (
-            _add_forecast_reference_time_and_forecast_period(cube))
+            add_forecast_reference_time_and_forecast_period(cube))
 
         expected = np.array([[[[4., 4.625, 5.25],
                                [5.875, 6.5, 7.125],
@@ -539,7 +539,7 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         self.post_processed_percentiles = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         self.post_processed_percentiles.coord("realization").rename(
             "percentile")

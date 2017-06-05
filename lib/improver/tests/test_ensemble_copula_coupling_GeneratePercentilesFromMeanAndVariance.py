@@ -44,7 +44,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_spot_temperature_cube, set_up_temperature_cube,
-    _add_forecast_reference_time_and_forecast_period)
+    add_forecast_reference_time_and_forecast_period)
 
 
 class Test__mean_and_variance_to_percentiles(IrisTest):
@@ -57,7 +57,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         self.current_temperature_spot_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
 
     def test_check_data(self):
@@ -279,7 +279,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
     def test_basic(self):
