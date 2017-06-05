@@ -28,7 +28,6 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Plugins written for the Improver site specific process chain.
 
@@ -39,12 +38,15 @@ import numpy as np
 from iris import Constraint
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
+from iris import FUTURE
+
+FUTURE.cell_datetime_objects = True
 
 
 class ConditionalListExtract(object):
     '''
     Performs a numerical comparison, the type selected with method, of data
-    in an array and returns an array of indices in that data array that
+    in a 2D array and returns an array of indices in that data array that
     fulfill the comparison.
 
     '''
@@ -85,7 +87,12 @@ class ConditionalListExtract(object):
         """
 
         array_of_indices = np.array(indices_list)
-        function = getattr(self, self.method)
+        try:
+            function = getattr(self, self.method)
+        except:
+            raise AttributeError('Unknown method "{}" passed to {}.'.format(
+                self.method, self.__class__.__name__))
+
         subset = function(data, array_of_indices, comparison_value)
 
         return array_of_indices[0:2, subset[0]].tolist()
@@ -264,6 +271,8 @@ def index_of_minimum_difference(whole_list, subset_list=None):
     Index of the minimum value in whole_list.
 
     """
+    whole_list = np.array(whole_list)
+
     if subset_list is None:
         subset_list = np.arange(len(whole_list))
     return subset_list[np.argmin(abs(whole_list[subset_list]))]
@@ -337,8 +346,8 @@ def apply_bias(vertical_bias, dzs):
         relative to the site; above/below/None.
 
     dzs : numpy.array
-        Array of vertical displacements calculated as the subtraction of grid
-        orography altitudes from spot site altitudes.
+        1D array of vertical displacements calculated as the subtraction of
+        grid orography altitudes from spot site altitudes.
 
     Returns:
     --------
@@ -347,13 +356,15 @@ def apply_bias(vertical_bias, dzs):
         available, otherwise it returns the whole set.
 
     """
+    dzs = np.array(dzs)
+
     if vertical_bias == 'above':
         dz_subset, = np.where(dzs <= 0)
     elif vertical_bias == 'below':
         dz_subset, = np.where(dzs >= 0)
 
-    if (vertical_bias is None or len(dz_subset) == 0 or
-            len(dz_subset) == len(dzs)):
+    if (vertical_bias is None or len(dz_subset) == 0
+            or len(dz_subset) == len(dzs)):
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
