@@ -53,7 +53,7 @@ function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
     if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
-        prove -j $(nproc) -r -e "bats --tap" \
+        prove --directives -r -e "bats --tap" \
             --ext ".bats" "$IMPROVER_DIR/tests/"
     else
         bats $(find "$IMPROVER_DIR/tests/" -name "*.bats")
@@ -61,11 +61,10 @@ function improver_test_cli {
     echo_ok "CLI tests"
 }
 
-cd $IMPROVER_DIR/lib
-
-if [[ ${1:-} == '--help' ]] || [[ ${1:-} == '-h' ]]; then
+function print_usage {
+    # Output CLI usage information.
     cat <<'__USAGE__'
-improver tests [--debug] [SUBTEST] 
+improver tests [--debug] [SUBTEST...] 
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
@@ -74,33 +73,47 @@ Optional arguments:
     -h, --help          Show this message and exit
 
 Arguments:
-    SUBTEST         Name of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, unit, cli.
-                    pep8, pylintE, unit, and cli are the default tests.
+    SUBTEST         Name(s) of a subtest to run without running the rest.
+                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
+                    pep8, pylintE, doc, unit, and cli are the default tests.
 __USAGE__
-    exit 0
-fi
+}
+
+cd $IMPROVER_DIR/lib
 
 DEBUG_OPT=
-if [[ "${1:-}" == '--debug' ]]; then
-    DEBUG_OPT='--debug'
-    shift
-fi
-
-if [[ -n "${1:-}" ]]; then
-    TEST_NAME="improver_test_$1"
-    shift
-    if [[ $(type -t $TEST_NAME) == 'function' ]]; then
-        "$TEST_NAME" "$@" "$DEBUG_OPT"
+SUBTESTS=
+for arg in "$@"; do
+    case $arg in
+        --debug)
+        DEBUG_OPT='--debug'
+        ;;
+        -h|--help)
+        print_usage
         exit 0
-    fi
-    improver tests --help
-    exit 2
-fi
-
-for test_name in pep8 pylintE doc unit cli; do
-    "improver_test_$test_name" "$DEBUG_OPT" "$@"
+        ;;
+        pep8|pylint|pylintE|unit|cli)
+        SUBTESTS="$SUBTESTS $arg"
+        ;;
+        *)
+        print_usage
+        exit 2
+        ;;
+    esac
 done
 
-# No errors found (or script would have exited).
-echo_ok "All tests passed."
+if [[ -n "$SUBTESTS" ]]; then
+    # Custom selection of tests.
+    TESTS="$SUBTESTS"
+else
+    # Default tests.
+    TESTS="pep8 pylintE doc unit cli"
+fi
+
+for TEST_NAME in $TESTS; do
+    "improver_test_$TEST_NAME" "$DEBUG_OPT" "$@"
+done
+
+if [[ -z "$SUBTESTS" ]]; then
+    echo_ok "All tests passed."
+fi
