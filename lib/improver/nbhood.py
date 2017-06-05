@@ -211,8 +211,8 @@ class BasicNeighbourhoodProcessing(object):
 
     def _apply_kernel_for_smoothing(self, cube, ranges):
         """
-        Return the number of grid cells in the x and y direction
-        to be used to create the kernel.
+        Method to apply a kernel to the data within the input cube in order
+        to smooth the resulting field.
 
         Parameters
         ----------

@@ -24,8 +24,13 @@ optional arguments:
                         The kernel radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
                         The radii are in km whilst the lead time has units of
-                        hours.The radii and lead times are expected as comma-
-                        separated lists e.g. 10,12,14.
+                        hours. The radii and lead times are expected as
+                        individual comma-separated lists with the list of
+                        radii given first followed by a list of lead times to
+                        indicate at what lead time each radii should be used.
+                        For example: 10,12,14 1,2,3 where a lead time of 1
+                        hour uses a radius of 10km, a lead time of 2 hours
+                        uses a radius of 12km, etc.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
