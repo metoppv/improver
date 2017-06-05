@@ -22,7 +22,7 @@ if [[ ${1:-} == '--help' ]] || [[ ${1:-} == '-h' ]]; then
     cat <<'__USAGE__'
 improver tests [--debug]
 
-Run pep8, pylint, unit and CLI acceptance tests.
+Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --debug         Run in verbose mode (may take longer for CLI)
@@ -44,6 +44,12 @@ echo_ok "pep8"
 # Pylint obvious-errors-only testing.
 ${PYLINT:-pylint} -E --rcfile=../etc/pylintrc improver
 echo_ok "pylint -E"
+
+# Build documentation as test.
+cd $IMPROVER_DIR/doc
+make html
+echo_ok "sphinx-build -b html"
+cd -
 
 # Unit tests.
 python -m unittest discover
