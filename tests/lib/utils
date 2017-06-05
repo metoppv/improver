@@ -40,7 +40,13 @@ function improver_check_skip_acceptance {
 }
 
 function improver_compare_output {
-  # Run nccmp to compare the output and kgo.
+  # Run nccmp to compare the output and known good output.
+  # nccmp options:
+  #    -d means compare data
+  #    -m also compare metadata
+  #    -N ignore NaN comparisons
+  #    -s report 'Files X and Y are identical' if they really are.
+
   run nccmp -dmNs "$1" "$2"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
