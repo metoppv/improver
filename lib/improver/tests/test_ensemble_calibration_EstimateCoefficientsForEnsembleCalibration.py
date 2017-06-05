@@ -46,7 +46,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
 from improver.tests.helper_functions_ensemble_calibration import(
     set_up_temperature_cube, set_up_wind_speed_cube,
-    _add_forecast_reference_time_and_forecast_period,
+    add_forecast_reference_time_and_forecast_period,
     _create_historic_forecasts, _create_truth)
 
 
@@ -339,7 +339,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     def setUp(self):
         """Set up multiple cubes for testing."""
         self.current_temperature_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
         self.historic_temperature_forecast_cube = (
@@ -349,7 +349,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             _create_truth(self.current_temperature_forecast_cube))
 
         self.current_wind_speed_forecast_cube = (
-            _add_forecast_reference_time_and_forecast_period(
+            add_forecast_reference_time_and_forecast_period(
                 set_up_wind_speed_cube()))
 
         self.historic_wind_speed_forecast_cube = (
