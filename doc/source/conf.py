@@ -19,7 +19,10 @@
 import os
 import sys
 
-SOURCE_DIR = os.path.abspath((os.path.join(os.curdir, '..', '..', 'lib')))
+SOURCE_DIR = os.path.abspath(os.path.join(
+                    os.path.dirname(os.path.abspath(__file__)),
+                    '..', '..', 'lib'
+                    ))
 
 sys.path.insert(0, SOURCE_DIR)
 
@@ -355,15 +358,17 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 # Get napoleon to document constructor methods.
 napoleon_include_init_with_doc = True
 
+
 # Allow automatic running of sphinx-apidoc:
 # Adapted from: https://github.com/rtfd/readthedocs.org/issues/1139
 def run_apidoc(_):
     from sphinx.apidoc import main
     import os
 
-    output_dir = os.path.abspath(os.path.join(os.curdir, 'source'))
+    output_dir = os.path.dirname(os.path.abspath(__file__))
     exclude_dir = os.path.join(SOURCE_DIR, 'improver', 'tests')
     main(['-e', '-P', '-f', '-o', output_dir, SOURCE_DIR, exclude_dir])
+
 
 def setup(app):
     app.connect('builder-inited', run_apidoc)
