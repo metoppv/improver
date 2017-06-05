@@ -6,8 +6,7 @@
 Welcome to Improver's documentation!
 ====================================
 
-This should contain a link to the API documentation.
-See :doc:`improver`
+API documentation: :doc:`improver`
 
 
 Indices and tables
