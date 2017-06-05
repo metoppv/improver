@@ -28,13 +28,4 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module to contain generally useful constants."""
-
-# Real Missing Data Indicator
-RMDI = -32767.0
-
-# Specific gas constant for dry air (J K-1 kg-1)
-R_DRY_AIR = 287.0
-
-# Specific heat capacity of dry air (J K-1 kg-1)
-CP_DRY_AIR = 1005.0
+""" Provides support routines for SpotData. """
