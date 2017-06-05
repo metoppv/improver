@@ -18,6 +18,23 @@ function echo_ok {
     echo -e "\033[1;32m[OK]\033[0m $1"
 }
 
+if [[ ${1:-} == '--help' ]] || [[ ${1:-} == '-h' ]]; then
+    cat <<'__USAGE__'
+improver tests [--debug]
+
+Run pep8, pylint, unit and CLI acceptance tests.
+
+Optional arguments:
+    --debug         Run in verbose mode (may take longer for CLI)
+    -h, --help          Show this message and exit
+__USAGE__
+    exit 0
+fi
+if [[ -n "${1:-}" && ${1:-} != '--debug' ]]; then
+    improver tests --help
+    exit 2
+fi
+
 cd $IMPROVER_DIR/lib
 
 # PEP8 testing.
