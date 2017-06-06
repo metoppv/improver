@@ -6,7 +6,7 @@
   read -d '' expected <<'__HELP__' || true
 improver tests [--debug]
 
-Run pep8, pylint, unit and CLI acceptance tests.
+Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --debug         Run in verbose mode (may take longer for CLI)
