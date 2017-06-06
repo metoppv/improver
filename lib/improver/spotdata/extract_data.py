@@ -170,7 +170,7 @@ class ExtractData(object):
         longitude = AuxCoord(longitudes, standard_name='longitude',
                              units='degrees')
         utc_offset = AuxCoord(utc_offsets, long_name='utc_offset',
-                             units='hours')
+                              units='hours')
         return indices, bd_ids, latitude, longitude, utc_offset
 
     def make_cube(self, cube, data, sites):
