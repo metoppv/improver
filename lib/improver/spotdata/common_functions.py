@@ -92,6 +92,7 @@ class ConditionalListExtract(object):
         except:
             raise AttributeError('Unknown method "{}" passed to {}.'.format(
                 self.method, self.__class__.__name__))
+
         subset = function(data, array_of_indices, comparison_value)
 
         return array_of_indices[0:2, subset[0]].tolist()
@@ -271,6 +272,7 @@ def index_of_minimum_difference(whole_list, subset_list=None):
 
     """
     whole_list = np.array(whole_list)
+
     if subset_list is None:
         subset_list = np.arange(len(whole_list))
     return subset_list[np.argmin(abs(whole_list[subset_list]))]
