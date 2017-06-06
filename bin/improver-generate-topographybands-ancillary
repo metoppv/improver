@@ -51,9 +51,9 @@ THRESHOLDS_DICT = {'land': [[-500, 0], [0, 50], [50, 100], [100, 150],
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read the model landmask, interpolate '
-                     'to the standard grid and add mostly '
-                     'land and mostly sea points.'))
+        description=('Read input orography and landmask fields. Mask '
+                     'data inside the bounds specified in the '
+                     'THRESHOLD_DICT dictionary' ))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
                         help=('If True, ancillaries will be generated even '
@@ -72,22 +72,25 @@ def main():
                         help='The output path for the processed NetCDF.')
     parser.add_argument('grid', metavar='STANDARD_GRID',
                         help='The standard grid to process landmask on.')
-    parser.add_argument('--stash', metavar='STASH_CODE', default=None
+    parser.add_argument('--stash', metavar='STASH_CODE', default=None,
                         help='The stash code to use for loading the required'
                              'orography ancillaries.')
     args = parser.parse_args()
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = find_standard_ancil(
-            args.grid, args.input_filepath_stage, args.input_filepath_um)
-        if len(glob(args.input_filepath_stage)) == 0:
-            iris.save(orography, args.input_filepath_stage)
+            args.grid, args.input_filepath_stage_orography,
+            args.input_filepath_um_orography)
+        if len(glob(args.input_filepath_stage_orography)) == 0:
+            iris.save(orography, args.input_filepath_stage_orography)
         try:
             landmask = iris.load(args.input_filepath_landmask)[0]
         except IOError:
             msg = ('Cannot locate land mask at {}; '
                    'run improver-generateancil_landmask first.')
             raise IOError(msg.format(args.input_filepath_landmask))
+        print landmask
+        print orography
         result = GenerateOrographyBandAncils().process(
             orography, landmask, THRESHOLDS_DICT)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])

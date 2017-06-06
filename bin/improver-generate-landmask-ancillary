@@ -61,7 +61,7 @@ def main():
                         help='The output path for the processed NetCDF')
     parser.add_argument('grid', metavar='STANDARD_GRID',
                         help='The standard grid to process landmask on.')
-    parser.add_argument('--stash', metavar='STASH_CODE', default=None
+    parser.add_argument('--stash', metavar='STASH_CODE', default=None,
                         help='The stash code to use for loading the required'
                              'orography ancillaries.')
     args = parser.parse_args()
@@ -71,8 +71,7 @@ def main():
         landmask = find_standard_ancil(
             args.grid, args.input_filepath_stage, args.input_filepath_um,
             stash=args.stash)
-        result = GenerateLandAncil().process(landmask)
-        iris.save(result, args.output_filepath, unlimited_dimensions=[])
+        iris.save(landmask, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
 
