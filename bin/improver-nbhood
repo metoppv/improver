@@ -41,18 +41,40 @@ from improver.nbhood import BasicNeighbourhoodProcessing
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description='Apply basic weighted circle smoothing via ' +
-                    'the BasicNeighbourhoodProcessing plugin ' +
-                    'to a file with one cube.')
-    parser.add_argument('--radius-in-km', metavar='RADIUS', type=float,
-                        help='The kernel radius for neighbourhood processing')
+    description='Apply basic weighted circle smoothing via ' +
+                'the BasicNeighbourhoodProcessing plugin ' +
+                'to a file with one cube.')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
+                       help='The kernel radius for neighbourhood processing')
+    group.add_argument('--radii-in-km-by-lead-time',
+                       metavar='RADIUS_BY_LEAD_TIME', nargs=2,
+                       help='The kernel radii for neighbourhood processing '
+                       'and the associated lead times at which the radii are '
+                       'valid. The radii are in km whilst the lead time '
+                       'has units of hours. The radii and lead times are '
+                       'expected as individual comma-separated lists with '
+                       'the list of radii given first followed by a list of '
+                       'lead times to indicate at what lead time each radii '
+                       'should be used. For example: 10,12,14 1,2,3 '
+                       'where a lead time of 1 hour uses a radius of 10km, '
+                       'a lead time of 2 hours uses a radius of 12km, etc.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
-    result = BasicNeighbourhoodProcessing(args.radius_in_km).process(cube)
+    if args.radius_in_km:
+        radius_or_radii_in_km = args.radius_in_km
+        lead_times = None
+    elif args.radii_in_km_by_lead_time:
+        radius_or_radii_in_km = args.radii_in_km_by_lead_time[0].split(",")
+        lead_times = args.radii_in_km_by_lead_time[1].split(",")
+    result = (
+        BasicNeighbourhoodProcessing(
+            radius_or_radii_in_km,
+            lead_times=lead_times).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
