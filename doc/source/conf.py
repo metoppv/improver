@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Improver documentation build configuration file, created by
+# IMPROVER documentation build configuration file, created by
 # sphinx-quickstart on Fri May 19 13:27:21 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -61,7 +61,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Improver'
+project = u'IMPROVER'
 copyright = u'2017, Met Office'
 author = u'Met Office'
 
@@ -147,7 +147,7 @@ html_theme_options = {
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = u'Improver'
+# html_title = u'IMPROVER'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
@@ -273,7 +273,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Improver.tex', u'Improver Documentation',
+    (master_doc, 'Improver.tex', u'IMPROVER Documentation',
      u'Met Office', 'manual'),
 ]
 
@@ -315,7 +315,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'improver', u'Improver Documentation',
+    (master_doc, 'improver', u'IMPROVER Documentation',
      [author], 1)
 ]
 
@@ -330,8 +330,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Improver', u'Improver Documentation',
-     author, 'Improver', 'One line description of project.',
+    (master_doc, 'IMPROVER', u'IMPROVER Documentation',
+     author, 'IMPROVER', 'One line description of project.',
      'Miscellaneous'),
 ]
 
