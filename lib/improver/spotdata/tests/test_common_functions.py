@@ -486,7 +486,7 @@ class TestApplyBias(TestCommonFunctions):
         dzs = [-2., -1., 0., 1., 2.]
         plugin = apply_bias
         expected = [0, 1, 2]
-        result = plugin(bias, dzs)
+        result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
 
     def test_bias_below(self):
@@ -495,7 +495,7 @@ class TestApplyBias(TestCommonFunctions):
         dzs = [-2., -1., 0., 1., 2.]
         plugin = apply_bias
         expected = [2, 3, 4]
-        result = plugin(bias, dzs)
+        result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
 
     def test_bias_none(self):
@@ -504,7 +504,7 @@ class TestApplyBias(TestCommonFunctions):
         dzs = [-2., -1., 0., 1., 2.]
         plugin = apply_bias
         expected = [0, 1, 2, 3, 4]
-        result = plugin(bias, dzs)
+        result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
 
     def test_bias_below_all_above(self):
@@ -513,7 +513,7 @@ class TestApplyBias(TestCommonFunctions):
         dzs = [-5., -4., -3., -2., -1.]
         plugin = apply_bias
         expected = [0, 1, 2, 3, 4]
-        result = plugin(bias, dzs)
+        result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
 
 
