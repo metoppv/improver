@@ -356,8 +356,6 @@ def apply_bias(vertical_bias, dzs):
         available, otherwise it returns the whole set.
 
     """
-    dzs = np.array(dzs)
-
     if vertical_bias == 'above':
         dz_subset, = np.where(dzs <= 0)
     elif vertical_bias == 'below':

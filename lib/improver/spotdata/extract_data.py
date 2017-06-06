@@ -122,8 +122,9 @@ class ExtractData(object):
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
 
-            pressure_on_height_levels.convert_units('hPa')
-            surface_pressure.convert_units('hPa')
+            # Ensure that pressure units are in Pa.
+            pressure_on_height_levels.convert_units('Pa')
+            surface_pressure.convert_units('Pa')
 
             return self.model_level_temperature_lapse_rate(
                 cube, sites, neighbours, pressure_on_height_levels,
@@ -133,7 +134,7 @@ class ExtractData(object):
             self.method, self.__class__.__name__))
 
     @staticmethod
-    def _build_coordinates(latitudes, longitudes, site_ids, gmtoffsets):
+    def _build_coordinates(latitudes, longitudes, site_ids, utc_offsets):
         """
         Construct coordinates for the irregular iris.Cube containing site data.
         A single dimensional coordinate is created using the running order,
@@ -151,8 +152,8 @@ class ExtractData(object):
         site_ids   : list
             A list of bestdata site_ids ordered to match the sites OrderedDict.
 
-        gmtoffsets : list
-            A list of gmt off sets in hours ordered to match the sites
+        utc_offsets : list
+            A list of UTC off sets in hours ordered to match the sites
             OrderedDict.
 
         Returns:
@@ -168,9 +169,9 @@ class ExtractData(object):
                             units='degrees')
         longitude = AuxCoord(longitudes, standard_name='longitude',
                              units='degrees')
-        gmtoffset = AuxCoord(gmtoffsets, long_name='gmtoffset',
+        utc_offset = AuxCoord(utc_offsets, long_name='utc_offset',
                              units='hours')
-        return indices, bd_ids, latitude, longitude, gmtoffset
+        return indices, bd_ids, latitude, longitude, utc_offset
 
     def make_cube(self, cube, data, sites):
         """
@@ -197,12 +198,12 @@ class ExtractData(object):
         """
         latitudes = [site['latitude'] for site in sites.itervalues()]
         longitudes = [site['longitude'] for site in sites.itervalues()]
-        gmtoffsets = [site['gmtoffset'] for site in sites.itervalues()]
+        utc_offsets = [site['utc_offset'] for site in sites.itervalues()]
         site_ids = sites.keys()
 
-        indices, bd_ids, latitude, longitude, gmtoffset = (
+        indices, bd_ids, latitude, longitude, utc_offset = (
             self._build_coordinates(
-                latitudes, longitudes, site_ids, gmtoffsets))
+                latitudes, longitudes, site_ids, utc_offsets))
 
         # Add leading dimension for time.
         data.resize(1, len(data))
@@ -212,7 +213,7 @@ class ExtractData(object):
                                                 (indices, 1)],
                            aux_coords_and_dims=[(latitude, 1),
                                                 (longitude, 1),
-                                                (gmtoffset, 1),
+                                                (utc_offset, 1),
                                                 (bd_ids, 1)],
                            units=cube.units)
 
@@ -355,8 +356,8 @@ class ExtractData(object):
             p_grad = (p_upper - p_surface)/50.
             p_site = p_surface + p_grad*dz
 
-            theta_upper = t_upper*(1000./p_upper)**kappa
-            theta_surface = t_surface*(1000./p_surface)**kappa
+            theta_upper = t_upper*(1.0E5/p_upper)**kappa
+            theta_surface = t_surface*(1.0E5/p_surface)**kappa
             dthetadz = (theta_upper - theta_surface)/50.
 
             if abs(dz) < 1.:
@@ -364,9 +365,9 @@ class ExtractData(object):
             else:
                 dz = min(abs(dz), 70.)*np.sign(dz)
                 if dthetadz > 0:
-                    t1p5 = theta_surface*(p_site/1000.)**kappa
+                    t1p5 = theta_surface*(p_site/1.0E5)**kappa
                 else:
-                    t1p5 = (theta_surface + dz*dthetadz)*(p_site/1000.)**kappa
+                    t1p5 = (theta_surface + dz*dthetadz)*(p_site/1.0E5)**kappa
 
             data[i_site] = t1p5
 
