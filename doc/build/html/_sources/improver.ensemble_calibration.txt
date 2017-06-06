@@ -1,0 +1,30 @@
+improver.ensemble_calibration package
+=====================================
+
+Submodules
+----------
+
+improver.ensemble_calibration.ensemble_calibration module
+---------------------------------------------------------
+
+.. automodule:: improver.ensemble_calibration.ensemble_calibration
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+improver.ensemble_calibration.ensemble_calibration_utilities module
+-------------------------------------------------------------------
+
+.. automodule:: improver.ensemble_calibration.ensemble_calibration_utilities
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: improver.ensemble_calibration
+    :members:
+    :undoc-members:
+    :show-inheritance:

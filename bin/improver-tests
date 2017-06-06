@@ -47,7 +47,7 @@ echo_ok "pylint -E"
 
 # Build documentation as test.
 cd $IMPROVER_DIR/doc
-make html
+make html 1>/dev/null
 echo_ok "sphinx-build -b html"
 cd -
 

@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>improver.ensemble_calibration.ensemble_calibration_utilities &#8212; Improver  documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="top" title="Improver  documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Improver  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for improver.ensemble_calibration.ensemble_calibration_utilities</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># (C) British Crown Copyright 2017 Met Office.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c1"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c1">#</span>
+<span class="c1"># * Redistributions of source code must retain the above copyright notice, this</span>
+<span class="c1">#   list of conditions and the following disclaimer.</span>
+<span class="c1">#</span>
+<span class="c1"># * Redistributions in binary form must reproduce the above copyright notice,</span>
+<span class="c1">#   this list of conditions and the following disclaimer in the documentation</span>
+<span class="c1">#   and/or other materials provided with the distribution.</span>
+<span class="c1">#</span>
+<span class="c1"># * Neither the name of the copyright holder nor the names of its</span>
+<span class="c1">#   contributors may be used to endorse or promote products derived from</span>
+<span class="c1">#   this software without specific prior written permission.</span>
+<span class="c1">#</span>
+<span class="c1"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot;</span>
+<span class="c1"># AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE</span>
+<span class="c1"># IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE</span>
+<span class="c1"># ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE</span>
+<span class="c1"># LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR</span>
+<span class="c1"># CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF</span>
+<span class="c1"># SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS</span>
+<span class="c1"># INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN</span>
+<span class="c1"># CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)</span>
+<span class="c1"># ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE</span>
+<span class="c1"># POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all the utilities used by the &quot;plugins&quot;</span>
+<span class="sd">specific for ensemble calibration.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">iris</span>
+
+
+<div class="viewcode-block" id="convert_cube_data_to_2d"><a class="viewcode-back" href="../../../improver.ensemble_calibration.html#improver.ensemble_calibration.ensemble_calibration_utilities.convert_cube_data_to_2d">[docs]</a><span class="k">def</span> <span class="nf">convert_cube_data_to_2d</span><span class="p">(</span>
+        <span class="n">forecast</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="s2">&quot;realization&quot;</span><span class="p">,</span> <span class="n">transpose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to convert data from a N-dimensional cube into a 2d</span>
+<span class="sd">    numpy array. The result can be transposed, if required.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    forecast : Iris cube</span>
+<span class="sd">        N-dimensional cube to be reshaped.</span>
+<span class="sd">    coord : String</span>
+<span class="sd">        The data will be flattened along this coordinate.</span>
+<span class="sd">    transpose : Logical</span>
+<span class="sd">        If True, the resulting flattened data is transposed.</span>
+<span class="sd">        If False, the resulting flattened data is not transposed.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    forecast_data : Numpy array</span>
+<span class="sd">        Reshaped 2d array.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">forecast_data</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">coord_slice</span> <span class="ow">in</span> <span class="n">forecast</span><span class="o">.</span><span class="n">slices_over</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
+        <span class="n">forecast_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord_slice</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">transpose</span><span class="p">:</span>
+        <span class="n">forecast_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">forecast_data</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">forecast_data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="concatenate_cubes"><a class="viewcode-back" href="../../../improver.ensemble_calibration.html#improver.ensemble_calibration.ensemble_calibration_utilities.concatenate_cubes">[docs]</a><span class="k">def</span> <span class="nf">concatenate_cubes</span><span class="p">(</span>
+        <span class="n">cubes</span><span class="p">,</span> <span class="n">coords_to_slice_over</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;realization&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">],</span>
+        <span class="n">master_coord</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="n">coordinates_for_association</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;forecast_reference_time&quot;</span><span class="p">,</span>
+                                     <span class="s2">&quot;forecast_period&quot;</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to concatenate cubes, accounting for differences in the</span>
+<span class="sd">    history attribute, and allow promotion of forecast_reference_time</span>
+<span class="sd">    and forecast_period coordinates from scalar coordinates to auxiliary</span>
+<span class="sd">    coordinates to allow concatenation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cubes : Iris cubelist or Iris cube</span>
+<span class="sd">        Cubes to be concatenated.</span>
+<span class="sd">    coords_to_slice_over : List</span>
+<span class="sd">        Coordinates to be sliced over.</span>
+<span class="sd">    master_coord : String</span>
+<span class="sd">        Coordinate that the other coordinates will be associated with.</span>
+<span class="sd">    coordinates_for_association : List</span>
+<span class="sd">        List of coordinates to be associated with the master_coord.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Iris cube</span>
+<span class="sd">        Concatenated cube.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">):</span>
+        <span class="n">cubes</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">([</span><span class="n">cubes</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">coord_to_slice_over</span> <span class="ow">in</span> <span class="n">coords_to_slice_over</span><span class="p">:</span>
+        <span class="n">cubes</span> <span class="o">=</span> <span class="n">_slice_over_coordinate</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">coord_to_slice_over</span><span class="p">)</span>
+
+    <span class="n">cubes</span> <span class="o">=</span> <span class="n">_strip_var_names</span><span class="p">(</span><span class="n">cubes</span><span class="p">)</span>
+
+    <span class="n">associated_with_time_cubelist</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">([])</span>
+    <span class="k">for</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">cubes</span><span class="p">:</span>
+        <span class="n">associated_with_time_cubelist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_associate_any_coordinate_with_master_coordinate</span><span class="p">(</span>
+                <span class="n">cube</span><span class="p">,</span> <span class="n">master_coord</span><span class="o">=</span><span class="n">master_coord</span><span class="p">,</span>
+                <span class="n">coordinates</span><span class="o">=</span><span class="n">coordinates_for_association</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">associated_with_time_cubelist</span><span class="o">.</span><span class="n">concatenate_cube</span><span class="p">()</span></div>
+
+
+<span class="k">def</span> <span class="nf">_associate_any_coordinate_with_master_coordinate</span><span class="p">(</span>
+        <span class="n">cube</span><span class="p">,</span> <span class="n">master_coord</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to convert the given coordinates from scalar coordinates to</span>
+<span class="sd">    auxiliary coordinates, where these auxiliary coordinates will be</span>
+<span class="sd">    associated with the master coordinate.</span>
+
+<span class="sd">    For example, forecast_reference_time and forecast_period can be converted</span>
+<span class="sd">    from scalar coordinates to auxiliary coordinates, and associated with time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cube : Iris cube</span>
+<span class="sd">        Cube requiring addition of the specified coordinates as auxiliary</span>
+<span class="sd">        coordinates.</span>
+<span class="sd">    master_coord : String</span>
+<span class="sd">        Coordinate that the other coordinates will be associated with.</span>
+<span class="sd">    coordinates : None or List</span>
+<span class="sd">        List of coordinates to be associated with the master_coord.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    forecast_data : Iris cube</span>
+<span class="sd">        Cube where the the requested coordinates have been added to the cube</span>
+<span class="sd">        as auxiliary coordinates and associated with the desired master</span>
+<span class="sd">        coordinate.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">coordinates</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coordinates</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cube</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="n">coord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">cube</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="n">master_coord</span><span class="p">):</span>
+                <span class="n">temp_coord</span> <span class="o">=</span> <span class="n">cube</span><span class="o">.</span><span class="n">coord</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                <span class="n">cube</span><span class="o">.</span><span class="n">remove_coord</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                <span class="n">temp_aux_coord</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">AuxCoord</span><span class="p">(</span>
+                    <span class="n">temp_coord</span><span class="o">.</span><span class="n">points</span><span class="p">,</span>
+                    <span class="n">standard_name</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">standard_name</span><span class="p">,</span>
+                    <span class="n">long_name</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">long_name</span><span class="p">,</span>
+                    <span class="n">var_name</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">var_name</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">units</span><span class="p">,</span>
+                    <span class="n">bounds</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">bounds</span><span class="p">,</span>
+                    <span class="n">attributes</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">attributes</span><span class="p">,</span>
+                    <span class="n">coord_system</span><span class="o">=</span><span class="n">temp_coord</span><span class="o">.</span><span class="n">coord_system</span><span class="p">)</span>
+                <span class="n">coord_names</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">coord</span><span class="o">.</span><span class="n">standard_name</span> <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">cube</span><span class="o">.</span><span class="n">dim_coords</span><span class="p">]</span>
+                <span class="n">cube</span><span class="o">.</span><span class="n">add_aux_coord</span><span class="p">(</span>
+                    <span class="n">temp_aux_coord</span><span class="p">,</span>
+                    <span class="n">data_dims</span><span class="o">=</span><span class="n">coord_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">master_coord</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;The master coordinate for associating other &quot;</span> <span class="o">+</span>
+                    <span class="s2">&quot;coordinates with is not present: &quot;</span> <span class="o">+</span>
+                    <span class="s2">&quot;master_coord: </span><span class="si">{}</span><span class="s2">, other coordinates: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">master_coord</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cube</span>
+
+
+<span class="k">def</span> <span class="nf">_slice_over_coordinate</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">coord_to_slice_over</span><span class="p">,</span> <span class="n">remove_history</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function slice over the requested coordinate,</span>
+<span class="sd">    promote the sliced coordinate into a dimension coordinate and</span>
+<span class="sd">    remove the history attribute to help concatenation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cubes : Iris cubelist or Iris cube</span>
+<span class="sd">        Cubes to be concatenated.</span>
+<span class="sd">    coords_to_slice_over : List</span>
+<span class="sd">        Coordinates to be sliced over.</span>
+<span class="sd">    remove_history : Logical</span>
+<span class="sd">        Option to remove the history attribute to help make concatenation</span>
+<span class="sd">        more likely. remove_history is set to True as default.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Iris CubeList</span>
+<span class="sd">        CubeList containing sliced cubes.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sliced_by_coord_cubelist</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">([])</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">):</span>
+        <span class="n">cubes</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">([</span><span class="n">cubes</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">cubes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cube</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="n">coord_to_slice_over</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">coord_slice</span> <span class="ow">in</span> <span class="n">cube</span><span class="o">.</span><span class="n">slices_over</span><span class="p">(</span><span class="n">coord_to_slice_over</span><span class="p">):</span>
+                <span class="n">coord_slice</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">new_axis</span><span class="p">(</span>
+                    <span class="n">coord_slice</span><span class="p">,</span> <span class="n">coord_to_slice_over</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">remove_history</span> <span class="ow">and</span>
+                        <span class="s2">&quot;history&quot;</span> <span class="ow">in</span> <span class="n">coord_slice</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">coord_slice</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;history&quot;</span><span class="p">)</span>
+                <span class="n">sliced_by_coord_cubelist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coord_slice</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sliced_by_coord_cubelist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cube</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sliced_by_coord_cubelist</span>
+
+
+<span class="k">def</span> <span class="nf">_strip_var_names</span><span class="p">(</span><span class="n">cubes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Strips var_name from the cube and from all coordinates</span>
+<span class="sd">    to help concatenation.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cubes : Iris cubelist or Iris cube</span>
+<span class="sd">        Cubes to be concatenated.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Iris CubeList</span>
+<span class="sd">        CubeList containing original cubes without a var_name on the cube,</span>
+<span class="sd">        or on the coordinates.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">):</span>
+        <span class="n">cubes</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">([</span><span class="n">cubes</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">cubes</span><span class="p">:</span>
+        <span class="n">cube</span><span class="o">.</span><span class="n">var_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">cube</span><span class="o">.</span><span class="n">coords</span><span class="p">():</span>
+            <span class="n">coord</span><span class="o">.</span><span class="n">var_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">cubes</span>
+
+
+<div class="viewcode-block" id="rename_coordinate"><a class="viewcode-back" href="../../../improver.ensemble_calibration.html#improver.ensemble_calibration.ensemble_calibration_utilities.rename_coordinate">[docs]</a><span class="k">def</span> <span class="nf">rename_coordinate</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">original_coord</span><span class="p">,</span> <span class="n">renamed_coord</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Renames a coordinate to an alternative name for an</span>
+<span class="sd">    input Iris Cube or Iris CubeList.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cubes : Iris cubelist or Iris cube</span>
+<span class="sd">        Cubes with coordinates to be renamed.</span>
+<span class="sd">    original_coord : String</span>
+<span class="sd">        Original name for the coordinate.</span>
+<span class="sd">    renamed_coord : String</span>
+<span class="sd">        Name for the coordinate to be renamed to.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">Cube</span><span class="p">):</span>
+        <span class="n">_renamer</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">original_coord</span><span class="p">,</span> <span class="n">renamed_coord</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cubes</span><span class="p">,</span> <span class="n">iris</span><span class="o">.</span><span class="n">cube</span><span class="o">.</span><span class="n">CubeList</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">cube</span> <span class="ow">in</span> <span class="n">cubes</span><span class="p">:</span>
+            <span class="n">_renamer</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">original_coord</span><span class="p">,</span> <span class="n">renamed_coord</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;A Cube or CubeList is not provided for renaming &quot;</span>
+               <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">. Variable provided &quot;</span>
+               <span class="s2">&quot;is of type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                   <span class="n">original_coord</span><span class="p">,</span> <span class="n">renamed_coord</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">cubes</span><span class="p">)))</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_renamer</span><span class="p">(</span><span class="n">cube</span><span class="p">,</span> <span class="n">original_coord</span><span class="p">,</span> <span class="n">renamed_coord</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Renames a coordinate to an alternative name.</span>
+<span class="sd">    If the coordinate is not found within the cube, then the</span>
+<span class="sd">    original cube is returned.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cube : Iris cube</span>
+<span class="sd">        Cube with coordinates to be renamed.</span>
+<span class="sd">    original_coord : String</span>
+<span class="sd">        Original name for the coordinate.</span>
+<span class="sd">    renamed_coord : String</span>
+<span class="sd">        Name for the coordinate to be renamed to.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cube</span><span class="o">.</span><span class="n">coords</span><span class="p">(</span><span class="n">original_coord</span><span class="p">):</span>
+        <span class="n">cube</span><span class="o">.</span><span class="n">coord</span><span class="p">(</span><span class="n">original_coord</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">renamed_coord</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="check_predictor_of_mean_flag"><a class="viewcode-back" href="../../../improver.ensemble_calibration.html#improver.ensemble_calibration.ensemble_calibration_utilities.check_predictor_of_mean_flag">[docs]</a><span class="k">def</span> <span class="nf">check_predictor_of_mean_flag</span><span class="p">(</span><span class="n">predictor_of_mean_flag</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check the predictor_of_mean_flag at the start of the</span>
+<span class="sd">    estimate_coefficients_for_ngr method, to avoid having to check</span>
+<span class="sd">    and raise an error later.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    predictor_of_mean_flag : String</span>
+<span class="sd">        String to specify the input to calculate the calibrated mean.</span>
+<span class="sd">        Currently the ensemble mean (&quot;mean&quot;) and the ensemble members</span>
+<span class="sd">        (&quot;members&quot;) are supported as the predictors.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">predictor_of_mean_flag</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;members&quot;</span><span class="p">]:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The requested value for the predictor_of_mean_flag </span><span class="si">{}</span><span class="s2">&quot;</span>
+               <span class="s2">&quot;is not an accepted value.&quot;</span>
+               <span class="s2">&quot;Accepted values are &#39;mean&#39; or &#39;members&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                   <span class="n">predictor_of_mean_flag</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Improver  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Met Office.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.8.
+    </div>
+  </body>
+</html>

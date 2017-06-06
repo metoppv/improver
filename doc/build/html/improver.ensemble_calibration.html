@@ -1,0 +1,640 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>improver.ensemble_calibration package &#8212; Improver  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="Improver  documentation" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Improver  documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="improver-ensemble-calibration-package">
+<h1>improver.ensemble_calibration package<a class="headerlink" href="#improver-ensemble-calibration-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-improver.ensemble_calibration.ensemble_calibration">
+<span id="improver-ensemble-calibration-ensemble-calibration-module"></span><h2>improver.ensemble_calibration.ensemble_calibration module<a class="headerlink" href="#module-improver.ensemble_calibration.ensemble_calibration" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all the &#8220;plugins&#8221; specific for ensemble calibration.</p>
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ApplyCoefficientsFromEnsembleCalibration">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">ApplyCoefficientsFromEnsembleCalibration</code><span class="sig-paren">(</span><em>current_forecast</em>, <em>optimised_coeffs</em>, <em>coeff_names</em>, <em>predictor_of_mean_flag='mean'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ApplyCoefficientsFromEnsembleCalibration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ApplyCoefficientsFromEnsembleCalibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class to apply the optimised EMOS coefficients to future dates.</p>
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ApplyCoefficientsFromEnsembleCalibration.apply_params_entry">
+<code class="descname">apply_params_entry</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ApplyCoefficientsFromEnsembleCalibration.apply_params_entry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ApplyCoefficientsFromEnsembleCalibration.apply_params_entry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapping function to calculate the forecast predictor and forecast
+variance prior to applying coefficients to the current forecast.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>calibrated_forecast_predictor</strong> (<em>CubeList</em>) &#8211; CubeList containing both the calibrated version of the ensemble
+predictor, either the ensemble mean/members.</li>
+<li><strong>calibrated_forecast_variance</strong> (<em>CubeList</em>) &#8211; CubeList containing both the calibrated version of the ensemble
+variance, either the ensemble mean/members.</li>
+<li><strong>calibrated_forecast_coefficients</strong> (<em>CubeList</em>) &#8211; CubeList containing both the coefficients for calibrating
+the ensemble.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">ContinuousRankedProbabilityScoreMinimisers</code><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ContinuousRankedProbabilityScoreMinimisers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Minimise the Continuous Ranked Probability Score (CRPS)</p>
+<p>Calculate the optimised coefficients for minimising the CRPS based on
+assuming a particular probability distribution for the phenomenon being
+minimised.</p>
+<p>The number of coefficients that will be optimised depend upon the initial
+guess.</p>
+<p>Minimisation is performed using the Nelder-Mead algorithm for 200
+iterations to limit the computational expense.
+Note that the BFGS algorithm was initially trialled but had a bug
+in comparison to comparative results generated in R.</p>
+<dl class="attribute">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.BAD_VALUE">
+<code class="descname">BAD_VALUE</code><em class="property"> = 999999.0</em><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.BAD_VALUE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.MAX_ITERATIONS">
+<code class="descname">MAX_ITERATIONS</code><em class="property"> = 200</em><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.MAX_ITERATIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.TOLERATED_PERCENTAGE_CHANGE">
+<code class="descname">TOLERATED_PERCENTAGE_CHANGE</code><em class="property"> = 5</em><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.TOLERATED_PERCENTAGE_CHANGE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.crps_minimiser_wrapper">
+<code class="descname">crps_minimiser_wrapper</code><span class="sig-paren">(</span><em>initial_guess</em>, <em>forecast_predictor</em>, <em>truth</em>, <em>forecast_var</em>, <em>predictor_of_mean_flag</em>, <em>distribution</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ContinuousRankedProbabilityScoreMinimisers.crps_minimiser_wrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.crps_minimiser_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to pass a given minimisation function to the scipy minimize
+function to estimate optimised values for the coefficients.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>initial_guess</strong> (<em>List</em>) &#8211; List of optimised coefficients.
+Order of coefficients is [c, d, a, b].</li>
+<li><strong>forecast_predictor</strong> (<em>Iris cube</em>) &#8211; Cube containing the fields to be used as the predictor,
+either the ensemble mean or the ensemble members.</li>
+<li><strong>truth</strong> (<em>Iris cube</em>) &#8211; Cube containing the field, which will be used as truth.</li>
+<li><strong>forecast_var</strong> (<em>Iris cube</em>) &#8211; Cube containg the field containing the ensemble variance.</li>
+<li><strong>predictor_of_mean_flag</strong> (<em>String</em>) &#8211; String to specify the input to calculate the calibrated mean.
+Currently the ensemble mean (&#8220;mean&#8221;) and the ensemble members
+(&#8220;members&#8221;) are supported as the predictors.</li>
+<li><strong>distribution</strong> (<em>String</em>) &#8211; String used to access the appropriate minimisation function
+within self.minimisation_dict.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>optimised_coeffs</strong> &#8211; List of optimised coefficients.
+Order of coefficients is [c, d, a, b].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.normal_crps_minimiser">
+<code class="descname">normal_crps_minimiser</code><span class="sig-paren">(</span><em>initial_guess</em>, <em>forecast_predictor</em>, <em>truth</em>, <em>forecast_var</em>, <em>sqrt_pi</em>, <em>predictor_of_mean_flag</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ContinuousRankedProbabilityScoreMinimisers.normal_crps_minimiser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.normal_crps_minimiser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimisation function to calculate coefficients based on minimising the
+CRPS for a normal distribution.</p>
+<p>Scientific Reference:
+Gneiting, T. et al., 2005.
+Calibrated Probabilistic Forecasting Using Ensemble Model Output
+Statistics and Minimum CRPS Estimation.
+Monthly Weather Review, 133(5), pp.1098-1118.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>initial_guess</strong> (<em>List</em>) &#8211; List of optimised coefficients.
+Order of coefficients is [c, d, a, b].</li>
+<li><strong>forecast_predictor</strong> (<em>Numpy array</em>) &#8211; Data to be used as the predictor,
+either the ensemble mean or the ensemble members.</li>
+<li><strong>truth</strong> (<em>Numpy array</em>) &#8211; Data to be used as truth.</li>
+<li><strong>forecast_var</strong> (<em>Numpy array</em>) &#8211; Ensemble variance data.</li>
+<li><strong>sqrt_pi</strong> (<em>Numpy array</em>) &#8211; Square root of Pi</li>
+<li><strong>predictor_of_mean_flag</strong> (<em>String</em>) &#8211; String to specify the input to calculate the calibrated mean.
+Currently the ensemble mean (&#8220;mean&#8221;) and the ensemble members
+(&#8220;members&#8221;) are supported as the predictors.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>result</strong> &#8211; Minimum value for the CRPS achieved.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Float</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.truncated_normal_crps_minimiser">
+<code class="descname">truncated_normal_crps_minimiser</code><span class="sig-paren">(</span><em>initial_guess</em>, <em>forecast_predictor</em>, <em>truth</em>, <em>forecast_var</em>, <em>sqrt_pi</em>, <em>predictor_of_mean_flag</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#ContinuousRankedProbabilityScoreMinimisers.truncated_normal_crps_minimiser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.truncated_normal_crps_minimiser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimisation function to calculate coefficients based on minimising the
+CRPS for a truncated_normal distribution.</p>
+<p>Scientific Reference:
+Thorarinsdottir, T.L. &amp; Gneiting, T., 2010.
+Probabilistic forecasts of wind speed: Ensemble model
+output statistics by using heteroscedastic censored regression.
+Journal of the Royal Statistical Society.
+Series A: Statistics in Society, 173(2), pp.371-388.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>initial_guess</strong> (<em>List</em>) &#8211; List of optimised coefficients.
+Order of coefficients is [c, d, a, b].</li>
+<li><strong>forecast_predictor</strong> (<em>Numpy array</em>) &#8211; Data to be used as the predictor,
+either the ensemble mean or the ensemble members.</li>
+<li><strong>truth</strong> (<em>Numpy array</em>) &#8211; Data to be used as truth.</li>
+<li><strong>forecast_var</strong> (<em>Numpy array</em>) &#8211; Ensemble variance data.</li>
+<li><strong>sqrt_pi</strong> (<em>Numpy array</em>) &#8211; Square root of Pi</li>
+<li><strong>predictor_of_mean_flag</strong> (<em>String</em>) &#8211; String to specify the input to calculate the calibrated mean.
+Currently the ensemble mean (&#8220;mean&#8221;) and the ensemble members
+(&#8220;members&#8221;) are supported as the predictors.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>result</strong> &#8211; Minimum value for the CRPS achieved.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Float</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EnsembleCalibration">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">EnsembleCalibration</code><span class="sig-paren">(</span><em>calibration_method</em>, <em>distribution</em>, <em>desired_units</em>, <em>predictor_of_mean_flag='mean'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EnsembleCalibration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EnsembleCalibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Plugin to wrap the core EMOS processes:
+1. Estimate optimised EMOS coefficients from training period.
+2. Apply optimised EMOS coefficients for future dates.</p>
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EnsembleCalibration.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>current_forecast</em>, <em>historic_forecast</em>, <em>truth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EnsembleCalibration.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EnsembleCalibration.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs ensemble calibration through the following steps:
+1. Estimate optimised coefficients from training period.
+2. Apply optimised coefficients to current forecast.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>current_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The Cube or CubeList that provides the input forecast for
+the current cycle.</li>
+<li><strong>historic_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The Cube or CubeList that provides the input historic forecasts for
+calibration.</li>
+<li><strong>truth</strong> (<em>Iris Cube or CubeList</em>) &#8211; The Cube or CubeList that provides the input truth for calibration
+with dates matching the historic forecasts.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>*  calibrated_forecast_predictor_and_variance</strong> &#8211; CubeList containing the calibrated forecast predictor and
+calibrated forecast variance.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">CubeList</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EnsembleReordering">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">EnsembleReordering</code><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EnsembleReordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EnsembleReordering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Plugin for applying the reordering step of Ensemble Copula Coupling,
+in order to generate ensemble members from percentiles.
+The percentiles are assumed to be in ascending order.</p>
+<p>Reference:
+Schefzik, R., Thorarinsdottir, T.L. &amp; Gneiting, T., 2013.
+Uncertainty Quantification in Complex Simulation Models Using Ensemble
+Copula Coupling.
+Statistical Science, 28(4), pp.616-640.</p>
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EnsembleReordering.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>calibrated_forecast</em>, <em>raw_forecast</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EnsembleReordering.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EnsembleReordering.process" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>calibrated_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The cube or cubelist containing the calibrated forecast members.</li>
+<li><strong>raw_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The cube or cubelist containing the raw (uncalibrated) forecast.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>calibrated_forecast_members</strong> &#8211; Cube for a new ensemble member where all points within the dataset
+are representative of a specified probability threshold across the
+whole domain.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">cube</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EnsembleReordering.rank_ecc">
+<code class="descname">rank_ecc</code><span class="sig-paren">(</span><em>calibrated_forecast_percentiles</em>, <em>raw_forecast_members</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EnsembleReordering.rank_ecc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EnsembleReordering.rank_ecc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to apply Ensemble Copula Coupling. This ranks the calibrated
+forecast members based on a ranking determined from the raw forecast
+members.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>calibrated_forecast_percentiles</strong> (<em>cube</em>) &#8211; Cube for calibrated percentiles. The percentiles are assumed to be
+in ascending order.</li>
+<li><strong>raw_forecast_members</strong> (<em>cube</em>) &#8211; Cube containing the raw (uncalibrated) forecasts.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Cube for calibrated members where at a particular grid point,
+the ranking of the values within the ensemble matches the ranking
+from the raw ensemble.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iris cube</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">EstimateCoefficientsForEnsembleCalibration</code><span class="sig-paren">(</span><em>distribution</em>, <em>desired_units</em>, <em>predictor_of_mean_flag='mean'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EstimateCoefficientsForEnsembleCalibration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Class focussing on estimating the optimised coefficients for ensemble
+calibration.</p>
+<dl class="attribute">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG">
+<code class="descname">ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG</code><em class="property"> = True</em><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.compute_initial_guess">
+<code class="descname">compute_initial_guess</code><span class="sig-paren">(</span><em>truth</em>, <em>forecast_predictor</em>, <em>predictor_of_mean_flag</em>, <em>estimate_coefficients_from_linear_model_flag</em>, <em>no_of_members=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EstimateCoefficientsForEnsembleCalibration.compute_initial_guess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.compute_initial_guess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute initial guess of the a and beta components of the
+EMOS coefficients by linear regression of the forecast predictor
+and the truth, if requested. Otherwise, default values for a and b
+will be used.</p>
+<p>Default values have been chosen based on Figure 8 in the
+ensemble calibration documentation in
+<a class="reference external" href="https://exxreldocs:8099/display/TEPPV/Science+Plugin+Documents">https://exxreldocs:8099/display/TEPPV/Science+Plugin+Documents</a>
+or
+<a class="reference external" href="http://www-nwp/~gevans/reports/EMOS_report_20170327.pdf">http://www-nwp/~gevans/reports/EMOS_report_20170327.pdf</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>truth</strong> (<em>Iris cube</em>) &#8211; Cube containing the field, which will be used as truth.</li>
+<li><strong>forecast_predictor</strong> (<em>Iris cube</em>) &#8211; Cube containing the fields to be used as the predictor,
+either the ensemble mean or the ensemble members.</li>
+<li><strong>predictor_of_mean_flag</strong> (<em>String</em>) &#8211; String to specify the input to calculate the calibrated mean.
+Currently the ensemble mean (&#8220;mean&#8221;) and the ensemble members
+(&#8220;members&#8221;) are supported as the predictors.</li>
+<li><strong>estimate_coefficients_from_linear_model_flag</strong> (<em>Logical</em>) &#8211; Flag whether coefficients should be estimated from
+the linear regression, or static estimates should be used.</li>
+<li><strong>no_of_members</strong> (<em>Int</em>) &#8211; Number of members, if ensemble members are to be used as
+predictors. Default is None.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>initial_guess</strong> &#8211; List of coefficients to be used as initial guess.
+Order of coefficients is [c, d, a, b].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.estimate_coefficients_for_ngr">
+<code class="descname">estimate_coefficients_for_ngr</code><span class="sig-paren">(</span><em>current_forecast</em>, <em>historic_forecast</em>, <em>truth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#EstimateCoefficientsForEnsembleCalibration.estimate_coefficients_for_ngr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.EstimateCoefficientsForEnsembleCalibration.estimate_coefficients_for_ngr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
+Statistics, estimate the required coefficients from historical
+forecasts.</p>
+<p>The main contents of this method is:
+1. Metadata checks to ensure that the current forecast, historic</p>
+<blockquote>
+<div>forecast and truth exist in a form that can be processed.</div></blockquote>
+<ol class="arabic" start="2">
+<li><p class="first">Loop through times within the concatenated current forecast cube.
+a. Extract the desired forecast period from the historic forecasts</p>
+<blockquote>
+<div><p>to match the current forecasts. Apply unit conversion to ensure
+that historic forecasts have the desired units for calibration.</p>
+</div></blockquote>
+<ol class="loweralpha simple" start="2">
+<li>Extract the relevant truth to co-incide with the time within
+the historic forecasts. Apply unit conversion to ensure
+that the truth has the desired units for calibration.</li>
+<li>Calculate mean and variance.</li>
+<li>Calculate initial guess at coefficient values by performing a
+linear regression, if requested, otherwise default values are
+used.</li>
+<li>Perform minimisation.</li>
+</ol>
+</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>current_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The cube containing the current forecast.</li>
+<li><strong>historical_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; The cube or cubelist containing the historical forecasts used for
+calibration.</li>
+<li><strong>truth</strong> (<em>Iris Cube or CubeList</em>) &#8211; The cube or cubelist containing the truth used for calibration.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>optimised_coeffs</strong> (<em>Dictionary</em>) &#8211; Dictionary containing a list of the optimised coefficients
+for each date.</li>
+<li><strong>coeff_names</strong> (<em>List</em>) &#8211; The name of each coefficient.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="improver.ensemble_calibration.ensemble_calibration.GeneratePercentilesFromMeanAndVariance">
+<em class="property">class </em><code class="descclassname">improver.ensemble_calibration.ensemble_calibration.</code><code class="descname">GeneratePercentilesFromMeanAndVariance</code><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#GeneratePercentilesFromMeanAndVariance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.GeneratePercentilesFromMeanAndVariance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Plugin focussing on generating percentiles from mean and variance.
+In combination with the EnsembleReordering plugin, this is Ensemble
+Copula Coupling.</p>
+<dl class="method">
+<dt id="improver.ensemble_calibration.ensemble_calibration.GeneratePercentilesFromMeanAndVariance.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>calibrated_forecast_predictor_and_variance</em>, <em>raw_forecast</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration.html#GeneratePercentilesFromMeanAndVariance.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration.GeneratePercentilesFromMeanAndVariance.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate ensemble percentiles from the mean and variance.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>calibrated_forecast_predictor_and_variance</strong> (<em>Iris CubeList</em>) &#8211; CubeList containing the calibrated forecast predictor and
+calibrated forecast variance.</li>
+<li><strong>raw_forecast</strong> (<em>Iris Cube or CubeList</em>) &#8211; Cube or CubeList that is expected to be the raw
+(uncalibrated) forecast.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>calibrated_forecast_percentiles</strong> &#8211; Cube for calibrated percentiles.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iris cube</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-improver.ensemble_calibration.ensemble_calibration_utilities">
+<span id="improver-ensemble-calibration-ensemble-calibration-utilities-module"></span><h2>improver.ensemble_calibration.ensemble_calibration_utilities module<a class="headerlink" href="#module-improver.ensemble_calibration.ensemble_calibration_utilities" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all the utilities used by the &#8220;plugins&#8221;
+specific for ensemble calibration.</p>
+<dl class="function">
+<dt id="improver.ensemble_calibration.ensemble_calibration_utilities.check_predictor_of_mean_flag">
+<code class="descclassname">improver.ensemble_calibration.ensemble_calibration_utilities.</code><code class="descname">check_predictor_of_mean_flag</code><span class="sig-paren">(</span><em>predictor_of_mean_flag</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration_utilities.html#check_predictor_of_mean_flag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration_utilities.check_predictor_of_mean_flag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check the predictor_of_mean_flag at the start of the
+estimate_coefficients_for_ngr method, to avoid having to check
+and raise an error later.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>predictor_of_mean_flag</strong> (<em>String</em>) &#8211; String to specify the input to calculate the calibrated mean.
+Currently the ensemble mean (&#8220;mean&#8221;) and the ensemble members
+(&#8220;members&#8221;) are supported as the predictors.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="improver.ensemble_calibration.ensemble_calibration_utilities.concatenate_cubes">
+<code class="descclassname">improver.ensemble_calibration.ensemble_calibration_utilities.</code><code class="descname">concatenate_cubes</code><span class="sig-paren">(</span><em>cubes, coords_to_slice_over=['realization', 'time'], master_coord='time', coordinates_for_association=['forecast_reference_time', 'forecast_period']</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration_utilities.html#concatenate_cubes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration_utilities.concatenate_cubes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to concatenate cubes, accounting for differences in the
+history attribute, and allow promotion of forecast_reference_time
+and forecast_period coordinates from scalar coordinates to auxiliary
+coordinates to allow concatenation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cubes</strong> (<em>Iris cubelist or Iris cube</em>) &#8211; Cubes to be concatenated.</li>
+<li><strong>coords_to_slice_over</strong> (<em>List</em>) &#8211; Coordinates to be sliced over.</li>
+<li><strong>master_coord</strong> (<em>String</em>) &#8211; Coordinate that the other coordinates will be associated with.</li>
+<li><strong>coordinates_for_association</strong> (<em>List</em>) &#8211; List of coordinates to be associated with the master_coord.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Concatenated cube.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Iris cube</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="improver.ensemble_calibration.ensemble_calibration_utilities.convert_cube_data_to_2d">
+<code class="descclassname">improver.ensemble_calibration.ensemble_calibration_utilities.</code><code class="descname">convert_cube_data_to_2d</code><span class="sig-paren">(</span><em>forecast</em>, <em>coord='realization'</em>, <em>transpose=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration_utilities.html#convert_cube_data_to_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration_utilities.convert_cube_data_to_2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to convert data from a N-dimensional cube into a 2d
+numpy array. The result can be transposed, if required.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>forecast</strong> (<em>Iris cube</em>) &#8211; N-dimensional cube to be reshaped.</li>
+<li><strong>coord</strong> (<em>String</em>) &#8211; The data will be flattened along this coordinate.</li>
+<li><strong>transpose</strong> (<em>Logical</em>) &#8211; If True, the resulting flattened data is transposed.
+If False, the resulting flattened data is not transposed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>forecast_data</strong> &#8211; Reshaped 2d array.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Numpy array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="improver.ensemble_calibration.ensemble_calibration_utilities.rename_coordinate">
+<code class="descclassname">improver.ensemble_calibration.ensemble_calibration_utilities.</code><code class="descname">rename_coordinate</code><span class="sig-paren">(</span><em>cubes</em>, <em>original_coord</em>, <em>renamed_coord</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/improver/ensemble_calibration/ensemble_calibration_utilities.html#rename_coordinate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#improver.ensemble_calibration.ensemble_calibration_utilities.rename_coordinate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renames a coordinate to an alternative name for an
+input Iris Cube or Iris CubeList.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cubes</strong> (<em>Iris cubelist or Iris cube</em>) &#8211; Cubes with coordinates to be renamed.</li>
+<li><strong>original_coord</strong> (<em>String</em>) &#8211; Original name for the coordinate.</li>
+<li><strong>renamed_coord</strong> (<em>String</em>) &#8211; Name for the coordinate to be renamed to.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-improver.ensemble_calibration">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-improver.ensemble_calibration" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">improver.ensemble_calibration package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-improver.ensemble_calibration.ensemble_calibration">improver.ensemble_calibration.ensemble_calibration module</a></li>
+<li><a class="reference internal" href="#module-improver.ensemble_calibration.ensemble_calibration_utilities">improver.ensemble_calibration.ensemble_calibration_utilities module</a></li>
+<li><a class="reference internal" href="#module-improver.ensemble_calibration">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/improver.ensemble_calibration.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Improver  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Met Office.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.8.
+    </div>
+  </body>
+</html>
