@@ -25,7 +25,7 @@ function improver_test_pep8 {
 }
 
 function improver_test_pylint {
-    # Pylint obvious-errors-only testing.
+    # Pylint score generation.
     ${PYLINT:-pylint} --rcfile=../etc/pylintrc improver
 }
 
