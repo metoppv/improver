@@ -1,0 +1,21 @@
+# Based on minimal-conda-requirements.txt from iris:
+# https://github.com/SciTools/iris/
+# Use this file to create a conda environment using:
+# conda create -n <name> --file environment.yml
+
+name: improver
+channels:
+  - conda-forge
+dependencies:
+  - sphinx
+  - iris
+  - biggus
+  - cartopy
+  - matplotlib<1.9
+  - netcdf4
+  - numpy
+  - pyke
+  - udunits2
+  - cf_units
+  - setuptools
+  - mo_pack
