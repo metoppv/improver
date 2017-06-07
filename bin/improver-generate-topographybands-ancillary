@@ -89,8 +89,6 @@ def main():
             msg = ('Cannot locate land mask at {}; '
                    'run improver-generateancil_landmask first.')
             raise IOError(msg.format(args.input_filepath_landmask))
-        print landmask
-        print orography
         result = GenerateOrographyBandAncils().process(
             orography, landmask, THRESHOLDS_DICT)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
