@@ -35,7 +35,8 @@ import argparse
 import os
 import iris
 
-from improver.generate_ancillaries.generate_ancillary import GenerateLandAncil
+from improver.generate_ancillaries.generate_ancillary import (
+    CorrectLandSeaMask)
 from improver.generate_ancillaries.generate_ancillary import (
     find_standard_ancil)
 
@@ -71,6 +72,7 @@ def main():
         landmask = find_standard_ancil(
             args.grid, args.input_filepath_stage, args.input_filepath_um,
             stash=args.stash)
+        landmask = CorrectLandSeaMask().process(landmask)
         iris.save(landmask, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath

@@ -132,9 +132,41 @@ def find_standard_ancil(grid, stage_ancil, model_ancil,
     return standard_ancil
 
 
-class GenerateLandAncil(object):
+class CorrectLandSeaMask(object):
     """
-    Create land-sea mask ancillary file.
+    Round landsea mask to binary values
+
+    Corrects interpolated land sea masks to boolean values of 
+    False [sea] and True [land].
+    """
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string"""
+        result = ('<CorrectLandSeaMask')
+        return result
+
+    def process(self, standard_landmask):
+        """Read in the interpolated landmask and assign values round
+            values < 0.5 to False and >=0.5 to True.
+
+        Args:
+            standard_landmask(cube of floats) : input landmask
+                on standard grid.
+        Returns:
+            standard_landmask(cube of boolean) : output landmask
+                of boolean values.
+        """
+        mask_sea = np.ma.masked_less(standard_landmask.data, 0.5).mask
+        standard_landmask.data[mask_sea] = False
+        mask_land = np.ma.masked_greater(standard_landmask.data, 0.).mask
+        standard_landmask.data[mask_land] = True
+        return standard_landmask
+
+class CategoriseLandSea(object):
+    """
+    Categorise Land fraction field.
 
     Correct interpolated binary masks, or land fractions, to
     give an indication of whether grid point is 'land', 'sea',
@@ -145,11 +177,11 @@ class GenerateLandAncil(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string"""
-        result = ('<GenerateLandAncils:')
+        result = ('<CategoriseLandSea')
         return result
 
     def process(self, standard_landmask):
-        """Read in the land-sea mask on standard grid.
+        """Read in the land-sea fraction on standard grid.
 
          If there are points outside the binary mask,
          designate them as mostly-sea, mostly-land etc.
@@ -157,14 +189,14 @@ class GenerateLandAncil(object):
         Parameters
         ----------
         standard_landmask : cube
-          Land mask on standard grid. From StaGE or interpolated
-          from UM ancillary data
+          Land fraction on standard grid. From StaGE or interpolated
+          from UM ancillary data.
 
         Returns
         --------
         standard_landmask : cube
-          Landmask on standard grid with data fixed to four
-          four categories of land/sea
+          Field on standard grid with data fixed to four
+          categories of land/sea state.
         """
         standard_landmask.data[(np.ma.masked_less(standard_landmask.data, 0.1)
                                 .mask)] = 0.
@@ -178,11 +210,11 @@ class GenerateLandAncil(object):
 
 
 class GenerateOrographyBandAncils(object):
-    """Generate land sea mask and topographic band ancillaries for
-       the standard grids.
+    """
+    Generate topographic band ancillaries for the standard grids.
 
-       Checks for StaGE output files first, and if not found regrids UM
-       ancillaries onto standard grids (using improver.regrid_field).
+    Checks for StaGE output files first, and if not found regrids UM
+    ancillaries onto standard grids (using improver.regrid_field).
     """
     def __init__(self):
         pass
@@ -223,7 +255,7 @@ class GenerateOrographyBandAncils(object):
             orog_band = np.ma.masked_greater(
                 standard_orography.data, thresholds[0]).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data < 0.25, orog_band)
+                standard_landmask.data==False, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(mask_data, key, coords,
@@ -234,7 +266,7 @@ class GenerateOrographyBandAncils(object):
                 standard_orography.data, old_threshold,
                 threshold).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data < 0.25, orog_band)
+                standard_landmask.data==False, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(
@@ -274,5 +306,5 @@ class GenerateOrographyBandAncils(object):
             for limits in dict_bound:
                 oro_band = self.gen_orography_masks(
                     orography, landmask, dict_key, limits)
-            cubelist.append(oro_band)
+                cubelist.append(oro_band)
         return cubelist
