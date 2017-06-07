@@ -87,7 +87,7 @@ class TestExtractData(IrisTest):
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
 
-        time_dt = dt(2017, 02, 17, 06, 00)
+        time_dt = dt(2017, 2, 17, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
 
