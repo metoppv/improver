@@ -73,9 +73,9 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """setting up test input and output data sets"""
-        landmask_data = np.array([[0.25, 0., 0.],
-                                  [0.75, 0.25, 0.],
-                                  [1., 1., 0.75]])
+        landmask_data = np.array([[1, 0, 0],
+                                  [1, 0, 0],
+                                  [1, 1, 1]])
         self.landmask = Cube(landmask_data, long_name='test land')
         orog_data = np.array([[10., 0., 0.],
                               [20., 100., 15.],
@@ -85,15 +85,15 @@ class Test_process(IrisTest):
                                'max_land_threshold': [[80]]}
         self.valley_dict = {'land': [[-10, 10]]}
         self.exp_valleymask = np.array([[1., 999999., 999999.],
-                                        [0., 0., 999999.],
+                                        [0., 999999., 999999.],
                                         [1., 0., 0.]])
         self.land_dict = {'land': [[0, 50]]}
         self.exp_landmask = np.array([[1., 999999., 999999.],
-                                      [1., 0., 999999.],
+                                      [1., 999999., 999999.],
                                       [0., 0., 1.]])
         self.max_dict = {'max_land_threshold': [[80]]}
         self.exp_maxmask = np.array([[0., 999999., 999999.],
-                                     [0., 1., 999999.],
+                                     [0., 999999., 999999.],
                                      [0., 1., 0.]])
 
     def test_thresholdset(self):
