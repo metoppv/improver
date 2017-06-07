@@ -45,8 +45,8 @@ def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
         description=('Read the model landmask, interpolate '
-                     'to the standard grid and add mostly '
-                     'land and mostly sea points.'))
+                     'to the standard grid and correct '
+                     'to boolean values.'))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
                         help=('If True, ancillaries will be generated '
@@ -55,23 +55,16 @@ def main():
     parser.add_argument('input_filepath_stage', metavar='INPUT_FILE_STAGE',
                         help=('A path to an input NetCDF file (from StaGE) '
                               'to be processed.'))
-    parser.add_argument('input_filepath_um', metavar='INPUT_FILE_MODEL',
-                        help=('A path to an input FF file (from UM) '
-                              'to be processed.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
     parser.add_argument('grid', metavar='STANDARD_GRID',
                         help='The standard grid to process landmask on.')
-    parser.add_argument('--stash', metavar='STASH_CODE', default=None,
-                        help='The stash code to use for loading the required'
-                             'orography ancillaries.')
     args = parser.parse_args()
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
         landmask = find_standard_ancil(
-            args.grid, args.input_filepath_stage, args.input_filepath_um,
-            stash=args.stash)
+            args.grid, args.input_filepath_stage)
         landmask = CorrectLandSeaMask().process(landmask)
         iris.save(landmask, args.output_filepath, unlimited_dimensions=[])
     else:

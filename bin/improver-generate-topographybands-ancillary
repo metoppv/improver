@@ -64,23 +64,15 @@ def main():
                               'containing the orography to be processed.'))
     parser.add_argument('input_filepath_landmask', metavar='INPUT_FILE_LAND',
                         help='A path to an input land mask file.')
-    parser.add_argument('input_filepath_um_orography',
-                        metavar='INPUT_FILE_MODEL',
-                        help=('A path to an input FF file (from UM) '
-                              'containing the orography to be processed.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument('grid', metavar='STANDARD_GRID',
                         help='The standard grid to process landmask on.')
-    parser.add_argument('--stash', metavar='STASH_CODE', default=None,
-                        help='The stash code to use for loading the required'
-                             'orography ancillaries.')
     args = parser.parse_args()
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = find_standard_ancil(
-            args.grid, args.input_filepath_stage_orography,
-            args.input_filepath_um_orography)
+            args.grid, args.input_filepath_stage_orography)
         if len(glob(args.input_filepath_stage_orography)) == 0:
             iris.save(orography, args.input_filepath_stage_orography)
         try:

@@ -35,8 +35,6 @@ import numpy as np
 import os
 from glob import glob
 
-from improver.generate_ancillaries.regrid_field import regrid_field
-
 
 def _make_mask_cube(mask_data, key, coords,
                     upper_threshold=None, lower_threshold=None):
@@ -84,11 +82,9 @@ def _make_mask_cube(mask_data, key, coords,
     return mask_cube
 
 
-def find_standard_ancil(grid, stage_ancil, model_ancil,
-                        stash=None):
+def find_standard_ancil(grid, stage_ancil):
     """
-    Finds standard ancillary, either by reading
-    the stage version or regridding the model version.
+    Reads standard ancillary from StaGE or raises exception.
 
     Parameters
     -----------
@@ -98,17 +94,10 @@ def find_standard_ancil(grid, stage_ancil, model_ancil,
     stage_ancil : string
       Location of stage ancillaries
 
-    model_ancil : string
-      Location of model ancillaries
-
-    stash : string (optional)
-      The stash to constrain by for model ancillary loading
-
     Returns
     --------
     standard_ancil : cube
-        Either the StaGE ancil cube, or the model cube regridded
-        to the appropriate grid.
+        The StaGE ancil cube.
 
     Raises
     -------
@@ -118,17 +107,9 @@ def find_standard_ancil(grid, stage_ancil, model_ancil,
     stage_ancil = glob(stage_ancil)
     if len(stage_ancil) > 0:
         standard_ancil = iris.load(stage_ancil[0])[0]
-    elif os.path.exists(model_ancil):
-        if stash is not None:
-            attribute = iris.AttributeConstraint(STASH=stash)
-            standard_ancil = regrid_field(
-                iris.load(model_ancil, attribute)[0], grid)
-        else:
-            standard_ancil = regrid_field(
-                iris.load(model_ancil)[0], grid)
     else:
-        msg = 'Cannot find input ancillary. Tried UM: {} and StaGE: {}'
-        raise IOError(msg.format(model_ancil, stage_ancil))
+        msg = 'Cannot find input ancillary. Tried StaGE: {}'
+        raise IOError(msg.format(stage_ancil))
     return standard_ancil
 
 
@@ -136,7 +117,7 @@ class CorrectLandSeaMask(object):
     """
     Round landsea mask to binary values
 
-    Corrects interpolated land sea masks to boolean values of 
+    Corrects interpolated land sea masks to boolean values of
     False [sea] and True [land].
     """
     def __init__(self):
@@ -164,57 +145,13 @@ class CorrectLandSeaMask(object):
         standard_landmask.data[mask_land] = True
         return standard_landmask
 
-class CategoriseLandSea(object):
-    """
-    Categorise Land fraction field.
-
-    Correct interpolated binary masks, or land fractions, to
-    give an indication of whether grid point is 'land', 'sea',
-    'mostly-land' or 'mostly-sea'.
-    """
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string"""
-        result = ('<CategoriseLandSea')
-        return result
-
-    def process(self, standard_landmask):
-        """Read in the land-sea fraction on standard grid.
-
-         If there are points outside the binary mask,
-         designate them as mostly-sea, mostly-land etc.
-
-        Parameters
-        ----------
-        standard_landmask : cube
-          Land fraction on standard grid. From StaGE or interpolated
-          from UM ancillary data.
-
-        Returns
-        --------
-        standard_landmask : cube
-          Field on standard grid with data fixed to four
-          categories of land/sea state.
-        """
-        standard_landmask.data[(np.ma.masked_less(standard_landmask.data, 0.1)
-                                .mask)] = 0.
-        standard_landmask.data[(np.ma.masked_inside(standard_landmask.data,
-                                                    0.1, 0.5).mask)] = 0.25
-        standard_landmask.data[(np.ma.masked_inside(standard_landmask.data,
-                                                    0.5, 0.9).mask)] = 0.75
-        standard_landmask.data[(np.ma.masked_greater(standard_landmask.data,
-                                                     0.9).mask)] = 1.
-        return standard_landmask
-
 
 class GenerateOrographyBandAncils(object):
     """
     Generate topographic band ancillaries for the standard grids.
 
-    Checks for StaGE output files first, and if not found regrids UM
-    ancillaries onto standard grids (using improver.regrid_field).
+    Reads StaGE output orography files first, then generates binary mask
+    of land points within the orography band specified.
     """
     def __init__(self):
         pass
@@ -232,8 +169,7 @@ class GenerateOrographyBandAncils(object):
         Parameters
         -----------
         standard_orography : cube
-            The standard orography, found by regridding the model orography
-            onto the standard grid.
+            The standard orography, read from StaGE.
         key : string
             Key from THRESHOLD_DICT which descibes type of topography band.
         thresholds: float or list
@@ -255,7 +191,7 @@ class GenerateOrographyBandAncils(object):
             orog_band = np.ma.masked_greater(
                 standard_orography.data, thresholds[0]).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data==False, orog_band)
+                standard_landmask.data == False, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(mask_data, key, coords,
@@ -266,7 +202,7 @@ class GenerateOrographyBandAncils(object):
                 standard_orography.data, old_threshold,
                 threshold).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data==False, orog_band)
+                standard_landmask.data == False, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(

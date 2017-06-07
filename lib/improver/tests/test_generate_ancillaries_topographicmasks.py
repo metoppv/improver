@@ -100,7 +100,7 @@ class Test_process(IrisTest):
         """test the plugin produces correct number of cubes"""
         result = GenOrogMasks().process(
             self.orography, self.landmask, self.threshold_dict)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result), 3)
 
     def test_valleyband_data(self):
         """test correct mask is produced for land bands < 0m"""

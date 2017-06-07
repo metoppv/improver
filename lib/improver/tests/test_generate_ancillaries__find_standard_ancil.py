@@ -71,10 +71,8 @@ class Test_find_standard_ancil(IrisTest):
         """setting up test dir and test files"""
         self.test_dir = './anciltest/'
         self.stage = self.test_dir + 'stage.nc'
-        self.model = self.test_dir + 'model.nc'
         os.mkdir(self.test_dir)
         save(_make_test_cube('stage test'), self.stage)
-        save(_make_test_cube('model test'), self.model)
         self.grid = 'glm'
 
     def tearDown(self):
@@ -86,36 +84,15 @@ class Test_find_standard_ancil(IrisTest):
 
     def test_findstage(self):
         """test case where stage file is present and read"""
-        result = find_standard_ancil(self.grid, self.stage, self.model)
+        result = find_standard_ancil(self.grid, self.stage)
         self.assertEqual(result.name(), 'stage test')
 
-    def test_findmodel(self):
-        """test case where stage file is absent: read and regrid model"""
+    def test_findstage_fail(self):
+        """test the correct exception is raised when stage ancillaries
+           are not found"""
         os.remove(self.stage)
-        result = find_standard_ancil(self.grid, self.stage, self.model)
-        self.assertEqual(result.name(), 'model test')
-        self.assertEqual(len(result.coord('latitude').points), 1920)
-
-    def test_findmodel_stash(self):
-        """test case where specific model stash is needed"""
-        os.remove(self.stage)
-        os.remove(self.model)
-        test_stash = 'm01sTEiSTY'
-        cubelist = CubeList([_make_test_cube('model test', stash='m02sTEiSTY'),
-                             _make_test_cube('model test', stash=test_stash)])
-        save(cubelist, self.model)
-        result = find_standard_ancil(self.grid, self.stage, self.model,
-                                     stash=test_stash)
-        self.assertEqual(result.name(), 'model test')
-        self.assertEqual(result.attributes['STASH'], test_stash)
-
-    def test_findmodel_fail(self):
-        """test the correct exception is raised when neither stage nor um
-           ancillaries are found"""
-        os.remove(self.stage)
-        os.remove(self.model)
         with self.assertRaisesRegexp(IOError, 'Cannot find input ancillary'):
-            find_standard_ancil(self.grid, self.stage, self.model)
+            find_standard_ancil(self.grid, self.stage)
 
 if __name__ == "__main__":
     unittest.main()
