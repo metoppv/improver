@@ -191,7 +191,7 @@ class GenerateOrographyBandAncils(object):
             orog_band = np.ma.masked_greater(
                 standard_orography.data, thresholds[0]).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data == False, orog_band)
+                np.logical_not(standard_landmask.data), orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(mask_data, key, coords,
@@ -202,7 +202,7 @@ class GenerateOrographyBandAncils(object):
                 standard_orography.data, old_threshold,
                 threshold).mask.astype(int)
             mask_data = np.ma.masked_where(
-                standard_landmask.data == False, orog_band)
+                np.logical_not(standard_landmask.data), orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
             mask_data.data[mask_data.mask] = sea_fillvalue
             mask_cube = _make_mask_cube(
