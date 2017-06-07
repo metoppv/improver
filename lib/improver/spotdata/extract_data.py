@@ -332,7 +332,7 @@ class ExtractData(object):
         """
         if not cube.name() == 'air_temperature':
             raise ValueError('{} should only be used for adjusting '
-                             'temperatured. Cube of type {} is not '
+                             'temperatures. Cube of type {} is not '
                              'suitable.'.format(self.method, cube.name()))
 
         kappa = R_DRY_AIR/CP_DRY_AIR

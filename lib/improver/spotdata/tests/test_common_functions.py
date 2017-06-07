@@ -88,7 +88,7 @@ class TestCommonFunctions(IrisTest):
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
 
-        time_dt = dt(2017, 02, 17, 06, 00)
+        time_dt = dt(2017, 2, 17, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
 
@@ -448,27 +448,27 @@ class TestDateTimeConstraint(TestCommonFunctions):
     def test_constraint_equality(self):
         """Check constraint is as expected."""
         plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 02, 17, 06, 00))
+        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
         self.assertEqual(self.time_extract._coord_values,
                          dt_constraint._coord_values)
 
     def test_constraint_type(self):
         """Check type is iris.Constraint."""
         plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 02, 17, 06, 00))
+        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
         self.assertIsInstance(dt_constraint, Constraint)
 
     def test_valid_constraint(self):
         """Test use of constraint at a time valid within the cube."""
         plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 02, 17, 06, 00))
+        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
         result = self.cube.extract(dt_constraint)
         self.assertIsInstance(result, Cube)
 
     def test_invalid_constraint(self):
         """Test use of constraint at a time invalid within the cube."""
         plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 02, 17, 18, 00))
+        dt_constraint = plugin(dt(2017, 2, 17, 18, 0))
         result = self.cube.extract(dt_constraint)
         self.assertNotIsInstance(result, Cube)
 
@@ -580,7 +580,7 @@ class TestExtractCubeAtTime(TestCommonFunctions):
     def test_valid_time(self):
         """Case for a time that is available within the diagnostic cube."""
         plugin = extract_cube_at_time
-        time_dt = dt(2017, 02, 17, 06, 00)
+        time_dt = dt(2017, 2, 17, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
         cubes = CubeList([self.cube])
@@ -590,7 +590,7 @@ class TestExtractCubeAtTime(TestCommonFunctions):
     def test_invalid_time(self):
         """Case for a time that is unavailable within the diagnostic cube."""
         plugin = extract_cube_at_time
-        time_dt = dt(2017, 02, 18, 06, 00)
+        time_dt = dt(2017, 2, 18, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
         cubes = CubeList([self.cube])
