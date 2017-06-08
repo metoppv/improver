@@ -217,7 +217,8 @@ class GenerateOrographyBandAncils(object):
             raise KeyError(msg.format(key))
         return mask_cube
 
-    def process(self, orography, landmask, thresholds_dict):
+    @staticmethod
+    def process(orography, landmask, thresholds_dict):
         """Check for existing ancillary files, generate new files
            if needed and save to the improver_ancillary directory
            for use by IMPROVER plugins.
