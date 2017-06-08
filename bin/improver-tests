@@ -52,9 +52,13 @@ function improver_test_unit {
 function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
-    if [[ ${1:-} != '--debug' ]] && type prove &>/dev/null; then
-        prove --directives -r -e "bats --tap" \
-            --ext ".bats" "$IMPROVER_DIR/tests/"
+    if type prove &>/dev/null; then
+        PROVE_VERBOSE_OPT=
+        if [[ ${1:-} == '--debug' ]]; then
+            PROVE_VERBOSE_OPT='-v'
+        fi
+        prove $PROVE_VERBOSE_OPT --directives -r \
+            -e "bats --tap" --ext ".bats" "$IMPROVER_DIR/tests/"
     else
         bats $(find "$IMPROVER_DIR/tests/" -name "*.bats")
     fi
