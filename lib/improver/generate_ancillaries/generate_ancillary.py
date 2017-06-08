@@ -100,8 +100,7 @@ def find_standard_ancil(grid, stage_ancil):
 
     Raises
     -------
-    IOError: if input ancillary cannot be found in either StaGE or UM
-             directories.
+    IOError: if input ancillary cannot be found in StaGE directory provided
     """
     stage_ancil = glob(stage_ancil)
     if len(stage_ancil) > 0:
@@ -124,7 +123,7 @@ class CorrectLandSeaMask(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string"""
-        result = ('<CorrectLandSeaMask')
+        result = ('<CorrectLandSeaMask>')
         return result
 
     @staticmethod
@@ -161,7 +160,7 @@ class GenerateOrographyBandAncils(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<GenerateOrographyBandAncils')
+        result = ('<GenerateOrographyBandAncils>')
         return result
 
     @staticmethod
@@ -219,9 +218,8 @@ class GenerateOrographyBandAncils(object):
 
     @staticmethod
     def process(orography, landmask, thresholds_dict):
-        """Check for existing ancillary files, generate new files
-           if needed and save to the improver_ancillary directory
-           for use by IMPROVER plugins.
+        """Loops over the supplied orographic bands, adding a cube
+           for each band to the mask cubelist.
 
         Parameters
         ----------

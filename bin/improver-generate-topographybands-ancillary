@@ -41,7 +41,12 @@ from improver.generate_ancillaries.generate_ancillary import (
 from improver.generate_ancillaries.generate_ancillary import (
      find_standard_ancil)
 
-
+# The following dictionary defines the orography bands masks are required for.
+#   'land': land points outside the band are set to 0 and those within
+#           the band are set to 1.
+#   'max_land_threshold': land points above the threshold are set to 0
+#           and those above the threshold are set to 1.
+#   In both cases, sea points are masked and set to the default fill_value
 THRESHOLDS_DICT = {'land': [[-500, 0], [0, 50], [50, 100], [100, 150],
                            [150, 200], [200, 250], [250, 300], [300, 400],
                            [400, 500], [500, 600]],
@@ -59,7 +64,7 @@ def main():
                         help=('If True, ancillaries will be generated even '
                               'if doing so will overwrite existing files'))
     parser.add_argument('input_filepath_stage_orography',
-                        metavar='INPUT_FILE_STAGE',
+                        metavar='INPUT_FILE_STAGE_OROGRAPHY',
                         help=('A path to an input NetCDF file (from StaGE) '
                               'containing the orography to be processed.'))
     parser.add_argument('input_filepath_landmask', metavar='INPUT_FILE_LAND',

@@ -65,8 +65,9 @@ def main():
     if not os.path.exists(args.output_filepath) or args.force:
         landmask = find_standard_ancil(
             args.grid, args.input_filepath_stage)
-        landmask = CorrectLandSeaMask().process(landmask)
-        iris.save(landmask, args.output_filepath, unlimited_dimensions=[])
+        land_binary_mask = CorrectLandSeaMask().process(landmask)
+        iris.save(land_binary_mask, args.output_filepath,
+                  unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
 
