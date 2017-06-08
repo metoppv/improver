@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-import os
 from glob import glob
 
 
@@ -128,7 +127,8 @@ class CorrectLandSeaMask(object):
         result = ('<CorrectLandSeaMask')
         return result
 
-    def process(self, standard_landmask):
+    @staticmethod
+    def process(standard_landmask):
         """Read in the interpolated landmask and assign values round
             values < 0.5 to False and >=0.5 to True.
 
@@ -164,8 +164,9 @@ class GenerateOrographyBandAncils(object):
         result = ('<GenerateOrographyBandAncils')
         return result
 
+    @staticmethod
     def gen_orography_masks(
-            self, standard_orography, standard_landmask, key, thresholds):
+            standard_orography, standard_landmask, key, thresholds):
         """
         Function to generate topographical band masks.
 
@@ -243,7 +244,7 @@ class GenerateOrographyBandAncils(object):
                 msg = 'No threshold(s) found for topographic type: {}'
                 raise ValueError(msg.format(dict_key))
             for limits in dict_bound:
-                oro_band = self.gen_orography_masks(
+                oro_band = GenerateOrographyBandAncils.gen_orography_masks(
                     orography, landmask, dict_key, limits)
                 cubelist.append(oro_band)
         return cubelist

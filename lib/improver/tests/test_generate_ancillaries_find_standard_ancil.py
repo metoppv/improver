@@ -35,9 +35,8 @@ import unittest
 from glob import glob
 import os
 from iris.cube import Cube
-from iris.cube import CubeList
 from iris.tests import IrisTest
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.coord_systems import GeogCS
 from iris.fileformats.pp import EARTH_RADIUS
 from iris import save
