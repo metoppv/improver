@@ -33,13 +33,14 @@
   run improver tests -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-improver tests [--debug] [SUBTEST...] 
+improver tests [OPTIONS] [SUBTEST...] 
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
+    --bats          Run CLI tests using BATS instead of the default prove
     --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help          Show this message and exit
+    -h, --help      Show this message and exit
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.

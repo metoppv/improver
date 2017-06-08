@@ -52,9 +52,9 @@ function improver_test_unit {
 function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
-    if type prove &>/dev/null; then
+    if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
         PROVE_VERBOSE_OPT=
-        if [[ ${1:-} == '--debug' ]]; then
+        if [[ -n $DEBUG_OPT ]]; then
             PROVE_VERBOSE_OPT='-v'
         fi
         prove $PROVE_VERBOSE_OPT --directives -r \
@@ -68,13 +68,14 @@ function improver_test_cli {
 function print_usage {
     # Output CLI usage information.
     cat <<'__USAGE__'
-improver tests [--debug] [SUBTEST...] 
+improver tests [OPTIONS] [SUBTEST...] 
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
+    --bats          Run CLI tests using BATS instead of the default prove
     --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help          Show this message and exit
+    -h, --help      Show this message and exit
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
@@ -85,10 +86,14 @@ __USAGE__
 
 cd $IMPROVER_DIR/lib
 
+BATS_OPT=
 DEBUG_OPT=
 SUBTESTS=
 for arg in "$@"; do
     case $arg in
+        --bats)
+        BATS_OPT='--bats'
+        ;;
         --debug)
         DEBUG_OPT='--debug'
         ;;
