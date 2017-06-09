@@ -35,6 +35,7 @@ import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris import Constraint
 from iris.cube import Cube
+from iris.exceptions import InvalidCubeError
 from numpy.linalg import lstsq
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_test)
@@ -234,7 +235,7 @@ class ExtractData(object):
         """
         if (not cube.coord_dims(cube.coord(axis='y').name())[0] == 0 or
                 not cube.coord_dims(cube.coord(axis='x').name())[0] == 1):
-            raise Exception("Cube dimensions not as expected.")
+            raise InvalidCubeError("Cube dimensions not as expected.")
 
         data = cube.data[neighbours['i'], neighbours['j']]
         return self.make_cube(cube, data, sites)
@@ -300,8 +301,9 @@ class ExtractData(object):
                                            temperature_on_height_levels):
         """
         Lapse rate method based on potential temperature. Follows the work of
-        S.B. Vosper 2005 (Near-surface temperature variations over complex
-        terrain).
+        S.B. Vosper 2005 - Near-surface temperature variations over complex
+        terrain; Milestone Report RC10JR Local forecasting in complex terrain;
+        V 1.0 August 2005.
 
         Args:
         -----
