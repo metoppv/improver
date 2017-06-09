@@ -47,7 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             create_cube_with_percentiles, choose_set_of_percentiles,
             find_coordinate, get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
-            reshape_array_to_have_probabilistic_dimension_at_the_front)
+            reshape_array_to_original_dimensions)
 
 
 class RebadgePercentilesAsMembers(object):
@@ -206,7 +206,7 @@ class ResamplePercentiles(object):
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles_data = (
-            reshape_array_to_have_probabilistic_dimension_at_the_front(
+            reshape_array_to_original_dimensions(
                 forecast_at_interpolated_percentiles, forecast_at_percentiles,
                 "percentile", len(desired_percentiles)))
 
@@ -399,7 +399,7 @@ class GeneratePercentilesFromProbabilities(object):
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = (
-            reshape_array_to_have_probabilistic_dimension_at_the_front(
+            reshape_array_to_original_dimensions(
                 forecast_at_percentiles, forecast_probabilities,
                 threshold_coord.name(), len(percentiles)))
 
@@ -547,7 +547,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         result = (
-            reshape_array_to_have_probabilistic_dimension_at_the_front(
+            reshape_array_to_original_dimensions(
                 result, calibrated_forecast_predictor,
                 "realization", len(percentiles)))
 

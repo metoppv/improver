@@ -282,13 +282,12 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     return array_1d
 
 
-def reshape_array_to_have_probabilistic_dimension_at_the_front(
+def reshape_array_to_original_dimensions(
         array_to_reshape, original_cube, input_probabilistic_dimension_name,
         output_probabilistic_dimension_length):
     """
-    Reshape a 2d array, so the ensemble or probabilistic dimension
-    e.g. percentile, or probability is first, and any other dimension
-    coordinates follow.
+    Reshape a 2d array, so that it has the dimensions of the original cube,
+    whilst ensuring that the probabilistic dimension is the first dimension.
 
     Parameters
     ----------
