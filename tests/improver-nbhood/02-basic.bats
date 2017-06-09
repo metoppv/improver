@@ -29,23 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "tests -h" {
-  run improver tests -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "nbhood --radius-in-km=20 input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run neighbourhood processing and check it passes.
+  run improver nbhood --radius-in-km=20 \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input.nc" "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...] 
 
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
-
-Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
-    --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help      Show this message and exit
-
-Arguments:
-    SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
-__HELP__
-  [[ "$output" == "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
