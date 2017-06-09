@@ -36,7 +36,7 @@ from improver.spotdata.read_input import data_from_dictionary
 from improver.spotdata.common_functions import (
     ConditionalListExtract, nearest_n_neighbours, get_nearest_coords,
     index_of_minimum_difference, list_entry_from_index, node_edge_test,
-    apply_bias, xy_test, xy_transform, isclose)
+    apply_bias, xy_test, xy_transform)
 
 
 class PointSelection(object):
@@ -301,7 +301,7 @@ class PointSelection(object):
             # Test to ensure that if multiple vertical displacements are the
             # same we don't select a more distant point because of array
             # ordering.
-            if not isclose(dz_min, abs(dz_nearest)):
+            if not np.isclose(dz_min, abs(dz_nearest)):
                 neighbours[i_site] = i_min, j_min, dzs[ij_min], edgepoint
 
         return neighbours

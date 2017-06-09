@@ -361,8 +361,7 @@ def apply_bias(vertical_bias, dzs):
     elif vertical_bias == 'below':
         dz_subset, = np.where(dzs >= 0)
 
-    if (vertical_bias is None or len(dz_subset) == 0 or
-            len(dz_subset) == len(dzs)):
+    if (vertical_bias is None or len(dz_subset) == 0):
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
@@ -419,14 +418,6 @@ def xy_transform(trg_crs, latitude, longitude):
     else:
         return trg_crs.transform_point(longitude, latitude,
                                        ccrs.PlateCarree())
-
-
-def isclose(val1, val2, rel_tol=1e-09, abs_tol=0.0):
-    """
-    Floating point comparison for nearly equal.
-
-    """
-    return abs(val1-val2) <= max(rel_tol * max(abs(val1), abs(val2)), abs_tol)
 
 
 def extract_cube_at_time(cubes, time, time_extract):
