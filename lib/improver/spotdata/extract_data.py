@@ -37,8 +37,7 @@ from iris import Constraint
 from iris.cube import Cube
 from numpy.linalg import lstsq
 from improver.spotdata.common_functions import (nearest_n_neighbours,
-                                                node_edge_test,
-                                                isclose)
+                                                node_edge_test)
 from improver.spotdata.read_input import data_from_dictionary
 from improver.constants import (R_DRY_AIR,
                                 CP_DRY_AIR)
@@ -76,7 +75,7 @@ class ExtractData(object):
             A dictionary containing the properties of spotdata sites.
 
         neighbours : numpy.array
-            Array of neigbouring grid points that are associated with sites
+            Array of neighbouring grid points that are associated with sites
             in the SortedDictionary of sites.
 
         additional_data : dict
@@ -344,7 +343,7 @@ class ExtractData(object):
                         neighbours['dz'][i_site])
 
             # Use neighbour grid point value if vertical displacement == 0.
-            if isclose(dz, 0.):
+            if np.isclose(dz, 0.):
                 data[i_site] = cube.data[i, j]
                 continue
 

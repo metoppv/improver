@@ -114,16 +114,23 @@ class TestCommonFunctions(IrisTest):
         orography.data[0:10] = 0
         orography.data[10:] = 10
         ancillary_data = {}
-        ancillary_data.update({'orography': orography})
+        ancillary_data['orography'] = orography
+
+        additional_data = {}
+        ad = CubeList()
+        ad.append(cube)
+        additional_data['air_temperature'] = ad
 
         data_indices = [list(data.nonzero()[0]),
                         list(data.nonzero()[1])]
 
         self.cube = cube
         self.data = data
+        self.time_dt = time_dt
         self.time_extract = time_extract
         self.data_indices = data_indices
         self.ancillary_data = ancillary_data
+        self.additional_data = additional_data
 
 
 class TestConditionalListExtract(TestCommonFunctions):
@@ -517,12 +524,8 @@ class TestApplyBias(TestCommonFunctions):
         self.assertArrayEqual(expected, result)
 
 
-class TestXYTestAndTransform(TestCommonFunctions):
-    """
-    Test functions designed to deal with non-lat/lon projections used in
-    diagnostic cubes.
-
-    """
+class TestXYTest(TestCommonFunctions):
+    """Test function that tests projections used in diagnostic cubes."""
 
     def test_projection_test(self):
         """Test identification of non-lat/lon projections."""
@@ -555,6 +558,13 @@ class TestXYTestAndTransform(TestCommonFunctions):
         result = plugin(cube)
         self.assertEqual(expected, result)
 
+
+class TestXYTransform(TestCommonFunctions):
+    """
+    Test function that transforms the lookup latitude and longitude into the
+    projection used in a diagnostic cube.
+
+    """
     def test_projection_transform(self):
         """
         Test transformation of lookup coordinates to the projections in
@@ -580,11 +590,8 @@ class TestExtractCubeAtTime(TestCommonFunctions):
     def test_valid_time(self):
         """Case for a time that is available within the diagnostic cube."""
         plugin = extract_cube_at_time
-        time_dt = dt(2017, 2, 17, 6, 0)
-        time_extract = Constraint(time=PartialDateTime(
-            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
         cubes = CubeList([self.cube])
-        result = plugin(cubes, time_dt, time_extract)
+        result = plugin(cubes, self.time_dt, self.time_extract)
         self.assertIsInstance(result, Cube)
 
     def test_invalid_time(self):
@@ -596,6 +603,38 @@ class TestExtractCubeAtTime(TestCommonFunctions):
         cubes = CubeList([self.cube])
         with warnings.catch_warnings(record=True) as w_messages:
             plugin(cubes, time_dt, time_extract)
+            assert len(w_messages) == 1
+            assert issubclass(w_messages[0].category, UserWarning)
+            assert "Forecast time" in str(w_messages[0])
+
+
+class TestExtractAdAtTime(TestCommonFunctions):
+    """
+    Test for the extraction of additional data, that is stored supplementary
+    diagnostics, at a certain time.
+
+    """
+
+    def test_valid_extraction_time(self):
+        """
+        Case for a time that is available within the additional diagnostic.
+        
+        """
+        plugin = extract_ad_at_time
+        result = plugin(self.additional_data, self.time_dt, self.time_extract)
+        self.assertIsInstance(result['air_temperature'], Cube)
+
+    def test_invalid_extraction_time(self):
+        """
+        Case for a time that is available within the additional diagnostic.
+        
+        """
+        plugin = extract_ad_at_time
+        time_dt = dt(2017, 2, 20, 6, 0)
+        time_extract = Constraint(time=PartialDateTime(
+            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+        with warnings.catch_warnings(record=True) as w_messages:
+            plugin(self.additional_data, time_dt, time_extract)
             assert len(w_messages) == 1
             assert issubclass(w_messages[0].category, UserWarning)
             assert "Forecast time" in str(w_messages[0])
