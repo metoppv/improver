@@ -29,25 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "percentile input output" {
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "percentile input output--percentiles 25 50 75" {
   TEST_DIR=$(mktemp -d)
-  if [[ -z "${IMPROVER_ACC_TEST_DIR:-}" ]]; then
-    skip "Acceptance test directory not defined"
-  fi
-  if ! type -f nccmp 1>/dev/null 2>&1; then
-    skip "nccmp not installed"
-  fi
-  # Run percentile conversion and check it passes.
+  improver_check_skip_acceptance
+
+  # Run percentile processing and check it passes.
   run improver percentile \
-      "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" "$TEST_DIR/output.nc" \
+      --percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  run nccmp -dmNs "$TEST_DIR/output.nc" \
+  improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/percentile/basic/kgo.nc"
-  [[ "$status" -eq 0 ]]
-  [[ "$output" =~ "are identical." ]]
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
-

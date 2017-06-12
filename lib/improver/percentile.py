@@ -70,7 +70,7 @@ class PercentileConverter(object):
             _type_test(coord_item)
 
         if percentiles is not None:
-            self.percentiles = map(int, percentiles)
+            self.percentiles = [int(value) for value in percentiles]
         else:
             self.percentiles = self.DEFAULT_PERCENTILES
 
@@ -81,6 +81,12 @@ class PercentileConverter(object):
         # percentile coordinate has a consistent name regardless of the order
         # in which the user provides the original coordinate names.
         self.collapse_coord = sorted(collapse_coord, _sort_coord)
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        desc = ('<PercentileConverter: collapse_coord={}, percentiles={}'
+                .format(self.collapse_coord, self.percentiles))
+        return desc
 
     def process(self, cube):
         """Create a cube containing the percentiles as a new dimension.
