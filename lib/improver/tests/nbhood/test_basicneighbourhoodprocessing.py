@@ -104,23 +104,84 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array([
 ])
 
 
-def set_up_cube(zero_point_indices=((0, 7, 7),), num_time_points=1,
-                num_grid_points=16):
+#def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
+                #num_grid_points=16, num_realization_points=0):
+    #"""Set up a normal OSGB UK National Grid cube."""
+    #if num_realization_points == 0:
+        #data = np.ones((num_time_points, num_grid_points, num_grid_points))
+        #for time_index, lat_index, lon_index in zero_point_indices:
+            #data[time_index][lat_index][lon_index] = 0
+    #else:
+        #data = np.ones((
+            #num_realization_points, num_time_points,
+            #num_grid_points, num_grid_points))
+        #for indices in zero_point_indices:
+            #realization_index, time_index, lat_index, lon_index = indices
+            #data[realization_index][time_index][lat_index][lon_index] = 0
+
+    #dim_index = 0
+    #cube = Cube(data, standard_name="precipitation_amount",
+                #units="kg m^-2 s^-1")
+    #coord_system = OSGB()
+    #scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
+    #if num_realization_points != 0:
+        #cube.add_dim_coord(
+            #DimCoord(
+                #range(num_realization_points), 'realization',
+                #units='degrees'), dim_index)
+        #dim_index += 1
+    #tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
+    #time_points = [402192.5 + _ for _ in range(num_time_points)]
+    #cube.add_aux_coord(AuxCoord(time_points,
+                                #"time", units=tunit), dim_index)
+    #cube.add_dim_coord(
+        #DimCoord(
+            #scaled_y_coord.points[:num_grid_points],
+            #'projection_y_coordinate',
+            #units='m', coord_system=coord_system
+        #),
+        #dim_index+1
+    #)
+    #scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
+    #cube.add_dim_coord(
+        #DimCoord(
+            #scaled_x_coord.points[:num_grid_points],
+            #'projection_x_coordinate',
+            #units='m', coord_system=coord_system
+        #),
+        #dim_index+2
+    #)
+    #return cube
+
+def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
+                num_grid_points=16, num_realization_points=0):
     """Set up a normal OSGB UK National Grid cube."""
-    data = np.ones((num_time_points, num_grid_points, num_grid_points))
-    for time_index, lat_index, lon_index in zero_point_indices:
-        data[time_index][lat_index][lon_index] = 0
+    data = np.ones((
+        num_realization_points, num_time_points,
+        num_grid_points, num_grid_points))
+    for indices in zero_point_indices:
+        realization_index, time_index, lat_index, lon_index = indices
+        data[realization_index][time_index][lat_index][lon_index] = 0
+
     cube = Cube(data, standard_name="precipitation_amount",
                 units="kg m^-2 s^-1")
     coord_system = OSGB()
     scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
     cube.add_dim_coord(
         DimCoord(
+            range(num_realization_points), 'realization',
+            units='degrees'), 0)
+    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
+    time_points = [402192.5 + _ for _ in range(num_time_points)]
+    cube.add_aux_coord(AuxCoord(time_points,
+                                "time", units=tunit), 1)
+    cube.add_dim_coord(
+        DimCoord(
             scaled_y_coord.points[:num_grid_points],
             'projection_y_coordinate',
             units='m', coord_system=coord_system
         ),
-        1
+        2
     )
     scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
     cube.add_dim_coord(
@@ -129,14 +190,9 @@ def set_up_cube(zero_point_indices=((0, 7, 7),), num_time_points=1,
             'projection_x_coordinate',
             units='m', coord_system=coord_system
         ),
-        2
+        3
     )
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_aux_coord(AuxCoord(time_points,
-                                "time", units=tunit), 0)
     return cube
-
 
 def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
                          num_grid_points=16):
@@ -146,24 +202,24 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
         data[time_index][lat_index][lon_index] = 0
     cube = Cube(data, standard_name="precipitation_amount",
                 units="kg m^-2 s^-1")
+    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
+    time_points = [402192.5 + _ for _ in range(num_time_points)]
+    cube.add_aux_coord(
+        AuxCoord(time_points, "time", units=tunit), 1)
     cube.add_dim_coord(
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'latitude',
                  units='degrees'),
-        1
+        2
     )
     cube.add_dim_coord(
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'longitude',
                  units='degrees'),
-        2
+        3
     )
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_aux_coord(AuxCoord(time_points,
-                                "time", units=tunit), 0)
     return cube
 
 
@@ -292,6 +348,101 @@ class Test__find_required_lead_times(IrisTest):
             plugin._find_required_lead_times(cube)
 
 
+class Test__cumulate_array(IrisTest):
+
+    """Test for cumulating an array vertically and horizontally."""
+
+    RADIUS_IN_KM = 6.1
+
+    def test_basic(self):
+        """
+        Test that the vertical and horizontal accumulation produces the
+        intended result.
+        """
+        data = np.array([[5., 10., 14., 19., 24.],
+                         [4., 8., 11., 15., 19.],
+                         [3., 6., 8., 11., 14.],
+                         [2., 4., 6., 8., 10.],
+                         [1., 2., 3., 4., 5.]])
+        cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin._cumulate_array(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_for_multiple_times(self):
+        """
+        Test that the vertical and horizontal accumulation produces the
+        intended result when the input cube has multiple times.
+        """
+        data = np.array([[[5., 10., 14., 19., 24.],
+                          [4., 8., 11., 15., 19.],
+                          [3., 6., 8., 11., 14.],
+                          [2., 4., 6., 8., 10.],
+                          [1., 2., 3., 4., 5.]],
+                         [[5., 10., 15., 19., 24.],
+                          [4., 8., 12., 15., 19.],
+                          [3., 6., 9., 11., 14.],
+                          [2., 4., 6., 7., 9.],
+                          [1., 2., 3., 4., 5.]],
+                         [[4., 9., 14., 19., 24.],
+                          [4., 8., 12., 16., 20.],
+                          [3., 6., 9., 12., 15.],
+                          [2., 4., 6., 8., 10.],
+                          [1., 2., 3., 4., 5.]]])
+
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
+            num_time_points=3, num_grid_points=5)
+        print "cube.data = ", cube.data
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin._cumulate_array(cube)
+        print "result = ", result
+        self.assertIsInstance(result, Cube)
+        print "result.data = ", repr(result.data)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_for_multiple_realizations_and_times(self):
+        """
+        Test that the vertical and horizontal accumulation produces the
+        intended result when the input cube has multiple times.
+        """
+        data = np.array([[[[5., 10., 14., 19., 24.],
+                           [4., 8., 11., 15., 19.],
+                           [3., 6., 8., 11., 14.],
+                           [2., 4., 6., 8., 10.],
+                           [1., 2., 3., 4., 5.]],
+                          [[4., 9., 14., 19., 24.],
+                           [4., 8., 12., 16., 20.],
+                           [3., 6., 9., 12., 15.],
+                           [2., 4., 6., 8., 10.],
+                           [1., 2., 3., 4., 5.]]],
+                         [[[5., 10., 15., 19., 24.],
+                           [4., 8., 12., 15., 19.],
+                           [3., 6., 9., 11., 14.],
+                           [2., 4., 6., 7., 9.],
+                           [1., 2., 3., 4., 5.]],
+                          [[5., 9., 14., 19., 24.],
+                           [4., 7., 11., 15., 19.],
+                           [3., 5., 8., 11., 14.],
+                           [2., 4., 6., 8., 10.],
+                           [1., 2., 3., 4., 5.]]]])
+
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+
+        print "cube.data = ", cube.data
+        plugin = NBHood(self.RADIUS_IN_KM)
+        result = plugin._cumulate_array(cube)
+        print "result = ", result
+        self.assertIsInstance(result, Cube)
+        print "result.data = ", repr(result.data)
+        self.assertArrayAlmostEqual(result.data, data)
+
+
 class Test__get_grid_x_y_kernel_ranges(IrisTest):
 
     """Test conversion of kernel radius in kilometres to grid cells."""
@@ -361,9 +512,10 @@ class Test__apply_kernel_for_smoothing(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        cube = set_up_cube()
-        plugin = NBHood(self.RADIUS_IN_KM)
-        ranges = (3, 3)
+        cube = set_up_cube(zero_point_indices=((0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        plugin = NBHood(self.RADIUS_IN_KM, unweighted_mode=True)
+        ranges = (2, 2)
         result = plugin._apply_kernel_for_smoothing(cube, ranges)
         self.assertIsInstance(result, Cube)
 
