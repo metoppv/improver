@@ -88,9 +88,9 @@ def main():
     else:
         z0_cube = None
     result = (
-        RoughnessCorrection(
+        wind_downscaling.RoughnessCorrection(
             a_over_s, sigma, highres_orog, standard_orog,
-            args.model_resolution, z0_cube=z0_cube,
+            float(args.model_resolution), z0_cube=z0_cube,
             height_levels_cube=height_levels).process(wind_speed))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

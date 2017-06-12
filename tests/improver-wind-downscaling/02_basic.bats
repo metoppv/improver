@@ -37,8 +37,8 @@
   test_path="IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
 
   # Run wind downscaling processing and check it passes.
-  run improver wind-downscaling "$test_path/wind_speed.nc" "$test_path/a_over_s.nc" \
-      "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog" \
+  run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
+      "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
       2200 "$test_path/output.nc"
   [[ "$status" -eq 0 ]]
 

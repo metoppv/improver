@@ -734,7 +734,7 @@ class RoughnessCorrection(object):
         [exp_xname, exp_yname] = ["projection_x_coordinate",
                                   "projection_y_coordinate"]
         exp_unit = Unit("m")
-        if (x_name is not exp_xname) or (y_name is not exp_yname):
+        if (x_name != exp_xname) or (y_name != exp_yname):
             raise ValueError("cannot currently calculate resolution")
 
         if (a_cube.coord(x_name).bounds is None and
@@ -782,7 +782,7 @@ class RoughnessCorrection(object):
         unwanted_coord_list = [
             "time", "height", "model_level_number", "forecast_time",
             "forecast_reference_time", "forecast_period"]
-        for field, exp_unit in zip(ancil_list, [None, Unit("m"),
+        for field, exp_unit in zip(ancil_list, [1, Unit("m"),
                                                 Unit("m"), Unit("m")]):
             for unwanted_coord in unwanted_coord_list:
                 try:
@@ -956,6 +956,7 @@ class RoughnessCorrection(object):
                 hld, time_slice.data)
             rchc_list.append(rc_hc)
         output_cube = rchc_list.merge_cube()
+        output_cube = iris.util.new_axis(output_cube, 'time')
         # reorder input_cube and output_cube as original
         if np.isnan(twp):
             input_cube.transpose(np.argsort([ywp, xwp, zwp]))
