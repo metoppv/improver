@@ -59,7 +59,7 @@ class TestPercentiles(IrisTest):
 
         """
         data = [[range(0, 11, 1)]*11]*3
-        data = np.array(data)
+        data = np.array(data).astype('float32')
         data.resize(3, 1, 11, 11)
 
         realization = DimCoord([0, 1, 2], 'realization', units=1)
