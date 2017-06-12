@@ -103,10 +103,15 @@ class PercentileConverter(object):
             collapse.
 
         """
+        # Store data type and enforce the same type on return.
+        data_type = cube.dtype
+
         try:
-            return cube.collapsed(self.collapse_coord,
-                                  iris.analysis.PERCENTILE,
-                                  percent=self.percentiles)
+            result = cube.collapsed(self.collapse_coord,
+                                    iris.analysis.PERCENTILE,
+                                    percent=self.percentiles)
+            result.data = result.data.astype(data_type)
+            return result
         except:
             raise CoordinateNotFoundError(
                 "Coordinate '{}' not found in cube passed to {}.".format(
