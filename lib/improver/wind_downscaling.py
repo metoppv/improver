@@ -643,7 +643,7 @@ class RoughnessCorrection(object):
         modoro_cube: 2D cube
             model orography interpolated on pp grid. In m
         modres: float
-            original avearge model resolution in m
+            original average model resolution in m
         (height_levels_cube: 3D or 1D cube)
             height of input velocity field. Can be position dependent
         (z0_cube: 2D cube)

@@ -51,7 +51,7 @@ def main():
     parser.add_argument('sigma_filepath', metavar='SIGMA_FILE',
                         help='Location of standard deviation of model '
                              'orography height file. Units of field: m')
-    #TODO: is 'highres' an appropriate name for this field?
+    # TODO: is 'highres' an appropriate name for this field?
     parser.add_argument('highres_orog_filepath',
                         metavar='HIGH_RESOLUTION_OROGRAPHY_FILE',
                         help='Location of high resolution orography file. '
@@ -90,13 +90,10 @@ def main():
     result = (
         RoughnessCorrection(
             a_over_s, sigma, highres_orog, standard_orog,
-            args.model_resolution, z0_cube=z0_cube, 
+            args.model_resolution, z0_cube=z0_cube,
             height_levels_cube=height_levels).process(wind_speed))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":
     main()
-
-                        
-
