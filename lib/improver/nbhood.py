@@ -177,13 +177,12 @@ class BasicNeighbourhoodProcessing(object):
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
             data = slice_2d.data
-            data_summed_vertically = np.flipud(np.cumsum(np.flipud(data), axis=0))
-            print "data_summed_vertically = ", data_summed_vertically
-            data_summed_horizontally = np.cumsum(data_summed_vertically, axis=1)
-            print "data_summed_horizontally = ", data_summed_horizontally
+            data_summed_vertically = (
+                np.flipud(np.cumsum(np.flipud(data), axis=0)))
+            data_summed_horizontally = (
+                np.cumsum(data_summed_vertically, axis=1))
             slice_2d.data = data_summed_horizontally
             cubelist.append(slice_2d)
-        #cube = cubelist.merge_cube()
         return cubelist.merge_cube()
 
     def _get_grid_x_y_kernel_ranges(self, cube, radius_in_km):
@@ -266,9 +265,7 @@ class BasicNeighbourhoodProcessing(object):
 
         """
         data = cube.data
-        print "data = ", data
         fullranges = np.zeros([np.ndim(data)])
-        print "fullranges = ", fullranges
         axes = []
         try:
             for coord_name in ['projection_x_coordinate',
@@ -278,34 +275,26 @@ class BasicNeighbourhoodProcessing(object):
             raise ValueError("Invalid grid: projection_x/y coords required")
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        print "fullranges = ", fullranges
         # Define the size of the kernel based on the number of grid cells
         # contained within the desired radius.
         kernel = np.ones([int(1 + x * 2) for x in fullranges])
-        print "kernel = ", kernel
         # Create an open multi-dimensional meshgrid.
         open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        print "open_grid = ", open_grid
         if self.unweighted_mode:
-            print "a = ", [x ** 2 for x in open_grid]
-            print "b = ", np.cumprod(ranges)[-1]
-            print "c = ", np.shape(kernel)
             mask = np.reshape(
                 np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
-            print "mask = ", mask
         else:
             # Create a kernel, such that the central grid point has the
             # highest weighting, with the weighting decreasing with distance
             # away from the central grid point.
+            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
             kernel[:] = (
-                (np.prod(ranges) - np.sum(open_grid**2.)) / np.prod(ranges))
+                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
             mask = kernel < 0.
         kernel[mask] = 0.
-        print "kernel = ", kernel
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)
-        print "cube.data = ", cube.data
         return cube
 
     def process(self, cube):
@@ -331,6 +320,9 @@ class BasicNeighbourhoodProcessing(object):
         else:
             if len(realiz_coord.points) > 1:
                 raise ValueError("Does not operate across realizations.")
+            else:
+                for cube_slice in cube.slices_over("realization"):
+                    cube = cube_slice
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
@@ -355,5 +347,5 @@ class BasicNeighbourhoodProcessing(object):
                         self._apply_kernel_for_smoothing(cube_slice, ranges))
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
-            cube = concatenate_cubes(cubes)
+            cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])
         return cube

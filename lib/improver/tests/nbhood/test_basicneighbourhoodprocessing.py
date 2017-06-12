@@ -104,58 +104,17 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array([
 ])
 
 
-#def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
-                #num_grid_points=16, num_realization_points=0):
-    #"""Set up a normal OSGB UK National Grid cube."""
-    #if num_realization_points == 0:
-        #data = np.ones((num_time_points, num_grid_points, num_grid_points))
-        #for time_index, lat_index, lon_index in zero_point_indices:
-            #data[time_index][lat_index][lon_index] = 0
-    #else:
-        #data = np.ones((
-            #num_realization_points, num_time_points,
-            #num_grid_points, num_grid_points))
-        #for indices in zero_point_indices:
-            #realization_index, time_index, lat_index, lon_index = indices
-            #data[realization_index][time_index][lat_index][lon_index] = 0
-
-    #dim_index = 0
-    #cube = Cube(data, standard_name="precipitation_amount",
-                #units="kg m^-2 s^-1")
-    #coord_system = OSGB()
-    #scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
-    #if num_realization_points != 0:
-        #cube.add_dim_coord(
-            #DimCoord(
-                #range(num_realization_points), 'realization',
-                #units='degrees'), dim_index)
-        #dim_index += 1
-    #tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    #time_points = [402192.5 + _ for _ in range(num_time_points)]
-    #cube.add_aux_coord(AuxCoord(time_points,
-                                #"time", units=tunit), dim_index)
-    #cube.add_dim_coord(
-        #DimCoord(
-            #scaled_y_coord.points[:num_grid_points],
-            #'projection_y_coordinate',
-            #units='m', coord_system=coord_system
-        #),
-        #dim_index+1
-    #)
-    #scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
-    #cube.add_dim_coord(
-        #DimCoord(
-            #scaled_x_coord.points[:num_grid_points],
-            #'projection_x_coordinate',
-            #units='m', coord_system=coord_system
-        #),
-        #dim_index+2
-    #)
-    #return cube
-
 def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
-                num_grid_points=16, num_realization_points=0):
+                num_grid_points=16, num_realization_points=1):
     """Set up a normal OSGB UK National Grid cube."""
+
+    zero_point_indices = list(zero_point_indices)
+    for index, indices in enumerate(zero_point_indices):
+        if len(indices) == 3:
+            indices = (0,) + indices
+        zero_point_indices[index] = indices
+    zero_point_indices = tuple(zero_point_indices)
+
     data = np.ones((
         num_realization_points, num_time_points,
         num_grid_points, num_grid_points))
@@ -194,6 +153,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     )
     return cube
 
+
 def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
                          num_grid_points=16):
     """Set up a lat-long coord cube."""
@@ -205,20 +165,20 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_aux_coord(
-        AuxCoord(time_points, "time", units=tunit), 1)
+        AuxCoord(time_points, "time", units=tunit), 0)
     cube.add_dim_coord(
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'latitude',
                  units='degrees'),
-        2
+        1
     )
     cube.add_dim_coord(
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'longitude',
                  units='degrees'),
-        3
+        2
     )
     return cube
 
@@ -364,7 +324,8 @@ class Test__cumulate_array(IrisTest):
                          [3., 6., 8., 11., 14.],
                          [2., 4., 6., 8., 10.],
                          [1., 2., 3., 4., 5.]])
-        cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._cumulate_array(cube)
@@ -395,12 +356,9 @@ class Test__cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
             num_time_points=3, num_grid_points=5)
-        print "cube.data = ", cube.data
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._cumulate_array(cube)
-        print "result = ", result
         self.assertIsInstance(result, Cube)
-        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, data)
 
     def test_for_multiple_realizations_and_times(self):
@@ -434,12 +392,9 @@ class Test__cumulate_array(IrisTest):
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
 
-        print "cube.data = ", cube.data
         plugin = NBHood(self.RADIUS_IN_KM)
         result = plugin._cumulate_array(cube)
-        print "result = ", result
         self.assertIsInstance(result, Cube)
-        print "result.data = ", repr(result.data)
         self.assertArrayAlmostEqual(result.data, data)
 
 
@@ -512,7 +467,8 @@ class Test__apply_kernel_for_smoothing(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        cube = set_up_cube(zero_point_indices=((0, 2, 2),), num_time_points=1,
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         plugin = NBHood(self.RADIUS_IN_KM, unweighted_mode=True)
         ranges = (2, 2)
@@ -524,7 +480,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][5:10] = slice_
+            expected[0][0][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -542,7 +498,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
-            expected[0][5 + index][5:10] = slice_
+            expected[0][0][5 + index][5:10] = slice_
         radius_in_km = 4.2  # Equivalent to a range of 2.
         ranges = (2, 2)
         result = (
@@ -555,14 +511,14 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_multi_point_multitimes(self):
         """Test behaviour for points over multiple times."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 10, 10), (1, 7, 7)],
+            zero_point_indices=[(0, 0, 10, 10), (0, 1, 7, 7)],
             num_time_points=2
         )
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][8 + index][8:13] = slice_
+            expected[0][0][8 + index][8:13] = slice_
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[1][5 + index][5:10] = slice_
+            expected[0][1][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -590,11 +546,11 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
-        mask[0][7][7] = 1
+        mask[0][0][7][7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-                expected[time_index][5 + index][5:10] = slice_
+                expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -610,11 +566,11 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
-        mask[0][6][7] = 1
+        mask[0][0][6][7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-                expected[time_index][5 + index][5:10] = slice_
+                expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -625,7 +581,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         """Test behaviour with a non-zero point with unit range."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
-        expected[0][7][7] = 0.0
+        expected[0][0][7][7] = 0.0
         radius_in_km = 2.1  # Equivalent to a range of 1 grid cell.
         ranges = (1, 1)
         result = NBHood(radius_in_km)._apply_kernel_for_smoothing(
@@ -638,7 +594,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         expected = np.ones_like(cube.data)
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
-                expected[time_index][3 + index][3:12] = slice_
+                expected[0][time_index][3 + index][3:12] = slice_
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
         result = NBHood(radius_in_km)._apply_kernel_for_smoothing(
@@ -651,12 +607,13 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         This exhibits the undesirable edge reflection behaviour.
 
         """
-        cube = set_up_cube(zero_point_indices=((0, 1, 1),), num_grid_points=4)
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 1, 1),), num_grid_points=4)
         expected = np.array([
-            [[0.97636177, 0.97533402, 0.97636177, 0.97944502],
-             [0.97533402, 0.97430627, 0.97533402, 0.97841727],
-             [0.97636177, 0.97533402, 0.97636177, 0.97944502],
-             [0.97944502, 0.97841727, 0.97944502, 0.98252826]]
+            [[[0.97636177, 0.97533402, 0.97636177, 0.97944502],
+              [0.97533402, 0.97430627, 0.97533402, 0.97841727],
+              [0.97636177, 0.97533402, 0.97636177, 0.97944502],
+              [0.97944502, 0.97841727, 0.97944502, 0.98252826]]]
         ])
         radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
@@ -666,7 +623,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 7, 6), (0, 7, 8)])
+            zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
         expected_snippet = np.array([
             [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992],
             [0.968, 0.944, 0.904, 0.888, 0.904, 0.944, 0.968],
@@ -676,7 +633,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         ])
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(expected_snippet):
-            expected[0][5 + index][4:11] = slice_
+            expected[0][0][5 + index][4:11] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -686,10 +643,11 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 7, 2)])  # Just within range of the edge.
+            zero_point_indices=[
+                (0, 0, 7, 2)])  # Just within range of the edge.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][0:5] = slice_
+            expected[0][0][5 + index][0:5] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -699,10 +657,10 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 7, 1)])  # Range 3 goes over the edge.
+            zero_point_indices=[(0, 0, 7, 1)])  # Range 3 goes over the edge.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][0:4] = slice_[1:]
+            expected[0][0][5 + index][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -718,7 +676,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
 
         """
         cube = set_up_cube(
-            zero_point_indices=[(0, 7, 0)])  # On the (y) edge.
+            zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
         expected = np.ones_like(cube.data)
         expected_centroid = np.array([
             [0.92, 0.96, 0.992],
@@ -728,7 +686,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
             [0.92, 0.96, 0.992],
         ])
         for index, slice_ in enumerate(expected_centroid):
-            expected[0][5 + index][0:3] = slice_
+            expected[0][0][5 + index][0:3] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -738,10 +696,10 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_single_point_almost_corner(self):
         """Test behaviour for a non-zero grid cell quite near a corner."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 2, 2)])  # Just within corner range.
+            zero_point_indices=[(0, 0, 2, 2)])  # Just within corner range.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][index][0:5] = slice_
+            expected[0][0][index][0:5] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -751,12 +709,12 @@ class Test__apply_kernel_for_smoothing(IrisTest):
     def test_single_point_adjacent_corner(self):
         """Test behaviour for a non-zero grid cell near the corner."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 1, 1)])  # Kernel goes over the corner.
+            zero_point_indices=[(0, 0, 1, 1)])  # Kernel goes over the corner.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             if index == 0:
                 continue
-            expected[0][index - 1][0:4] = slice_[1:]
+            expected[0][0][index - 1][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -772,7 +730,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
 
         """
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 0)])  # Point is right on the corner.
+            zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
         expected = np.ones_like(cube.data)
         expected_centroid = np.array([
             [0.592, 0.768, 0.92],
@@ -780,7 +738,7 @@ class Test__apply_kernel_for_smoothing(IrisTest):
             [0.92, 0.96, 0.992],
         ])
         for index, slice_ in enumerate(expected_centroid):
-            expected[0][index][0:3] = slice_
+            expected[0][0][index][0:3] = slice_
         ranges = (3, 3)
         result = (
             NBHood(self.RADIUS_IN_KM)._apply_kernel_for_smoothing(
@@ -804,7 +762,7 @@ class Test_process(IrisTest):
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
         cube = set_up_cube()
-        cube.data[0][6][7] = np.NAN
+        cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegexp(ValueError, msg):
             NBHood(self.RADIUS_IN_KM).process(cube)
@@ -869,9 +827,9 @@ class Test_process(IrisTest):
         varies with lead time.
         """
         cube = set_up_cube(
-            zero_point_indices=((0, 7, 7), (1, 7, 7,), (2, 7, 7)),
+            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
             num_time_points=3)
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(cube.data[0])
         expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
@@ -919,9 +877,9 @@ class Test_process(IrisTest):
     def test_radii_varying_with_lead_time_with_interpolation_check_data(self):
         """Test behaviour when the radius varies with lead time."""
         cube = set_up_cube(
-            zero_point_indices=((0, 7, 7), (1, 7, 7,), (2, 7, 7)),
+            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
             num_time_points=3)
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(cube.data[0])
         expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
