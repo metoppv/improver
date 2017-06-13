@@ -42,9 +42,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions_ensemble_calibration import (
-    set_up_temperature_cube, set_up_wind_speed_cube,
-    add_forecast_reference_time_and_forecast_period,
-    _create_historic_forecasts, _create_truth)
+        set_up_temperature_cube, set_up_wind_speed_cube,
+        add_forecast_reference_time_and_forecast_period,
+        _create_historic_forecasts, _create_truth)
 
 
 class Test_process(IrisTest):

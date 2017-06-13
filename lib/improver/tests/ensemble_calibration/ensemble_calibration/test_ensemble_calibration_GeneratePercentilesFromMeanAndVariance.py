@@ -47,7 +47,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions_ensemble_calibration import (
-    set_up_temperature_cube, add_forecast_reference_time_and_forecast_period)
+        set_up_temperature_cube,
+        add_forecast_reference_time_and_forecast_period)
 
 
 class Test__create_cube_with_percentiles(IrisTest):
