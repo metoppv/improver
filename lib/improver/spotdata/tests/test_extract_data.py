@@ -164,7 +164,7 @@ class TestExtractData(IrisTest):
                 'latitude': 4.74,
                 'longitude': 9.47,
                 'altitude': 10,
-                'gmtoffset': 0
+                'utc_offset': 0
                 }}
             )
 
@@ -258,6 +258,52 @@ class TestExtractData(IrisTest):
             plugin.process(
                 self.cube, self.sites, self.neighbour_list,
                 ancillary_data, additional_data)
+
+
+class miscellaneous(TestExtractData):
+
+    def test_invalid_method(self):
+        """
+        Test that the plugin can handle an invalid method being passed in.
+
+        """
+        plugin = ExtractData('quantum_interpolation')
+        msg = 'Unknown method'
+        cube = self.cube.extract(self.time_extract)
+        with self.assertRaisesRegexp(AttributeError, msg):
+            plugin.process(cube, self.sites, self.neighbour_list, {}, None)
+
+    def test__built_coordinates(self):
+        """
+        Test the _build_coordinates private function.
+
+        """
+        plugin = ExtractData()._build_coordinates
+        points = np.array([0, 1, 2])
+        indices, bd_ids, latitude, longitude, utc_offset = (
+            plugin(points, points, points, points[::-1]))
+        self.assertArrayEqual(indices.points, points)
+        self.assertArrayEqual(utc_offset.points, points[::-1])
+        self.assertEqual(latitude.name(), 'latitude')
+        self.assertEqual(longitude.name(), 'longitude')
+        self.assertIsInstance(indices, DimCoord)
+        self.assertIsInstance(latitude, AuxCoord)
+
+    def test_make_cube(self):
+        """
+        Test the make_cube function.
+
+        """
+        plugin = ExtractData()._build_coordinates
+        points = np.array([0, 1, 2])
+        indices, bd_ids, latitude, longitude, utc_offset = (
+            plugin(points, points, points, points[::-1]))
+        self.assertArrayEqual(indices.points, points)
+        self.assertArrayEqual(utc_offset.points, points[::-1])
+        self.assertEqual(latitude.name(), 'latitude')
+        self.assertEqual(longitude.name(), 'longitude')
+        self.assertIsInstance(indices, DimCoord)
+        self.assertIsInstance(latitude, AuxCoord)
 
 
 class use_nearest(TestExtractData):

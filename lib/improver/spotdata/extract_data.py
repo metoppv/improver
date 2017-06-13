@@ -57,7 +57,6 @@ class ExtractData(object):
         interpolating data to the site of interest from gridded data.
 
         """
-
         self.method = method
 
     def process(self, cube, sites, neighbours, ancillary_data, additional_data,
