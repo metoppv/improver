@@ -47,7 +47,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin)
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
-from improver.tests.helper_functions_ensemble_calibration import(
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions_ensemble_calibration import (
     set_up_temperature_cube, set_up_wind_speed_cube)
 
 

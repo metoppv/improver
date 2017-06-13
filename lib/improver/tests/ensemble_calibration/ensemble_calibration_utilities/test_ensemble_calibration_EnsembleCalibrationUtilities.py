@@ -48,8 +48,8 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     _associate_any_coordinate_with_master_coordinate,
     _slice_over_coordinate, _strip_var_names, rename_coordinate, _renamer,
     check_predictor_of_mean_flag)
-from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_temperature_cube)
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions_ensemble_calibration import set_up_temperature_cube
 
 
 def _check_coord_type(cube, coord):

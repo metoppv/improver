@@ -49,7 +49,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
-from improver.tests.helper_functions_ensemble_calibration import(
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions_ensemble_calibration import (
     set_up_temperature_cube,
     add_forecast_reference_time_and_forecast_period)
 
