@@ -34,12 +34,13 @@
 @test "wind downscaling wind_speed " {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
+  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/veg/"
 
-  # Run wind downscaling processing and check it passes.
+  # Run wind downscaling processing with vegetable roughness option and 
+  # check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      2200 "$TEST_DIR/output.nc"
+      2200 "$TEST_DIR/output.nc" --z0_filepath "$test_path/veg.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
