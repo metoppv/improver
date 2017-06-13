@@ -84,12 +84,14 @@ class TestPercentiles(IrisTest):
         self.default_percentiles = np.array([0, 5, 10, 20, 25, 30, 40, 50,
                                              60, 70, 75, 80, 90, 95, 100])
 
-    def passed_single_coordinate(self, collapse_coord):
+    def test_valid_single_coord_string(self):
         """
-        Tests collapsing a cube over a singular coordinate, which can be
-        provided in any supported type.
+        Test that the plugin handles a valid collapse_coord passed in
+        as a string.
 
         """
+        collapse_coord = 'longitude'
+
         plugin = PercentileConverter(collapse_coord)
         result = plugin.process(self.cube)
 
@@ -109,12 +111,14 @@ class TestPercentiles(IrisTest):
         self.assertArrayEqual(result.coord('longitude').bounds,
                               [[-180., 180.]])
 
-    def passed_multiple_coordinates(self, collapse_coord):
+    def test_valid_multi_coord_string_list(self):
         """
-        Tests collapsing a cube over multiple coordinates, which can be
-        provided as lists of any supported type.
+        Test that the plugin handles a valid list of collapse_coords passed in
+        as a list of strings.
 
         """
+        collapse_coord = ['longitude', 'latitude']
+
         plugin = PercentileConverter(collapse_coord)
         result = plugin.process(self.cube)
 
@@ -135,51 +139,6 @@ class TestPercentiles(IrisTest):
         self.assertArrayEqual(result.coord('longitude').bounds,
                               [[-180., 180.]])
         self.assertArrayEqual(result.coord('latitude').bounds, [[-90., 90.]])
-
-    def test_valid_single_coord_string(self):
-        """
-        Test that the plugin handles a valid collapse_coord passed in
-        as a string.
-
-        """
-        collapse_coord = 'longitude'
-        self.passed_single_coordinate(collapse_coord)
-
-    def test_valid_single_collapse_coord_dimcoord(self):
-        """
-        Test that the plugin handles a valid collapse_coord passed in
-        as a DimCoord.
-
-        """
-        collapse_coord = self.longitude
-        self.passed_single_coordinate(collapse_coord)
-
-    def test_valid_multi_coord_string_list(self):
-        """
-        Test that the plugin handles a valid list of collapse_coords passed in
-        as a list of strings.
-
-        """
-        collapse_coord = ['longitude', 'latitude']
-        self.passed_multiple_coordinates(collapse_coord)
-
-    def test_valid_multi_coord_dimcoord_list(self):
-        """
-        Test that the plugin handles a valid list of collapse_coords passed in
-        as a list of DimCoords.
-
-        """
-        collapse_coord = [self.longitude, self.latitude]
-        self.passed_multiple_coordinates(collapse_coord)
-
-    def test_valid_multi_coord_mixed_list(self):
-        """
-        Test that the plugin handles a valid list of collapse_coords passed in
-        as a list of DimCoords and strings.
-
-        """
-        collapse_coord = ['longitude', self.latitude]
-        self.passed_multiple_coordinates(collapse_coord)
 
     def test_unavailable_collapse_coord(self):
         """
