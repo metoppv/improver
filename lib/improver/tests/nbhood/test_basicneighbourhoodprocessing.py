@@ -202,7 +202,8 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
-            NBHood(radii_in_km, lead_times)
+            kernel_method = 'circular'
+            NBHood(kernel_method, radii_in_km, lead_times=lead_times)
 
 
 class Test_find_required_lead_times(IrisTest):
@@ -236,7 +237,7 @@ class Test_find_required_lead_times(IrisTest):
         expected_result = (
             cube.coord("time").points -
             cube.coord("forecast_reference_time").points)
-        plugin = Utilities.find_required_lead_times(cube)
+        result = Utilities.find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_forecast_period_unit_conversion(self):
@@ -248,7 +249,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("forecast_period").convert_units("seconds")
-        plugin = Utilities.find_required_lead_times(cube)
+        result = Utilities.find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_time_unit_conversion(self):
@@ -260,7 +261,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
-        plugin = Utilities.find_required_lead_times(cube)
+        result = Utilities.find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_forecast_period_unit_conversion_exception(self):
@@ -317,7 +318,7 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        plugin = Utilities.cumulate_array(cube)
+        result = Utilities.cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -345,7 +346,7 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
             num_time_points=3, num_grid_points=5)
-        plugin = Utilities.cumulate_array(cube)
+        result = Utilities.cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -380,7 +381,7 @@ class Test_cumulate_array(IrisTest):
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
 
-        plugin = Utilities.cumulate_array(cube)
+        result = Utilities.cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -395,7 +396,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
     def test_basic_radius_to_grid_cells(self):
         """Test the lat-long radius-to-grid-cell conversion."""
         cube = set_up_cube()
-        plugin = Utilities._get_grid_x_y_kernel_ranges(
+        result = Utilities.get_grid_x_y_kernel_ranges(
             cube, self.RADIUS_IN_KM, self.MAX_KERNEL_CELL_RADIUS)
         self.assertEqual(result, (3, 3))
 
@@ -404,7 +405,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         cube = set_up_cube()
         cube.coord("projection_x_coordinate").convert_units("kilometres")
         cube.coord("projection_y_coordinate").convert_units("kilometres")
-        plugin = Utilities._get_grid_x_y_kernel_ranges(
+        result = Utilities.get_grid_x_y_kernel_ranges(
             cube, self.RADIUS_IN_KM, self.MAX_KERNEL_CELL_RADIUS)
         self.assertEqual(result, (3, 3))
 
@@ -443,7 +444,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             expected = np.zeros_like(cube.data)
-            utilities.get_grid_x_y_kernel_ranges(
+            Utilities.get_grid_x_y_kernel_ranges(
                 cube, radius_in_km, self.MAX_KERNEL_CELL_RADIUS)
 
 
