@@ -32,9 +32,8 @@
 @test "percentile no arguments" {
   run improver percentile
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-percentile [-h]
-                           [--coordinates COLLAPSING_COORDINATES [COLLAPSING_COORDINATES ...]]
-                           [--percentiles PERCENTILES [PERCENTILES ...]]
-                           INPUT_FILE OUTPUT_FILE"
+  expected="usage: improver-percentile [-h] [--percentiles PERCENTILES [PERCENTILES ...]]
+                           INPUT_FILE OUTPUT_FILE COLLAPSING_COORDINATES
+                           [COLLAPSING_COORDINATES ...]"
   [[ "$output" =~ "$expected" ]]
 }

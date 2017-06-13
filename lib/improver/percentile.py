@@ -114,10 +114,12 @@ class PercentileConverter(object):
         # Store data type and enforce the same type on return.
         data_type = cube.dtype
         # Test that collapse coords are present in cube before proceding.
-        if sum([test_coord in coord.name() for coord in cube.coords()
-                for test_coord in
-                self.collapse_coord]) == len(self.collapse_coord):
+        n_collapse_coords = len(self.collapse_coord)
+        n_valid_coords = sum([test_coord in coord.name()
+                              for coord in cube.coords()
+                              for test_coord in self.collapse_coord])
 
+        if n_valid_coords == n_collapse_coords:
             result = cube.collapsed(self.collapse_coord,
                                     iris.analysis.PERCENTILE,
                                     percent=self.percentiles)

@@ -43,22 +43,22 @@ def main():
     parser = argparse.ArgumentParser(
         description="Calculate percentiled data over a cube coordinate by "
         "collapsing that coordinate. Typically used to convert realization "
-        "(member) data into percentiled data.")
+        "(member) data into percentiled data, but may calculate over any "
+        "dimension coordinate.")
     parser.add_argument("input_filepath", metavar="INPUT_FILE",
                         help="A path to an input NetCDF file to be processed")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--coordinates", metavar="COLLAPSING_COORDINATES",
-                        default="realization", nargs="+",
+    parser.add_argument("coordinates", metavar="COLLAPSING_COORDINATES",
+                        nargs="+",
                         help="Coordinate or coordinates over which to collapse"
-                        " data and calculate percentiles; defaults to "
-                        " realization. \n e.g. --coordinates latitude"
-                        " longitude")
+                        " data and calculate percentiles; e.g. "
+                        "realization   or  latitude longitude")
     parser.add_argument("--percentiles", metavar="PERCENTILES",
                         nargs="+", default=None, type=int,
                         help="Optional definition of percentiles at which"
                         " to calculate data, otherwise default values are"
-                        " used, \n e.g. --percentiles 0 25 50 75 100")
+                        " used, e.g. --percentiles 0 25 50 75 100")
     
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)

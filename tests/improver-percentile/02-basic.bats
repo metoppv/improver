@@ -38,7 +38,7 @@
   # Run percentile processing and check it passes.
   run improver percentile \
       "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" "$TEST_DIR/output.nc" \
-      --percentiles 25 50 75
+      realization --percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
