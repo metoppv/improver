@@ -60,7 +60,7 @@ class ExtractData(object):
         self.method = method
 
     def process(self, cube, sites, neighbours, ancillary_data, additional_data,
-                no_neighbours=9):
+                no_neighbours=9, base_level=1, upper_level=3):
         """
         Call the correct function to enact the method of data extraction
         specified. This function also handles multiple timesteps, consolidating
@@ -106,17 +106,20 @@ class ExtractData(object):
                 cube, sites, neighbours, orography,
                 no_neighbours=no_neighbours)
         elif self.method == 'model_level_temperature_lapse_rate':
-            height_50 = Constraint(height=50)
+            
+            base_height, = cube.coord('height')[base_level].points
+            upper_height, = cube.coord('height')[upper_level].points
+            height_constraint = Constraint(height=[base_height, upper_height])
 
             pressure_on_height_levels = (
                 data_from_dictionary(
                     additional_data, 'pressure_on_height_levels').extract(
-                        height_50)
+                        height_constraint)
                 )
             temperature_on_height_levels = (
                 data_from_dictionary(
                     additional_data, 'temperature_on_height_levels').extract(
-                        height_50)
+                        height_constraint)
                 )
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
@@ -304,6 +307,21 @@ class ExtractData(object):
         terrain; Milestone Report RC10JR Local forecasting in complex terrain;
         V 1.0 August 2005.
 
+        Calculate potential temperature gradient and use this to adjust
+        temperatures to the spotdata site altitude.
+
+                     pref   R/cp                 p_site  R/cp
+        Theta = T ( ------ )         T = Theta ( ------ )
+                    p_site                        pref
+
+        ln (Theta) = ln (T)     + kappa [ ln(pref) - ln(p) ]
+        ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
+
+        kappa = (R_DRY_AIR / CP_DRY_AIR)
+        pref = 1000hPa (1.0E5Pa)
+        p_site = pressure at spotdata site.
+
+
         Args:
         -----
         cube : iris.cube.Cube
@@ -330,12 +348,25 @@ class ExtractData(object):
         using multi-level data.
 
         """
+
+        def _adjust_temperature(theta_lower, dthetadz, dz, p_site, kappa):
+            dz_max_adjustment = 70.
+            p_ref = 1.0E5
+            
+            dz = min(abs(dz), dz_max_adjustment)*np.sign(dz)
+            if dthetadz > 0:
+                return theta_lower*(p_site/p_ref)**kappa
+            else:
+                return theta_lower + dz*dthetadz)*(p_site/p_ref)**kappa
+
+            
         if not cube.name() == 'air_temperature':
             raise ValueError('{} should only be used for adjusting '
                              'temperatures. Cube of type {} is not '
                              'suitable.'.format(self.method, cube.name()))
 
         kappa = R_DRY_AIR/CP_DRY_AIR
+        dz_tolerance = 2.
 
         data = np.empty(shape=(len(sites)))
         for i_site in range(len(sites)):
@@ -343,32 +374,84 @@ class ExtractData(object):
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])
 
-            # Use neighbour grid point value if vertical displacement == 0.
-            if np.isclose(dz, 0.):
+            # Use neighbour grid point value if dz < dz_tolerance.
+            if abs(dz) < dz_tolerance:
                 data[i_site] = cube.data[i, j]
                 continue
 
-            t_upper = temperature_on_height_levels.data[i, j]
-            p_upper = pressure_on_height_levels.data[i, j]
+            heights = temperature_on_height_levels.coord('height').points
+            d_height = heights[1] - heights[0]
+
+            t_lower = temperature_on_height_levels.data[0, i, j]
+            t_upper = temperature_on_height_levels.data[1, i, j]
+            p_lower = pressure_on_height_levels.data[0, i, j]
+            p_upper = pressure_on_height_levels.data[1, i, j]
             t_surface = cube.data[i, j]
             p_surface = surface_pressure.data[i, j]
 
-            p_grad = (p_upper - p_surface)/50.
+            p_grad = (p_upper - p_lower)/d_altitude.
             p_site = p_surface + p_grad*dz
 
             theta_upper = t_upper*(1.0E5/p_upper)**kappa
-            theta_surface = t_surface*(1.0E5/p_surface)**kappa
-            dthetadz = (theta_upper - theta_surface)/50.
+            theta_lower = t_lower*(1.0E5/p_lower)**kappa
 
-            if abs(dz) < 1.:
-                t1p5 = t_surface
-            else:
-                dz = min(abs(dz), 70.)*np.sign(dz)
-                if dthetadz > 0:
-                    t1p5 = theta_surface*(p_site/1.0E5)**kappa
-                else:
-                    t1p5 = (theta_surface + dz*dthetadz)*(p_site/1.0E5)**kappa
+            theta_surface = t_surface*(1.0E5/p_surface)**kappa
+            dthetadz = (theta_upper - theta_lower)/d_altitude
+
 
             data[i_site] = t1p5
+
+
+
+
+
+          IF ( HtDiff(i,j)  <  MinusHeightTolerance ) THEN
+
+            T1p5mData(i,j) =                                           &
+                  ( ThetaData(i,j) + dthetadz(i,j)*dzCorrect(i,j) )    &
+                * ( PCorrect(i,j) / Pref )**Kappa                      &
+                + TInc(i,j)
+
+
+
+          ELSE IF ( HtDiff(i,j)  >  HeightTolerance ) THEN
+
+            IF ( dthetadz(i,j)  >  0 ) THEN 
+
+              T1p5mData(i,j) =                                         &
+                  ( ThetaData(i,j) + dthetadz(i,j) * dzCorrect(i,j) )  &
+                * ( PCorrect(i,j) / Pref )**Kappa                      &
+                + TInc(i,j)
+
+            ELSE
+
+              T1p5mData(i,j) =                                         &
+                    ThetaData(i,j)                                     &
+                  * ( PCorrect(i,j) / Pref )**Kappa                    &
+                  + TInc(i,j)
+
+            END IF   # Stability test
+          END IF   # Output height below/above model surface altitude
+        END DO   # NCols
+      END DO   # NRows
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         return self.make_cube(cube, data, sites)
