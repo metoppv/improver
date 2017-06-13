@@ -39,69 +39,51 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
 
 
-class BasicNeighbourhoodProcessing(object):
-    """
-    Apply a neigbourhood processing kernel to a thresholded cube.
-
-    When applied to a thresholded probabilistic cube, it acts like a
-    low-pass filter which reduces noisiness in the probabilities.
-
-    The kernel will presently only work with projections in which the
-    x grid point spacing and y grid point spacing are constant over the
-    entire domain, such as the UK national grid projection.
-
-    A maximum kernel radius of 500 grid cells is imposed in order to
-    avoid computational ineffiency and possible memory errors.
+class Utilities(object):
 
     """
+    Utilities for neighbourhood processing.
+    """
 
-    # Max extent of kernel in grid cells.
-    MAX_KERNEL_CELL_RADIUS = 500
+    def __init__(self):
+        pass
 
-    def __init__(self, radii_in_km, lead_times=None, unweighted_mode=False):
+    @staticmethod
+    def cumulate_array(cube):
         """
-        Create a neighbourhood processing plugin that applies a smoothing
-        kernel to points in a cube.
+        Method to calculate the cumulative sum of an array, by first
+        cumulating vertically so that the largest values are in the upper row,
+        and then cumulating horizontally, so that the largest values are in the
+        right hand column.
 
         Parameters
         ----------
+        cube : Iris.cube.Cube
+            Cube to which the vertical and horizontal cumulative summing will
+            be applied.
 
-        radii_in_km : float or List (if defining lead times)
-            The radii in kilometres of the neighbourhood kernel to
-            apply. Rounded up to convert into integer number of grid
-            points east and north, based on the characteristic spacing
-            at the zero indices of the cube projection-x/y coords.
-        lead_times : None or List
-            List of lead times or forecast periods, at which the radii
-            within radii_in_km are defined. The lead times are expected
-            in hours.
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
+        Returns
+        -------
+        cube : Iris.cube.Cube
+            Cube to which the vertical and horizontal cumulative summing has
+            been applied.
 
         """
-        if isinstance(radii_in_km, list):
-            self.radii_in_km = map(float, radii_in_km)
-        else:
-            self.radii_in_km = float(radii_in_km)
-        self.lead_times = lead_times
-        if self.lead_times is not None:
-            if len(radii_in_km) != len(lead_times):
-                msg = ("There is a mismatch in the number of radii "
-                       "and the number of lead times. "
-                       "Unable to continue due to mismatch.")
-                raise ValueError(msg)
-        self.unweighted_mode = bool(unweighted_mode)
-
-    def __str__(self):
-        result = ('<NeighbourhoodProcessing: radii_in_km: {};' +
-                  'unweighted_mode: {}>')
-        return result.format(
-            self.radii_in_km, self.unweighted_mode)
+        yname = cube.coord(axis="y").name()
+        xname = cube.coord(axis="x").name()
+        cubelist = iris.cube.CubeList([])
+        for slice_2d in cube.slices([yname, xname]):
+            data = slice_2d.data
+            data_summed_vertically = (
+                np.flipud(np.cumsum(np.flipud(data), axis=0)))
+            data_summed_horizontally = (
+                np.cumsum(data_summed_vertically, axis=1))
+            slice_2d.data = data_summed_horizontally
+            cubelist.append(slice_2d)
+        return cubelist.merge_cube()
 
     @staticmethod
-    def _find_required_lead_times(cube):
+    def find_required_lead_times(cube):
         """
         Determine the lead times within a cube, either by reading the
         forecast_period coordinate, or by calculating the difference between
@@ -152,40 +134,8 @@ class BasicNeighbourhoodProcessing(object):
                 raise CoordinateNotFoundError(msg)
         return required_lead_times
 
-    def _cumulate_array(self, cube):
-        """
-        Method to calculate the cumulative sum of an array, by first
-        cumulating vertically so that the largest values are in the upper row,
-        and then cumulating horizontally, so that the largest values are in the
-        right hand column.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to which the vertical and horizontal cumulative summing will
-            be applied.
-
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube to which the vertical and horizontal cumulative summing has
-            been applied.
-
-        """
-        yname = cube.coord(axis="y").name()
-        xname = cube.coord(axis="x").name()
-        cubelist = iris.cube.CubeList([])
-        for slice_2d in cube.slices([yname, xname]):
-            data = slice_2d.data
-            data_summed_vertically = (
-                np.flipud(np.cumsum(np.flipud(data), axis=0)))
-            data_summed_horizontally = (
-                np.cumsum(data_summed_vertically, axis=1))
-            slice_2d.data = data_summed_horizontally
-            cubelist.append(slice_2d)
-        return cubelist.merge_cube()
-
-    def _get_grid_x_y_kernel_ranges(self, cube, radius_in_km):
+    @staticmethod
+    def get_grid_x_y_kernel_ranges(cube, radius_in_km, max_kernel_cell_radius):
         """
         Return the number of grid cells in the x and y direction
         to be used to create the kernel.
@@ -233,8 +183,8 @@ class BasicNeighbourhoodProcessing(object):
                  "{0} km ".format(radius_in_km) +
                  "gives a negative cell extent")
             )
-        if (grid_cells_x > self.MAX_KERNEL_CELL_RADIUS or
-                grid_cells_y > self.MAX_KERNEL_CELL_RADIUS):
+        if (grid_cells_x > max_kernel_cell_radius or
+                grid_cells_y > max_kernel_cell_radius):
             raise ValueError(
                 ("Neighbourhood processing radius of " +
                  "{0} km ".format(radius_in_km) +
@@ -242,7 +192,18 @@ class BasicNeighbourhoodProcessing(object):
             )
         return grid_cells_x, grid_cells_y
 
-    def _apply_kernel_for_smoothing(self, cube, ranges):
+
+class Kernels(object):
+
+    """
+    Collection of kernels for use within Neighbourhood Processing.
+    """
+
+    def __init__(object):
+        pass
+
+    @staticmethod
+    def circular(cube, ranges, unweighted_mode):
         """
         Method to apply a kernel to the data within the input cube in order
         to smooth the resulting field.
@@ -280,7 +241,7 @@ class BasicNeighbourhoodProcessing(object):
         kernel = np.ones([int(1 + x * 2) for x in fullranges])
         # Create an open multi-dimensional meshgrid.
         open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if self.unweighted_mode:
+        if unweighted_mode:
             mask = np.reshape(
                 np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
         else:
@@ -296,6 +257,73 @@ class BasicNeighbourhoodProcessing(object):
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
+
+
+class NeighbourhoodProcessing(object):
+    """
+    Apply a neigbourhood processing kernel to a thresholded cube.
+
+    When applied to a thresholded probabilistic cube, it acts like a
+    low-pass filter which reduces noisiness in the probabilities.
+
+    The kernel will presently only work with projections in which the
+    x grid point spacing and y grid point spacing are constant over the
+    entire domain, such as the UK national grid projection.
+
+    A maximum kernel radius of 500 grid cells is imposed in order to
+    avoid computational ineffiency and possible memory errors.
+
+    """
+
+    # Max extent of kernel in grid cells.
+    MAX_KERNEL_CELL_RADIUS = 500
+
+    def __init__(
+        self, kernel_method, radii_in_km, lead_times=None,
+        unweighted_mode=False):
+        """
+        Create a neighbourhood processing plugin that applies a smoothing
+        kernel to points in a cube.
+
+        Parameters
+        ----------
+
+        radii_in_km : float or List (if defining lead times)
+            The radii in kilometres of the neighbourhood kernel to
+            apply. Rounded up to convert into integer number of grid
+            points east and north, based on the characteristic spacing
+            at the zero indices of the cube projection-x/y coords.
+        lead_times : None or List
+            List of lead times or forecast periods, at which thel radii
+            within radii_in_km are defined. The lead times are expected
+            in hours.
+        unweighted_mode : boolean
+            If True, use a circle with constant weighting.
+            If False, use a circle for neighbourhood kernel with
+            weighting decreasing with radius.
+
+        """
+        if (hasattr(Kernels, kernel_method) and
+                callable(getattr(Kernels, kernel_method)):
+            self.kernel_method = getattr(Kernels, kernel_method)
+        if isinstance(radii_in_km, list):
+            self.radii_in_km = map(float, radii_in_km)
+        else:
+            self.radii_in_km = float(radii_in_km)
+        self.lead_times = lead_times
+        if self.lead_times is not None:
+            if len(radii_in_km) != len(lead_times):
+                msg = ("There is a mismatch in the number of radii "
+                       "and the number of lead times. "
+                       "Unable to continue due to mismatch.")
+                raise ValueError(msg)
+        self.unweighted_mode = bool(unweighted_mode)
+
+    def __str__(self):
+        result = ('<NeighbourhoodProcessing: radii_in_km: {};' +
+                  'unweighted_mode: {}>')
+        return result.format(
+            self.radii_in_km, self.unweighted_mode)
 
     def process(self, cube):
         """
@@ -328,10 +356,10 @@ class BasicNeighbourhoodProcessing(object):
 
         if self.lead_times is None:
             radii_in_km = self.radii_in_km
-            ranges = self._get_grid_x_y_kernel_ranges(cube, radii_in_km)
-            cube = self._apply_kernel_for_smoothing(cube, ranges)
+            ranges = Utilities.get_grid_x_y_kernel_ranges(cube, radii_in_km)
+            cube = self.kernel_method(cube, ranges)
         else:
-            required_lead_times = self._find_required_lead_times(cube)
+            required_lead_times = Utilities.find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
             required_radii_in_km = (
                 np.interp(
@@ -341,10 +369,10 @@ class BasicNeighbourhoodProcessing(object):
             # and then apply the kernel to smooth the field.
             for cube_slice, radius_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
-                ranges = self._get_grid_x_y_kernel_ranges(
-                    cube_slice, radius_in_km)
+                ranges = Utilities.get_grid_x_y_kernel_ranges(
+                    cube_slice, radius_in_km, self.MAX_KERNEL_CELL_RADIUS)
                 cube_slice = (
-                        self._apply_kernel_for_smoothing(cube_slice, ranges))
+                        self.kernel_method(cube_slice, ranges))
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
             cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])
