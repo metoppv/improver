@@ -254,7 +254,6 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
         msg = "Invalid grid: projection_x/y coords required"
-        expected = np.zeros_like(cube.data)
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities.get_grid_x_y_kernel_ranges(
                 cube, self.RADIUS_IN_KM, self.MAX_KERNEL_CELL_RADIUS)

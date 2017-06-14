@@ -81,7 +81,6 @@ class Test_circular(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][0][5 + index][5:10] = slice_
-        radius_in_km = 4.2  # Equivalent to a range of 2.
         ranges = (2, 2)
         result = Kernels.circular(cube, ranges, unweighted_mode=True)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -105,7 +104,6 @@ class Test_circular(IrisTest):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
         msg = "Invalid grid: projection_x/y coords required"
-        expected = np.zeros_like(cube.data)
         ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
             Kernels.circular(cube, ranges, unweighted_mode=False)
@@ -153,7 +151,6 @@ class Test_circular(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         expected[0][0][7][7] = 0.0
-        radius_in_km = 2.1  # Equivalent to a range of 1 grid cell.
         ranges = (1, 1)
         result = Kernels.circular(cube, ranges, unweighted_mode=False)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -165,7 +162,6 @@ class Test_circular(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
                 expected[0][time_index][3 + index][3:12] = slice_
-        radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
         result = Kernels.circular(cube, ranges, unweighted_mode=False)
         self.assertArrayAlmostEqual(result.data, expected)
