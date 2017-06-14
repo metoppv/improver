@@ -28,16 +28,27 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module to contain generally useful constants."""
+"""Module to contain constants used for Ensemble Copula Coupling."""
 
-# Real Missing Data Indicator
-RMDI = -32767.0
+from collections import namedtuple
 
-# 0 Kelvin in degrees C
-ABSOLUTE_ZERO = 273.15
+from improver.constants import ABSOLUTE_ZERO
 
-# Specific gas constant for dry air (J K-1 kg-1)
-R_DRY_AIR = 287.0
+# Define a namedtuple for use in the bounds_for_ecdf dictionary.
+bounds = namedtuple("bounds", "value units")
 
-# Specific heat capacity of dry air (J K-1 kg-1)
-CP_DRY_AIR = 1005.0
+# For the creation of an empirical cumulative distribution function,
+# the following dictionary specifies the end points of the distribution,
+# as a first approximation of likely climatological lower and upper bounds.
+# The units for the end points of the distribution are specified for each
+# phenomenon. SI units are used exclusively.
+# Scientific Reference:
+# Flowerdew, J., 2014.
+# Calibrated ensemble reliability whilst preserving spatial structure.
+# Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
+
+bounds_for_ecdf = {
+    "air_temperature_threshold": (
+        bounds((-40+ABSOLUTE_ZERO, 50+ABSOLUTE_ZERO), "Kelvin")),
+    "wind_speed_threshold": bounds((0, 50), "m s^-1"),
+    "air_pressure_at_sea_level_threshold": bounds((94000, 107000), "Pa")}
