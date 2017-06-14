@@ -192,18 +192,23 @@ class Test__init__(IrisTest):
         Test that the desired error message is raised, if there is a mismatch
         between the number of radii and the number of lead times.
         """
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 20, 30]
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
             kernel_method = 'circular'
             NBHood(kernel_method, radii_in_km, lead_times=lead_times)
+
+    def test_kernel_method_does_not_exist(self):
+        """
+        Test that desired error message is raised, if the kernel method
+        does not exist.
+        """
+        kernel_method = 'nonsense'
+        radii_in_km = 10
+        msg = 'The requested kernel method: '
+        with self.assertRaisesRegexp(AttributeError, msg):
+            NBHood(kernel_method, radii_in_km)
 
 
 class Test_find_required_lead_times(IrisTest):

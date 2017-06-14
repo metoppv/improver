@@ -149,6 +149,8 @@ class Utilities(object):
         radius_in_km : Float
             Radius in kilometres for use in specifying the number of
             grid cells used to create a kernel.
+        max_kernel_cell_radius : integer
+            Max extent of kernel in grid cells.
 
         Returns
         -------
@@ -199,14 +201,14 @@ class Kernels(object):
     Collection of kernels for use within Neighbourhood Processing.
     """
 
-    def __init__(self, object):
+    def __init__(self):
         pass
 
     @staticmethod
-    def circular(cube, ranges, unweighted_mode=False):
+    def circular(cube, ranges, unweighted_mode):
         """
-        Method to apply a kernel to the data within the input cube in order
-        to smooth the resulting field.
+        Method to apply a circular kernel to the data within the input cube in
+        order to smooth the resulting field.
 
         Parameters
         ----------
@@ -311,6 +313,14 @@ class NeighbourhoodProcessing(object):
         if (hasattr(Kernels, kernel_method) and
                 callable(getattr(Kernels, kernel_method))):
             self.kernel_method = getattr(Kernels, kernel_method)
+        else:
+            methods = [method for method in dir(Kernels)
+                       if callable(getattr(Kernels, method))]
+            msg = ("The requested kernel method: {} does not exist within the "
+                   "available options for the kernel: {}".format(
+                       kernel_method, methods))
+            raise AttributeError(msg)
+
         if isinstance(radii_in_km, list):
             self.radii_in_km = map(float, radii_in_km)
         else:
@@ -365,7 +375,7 @@ class NeighbourhoodProcessing(object):
             radii_in_km = self.radii_in_km
             ranges = Utilities.get_grid_x_y_kernel_ranges(
                 cube, radii_in_km, self.MAX_KERNEL_CELL_RADIUS)
-            cube = self.kernel_method(cube, ranges)
+            cube = self.kernel_method(cube, ranges, self.unweighted_mode)
         else:
             required_lead_times = Utilities.find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
@@ -380,7 +390,8 @@ class NeighbourhoodProcessing(object):
                 ranges = Utilities.get_grid_x_y_kernel_ranges(
                     cube_slice, radius_in_km, self.MAX_KERNEL_CELL_RADIUS)
                 cube_slice = (
-                        self.kernel_method(cube_slice, ranges, ))
+                        self.kernel_method(cube_slice, ranges,
+                                           self.unweighted_mode))
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
             cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])

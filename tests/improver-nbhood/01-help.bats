@@ -36,12 +36,14 @@
 usage: improver-nbhood [-h]
                        [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
 RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME]
-                       INPUT_FILE OUTPUT_FILE
+                       KERNEL_METHOD INPUT_FILE OUTPUT_FILE
 
-Apply basic weighted circle smoothing via the BasicNeighbourhoodProcessing
-plugin to a file with one cube.
+Apply the requested kernel via the NeighbourhoodProcessing plugin to a file
+with one cube.
 
 positional arguments:
+  KERNEL_METHOD         The kernel method to apply in neighbourhood
+                        processing. Options: "circular".
   INPUT_FILE            A path to an input NetCDF file to be processed
   OUTPUT_FILE           The output path for the processed NetCDF
 

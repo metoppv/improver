@@ -35,15 +35,18 @@ import argparse
 
 import iris
 
-from improver.nbhood import BasicNeighbourhoodProcessing
+from improver.nbhood import NeighbourhoodProcessing
 
 
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-    description='Apply basic weighted circle smoothing via ' +
-                'the BasicNeighbourhoodProcessing plugin ' +
+    description='Apply the requested kernel via ' +
+                'the NeighbourhoodProcessing plugin ' +
                 'to a file with one cube.')
+    parser.add_argument('kernel_method', metavar='KERNEL_METHOD',
+                        help='The kernel method to apply in neighbourhood'
+                             ' processing. Options: "circular".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
                        help='The kernel radius for neighbourhood processing')
@@ -72,8 +75,8 @@ def main():
         radius_or_radii_in_km = args.radii_in_km_by_lead_time[0].split(",")
         lead_times = args.radii_in_km_by_lead_time[1].split(",")
     result = (
-        BasicNeighbourhoodProcessing(
-            radius_or_radii_in_km,
+        NeighbourhoodProcessing(
+            args.kernel_method, radius_or_radii_in_km,
             lead_times=lead_times).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
