@@ -107,15 +107,19 @@ class ExtractData(object):
                 no_neighbours=no_neighbours)
         elif self.method == 'model_level_temperature_lapse_rate':
             
-            base_height, = cube.coord('height')[base_level].points
-            upper_height, = cube.coord('height')[upper_level].points
-            height_constraint = Constraint(height=[base_height, upper_height])
-
             pressure_on_height_levels = (
                 data_from_dictionary(
-                    additional_data, 'pressure_on_height_levels').extract(
-                        height_constraint)
+                    additional_data, 'pressure_on_height_levels')
                 )
+            base_height, = pressure_on_height_levels.coord(
+                'height')[base_level].points
+            upper_height, = pressure_on_height_levels.coord(
+                'height')[upper_level].points
+            height_constraint = Constraint(height=[base_height, upper_height])
+
+            pressure_on_height_levels = pressure_on_height_levels.extract(
+                height_constraint)
+
             temperature_on_height_levels = (
                 data_from_dictionary(
                     additional_data, 'temperature_on_height_levels').extract(
@@ -124,9 +128,13 @@ class ExtractData(object):
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
 
+            print 'Cubes loaded'
+            print pressure_on_height_levels
             # Ensure that pressure units are in Pa.
             pressure_on_height_levels.convert_units('Pa')
+            print 'converting pressure 1'
             surface_pressure.convert_units('Pa')
+            print 'converting pressure 2'
 
             return self.model_level_temperature_lapse_rate(
                 cube, sites, neighbours, pressure_on_height_levels,
@@ -348,6 +356,7 @@ class ExtractData(object):
         using multi-level data.
 
         """
+        print 'We are in'
 
         def _adjust_temperature(theta_lower, dthetadz, dz, p_site, kappa):
             dz_max_adjustment = 70.
@@ -355,9 +364,9 @@ class ExtractData(object):
             
             dz = min(abs(dz), dz_max_adjustment)*np.sign(dz)
             if dthetadz > 0:
-                return theta_lower*(p_site/p_ref)**kappa
+                return (theta_lower + dz*dthetadz)*(p_site/p_ref)**kappa
             else:
-                return theta_lower + dz*dthetadz)*(p_site/p_ref)**kappa
+                return theta_lower*(p_site/p_ref)**kappa
 
             
         if not cube.name() == 'air_temperature':
@@ -367,91 +376,76 @@ class ExtractData(object):
 
         kappa = R_DRY_AIR/CP_DRY_AIR
         dz_tolerance = 2.
+        dthetadz_threshold = 0.02
+        print 'dz_tolerance ', dz_tolerance
+        heights = temperature_on_height_levels.coord('height').points
+        print 'heights ', heights
+        z_lower = heights[0]
+        z_higher = heights[1] 
+        print 'z_upper ', z_higher
+        print 'z_lower ', z_lower
+        dz_model_levels = z_higher - z_lower
 
         data = np.empty(shape=(len(sites)))
         for i_site in range(len(sites)):
+            print 'Site ', i_site
 
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])
 
+            print 'Details' , i, j, dz
             # Use neighbour grid point value if dz < dz_tolerance.
             if abs(dz) < dz_tolerance:
                 data[i_site] = cube.data[i, j]
                 continue
 
-            heights = temperature_on_height_levels.coord('height').points
-            d_height = heights[1] - heights[0]
-
             t_lower = temperature_on_height_levels.data[0, i, j]
             t_upper = temperature_on_height_levels.data[1, i, j]
             p_lower = pressure_on_height_levels.data[0, i, j]
             p_upper = pressure_on_height_levels.data[1, i, j]
+
             t_surface = cube.data[i, j]
             p_surface = surface_pressure.data[i, j]
 
-            p_grad = (p_upper - p_lower)/d_altitude.
-            p_site = p_surface + p_grad*dz
+            print 't_upper ', t_upper
+            print 't_lower ', t_lower
+            print 't_surface ', t_surface
 
             theta_upper = t_upper*(1.0E5/p_upper)**kappa
             theta_lower = t_lower*(1.0E5/p_lower)**kappa
 
             theta_surface = t_surface*(1.0E5/p_surface)**kappa
-            dthetadz = (theta_upper - theta_lower)/d_altitude
+            dthetadz = (theta_upper - theta_lower)/dz_model_levels
 
+            if dthetadz <= dthetadz_threshold:
+                dz_from_model_level = dz - z_lower
+                p_grad = (p_upper - p_lower)/dz_model_levels
+                p_site = p_lower + p_grad*dz_from_model_level
+                print 'p_grad ', p_grad, p_grad*dz_from_model_level
+                print 'actual dz ', dz_from_model_level
+                print 'p_upper ', p_upper
+                print 'p_lower ', p_lower
+                print 'p_site  ', p_site
+            else:
+                print 'recalculating'
+                dthetadz = (theta_lower-theta_surface)/z_lower
+                dz_from_model_level = dz
+                p_grad = (p_lower - p_surface)/z_lower
+                p_site = p_surface + p_grad*dz_from_model_level
+                print 'actual dz ', dz_from_model_level
+                print 'p_lower ', p_lower
+                print 'p_surf  ', p_surface
+                print 'p_site  ', p_site
 
-            data[i_site] = t1p5
+            print 'theta upper ', theta_upper
+            print 'theta lower ', theta_lower
+            print 'theta surface ', theta_surface
+            print 'dthetadz ', dthetadz
 
+            t_interp = _adjust_temperature(theta_lower, dthetadz,
+                                           dz_from_model_level, p_site, kappa)
 
-
-
-
-          IF ( HtDiff(i,j)  <  MinusHeightTolerance ) THEN
-
-            T1p5mData(i,j) =                                           &
-                  ( ThetaData(i,j) + dthetadz(i,j)*dzCorrect(i,j) )    &
-                * ( PCorrect(i,j) / Pref )**Kappa                      &
-                + TInc(i,j)
-
-
-
-          ELSE IF ( HtDiff(i,j)  >  HeightTolerance ) THEN
-
-            IF ( dthetadz(i,j)  >  0 ) THEN 
-
-              T1p5mData(i,j) =                                         &
-                  ( ThetaData(i,j) + dthetadz(i,j) * dzCorrect(i,j) )  &
-                * ( PCorrect(i,j) / Pref )**Kappa                      &
-                + TInc(i,j)
-
-            ELSE
-
-              T1p5mData(i,j) =                                         &
-                    ThetaData(i,j)                                     &
-                  * ( PCorrect(i,j) / Pref )**Kappa                    &
-                  + TInc(i,j)
-
-            END IF   # Stability test
-          END IF   # Output height below/above model surface altitude
-        END DO   # NCols
-      END DO   # NRows
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            print 't_interp ', t_interp
+            data[i_site] = t_interp
 
         return self.make_cube(cube, data, sites)
