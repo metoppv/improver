@@ -29,23 +29,32 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "tests -h" {
-  run improver tests -h
+@test "percentile -h" {
+  run improver percentile -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...] 
+usage: improver-percentile [-h] [--percentiles PERCENTILES [PERCENTILES ...]]
+                           INPUT_FILE OUTPUT_FILE COLLAPSING_COORDINATES
+                           [COLLAPSING_COORDINATES ...]
 
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
+Calculate percentiled data over a cube coordinate by collapsing that
+coordinate. Typically used to convert realization (member) data into
+percentiled data, but may calculate over any dimension coordinate.
 
-Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
-    --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help      Show this message and exit
+positional arguments:
+  INPUT_FILE            A path to an input NetCDF file to be processed
+  OUTPUT_FILE           The output path for the processed NetCDF
+  COLLAPSING_COORDINATES
+                        Coordinate or coordinates over which to collapse data
+                        and calculate percentiles; e.g. realization or
+                        latitude longitude
 
-Arguments:
-    SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
+optional arguments:
+  -h, --help            show this help message and exit
+  --percentiles PERCENTILES [PERCENTILES ...]
+                        Optional definition of percentiles at which to
+                        calculate data, otherwise default values are used,
+                        e.g. --percentiles 0 25 50 75 100
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -29,23 +29,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "tests -h" {
-  run improver tests -h
-  [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...] 
-
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
-
-Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
-    --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help      Show this message and exit
-
-Arguments:
-    SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
-__HELP__
-  [[ "$output" == "$expected" ]]
+@test "percentile no arguments" {
+  run improver percentile
+  [[ "$status" -eq 2 ]]
+  expected="usage: improver-percentile [-h] [--percentiles PERCENTILES [PERCENTILES ...]]
+                           INPUT_FILE OUTPUT_FILE COLLAPSING_COORDINATES
+                           [COLLAPSING_COORDINATES ...]"
+  [[ "$output" =~ "$expected" ]]
 }
