@@ -41,7 +41,9 @@ from improver import wind_downscaling
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description='')
+        description='Run wind downscaling to apply roughness correction and'
+                    ' height correction to wind fields (as described in'
+                    ' Howard and Clark [2007]).')
     parser.add_argument('wind_speed_filepath', metavar='WIND_SPEED_FILE',
                         help='Location of the wind speed on standard grid'
                              ' file. Any units can be supplied.')
@@ -51,10 +53,10 @@ def main():
     parser.add_argument('sigma_filepath', metavar='SIGMA_FILE',
                         help='Location of standard deviation of model '
                              'orography height file. Units of field: m')
-    # TODO: is 'highres' an appropriate name for this field?
-    parser.add_argument('highres_orog_filepath',
-                        metavar='HIGH_RESOLUTION_OROGRAPHY_FILE',
-                        help='Location of high resolution orography file. '
+    parser.add_argument('target_orog_filepath',
+                        metavar='TARGET_OROGRAPHY_FILE',
+                        help='Location of target orography file to downscale'
+                             ' fields to.'
                              'Units of field: m')
     parser.add_argument('standard_orog_filepath',
                         metavar='STANDARD_OROGRAPHY_FILE',
@@ -77,7 +79,7 @@ def main():
     wind_speed = iris.load_cube(args.wind_speed_filepath)
     a_over_s = iris.load_cube(args.a_over_s_filepath)
     sigma = iris.load_cube(args.sigma_filepath)
-    highres_orog = iris.load_cube(args.highres_orog_filepath)
+    target_orog = iris.load_cube(args.target_orog_filepath)
     standard_orog = iris.load_cube(args.standard_orog_filepath)
     if args.height_levels_filepath:
         height_levels = iris.load_cube(args.height_levels_filepath)
@@ -89,7 +91,7 @@ def main():
         z0_cube = None
     result = (
         wind_downscaling.RoughnessCorrection(
-            a_over_s, sigma, highres_orog, standard_orog,
+            a_over_s, sigma, target_orog, standard_orog,
             float(args.model_resolution), z0_cube=z0_cube,
             height_levels_cube=height_levels).process(wind_speed))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])

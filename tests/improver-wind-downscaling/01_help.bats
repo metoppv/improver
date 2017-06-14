@@ -36,9 +36,11 @@
 usage: improver-wind-downscaling [-h] [--height_levels_filepath HEIGHT_LEVELS]
                                  [--z0_filepath VEGETATIVE_ROUGHNESS_LENGTH]
                                  WIND_SPEED_FILE AOS_FILE SIGMA_FILE
-                                 HIGH_RESOLUTION_OROGRAPHY_FILE
-                                 STANDARD_OROGRAPHY_FILE MODEL_RESOLUTION
-                                 OUTPUT_FILE
+                                 TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE
+                                 MODEL_RESOLUTION OUTPUT_FILE
+
+Run wind downscaling to apply roughness correction and height correction to
+wind fields (as described in Howard and Clark [2007]).
 
 positional arguments:
   WIND_SPEED_FILE       Location of the wind speed on standard grid file. Any
@@ -47,9 +49,9 @@ positional arguments:
                         field: dimensionless
   SIGMA_FILE            Location of standard deviation of model orography
                         height file. Units of field: m
-  HIGH_RESOLUTION_OROGRAPHY_FILE
-                        Location of high resolution orography file. Units of
-                        field: m
+  TARGET_OROGRAPHY_FILE
+                        Location of target orography file to downscale fields
+                        to.Units of field: m
   STANDARD_OROGRAPHY_FILE
                         Location of orography on standard grid file
                         (interpolated model orography. Units of field: m

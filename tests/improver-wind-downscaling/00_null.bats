@@ -36,9 +36,8 @@
 usage: improver-wind-downscaling [-h] [--height_levels_filepath HEIGHT_LEVELS]
                                  [--z0_filepath VEGETATIVE_ROUGHNESS_LENGTH]
                                  WIND_SPEED_FILE AOS_FILE SIGMA_FILE
-                                 HIGH_RESOLUTION_OROGRAPHY_FILE
-                                 STANDARD_OROGRAPHY_FILE MODEL_RESOLUTION
-                                 OUTPUT_FILE
+                                 TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE
+                                 MODEL_RESOLUTION OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

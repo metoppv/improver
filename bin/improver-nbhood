@@ -41,9 +41,9 @@ from improver.nbhood import BasicNeighbourhoodProcessing
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description='Apply basic weighted circle smoothing via ' +
-                    'the BasicNeighbourhoodProcessing plugin ' +
-                    'to a file with one cube.')
+    description='Apply basic weighted circle smoothing via ' +
+                'the BasicNeighbourhoodProcessing plugin ' +
+                'to a file with one cube.')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
                        help='The kernel radius for neighbourhood processing')
