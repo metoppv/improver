@@ -60,7 +60,7 @@ class ExtractData(object):
         self.method = method
 
     def process(self, cube, sites, neighbours, ancillary_data, additional_data,
-                no_neighbours=9, base_level=1, upper_level=3):
+                no_neighbours=9, lower_level=1, upper_level=3):
         """
         Call the correct function to enact the method of data extraction
         specified. This function also handles multiple timesteps, consolidating
@@ -111,11 +111,11 @@ class ExtractData(object):
                 data_from_dictionary(
                     additional_data, 'pressure_on_height_levels')
                 )
-            base_height, = pressure_on_height_levels.coord(
-                'height')[base_level].points
+            lower_height, = pressure_on_height_levels.coord(
+                'height')[lower_level].points
             upper_height, = pressure_on_height_levels.coord(
                 'height')[upper_level].points
-            height_constraint = Constraint(height=[base_height, upper_height])
+            height_constraint = Constraint(height=[lower_height, upper_height])
 
             pressure_on_height_levels = pressure_on_height_levels.extract(
                 height_constraint)
@@ -128,13 +128,9 @@ class ExtractData(object):
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
 
-            print 'Cubes loaded'
-            print pressure_on_height_levels
             # Ensure that pressure units are in Pa.
             pressure_on_height_levels.convert_units('Pa')
-            print 'converting pressure 1'
             surface_pressure.convert_units('Pa')
-            print 'converting pressure 2'
 
             return self.model_level_temperature_lapse_rate(
                 cube, sites, neighbours, pressure_on_height_levels,
@@ -356,96 +352,91 @@ class ExtractData(object):
         using multi-level data.
 
         """
-        print 'We are in'
-
-        def _adjust_temperature(theta_lower, dthetadz, dz, p_site, kappa):
+        def _adjust_temperature(theta_base, dthetadz, dz, p_site, kappa):
+            # Default UKPP values.
             dz_max_adjustment = 70.
             p_ref = 1.0E5
             
             dz = min(abs(dz), dz_max_adjustment)*np.sign(dz)
-            if dthetadz > 0:
-                return (theta_lower + dz*dthetadz)*(p_site/p_ref)**kappa
+            if dz < 0 or dthetadz > 0:
+                return (theta_base + dz*dthetadz)*(p_site/p_ref)**kappa
             else:
-                return theta_lower*(p_site/p_ref)**kappa
+                return theta_base*(p_site/p_ref)**kappa
 
-            
         if not cube.name() == 'air_temperature':
             raise ValueError('{} should only be used for adjusting '
                              'temperatures. Cube of type {} is not '
                              'suitable.'.format(self.method, cube.name()))
 
+        # Default UKPP values.
         kappa = R_DRY_AIR/CP_DRY_AIR
         dz_tolerance = 2.
         dthetadz_threshold = 0.02
-        print 'dz_tolerance ', dz_tolerance
+
         heights = temperature_on_height_levels.coord('height').points
-        print 'heights ', heights
         z_lower = heights[0]
-        z_higher = heights[1] 
-        print 'z_upper ', z_higher
-        print 'z_lower ', z_lower
-        dz_model_levels = z_higher - z_lower
+        z_upper = heights[1] 
+        dz_model_levels = z_upper - z_lower
 
         data = np.empty(shape=(len(sites)))
+        temp_data = np.empty(shape=(4, len(sites)))
         for i_site in range(len(sites)):
-            print 'Site ', i_site
-
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])
 
-            print 'Details' , i, j, dz
             # Use neighbour grid point value if dz < dz_tolerance.
             if abs(dz) < dz_tolerance:
                 data[i_site] = cube.data[i, j]
                 continue
 
+            # Temperatures at surface, lower model level and upper model level.
+            t_surface = cube.data[i, j]
             t_lower = temperature_on_height_levels.data[0, i, j]
             t_upper = temperature_on_height_levels.data[1, i, j]
+
+            # Pressures at surface, lower model level and upper model level.
+            p_surface = surface_pressure.data[i, j]
             p_lower = pressure_on_height_levels.data[0, i, j]
             p_upper = pressure_on_height_levels.data[1, i, j]
 
-            t_surface = cube.data[i, j]
-            p_surface = surface_pressure.data[i, j]
-
-            print 't_upper ', t_upper
-            print 't_lower ', t_lower
-            print 't_surface ', t_surface
-
-            theta_upper = t_upper*(1.0E5/p_upper)**kappa
-            theta_lower = t_lower*(1.0E5/p_lower)**kappa
-
+            # Potential temperature at surface, lower model level and upper
+            # model level.
             theta_surface = t_surface*(1.0E5/p_surface)**kappa
+            theta_lower = t_lower*(1.0E5/p_lower)**kappa
+            theta_upper = t_upper*(1.0E5/p_upper)**kappa
+
+            # Calculate potential temperature gradient using levels away from
+            # surface.
             dthetadz = (theta_upper - theta_lower)/dz_model_levels
 
+            # If the potential temperature gradient is below the defined
+            # dthetadz_threshold, use the non-surface levels.
             if dthetadz <= dthetadz_threshold:
                 dz_from_model_level = dz - z_lower
                 p_grad = (p_upper - p_lower)/dz_model_levels
                 p_site = p_lower + p_grad*dz_from_model_level
-                print 'p_grad ', p_grad, p_grad*dz_from_model_level
-                print 'actual dz ', dz_from_model_level
-                print 'p_upper ', p_upper
-                print 'p_lower ', p_lower
-                print 'p_site  ', p_site
+                theta_base = theta_lower
+                temp_data[2,i_site] = t_lower
+                temp_data[3,i_site] = t_upper
             else:
-                print 'recalculating'
                 dthetadz = (theta_lower-theta_surface)/z_lower
                 dz_from_model_level = dz
                 p_grad = (p_lower - p_surface)/z_lower
                 p_site = p_surface + p_grad*dz_from_model_level
-                print 'actual dz ', dz_from_model_level
-                print 'p_lower ', p_lower
-                print 'p_surf  ', p_surface
-                print 'p_site  ', p_site
+                theta_base = theta_surface
+                temp_data[2,i_site] = t_surface
+                temp_data[3,i_site] = t_lower
 
-            print 'theta upper ', theta_upper
-            print 'theta lower ', theta_lower
-            print 'theta surface ', theta_surface
-            print 'dthetadz ', dthetadz
 
-            t_interp = _adjust_temperature(theta_lower, dthetadz,
+            temp_data[0,i_site] = dz_from_model_level
+            t_interp = _adjust_temperature(theta_base, dthetadz,
                                            dz_from_model_level, p_site, kappa)
 
-            print 't_interp ', t_interp
             data[i_site] = t_interp
+            temp_data[1,i_site] = t_interp
+
+        ff = open('data_out.txt', 'w')
+        np.savetxt(ff, temp_data)
+        ff.close()
 
         return self.make_cube(cube, data, sites)
