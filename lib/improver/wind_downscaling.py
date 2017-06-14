@@ -958,14 +958,9 @@ class RoughnessCorrection(object):
         output_cube = rchc_list.merge_cube()
         # reorder input_cube and output_cube as original
         if np.isnan(twp):
-            output_cube = iris.util.new_axis(output_cube, 'time')[0]
             input_cube.transpose(np.argsort([ywp, xwp, zwp]))
             output_cube.transpose(np.argsort([ywp, xwp, zwp]))
         else:
             input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
-            try:
-                output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
-            except ValueError:
-                output_cube = iris.util.new_axis(output_cube, 'time')
-                output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+            output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
         return output_cube
