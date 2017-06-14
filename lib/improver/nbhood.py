@@ -322,7 +322,7 @@ class NeighbourhoodProcessing(object):
             raise AttributeError(msg)
 
         if isinstance(radii_in_km, list):
-            self.radii_in_km = map(float, radii_in_km)
+            self.radii_in_km = [float(x) for x in radii_in_km]
         else:
             self.radii_in_km = float(radii_in_km)
         self.lead_times = lead_times

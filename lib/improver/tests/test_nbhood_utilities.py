@@ -273,7 +273,6 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         radius_in_km = 0.005
         msg = "radius of 0.005 km gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
-            expected = np.zeros_like(cube.data)
             Utilities.get_grid_x_y_kernel_ranges(
                 cube, radius_in_km, self.MAX_KERNEL_CELL_RADIUS)
 
@@ -283,7 +282,6 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         radius_in_km = 500000.0
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
-            expected = np.zeros_like(cube.data)
             Utilities.get_grid_x_y_kernel_ranges(
                 cube, radius_in_km, self.MAX_KERNEL_CELL_RADIUS)
 

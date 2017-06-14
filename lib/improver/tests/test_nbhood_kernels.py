@@ -180,7 +180,6 @@ class Test_circular(IrisTest):
               [0.97636177, 0.97533402, 0.97636177, 0.97944502],
               [0.97944502, 0.97841727, 0.97944502, 0.98252826]]]
         ])
-        radius_in_km = 10.5  # Equivalent to a range of 5 grid cells.
         ranges = (5, 5)
         result = Kernels.circular(cube, ranges, unweighted_mode=False)
         self.assertArrayAlmostEqual(result.data, expected)

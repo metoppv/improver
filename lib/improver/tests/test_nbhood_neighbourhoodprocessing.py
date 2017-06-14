@@ -38,7 +38,6 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.coord_systems import OSGB
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np
 
