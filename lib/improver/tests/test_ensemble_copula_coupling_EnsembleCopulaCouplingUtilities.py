@@ -46,7 +46,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             insert_lower_and_upper_endpoint_to_1d_array,
             concatenate_2d_array_with_2d_array_endpoints,
             find_coordinate, get_bounds_of_distribution,
-            reshape_array_to_original_dimensions)
+            restore_non_probabilistic_dimensions)
 from improver.tests.helper_functions_ensemble_calibration import (
     set_up_cube,
     set_up_temperature_cube, set_up_spot_temperature_cube,
@@ -439,9 +439,9 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
                 percentiles, -100, 10000)
 
 
-class Test_reshape_array_to_original_dimensions(IrisTest):
+class Test_restore_non_probabilistic_dimensions(IrisTest):
 
-    """Test the reshape_array_to_original_dimensions."""
+    """Test the restore_non_probabilistic_dimensions."""
 
     def setUp(self):
         """Set up temperature cube."""
@@ -460,7 +460,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
         cube = self.current_temperature_forecast_cube
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 cube.data, cube, "percentile", plen))
         self.assertIsInstance(reshaped_array, np.ndarray)
 
@@ -473,7 +473,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
         cube = self.current_temperature_forecast_cube
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 cube.data, cube, "percentile", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, cube.data.shape)
@@ -490,7 +490,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
         plen = len(cube.coord("percentile").points)
         msg = "coordinate is a dimension coordinate but is not"
         with self.assertRaisesRegexp(ValueError, msg):
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 cube.data, cube, "percentile", plen)
 
     def test_percentile_is_not_dimension_coordinate(self):
@@ -508,7 +508,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
             break
         plen = len(cube_slice.coord("percentile").points)
         reshaped_array = (
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 cube_slice.data, cube_slice, "percentile", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, (1, 1, 3, 3))
@@ -540,7 +540,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
                 cube, time_point=np.array([402295.0, 402296.0]),
                 fp_point=[2.0, 3.0]))
         reshaped_array = (
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 percentile_cube[0].data, percentile_cube, "percentile", plen))
         self.assertArrayAlmostEqual(reshaped_array, expected)
 
@@ -553,7 +553,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
         flattened_data = cube.data.flatten()
         plen = len(cube.coord("percentile").points)
         reshaped_array = (
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 flattened_data, cube, "percentile", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, (3, 1, 3, 3))
@@ -568,7 +568,7 @@ class Test_reshape_array_to_original_dimensions(IrisTest):
         plen = len(cube.coord("percentile").points)
         msg = "coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            reshape_array_to_original_dimensions(
+            restore_non_probabilistic_dimensions(
                 cube.data, cube, "nonsense", plen)
 
 

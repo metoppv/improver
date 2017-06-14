@@ -282,7 +282,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     return array_1d
 
 
-def reshape_array_to_original_dimensions(
+def restore_non_probabilistic_dimensions(
         array_to_reshape, original_cube, input_probabilistic_dimension_name,
         output_probabilistic_dimension_length):
     """
