@@ -44,7 +44,7 @@ def main():
     description='Apply the requested neighbourhood method via ' +
                 'the NeighbourhoodProcessing plugin ' +
                 'to a file with one cube.')
-    parser.add_argument('neighhourhood_method', metavar='NEIGHBOURHOOD_METHOD',
+    parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
                         help='The neighbourhood method to apply in '
                              'neighbourhood processing. Options: "circular".')
     group = parser.add_mutually_exclusive_group()
@@ -77,7 +77,7 @@ def main():
         lead_times = args.radii_in_km_by_lead_time[1].split(",")
     result = (
         NeighbourhoodProcessing(
-            args.kernel_method, radius_or_radii_in_km,
+            args.neighbourhood_method, radius_or_radii_in_km,
             lead_times=lead_times).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

@@ -383,7 +383,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of -6.1 km gives a negative cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_grid_x_y_kernel_ranges()
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
@@ -392,7 +392,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 0.005 km gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_grid_x_y_kernel_ranges()
 
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
@@ -401,16 +401,29 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_grid_x_y_kernel_ranges()
 
 
-#class Test_run(IrisTest):
+class Test_run(IrisTest):
 
-    #"""Test the run method on the CircularNeighbourhood class."""
+    """Test the run method on the CircularNeighbourhood class."""
 
-    #def test_basic(self):
-        
+    RADIUS_IN_KM = 6.1
 
+    def test_basic(self):
+        """Test that a cube with correct data is produced by the run method"""
+        data = np.array([[0.992, 0.968, 0.96, 0.968, 0.992],
+                         [0.968, 0.944, 0.936, 0.944, 0.968],
+                         [0.96, 0.936, 0.928, 0.936, 0.96],
+                         [0.968, 0.944, 0.936, 0.944, 0.968],
+                         [0.992, 0.968, 0.96, 0.968, 0.992]])
+
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        result = CircularNeighbourhood(
+            cube, self.RADIUS_IN_KM).run()
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
 
 
 if __name__ == '__main__':
