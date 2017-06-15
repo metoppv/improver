@@ -358,6 +358,10 @@ class NeighbourhoodProcessing(object):
             smoothed.
 
         """
+        # Check if the realization coordinate exists. If there are multiple
+        # values for the realization, then an exception is raised. Otherwise,
+        # the cube is sliced, so that the realization becomes a scalar
+        # coordinate.
         try:
             realiz_coord = cube.coord('realization')
         except iris.exceptions.CoordinateNotFoundError:

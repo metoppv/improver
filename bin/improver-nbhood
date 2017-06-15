@@ -51,7 +51,8 @@ def main():
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
                        help='The kernel radius for neighbourhood processing')
     group.add_argument('--radii-in-km-by-lead-time',
-                       metavar='RADIUS_BY_LEAD_TIME', nargs=2,
+                       metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                       nargs=2,
                        help='The kernel radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
                        'valid. The radii are in km whilst the lead time '

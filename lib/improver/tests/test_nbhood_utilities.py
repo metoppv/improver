@@ -54,7 +54,7 @@ class Test_cumulate_array(IrisTest):
     def test_basic(self):
         """
         Test that the vertical and horizontal accumulation produces the
-        intended result.
+        intended result. A 2d cube is passed in.
         """
         data = np.array([[5., 10., 14., 19., 24.],
                          [4., 8., 11., 15., 19.],
@@ -71,7 +71,9 @@ class Test_cumulate_array(IrisTest):
     def test_for_multiple_times(self):
         """
         Test that the vertical and horizontal accumulation produces the
-        intended result when the input cube has multiple times.
+        intended result when the input cube has multiple times. The input
+        cube has an extra time dimension to ensure that a 3d cube is correctly
+        handled.
         """
         data = np.array([[[5., 10., 14., 19., 24.],
                           [4., 8., 11., 15., 19.],
@@ -99,7 +101,9 @@ class Test_cumulate_array(IrisTest):
     def test_for_multiple_realizations_and_times(self):
         """
         Test that the vertical and horizontal accumulation produces the
-        intended result when the input cube has multiple times.
+        intended result when the input cube has multiple realizations and
+        times. The input cube has extra time and realization dimensions to
+        ensure that a 4d cube is correctly handled.
         """
         data = np.array([[[[5., 10., 14., 19., 24.],
                            [4., 8., 11., 15., 19.],
@@ -137,14 +141,14 @@ class Test_find_required_lead_times(IrisTest):
     """Test determining of the lead times present within the input cube."""
 
     def test_basic(self):
-        """Test that a list is returned."""
+        """Test that a numpy array is returned."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         result = Utilities.find_required_lead_times(cube)
         self.assertIsInstance(result, np.ndarray)
 
     def test_check_coordinate(self):
         """
-        Test that the data within the list is as expected, when
+        Test that the data within the numpy array is as expected, when
         the input cube has a forecast_period coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
@@ -154,7 +158,7 @@ class Test_find_required_lead_times(IrisTest):
 
     def test_check_coordinate_without_forecast_period(self):
         """
-        Test that the data within the list is as expected, when
+        Test that the data within the numpy array is as expected, when
         the input cube has a time coordinate and a forecast_reference_time
         coordinate.
         """
@@ -168,7 +172,7 @@ class Test_find_required_lead_times(IrisTest):
 
     def test_check_forecast_period_unit_conversion(self):
         """
-        Test that the data within the list is as expected, when
+        Test that the data within the numpy array is as expected, when
         the input cube has a forecast_period coordinate with units
         other than the desired units of hours.
         """
@@ -180,7 +184,7 @@ class Test_find_required_lead_times(IrisTest):
 
     def test_check_time_unit_conversion(self):
         """
-        Test that the data within the list is as expected, when
+        Test that the data within the numpy array is as expected, when
         the input cube has a time coordinate with units
         other than the desired units of hours since 1970-01-01 00:00:00.
         """

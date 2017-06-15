@@ -35,7 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h]
                        [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
-RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME]
+RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        KERNEL_METHOD INPUT_FILE OUTPUT_FILE
 
 Apply the requested kernel via the NeighbourhoodProcessing plugin to a file
@@ -51,7 +51,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --radius-in-km RADIUS
                         The kernel radius for neighbourhood processing
-  --radii-in-km-by-lead-time RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME
+  --radii-in-km-by-lead-time RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS
                         The kernel radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
                         The radii are in km whilst the lead time has units of

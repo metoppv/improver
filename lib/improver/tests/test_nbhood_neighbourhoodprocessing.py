@@ -233,38 +233,7 @@ class Test_process(IrisTest):
 
     def test_fail_multiple_realisations(self):
         """Test failing when the array has a realisation dimension."""
-        data = np.ones((14, 1, 16, 16))
-        data[0][0][7][7] = 0.0
-
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        num_grid_points = 16
-        coord_system = OSGB()
-        scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
-        cube.add_dim_coord(
-            DimCoord(
-                scaled_y_coord.points[:num_grid_points],
-                'projection_y_coordinate',
-                units='m', coord_system=coord_system
-            ),
-            2
-        )
-        scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
-        cube.add_dim_coord(
-            DimCoord(
-                scaled_x_coord.points[:num_grid_points],
-                'projection_x_coordinate',
-                units='m', coord_system=coord_system
-            ),
-            3
-        )
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5],
-                                    "time", units=tunit), 1)
-        cube.add_aux_coord(AuxCoord(np.array(range(14)),
-                                    standard_name="realization"), 0)
+        cube = set_up_cube(num_realization_points=2)
         msg = "Does not operate across realizations"
         with self.assertRaisesRegexp(ValueError, msg):
             kernel_method = "circular"
@@ -326,8 +295,11 @@ class Test_process(IrisTest):
 
     def test_radii_varying_with_lead_time_with_interpolation(self):
         """
-        Test that a cube is returned when the radius varies with lead time
-        and linearly interpolation is required, in order to .
+        Test that a cube is returned for the following conditions:
+        1. The radius varies with lead time.
+        2. Linear interpolation is required to create values for the radii
+        which are required but were not specified within the radii_in_km
+        argument.
         """
         cube = set_up_cube(num_time_points=3)
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
