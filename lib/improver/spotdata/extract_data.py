@@ -449,6 +449,7 @@ class ExtractData(object):
 
         Returns:
         --------
+
         Data extracted from the screen level temperature cube at spotdata sites
         which has then been adjusted using a temperature lapse rate calculated
         using multi-level data.
@@ -519,8 +520,8 @@ class ExtractData(object):
             else:
                 # A potential temperature gradient in excess of the threshold
                 # value indicative of a lapse rate calculated across an
-                # inversion. Recalulate using lowest levels to better capture
-                # the inversion.
+                # inversion. Recalulate using the surface and lower level to
+                # better capture the inversion.
                 dthetadz = (theta_lower-theta_surface)/z_lower
                 dz_from_model_level = dz
                 p_grad = (p_lower - p_surface)/z_lower
