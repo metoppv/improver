@@ -416,27 +416,14 @@ class ExtractData(object):
                 p_grad = (p_upper - p_lower)/dz_model_levels
                 p_site = p_lower + p_grad*dz_from_model_level
                 theta_base = theta_lower
-                temp_data[2,i_site] = t_lower
-                temp_data[3,i_site] = t_upper
             else:
                 dthetadz = (theta_lower-theta_surface)/z_lower
                 dz_from_model_level = dz
                 p_grad = (p_lower - p_surface)/z_lower
                 p_site = p_surface + p_grad*dz_from_model_level
                 theta_base = theta_surface
-                temp_data[2,i_site] = t_surface
-                temp_data[3,i_site] = t_lower
 
-
-            temp_data[0,i_site] = dz_from_model_level
-            t_interp = _adjust_temperature(theta_base, dthetadz,
-                                           dz_from_model_level, p_site, kappa)
-
-            data[i_site] = t_interp
-            temp_data[1,i_site] = t_interp
-
-        ff = open('data_out.txt', 'w')
-        np.savetxt(ff, temp_data)
-        ff.close()
+            data[i_site] = _adjust_temperature(
+                theta_base, dthetadz, dz_from_model_level, p_site, kappa)
 
         return self.make_cube(cube, data, sites)
