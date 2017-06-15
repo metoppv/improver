@@ -111,20 +111,9 @@ class ExtractData(object):
                 data_from_dictionary(
                     additional_data, 'pressure_on_height_levels')
                 )
-            lower_height, = pressure_on_height_levels.coord(
-                'height')[lower_level].points
-            upper_height, = pressure_on_height_levels.coord(
-                'height')[upper_level].points
-            height_constraint = Constraint(height=[lower_height, upper_height])
+            lower_pressure = pressure_on_height_levels[lower_level, ...]
+            upper_pressure = pressure_on_height_levels[upper_level, ...]
 
-            pressure_on_height_levels = pressure_on_height_levels.extract(
-                height_constraint)
-
-            temperature_on_height_levels = (
-                data_from_dictionary(
-                    additional_data, 'temperature_on_height_levels').extract(
-                        height_constraint)
-                )
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
 
@@ -132,9 +121,16 @@ class ExtractData(object):
             pressure_on_height_levels.convert_units('Pa')
             surface_pressure.convert_units('Pa')
 
+            temperature_on_height_levels = (
+                data_from_dictionary(
+                    additional_data, 'temperature_on_height_levels')
+                )
+            lower_temperature = temperature_on_height_levels[lower_level, ...]
+            upper_temperature = temperature_on_height_levels[upper_level, ...]
+
             return self.model_level_temperature_lapse_rate(
-                cube, sites, neighbours, pressure_on_height_levels,
-                surface_pressure, temperature_on_height_levels)
+                cube, sites, neighbours, surface_pressure, lower_pressure,
+                upper_pressure, lower_temperature, upper_temperature)
 
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
@@ -301,10 +297,10 @@ class ExtractData(object):
 
         return self.make_cube(cube, data, sites)
 
-    def model_level_temperature_lapse_rate(self, cube, sites, neighbours,
-                                           pressure_on_height_levels,
-                                           surface_pressure,
-                                           temperature_on_height_levels):
+    def model_level_temperature_lapse_rate(
+        self, cube, sites, neighbours, surface_pressure, lower_pressure,
+        upper_pressure, lower_temperature, upper_temperature):
+
         """
         Lapse rate method based on potential temperature. Follows the work of
         S.B. Vosper 2005 - Near-surface temperature variations over complex
@@ -312,7 +308,13 @@ class ExtractData(object):
         V 1.0 August 2005.
 
         Calculate potential temperature gradient and use this to adjust
-        temperatures to the spotdata site altitude.
+        temperatures to the spotdata site altitude. The method varies
+        depending on whether the adjustment is an extrapolation to below
+        the lowest available model level, or an interpolation between
+        available levels.
+
+        The essential equations are those converting between temperature and
+        potential temperature (theta):
 
                      pref   R/cp                 p_site  R/cp
         Theta = T ( ------ )         T = Theta ( ------ )
@@ -322,12 +324,106 @@ class ExtractData(object):
         ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
 
         kappa = (R_DRY_AIR / CP_DRY_AIR)
-        pref = 1000hPa (1.0E5Pa)
-        p_site = pressure at spotdata site.
+        pref = 1000 hPa (1.0E5 Pa)
+        p_site = pressure interpolated/extrapolated to spotdata site.
+
+
+        Methodology
+        ===========
+
+        Use multi-level temperature data to calculate potential temperature
+        gradients and use these to adjust extracted grid point temperatures
+        to the altitudes of SpotData sites.
+
+
+        ---upper_level--- Model level (k_upper)
+
+        ---lower_level--- Model level (k_lower)
+
+        --model_surface-- Model level (k=0)
+
+
+        1. Calculate potential temperature gradient between lower and
+           upper model levels.
+        2. Compare the gradient with a defined threshold value that is
+           used to indicate whether the gradient as been calculated
+           across an inversion.
+           
+           dtheta/dz <= threshold --> Keep value
+           dtheta/dz >  threshold --> Recalculate gradient between surface
+                                      and lower_level.
+
+        3. Determine if the SpotData site is below the lowest model level
+           (the surface level).
+
+           IF: SpotData site height < model_surface --> Extrapolate downwards.
+           -------------------------------------------------------------------
+           
+           True surface below model surface (dz -ve) 'Unresolved valley'
+
+           ---upper_level--- Model level (k_upper)
+
+           ---lower_level--- Model level (k_lower)
+
+           --model_surface-- Model level (k=0)
+
+           ===site height=== SpotData site height
+
+           -------------------------------------------------------------------
+           4. Calculate pressure gradient between lower and upper model levels.
+           5. Use calculated gradients to extrapolate potential temperature
+              and pressure to the SpotData site height.
+           6. Convert back to temperature using the equations given above.
+           -------------------------------------------------------------------
+           ---------------------------RETURN RESULT---------------------------
+
+
+           ELSE: SpotData site height > model_surface --> Interpolate to site
+                                                          height.
+           -------------------------------------------------------------------
+
+           True surface above model surface (dz +ve) 'Unresolved hill'
+
+           ---upper_level--- Model level (k_upper)
+
+           ===site height=== SpotData site height
+
+           ---lower_level--- Model level (k_lower)
+
+           --model_surface-- Model level (k=0)
+
+
+           4. Use potential temperature gradient as an indicator of atmospheric
+              stability.
+              
+              IF: dtheta/dz > 0 --> Stable atmosphere
+
+              ----------------------------------------------------------------
+              --> Stable
+              ----------------------------------------------------------------
+              5. Calculate pressure gradient between lower and upper model
+                 levels.
+              6. Use calculated gradients to extrapolate potential temperature
+                 and pressure to the SpotData site height.
+              7. Convert back to temperature using the equations given above.
+              -------------------------RETURN RESULT--------------------------
+
+
+              ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere
+
+              ----------------------------------------------------------------
+              --> Neutral/well-mixed 
+              ----------------------------------------------------------------
+              5. Use potential temperature from surface level; for a well mixed
+                 atmosphere dtheta/dz should be nearly constant.
+              6. Convert back to temperature using the pressure interpolated to
+                 SpotData site height.
+              -------------------------RETURN RESULT--------------------------
 
 
         Args:
         -----
+
         cube : iris.cube.Cube
             A cube of screen level temperatures at a single time.
 
@@ -341,9 +437,15 @@ class ExtractData(object):
             Cube of surface pressures at an equivalent time to the cube of
             screen level temperatures.
 
-        temperature_on_height_levels : iris.cube.Cube
-            Temperature data at 50m above the surface at an equivalent time to
-            the cube of screen level temperatures.
+        lower/upper_pressure : iris.cube.Cube
+            Cubes of pressure data at the defined lower and upper model
+            levels, each at an equivalent time to the cube of screen level
+            temperatures.
+
+        lower/upper_temperature : iris.cube.Cube
+            Cubes of temperature data at the defined lower and upper model
+            levels, each at an equivalent time to the cube of screen level
+            temperatures.
 
         Returns:
         --------
@@ -373,13 +475,11 @@ class ExtractData(object):
         dz_tolerance = 2.
         dthetadz_threshold = 0.02
 
-        heights = temperature_on_height_levels.coord('height').points
-        z_lower = heights[0]
-        z_upper = heights[1] 
+        z_lower, = lower_pressure.coord('height').points
+        z_upper, = upper_pressure.coord('height').points
         dz_model_levels = z_upper - z_lower
 
         data = np.empty(shape=(len(sites)))
-        temp_data = np.empty(shape=(4, len(sites)))
         for i_site in range(len(sites)):
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])
@@ -391,13 +491,13 @@ class ExtractData(object):
 
             # Temperatures at surface, lower model level and upper model level.
             t_surface = cube.data[i, j]
-            t_lower = temperature_on_height_levels.data[0, i, j]
-            t_upper = temperature_on_height_levels.data[1, i, j]
+            t_lower = lower_temperature.data[i, j]
+            t_upper = upper_temperature.data[i, j]
 
             # Pressures at surface, lower model level and upper model level.
             p_surface = surface_pressure.data[i, j]
-            p_lower = pressure_on_height_levels.data[0, i, j]
-            p_upper = pressure_on_height_levels.data[1, i, j]
+            p_lower = lower_pressure.data[i, j]
+            p_upper = upper_pressure.data[i, j]
 
             # Potential temperature at surface, lower model level and upper
             # model level.
@@ -409,14 +509,18 @@ class ExtractData(object):
             # surface.
             dthetadz = (theta_upper - theta_lower)/dz_model_levels
 
-            # If the potential temperature gradient is below the defined
-            # dthetadz_threshold, use the non-surface levels.
             if dthetadz <= dthetadz_threshold:
+                # If the potential temperature gradient is below the defined
+                # dthetadz_threshold, use the non-surface levels.
                 dz_from_model_level = dz - z_lower
                 p_grad = (p_upper - p_lower)/dz_model_levels
                 p_site = p_lower + p_grad*dz_from_model_level
                 theta_base = theta_lower
             else:
+                # A potential temperature gradient in excess of the threshold
+                # value indicative of a lapse rate calculated across an
+                # inversion. Recalulate using lowest levels to better capture
+                # the inversion.
                 dthetadz = (theta_lower-theta_surface)/z_lower
                 dz_from_model_level = dz
                 p_grad = (p_lower - p_surface)/z_lower
