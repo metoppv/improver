@@ -45,8 +45,9 @@ import numpy as np
 
 from improver.grids.osgb import OSGBGRID
 from improver.nbhood import BasicNeighbourhoodProcessing as NBHood
-from improver.tests.helper_functions_ensemble_calibration import (
-    add_forecast_reference_time_and_forecast_period)
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions_ensemble_calibration import (
+        add_forecast_reference_time_and_forecast_period)
 
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
@@ -395,9 +396,9 @@ class Test__apply_kernel_for_smoothing(IrisTest):
         ranges = (2, 2)
         result = (
             NBHood(
-                 radius_in_km,
-                 unweighted_mode=True)._apply_kernel_for_smoothing(
-                     cube, ranges))
+                radius_in_km,
+                unweighted_mode=True)._apply_kernel_for_smoothing(
+                    cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
