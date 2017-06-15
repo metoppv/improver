@@ -43,6 +43,11 @@ class Utilities(object):
 
     """
     Utilities for neighbourhood processing.
+
+    The methods available in this class are:
+    * cumulate_array
+    * find_required_lead_times
+    * get_grid_x_y_kernel_ranges
     """
 
     def __init__(self):
@@ -52,21 +57,21 @@ class Utilities(object):
     def cumulate_array(cube):
         """
         Method to calculate the cumulative sum of an array, by first
-        cumulating vertically so that the largest values are in the upper row,
-        and then cumulating horizontally, so that the largest values are in the
-        right hand column.
+        cumulating along the y direction so that the largest values
+        are in the upper row, and then cumulating along the x direction,
+        so that the largest values are in the right hand column.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube to which the vertical and horizontal cumulative summing will
-            be applied.
+            Cube to which the cumulative summing along the y and x direction
+            will be applied.
 
         Returns
         -------
         cube : Iris.cube.Cube
-            Cube to which the vertical and horizontal cumulative summing has
-            been applied.
+            Cube to which the cumulative summing along the y and x direction
+            has been applied.
 
         """
         yname = cube.coord(axis="y").name()
@@ -74,11 +79,11 @@ class Utilities(object):
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
             data = slice_2d.data
-            data_summed_vertically = (
+            data_summed_along_y = (
                 np.flipud(np.cumsum(np.flipud(data), axis=0)))
-            data_summed_horizontally = (
-                np.cumsum(data_summed_vertically, axis=1))
-            slice_2d.data = data_summed_horizontally
+            data_summed_along_x = (
+                np.cumsum(data_summed_along_y, axis=1))
+            slice_2d.data = data_summed_along_x
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
