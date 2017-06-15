@@ -36,11 +36,9 @@ class.
 """
 import unittest
 
-from cf_units import Unit
 import iris
 from iris.tests import IrisTest
 import numpy as np
-from scipy.optimize import OptimizeResult
 import warnings
 
 from improver.ensemble_calibration.ensemble_calibration import (
