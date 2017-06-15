@@ -193,19 +193,19 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
-            kernel_method = 'circular'
-            NBHood(kernel_method, radii_in_km, lead_times=lead_times)
+            neighbourhood_method = 'circular'
+            NBHood(neighbourhood_method, radii_in_km, lead_times=lead_times)
 
-    def test_kernel_method_does_not_exist(self):
+    def test_neighbourhood_method_does_not_exist(self):
         """
-        Test that desired error message is raised, if the kernel method
+        Test that desired error message is raised, if the neighbourhood method
         does not exist.
         """
-        kernel_method = 'nonsense'
+        neighbourhood_method = 'nonsense'
         radii_in_km = 10
-        msg = 'The requested kernel method: '
-        with self.assertRaisesRegexp(AttributeError, msg):
-            NBHood(kernel_method, radii_in_km)
+        msg = 'The neighbourhood_method requested: '
+        with self.assertRaisesRegexp(KeyError, msg):
+            NBHood(neighbourhood_method, radii_in_km)
 
 
 class Test_process(IrisTest):
@@ -217,8 +217,8 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube()
-        kernel_method = "circular"
-        plugin = NBHood(kernel_method, self.RADIUS_IN_KM)
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, self.RADIUS_IN_KM)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -228,16 +228,16 @@ class Test_process(IrisTest):
         cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegexp(ValueError, msg):
-            kernel_method = "circular"
-            NBHood(kernel_method, self.RADIUS_IN_KM).process(cube)
+            neighbourhood_method = "circular"
+            NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
 
     def test_fail_multiple_realisations(self):
         """Test failing when the array has a realisation dimension."""
         cube = set_up_cube(num_realization_points=2)
         msg = "Does not operate across realizations"
         with self.assertRaisesRegexp(ValueError, msg):
-            kernel_method = "circular"
-            NBHood(kernel_method, self.RADIUS_IN_KM).process(cube)
+            neighbourhood_method = "circular"
+            NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
 
     def test_radii_varying_with_lead_time(self):
         """
@@ -251,8 +251,8 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 20, 30]
         lead_times = [2, 3, 4]
-        kernel_method = "circular"
-        plugin = NBHood(kernel_method, radii_in_km, lead_times)
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, radii_in_km, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -288,8 +288,8 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [6, 8, 10]
         lead_times = [2, 3, 4]
-        kernel_method = "circular"
-        plugin = NBHood(kernel_method, radii_in_km, lead_times)
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, radii_in_km, lead_times)
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -309,8 +309,8 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [10, 30]
         lead_times = [2, 4]
-        kernel_method = "circular"
-        plugin = NBHood(kernel_method, radii_in_km, lead_times)
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, radii_in_km, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -343,8 +343,8 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii_in_km = [6, 10]
         lead_times = [2, 4]
-        kernel_method = "circular"
-        plugin = NBHood(kernel_method, radii_in_km, lead_times)
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, radii_in_km, lead_times)
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

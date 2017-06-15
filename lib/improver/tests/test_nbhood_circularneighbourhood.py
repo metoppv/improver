@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.Kernels plugin."""
+"""Unit tests for the nbhood.CircularNeighbourhood plugin."""
 
 
 import unittest
@@ -37,13 +37,13 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood import Kernels
+from improver.nbhood import CircularNeighbourhood
 from improver.tests.test_nbhood_neighbourhoodprocessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
 
 
-class Test_circular(IrisTest):
+class Test_apply_circular_kernel(IrisTest):
 
     """Test neighbourhood processing plugin on the OS National Grid."""
 
@@ -56,7 +56,10 @@ class Test_circular(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         ranges = (2, 2)
-        result = Kernels.circular(cube, ranges, unweighted_mode=True)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=True).apply_circular_kernel(ranges))
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -66,7 +69,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][5:10] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
@@ -82,7 +88,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][0][5 + index][5:10] = slice_
         ranges = (2, 2)
-        result = Kernels.circular(cube, ranges, unweighted_mode=True)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=True).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -97,7 +106,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][1][5 + index][5:10] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
@@ -106,7 +118,9 @@ class Test_circular(IrisTest):
         msg = "Invalid grid: projection_x/y coords required"
         ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
-            Kernels.circular(cube, ranges, unweighted_mode=False)
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -125,7 +139,10 @@ class Test_circular(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -143,7 +160,10 @@ class Test_circular(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -152,7 +172,10 @@ class Test_circular(IrisTest):
         expected = np.ones_like(cube.data)
         expected[0][0][7][7] = 0.0
         ranges = (1, 1)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -163,7 +186,10 @@ class Test_circular(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
                 expected[0][time_index][3 + index][3:12] = slice_
         ranges = (5, 5)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
@@ -181,7 +207,10 @@ class Test_circular(IrisTest):
               [0.97944502, 0.97841727, 0.97944502, 0.98252826]]]
         ])
         ranges = (5, 5)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -199,7 +228,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(expected_snippet):
             expected[0][0][5 + index][4:11] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -211,7 +243,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:5] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -222,7 +257,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:4] = slice_[1:]
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -246,7 +284,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][5 + index][0:3] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
@@ -257,7 +298,10 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][index][0:5] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
@@ -270,7 +314,10 @@ class Test_circular(IrisTest):
                 continue
             expected[0][0][index - 1][0:4] = slice_[1:]
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -292,8 +339,78 @@ class Test_circular(IrisTest):
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][index][0:3] = slice_
         ranges = (3, 3)
-        result = Kernels.circular(cube, ranges, unweighted_mode=False)
+        result = (
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM,
+                unweighted_mode=False).apply_circular_kernel(ranges))
         self.assertArrayAlmostEqual(result.data, expected)
+
+
+class Test_get_grid_x_y_kernel_ranges(IrisTest):
+
+    """Test conversion of kernel radius in kilometres to grid cells."""
+
+    RADIUS_IN_KM = 6.1
+
+    def test_basic_radius_to_grid_cells(self):
+        """Test the lat-long radius-to-grid-cell conversion."""
+        cube = set_up_cube()
+        result = CircularNeighbourhood(
+            cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+        self.assertEqual(result, (3, 3))
+
+    def test_basic_radius_to_grid_cells_km_grid(self):
+        """Test the radius-to-grid-cell conversion, grid in km."""
+        cube = set_up_cube()
+        cube.coord("projection_x_coordinate").convert_units("kilometres")
+        cube.coord("projection_y_coordinate").convert_units("kilometres")
+        result = CircularNeighbourhood(
+            cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+        self.assertEqual(result, (3, 3))
+
+    def test_single_point_lat_long(self):
+        """Test behaviour for a single grid cell on lat long grid."""
+        cube = set_up_cube_lat_long()
+        msg = "Invalid grid: projection_x/y coords required"
+        with self.assertRaisesRegexp(ValueError, msg):
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+
+    def test_single_point_range_negative(self):
+        """Test behaviour with a non-zero point with negative range."""
+        cube = set_up_cube()
+        radius_in_km = -1.0 * self.RADIUS_IN_KM
+        msg = "radius of -6.1 km gives a negative cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+
+    def test_single_point_range_0(self):
+        """Test behaviour with a non-zero point with zero range."""
+        cube = set_up_cube()
+        radius_in_km = 0.005
+        msg = "radius of 0.005 km gives zero cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+
+    def test_single_point_range_lots(self):
+        """Test behaviour with a non-zero point with unhandleable range."""
+        cube = set_up_cube()
+        radius_in_km = 500000.0
+        msg = "radius of 500000.0 km exceeds maximum grid cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            CircularNeighbourhood(
+                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+
+
+#class Test_run(IrisTest):
+
+    #"""Test the run method on the CircularNeighbourhood class."""
+
+    #def test_basic(self):
+        
+
 
 
 if __name__ == '__main__':

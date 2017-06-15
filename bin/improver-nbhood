@@ -41,19 +41,19 @@ from improver.nbhood import NeighbourhoodProcessing
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-    description='Apply the requested kernel via ' +
+    description='Apply the requested neighbourhood method via ' +
                 'the NeighbourhoodProcessing plugin ' +
                 'to a file with one cube.')
-    parser.add_argument('kernel_method', metavar='KERNEL_METHOD',
-                        help='The kernel method to apply in neighbourhood'
-                             ' processing. Options: "circular".')
+    parser.add_argument('neighhourhood_method', metavar='NEIGHBOURHOOD_METHOD',
+                        help='The neighbourhood method to apply in '
+                             'neighbourhood processing. Options: "circular".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
-                       help='The kernel radius for neighbourhood processing')
+                       help='The radius for neighbourhood processing')
     group.add_argument('--radii-in-km-by-lead-time',
                        metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
                        nargs=2,
-                       help='The kernel radii for neighbourhood processing '
+                       help='The radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
                        'valid. The radii are in km whilst the lead time '
                        'has units of hours. The radii and lead times are '
