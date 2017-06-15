@@ -52,10 +52,7 @@ def convert_cube_data_to_2d(
         The data will be flattened along this coordinate.
     transpose : Logical
         If True, the resulting flattened data is transposed.
-        This will transpose a 2d array of the format [:, coord]
-        to [coord, :].
         If False, the resulting flattened data is not transposed.
-        This will result in a 2d array of format [:, coord].
 
     Returns
     -------
@@ -69,44 +66,6 @@ def convert_cube_data_to_2d(
     if transpose:
         forecast_data = np.asarray(forecast_data).T
     return np.array(forecast_data)
-
-
-def ensure_dimension_is_the_zeroth_dimension(cube, coord):
-    """
-    Function to ensure that the requested coordinate within the cube is
-    the first dimension within the cube.
-
-    If the requested dimension coordinate exists, the cube is transposed.
-    If the requested coordinate exists, but it is not a dimension coordinate
-    i.e. a scalar coordinate, then a new axis is created with the scalar
-    coordinate becoming a dimension coordinate.
-    If the coordinate is not present on the cube, then an error is raised.
-
-    Parameters
-    ----------
-    cube : Iris cube
-        Cube where the requirement for the required dimension to be the first
-        dimension will be enforced.
-    coord : String
-        Name of the coordinate that is to be made the first dimension
-        coordinate in the cube.
-
-    """
-    if cube.coords(coord, dim_coords=True):
-        if cube.coord_dims(coord)[0] != 0:
-            coords = []
-            for acoord in cube.coords(dim_coords=True):
-                if acoord.name() not in [coord]:
-                    coords.append(cube.coord_dims(acoord)[0])
-            first_coord = cube.coord_dims(coord)[0]
-            cube.transpose([first_coord]+coords)
-    elif cube.coords(coord, dim_coords=False):
-        cube = iris.util.new_axis(cube, coord)
-    else:
-        msg = ("The coordinate {} is not a dimension coordinate "
-               "in the cube: {}".format(coord, cube))
-        raise ValueError(msg)
-    return cube
 
 
 def concatenate_cubes(
