@@ -106,19 +106,19 @@ class ExtractData(object):
                 cube, sites, neighbours, orography,
                 no_neighbours=no_neighbours)
         elif self.method == 'model_level_temperature_lapse_rate':
-            
+
             pressure_on_height_levels = (
                 data_from_dictionary(
                     additional_data, 'pressure_on_height_levels')
                 )
+            # Ensure that pressure units are in Pa.
+            pressure_on_height_levels.convert_units('Pa')
+
             lower_pressure = pressure_on_height_levels[lower_level, ...]
             upper_pressure = pressure_on_height_levels[upper_level, ...]
 
             surface_pressure = data_from_dictionary(additional_data,
                                                     'surface_pressure')
-
-            # Ensure that pressure units are in Pa.
-            pressure_on_height_levels.convert_units('Pa')
             surface_pressure.convert_units('Pa')
 
             temperature_on_height_levels = (
@@ -128,9 +128,19 @@ class ExtractData(object):
             lower_temperature = temperature_on_height_levels[lower_level, ...]
             upper_temperature = temperature_on_height_levels[upper_level, ...]
 
-            return self.model_level_temperature_lapse_rate(
-                cube, sites, neighbours, surface_pressure, lower_pressure,
-                upper_pressure, lower_temperature, upper_temperature)
+            if ancillary_data.get('config_constants') is not None:
+                consts = ancillary_data['config_constants']
+                return self.model_level_temperature_lapse_rate(
+                    cube, sites, neighbours, surface_pressure, lower_pressure,
+                    upper_pressure, lower_temperature, upper_temperature,
+                    dz_tolerance=consts['dz_tolerance'],
+                    dthetadz_threshold=consts['dthetadz_threshold'],
+                    dz_max_adjustment=consts['dz_max_adjustment'])
+            else:
+                return self.model_level_temperature_lapse_rate(
+                    cube, sites, neighbours, surface_pressure, lower_pressure,
+                    upper_pressure, lower_temperature, upper_temperature)
+
 
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
@@ -299,7 +309,8 @@ class ExtractData(object):
 
     def model_level_temperature_lapse_rate(
         self, cube, sites, neighbours, surface_pressure, lower_pressure,
-        upper_pressure, lower_temperature, upper_temperature):
+        upper_pressure, lower_temperature, upper_temperature,
+        dz_tolerance=2., dthetadz_threshold=0.02, dz_max_adjustment=70.):
 
         """
         Lapse rate method based on potential temperature. Follows the work of
@@ -351,10 +362,12 @@ class ExtractData(object):
            
            dtheta/dz <= threshold --> Keep value
            dtheta/dz >  threshold --> Recalculate gradient between surface
-                                      and lower_level.
+                                      and lower_level to capture inversion.
 
         3. Determine if the SpotData site is below the lowest model level
-           (the surface level).
+           (the surface level, dz < 0). (This check is only at the neighbouring
+           grid point, so doesn't actually guarantee we are below the model
+           orography; neighbour finding with a below bias can enforce this.)
 
            IF: SpotData site height < model_surface --> Extrapolate downwards.
            -------------------------------------------------------------------
@@ -447,6 +460,22 @@ class ExtractData(object):
             levels, each at an equivalent time to the cube of screen level
             temperatures.
 
+        dz_tolerance : float
+            Vertical displacement between spotdata site and neighbouring grid
+            point below which there is no need to perform a lapse rate
+            adjustment.
+
+        dthetadz_threshold : float
+            Potential temperature gradient threshold, with gradients above this
+            value deemed to have been calculated across an inversion.
+
+        dz_max_adjustment : float
+            Maximum vertical distance downwards that a temperature will be
+            adjusted if the site sits below it's neighbouring grid point.
+            using the lapse rate. If the spotdata site is more than this
+            distance above or below its neighbouring grid point, the adjustment
+            will be made using dz = dz_max_adjustment.
+
         Returns:
         --------
 
@@ -455,12 +484,10 @@ class ExtractData(object):
         using multi-level data.
 
         """
+        # Reference pressure of 1000hPa (1.0E5 Pa).
+        p_ref = 1.0E5
+ 
         def _adjust_temperature(theta_base, dthetadz, dz, p_site, kappa):
-            # Default UKPP values.
-            dz_max_adjustment = 70.
-            p_ref = 1.0E5
-            
-            dz = min(abs(dz), dz_max_adjustment)*np.sign(dz)
             if dz < 0 or dthetadz > 0:
                 return (theta_base + dz*dthetadz)*(p_site/p_ref)**kappa
             else:
@@ -471,10 +498,7 @@ class ExtractData(object):
                              'temperatures. Cube of type {} is not '
                              'suitable.'.format(self.method, cube.name()))
 
-        # Default UKPP values.
         kappa = R_DRY_AIR/CP_DRY_AIR
-        dz_tolerance = 2.
-        dthetadz_threshold = 0.02
 
         z_lower, = lower_pressure.coord('height').points
         z_upper, = upper_pressure.coord('height').points
@@ -502,14 +526,23 @@ class ExtractData(object):
 
             # Potential temperature at surface, lower model level and upper
             # model level.
-            theta_surface = t_surface*(1.0E5/p_surface)**kappa
-            theta_lower = t_lower*(1.0E5/p_lower)**kappa
-            theta_upper = t_upper*(1.0E5/p_upper)**kappa
+            theta_surface = t_surface*(p_ref/p_surface)**kappa
+            theta_lower = t_lower*(p_ref/p_lower)**kappa
+            theta_upper = t_upper*(p_ref/p_upper)**kappa
+
+            # Enforce a maximum extrapolation down into valleys, set by
+            # dz_max_adjustment. This test does not guarantee that we are
+            # looking at a valley, merely that our spotdata site is below the
+            # chosen neighbouring grid point. If used with the PointSelection
+            # method that biases to find neighbours below the site and dz is
+            # still < 0 then we are much more likely to be looking at a valley
+            # site.
+            if dz < 0:
+                dz = max(dz, -dz_max_adjustment)
 
             # Calculate potential temperature gradient using levels away from
             # surface.
             dthetadz = (theta_upper - theta_lower)/dz_model_levels
-
             if dthetadz <= dthetadz_threshold:
                 # If the potential temperature gradient is below the defined
                 # dthetadz_threshold, use the non-surface levels.
