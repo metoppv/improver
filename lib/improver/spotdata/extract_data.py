@@ -367,7 +367,8 @@ class ExtractData(object):
         3. Determine if the SpotData site is below the lowest model level
            (the surface level, dz < 0). (This check is only at the neighbouring
            grid point, so doesn't actually guarantee we are below the model
-           orography; neighbour finding with a below bias can enforce this.)
+           orography; combining this with neighbour finding with a below bias
+           can ensure we are finding unresolved valleys/dips.)
 
            IF: SpotData site height < model_surface --> Extrapolate downwards.
            -------------------------------------------------------------------
@@ -470,8 +471,7 @@ class ExtractData(object):
             value deemed to have been calculated across an inversion.
 
         dz_max_adjustment : float
-            Maximum vertical distance downwards that a temperature will be
-            adjusted if the site sits below it's neighbouring grid point.
+            Maximum vertical distance over which a temperature will be adjusted
             using the lapse rate. If the spotdata site is more than this
             distance above or below its neighbouring grid point, the adjustment
             will be made using dz = dz_max_adjustment.
@@ -530,15 +530,11 @@ class ExtractData(object):
             theta_lower = t_lower*(p_ref/p_lower)**kappa
             theta_upper = t_upper*(p_ref/p_upper)**kappa
 
-            # Enforce a maximum extrapolation down into valleys, set by
-            # dz_max_adjustment. This test does not guarantee that we are
-            # looking at a valley, merely that our spotdata site is below the
-            # chosen neighbouring grid point. If used with the PointSelection
-            # method that biases to find neighbours below the site and dz is
-            # still < 0 then we are much more likely to be looking at a valley
-            # site.
-            if dz < 0:
-                dz = max(dz, -dz_max_adjustment)
+            # Enforce a maximum vertical displacement to which temperatures
+            # will be adjusted using a lapse rate. This is to prevent excessive
+            # changes based on what is unlikely to be a constant gradient
+            # in potential temperature.
+            dz = min(abs(dz), dz_max_adjustment)*np.sign(dz)
 
             # Calculate potential temperature gradient using levels away from
             # surface.
