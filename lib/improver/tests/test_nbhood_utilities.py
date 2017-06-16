@@ -51,6 +51,7 @@ class Test__repr__(IrisTest):
     """Test the repr method."""
 
     def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
         result = str(Utilities())
         msg = '<Utilities>'
         self.assertEqual(result, msg)

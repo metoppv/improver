@@ -215,6 +215,7 @@ class Test__repr__(IrisTest):
     """Test the repr method."""
 
     def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10))
         msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
                'radii_in_km: 10.0; lead_times: None; '
