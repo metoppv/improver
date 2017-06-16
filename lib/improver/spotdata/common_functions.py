@@ -36,9 +36,10 @@ Plugins written for the Improver site specific process chain.
 import warnings
 import numpy as np
 from iris import Constraint
+from iris import FUTURE
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
-from iris import FUTURE
+
 
 FUTURE.cell_datetime_objects = True
 
@@ -361,7 +362,7 @@ def apply_bias(vertical_bias, dzs):
     elif vertical_bias == 'below':
         dz_subset, = np.where(dzs >= 0)
 
-    if (vertical_bias is None or len(dz_subset) == 0):
+    if vertical_bias is None or not dz_subset:
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
