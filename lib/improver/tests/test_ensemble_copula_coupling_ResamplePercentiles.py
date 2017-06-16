@@ -150,6 +150,7 @@ class Test__interpolate_percentiles(IrisTest):
     """
 
     def setUp(self):
+        """Set up percentile cube and spot percentile cube."""
         data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
         data[0] -= 1
         data[1] += 1
@@ -433,6 +434,7 @@ class Test_process(IrisTest):
     """Test the process plugin of the Resample Percentiles plugin."""
 
     def setUp(self):
+        """Set up percentile cube."""
         data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
         data[0] -= 1
         data[1] += 1
