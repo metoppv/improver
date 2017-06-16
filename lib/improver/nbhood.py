@@ -50,6 +50,9 @@ class Utilities(object):
     """
 
     def __init__(self):
+        """
+        Initialise class.
+        """
         pass
 
     @staticmethod
@@ -169,9 +172,13 @@ class Utilities(object):
 
 class SquareNeighbourhood(object):
 
+    """
+    Methods for use in application of a square neighbourhood.
+    """
+
     def __init__(self):
         """
-        Methods for use in application of a square neighbourhood.
+        Initialise class.
         """
         pass
 
