@@ -63,6 +63,26 @@ class Test_cumulate_array(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    def test_masked_array(self):
+        """
+        Test that the y-dimension and x-dimension accumulation produces the
+        intended result for a masked array. A 2d cube is passed in.
+        """
+        data = np.array([[0., 0., 0., 0., 0.],
+                         [0., 0., 0., 0., 0.],
+                         [0.5, 0.5, 0.5, 0.5, 1.],
+                         [0., 0., 0., 0., 0.],
+                         [0., 0., 0., 0., 0.]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data[0, 0, 2, 0] = 0.5
+        cube.data[0, 0, 2, 4] = 0.5
+        cube.data = np.ma.masked_greater(cube.data, 0.5)
+        result = SquareNeighbourhood(cube).cumulate_array()
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data.data, data)
+
     def test_for_multiple_times(self):
         """
         Test that the y-dimension and x-dimension accumulation produces the
