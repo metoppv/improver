@@ -101,7 +101,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        pep8|pylint|pylintE|unit|cli)
+        pep8|pylint|pylintE|doc|unit|cli)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         *)
