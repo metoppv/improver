@@ -51,6 +51,10 @@ class Utilities(object):
         """
         pass
 
+    def __repr__(self):
+        result = ('<Utilities>')
+        return result
+
     @staticmethod
     def find_required_lead_times(cube):
         """
@@ -116,7 +120,7 @@ class Utilities(object):
         cube : Iris.cube.Cube
             Cube containing the x and y coordinates, which will be used for
             calculating the number of grid cells in the x and y direction,
-            which equates to the size of the desired radii.
+            which equates to the size of the desired radius.
         radius_in_km : Float
             Radius in kilometres for use in specifying the number of
             grid cells used to create a circular neighbourhood.
@@ -172,11 +176,15 @@ class SquareNeighbourhood(object):
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self):
+    def __init__(self, unweighted_mode=False):
         """
         Initialise class.
         """
-        pass
+        self.unweighted_mode = unweighted_mode
+
+    def __repr__(self):
+        result = ('<SquareNeighbourhood: unweighted_mode: {}>')
+        return result.format(self.unweighted_mode)
 
     @staticmethod
     def cumulate_array(cube):
@@ -213,7 +221,7 @@ class SquareNeighbourhood(object):
         return cubelist.merge_cube()
 
     @staticmethod
-    def run(cube):
+    def run(cube, radius_in_km):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -247,23 +255,23 @@ class CircularNeighbourhood(object):
     # Maximum radius of the neighbourhood width in grid cells.
     MAX_RADIUS_IN_GRID_CELLS = 500
 
-    def __init__(self, radius_in_km, unweighted_mode=False):
+    def __init__(self, unweighted_mode=False):
         """
         Initialise class.
 
         Parameters
         ----------
-        radius_in_km : Float
-            Radius in kilometres for use in specifying the number of
-            grid cells used to create a circular neighbourhood.
         unweighted_mode : boolean
             If True, use a circle with constant weighting.
             If False, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
 
         """
-        self.radius_in_km = radius_in_km
         self.unweighted_mode = unweighted_mode
+
+    def __repr__(self):
+        result = ('<CircularNeighbourhood: unweighted_mode: {}>')
+        return result.format(self.unweighted_mode)
 
     def apply_circular_kernel(self, cube, ranges):
         """
@@ -319,7 +327,7 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
 
-    def run(self, cube):
+    def run(self, cube, radius_in_km):
         """
         Call the methods required to calculate and apply a circular
         neighbourhood.
@@ -329,6 +337,9 @@ class CircularNeighbourhood(object):
         cube : Iris.cube.Cube
             Cube containing to array to apply CircularNeighbourhood processing
             to.
+        radius_in_km : Float
+            Radius in kilometres for use in specifying the number of
+            grid cells used to create a circular neighbourhood.
 
         Returns
         -------
@@ -337,7 +348,7 @@ class CircularNeighbourhood(object):
             applied.
         """
         ranges = Utilities.get_neighbourhood_width_in_grid_cells(
-            cube, self.radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+            cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
 
@@ -381,10 +392,12 @@ class NeighbourhoodProcessing(object):
             weighting decreasing with radius.
 
         """
+        self.neighbourhood_method_name = neighbourhood_method
         methods = {
             "circular": CircularNeighbourhood}
         try:
-            self.neighbourhood_method = methods[neighbourhood_method]
+            method = methods[neighbourhood_method]
+            self.neighbourhood_method = method(unweighted_mode)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -404,12 +417,12 @@ class NeighbourhoodProcessing(object):
                 raise ValueError(msg)
         self.unweighted_mode = bool(unweighted_mode)
 
-    def __str__(self):
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; ' +
-                  'radii_in_km: {}; lead_times: {};' +
+    def __repr__(self):
+        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'radii_in_km: {}; lead_times: {}; '
                   'unweighted_mode: {}>')
         return result.format(
-            self.neighbourhood_method, self.radii_in_km, self.lead_times,
+            self.neighbourhood_method_name, self.radii_in_km, self.lead_times,
             self.unweighted_mode)
 
     def process(self, cube):
@@ -449,8 +462,7 @@ class NeighbourhoodProcessing(object):
 
         if self.lead_times is None:
             radius_in_km = self.radii_in_km
-            cube = self.neighbourhood_method(
-                radius_in_km, self.unweighted_mode).run(cube)
+            cube = self.neighbourhood_method.run(cube, radius_in_km)
         else:
             required_lead_times = Utilities.find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
@@ -463,8 +475,8 @@ class NeighbourhoodProcessing(object):
             # to smooth the field.
             for cube_slice, radius_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
-                cube_slice = self.neighbourhood_method(
-                    radius_in_km, self.unweighted_mode).run(cube_slice)
+                cube_slice = self.neighbourhood_method.run(
+                    cube_slice, radius_in_km)
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
             cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])

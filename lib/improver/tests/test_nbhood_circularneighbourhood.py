@@ -43,12 +43,19 @@ from improver.tests.test_nbhood_neighbourhoodprocessing import (
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        result = str(CircularNeighbourhood())
+        msg = '<CircularNeighbourhood: unweighted_mode: False>'
+        self.assertEqual(str(result), msg)
+
+
 class Test_apply_circular_kernel(IrisTest):
 
     """Test neighbourhood processing plugin on the OS National Grid."""
-
-    RADIUS_IN_KM = 6.3  # Gives 3 grid cells worth.
-    KERNEL_METHOD = "circular"
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -58,7 +65,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertIsInstance(result, Cube)
 
@@ -71,7 +77,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -90,7 +95,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -108,7 +112,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -119,7 +122,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges)
 
     def test_single_point_masked_to_null(self):
@@ -141,7 +143,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -162,7 +163,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -174,7 +174,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (1, 1)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -188,7 +187,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -209,7 +207,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -230,7 +227,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -245,7 +241,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -259,7 +254,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -286,7 +280,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -300,7 +293,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -316,7 +308,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -341,7 +332,6 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                self.RADIUS_IN_KM,
                 unweighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -362,8 +352,7 @@ class Test_run(IrisTest):
 
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
-        result = CircularNeighbourhood(
-            self.RADIUS_IN_KM).run(cube)
+        result = CircularNeighbourhood().run(cube, self.RADIUS_IN_KM)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 

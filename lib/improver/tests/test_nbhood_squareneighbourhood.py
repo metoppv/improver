@@ -41,6 +41,16 @@ from improver.nbhood import SquareNeighbourhood
 from improver.tests.test_nbhood_neighbourhoodprocessing import set_up_cube
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        result = str(SquareNeighbourhood())
+        msg = '<SquareNeighbourhood: unweighted_mode: False>'
+        self.assertEqual(result, msg)
+
+
 class Test_cumulate_array(IrisTest):
 
     """Test for cumulating an array in the y and x dimension."""
@@ -152,6 +162,8 @@ class Test_run(IrisTest):
 
     """Test the run method on the SquareNeighbourhood class."""
 
+    RADIUS_IN_KM = 10
+
     def test_basic(self):
         """Test that a cube with correct data is produced by the run method"""
         data = np.array([[1., 2., 3., 4., 5.],
@@ -162,7 +174,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood().run(cube)
+        result = SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 

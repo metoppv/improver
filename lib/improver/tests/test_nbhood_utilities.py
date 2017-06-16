@@ -46,6 +46,16 @@ from improver.tests.test_nbhood_neighbourhoodprocessing import (
     set_up_cube, set_up_cube_lat_long)
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        result = str(Utilities())
+        msg = '<Utilities>'
+        self.assertEqual(result, msg)
+
+
 class Test_find_required_lead_times(IrisTest):
 
     """Test determining of the lead times present within the input cube."""

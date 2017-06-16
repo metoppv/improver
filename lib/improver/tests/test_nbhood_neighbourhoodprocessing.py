@@ -210,6 +210,18 @@ class Test__init__(IrisTest):
             NBHood(neighbourhood_method, radii_in_km)
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        result = str(NBHood("circular", 10))
+        msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
+               'radii_in_km: 10.0; lead_times: None; '
+               'unweighted_mode: False>')
+        self.assertEqual(result, msg)
+
+
 class Test_process(IrisTest):
 
     """Tests for the process method of NeighbourhoodProcessing."""
@@ -220,8 +232,7 @@ class Test_process(IrisTest):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube()
         neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, self.RADIUS_IN_KM)
-        result = plugin.process(cube)
+        result = NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
         self.assertIsInstance(result, Cube)
 
     def test_single_point_nan(self):
