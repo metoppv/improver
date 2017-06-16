@@ -119,8 +119,8 @@ class TestExtractData(IrisTest):
         # rates from model levels.
 
         t_level0 = np.ones((1, 20, 20))*20.
-        t_level1 = np.ones((1, 20, 20))*-20.
-        t_level2 = np.ones((1, 20, 20))*-60.
+        t_level1 = np.ones((1, 20, 20))*10.
+        t_level2 = np.ones((1, 20, 20))*0.
         t_data = np.vstack((t_level0, t_level1, t_level2))
         t_data.resize((1, 3, 20, 20))
 
@@ -187,7 +187,8 @@ class TestExtractData(IrisTest):
         plugin = ExtractData(method)
         cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data)
+                                ancillary_data, additional_data, lower_level=1,
+                                upper_level=2)
 
         self.assertIsInstance(result, Cube)
 
@@ -197,7 +198,8 @@ class TestExtractData(IrisTest):
         plugin = ExtractData(method)
         cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data)
+                                ancillary_data, additional_data, lower_level=1,
+                                upper_level=2)
         self.assertAlmostEqual(result.data, expected)
 
     def different_projection(self, method, ancillary_data, additional_data,
@@ -232,7 +234,8 @@ class TestExtractData(IrisTest):
         plugin = ExtractData(method)
         cube = cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data)
+                                ancillary_data, additional_data, lower_level=1,
+                                upper_level=2)
 
         self.assertEqual(cube.coord_system(), trg_crs_iris)
         self.assertAlmostEqual(result.data, expected)
@@ -273,7 +276,7 @@ class miscellaneous(TestExtractData):
         with self.assertRaisesRegexp(AttributeError, msg):
             plugin.process(cube, self.sites, self.neighbour_list, {}, None)
 
-    def test__built_coordinates(self):
+    def test__build_coordinates(self):
         """
         Test the _build_coordinates private function.
 
@@ -373,20 +376,165 @@ class model_level_temperature_lapse_rate(TestExtractData):
     def test_return_type(self):
         self.return_type(self.method, self.ancillary_data, self.ad)
 
-    def test_extracted_value(self):
+    def test_extracted_value_valley(self):
+        """
+        Test that the plugin returns the correct value.
+
+        Site set to be ~3.65m in altitude, which is a dz of -6.35m from the nearest
+        grid point (its neighbour). This should give a temperature of 22C at the
+        site height.
+
+        This is an extrapolation scenario, an 'unresolved valley'.
+
+        """
+        self.sites['100']['altitude'] = 3.6446955
+        self.neighbour_list['dz'] = -6.3553045
+        expected = 22.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': 0.02,
+                                                   'dz_max_adjustment': 70.}
+        self.extracted_value(self.method, self.ancillary_data, self.ad,
+                             expected, )
+
+    def test_extracted_value_deep_valley(self):
+        """
+        Test that the plugin returns the correct value.
+
+        Site set to be 100m or 70m below the land surface (90m or 60m below sea
+        level). The enforcement of a maximum extrapolation down into valleys
+        should result in the two site altitudes returning the same temperature.
+
+        This is an extrapolation scenario, an 'unresolved valley'.
+
+        """
+        # Temperatures set up to mimic a cold night with an inversion where
+        # valley temperatures may be expected to fall considerably due to
+        # katabatic drainage.
+        t_level0 = np.ones((1, 20, 20))*0.
+        t_level1 = np.ones((1, 20, 20))*1.
+        t_level2 = np.ones((1, 20, 20))*2.
+        t_data = np.vstack((t_level0, t_level1, t_level2))
+        t_data.resize((3, 20, 20))
+
+        self.ad['temperature_on_height_levels'].data = t_data
+        cube = self.cube.extract(self.time_extract)
+        cube.data = cube.data*0.0
+
+        self.sites['100']['altitude'] = -90.
+        self.neighbour_list['dz'] = -100.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': 0.02,
+                                                   'dz_max_adjustment': 70.}
+
+        plugin = ExtractData(self.method)
+
+        result_dz = plugin.process(cube, self.sites, self.neighbour_list,
+                                   self.ancillary_data, self.ad,
+                                   lower_level=1, upper_level=2)
+
+        self.sites['100']['altitude'] = -60.
+        self.neighbour_list['dz'] = -70.
+        result_70 = plugin.process(cube, self.sites, self.neighbour_list,
+                                   self.ancillary_data, self.ad,
+                                   lower_level=1, upper_level=2)
+        self.assertEqual(result_dz.data, result_70.data)
+
+    def test_extracted_value_hill_mixed(self):
         """
         Test that the plugin returns the correct value.
 
         Site set to be 60m in altitude, which is a dz of +50m from the nearest
         grid point (its neighbour). As such it should fall on the 900hPa level
-        and get a temperature of -20C.
+        and get a temperature of 10C.
+
+        This is an interpolation scenario, an 'unresolved hill' in a well
+        mixed atmosphere.
 
         """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
-        expected = -20.
+        expected = 10.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': 0.02,
+                                                   'dz_max_adjustment': 70.}
         self.extracted_value(self.method, self.ancillary_data, self.ad,
-                             expected)
+                             expected, )
+
+    def test_extracted_value_hill_stable_lower_dthetadz(self):
+        """
+        Test that the plugin returns the correct value.
+
+        Push the dthetadz_threshold value to be negative, such that the
+        potential temperature gradient is recalculated between surface
+        and lower_level (as if there is a strange unstable-inversion).
+        This is not realistic, but tests the following path through the
+        code:
+        
+        1. dthetadz calculated between surface and lower level.
+        2. dz positive and dthetadz negative, so temperature at site calculated
+           with theta_base*(p_site/p_ref)**kappa.
+
+        This is as if the atmosphere is well mixed (unstable) but calculated
+        from the surface level, which is normally done to get the gradient
+        across a very stable inversion layer.
+
+        The site altitude and dz are not important here as the atmosphere has
+        been setup with a uniform pressure between the surface and lower model
+        level, thus the surface temperature should just be replicated at any
+        height (T=20C).
+
+        """
+        t_level0 = np.ones((1, 20, 20))*20.
+        t_level1 = np.ones((1, 20, 20))*15.
+        t_level2 = np.ones((1, 20, 20))*10.
+        t_data = np.vstack((t_level0, t_level1, t_level2))
+        t_data.resize((3, 20, 20))
+
+        p_level0 = np.ones((1, 20, 20))*1000.
+        p_level1 = np.ones((1, 20, 20))*1000.
+        p_level2 = np.ones((1, 20, 20))*800.
+        p_data = np.vstack((p_level0, p_level1, p_level2))
+        p_data.resize((3, 20, 20))
+
+        self.ad['temperature_on_height_levels'].data = t_data
+        self.ad['pressure_on_height_levels'].data = p_data
+        self.sites['100']['altitude'] = 35.
+        self.neighbour_list['dz'] = 25.
+
+        expected = 20.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': -0.2,
+                                                   'dz_max_adjustment': 70.}
+        self.extracted_value(self.method, self.ancillary_data, self.ad,
+                             expected, )
+
+    def test_extracted_value_hill_stable(self):
+        """
+        Test that the plugin returns the correct value.
+
+        Site set to be 60m in altitude, which is a dz of +50m from the nearest
+        grid point (its neighbour). As such it should fall on the 900hPa level
+        and get a temperature of 21C.
+
+        This is an interpolation scenario, an 'unresolved hill' in a stable
+        atmosphere.
+
+        """
+        t_level0 = np.ones((1, 20, 20))*20.
+        t_level1 = np.ones((1, 20, 20))*21.
+        t_level2 = np.ones((1, 20, 20))*22.
+        t_data = np.vstack((t_level0, t_level1, t_level2))
+        t_data.resize((3, 20, 20))
+
+        self.ad['temperature_on_height_levels'].data = t_data
+        self.sites['100']['altitude'] = 60.
+        self.neighbour_list['dz'] = 50.
+        expected = 21.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': 0.02,
+                                                   'dz_max_adjustment': 70.}
+        self.extracted_value(self.method, self.ancillary_data, self.ad,
+                             expected, )
 
     def test_different_projection(self):
         """
@@ -405,7 +553,10 @@ class model_level_temperature_lapse_rate(TestExtractData):
         """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
-        expected = -20.
+        expected = 10.
+        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
+                                                   'dthetadz_threshold': 0.02,
+                                                   'dz_max_adjustment': 70.}
         self.different_projection(self.method, self.ancillary_data, self.ad,
                                   expected)
 
