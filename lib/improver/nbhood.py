@@ -43,10 +43,6 @@ class Utilities(object):
 
     """
     Utilities for neighbourhood processing.
-
-    The methods available in this class are:
-    * find_required_lead_times
-    * get_neighbourhood_width_in_grid_cells
     """
 
     def __init__(self):
