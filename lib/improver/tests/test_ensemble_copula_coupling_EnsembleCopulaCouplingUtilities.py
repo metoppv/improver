@@ -314,6 +314,7 @@ class Test_find_coordinate(IrisTest):
     """Test the find_coordinate function."""
 
     def setUp(self):
+        """Set up current temperature forecast cube."""
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
