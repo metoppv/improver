@@ -282,7 +282,7 @@ class miscellaneous(TestExtractData):
         """
         plugin = ExtractData()._build_coordinates
         points = np.array([0, 1, 2])
-        indices, bd_ids, latitude, longitude, utc_offset = (
+        indices, _, latitude, longitude, utc_offset = (
             plugin(points, points, points, points[::-1]))
         self.assertArrayEqual(indices.points, points)
         self.assertArrayEqual(utc_offset.points, points[::-1])
@@ -298,7 +298,7 @@ class miscellaneous(TestExtractData):
         """
         plugin = ExtractData()._build_coordinates
         points = np.array([0, 1, 2])
-        indices, bd_ids, latitude, longitude, utc_offset = (
+        indices, _, latitude, longitude, utc_offset = (
             plugin(points, points, points, points[::-1]))
         self.assertArrayEqual(indices.points, points)
         self.assertArrayEqual(utc_offset.points, points[::-1])
@@ -314,6 +314,7 @@ class use_nearest(TestExtractData):
     method = 'use_nearest'
 
     def test_return_type(self):
+        """Test this method returns a cube as expected."""
         self.return_type(self.method, self.ancillary_data, None)
 
     def test_extracted_value(self):
@@ -334,6 +335,7 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
     method = 'orography_derived_temperature_lapse_rate'
 
     def test_return_type(self):
+        """Test this method returns a cube as expected."""
         self.return_type(self.method, self.ancillary_data, None)
 
     def test_extracted_value(self):
@@ -361,7 +363,6 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
         expected = 21
         self.extracted_value(self.method, self.ancillary_data, None, expected,
                              no_neighbours=25)
-
 
     def test_different_projection(self):
         """
@@ -396,15 +397,16 @@ class model_level_temperature_lapse_rate(TestExtractData):
     method = 'model_level_temperature_lapse_rate'
 
     def test_return_type(self):
+        """Test this method returns a cube as expected."""
         self.return_type(self.method, self.ancillary_data, self.ad)
 
     def test_extracted_value_valley(self):
         """
         Test that the plugin returns the correct value.
 
-        Site set to be ~3.65m in altitude, which is a dz of -6.35m from the nearest
-        grid point (its neighbour). This should give a temperature of 22C at the
-        site height.
+        Site set to be ~3.65m in altitude, which is a dz of -6.35m from the
+        nearest grid point (its neighbour). This should give a temperature of
+        22C at the site height.
 
         This is an extrapolation scenario, an 'unresolved valley'.
 
@@ -491,7 +493,7 @@ class model_level_temperature_lapse_rate(TestExtractData):
         and lower_level (as if there is a strange unstable-inversion).
         This is not realistic, but tests the following path through the
         code:
-        
+
         1. dthetadz calculated between surface and lower level.
         2. dz positive and dthetadz negative, so temperature at site calculated
            with theta_base*(p_site/p_ref)**kappa.

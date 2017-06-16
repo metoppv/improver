@@ -618,7 +618,7 @@ class TestExtractAdAtTime(TestCommonFunctions):
     def test_valid_extraction_time(self):
         """
         Case for a time that is available within the additional diagnostic.
-        
+
         """
         plugin = extract_ad_at_time
         result = plugin(self.additional_data, self.time_dt, self.time_extract)
@@ -638,6 +638,24 @@ class TestExtractAdAtTime(TestCommonFunctions):
             assert len(w_messages) == 1
             assert issubclass(w_messages[0].category, UserWarning)
             assert "Forecast time" in str(w_messages[0])
+
+
+class TestConstructNeighbourHash(TestCommonFunctions):
+    """
+    Test the construction of neighbour finding method hashes.
+
+    """
+    def test_create_hash(self):
+        """Create a simple hash."""
+        neighbour_finding = {
+            'method': 'This',
+            'vertical_bias': 'is_a',
+            'land_constraint': 'neighbour_hash'}
+
+        expected = 'This-is_a-neighbour_hash'
+        plugin = construct_neighbour_hash
+        result = plugin(neighbour_finding)
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
