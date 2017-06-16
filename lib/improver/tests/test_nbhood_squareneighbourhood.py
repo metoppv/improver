@@ -59,7 +59,7 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood(cube).cumulate_array()
+        result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -79,7 +79,7 @@ class Test_cumulate_array(IrisTest):
         cube.data[0, 0, 2, 0] = 0.5
         cube.data[0, 0, 2, 4] = 0.5
         cube.data = np.ma.masked_greater(cube.data, 0.5)
-        result = SquareNeighbourhood(cube).cumulate_array()
+        result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data.data, data)
 
@@ -108,7 +108,7 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
             num_time_points=3, num_grid_points=5)
-        result = SquareNeighbourhood(cube).cumulate_array()
+        result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -144,7 +144,7 @@ class Test_cumulate_array(IrisTest):
             zero_point_indices=(
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
-        result = SquareNeighbourhood(cube).cumulate_array()
+        result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -163,8 +163,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood(
-            cube).run()
+        result = SquareNeighbourhood().run(cube)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 

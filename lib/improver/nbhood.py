@@ -169,20 +169,13 @@ class Utilities(object):
 
 class SquareNeighbourhood(object):
 
-    def __init__(self, cube):
+    def __init__(self):
         """
-        Initialise class.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing the array to which the square neighbourhood
-            will be applied
-
+        Methods for use in application of a square neighbourhood.
         """
-        self.cube = cube
+        pass
 
-    def cumulate_array(self):
+    def cumulate_array(self, cube):
         """
         Method to calculate the cumulative sum of an m x n array, by first
         cumulating along the y direction so that the largest values
@@ -203,10 +196,10 @@ class SquareNeighbourhood(object):
             has been applied.
 
         """
-        yname = self.cube.coord(axis="y").name()
-        xname = self.cube.coord(axis="x").name()
+        yname = cube.coord(axis="y").name()
+        xname = cube.coord(axis="x").name()
         cubelist = iris.cube.CubeList([])
-        for slice_2d in self.cube.slices([yname, xname]):
+        for slice_2d in cube.slices([yname, xname]):
             data = slice_2d.data
             data_summed_along_y = np.cumsum(data, axis=0)
             data_summed_along_x = (
@@ -215,10 +208,16 @@ class SquareNeighbourhood(object):
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
-    def run(self):
+    def run(self, cube):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube containing the array to which the square neighbourhood
+            will be applied
 
         Returns
         -------
@@ -226,7 +225,7 @@ class SquareNeighbourhood(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
-        summed_up_cube = self.cumulate_array()
+        summed_up_cube = self.cumulate_array(cube)
         return summed_up_cube
 
 
@@ -243,15 +242,12 @@ class CircularNeighbourhood(object):
     # Maximum radius of the neighbourhood width in grid cells.
     MAX_RADIUS_IN_GRID_CELLS = 500
 
-    def __init__(self, cube, radius_in_km, unweighted_mode=False):
+    def __init__(self, radius_in_km, unweighted_mode=False):
         """
         Initialise class.
 
         Parameters
         ----------
-        cube : Iris.cube.Cube
-            Cube containing to array to apply CircularNeighbourhood processing
-            to.
         radius_in_km : Float
             Radius in kilometres for use in specifying the number of
             grid cells used to create a circular neighbourhood.
@@ -261,17 +257,19 @@ class CircularNeighbourhood(object):
             weighting decreasing with radius.
 
         """
-        self.cube = cube
         self.radius_in_km = radius_in_km
         self.unweighted_mode = unweighted_mode
 
-    def apply_circular_kernel(self, ranges):
+    def apply_circular_kernel(self, cube, ranges):
         """
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
 
         Parameters
         ----------
+        cube : Iris.cube.Cube
+            Cube containing to array to apply CircularNeighbourhood processing
+            to.
         ranges : Tuple
             Number of grid cells in the x and y direction used to create
             the kernel.
@@ -283,7 +281,6 @@ class CircularNeighbourhood(object):
             applied.
 
         """
-        cube = self.cube
         data = cube.data
         fullranges = np.zeros([np.ndim(data)])
         axes = []
@@ -317,10 +314,16 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
 
-    def run(self):
+    def run(self, cube):
         """
         Call the methods required to calculate and apply a circular
         neighbourhood.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube containing to array to apply CircularNeighbourhood processing
+            to.
 
         Returns
         -------
@@ -329,8 +332,8 @@ class CircularNeighbourhood(object):
             applied.
         """
         ranges = Utilities.get_neighbourhood_width_in_grid_cells(
-            self.cube, self.radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
-        cube = self.apply_circular_kernel(ranges)
+            cube, self.radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+        cube = self.apply_circular_kernel(cube, ranges)
         return cube
 
 
@@ -374,7 +377,7 @@ class NeighbourhoodProcessing(object):
 
         """
         methods = {
-            "circular": CircularNeighbourhood, "square": SquareNeighbourhood}
+            "circular": CircularNeighbourhood}
         try:
             self.neighbourhood_method = methods[neighbourhood_method]
         except KeyError:
@@ -442,7 +445,7 @@ class NeighbourhoodProcessing(object):
         if self.lead_times is None:
             radius_in_km = self.radii_in_km
             cube = self.neighbourhood_method(
-                cube, radius_in_km, self.unweighted_mode).run()
+                radius_in_km, self.unweighted_mode).run(cube)
         else:
             required_lead_times = Utilities.find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
@@ -456,7 +459,7 @@ class NeighbourhoodProcessing(object):
             for cube_slice, radius_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
                 cube_slice = self.neighbourhood_method(
-                    cube_slice, radius_in_km, self.unweighted_mode).run()
+                    radius_in_km, self.unweighted_mode).run(cube_slice)
                 cube_slice = iris.util.new_axis(cube_slice, "time")
                 cubes.append(cube_slice)
             cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])
