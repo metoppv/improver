@@ -47,7 +47,7 @@ def main():
     parser.add_argument('wind_speed_filepath', metavar='WIND_SPEED_FILE',
                         help='Location of the wind speed on standard grid'
                              ' file. Any units can be supplied.')
-    parser.add_argument('a_over_s_filepath',  metavar='AOS_FILE',
+    parser.add_argument('silhouette_roughness_filepath', metavar='AOS_FILE',
                         help='Location of model silhouette roughness file. '
                              'Units of field: dimensionless')
     parser.add_argument('sigma_filepath', metavar='SIGMA_FILE',
@@ -72,12 +72,14 @@ def main():
     parser.add_argument('--height_levels_filepath', metavar='HEIGHT_LEVELS',
                         help='Location of file containing height levels '
                              'coincident with wind speed field.')
-    parser.add_argument('--z0_filepath', metavar='VEGETATIVE_ROUGHNESS_LENGTH',
+    parser.add_argument('--veg_roughness_filepath',
+                        metavar='VEGETATIVE_ROUGHNESS_LENGTH',
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
     args = parser.parse_args()
     wind_speed = iris.load_cube(args.wind_speed_filepath)
-    a_over_s = iris.load_cube(args.a_over_s_filepath)
+    silhouette_roughness_filepath = iris.load_cube(
+        args.silhouette_roughness_filepath)
     sigma = iris.load_cube(args.sigma_filepath)
     target_orog = iris.load_cube(args.target_orog_filepath)
     standard_orog = iris.load_cube(args.standard_orog_filepath)
@@ -85,14 +87,14 @@ def main():
         height_levels = iris.load_cube(args.height_levels_filepath)
     else:
         height_levels = None
-    if args.z0_filepath:
-        z0_cube = iris.load_cube(args.z0_filepath)
+    if args.veg_roughness_filepath:
+        veg_roughness_cube = iris.load_cube(args.veg_roughness_filepath)
     else:
-        z0_cube = None
+        veg_roughness_cube = None
     result = (
         wind_downscaling.RoughnessCorrection(
-            a_over_s, sigma, target_orog, standard_orog,
-            float(args.model_resolution), z0_cube=z0_cube,
+            silhouette_roughness_filepath, sigma, target_orog, standard_orog,
+            float(args.model_resolution), z0_cube=veg_roughness_cube,
             height_levels_cube=height_levels).process(wind_speed))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

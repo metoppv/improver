@@ -40,7 +40,7 @@
   # check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      2200 "$TEST_DIR/output.nc" --z0_filepath "$test_path/veg.nc"
+      2200 "$TEST_DIR/output.nc" --veg_roughness_filepath "$test_path/veg.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
