@@ -72,7 +72,6 @@ class Test_find_standard_ancil(IrisTest):
         self.stage = self.test_dir + 'stage.nc'
         os.mkdir(self.test_dir)
         save(_make_test_cube('stage test'), self.stage)
-        self.grid = 'glm'
 
     def tearDown(self):
         if os.path.exists(self.test_dir):
@@ -83,15 +82,23 @@ class Test_find_standard_ancil(IrisTest):
 
     def test_findstage(self):
         """test case where stage file is present and read"""
-        result = find_standard_ancil(self.grid, self.stage)
-        self.assertEqual(result.name(), 'stage test')
+        result = find_standard_ancil(self.stage)
+        self.assertIsInstance(result, Cube)
 
     def test_findstage_fail(self):
         """test the correct exception is raised when stage ancillaries
            are not found"""
         os.remove(self.stage)
         with self.assertRaisesRegexp(IOError, 'Cannot find input ancillary'):
-            find_standard_ancil(self.grid, self.stage)
+            find_standard_ancil(self.stage)
+
+    def test_custom_msg_fail(self):
+        """test the correct exception is raised when the optional msg
+           argument is passed in and the file cannot be found"""
+        os.remove(self.stage)
+        msg = "That file doesn't exist"
+        with self.assertRaisesRegexp(IOError, msg):
+            find_standard_ancil(self.stage, msg)
 
 if __name__ == "__main__":
     unittest.main()

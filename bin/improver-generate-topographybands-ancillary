@@ -64,29 +64,23 @@ def main():
                         action='store_true',
                         help=('If True, ancillaries will be generated even '
                               'if doing so will overwrite existing files'))
-    parser.add_argument('input_filepath_stage_orography',
-                        metavar='INPUT_FILE_STAGE_OROGRAPHY',
-                        help=('A path to an input NetCDF file (from StaGE) '
-                              'containing the orography to be processed.'))
+    parser.add_argument('input_filepath_standard_orography',
+                        metavar='INPUT_FILE_STANDARD_OROGRAPHY',
+                        help=('A path to an input NetCDF orography file to '
+                              'be processed'))
     parser.add_argument('input_filepath_landmask', metavar='INPUT_FILE_LAND',
-                        help='A path to an input land mask file.')
+                        help=('A path to an input NetCDF land mask file to be '
+                             'processed'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
-    parser.add_argument('grid', metavar='STANDARD_GRID',
-                        help='The standard grid to process landmask on.')
     args = parser.parse_args()
 
     if not os.path.exists(args.output_filepath) or args.force:
-        orography = find_standard_ancil(
-            args.grid, args.input_filepath_stage_orography)
-        if len(glob(args.input_filepath_stage_orography)) == 0:
-            iris.save(orography, args.input_filepath_stage_orography)
-        try:
-            landmask = iris.load(args.input_filepath_landmask)[0]
-        except IOError:
-            msg = ('Cannot locate land mask at {}; '
-                   'run improver-generateancil_landmask first.')
-            raise IOError(msg.format(args.input_filepath_landmask))
+        orography = find_standard_ancil(args.input_filepath_standard_orography)
+        msg = ('Cannot locate land mask at {}; run '
+               'improver-generateancil_landmask first.').format(
+                    args.input_filepath_landmask)
+        landmask = find_standard_ancil(args.input_filepath_landmask, msg)
         result = GenerateOrographyBandAncils().process(
             orography, landmask, THRESHOLDS_DICT)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])

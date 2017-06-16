@@ -44,27 +44,23 @@ from improver.generate_ancillaries.generate_ancillary import (
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read the model landmask, interpolate '
-                     'to the standard grid and correct '
+        description=('Read the input landmask, and correct '
                      'to boolean values.'))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
                         help=('If True, ancillaries will be generated '
                               'even if doing so will overwrite existing '
                               'files.'))
-    parser.add_argument('input_filepath_stage', metavar='INPUT_FILE_STAGE',
-                        help=('A path to an input NetCDF file (from StaGE) '
-                              'to be processed.'))
+    parser.add_argument('input_filepath_standard',
+                        metavar='INPUT_FILE_STANDARD',
+                        help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    parser.add_argument('grid', metavar='STANDARD_GRID',
-                        help='The standard grid to process landmask on.')
     args = parser.parse_args()
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
-        landmask = find_standard_ancil(
-            args.grid, args.input_filepath_stage)
+        landmask = find_standard_ancil(args.input_filepath_standard)
         land_binary_mask = CorrectLandSeaMask().process(landmask)
         iris.save(land_binary_mask, args.output_filepath,
                   unlimited_dimensions=[])

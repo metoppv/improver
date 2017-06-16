@@ -48,14 +48,29 @@ class Test_gen_orography_masks(IrisTest):
     """
     def setUp(self):
         """setting up test input and output data sets"""
-        landmask_data = np.array([[0.25, 0., 0.],
-                                  [0.75, 0.25, 0.],
-                                  [1., 1., 0.75]])
+        landmask_data = np.array([[1, 0, 0],
+                                  [1, 0, 0],
+                                  [1, 1, 1]])
         self.landmask = Cube(landmask_data, long_name='test land')
         orog_data = np.array([[10., 0., 0.],
                               [20., 100., 15.],
                               [-10., 100., 40.]])
         self.orography = Cube(orog_data, long_name='test orog')
+        self.valley_key = 'land'
+        self.valley_threshold = [-10, 10]
+        self.exp_valleymask = np.array([[1., 999999., 999999.],
+                                        [0., 999999., 999999.],
+                                        [1., 0., 0.]])
+        self.land_key = 'land'
+        self.land_threshold = [0, 50]
+        self.exp_landmask = np.array([[1., 999999., 999999.],
+                                      [1., 999999., 999999.],
+                                      [0., 0., 1.]])
+        self.max_key = 'max_land_threshold'
+        self.max_threshold = [80]
+        self.exp_maxmask = np.array([[0., 999999., 999999.],
+                                     [0., 999999., 999999.],
+                                     [0., 1., 0.]])
 
     def test_nonsensekey(self):
         """test the correct exception is raised for unknown keys"""
@@ -64,6 +79,69 @@ class Test_gen_orography_masks(IrisTest):
             GenOrogMasks().gen_orography_masks(
                 self.orography, self.landmask, "nonsense",
                 exception_dict["nonsense"])
+
+    def test_valleyband_data(self):
+        """test correct mask is produced for land bands < 0m"""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.valley_key,
+            self.valley_threshold)
+        self.assertArrayAlmostEqual(result.data.data, self.exp_valleymask)
+
+    def test_valleyband_cube(self):
+        """test correct cube data is produced for land bands < 0m"""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.valley_key,
+            self.valley_threshold)[0]
+        self.assertEqual(result.attributes['Topographical Type'], 'Land')
+        self.assertEqual(result.coord('topographic_bound_lower').points,
+                         self.valley_threshold[0])
+        self.assertEqual(result.coord('topographic_bound_upper').points,
+                         self.valley_threshold[1])
+
+    def test_landband_data(self):
+        """test correct mask is produced for land bands > 0m"""
+        print self.land_key, self.land_threshold
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.land_key,
+            self.land_threshold)
+        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
+
+    def test_landband_cube(self):
+        """test correct cube data is produced for land bands > 0m"""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.land_key,
+            self.land_threshold)
+        self.assertEqual(result.attributes['Topographical Type'], 'Land')
+        self.assertEqual(result.coord('topographic_bound_lower').points,
+                         self.land_threshold[0])
+        self.assertEqual(result.coord('topographic_bound_upper').points,
+                         self.land_threshold[1])
+
+    def test_maxband_data(self):
+        """test correct mask is produced for land bands > max"""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.max_key, self.max_threshold)
+        self.assertArrayAlmostEqual(result.data.data, self.exp_maxmask)
+
+    def test_maxband_cube(self):
+        """test correct cube data is produced for land bands > max"""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.max_key, self.max_threshold)[0]
+        self.assertEqual(result.attributes['Topographical Type'],
+                         'Max_Land_Threshold')
+        self.assertEqual(result.coord('topographic_bound_lower').points,
+                         self.max_threshold[0])
+        msg = 'Expected to find exactly 1  coordinate, but found none.'
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            result.coord('topographic_bound_upper')
+
+    def test_nothreshold(self):
+        """test the correct exception is raised for key without threshold"""
+        key = 'land'
+        threshold = []
+        with self.assertRaises(ValueError):
+            GenOrogMasks().gen_orography_masks(
+                self.orography, self.landmask, key, threshold)
 
 
 class Test_process(IrisTest):
@@ -83,81 +161,12 @@ class Test_process(IrisTest):
         self.orography = Cube(orog_data, long_name='test orog')
         self.threshold_dict = {'land': [[-10, 0], [0, 50]],
                                'max_land_threshold': [[80]]}
-        self.valley_dict = {'land': [[-10, 10]]}
-        self.exp_valleymask = np.array([[1., 999999., 999999.],
-                                        [0., 999999., 999999.],
-                                        [1., 0., 0.]])
-        self.land_dict = {'land': [[0, 50]]}
-        self.exp_landmask = np.array([[1., 999999., 999999.],
-                                      [1., 999999., 999999.],
-                                      [0., 0., 1.]])
-        self.max_dict = {'max_land_threshold': [[80]]}
-        self.exp_maxmask = np.array([[0., 999999., 999999.],
-                                     [0., 999999., 999999.],
-                                     [0., 1., 0.]])
 
     def test_thresholdset(self):
         """test the plugin produces correct number of cubes"""
         result = GenOrogMasks().process(
             self.orography, self.landmask, self.threshold_dict)
         self.assertEqual(len(result), 3)
-
-    def test_valleyband_data(self):
-        """test correct mask is produced for land bands < 0m"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.valley_dict)[0]
-        self.assertArrayAlmostEqual(result.data.data, self.exp_valleymask)
-
-    def test_valleyband_cube(self):
-        """test correct cube data is produced for land bands < 0m"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.valley_dict)[0]
-        self.assertEqual(result.attributes['Topographical Type'], 'Land')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
-                         self.valley_dict['land'][0][0])
-        self.assertEqual(result.coord('topographic_bound_upper').points,
-                         self.valley_dict['land'][0][1])
-
-    def test_landband_data(self):
-        """test correct mask is produced for land bands > 0m"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.land_dict)[0]
-        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
-
-    def test_landband_cube(self):
-        """test correct cube data is produced for land bands > 0m"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.land_dict)[0]
-        self.assertEqual(result.attributes['Topographical Type'], 'Land')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
-                         self.land_dict['land'][0][0])
-        self.assertEqual(result.coord('topographic_bound_upper').points,
-                         self.land_dict['land'][0][1])
-
-    def test_maxband_data(self):
-        """test correct mask is produced for land bands > max"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.max_dict)[0]
-        self.assertArrayAlmostEqual(result.data.data, self.exp_maxmask)
-
-    def test_maxband_cube(self):
-        """test correct cube data is produced for land bands > max"""
-        result = GenOrogMasks().process(
-            self.orography, self.landmask, self.max_dict)[0]
-        self.assertEqual(result.attributes['Topographical Type'],
-                         'Max_Land_Threshold')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
-                         self.max_dict['max_land_threshold'][0][0])
-        msg = 'Expected to find exactly 1  coordinate, but found none.'
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            result.coord('topographic_bound_upper')
-
-    def test_nothreshold(self):
-        """test the correct exception is raised for key without threshold"""
-        exception_dict = {'land': []}
-        with self.assertRaises(ValueError):
-            GenOrogMasks().process(
-                self.orography, self.landmask, exception_dict)
 
 
 if __name__ == "__main__":
