@@ -35,7 +35,6 @@ import unittest
 
 from cf_units import Unit
 
-from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np

@@ -184,6 +184,8 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
 
 class Test__init__(IrisTest):
 
+    """Test the __init__ method of NeighbourhoodProcessing"""
+
     def test_radii_varying_with_lead_time_mismatch(self):
         """
         Test that the desired error message is raised, if there is a mismatch
@@ -210,7 +212,7 @@ class Test__init__(IrisTest):
 
 class Test_process(IrisTest):
 
-    """Tests for the process method of BasicNeighbourhoodProcessing."""
+    """Tests for the process method of NeighbourhoodProcessing."""
 
     RADIUS_IN_KM = 6.3  # Gives 3 grid cells worth.
 

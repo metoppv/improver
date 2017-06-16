@@ -182,7 +182,8 @@ class SquareNeighbourhood(object):
         """
         pass
 
-    def cumulate_array(self, cube):
+    @staticmethod
+    def cumulate_array(cube):
         """
         Method to calculate the cumulative sum of an m x n array, by first
         cumulating along the y direction so that the largest values
@@ -232,7 +233,7 @@ class SquareNeighbourhood(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
-        summed_up_cube = self.cumulate_array(cube)
+        summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
         return summed_up_cube
 
 
