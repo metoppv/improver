@@ -33,7 +33,6 @@
 
 import numpy as np
 from numpy.linalg import lstsq
-from iris import Constraint
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
@@ -142,7 +141,6 @@ class ExtractData(object):
                 return self.model_level_temperature_lapse_rate(
                     cube, sites, neighbours, surface_pressure, lower_pressure,
                     upper_pressure, lower_temperature, upper_temperature)
-
 
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
@@ -313,9 +311,9 @@ class ExtractData(object):
         return self.make_cube(cube, data, sites)
 
     def model_level_temperature_lapse_rate(
-        self, cube, sites, neighbours, surface_pressure, lower_pressure,
-        upper_pressure, lower_temperature, upper_temperature,
-        dz_tolerance=2., dthetadz_threshold=0.02, dz_max_adjustment=70.):
+            self, cube, sites, neighbours, surface_pressure, lower_pressure,
+            upper_pressure, lower_temperature, upper_temperature,
+            dz_tolerance=2., dthetadz_threshold=0.02, dz_max_adjustment=70.):
 
         """
         Lapse rate method based on potential temperature. Follows the work of
@@ -364,7 +362,7 @@ class ExtractData(object):
         2. Compare the gradient with a defined threshold value that is
            used to indicate whether the gradient as been calculated
            across an inversion.
-           
+
            dtheta/dz <= threshold --> Keep value
            dtheta/dz >  threshold --> Recalculate gradient between surface
                                       and lower_level to capture inversion.
@@ -377,7 +375,7 @@ class ExtractData(object):
 
            IF: SpotData site height < model_surface --> Extrapolate downwards.
            -------------------------------------------------------------------
-           
+
            True surface below model surface (dz -ve) 'Unresolved valley'
 
            ---upper_level--- Model level (k_upper)
@@ -414,7 +412,7 @@ class ExtractData(object):
 
            4. Use potential temperature gradient as an indicator of atmospheric
               stability.
-              
+
               IF: dtheta/dz > 0 --> Stable atmosphere
 
               ----------------------------------------------------------------
@@ -431,7 +429,7 @@ class ExtractData(object):
               ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere
 
               ----------------------------------------------------------------
-              --> Neutral/well-mixed 
+              --> Neutral/well-mixed
               ----------------------------------------------------------------
               5. Use potential temperature from surface level; for a well mixed
                  atmosphere dtheta/dz should be nearly constant.
@@ -491,11 +489,18 @@ class ExtractData(object):
         """
         # Reference pressure of 1000hPa (1.0E5 Pa).
         p_ref = 1.0E5
- 
+
         def _adjust_temperature(theta_base, dthetadz, dz, p_site, kappa):
+            """
+            Perform calculation of temperature at SpotData site.
+
+            """
             if dz < 0 or dthetadz > 0:
+                # Case for extrapolating downwards or a stable atmosphere.
                 return (theta_base + dz*dthetadz)*(p_site/p_ref)**kappa
             else:
+                # Case for a well mixed atmosphere when calculating temperature
+                # at a site above the neighbouring grid point.
                 return theta_base*(p_site/p_ref)**kappa
 
         if not cube.name() == 'air_temperature':

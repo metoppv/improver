@@ -362,7 +362,7 @@ def apply_bias(vertical_bias, dzs):
     elif vertical_bias == 'below':
         dz_subset, = np.where(dzs >= 0)
 
-    if vertical_bias is None or not dz_subset:
+    if vertical_bias is None or dz_subset.size == 0:
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
