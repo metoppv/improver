@@ -41,11 +41,12 @@ from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
-from improver.tests.helper_functions_ensemble_calibration import(
-    add_forecast_reference_time_and_forecast_period,
-    set_up_probability_above_threshold_cube,
-    set_up_probability_above_threshold_temperature_cube,
-    set_up_probability_above_threshold_spot_temperature_cube)
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import (
+        add_forecast_reference_time_and_forecast_period,
+        set_up_probability_above_threshold_cube,
+        set_up_probability_above_threshold_temperature_cube,
+        set_up_probability_above_threshold_spot_temperature_cube)
 
 
 class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
