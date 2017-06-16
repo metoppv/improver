@@ -69,11 +69,12 @@ def main():
                              ' Units of field: m')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    parser.add_argument('--height_levels_filepath', metavar='HEIGHT_LEVELS',
+    parser.add_argument('--height_levels_filepath',
+                        metavar='HEIGHT_LEVELS_FILE',
                         help='Location of file containing height levels '
                              'coincident with wind speed field.')
     parser.add_argument('--veg_roughness_filepath',
-                        metavar='VEGETATIVE_ROUGHNESS_LENGTH',
+                        metavar='VEGETATIVE_ROUGHNESS_LENGTH_FILE',
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
     args = parser.parse_args()
