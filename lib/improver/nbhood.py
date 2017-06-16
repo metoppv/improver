@@ -46,6 +46,7 @@ class Utilities(object):
 
     The methods available in this class are:
     * find_required_lead_times
+    * get_neighbourhood_width_in_grid_cells
     """
 
     def __init__(self):
@@ -102,6 +103,68 @@ class Utilities(object):
                        "the forecast_period.".format(cube))
                 raise CoordinateNotFoundError(msg)
         return required_lead_times
+
+    @staticmethod
+    def get_neighbourhood_width_in_grid_cells(
+            cube, radius_in_km, max_radius_in_grid_cells):
+        """
+        Return the number of grid cells in the x and y direction
+        used to define the neighbourhood width in the x and y direction
+        based on the input radius in km.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube containing the x and y coordinates, which will be used for
+            calculating the number of grid cells in the x and y direction,
+            which equates to the size of the desired radii.
+        radius_in_km : Float
+            Radius in kilometres for use in specifying the number of
+            grid cells used to create a circular neighbourhood.
+        max_radius_in_grid_cells : integer
+            Maximum radius of the neighbourhood width in grid cells.
+
+        Returns
+        -------
+        grid_cells_x : Integer
+            Number of grid cells in the x direction based on the requested
+            radius in km.
+        grid_cells_y : Integer
+            Number of grid cells in the y direction based on the requested
+            radius in km.
+
+        """
+        try:
+            x_coord = cube.coord("projection_x_coordinate").copy()
+            y_coord = cube.coord("projection_y_coordinate").copy()
+        except CoordinateNotFoundError:
+            raise ValueError("Invalid grid: projection_x/y coords required")
+        x_coord.convert_units("metres")
+        y_coord.convert_units("metres")
+        d_north_metres = y_coord.points[1] - y_coord.points[0]
+        d_east_metres = x_coord.points[1] - x_coord.points[0]
+        grid_cells_y = int(radius_in_km * 1000 / abs(d_north_metres))
+        grid_cells_x = int(radius_in_km * 1000 / abs(d_east_metres))
+        if grid_cells_x == 0 or grid_cells_y == 0:
+            raise ValueError(
+                ("Neighbourhood processing radius of " +
+                 "{0} km ".format(radius_in_km) +
+                 "gives zero cell extent")
+            )
+        elif grid_cells_x < 0 or grid_cells_y < 0:
+            raise ValueError(
+                ("Neighbourhood processing radius of " +
+                 "{0} km ".format(radius_in_km) +
+                 "gives a negative cell extent")
+            )
+        if (grid_cells_x > max_radius_in_grid_cells or
+                grid_cells_y > max_radius_in_grid_cells):
+            raise ValueError(
+                ("Neighbourhood processing radius of " +
+                 "{0} km ".format(radius_in_km) +
+                 "exceeds maximum grid cell extent")
+            )
+        return grid_cells_x, grid_cells_y
 
 
 class SquareNeighbourhood(object):
@@ -160,8 +223,8 @@ class SquareNeighbourhood(object):
         Returns
         -------
         cube : Iris.cube.Cube
-            Cube containing the smoothed field after the kernel has been
-            applied.
+            Cube containing the smoothed field after the square neighbourhood
+            method has been applied.
         """
         summed_up_cube = self.cumulate_array()
         return summed_up_cube
@@ -172,9 +235,12 @@ class CircularNeighbourhood(object):
     """
     Methods for use in the calculation and application of a circular
     neighbourhood.
+
+    A maximum kernel radius of 500 grid cells is imposed in order to
+    avoid computational ineffiency and possible memory errors.
     """
 
-    # Max extent of kernel in grid cells.
+    # Maximum radius of the neighbourhood width in grid cells.
     MAX_RADIUS_IN_GRID_CELLS = 500
 
     def __init__(self, cube, radius_in_km, unweighted_mode=False):
@@ -184,12 +250,11 @@ class CircularNeighbourhood(object):
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube containing the x and y coordinates, which will be used for
-            calculating the number of grid cells in the x and y direction,
-            which equates to the size of the desired radii.
+            Cube containing to array to apply CircularNeighbourhood processing
+            to.
         radius_in_km : Float
             Radius in kilometres for use in specifying the number of
-            grid cells used to create a kernel.
+            grid cells used to create a circular neighbourhood.
         unweighted_mode : boolean
             If True, use a circle with constant weighting.
             If False, use a circle for neighbourhood kernel with
@@ -252,54 +317,6 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
 
-    def get_neighbourhood_width_in_grid_cells(self):
-        """
-        Return the number of grid cells in the x and y direction
-        used to define the neighbourhood width in the x and y direction
-        based on the input radius in km.
-
-        Returns
-        -------
-        grid_cells_x : Integer
-            Number of grid cells in the x direction based on the requested
-            radius in km.
-        grid_cells_y : Integer
-            Number of grid cells in the y direction based on the requested
-            radius in km.
-
-        """
-        try:
-            x_coord = self.cube.coord("projection_x_coordinate").copy()
-            y_coord = self.cube.coord("projection_y_coordinate").copy()
-        except CoordinateNotFoundError:
-            raise ValueError("Invalid grid: projection_x/y coords required")
-        x_coord.convert_units("metres")
-        y_coord.convert_units("metres")
-        d_north_metres = y_coord.points[1] - y_coord.points[0]
-        d_east_metres = x_coord.points[1] - x_coord.points[0]
-        grid_cells_y = int(self.radius_in_km * 1000 / abs(d_north_metres))
-        grid_cells_x = int(self.radius_in_km * 1000 / abs(d_east_metres))
-        if grid_cells_x == 0 or grid_cells_y == 0:
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0} km ".format(self.radius_in_km) +
-                 "gives zero cell extent")
-            )
-        elif grid_cells_x < 0 or grid_cells_y < 0:
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0} km ".format(self.radius_in_km) +
-                 "gives a negative cell extent")
-            )
-        if (grid_cells_x > self.MAX_RADIUS_IN_GRID_CELLS or
-                grid_cells_y > self.MAX_RADIUS_IN_GRID_CELLS):
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0} km ".format(self.radius_in_km) +
-                 "exceeds maximum grid cell extent")
-            )
-        return grid_cells_x, grid_cells_y
-
     def run(self):
         """
         Call the methods required to calculate and apply a circular
@@ -311,24 +328,22 @@ class CircularNeighbourhood(object):
             Cube containing the smoothed field after the kernel has been
             applied.
         """
-        ranges = self.get_neighbourhood_width_in_grid_cells()
+        ranges = Utilities.get_neighbourhood_width_in_grid_cells(
+            self.cube, self.radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(ranges)
         return cube
 
 
 class NeighbourhoodProcessing(object):
     """
-    Apply a neigbourhood processing kernel to a thresholded cube.
+    Apply a neigbourhood processing method to a thresholded cube.
 
     When applied to a thresholded probabilistic cube, it acts like a
     low-pass filter which reduces noisiness in the probabilities.
 
-    The kernel will presently only work with projections in which the
-    x grid point spacing and y grid point spacing are constant over the
-      entire domain, such as the UK national grid projection
-
-    A maximum kernel radius of 500 grid cells is imposed in order to
-    avoid computational ineffiency and possible memory errors.
+    The neighbourhood methods will presently only work with projections in
+    which the x grid point spacing and y grid point spacing are constant
+    over the entire domain, such as the UK national grid projection
 
     """
 
@@ -336,7 +351,7 @@ class NeighbourhoodProcessing(object):
                  unweighted_mode=False):
         """
         Create a neighbourhood processing plugin that applies a smoothing
-        kernel to points in a cube.
+        to points in a cube.
 
         Parameters
         ----------
@@ -344,8 +359,8 @@ class NeighbourhoodProcessing(object):
         neighbourhood_method : str
             Name of the neighbourhood method to use. Options: 'circular'.
         radii_in_km : float or List (if defining lead times)
-            The radii in kilometres of the neighbourhood kernel to
-            apply. Rounded up to convert into integer number of grid
+            The radii in kilometres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x/y coords.
         lead_times : None or List
@@ -391,18 +406,20 @@ class NeighbourhoodProcessing(object):
 
     def process(self, cube):
         """
-        Calculate a kernel to apply, in order to smooth the input cube.
+        Spply neighbourhood processing method, in order to smooth the
+        input cube.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube to apply a kernel to, in order to generate a smoother field.
+            Cube to apply a neighbourhood processing method to, in order to
+            generate a smoother field.
 
         Returns
         -------
         cube : Iris.cube.Cube
-            Cube after applying a kernel, so that the resulting field is
-            smoothed.
+            Cube after applying a neighbourhood processing method, so that the
+            resulting field is smoothed.
 
         """
         # Check if the realization coordinate exists. If there are multiple
@@ -433,8 +450,9 @@ class NeighbourhoodProcessing(object):
                 np.interp(
                     required_lead_times, self.lead_times, self.radii_in_km))
             cubes = iris.cube.CubeList([])
-            # Find the number of grid cells required for creating the kernel,
-            # and then apply the kernel to smooth the field.
+            # Find the number of grid cells required for creating the
+            # neighbourhood, and then apply the neighbourhood processing method
+            # to smooth the field.
             for cube_slice, radius_in_km in (
                     zip(cube.slices_over("time"), required_radii_in_km)):
                 cube_slice = self.neighbourhood_method(

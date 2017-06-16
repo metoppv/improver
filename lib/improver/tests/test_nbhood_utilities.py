@@ -142,5 +142,75 @@ class Test_find_required_lead_times(IrisTest):
             Utilities.find_required_lead_times(cube)
 
 
+class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
+
+    """Test conversion of kernel radius in kilometres to grid cells."""
+
+    RADIUS_IN_KM = 6.1
+    MAX_RADIUS_IN_GRID_CELLS = 500
+
+    def test_basic_radius_to_grid_cells(self):
+        """Test the radius in km to grid cell conversion."""
+        cube = set_up_cube()
+        result = Utilities().get_neighbourhood_width_in_grid_cells(
+            cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+        self.assertEqual(result, (3, 3))
+
+    def test_basic_radius_to_grid_cells_different_max_radius(self):
+        """
+        Test the radius in km to grid cell conversion for an alternative
+        max radius in grid cells.
+        """
+        cube = set_up_cube()
+        max_radius_in_grid_cells = 50
+        result = Utilities().get_neighbourhood_width_in_grid_cells(
+            cube, self.RADIUS_IN_KM, max_radius_in_grid_cells)
+        self.assertEqual(result, (3, 3))
+
+    def test_basic_radius_to_grid_cells_km_grid(self):
+        """Test the radius-to-grid-cell conversion, grid in km."""
+        cube = set_up_cube()
+        cube.coord("projection_x_coordinate").convert_units("kilometres")
+        cube.coord("projection_y_coordinate").convert_units("kilometres")
+        result = Utilities().get_neighbourhood_width_in_grid_cells(
+            cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+        self.assertEqual(result, (3, 3))
+
+    def test_single_point_lat_long(self):
+        """Test behaviour for a single grid cell on lat long grid."""
+        cube = set_up_cube_lat_long()
+        msg = "Invalid grid: projection_x/y coords required"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+
+    def test_single_point_range_negative(self):
+        """Test behaviour with a non-zero point with negative range."""
+        cube = set_up_cube()
+        radius_in_km = -1.0 * self.RADIUS_IN_KM
+        msg = "radius of -6.1 km gives a negative cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+
+    def test_single_point_range_0(self):
+        """Test behaviour with a non-zero point with zero range."""
+        cube = set_up_cube()
+        radius_in_km = 0.005
+        msg = "radius of 0.005 km gives zero cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+
+    def test_single_point_range_lots(self):
+        """Test behaviour with a non-zero point with unhandleable range."""
+        cube = set_up_cube()
+        radius_in_km = 500000.0
+        msg = "radius of 500000.0 km exceeds maximum grid cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+
+
 if __name__ == '__main__':
     unittest.main()
