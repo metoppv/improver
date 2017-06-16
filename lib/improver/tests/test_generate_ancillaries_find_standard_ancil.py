@@ -74,6 +74,7 @@ class Test_find_standard_ancil(IrisTest):
         save(_make_test_cube('stage test'), self.stage)
 
     def tearDown(self):
+        """"remove test directories and files"""
         if os.path.exists(self.test_dir):
             files = glob(self.test_dir + '*')
             for f in files:
