@@ -121,10 +121,11 @@ class SquareNeighbourhood(object):
 
     def cumulate_array(self):
         """
-        Method to calculate the cumulative sum of an array, by first
+        Method to calculate the cumulative sum of an m x n array, by first
         cumulating along the y direction so that the largest values
-        are in the upper row, and then cumulating along the x direction,
-        so that the largest values are in the right hand column.
+        are in the nth row, and then cumulating along the x direction,
+        so that the largest values are in the mth column. Each grid point
+        will contain the cumulative sum from the origin to that grid point.
 
         Parameters
         ----------
@@ -144,8 +145,7 @@ class SquareNeighbourhood(object):
         cubelist = iris.cube.CubeList([])
         for slice_2d in self.cube.slices([yname, xname]):
             data = slice_2d.data
-            data_summed_along_y = (
-                np.flipud(np.cumsum(np.flipud(data), axis=0)))
+            data_summed_along_y = np.cumsum(data, axis=0)
             data_summed_along_x = (
                 np.cumsum(data_summed_along_y, axis=1))
             slice_2d.data = data_summed_along_x
@@ -175,7 +175,7 @@ class CircularNeighbourhood(object):
     """
 
     # Max extent of kernel in grid cells.
-    MAX_KERNEL_CELL_RADIUS = 500
+    MAX_RADIUS_IN_GRID_CELLS = 500
 
     def __init__(self, cube, radius_in_km, unweighted_mode=False):
         """
@@ -252,19 +252,20 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
 
-    def get_grid_x_y_kernel_ranges(self):
+    def get_neighbourhood_width_in_grid_cells(self):
         """
         Return the number of grid cells in the x and y direction
-        to be used to create the kernel.
+        used to define the neighbourhood width in the x and y direction
+        based on the input radius in km.
 
         Returns
         -------
         grid_cells_x : Integer
-            Number of grid cells in the x direction to be used to create the
-            kernel.
+            Number of grid cells in the x direction based on the requested
+            radius in km.
         grid_cells_y : Integer
-            Number of grid cells in the y direction to be used to create the
-            kernel.
+            Number of grid cells in the y direction based on the requested
+            radius in km.
 
         """
         try:
@@ -290,8 +291,8 @@ class CircularNeighbourhood(object):
                  "{0} km ".format(self.radius_in_km) +
                  "gives a negative cell extent")
             )
-        if (grid_cells_x > self.MAX_KERNEL_CELL_RADIUS or
-                grid_cells_y > self.MAX_KERNEL_CELL_RADIUS):
+        if (grid_cells_x > self.MAX_RADIUS_IN_GRID_CELLS or
+                grid_cells_y > self.MAX_RADIUS_IN_GRID_CELLS):
             raise ValueError(
                 ("Neighbourhood processing radius of " +
                  "{0} km ".format(self.radius_in_km) +
@@ -310,7 +311,7 @@ class CircularNeighbourhood(object):
             Cube containing the smoothed field after the kernel has been
             applied.
         """
-        ranges = self.get_grid_x_y_kernel_ranges()
+        ranges = self.get_neighbourhood_width_in_grid_cells()
         cube = self.apply_circular_kernel(ranges)
         return cube
 

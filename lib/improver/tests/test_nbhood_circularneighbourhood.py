@@ -346,7 +346,7 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-class Test_get_grid_x_y_kernel_ranges(IrisTest):
+class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
 
     """Test conversion of kernel radius in kilometres to grid cells."""
 
@@ -356,7 +356,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         """Test the lat-long radius-to-grid-cell conversion."""
         cube = set_up_cube()
         result = CircularNeighbourhood(
-            cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+            cube, self.RADIUS_IN_KM).get_neighbourhood_width_in_grid_cells()
         self.assertEqual(result, (3, 3))
 
     def test_basic_radius_to_grid_cells_km_grid(self):
@@ -365,7 +365,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         cube.coord("projection_x_coordinate").convert_units("kilometres")
         cube.coord("projection_y_coordinate").convert_units("kilometres")
         result = CircularNeighbourhood(
-            cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+            cube, self.RADIUS_IN_KM).get_neighbourhood_width_in_grid_cells()
         self.assertEqual(result, (3, 3))
 
     def test_single_point_lat_long(self):
@@ -374,7 +374,8 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "Invalid grid: projection_x/y coords required"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, self.RADIUS_IN_KM).get_grid_x_y_kernel_ranges()
+                cube,
+                self.RADIUS_IN_KM).get_neighbourhood_width_in_grid_cells()
 
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
@@ -383,7 +384,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of -6.1 km gives a negative cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, radius_in_km).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_neighbourhood_width_in_grid_cells()
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
@@ -392,7 +393,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 0.005 km gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, radius_in_km).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_neighbourhood_width_in_grid_cells()
 
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
@@ -401,7 +402,7 @@ class Test_get_grid_x_y_kernel_ranges(IrisTest):
         msg = "radius of 500000.0 km exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                cube, radius_in_km).get_grid_x_y_kernel_ranges()
+                cube, radius_in_km).get_neighbourhood_width_in_grid_cells()
 
 
 class Test_run(IrisTest):

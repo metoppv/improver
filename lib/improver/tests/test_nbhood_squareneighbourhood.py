@@ -44,18 +44,18 @@ from improver.tests.test_nbhood_neighbourhoodprocessing import (
 
 class Test_cumulate_array(IrisTest):
 
-    """Test for cumulating an array vertically and horizontally."""
+    """Test for cumulating an array in the y and x dimension."""
 
     def test_basic(self):
         """
-        Test that the vertical and horizontal accumulation produces the
+        Test that the y-dimension and x-dimension accumulation produces the
         intended result. A 2d cube is passed in.
         """
-        data = np.array([[5., 10., 14., 19., 24.],
-                         [4., 8., 11., 15., 19.],
-                         [3., 6., 8., 11., 14.],
+        data = np.array([[1., 2., 3., 4., 5.],
                          [2., 4., 6., 8., 10.],
-                         [1., 2., 3., 4., 5.]])
+                         [3., 6., 8., 11., 14.],
+                         [4., 8., 11., 15., 19.],
+                         [5., 10., 14., 19., 24.]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -65,27 +65,26 @@ class Test_cumulate_array(IrisTest):
 
     def test_for_multiple_times(self):
         """
-        Test that the vertical and horizontal accumulation produces the
+        Test that the y-dimension and x-dimension accumulation produces the
         intended result when the input cube has multiple times. The input
         cube has an extra time dimension to ensure that a 3d cube is correctly
         handled.
         """
-        data = np.array([[[5., 10., 14., 19., 24.],
-                          [4., 8., 11., 15., 19.],
+        data = np.array([[[1., 2., 3., 4., 5.],
+                          [2., 4., 6., 8., 10.],
                           [3., 6., 8., 11., 14.],
+                          [4., 8., 11., 15., 19.],
+                          [5., 10., 14., 19., 24.]],
+                         [[1., 2., 3., 4., 5.],
                           [2., 4., 6., 8., 10.],
-                          [1., 2., 3., 4., 5.]],
-                         [[5., 10., 15., 19., 24.],
-                          [4., 8., 12., 15., 19.],
-                          [3., 6., 9., 11., 14.],
-                          [2., 4., 6., 7., 9.],
-                          [1., 2., 3., 4., 5.]],
-                         [[4., 9., 14., 19., 24.],
-                          [4., 8., 12., 16., 20.],
                           [3., 6., 9., 12., 15.],
-                          [2., 4., 6., 8., 10.],
-                          [1., 2., 3., 4., 5.]]])
-
+                          [4., 8., 12., 15., 19.],
+                          [5., 10., 15., 19., 24.]],
+                         [[0., 1., 2., 3., 4.],
+                          [1., 3., 5., 7., 9.],
+                          [2., 5., 8., 11., 14.],
+                          [3., 7., 11., 15., 19.],
+                          [4., 9., 14., 19., 24.]]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
             num_time_points=3, num_grid_points=5)
@@ -95,37 +94,36 @@ class Test_cumulate_array(IrisTest):
 
     def test_for_multiple_realizations_and_times(self):
         """
-        Test that the vertical and horizontal accumulation produces the
+        Test that the y-dimension and x-dimension accumulation produces the
         intended result when the input cube has multiple realizations and
         times. The input cube has extra time and realization dimensions to
         ensure that a 4d cube is correctly handled.
         """
-        data = np.array([[[[5., 10., 14., 19., 24.],
-                           [4., 8., 11., 15., 19.],
+        data = np.array([[[[1., 2., 3., 4., 5.],
+                           [2., 4., 6., 8., 10.],
                            [3., 6., 8., 11., 14.],
+                           [4., 8., 11., 15., 19.],
+                           [5., 10., 14., 19., 24.]],
+                          [[0., 1., 2., 3., 4.],
+                           [1., 3., 5., 7., 9.],
+                           [2., 5., 8., 11., 14.],
+                           [3., 7., 11., 15., 19.],
+                           [4., 9., 14., 19., 24.]]],
+                         [[[1., 2., 3., 4., 5.],
                            [2., 4., 6., 8., 10.],
-                           [1., 2., 3., 4., 5.]],
-                          [[4., 9., 14., 19., 24.],
-                           [4., 8., 12., 16., 20.],
                            [3., 6., 9., 12., 15.],
-                           [2., 4., 6., 8., 10.],
-                           [1., 2., 3., 4., 5.]]],
-                         [[[5., 10., 15., 19., 24.],
                            [4., 8., 12., 15., 19.],
-                           [3., 6., 9., 11., 14.],
-                           [2., 4., 6., 7., 9.],
-                           [1., 2., 3., 4., 5.]],
-                          [[5., 9., 14., 19., 24.],
-                           [4., 7., 11., 15., 19.],
-                           [3., 5., 8., 11., 14.],
+                           [5., 10., 15., 19., 24.]],
+                          [[1., 2., 3., 4., 5.],
                            [2., 4., 6., 8., 10.],
-                           [1., 2., 3., 4., 5.]]]])
+                           [3., 5., 8., 11., 14.],
+                           [4., 7., 11., 15., 19.],
+                           [5., 9., 14., 19., 24.]]]])
 
         cube = set_up_cube(
             zero_point_indices=(
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
-
         result = SquareNeighbourhood(cube).cumulate_array()
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -137,11 +135,11 @@ class Test_run(IrisTest):
 
     def test_basic(self):
         """Test that a cube with correct data is produced by the run method"""
-        data = np.array([[5., 10., 14., 19., 24.],
-                         [4., 8., 11., 15., 19.],
-                         [3., 6., 8., 11., 14.],
+        data = np.array([[1., 2., 3., 4., 5.],
                          [2., 4., 6., 8., 10.],
-                         [1., 2., 3., 4., 5.]])
+                         [3., 6., 8., 11., 14.],
+                         [4., 8., 11., 15., 19.],
+                         [5., 10., 14., 19., 24.]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
