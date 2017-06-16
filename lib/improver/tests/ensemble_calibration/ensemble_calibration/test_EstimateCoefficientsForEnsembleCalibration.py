@@ -45,10 +45,9 @@ import warnings
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions_ensemble_calibration import (
-        set_up_temperature_cube, set_up_wind_speed_cube,
-        add_forecast_reference_time_and_forecast_period,
-        _create_historic_forecasts, _create_truth)
+    helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
+                             add_forecast_reference_time_and_forecast_period,
+                             _create_historic_forecasts, _create_truth)
 
 
 class Test__init__(IrisTest):

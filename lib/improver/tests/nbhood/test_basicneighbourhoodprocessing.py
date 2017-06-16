@@ -46,8 +46,7 @@ import numpy as np
 from improver.grids.osgb import OSGBGRID
 from improver.nbhood import BasicNeighbourhoodProcessing as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions_ensemble_calibration import (
-        add_forecast_reference_time_and_forecast_period)
+    helper_functions import add_forecast_reference_time_and_forecast_period
 
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([

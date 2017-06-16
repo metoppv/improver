@@ -49,7 +49,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     _slice_over_coordinate, _strip_var_names, rename_coordinate, _renamer,
     check_predictor_of_mean_flag)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions_ensemble_calibration import set_up_temperature_cube
+    helper_functions import set_up_temperature_cube
 
 
 def _check_coord_type(cube, coord):
