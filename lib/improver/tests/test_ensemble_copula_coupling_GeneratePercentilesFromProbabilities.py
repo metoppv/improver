@@ -56,6 +56,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
     """
 
     def setUp(self):
+        """Set up current_temperature_forecast_cube for testing."""
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))

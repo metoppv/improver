@@ -54,6 +54,7 @@ class Test_process(IrisTest):
     """
 
     def setUp(self):
+        """Set up temperature cube for testing."""
         cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))

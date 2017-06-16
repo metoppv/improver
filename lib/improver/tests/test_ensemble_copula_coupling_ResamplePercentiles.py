@@ -52,6 +52,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
     """
 
     def setUp(self):
+        """Set up realization and percentile cubes for testing."""
         data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
         data[0] -= 1
         data[1] += 1
