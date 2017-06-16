@@ -30,24 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the spotdata.ExtractData plugin."""
 
-
+import numpy as np
 import unittest
-import cf_units
+from collections import OrderedDict
 from datetime import datetime as dt
 
+import cf_units
+import cartopy.crs as ccrs
+from iris import Constraint
+from iris import coord_systems
 from iris.coords import (DimCoord,
                          AuxCoord)
-from iris import coord_systems
 from iris.coord_systems import GeogCS
-from iris import Constraint
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-import cartopy.crs as ccrs
-from collections import OrderedDict
-import numpy as np
 from iris import FUTURE
-
 from improver.spotdata.extract_data import ExtractData
 
 FUTURE.cell_datetime_objects = True
@@ -193,13 +191,13 @@ class TestExtractData(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def extracted_value(self, method, ancillary_data, additional_data,
-                        expected):
+                        expected, no_neighbours=9):
         """Test that the plugin returns the correct value."""
         plugin = ExtractData(method)
         cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, lower_level=1,
-                                upper_level=2)
+                                upper_level=2, no_neighbours=no_neighbours)
         self.assertAlmostEqual(result.data, expected)
 
     def different_projection(self, method, ancillary_data, additional_data,
@@ -264,6 +262,7 @@ class TestExtractData(IrisTest):
 
 
 class miscellaneous(TestExtractData):
+    """Test miscellaneous other features."""
 
     def test_invalid_method(self):
         """
@@ -310,6 +309,7 @@ class miscellaneous(TestExtractData):
 
 
 class use_nearest(TestExtractData):
+    """Test the use_nearest grid point method."""
 
     method = 'use_nearest'
 
@@ -329,6 +329,7 @@ class use_nearest(TestExtractData):
 
 
 class orography_derived_temperature_lapse_rate(TestExtractData):
+    """Test the orography_derived_temperature_lapse_rate method."""
 
     method = 'orography_derived_temperature_lapse_rate'
 
@@ -345,6 +346,22 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
         """
         expected = 20.5
         self.extracted_value(self.method, self.ancillary_data, None, expected)
+
+    def test_extracted_value_larger_field(self):
+        """
+        Test that the plugin returns the correct value.
+        Use a larger no_neighbours to extend the range of grid points over
+        which the lapse rate is calculated.
+
+        Fit line given data above over larger field is:
+        T = 0.25*altitude + 18.5
+        Site defined with has altitude=10, so T+expected = 21.
+
+        """
+        expected = 21
+        self.extracted_value(self.method, self.ancillary_data, None, expected,
+                             no_neighbours=25)
+
 
     def test_different_projection(self):
         """
@@ -366,10 +383,15 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
                                   expected)
 
     def test_missing_ancillary_data(self):
+        """
+        Test with missing ancillary data which is required for this method.
+
+        """
         self.missing_ancillary_data(self.method, {}, None)
 
 
 class model_level_temperature_lapse_rate(TestExtractData):
+    """Test the model_level_temperature_lapse_rate method."""
 
     method = 'model_level_temperature_lapse_rate'
 

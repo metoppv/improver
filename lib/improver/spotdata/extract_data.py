@@ -32,11 +32,11 @@
 """Gridded data extraction for the Improver site specific process chain."""
 
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
+from numpy.linalg import lstsq
 from iris import Constraint
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
-from numpy.linalg import lstsq
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_test)
 from improver.spotdata.read_input import data_from_dictionary
@@ -54,7 +54,9 @@ class ExtractData(object):
     def __init__(self, method='use_nearest'):
         """
         The class is called with the desired method to be used in extracting/
-        interpolating data to the site of interest from gridded data.
+        interpolating data to the site of interest from gridded data. If no
+        method is defined in the call to the class it defaults to the
+        'use_nearest' method.
 
         """
         self.method = method
@@ -245,8 +247,8 @@ class ExtractData(object):
         See process() above.
 
         """
-        if (not cube.coord_dims(cube.coord(axis='y').name())[0] == 0 or
-                not cube.coord_dims(cube.coord(axis='x').name())[0] == 1):
+        if (cube.coord_dims(cube.coord(axis='y').name())[0] != 0 or
+                cube.coord_dims(cube.coord(axis='x').name())[0] != 1):
             raise InvalidCubeError("Cube dimensions not as expected.")
 
         data = cube.data[neighbours['i'], neighbours['j']]
@@ -256,10 +258,13 @@ class ExtractData(object):
                                                  orography, no_neighbours=9):
         """
         Crude lapse rate method that uses temperature variation and height
-        variation across local nodes to derive lapse rate. This is highly
-        prone to noise given the small number of points involved and the
-        variable degree to which elevation changes across the small number
-        of points.
+        variation across local nodes to derive lapse rate. Temperature vs.
+        height data points are fitted with a least-squares method to determine
+        the gradient.
+
+        This method is highly prone to noise given the small number of points
+        involved and the variable degree to which elevation changes across
+        these points.
 
         Args:
         -----
@@ -287,7 +292,7 @@ class ExtractData(object):
             """
             y_data = cube.data[node_list]
             x_data = orography[node_list]
-            matrix = np.vstack([x_data, np.ones(len(x_data))]).T
+            matrix = np.stack([x_data, np.ones(len(x_data))], axis=0).T
             gradient, intercept = lstsq(matrix, y_data)[0]
             return [gradient, intercept]
 
