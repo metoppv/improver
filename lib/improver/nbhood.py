@@ -216,7 +216,8 @@ class SquareNeighbourhood(object):
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
-    def run(self, cube):
+    @staticmethod
+    def run(cube):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
