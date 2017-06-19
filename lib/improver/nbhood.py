@@ -179,6 +179,12 @@ class SquareNeighbourhood(object):
     def __init__(self, unweighted_mode=False):
         """
         Initialise class.
+
+        Parameters
+        ----------
+        unweighted_mode : boolean
+            This is included to allow a standard interface for both the
+            square and circular neighbourhood plugins.
         """
         self.unweighted_mode = unweighted_mode
 
@@ -230,7 +236,10 @@ class SquareNeighbourhood(object):
         ----------
         cube : Iris.cube.Cube
             Cube containing the array to which the square neighbourhood
-            will be applied
+            will be applied.
+        radius_in_km : Float
+            Radius in kilometres for use in specifying the number of
+            grid cells used to create a square neighbourhood.
 
         Returns
         -------
@@ -392,7 +401,7 @@ class NeighbourhoodProcessing(object):
             weighting decreasing with radius.
 
         """
-        self.neighbourhood_method_name = neighbourhood_method
+        self.neighbourhood_method_key = neighbourhood_method
         methods = {
             "circular": CircularNeighbourhood}
         try:
@@ -422,7 +431,7 @@ class NeighbourhoodProcessing(object):
                   'radii_in_km: {}; lead_times: {}; '
                   'unweighted_mode: {}>')
         return result.format(
-            self.neighbourhood_method_name, self.radii_in_km, self.lead_times,
+            self.neighbourhood_method_key, self.radii_in_km, self.lead_times,
             self.unweighted_mode)
 
     def process(self, cube):
