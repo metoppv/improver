@@ -42,9 +42,10 @@ import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
-from improver.tests.helper_functions_ensemble_calibration import(
-    set_up_spot_temperature_cube, set_up_temperature_cube,
-    add_forecast_reference_time_and_forecast_period)
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import (set_up_spot_temperature_cube,
+                             set_up_temperature_cube,
+                             add_forecast_reference_time_and_forecast_period)
 
 
 class Test__mean_and_variance_to_percentiles(IrisTest):
