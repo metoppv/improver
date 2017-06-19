@@ -49,6 +49,6 @@ bounds = namedtuple("bounds", "value units")
 
 bounds_for_ecdf = {
     "air_temperature_threshold": (
-        bounds((-40+ABSOLUTE_ZERO, 50+ABSOLUTE_ZERO), "Kelvin")),
+        bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
     "wind_speed_threshold": bounds((0, 50), "m s^-1"),
     "air_pressure_at_sea_level_threshold": bounds((94000, 107000), "Pa")}
