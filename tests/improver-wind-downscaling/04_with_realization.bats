@@ -34,7 +34,7 @@
 @test "wind downscaling wind_speed " {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
+  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/with_realization/"
 
   # Run wind downscaling processing and check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \

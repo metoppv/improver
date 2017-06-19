@@ -41,7 +41,8 @@ usage: improver-wind-downscaling [-h]
                                  MODEL_RESOLUTION OUTPUT_FILE
 
 Run wind downscaling to apply roughness correction and height correction to
-wind fields (as described in Howard and Clark [2007]).
+wind fields (as described in Howard and Clark [2007]). All inputs must be on
+the same standard grid
 
 positional arguments:
   WIND_SPEED_FILE       Location of the wind speed on standard grid file. Any

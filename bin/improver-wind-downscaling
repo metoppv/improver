@@ -34,6 +34,7 @@
 import argparse
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import wind_downscaling
 
@@ -43,7 +44,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Run wind downscaling to apply roughness correction and'
                     ' height correction to wind fields (as described in'
-                    ' Howard and Clark [2007]).')
+                    ' Howard and Clark [2007]). All inputs must be on the same'
+                    ' standard grid')
     parser.add_argument('wind_speed_filepath', metavar='WIND_SPEED_FILE',
                         help='Location of the wind speed on standard grid'
                              ' file. Any units can be supplied.')
@@ -92,12 +94,22 @@ def main():
         veg_roughness_cube = iris.load_cube(args.veg_roughness_filepath)
     else:
         veg_roughness_cube = None
-    result = (
-        wind_downscaling.RoughnessCorrection(
-            silhouette_roughness_filepath, sigma, target_orog, standard_orog,
-            float(args.model_resolution), z0_cube=veg_roughness_cube,
-            height_levels_cube=height_levels).process(wind_speed))
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    try:
+        realization_coord = wind_speed.coord('realization')
+        wind_speed_iterator = wind_speed.slices_over('realization')
+    except CoordinateNotFoundError:
+        wind_speed_iterator = [wind_speed]
+    wind_speed_list = iris.cube.CubeList()
+    for wind_speed_slice in wind_speed_iterator:
+        result = (
+            wind_downscaling.RoughnessCorrection(
+                silhouette_roughness_filepath, sigma, target_orog,
+                standard_orog, float(args.model_resolution),
+                z0_cube=veg_roughness_cube,
+                height_levels_cube=height_levels).process(wind_speed_slice))
+        wind_speed_list.append(result)
+    wind_speed = wind_speed_list.merge_cube()
+    iris.save(wind_speed, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":
