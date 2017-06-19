@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
+import math
+
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -169,6 +171,36 @@ class Utilities(object):
                  "exceeds maximum grid cell extent")
             )
         return grid_cells_x, grid_cells_y
+
+    @staticmethod
+    def adjust_nsize_for_ens(ens_factor, num_ens, width_in_km):
+        """
+        Adjust neighbourhood size according to ensemble size
+
+        Parameters
+        ----------
+        ens_factor : float
+            Defined Factor with which to adjust the neighbour size
+            If ens_factor = 1.0 this essentially conservers ensemble
+            members if every grid square is considered to be the
+            equivalent of an ensemble member.
+        num_ens : float
+            Number of realizations / ensemble members
+        width_in_km : float
+            radius or width appropriate for a single forecast in km
+
+        Returns
+        -------
+        new_width : float
+            new neighbourhood radius (km)
+
+        """
+        if num_ens <= 1.0:
+            new_width = width_in_km
+        else:
+            new_width = (ens_factor *
+                         math.sqrt((width_in_km**2.0)/num_ens))
+        return new_width
 
 
 class SquareNeighbourhood(object):
@@ -379,7 +411,7 @@ class NeighbourhoodProcessing(object):
     """
 
     def __init__(self, neighbourhood_method, radii_in_km, lead_times=None,
-                 unweighted_mode=False):
+                 unweighted_mode=False, ens_factor=1.0):
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -402,7 +434,9 @@ class NeighbourhoodProcessing(object):
             If True, use a circle with constant weighting.
             If False, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
-
+        ens_factor : float
+            The factor with which to multiple the adjustment to the
+            radii_in_km for more than one ensemble member.
         """
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
@@ -428,15 +462,52 @@ class NeighbourhoodProcessing(object):
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
         self.unweighted_mode = bool(unweighted_mode)
+        self.ens_factor = float(ens_factor)
+
+    def _find_radii(self, num_ens, required_lead_times=None):
+        """
+        Find the required radii
+
+        If required_lead_times is None just adjust for ensemble
+        members if necessary.
+        Otherwise interpolate to find radius at each required
+        lead time and adjust for ensemble members if necessary
+
+        Parameters
+        ----------
+        num_ens : float
+            Number of ensemble members / realizations
+        required_lead_times : np.array
+            Array of required forecast times from cube
+
+        Returns
+        -------
+        radii : float of np.array of float
+            Required neighbourhood size/s
+        """
+        if required_lead_times is None:
+            radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
+                                                   num_ens,
+                                                   self.radii_in_km)
+        else:
+            # Interpolate to find the radius at each required lead time.
+            radii = (
+                np.interp(
+                    required_lead_times, self.lead_times, self.radii_in_km))
+            for i, val in enumerate(radii):
+                radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
+                                                          num_ens, val)
+
+        return radii
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii_in_km: {}; lead_times: {}; '
-                  'unweighted_mode: {}>')
+                  'unweighted_mode: {}; ens_factor: {}>')
         return result.format(
             self.neighbourhood_method_key, self.radii_in_km, self.lead_times,
-            self.unweighted_mode)
+            self.unweighted_mode, self.ens_factor)
 
     def process(self, cube):
         """
@@ -463,25 +534,26 @@ class NeighbourhoodProcessing(object):
         try:
             realiz_coord = cube.coord('realization')
         except iris.exceptions.CoordinateNotFoundError:
-            pass
+            num_ens = 1.0
         else:
-            if len(realiz_coord.points) > 1:
-                raise ValueError("Does not operate across realizations.")
-            else:
+            num_ens = len(realiz_coord.points)
+            if len(realiz_coord.points) == 1:
                 for cube_slice in cube.slices_over("realization"):
                     cube = cube_slice
+
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
         if self.lead_times is None:
-            radius_in_km = self.radii_in_km
+            radius_in_km = self._find_radii(num_ens)
             cube = self.neighbourhood_method.run(cube, radius_in_km)
         else:
             required_lead_times = Utilities.find_required_lead_times(cube)
             # Interpolate to find the radius at each required lead time.
             required_radii_in_km = (
-                np.interp(
-                    required_lead_times, self.lead_times, self.radii_in_km))
+                self._find_radii(num_ens,
+                                 required_lead_times=required_lead_times))
+
             cubes = iris.cube.CubeList([])
             # Find the number of grid cells required for creating the
             # neighbourhood, and then apply the neighbourhood processing method

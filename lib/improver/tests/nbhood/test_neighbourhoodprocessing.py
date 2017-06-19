@@ -219,7 +219,7 @@ class Test__repr__(IrisTest):
         result = str(NBHood("circular", 10))
         msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
                'radii_in_km: 10.0; lead_times: None; '
-               'unweighted_mode: False>')
+               'unweighted_mode: False; ens_factor: 1.0>')
         self.assertEqual(result, msg)
 
 
@@ -245,13 +245,12 @@ class Test_process(IrisTest):
             neighbourhood_method = "circular"
             NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
 
-    def test_fail_multiple_realisations(self):
-        """Test failing when the array has a realisation dimension."""
+    def test_multiple_realisations(self):
+        """Test when the array has a realisation dimension."""
         cube = set_up_cube(num_realization_points=2)
-        msg = "Does not operate across realizations"
-        with self.assertRaisesRegexp(ValueError, msg):
-            neighbourhood_method = "circular"
-            NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
+        neighbourhood_method = "circular"
+        result = NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
+        self.assertIsInstance(result, Cube)
 
     def test_radii_varying_with_lead_time(self):
         """
