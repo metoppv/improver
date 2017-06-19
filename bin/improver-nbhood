@@ -35,21 +35,25 @@ import argparse
 
 import iris
 
-from improver.nbhood import BasicNeighbourhoodProcessing
+from improver.nbhood import NeighbourhoodProcessing
 
 
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-    description='Apply basic weighted circle smoothing via ' +
-                'the BasicNeighbourhoodProcessing plugin ' +
+    description='Apply the requested neighbourhood method via ' +
+                'the NeighbourhoodProcessing plugin ' +
                 'to a file with one cube.')
+    parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
+                        help='The neighbourhood method to apply in '
+                             'neighbourhood processing. Options: "circular".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
-                       help='The kernel radius for neighbourhood processing')
+                       help='The radius for neighbourhood processing')
     group.add_argument('--radii-in-km-by-lead-time',
-                       metavar='RADIUS_BY_LEAD_TIME', nargs=2,
-                       help='The kernel radii for neighbourhood processing '
+                       metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                       nargs=2,
+                       help='The radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
                        'valid. The radii are in km whilst the lead time '
                        'has units of hours. The radii and lead times are '
@@ -72,8 +76,8 @@ def main():
         radius_or_radii_in_km = args.radii_in_km_by_lead_time[0].split(",")
         lead_times = args.radii_in_km_by_lead_time[1].split(",")
     result = (
-        BasicNeighbourhoodProcessing(
-            radius_or_radii_in_km,
+        NeighbourhoodProcessing(
+            args.neighbourhood_method, radius_or_radii_in_km,
             lead_times=lead_times).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

@@ -35,22 +35,24 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h]
                        [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
-RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME]
-                       INPUT_FILE OUTPUT_FILE
+RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
+                       NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
 
-Apply basic weighted circle smoothing via the BasicNeighbourhoodProcessing
+Apply the requested neighbourhood method via the NeighbourhoodProcessing
 plugin to a file with one cube.
 
 positional arguments:
+  NEIGHBOURHOOD_METHOD  The neighbourhood method to apply in neighbourhood
+                        processing. Options: "circular".
   INPUT_FILE            A path to an input NetCDF file to be processed
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
   -h, --help            show this help message and exit
   --radius-in-km RADIUS
-                        The kernel radius for neighbourhood processing
-  --radii-in-km-by-lead-time RADIUS_BY_LEAD_TIME RADIUS_BY_LEAD_TIME
-                        The kernel radii for neighbourhood processing and the
+                        The radius for neighbourhood processing
+  --radii-in-km-by-lead-time RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS
+                        The radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
                         The radii are in km whilst the lead time has units of
                         hours. The radii and lead times are expected as
