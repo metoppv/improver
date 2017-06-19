@@ -40,9 +40,9 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood import Utilities
-from improver.tests.helper_functions_ensemble_calibration import (
-    add_forecast_reference_time_and_forecast_period)
-from improver.tests.test_nbhood_neighbourhoodprocessing import (
+from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
+    import add_forecast_reference_time_and_forecast_period
+from improver.tests.nbhood.test_neighbourhoodprocessing import (
     set_up_cube, set_up_cube_lat_long)
 
 

@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood import SquareNeighbourhood
-from improver.tests.test_nbhood_neighbourhoodprocessing import set_up_cube
+from improver.tests.nbhood.test_neighbourhoodprocessing import set_up_cube
 
 
 class Test__repr__(IrisTest):

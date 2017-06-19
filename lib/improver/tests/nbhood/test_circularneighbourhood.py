@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood import CircularNeighbourhood
-from improver.tests.test_nbhood_neighbourhoodprocessing import (
+from improver.tests.nbhood.test_neighbourhoodprocessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
 
