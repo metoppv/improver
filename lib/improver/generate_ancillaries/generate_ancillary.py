@@ -81,13 +81,13 @@ def _make_mask_cube(mask_data, key, coords,
     return mask_cube
 
 
-def find_standard_ancil(standard_ancil, msg=None):
+def find_standard_ancil(standard_ancil_file, msg=None):
     """
     Reads standard ancillary or raises exception.
 
     Parameters
     -----------
-    standard_ancil : string
+    standard_ancil_file : string
       Location of input ancillaries
 
     msg : str
@@ -102,14 +102,14 @@ def find_standard_ancil(standard_ancil, msg=None):
     -------
     IOError: if input ancillary cannot be found in the directory provided.
     """
-    standard_ancil = glob(standard_ancil)
-    if len(standard_ancil) > 0:
-        standard_ancil = iris.load_cube(standard_ancil[0])
+    standard_ancil_file = glob(standard_ancil_file)
+    if len(standard_ancil_file) > 0:
+        standard_ancil = iris.load_cube(standard_ancil_file[0])
     else:
         print msg
         if msg is None:
             msg = ('Cannot find input ancillary. Tried directory: '
-                   '{}'.format(standard_ancil))
+                   '{}'.format(standard_ancil_file))
         raise IOError(msg)
     return standard_ancil
 
@@ -209,7 +209,7 @@ class GenerateOrographyBandAncils(object):
 
         def sea_mask(landmask, orog_band):
             """
-            Function to mask sea points and substitute the defualt numpy
+            Function to mask sea points and substitute the default numpy
             fill value behind this mask_cube.
 
             Parameters

@@ -78,7 +78,7 @@ def main():
     if not os.path.exists(args.output_filepath) or args.force:
         orography = find_standard_ancil(args.input_filepath_standard_orography)
         msg = ('Cannot locate land mask at {}; run '
-               'improver-generateancil_landmask first.').format(
+               'improver-generate-landmask-ancillary first.').format(
                     args.input_filepath_landmask)
         landmask = find_standard_ancil(args.input_filepath_landmask, msg)
         result = GenerateOrographyBandAncils().process(
