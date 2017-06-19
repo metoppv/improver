@@ -52,6 +52,7 @@ class Utilities(object):
         pass
 
     def __repr__(self):
+        """Represent the configured plugin instance as a string."""
         result = ('<Utilities>')
         return result
 
@@ -189,6 +190,7 @@ class SquareNeighbourhood(object):
         self.unweighted_mode = unweighted_mode
 
     def __repr__(self):
+        """Represent the configured plugin instance as a string."""
         result = ('<SquareNeighbourhood: unweighted_mode: {}>')
         return result.format(self.unweighted_mode)
 
@@ -279,6 +281,7 @@ class CircularNeighbourhood(object):
         self.unweighted_mode = unweighted_mode
 
     def __repr__(self):
+        """Represent the configured plugin instance as a string."""
         result = ('<CircularNeighbourhood: unweighted_mode: {}>')
         return result.format(self.unweighted_mode)
 
@@ -427,6 +430,7 @@ class NeighbourhoodProcessing(object):
         self.unweighted_mode = bool(unweighted_mode)
 
     def __repr__(self):
+        """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii_in_km: {}; lead_times: {}; '
                   'unweighted_mode: {}>')
