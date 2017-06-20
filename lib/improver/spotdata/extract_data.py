@@ -213,6 +213,8 @@ class ExtractData(object):
             at the spotdata sites.
 
         """
+        time_coord = cube.coord('time')
+        time_coord.convert_units('hours since 1970-01-01 00:00:00')
         latitudes = [site['latitude'] for site in sites.itervalues()]
         longitudes = [site['longitude'] for site in sites.itervalues()]
         utc_offsets = [site['utc_offset'] for site in sites.itervalues()]
@@ -226,7 +228,7 @@ class ExtractData(object):
         data.resize(1, len(data))
         result_cube = Cube(data,
                            long_name=cube.name(),
-                           dim_coords_and_dims=[(cube.coord('time'), 0),
+                           dim_coords_and_dims=[(time_coord, 0),
                                                 (indices, 1)],
                            aux_coords_and_dims=[(latitude, 1),
                                                 (longitude, 1),
