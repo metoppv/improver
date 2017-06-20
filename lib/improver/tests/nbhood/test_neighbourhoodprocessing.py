@@ -127,12 +127,11 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
     cube.add_dim_coord(
         DimCoord(
-            range(num_realization_points), 'realization',
-            units='degrees'), 0)
+            range(num_realization_points), standard_name='realization'), 0)
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_aux_coord(AuxCoord(time_points,
-                                "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(time_points,
+                                standard_name="time", units=tunit), 1)
     cube.add_dim_coord(
         DimCoord(
             scaled_y_coord.points[:num_grid_points],
@@ -223,6 +222,61 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
+class Test__find_radii(IrisTest):
+
+    """Test the internal _find_radii function is working correctly."""
+
+    def test_basic_float(self):
+        """Test _find_radii returns a float with the correct value."""
+        neighbourhood_method = "circular"
+        ens_factor = 0.8
+        num_ens = 2.0
+        radius_in_km = 6.3
+        plugin = NBHood(neighbourhood_method,
+                        radius_in_km,
+                        ens_factor=ens_factor)
+        result = plugin._find_radii(num_ens)
+        expected_result = 3.5638181771801998
+        self.assertIsInstance(result, float)
+        self.assertAlmostEquals(result, expected_result)
+
+    def test_basic_array(self):
+        """Test _find_radii returns an array with the correct values."""
+        neighbourhood_method = "circular"
+        ens_factor = 0.9
+        num_ens = 2.0
+        fp_points = np.array([2, 3, 4])
+        radii_in_km = [10, 20, 30]
+        lead_times = [2, 3, 4]
+        plugin = NBHood(neighbourhood_method,
+                        radii_in_km,
+                        lead_times=lead_times,
+                        ens_factor=ens_factor)
+        result = plugin._find_radii(num_ens,
+                                    required_lead_times=fp_points)
+        expected_result = np.array([6.36396103, 12.72792206, 19.09188309])
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_interpolation(self):
+        """Test that interpolation is working as expected in _find_radii."""
+        fp_points = np.array([2, 3, 4])
+        neighbourhood_method = "circular"
+        ens_factor = 0.8
+        num_ens = 4.0
+        fp_points = np.array([2, 3, 4])
+        radii_in_km = [10, 30]
+        lead_times = [2, 4]
+        plugin = NBHood(neighbourhood_method,
+                        radii_in_km,
+                        lead_times=lead_times,
+                        ens_factor=ens_factor)
+        result = plugin._find_radii(num_ens,
+                                    required_lead_times=fp_points)
+        expected_result = np.array([4.0, 8.0, 12.0])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
 class Test_process(IrisTest):
 
     """Tests for the process method of NeighbourhoodProcessing."""
@@ -245,12 +299,62 @@ class Test_process(IrisTest):
             neighbourhood_method = "circular"
             NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
 
-    def test_multiple_realisations(self):
-        """Test when the array has a realisation dimension."""
-        cube = set_up_cube(num_realization_points=2)
+    def test_multiple_realizations(self):
+        """Test when the cube has a realization dimension."""
+        cube = set_up_cube(num_realization_points=4)
+        radii_in_km = 15
         neighbourhood_method = "circular"
-        result = NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
+        ens_factor = 0.8
+        result = NBHood(neighbourhood_method, radii_in_km,
+                        ens_factor=ens_factor).process(cube)
         self.assertIsInstance(result, Cube)
+        expected = np.ones([4, 1, 16, 16])
+        expected[0, 0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multiple_realizations_and_times(self):
+        """Test when the cube has a realization and time dimension."""
+        cube = set_up_cube(num_time_points=3,
+                           num_realization_points=4)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        radii_in_km = [15, 15, 15]
+        lead_times = [2, 3, 4]
+        neighbourhood_method = "circular"
+        ens_factor = 0.8
+        result = NBHood(neighbourhood_method, radii_in_km,
+                        lead_times=lead_times,
+                        ens_factor=ens_factor).process(cube)
+        self.assertIsInstance(result, Cube)
+        expected = np.ones([4, 3, 16, 16])
+        expected[0, 0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_no_realizations(self):
+        """Test when the array has no realization coord."""
+        cube = set_up_cube()
+        for cube_slice in cube.slices_over("realization"):
+            cube = cube_slice
+        cube.remove_coord('realization')
+        radii_in_km = 6
+        neighbourhood_method = "circular"
+        result = NBHood(neighbourhood_method, radii_in_km).process(cube)
+        self.assertIsInstance(result, Cube)
+        expected = np.ones([1, 16, 16])
+        expected[0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def test_radii_varying_with_lead_time(self):
         """

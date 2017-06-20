@@ -497,7 +497,6 @@ class NeighbourhoodProcessing(object):
             for i, val in enumerate(radii):
                 radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
                                                           num_ens, val)
-
         return radii
 
     def __repr__(self):
@@ -534,35 +533,44 @@ class NeighbourhoodProcessing(object):
         try:
             realiz_coord = cube.coord('realization')
         except iris.exceptions.CoordinateNotFoundError:
-            num_ens = 1.0
+            num_ens = 0.0
+            cube_slices = [cube]
         else:
             num_ens = len(realiz_coord.points)
-            if len(realiz_coord.points) == 1:
-                for cube_slice in cube.slices_over("realization"):
-                    cube = cube_slice
+            cube_slices = cube.slices_over("realization")
 
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        if self.lead_times is None:
-            radius_in_km = self._find_radii(num_ens)
-            cube = self.neighbourhood_method.run(cube, radius_in_km)
-        else:
-            required_lead_times = Utilities.find_required_lead_times(cube)
-            # Interpolate to find the radius at each required lead time.
-            required_radii_in_km = (
-                self._find_radii(num_ens,
-                                 required_lead_times=required_lead_times))
+        cubelist = iris.cube.CubeList([])
+        for cube_ens in cube_slices:
+            if self.lead_times is None:
+                radius_in_km = self._find_radii(num_ens)
+                cube_new = self.neighbourhood_method.run(cube_ens,
+                                                         radius_in_km)
+            else:
+                required_lead_times = (
+                    Utilities.find_required_lead_times(cube_ens))
+                # Interpolate to find the radius at each required lead time.
+                required_radii_in_km = (
+                    self._find_radii(num_ens,
+                                     required_lead_times=required_lead_times))
 
-            cubes = iris.cube.CubeList([])
-            # Find the number of grid cells required for creating the
-            # neighbourhood, and then apply the neighbourhood processing method
-            # to smooth the field.
-            for cube_slice, radius_in_km in (
-                    zip(cube.slices_over("time"), required_radii_in_km)):
-                cube_slice = self.neighbourhood_method.run(
-                    cube_slice, radius_in_km)
-                cube_slice = iris.util.new_axis(cube_slice, "time")
-                cubes.append(cube_slice)
-            cube = concatenate_cubes(cubes, coords_to_slice_over=["time"])
+                cubes = iris.cube.CubeList([])
+                # Find the number of grid cells required for creating the
+                # neighbourhood, and then apply the neighbourhood
+                # processing method to smooth the field.
+                for cube_slice, radius_in_km in (
+                        zip(cube_ens.slices_over("time"),
+                            required_radii_in_km)):
+                    cube_slice = self.neighbourhood_method.run(
+                        cube_slice, radius_in_km)
+                    cube_slice = iris.util.new_axis(cube_slice, "time")
+                    cubes.append(cube_slice)
+                cube_new = concatenate_cubes(cubes,
+                                             coords_to_slice_over=["time"])
+
+            cubelist.append(cube_new)
+        cube = cubelist.merge_cube()
+
         return cube

@@ -222,5 +222,24 @@ class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
                 cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
 
 
+class Test_adjust_nsize_for_ens(IrisTest):
+
+    """Test adjusting neighbourhood size according to ensemble size."""
+
+    def test_basic_returns_float(self):
+        """Test returns float."""
+        result = Utilities().adjust_nsize_for_ens(1.0, 3.0, 20.0)
+        self.assertIsInstance(result, float)
+
+    def test_returns_unchanged_for_ens1(self):
+        """Test returns unchanged value when num_ens = 1.0."""
+        result = Utilities().adjust_nsize_for_ens(0.8, 1.0, 20.0)
+        self.assertAlmostEqual(result, 20.0)
+
+    def test_returns_adjusted_values(self):
+        """Test returns the correct values."""
+        result = Utilities().adjust_nsize_for_ens(0.8, 3.0, 20.0)
+        self.assertAlmostEqual(result, 9.2376043070399998)
+
 if __name__ == '__main__':
     unittest.main()
