@@ -109,6 +109,9 @@ def main():
                 height_levels_cube=height_levels).process(wind_speed_slice))
         wind_speed_list.append(result)
     wind_speed = wind_speed_list.merge_cube()
+    non_dim_coords =  [x.name() for x in wind_speed.coords(dim_coords=False)]
+    if 'realization' in non_dim_coords:
+        wind_speed = iris.util.new_axis(wind_speed, 'realization')
     iris.save(wind_speed, args.output_filepath, unlimited_dimensions=[])
 
 
