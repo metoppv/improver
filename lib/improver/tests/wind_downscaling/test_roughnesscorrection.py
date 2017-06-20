@@ -156,7 +156,7 @@ class TestMultiPoint(object):
             modelorog = np.ones([n_x, n_y])*230.0
         self.w_cube = None
         self.aos_cube = set_up_cube(1, [n_x, n_y], 1, data=AoS, height=0,
-                                    name=None, unit=None)
+                                    name=None, unit=1)
         self.s_cube = set_up_cube(1, [n_x, n_y], 1, data=Sigma, height=0,
                                   name=None, unit="m")
         if z_0 is None:
@@ -272,7 +272,7 @@ class TestSinglePoint(object):
 
         """
         self.w_cube = None
-        self.aos_cube = set_up_cube(1, 1, 1, data=AoS, name=None, unit=None)
+        self.aos_cube = set_up_cube(1, 1, 1, data=AoS, name=None, unit=1)
         self.s_cube = set_up_cube(1, 1, 1, data=Sigma, name=None, unit="m")
         if z_0 is None:
             self.z0_cube = None

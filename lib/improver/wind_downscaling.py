@@ -643,7 +643,7 @@ class RoughnessCorrection(object):
         modoro_cube: 2D cube
             model orography interpolated on pp grid. In m
         modres: float
-            original avearge model resolution in m
+            original average model resolution in m
         (height_levels_cube: 3D or 1D cube)
             height of input velocity field. Can be position dependent
         (z0_cube: 2D cube)
@@ -734,7 +734,7 @@ class RoughnessCorrection(object):
         [exp_xname, exp_yname] = ["projection_x_coordinate",
                                   "projection_y_coordinate"]
         exp_unit = Unit("m")
-        if (x_name is not exp_xname) or (y_name is not exp_yname):
+        if (x_name != exp_xname) or (y_name != exp_yname):
             raise ValueError("cannot currently calculate resolution")
 
         if (a_cube.coord(x_name).bounds is None and
@@ -782,7 +782,7 @@ class RoughnessCorrection(object):
         unwanted_coord_list = [
             "time", "height", "model_level_number", "forecast_time",
             "forecast_reference_time", "forecast_period"]
-        for field, exp_unit in zip(ancil_list, [None, Unit("m"),
+        for field, exp_unit in zip(ancil_list, [1, Unit("m"),
                                                 Unit("m"), Unit("m")]):
             for unwanted_coord in unwanted_coord_list:
                 try:
