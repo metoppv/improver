@@ -100,7 +100,6 @@ class Test_gen_orography_masks(IrisTest):
 
     def test_landband_data(self):
         """test correct mask is produced for land bands > 0m"""
-        print self.land_key, self.land_threshold
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_key,
             self.land_threshold)
