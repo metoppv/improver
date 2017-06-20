@@ -41,8 +41,8 @@ from improver.generate_ancillaries.generate_ancillary import (
 from improver.generate_ancillaries.generate_ancillary import (
      find_standard_ancil)
 
-# The following dictionary defines the orography altitude bands above/below
-#    sea level for which masks are required.
+# The following dictionary defines the orography altitude bands in metres
+#    above/below sea level for which masks are required.
 #   'land': land points outside the altitude band are set to 0 and those
 #           within the band are set to 1.
 #   'max_land_threshold': land points above the altitude threshold are set to
