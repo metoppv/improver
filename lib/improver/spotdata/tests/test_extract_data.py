@@ -296,16 +296,12 @@ class miscellaneous(TestExtractData):
         Test the make_cube function.
 
         """
-        plugin = ExtractData()._build_coordinates
-        points = np.array([0, 1, 2])
-        indices, _, latitude, longitude, utc_offset = (
-            plugin(points, points, points, points[::-1]))
-        self.assertArrayEqual(indices.points, points)
-        self.assertArrayEqual(utc_offset.points, points[::-1])
-        self.assertEqual(latitude.name(), 'latitude')
-        self.assertEqual(longitude.name(), 'longitude')
-        self.assertIsInstance(indices, DimCoord)
-        self.assertIsInstance(latitude, AuxCoord)
+        plugin = ExtractData().make_cube
+        data = np.array([123])
+        result = plugin(self.cube, data, self.sites)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data, data)
+        self.assertEqual(result.name(), 'air_temperature')
 
 
 class use_nearest(TestExtractData):

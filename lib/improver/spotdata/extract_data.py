@@ -92,10 +92,15 @@ class ExtractData(object):
             local temperature lapse rate using orography variation.
             e.g. consider a 5x5 grid of points -> no_neighbours = 25.
 
+        upper/lower_level : ints
+            Define the hybrid height model levels to use when calculating
+            potential temperature gradients for use in lapse rate temperature
+            adjustment.
+
         Returns:
         --------
         cube : iris.cube.Cube
-            An irregularly (i.e. non-gridded) cube of diagnostic data extracted
+            An irregular (i.e. non-gridded) cube of diagnostic data extracted
             at the spotdata sites.
 
         """
@@ -339,7 +344,10 @@ class ExtractData(object):
 
         kappa = (R_DRY_AIR / CP_DRY_AIR)
         pref = 1000 hPa (1.0E5 Pa)
-        p_site = pressure interpolated/extrapolated to spotdata site.
+        p_site = pressure interpolated/extrapolated to spotdata site assuming
+                 a linear change in pressure with altitude; this is assumption
+                 is reasonable if dz_max_adjustment is not large (> several
+                 hundred metres).
 
 
         Methodology
@@ -360,7 +368,7 @@ class ExtractData(object):
         1. Calculate potential temperature gradient between lower and
            upper model levels.
         2. Compare the gradient with a defined threshold value that is
-           used to indicate whether the gradient as been calculated
+           used to indicate whether the gradient has been calculated
            across an inversion.
 
            dtheta/dz <= threshold --> Keep value
@@ -446,10 +454,6 @@ class ExtractData(object):
 
         sites/neighbours : See process() above.
 
-        pressure_on_height_levels : iris.cube.Cube
-            Pressure data at 50m above the surface at an equivalent time to the
-            cube of screen level temperatures.
-
         surface_pressure : iris.cube.Cube
             Cube of surface pressures at an equivalent time to the cube of
             screen level temperatures.
@@ -497,7 +501,8 @@ class ExtractData(object):
             """
             if dz < 0 or dthetadz > 0:
                 # Case for extrapolating downwards or a stable atmosphere.
-                return (theta_base + dz*dthetadz)*(p_site/p_ref)**kappa
+                theta_site = theta_base + dz*dthetadz
+                return theta_site*(p_site/p_ref)**kappa
             else:
                 # Case for a well mixed atmosphere when calculating temperature
                 # at a site above the neighbouring grid point.
