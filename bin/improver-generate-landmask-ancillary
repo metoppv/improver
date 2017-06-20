@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
@@ -28,48 +29,44 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module providing the OSGB Ordance Survey UK National Grid."""
+"""Script to run landmask ancillary generation."""
 
-import iris.coord_systems
-import iris.coords
-import iris.cube
-import numpy as np
+import argparse
+import os
+import iris
 
-
-def _make_osgb_grid():
-    """
-    Create a two-dimensional Cube that represents the standard UK grid with
-    a given spacing (~2km).
-
-    Returns
-    -------
-    iris.cube.Cube instance
-        Cube mapped to the standard UK PP grid.
-
-    """
-    # Grid resolution
-    nx, ny = 548, 704
-
-    # Grid extents / m
-    north, south = 1223000, -185000
-    east, west = 857000, -239000
-
-    data = np.zeros([ny, nx])
-
-    cs = iris.coord_systems.OSGB()
-    x_coord = iris.coords.DimCoord(np.linspace(west, east, nx),
-                                   'projection_x_coordinate',
-                                   units='m', coord_system=cs)
-    y_coord = iris.coords.DimCoord(np.linspace(south, north, ny),
-                                   'projection_y_coordinate',
-                                   units='m', coord_system=cs)
-    x_coord.guess_bounds()
-    y_coord.guess_bounds()
-    cube = iris.cube.Cube(data)
-    cube.add_dim_coord(y_coord, 0)
-    cube.add_dim_coord(x_coord, 1)
-    return cube
+from improver.generate_ancillaries.generate_ancillary import (
+    CorrectLandSeaMask)
+from improver.generate_ancillaries.generate_ancillary import (
+    find_standard_ancil)
 
 
-# OSGB UK grid
-OSGBGRID = _make_osgb_grid()
+def main():
+    """Load in arguments and get going."""
+    parser = argparse.ArgumentParser(
+        description=('Read the input landmask, and correct '
+                     'to boolean values.'))
+    parser.add_argument('--force', dest='force', default=False,
+                        action='store_true',
+                        help=('If True, ancillaries will be generated '
+                              'even if doing so will overwrite existing '
+                              'files.'))
+    parser.add_argument('input_filepath_standard',
+                        metavar='INPUT_FILE_STANDARD',
+                        help='A path to an input NetCDF file to be processed')
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF')
+    args = parser.parse_args()
+
+    # Check if improver ancillary already exists.
+    if not os.path.exists(args.output_filepath) or args.force:
+        landmask = find_standard_ancil(args.input_filepath_standard)
+        land_binary_mask = CorrectLandSeaMask().process(landmask)
+        iris.save(land_binary_mask, args.output_filepath,
+                  unlimited_dimensions=[])
+    else:
+        print 'File already exists here: ', args.output_filepath
+
+
+if __name__ == "__main__":
+    main()

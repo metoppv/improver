@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,48 +28,24 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module providing the OSGB Ordance Survey UK National Grid."""
 
-import iris.coord_systems
-import iris.coords
-import iris.cube
-import numpy as np
+. $IMPROVER_DIR/tests/lib/utils
 
+@test "generate-topographybands-ancillary input_orog.nc input_land.nc output.nc" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+  test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
 
-def _make_osgb_grid():
-    """
-    Create a two-dimensional Cube that represents the standard UK grid with
-    a given spacing (~2km).
+  # Run topography band ancillary generation and check it passes.
+  run improver generate-topographybands-ancillary \
+      "$test_path/input_orog.nc" \
+      "$test_path/input_land.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-    Returns
-    -------
-    iris.cube.Cube instance
-        Cube mapped to the standard UK PP grid.
-
-    """
-    # Grid resolution
-    nx, ny = 548, 704
-
-    # Grid extents / m
-    north, south = 1223000, -185000
-    east, west = 857000, -239000
-
-    data = np.zeros([ny, nx])
-
-    cs = iris.coord_systems.OSGB()
-    x_coord = iris.coords.DimCoord(np.linspace(west, east, nx),
-                                   'projection_x_coordinate',
-                                   units='m', coord_system=cs)
-    y_coord = iris.coords.DimCoord(np.linspace(south, north, ny),
-                                   'projection_y_coordinate',
-                                   units='m', coord_system=cs)
-    x_coord.guess_bounds()
-    y_coord.guess_bounds()
-    cube = iris.cube.Cube(data)
-    cube.add_dim_coord(y_coord, 0)
-    cube.add_dim_coord(x_coord, 1)
-    return cube
-
-
-# OSGB UK grid
-OSGBGRID = _make_osgb_grid()
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$test_path/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
+}

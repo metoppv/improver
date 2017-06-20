@@ -28,48 +28,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module providing the OSGB Ordance Survey UK National Grid."""
+"""Unit tests for the generate_ancillary.CorrectLandSeaMask plugin."""
 
-import iris.coord_systems
-import iris.coords
-import iris.cube
+
+import unittest
+from iris.cube import Cube
+from iris.tests import IrisTest
 import numpy as np
 
-
-def _make_osgb_grid():
-    """
-    Create a two-dimensional Cube that represents the standard UK grid with
-    a given spacing (~2km).
-
-    Returns
-    -------
-    iris.cube.Cube instance
-        Cube mapped to the standard UK PP grid.
-
-    """
-    # Grid resolution
-    nx, ny = 548, 704
-
-    # Grid extents / m
-    north, south = 1223000, -185000
-    east, west = 857000, -239000
-
-    data = np.zeros([ny, nx])
-
-    cs = iris.coord_systems.OSGB()
-    x_coord = iris.coords.DimCoord(np.linspace(west, east, nx),
-                                   'projection_x_coordinate',
-                                   units='m', coord_system=cs)
-    y_coord = iris.coords.DimCoord(np.linspace(south, north, ny),
-                                   'projection_y_coordinate',
-                                   units='m', coord_system=cs)
-    x_coord.guess_bounds()
-    y_coord.guess_bounds()
-    cube = iris.cube.Cube(data)
-    cube.add_dim_coord(y_coord, 0)
-    cube.add_dim_coord(x_coord, 1)
-    return cube
+from improver.generate_ancillaries.generate_ancillary import (
+    CorrectLandSeaMask as CorrectLand)
 
 
-# OSGB UK grid
-OSGBGRID = _make_osgb_grid()
+class Test_process(IrisTest):
+    """Test the land-sea mask correction plugin."""
+    def setUp(self):
+        """setting up paths to test ancillary files"""
+        landmask_data = np.array([[0.2, 0., 0.],
+                                  [0.7, 0.5, 0.05],
+                                  [1, 0.95, 0.7]])
+        self.landmask = Cube(landmask_data, long_name='test land')
+        self.expected_mask = np.array([[False, False, False],
+                                       [True, True, False],
+                                       [True, True, True]])
+
+    def test_landmaskcorrection(self):
+        """Test landmask correction"""
+        result = CorrectLand().process(self.landmask)
+        self.assertEqual(result.name(), 'test land')
+        self.assertArrayEqual(result.data, self.expected_mask)
+
+
+if __name__ == "__main__":
+    unittest.main()
