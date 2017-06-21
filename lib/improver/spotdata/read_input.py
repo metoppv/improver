@@ -39,7 +39,7 @@ import iris
 from iris import load_cube, load
 from iris.cube import CubeList
 
-FUTURE.netcdf_promote = True
+iris.FUTURE.netcdf_promote = True
 
 
 class Load(object):
