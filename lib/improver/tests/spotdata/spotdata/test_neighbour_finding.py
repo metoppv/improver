@@ -118,7 +118,7 @@ class Test_PointSelection(IrisTest):
                 plugin.process(self.cube, self.sites, {})
 
 
-class miscellaneous(Test_PointSelection):
+class Test_miscellaneous(Test_PointSelection):
     def test_invalid_method(self):
         """
         Test that the plugin can handle an invalid method being passed in.
@@ -162,7 +162,7 @@ class miscellaneous(Test_PointSelection):
                            no_neighbours=20)
 
 
-class fast_nearest_neighbour(Test_PointSelection):
+class Test_fast_nearest_neighbour(Test_PointSelection):
     '''
     Tests for fast_nearest_neighbour method. No other conditions beyond
     proximity are considered.
@@ -185,7 +185,7 @@ class fast_nearest_neighbour(Test_PointSelection):
         self.without_ancillary_data(self.method)
 
 
-class minimum_height_error_neighbour_no_bias(Test_PointSelection):
+class Test_minimum_height_error_neighbour_no_bias(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -247,7 +247,7 @@ class minimum_height_error_neighbour_no_bias(Test_PointSelection):
         self.correct_neighbour(self.method, 16, 10, -1.)
 
 
-class minimum_height_error_neighbour_bias_above(Test_PointSelection):
+class Test_minimum_height_error_neighbour_bias_above(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -316,7 +316,7 @@ class minimum_height_error_neighbour_bias_above(Test_PointSelection):
         self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above')
 
 
-class minimum_height_error_neighbour_bias_below(Test_PointSelection):
+class Test_minimum_height_error_neighbour_bias_below(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -385,7 +385,7 @@ class minimum_height_error_neighbour_bias_below(Test_PointSelection):
         self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below')
 
 
-class minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
+class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -491,7 +491,7 @@ class minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
         self.correct_neighbour(self.method, 14, 10, 2., land_constraint=True)
 
 
-class minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
+class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -618,7 +618,7 @@ class minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
                                land_constraint=True)
 
 
-class minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
+class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
