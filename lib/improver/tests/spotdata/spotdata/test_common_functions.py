@@ -50,7 +50,7 @@ import numpy as np
 from improver.spotdata.common_functions import *
 
 
-class TestCommonFunctions(IrisTest):
+class Test_common_functions(IrisTest):
 
     """Test functions in common_functions."""
 
@@ -131,7 +131,7 @@ class TestCommonFunctions(IrisTest):
         self.additional_data = additional_data
 
 
-class TestConditionalListExtract(TestCommonFunctions):
+class Test_conditional_list_extract(Test_common_functions):
     """
     Test numerical comparison of 2D arrays using ConditionalListExtract.
 
@@ -189,7 +189,7 @@ class TestConditionalListExtract(TestCommonFunctions):
             plugin.process(self.data, self.data_indices, 2)
 
 
-class TestNearestNNeighbours(TestCommonFunctions):
+class Test_nearest_n_neighbours(Test_common_functions):
     """
     Test generation of neighbour grids using nearest_n_neighbours.
 
@@ -219,7 +219,7 @@ class TestNearestNNeighbours(TestCommonFunctions):
             plugin(10, 10, 7)
 
 
-class TestNodeEdgeTest(TestCommonFunctions):
+class Test_node_edge_check(Test_common_functions):
     """
     Test functions ability to modify neighbours lists to reflect domain edges
     and domain wrapping on cylindrical global grids.
@@ -363,7 +363,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         self.assertArrayEqual(expected, result)
 
 
-class TestGetNearestCoords(TestCommonFunctions):
+class Test_get_nearest_coords(Test_common_functions):
     """Test wrapper for iris.cube.Cube.nearest_neighbour_index."""
 
     def test_nearest_coords(self):
@@ -377,7 +377,7 @@ class TestGetNearestCoords(TestCommonFunctions):
         self.assertEqual(expected, result)
 
 
-class TestIndexOfMinimumDifference(TestCommonFunctions):
+class Test_index_of_minimum_difference(Test_common_functions):
     """
     Test ability to identify the index of a minimum value in an array,
     where the sign of the value is disregarded (hence minimum_difference).
@@ -402,7 +402,7 @@ class TestIndexOfMinimumDifference(TestCommonFunctions):
         self.assertEqual(expected, result)
 
 
-class TestListEntryFromIndex(TestCommonFunctions):
+class Test_list_entry_from_index(Test_common_functions):
     """
     Test ability to extract corresponding list entries from multi-dimensional
     lists using a single index.
@@ -443,7 +443,7 @@ class TestListEntryFromIndex(TestCommonFunctions):
         self.assertEqual(expected, result)
 
 
-class TestDateTimeConstraint(TestCommonFunctions):
+class Test_date_time_constraint(Test_common_functions):
     """
     Test construction of an iris.Constraint from a python.datetime.datetime
     object.
@@ -480,7 +480,7 @@ class TestDateTimeConstraint(TestCommonFunctions):
         self.assertNotIsInstance(result, Cube)
 
 
-class TestApplyBias(TestCommonFunctions):
+class Test_apply_bias(Test_common_functions):
     """
     Test subsetting of an array to extract the indices of positive or negative
     values as required by the provided bias condition.
@@ -524,7 +524,7 @@ class TestApplyBias(TestCommonFunctions):
         self.assertArrayEqual(expected, result)
 
 
-class TestXYTest(TestCommonFunctions):
+class Test_xy_determine(Test_common_functions):
     """Test function that tests projections used in diagnostic cubes."""
 
     def test_projection_test(self):
@@ -559,7 +559,7 @@ class TestXYTest(TestCommonFunctions):
         self.assertEqual(expected, result)
 
 
-class TestXYTransform(TestCommonFunctions):
+class Test_xy_transform(Test_common_functions):
     """
     Test function that transforms the lookup latitude and longitude into the
     projection used in a diagnostic cube.
@@ -581,7 +581,7 @@ class TestXYTransform(TestCommonFunctions):
         self.assertAlmostEqual(expected_y, result_y)
 
 
-class TestExtractCubeAtTime(TestCommonFunctions):
+class Test_extract_cube_at_time(Test_common_functions):
     """
     Test wrapper for iris cube extraction at desired times.
 
@@ -608,7 +608,7 @@ class TestExtractCubeAtTime(TestCommonFunctions):
             assert "Forecast time" in str(w_messages[0])
 
 
-class TestExtractAdAtTime(TestCommonFunctions):
+class Test_extract_ad_at_time(Test_common_functions):
     """
     Test for the extraction of additional data, that is stored supplementary
     diagnostics, at a certain time.
@@ -640,7 +640,7 @@ class TestExtractAdAtTime(TestCommonFunctions):
             assert "Forecast time" in str(w_messages[0])
 
 
-class TestConstructNeighbourHash(TestCommonFunctions):
+class Test_construct_neighbour_hash(Test_common_functions):
     """
     Test the construction of neighbour finding method hashes.
 

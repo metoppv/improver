@@ -46,10 +46,11 @@ from iris.coord_systems import GeogCS
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-from improver.spotdata.extract_data import ExtractData
+
+from improver.spotdata.extract_data import ExtractData as Plugin
 
 
-class TestExtractData(IrisTest):
+class Test_ExtractData(IrisTest):
 
     """Test the extract data plugin."""
 
@@ -183,7 +184,7 @@ class TestExtractData(IrisTest):
 
     def return_type(self, method, ancillary_data, additional_data):
         """Test that the plugin returns an iris.cube.Cube."""
-        plugin = ExtractData(method)
+        plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
@@ -195,7 +196,7 @@ class TestExtractData(IrisTest):
     def extracted_value(self, method, ancillary_data, additional_data,
                         expected, no_neighbours=9):
         """Test that the plugin returns the correct value."""
-        plugin = ExtractData(method)
+        plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
@@ -232,7 +233,7 @@ class TestExtractData(IrisTest):
                     aux_coords_and_dims=[(new_y, 1), (new_x, 2)],
                     units="K")
 
-        plugin = ExtractData(method)
+        plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
@@ -248,7 +249,7 @@ class TestExtractData(IrisTest):
 
     def missing_ancillary_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing ancillary data."""
-        plugin = ExtractData(method)
+        plugin = Plugin(method)
         msg = "Data "
         with self.assertRaisesRegexp(Exception, msg):
             plugin.process(
@@ -257,7 +258,7 @@ class TestExtractData(IrisTest):
 
     def missing_additional_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing additional data."""
-        plugin = ExtractData(method)
+        plugin = Plugin(method)
         msg = "Data "
         with self.assertRaisesRegexp(Exception, msg):
             plugin.process(
@@ -265,7 +266,7 @@ class TestExtractData(IrisTest):
                 ancillary_data, additional_data)
 
 
-class miscellaneous(TestExtractData):
+class Test_miscellaneous(Test_ExtractData):
     """Test miscellaneous other features."""
 
     def test_invalid_method(self):
@@ -273,7 +274,7 @@ class miscellaneous(TestExtractData):
         Test that the plugin can handle an invalid method being passed in.
 
         """
-        plugin = ExtractData('quantum_interpolation')
+        plugin = Plugin('quantum_interpolation')
         msg = 'Unknown method'
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
@@ -285,7 +286,7 @@ class miscellaneous(TestExtractData):
         Test the _build_coordinates private function.
 
         """
-        plugin = ExtractData()._build_coordinates
+        plugin = Plugin()._build_coordinates
         points = np.array([0, 1, 2])
         indices, _, latitude, longitude, utc_offset = (
             plugin(points, points, points, points[::-1]))
@@ -301,7 +302,7 @@ class miscellaneous(TestExtractData):
         Test the make_cube function.
 
         """
-        plugin = ExtractData().make_cube
+        plugin = Plugin().make_cube
         data = np.array([123])
         result = plugin(self.cube, data, self.sites)
         self.assertIsInstance(result, Cube)
@@ -309,7 +310,7 @@ class miscellaneous(TestExtractData):
         self.assertEqual(result.name(), 'air_temperature')
 
 
-class use_nearest(TestExtractData):
+class Test_use_nearest(Test_ExtractData):
     """Test the use_nearest grid point method."""
 
     method = 'use_nearest'
@@ -330,7 +331,7 @@ class use_nearest(TestExtractData):
                                   expected)
 
 
-class orography_derived_temperature_lapse_rate(TestExtractData):
+class Test_orography_derived_temperature_lapse_rate(Test_ExtractData):
     """Test the orography_derived_temperature_lapse_rate method."""
 
     method = 'orography_derived_temperature_lapse_rate'
@@ -392,7 +393,7 @@ class orography_derived_temperature_lapse_rate(TestExtractData):
         self.missing_ancillary_data(self.method, {}, None)
 
 
-class model_level_temperature_lapse_rate(TestExtractData):
+class Test_model_level_temperature_lapse_rate(Test_ExtractData):
     """Test the model_level_temperature_lapse_rate method."""
 
     method = 'model_level_temperature_lapse_rate'
@@ -452,7 +453,7 @@ class model_level_temperature_lapse_rate(TestExtractData):
                                                    'dthetadz_threshold': 0.02,
                                                    'dz_max_adjustment': 70.}
 
-        plugin = ExtractData(self.method)
+        plugin = Plugin(self.method)
 
         result_dz = plugin.process(cube, self.sites, self.neighbour_list,
                                    self.ancillary_data, self.ad,

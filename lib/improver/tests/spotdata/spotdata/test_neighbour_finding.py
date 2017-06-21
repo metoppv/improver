@@ -39,10 +39,10 @@ from iris.tests import IrisTest
 from collections import OrderedDict
 import numpy as np
 
-from improver.spotdata.neighbour_finding import PointSelection
+from improver.spotdata.neighbour_finding import PointSelection as Plugin
 
 
-class TestPointSelection(IrisTest):
+class Test_PointSelection(IrisTest):
 
     """Test the point selection (grid point neighbour finding) plugin."""
 
@@ -91,7 +91,7 @@ class TestPointSelection(IrisTest):
 
     def return_types(self, method, vertical_bias=None, land_constraint=False):
         """Test that the plugin returns a numpy array."""
-        plugin = PointSelection(method, vertical_bias, land_constraint)
+        plugin = Plugin(method, vertical_bias, land_constraint)
         result = plugin.process(self.cube, self.sites, self.ancillary_data)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, self.neighbour_list.dtype)
@@ -99,7 +99,7 @@ class TestPointSelection(IrisTest):
     def correct_neighbour(self, method, i_expected, j_expected, dz_expected,
                           vertical_bias=None, land_constraint=False):
         """Test that the plugin returns the expected neighbour."""
-        plugin = PointSelection(method, vertical_bias, land_constraint)
+        plugin = Plugin(method, vertical_bias, land_constraint)
         result = plugin.process(self.cube, self.sites, self.ancillary_data)
         self.assertEqual(result['i'], i_expected)
         self.assertEqual(result['j'], j_expected)
@@ -108,7 +108,7 @@ class TestPointSelection(IrisTest):
     def without_ancillary_data(self, method, vertical_bias=None,
                                land_constraint=False):
         """Test plugins behaviour with no ancillary data provided."""
-        plugin = PointSelection(method, vertical_bias, land_constraint)
+        plugin = Plugin(method, vertical_bias, land_constraint)
         if method == 'fast_nearest_neighbour':
             result = plugin.process(self.cube, self.sites, {})
             self.assertIsInstance(result, np.ndarray)
@@ -118,13 +118,13 @@ class TestPointSelection(IrisTest):
                 plugin.process(self.cube, self.sites, {})
 
 
-class miscellaneous(TestPointSelection):
+class miscellaneous(Test_PointSelection):
     def test_invalid_method(self):
         """
         Test that the plugin can handle an invalid method being passed in.
 
         """
-        plugin = PointSelection('smallest distance')
+        plugin = Plugin('smallest distance')
         msg = 'Unknown method'
         with self.assertRaisesRegexp(AttributeError, msg):
             plugin.process(self.cube, self.sites, self.ancillary_data)
@@ -138,9 +138,9 @@ class miscellaneous(TestPointSelection):
 
         """
         self.ancillary_data['orography'].data[13, 10] = 10.
-        plugin = PointSelection(method='minimum_height_error_neighbour',
-                                vertical_bias=None,
-                                land_constraint=False)
+        plugin = Plugin(method='minimum_height_error_neighbour',
+                        vertical_bias=None,
+                        land_constraint=False)
         result = plugin.process(self.cube, self.sites, self.ancillary_data,
                                 no_neighbours=25)
         self.assertEqual(result['i'], 13)
@@ -153,16 +153,16 @@ class miscellaneous(TestPointSelection):
         the minimum vertical displacement.
 
         """
-        plugin = PointSelection(method='minimum_height_error_neighbour',
-                                vertical_bias=None,
-                                land_constraint=False)
+        plugin = Plugin(method='minimum_height_error_neighbour',
+                        vertical_bias=None,
+                        land_constraint=False)
         msg = 'Invalid nearest no'
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(self.cube, self.sites, self.ancillary_data,
                            no_neighbours=20)
 
 
-class fast_nearest_neighbour(TestPointSelection):
+class fast_nearest_neighbour(Test_PointSelection):
     '''
     Tests for fast_nearest_neighbour method. No other conditions beyond
     proximity are considered.
@@ -185,7 +185,7 @@ class fast_nearest_neighbour(TestPointSelection):
         self.without_ancillary_data(self.method)
 
 
-class minimum_height_error_neighbour_no_bias(TestPointSelection):
+class minimum_height_error_neighbour_no_bias(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -247,7 +247,7 @@ class minimum_height_error_neighbour_no_bias(TestPointSelection):
         self.correct_neighbour(self.method, 16, 10, -1.)
 
 
-class minimum_height_error_neighbour_bias_above(TestPointSelection):
+class minimum_height_error_neighbour_bias_above(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -316,7 +316,7 @@ class minimum_height_error_neighbour_bias_above(TestPointSelection):
         self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above')
 
 
-class minimum_height_error_neighbour_bias_below(TestPointSelection):
+class minimum_height_error_neighbour_bias_below(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -385,7 +385,7 @@ class minimum_height_error_neighbour_bias_below(TestPointSelection):
         self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below')
 
 
-class minimum_height_error_neighbour_land_no_bias(TestPointSelection):
+class minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -491,7 +491,7 @@ class minimum_height_error_neighbour_land_no_bias(TestPointSelection):
         self.correct_neighbour(self.method, 14, 10, 2., land_constraint=True)
 
 
-class minimum_height_error_neighbour_land_bias_above(TestPointSelection):
+class minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
@@ -618,7 +618,7 @@ class minimum_height_error_neighbour_land_bias_above(TestPointSelection):
                                land_constraint=True)
 
 
-class minimum_height_error_neighbour_land_bias_below(TestPointSelection):
+class minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
     '''
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
