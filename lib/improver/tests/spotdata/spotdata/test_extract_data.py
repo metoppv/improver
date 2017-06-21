@@ -149,11 +149,13 @@ class TestExtractData(IrisTest):
             units="hPa")
 
         with iris.FUTURE.context(cell_datetime_objects=True):
-            ad = {'temperature_on_height_levels':
-                      temperature_on_height_levels.extract(time_extract),
-                  'pressure_on_height_levels':
-                      pressure_on_height_levels.extract(time_extract),
-                  'surface_pressure': surface_pressure.extract(time_extract)}
+            ad = {
+                'temperature_on_height_levels':
+                    temperature_on_height_levels.extract(time_extract),
+                'pressure_on_height_levels':
+                    pressure_on_height_levels.extract(time_extract),
+                'surface_pressure': surface_pressure.extract(time_extract)
+                }
 
         sites = OrderedDict()
         sites.update(
