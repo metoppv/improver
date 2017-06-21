@@ -175,7 +175,7 @@ class Utilities(object):
     @staticmethod
     def adjust_nsize_for_ens(ens_factor, num_ens, width_in_km):
         """
-        Adjust neighbourhood size according to ensemble size
+        Adjust neighbourhood size according to ensemble size.
 
         Parameters
         ----------
@@ -185,14 +185,14 @@ class Utilities(object):
             members if every grid square is considered to be the
             equivalent of an ensemble member.
         num_ens : float
-            Number of realizations / ensemble members
+            Number of realizations / ensemble members.
         width_in_km : float
-            radius or width appropriate for a single forecast in km
+            radius or width appropriate for a single forecast in km.
 
         Returns
         -------
         new_width : float
-            new neighbourhood radius (km)
+            new neighbourhood radius (km).
 
         """
         if num_ens <= 1.0:
@@ -471,19 +471,19 @@ class NeighbourhoodProcessing(object):
         If required_lead_times is None just adjust for ensemble
         members if necessary.
         Otherwise interpolate to find radius at each required
-        lead time and adjust for ensemble members if necessary
+        lead time and adjust for ensemble members if necessary.
 
         Parameters
         ----------
         num_ens : float
-            Number of ensemble members / realizations
+            Number of ensemble members / realizations.
         required_lead_times : np.array
-            Array of required forecast times from cube
+            Array of required forecast times from cube.
 
         Returns
         -------
-        radii : float of np.array of float
-            Required neighbourhood size/s
+        radii : float or np.array of float
+            Required neighbourhood size/s.
         """
         if required_lead_times is None:
             radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
