@@ -448,6 +448,7 @@ class GeneratePercentilesFromProbabilities(object):
         """
         forecast_probabilities = concatenate_cubes(forecast_probabilities)
         threshold_coord = find_coordinate(forecast_probabilities, "threshold")
+        threshold_name = threshold_coord.name().replace("_threshold", "")
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -461,7 +462,7 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities.coord(threshold_coord.name()).units)
         bounds_pairing = (
             get_bounds_of_distribution(
-                threshold_coord.name(), cube_units))
+                threshold_name, cube_units))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
