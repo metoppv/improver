@@ -37,12 +37,12 @@
 
   # Run neighbourhood processing and check it passes for an ensemble.
   run improver nbhood 'circular' --radius-in-km=20 --ens_factor=2.0 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input.nc" "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/nbhood/ens/input.nc" "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/nbhood/ens/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
