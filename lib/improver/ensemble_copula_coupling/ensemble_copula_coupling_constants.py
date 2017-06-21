@@ -48,7 +48,7 @@ bounds = namedtuple("bounds", "value units")
 # Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
 
 bounds_for_ecdf = {
-    "air_temperature_threshold": (
+    "air_temperature": (
         bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
-    "wind_speed_threshold": bounds((0, 50), "m s^-1"),
-    "air_pressure_at_sea_level_threshold": bounds((94000, 107000), "Pa")}
+    "wind_speed": bounds((0, 50), "m s^-1"),
+    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa")}

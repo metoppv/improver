@@ -362,7 +362,7 @@ class Test_get_bounds_of_distribution(IrisTest):
 
     def test_basic(self):
         """Test that the result is a numpy array."""
-        cube_name = "air_temperature_threshold"
+        cube_name = "air_temperature"
         cube_units = Unit("degreesC")
         result = get_bounds_of_distribution(cube_name, cube_units)
         self.assertIsInstance(result, np.ndarray)
@@ -371,7 +371,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         Test that the expected results are returned for the bounds_pairing.
         """
-        cube_name = "air_temperature_threshold"
+        cube_name = "air_temperature"
         cube_units = Unit("degreesC")
         bounds_pairing = (-40, 50)
         result = (
@@ -384,7 +384,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         if the units of the bounds_pairings need to be converted to match
         the units of the forecast.
         """
-        cube_name = "air_temperature_threshold"
+        cube_name = "air_temperature"
         cube_units = Unit("fahrenheit")
         bounds_pairing = (-40, 122)  # In fahrenheit
         result = (
