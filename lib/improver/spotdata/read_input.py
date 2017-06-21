@@ -35,8 +35,8 @@ For reading data files from UM output and site specification input.
 
 """
 
+import iris
 from iris import load_cube, load
-from iris import FUTURE
 from iris.cube import CubeList
 
 FUTURE.netcdf_promote = True
@@ -149,7 +149,8 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
             diagnostic_data_path + '/*/*' + diagnostic_name + '*',
             None)
         if time_extract is not None:
-            cube = cubes.extract(time_extract)
+            with iris.FUTURE.context(cell_datetime_objects=True):
+                cube = cubes.extract(time_extract)
             cubes = CubeList()
             cubes.append(cube)
         return cubes

@@ -35,6 +35,7 @@ import unittest
 import cf_units
 from datetime import datetime as dt
 
+import iris
 from iris.coords import (DimCoord,
                          AuxCoord)
 from iris import coord_systems
@@ -45,11 +46,8 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 import numpy as np
-from iris import FUTURE
 
 from improver.spotdata.common_functions import *
-
-FUTURE.cell_datetime_objects = True
 
 
 class TestCommonFunctions(IrisTest):
@@ -235,7 +233,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 0
         # j = 10
         node_list = [[-1, -1, -1, 0, 0, 0, 1, 1, 1],
@@ -252,7 +250,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be wrapped around as we are assuming a global cylindrical grid.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 10
         # j = 0
         node_list = [[9, 9, 9, 10, 10, 10, 11, 11, 11],
@@ -269,7 +267,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 11
         # j = 10
         node_list = [[10, 10, 10, 11, 11, 11, 12, 12, 12],
@@ -286,7 +284,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be wrapped around as we are assuming a global cylindrical grid.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 10
         # j = 11
         node_list = [[9, 9, 9, 10, 10, 10, 11, 11, 11],
@@ -303,7 +301,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed or wrapped as appropriate.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 0
         # j = 0
         node_list = [[-1, -1, -1, 0, 0, 0, 1, 1, 1],
@@ -320,7 +318,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed or wrapped as appropriate.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 11
         # j = 11
         node_list = [[10, 10, 10, 11, 11, 11, 12, 12, 12],
@@ -337,7 +335,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed or wrapped as appropriate.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 0
         # j = 11
         node_list = [[-1, -1, -1, 0, 0, 0, 1, 1, 1],
@@ -354,7 +352,7 @@ class TestNodeEdgeTest(TestCommonFunctions):
         be removed or wrapped as appropriate.
 
         """
-        plugin = node_edge_test
+        plugin = node_edge_check
         # i = 11
         # j = 0
         node_list = [[10, 10, 10, 11, 11, 11, 12, 12, 12],
@@ -469,14 +467,16 @@ class TestDateTimeConstraint(TestCommonFunctions):
         """Test use of constraint at a time valid within the cube."""
         plugin = datetime_constraint
         dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
-        result = self.cube.extract(dt_constraint)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.cube.extract(dt_constraint)
         self.assertIsInstance(result, Cube)
 
     def test_invalid_constraint(self):
         """Test use of constraint at a time invalid within the cube."""
         plugin = datetime_constraint
         dt_constraint = plugin(dt(2017, 2, 17, 18, 0))
-        result = self.cube.extract(dt_constraint)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.cube.extract(dt_constraint)
         self.assertNotIsInstance(result, Cube)
 
 
@@ -553,7 +553,7 @@ class TestXYTest(TestCommonFunctions):
                     aux_coords_and_dims=[(new_y, 1), (new_x, 2)],
                     units="K")
 
-        plugin = xy_test
+        plugin = xy_determine
         expected = trg_crs
         result = plugin(cube)
         self.assertEqual(expected, result)

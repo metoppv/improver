@@ -37,7 +37,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
 from improver.spotdata.common_functions import (nearest_n_neighbours,
-                                                node_edge_test)
+                                                node_edge_check)
 from improver.spotdata.read_input import data_from_dictionary
 from improver.constants import (R_DRY_AIR,
                                 CP_DRY_AIR)
@@ -315,7 +315,7 @@ class ExtractData(object):
             edgepoint = neighbours['edgepoint'][i_site]
             node_list = nearest_n_neighbours(i, j, no_neighbours)
             if edgepoint:
-                node_list = node_edge_test(node_list, cube)
+                node_list = node_edge_check(node_list, cube)
 
             llr = _local_lapse_rate(cube, orography, node_list)
             data[i_site] = llr[0]*altitude + llr[1]

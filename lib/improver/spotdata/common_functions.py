@@ -36,11 +36,9 @@ Plugins written for the Improver site specific process chain.
 import warnings
 import numpy as np
 from iris import Constraint
-from iris import FUTURE
+import iris
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
-
-FUTURE.cell_datetime_objects = True
 
 
 class ConditionalListExtract(object):
@@ -183,7 +181,7 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
         ).astype(int).tolist()
 
 
-def node_edge_test(node_list, cube):
+def node_edge_check(node_list, cube):
     """
     Node lists produced using the nearest_n_neighbours function may overspill
     the domain of the array from which data is to be extracted. This function
@@ -367,7 +365,7 @@ def apply_bias(vertical_bias, dzs):
     return dz_subset
 
 
-def xy_test(cube):
+def xy_determine(cube):
     """
     Test whether a diagnostic cube is on a latitude/longitude grid or uses an
     alternative projection.
@@ -446,7 +444,8 @@ def extract_cube_at_time(cubes, time, time_extract):
 
     """
     try:
-        cube_in, = cubes.extract(time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube_in, = cubes.extract(time_extract)
         return cube_in
     except ValueError:
         msg = ('Forecast time {} not found within data cubes.'.format(

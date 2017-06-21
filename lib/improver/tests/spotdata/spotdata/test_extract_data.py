@@ -37,6 +37,7 @@ from datetime import datetime as dt
 
 import cf_units
 import cartopy.crs as ccrs
+import iris
 from iris import Constraint
 from iris import coord_systems
 from iris.coords import (DimCoord,
@@ -45,10 +46,7 @@ from iris.coord_systems import GeogCS
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-from iris import FUTURE
 from improver.spotdata.extract_data import ExtractData
-
-FUTURE.cell_datetime_objects = True
 
 
 class TestExtractData(IrisTest):
@@ -150,11 +148,12 @@ class TestExtractData(IrisTest):
             dim_coords_and_dims=[(time, 0), (latitude, 1), (longitude, 2)],
             units="hPa")
 
-        ad = {'temperature_on_height_levels':
-              temperature_on_height_levels.extract(time_extract),
-              'pressure_on_height_levels':
-              pressure_on_height_levels.extract(time_extract),
-              'surface_pressure': surface_pressure.extract(time_extract)}
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            ad = {'temperature_on_height_levels':
+                      temperature_on_height_levels.extract(time_extract),
+                  'pressure_on_height_levels':
+                      pressure_on_height_levels.extract(time_extract),
+                  'surface_pressure': surface_pressure.extract(time_extract)}
 
         sites = OrderedDict()
         sites.update(
@@ -183,7 +182,8 @@ class TestExtractData(IrisTest):
     def return_type(self, method, ancillary_data, additional_data):
         """Test that the plugin returns an iris.cube.Cube."""
         plugin = ExtractData(method)
-        cube = self.cube.extract(self.time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, lower_level=1,
                                 upper_level=2)
@@ -194,7 +194,8 @@ class TestExtractData(IrisTest):
                         expected, no_neighbours=9):
         """Test that the plugin returns the correct value."""
         plugin = ExtractData(method)
-        cube = self.cube.extract(self.time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, lower_level=1,
                                 upper_level=2, no_neighbours=no_neighbours)
@@ -230,7 +231,8 @@ class TestExtractData(IrisTest):
                     units="K")
 
         plugin = ExtractData(method)
-        cube = cube.extract(self.time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube = cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, lower_level=1,
                                 upper_level=2)
@@ -271,7 +273,8 @@ class miscellaneous(TestExtractData):
         """
         plugin = ExtractData('quantum_interpolation')
         msg = 'Unknown method'
-        cube = self.cube.extract(self.time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube = self.cube.extract(self.time_extract)
         with self.assertRaisesRegexp(AttributeError, msg):
             plugin.process(cube, self.sites, self.neighbour_list, {}, None)
 
@@ -437,7 +440,8 @@ class model_level_temperature_lapse_rate(TestExtractData):
         t_data.resize((3, 20, 20))
 
         self.ad['temperature_on_height_levels'].data = t_data
-        cube = self.cube.extract(self.time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube = self.cube.extract(self.time_extract)
         cube.data = cube.data*0.0
 
         self.sites['100']['altitude'] = -90.
