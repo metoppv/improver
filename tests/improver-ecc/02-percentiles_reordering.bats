@@ -32,13 +32,14 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering input output" {
-  TEST_DIR=$(mktemp -d)
+  #TEST_DIR=$(mktemp -d)
+  TEST_DIR="/net/data/nwp1/gevans/improver/cli_tests/ecc/"
   improver_check_skip_acceptance
 
   # Run Ensemble Copula Coupling and check it passes.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
-      --reordering \
-      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/input.nc" \
+      reordering "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/raw_forecast.nc"\
+      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/multiple_percentiles_wind_cube.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

@@ -41,38 +41,88 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities, EnsembleReordering)
 
 
+#class _HelpAction(argparse._HelpAction):
+
+    #def __call__(self, parser, namespace, values, option_string=None):
+        #parser.print_help()
+
+        ## retrieve subparsers from parser
+        #subparsers_actions = [
+            #action for action in parser._actions
+            #if isinstance(action, argparse._SubParsersAction)]
+        ## there will probably only be one subparser_action,
+        ## but better save than sorry
+        #for subparsers_action in subparsers_actions:
+            ## get all subparsers and print help
+            #for choice, subparser in subparsers_action.choices.items():
+                #print("Subparser '{}'".format(choice))
+                #print(subparser.format_help())
+
+        #parser.exit()
+
+
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-    description='Apply the requested neighbourhood method via '
-                'the NeighbourhoodProcessing plugin '
-                'to a file with one cube.')
-    conversion_option_group = parser.add_mutually_exclusive_group()
-    reordering_group = conversion_option_group.add_mutually_exclusive_group()
-    reordering_group.add_argument(
-        '--reordering', action='store_true',
+        description='Apply the requested neighbourhood method via '
+                    'the NeighbourhoodProcessing plugin '
+                    'to a file with one cube.', add_help=False)
+
+    parser.add_argument("-h", "--help", action=_HelpAction, help="help for help if you need some help")
+
+    subparsers = parser.add_subparsers(
+        help='help for subcommand', dest="subparser")
+
+    reordering_parser = subparsers.add_parser('reordering', 
         help='The option used to create ensemble members '
              'from percentiles by reordering the input '
              'percentiles based on the order of the '
              'raw ensemble forecast.')
-    reordering_group.add_argument('--raw_forecast_filepath',
+    #reordering_parser.set_defaults(reordering=True)
+    reordering_parser.add_argument('raw_forecast_filepath',
                         metavar='RAW_FORECAST_FILE',
                         help='A path to an raw forecast NetCDF file to be '
                              'processed.')
-    reordering_group.add_argument('--random_ordering', action='store_false',
+    reordering_parser.add_argument('--random_ordering',
                         help='Decide whether or not to use random ordering '
                              'within the ensemble reordering step.' )
 
-    rebadging_group = conversion_option_group.add_mutually_exclusive_group()
-    rebadging_group.add_argument(
-        '--rebadging', action='store_true',
+    rebadging_parser = subparsers.add_parser('rebadging',
         help='The option used to create ensemble members '
               'from percentiles by rebadging the input '
               'percentiles.')
-    rebadging_group.add_argument('--member_numbers', default=False,
-                        metavar='MEMBER_NUMBERS',
-                        help='A list of ensemble member numbers to use '
-                             'when rebadging the percentiles into members.')
+    #rebadging_parser.set_defaults(rebadging=True)
+    rebadging_parser.add_argument('--member_numbers', default=None,
+        metavar='MEMBER_NUMBERS',
+        help='A list of ensemble member numbers to use '
+              'when rebadging the percentiles into members.')
+
+    #conversion_option_group = parser.add_mutually_exclusive_group()
+    #reordering_group = conversion_option_group.add_mutually_exclusive_group()
+    #reordering_group.add_argument(
+        #'--reordering', action='store_true',
+        #help='The option used to create ensemble members '
+             #'from percentiles by reordering the input '
+             #'percentiles based on the order of the '
+             #'raw ensemble forecast.')
+    #reordering_group.add_argument('--raw_forecast_filepath',
+                        #metavar='RAW_FORECAST_FILE',
+                        #help='A path to an raw forecast NetCDF file to be '
+                             #'processed.')
+    #reordering_group.add_argument('--random_ordering', action='store_false',
+                        #help='Decide whether or not to use random ordering '
+                             #'within the ensemble reordering step.' )
+
+    #rebadging_group = conversion_option_group.add_mutually_exclusive_group()
+    #rebadging_group.add_argument(
+        #'--rebadging', action='store_true',
+        #help='The option used to create ensemble members '
+              #'from percentiles by rebadging the input '
+              #'percentiles.')
+    #rebadging_group.add_argument('--member_numbers', default=False,
+                        #metavar='MEMBER_NUMBERS',
+                        #help='A list of ensemble member numbers to use '
+                             #'when rebadging the percentiles into members.')
 
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed')
@@ -89,6 +139,7 @@ def main():
                              'percentiles with forecasts generated at each '
                              'percentile. "quantile" is the default option.')
     args = parser.parse_args()
+
     cube = iris.load_cube(args.input_filepath)
 
     coords = (coord for coord in cube.coords() if "threshold" in coord.name())
@@ -107,17 +158,16 @@ def main():
                "threshold.".format(cube))
         raise CoordinateNotFoundError(msg)
 
-    if args.reordering:
+    if args.subparser == "reordering":
         raw_forecast = iris.load_cube(args.raw_forecast_filepath)
         result_cube = EnsembleReordering().process(
-            cube, raw_forecast, random_ordering=args.random_ordering)
-    elif args.rebadging:
+            result_cube, raw_forecast, random_ordering=args.random_ordering)
+    elif args.subparser == "rebadging":
         result_cube = RebadgePercentilesAsMembers().process(
-            cube, ensemble_member_numbers=args.member_numbers)
+            result_cube, ensemble_member_numbers=args.member_numbers)
     else:
         msg = "Either the reordering or the rebadging option must be selected."
         parser.error(msg)
-
     iris.save(result_cube, args.output_filepath)
 
 
