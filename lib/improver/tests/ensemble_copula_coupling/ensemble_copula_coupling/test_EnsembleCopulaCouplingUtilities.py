@@ -497,7 +497,8 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                            timesteps=2, x_dimension_length=2,
                            y_dimension_length=2)
         cube.coord("realization").rename("percentile_over_realization")
-        cube.coord("percentile_over_realization").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("percentile_over_realization").points = (
+            np.array([0.1, 0.5, 0.9]))
         plen = 1
         percentile_cube = (
             add_forecast_reference_time_and_forecast_period(

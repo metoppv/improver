@@ -393,6 +393,9 @@ class GeneratePercentilesFromProbabilities(object):
                    "The probabilities are {}".format(probabilities_for_cdf))
             raise ValueError(msg)
 
+        # Convert percentiles into fractions.
+        percentiles = [x/100.0 for x in percentiles]
+
         forecast_at_percentiles = (
             np.empty((len(percentiles), probabilities_for_cdf.shape[0])))
         for index in range(probabilities_for_cdf.shape[0]):
@@ -453,7 +456,7 @@ class GeneratePercentilesFromProbabilities(object):
         forecast_probabilities = concatenate_cubes(forecast_probabilities)
         threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
-            forecast_probabilities.name().replace("Probability_of_", ""))
+            forecast_probabilities.name().replace("probability_of_", ""))
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -524,6 +527,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
             calibrated_forecast_predictor.data.flatten())
         calibrated_forecast_variance_data = (
             calibrated_forecast_variance.data.flatten())
+
+        # Convert percentiles into fractions.
+        percentiles = [x/100.0 for x in percentiles]
 
         result = np.zeros((len(percentiles),
                            calibrated_forecast_predictor_data.shape[0]))

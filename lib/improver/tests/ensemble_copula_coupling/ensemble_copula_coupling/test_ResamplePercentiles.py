@@ -159,7 +159,7 @@ class Test__interpolate_percentiles(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         cube.coord("realization").rename("percentile_over_realization")
         cube.coord("percentile_over_realization").points = (
-            np.array([0.1, 0.5, 0.9]))
+            np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
         spot_cube = (
@@ -178,7 +178,6 @@ class Test__interpolate_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        print "cube = ", cube
         result = plugin._interpolate_percentiles(
             cube, percentiles, bounds_pairing)
         self.assertIsInstance(result, Cube)
@@ -359,7 +358,7 @@ class Test__interpolate_percentiles(IrisTest):
                           [19., 19., 19.],
                           [19., 19., 19.]]]])
 
-        percentiles_values = np.linspace(0, 1, 30)
+        percentiles_values = np.linspace(0, 100, 30)
         cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(input_forecast_values, "air_temperature", "1",

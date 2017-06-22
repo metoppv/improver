@@ -186,7 +186,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         expected = np.array([8.15384615, 9.38461538, 11.6])
         expected = expected[:, np.newaxis, np.newaxis, np.newaxis]
 
-        data = np.array([95, 30, 5])
+        data = np.array([0.95, 0.3, 0.05])
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         self.current_temperature_forecast_cube = (
@@ -255,7 +255,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         of the Cumulative Distribution Function are not monotonically
         increasing.
         """
-        data = np.array([5, 70, 95])
+        data = np.array([0.05, 0.7, 0.95])
         data = data[:, np.newaxis, np.newaxis, np.newaxis]
 
         self.current_temperature_forecast_cube = (
