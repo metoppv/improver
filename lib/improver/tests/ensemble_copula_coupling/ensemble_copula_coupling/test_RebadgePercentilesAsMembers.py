@@ -61,7 +61,7 @@ class Test_process(IrisTest):
                 set_up_temperature_cube()))
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points
-        cube.coord("realization").rename("percentile")
+        cube.coord("realization").rename("percentile_over_realization")
         self.current_temperature_cube = cube
 
     def test_basic(self):
@@ -82,7 +82,7 @@ class Test_process(IrisTest):
         values for the ensemble member numbers.
         """
         cube = self.current_temperature_cube
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         ensemble_member_numbers = np.arange(plen)+12
         plugin = Plugin()
         result = plugin.process(cube, ensemble_member_numbers)
@@ -96,7 +96,7 @@ class Test_process(IrisTest):
         specifying the ensemble_member_numbers argument.
         """
         cube = self.current_temperature_cube
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertEqual(len(result.coord("realization").points), plen)
@@ -109,7 +109,7 @@ class Test_process(IrisTest):
         exception.
         """
         cube = self.current_temperature_cube
-        cube.coord("percentile").rename("realization")
+        cube.coord("percentile_over_realization").rename("realization")
         plugin = Plugin()
         msg = "The percentile coordinate could not be found"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):

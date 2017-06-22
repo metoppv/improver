@@ -60,15 +60,16 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+            np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
+        percentiles = cube.coord("percentile_over_realization").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -83,14 +84,14 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         percentiles, where the percentile values have been padded with 0 and 1.
         """
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
+        percentiles = cube.coord("percentile_over_realization").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
             percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result[0][0], 0)
-        self.assertArrayAlmostEqual(result[0][-1], 1)
+        self.assertArrayAlmostEqual(result[0][-1], 100)
 
     def test_probability_data(self):
         """
@@ -99,7 +100,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         bounds_pairing.
         """
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
+        percentiles = cube.coord("percentile_over_realization").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         lower_array = np.full(
@@ -120,7 +121,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast values.
         """
         forecast_at_percentiles = np.array([[8, 10, 60]])
-        percentiles = np.array([0.05, 0.7, 0.95])
+        percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         msg = "The end points added to the forecast at percentiles"
@@ -156,23 +157,25 @@ class Test__interpolate_percentiles(IrisTest):
         data[1] += 1
         data[2] += 3
         cube = set_up_cube(data, "air_temperature", "degreesC")
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+            np.array([0.1, 0.5, 0.9]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
         spot_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
         spot_cube.convert_units("degreesC")
-        spot_cube.coord("realization").rename("percentile")
-        spot_cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        spot_cube.coord("realization").rename("percentile_over_realization")
+        spot_cube.coord("percentile_over_realization").points = (
+            np.array([10, 50, 90]))
         spot_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape(3, 1, 9)
         self.spot_percentile_cube = spot_cube
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         cube = self.percentile_cube
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         print "cube = ", cube
@@ -187,7 +190,7 @@ class Test__interpolate_percentiles(IrisTest):
         """
         # Calculate result for nontransposed cube.
         cube = self.percentile_cube
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         nontransposed_result = plugin._interpolate_percentiles(
@@ -223,9 +226,10 @@ class Test__interpolate_percentiles(IrisTest):
                     data, "air_temperature", "1",
                     y_dimension_length=1, x_dimension_length=1)))
         cube = current_temperature_forecast_cube
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
-        percentiles = [0.1, 0.5, 0.9]
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+            np.array([10, 50, 90]))
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -248,7 +252,7 @@ class Test__interpolate_percentiles(IrisTest):
                            [11.25, 11.875, 12.5]]]])
 
         cube = self.percentile_cube
-        percentiles = [0.2, 0.6, 0.8]
+        percentiles = [20, 60, 80]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -280,14 +284,15 @@ class Test__interpolate_percentiles(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC",
                            timesteps=2, x_dimension_length=2,
                            y_dimension_length=2)
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+            np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(
                 cube, time_point=np.array([402295.0, 402296.0]),
                 fp_point=[2.0, 3.0]))
         cube = self.percentile_cube
-        percentiles = [0.2, 0.6, 0.8]
+        percentiles = [20, 60, 80]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -320,13 +325,14 @@ class Test__interpolate_percentiles(IrisTest):
                     realizations=[0],
                     y_dimension_length=1, x_dimension_length=1)))
         cube = current_temperature_forecast_cube
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.2])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = np.array([0.2])
 
-        for acube in self.percentile_cube.slices_over("percentile"):
+        for acube in self.percentile_cube.slices_over(
+                "percentile_over_realization"):
             cube = acube
             break
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -358,9 +364,10 @@ class Test__interpolate_percentiles(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(input_forecast_values, "air_temperature", "1",
                             realizations=np.arange(30))))
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array(percentiles_values)
-        percentiles = [0.1, 0.5, 0.9]
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+           np.array(percentiles_values))
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -405,7 +412,7 @@ class Test__interpolate_percentiles(IrisTest):
                            [30.875, 31.1875, 31.5]]]])
 
         cube = self.percentile_cube
-        percentiles = np.arange(0.05, 1.0, 0.1)
+        percentiles = np.arange(5, 100, 10)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -421,7 +428,7 @@ class Test__interpolate_percentiles(IrisTest):
                          [[5., 7.5, 10., 5., 7.5, 10., 5., 7.5, 10.]],
                          [[5., 7.5, 10., 5., 7.5, 10., 5., 7.5, 10.]]])
         cube = self.spot_percentile_cube
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._interpolate_percentiles(
@@ -440,8 +447,9 @@ class Test_process(IrisTest):
         data[1] += 1
         data[2] += 3
         cube = set_up_cube(data, "air_temperature", "degreesC")
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = (
+            np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
@@ -461,7 +469,7 @@ class Test_process(IrisTest):
                            [11., 11.625, 12.25]]]])
 
         cube = self.percentile_cube
-        percentiles = [0.25, 0.5, 0.75]
+        percentiles = [25, 50, 75]
         plugin = Plugin()
         result = plugin.process(cube, no_of_percentiles=len(percentiles))
         self.assertArrayAlmostEqual(result.data, data)

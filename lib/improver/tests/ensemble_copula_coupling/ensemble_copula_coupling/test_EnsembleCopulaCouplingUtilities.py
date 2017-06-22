@@ -45,7 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (choose_set_of_percentiles, create_cube_with_percentiles,
             insert_lower_and_upper_endpoint_to_1d_array,
             concatenate_2d_array_with_2d_array_endpoints,
-            find_coordinate, get_bounds_of_distribution,
+            get_bounds_of_distribution,
             restore_non_probabilistic_dimensions)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (
@@ -62,10 +62,10 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
         """
         Basic test that the result is a numpy array with the expected contents.
         """
-        expected = np.array([[0, 0.2, 0.5, 0.8, 1]])
-        input_array = np.array([[0.2, 0.5, 0.8]])
+        expected = np.array([[0, 20, 50, 80, 100]])
+        input_array = np.array([[20, 50, 80]])
         result = concatenate_2d_array_with_2d_array_endpoints(
-            input_array, 0, 1)
+            input_array, 0, 100)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -137,7 +137,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """Test that the plugin returns an Iris.cube.Cube."""
         cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertIsInstance(result, Cube)
@@ -148,7 +148,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         percentiles.
         """
         cube = self.current_temperature_forecast_cube
-        percentiles = np.linspace(0, 1, 100)
+        percentiles = np.linspace(0, 100, 100)
         cube_data = np.zeros(
             [len(percentiles), len(cube.coord("time").points),
              len(cube.coord("latitude").points),
@@ -179,11 +179,12 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(percentiles, cube, cube_data)
-        self.assertIsInstance(result.coord("percentile"), DimCoord)
+        self.assertIsInstance(
+            result.coord("percentile_over_realization"), DimCoord)
         self.assertArrayAlmostEqual(
-            result.coord("percentile").points, percentiles)
+            result.coord("percentile_over_realization").points, percentiles)
 
     def test_spot_forecasts_percentile_points(self):
         """
@@ -193,13 +194,14 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube = self.current_temperature_spot_forecast_cube
         cube_data = self.cube_spot_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertIsInstance(result, Cube)
-        self.assertIsInstance(result.coord("percentile"), DimCoord)
+        self.assertIsInstance(
+            result.coord("percentile_over_realization"), DimCoord)
         self.assertArrayAlmostEqual(
-            result.coord("percentile").points, percentiles)
+            result.coord("percentile_over_realization").points, percentiles)
 
     def test_percentile_length_too_short(self):
         """
@@ -209,7 +211,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5]
+        percentiles = [10, 50]
         msg = "Unequal lengths"
         with self.assertRaisesRegexp(ValueError, msg):
             create_cube_with_percentiles(
@@ -224,7 +226,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube = cube[0, :, :, :]
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         msg = "Unequal lengths"
         with self.assertRaisesRegexp(ValueError, msg):
             create_cube_with_percentiles(
@@ -238,7 +240,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube.attributes = {"source": "ukv"}
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         self.assertDictEqual(
@@ -252,7 +254,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         cube = self.current_temperature_forecast_cube
         cube.attributes = {"source": "ukv"}
         cube_data = self.cube_data + 2
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(
             percentiles, cube, cube_data)
         for coord in cube.coords():
@@ -282,7 +284,7 @@ class Test_choose_set_of_percentiles(IrisTest):
         Test that the plugin returns a list with the expected data values
         for the percentiles.
         """
-        data = np.array([0.25, 0.5, 0.75])
+        data = np.array([25, 50, 75])
         no_of_percentiles = 3
         result = choose_set_of_percentiles(no_of_percentiles)
         self.assertArrayAlmostEqual(result, data)
@@ -307,47 +309,6 @@ class Test_choose_set_of_percentiles(IrisTest):
         msg = "The unknown sampling option is not yet implemented"
         with self.assertRaisesRegexp(ValueError, msg):
             choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
-
-
-class Test_find_coordinate(IrisTest):
-
-    """Test the find_coordinate function."""
-
-    def setUp(self):
-        """Set up current temperature forecast cube."""
-        self.current_temperature_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_probability_above_threshold_temperature_cube()))
-
-    def test_full_match(self):
-        """
-        Test that the returned value is a dimension coordinate with the
-        expected name where the full name of the coordinate is provided.
-        """
-        cube = self.current_temperature_forecast_cube
-        result = find_coordinate(cube, "air_temperature_threshold")
-        self.assertIsInstance(result, DimCoord)
-        self.assertIn("air_temperature_threshold", result.name())
-
-    def test_partial_match(self):
-        """
-        Test that the returned value is a dimension coordinate with the
-        expected name where a partial name for the coordinate is provided.
-        """
-        cube = self.current_temperature_forecast_cube
-        result = find_coordinate(cube, "threshold")
-        self.assertIsInstance(result, DimCoord)
-        self.assertIn("threshold", result.name())
-
-    def test_exception_raised(self):
-        """
-        Test that an exception is raised, if the desired coordinate is not
-        within the cube being searched.
-        """
-        cube = self.current_temperature_forecast_cube
-        msg = "The coordinate of name"
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            find_coordinate(cube, "nonsense")
 
 
 class Test_get_bounds_of_distribution(IrisTest):
@@ -410,10 +371,10 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
         """
         Basic test that the result is a numpy array with the expected contents.
         """
-        expected = [0, 0.2, 0.5, 0.8, 1]
-        percentiles = [0.2, 0.5, 0.8]
+        expected = [0, 20, 50, 80, 100]
+        percentiles = [20, 50, 80]
         result = insert_lower_and_upper_endpoint_to_1d_array(
-            percentiles, 0, 1)
+            percentiles, 0, 100)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -452,7 +413,7 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                 set_up_temperature_cube()))
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points
-        cube.coord("realization").rename("percentile")
+        cube.coord("realization").rename("percentile_over_realization")
         self.current_temperature_forecast_cube = cube
 
     def test_basic(self):
@@ -460,10 +421,10 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         Basic test that the result is a numpy array with the expected contents.
         """
         cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         reshaped_array = (
             restore_non_probabilistic_dimensions(
-                cube.data, cube, "percentile", plen))
+                cube.data, cube, "percentile_over_realization", plen))
         self.assertIsInstance(reshaped_array, np.ndarray)
 
     def test_percentile_is_dimension_coordinate(self):
@@ -473,10 +434,10 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         The array contents is also checked.
         """
         cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         reshaped_array = (
             restore_non_probabilistic_dimensions(
-                cube.data, cube, "percentile", plen))
+                cube.data, cube, "percentile_over_realization", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, cube.data.shape)
         self.assertArrayAlmostEqual(reshaped_array, cube.data)
@@ -489,11 +450,11 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         cube.transpose([3, 2, 1, 0])
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         msg = "coordinate is a dimension coordinate but is not"
         with self.assertRaisesRegexp(ValueError, msg):
             restore_non_probabilistic_dimensions(
-                cube.data, cube, "percentile", plen)
+                cube.data, cube, "percentile_over_realization", plen)
 
     def test_percentile_is_not_dimension_coordinate(self):
         """
@@ -506,12 +467,13 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                                [293.65, 304.9, 316.15]]]])
 
         cube = self.current_temperature_forecast_cube
-        for cube_slice in cube.slices_over("percentile"):
+        for cube_slice in cube.slices_over("percentile_over_realization"):
             break
-        plen = len(cube_slice.coord("percentile").points)
+        plen = len(cube_slice.coord("percentile_over_realization").points)
         reshaped_array = (
             restore_non_probabilistic_dimensions(
-                cube_slice.data, cube_slice, "percentile", plen))
+                cube_slice.data, cube_slice,
+                "percentile_over_realization", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, (1, 1, 3, 3))
         self.assertArrayAlmostEqual(reshaped_array, expected)
@@ -534,8 +496,8 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC",
                            timesteps=2, x_dimension_length=2,
                            y_dimension_length=2)
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = np.array([0.1, 0.5, 0.9])
+        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("percentile_over_realization").points = np.array([0.1, 0.5, 0.9])
         plen = 1
         percentile_cube = (
             add_forecast_reference_time_and_forecast_period(
@@ -543,7 +505,8 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                 fp_point=[2.0, 3.0]))
         reshaped_array = (
             restore_non_probabilistic_dimensions(
-                percentile_cube[0].data, percentile_cube, "percentile", plen))
+                percentile_cube[0].data, percentile_cube,
+                "percentile_over_realization", plen))
         self.assertArrayAlmostEqual(reshaped_array, expected)
 
     def test_percentile_is_dimension_coordinate_flattened_data(self):
@@ -553,10 +516,10 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         flattened_data = cube.data.flatten()
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         reshaped_array = (
             restore_non_probabilistic_dimensions(
-                flattened_data, cube, "percentile", plen))
+                flattened_data, cube, "percentile_over_realization", plen))
         self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, (3, 1, 3, 3))
         self.assertArrayAlmostEqual(reshaped_array, cube.data)
@@ -567,7 +530,7 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         The array contents is also checked.
         """
         cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
+        plen = len(cube.coord("percentile_over_realization").points)
         msg = "coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             restore_non_probabilistic_dimensions(

@@ -67,7 +67,7 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile")
+        cube.coord("realization").rename("percentile_over_realization")
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
@@ -216,7 +216,7 @@ class Test__recycle_raw_ensemble_members(IrisTest):
 
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile")
+        cube.coord("realization").rename("percentile_over_realization")
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
@@ -542,9 +542,10 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
         self.post_processed_percentiles.coord("realization").rename(
-            "percentile")
-        self.post_processed_percentiles.coord("percentile").points = (
-            [0.1, 0.5, 0.9])
+            "percentile_over_realization")
+        self.post_processed_percentiles.coord(
+            "percentile_over_realization").points = (
+                [0.1, 0.5, 0.9])
 
     def test_basic(self):
         """
