@@ -152,6 +152,60 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     return cube
 
 
+def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
+                                     num_time_points=1,
+                                     num_grid_points=16,
+                                     source_realizations=None):
+    """Set up a normal OSGB UK National Grid cube."""
+
+    zero_point_indices = list(zero_point_indices)
+    for index, indices in enumerate(zero_point_indices):
+        if len(indices) == 2:
+            indices = (0,) + indices
+        zero_point_indices[index] = indices
+    zero_point_indices = tuple(zero_point_indices)
+
+    data = np.ones((num_time_points,
+                    num_grid_points,
+                    num_grid_points))
+    for indices in zero_point_indices:
+        time_index, lat_index, lon_index = indices
+        data[time_index][lat_index][lon_index] = 0
+
+    cube = Cube(data, standard_name="precipitation_amount",
+                units="kg m^-2 s^-1")
+    coord_system = OSGB()
+    scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
+
+    if source_realizations is not None:
+        if isinstance(source_realizations, list):
+            cube.attributes.update(
+                {'source_realizations': source_realizations})
+
+    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
+    time_points = [402192.5 + _ for _ in range(num_time_points)]
+    cube.add_dim_coord(DimCoord(time_points,
+                                standard_name="time", units=tunit), 0)
+    cube.add_dim_coord(
+        DimCoord(
+            scaled_y_coord.points[:num_grid_points],
+            'projection_y_coordinate',
+            units='m', coord_system=coord_system
+        ),
+        1
+    )
+    scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
+    cube.add_dim_coord(
+        DimCoord(
+            scaled_x_coord.points[:num_grid_points],
+            'projection_x_coordinate',
+            units='m', coord_system=coord_system
+        ),
+        2
+    )
+    return cube
+
+
 def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
                          num_grid_points=16):
     """Set up a lat-long coord cube."""
@@ -253,7 +307,7 @@ class Test__find_radii(IrisTest):
                         lead_times=lead_times,
                         ens_factor=ens_factor)
         result = plugin._find_radii(num_ens,
-                                    required_lead_times=fp_points)
+                                    cube_lead_times=fp_points)
         expected_result = np.array([6.36396103, 12.72792206, 19.09188309])
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
@@ -272,7 +326,7 @@ class Test__find_radii(IrisTest):
                         lead_times=lead_times,
                         ens_factor=ens_factor)
         result = plugin._find_radii(num_ens,
-                                    required_lead_times=fp_points)
+                                    cube_lead_times=fp_points)
         expected_result = np.array([4.0, 8.0, 12.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -295,6 +349,16 @@ class Test_process(IrisTest):
         cube = set_up_cube()
         cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
+        with self.assertRaisesRegexp(ValueError, msg):
+            neighbourhood_method = "circular"
+            NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
+
+    def test_realizations_and_source_realizations_fails(self):
+        """Raises error if realizations and source realizations both set."""
+        cube = set_up_cube()
+        cube.attributes.update({'source_realizations': [0, 1, 2, 3]})
+        msg = ('Realizations and attribute source_realizations should not'
+               ' both be set')
         with self.assertRaisesRegexp(ValueError, msg):
             neighbourhood_method = "circular"
             NBHood(neighbourhood_method, self.RADIUS_IN_KM).process(cube)
@@ -341,13 +405,29 @@ class Test_process(IrisTest):
 
     def test_no_realizations(self):
         """Test when the array has no realization coord."""
-        cube = set_up_cube()
-        for cube_slice in cube.slices_over("realization"):
-            cube = cube_slice
-        cube.remove_coord('realization')
+        cube = set_up_cube_with_no_realizations()
         radii_in_km = 6
         neighbourhood_method = "circular"
         result = NBHood(neighbourhood_method, radii_in_km).process(cube)
+        self.assertIsInstance(result, Cube)
+        expected = np.ones([1, 16, 16])
+        expected[0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667])
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_source_realizations(self):
+        """Test when the array has source_realization attribute."""
+        member_list = [0, 1, 2, 3]
+        cube = (
+            set_up_cube_with_no_realizations(source_realizations=member_list))
+        radii_in_km = 15
+        ens_factor = 0.8
+        neighbourhood_method = "circular"
+        plugin = NBHood(neighbourhood_method, radii_in_km,
+                        ens_factor=ens_factor)
+        result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([1, 16, 16])
         expected[0, 6:9, 6:9] = (
