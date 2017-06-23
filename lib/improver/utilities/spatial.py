@@ -31,7 +31,6 @@
 """ Provides support utilities."""
 
 import copy
-import iris
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
@@ -52,8 +51,9 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
         """
         pass
 
+    @staticmethod
     def create_discrete_difference_cube(
-            self, cube, coord_name, diffs_along_axis):
+            cube, coord_name, diffs_along_axis):
         """
         Put the discrete difference array into a cube with the appropriate
         metadata.
