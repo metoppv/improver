@@ -38,7 +38,7 @@
 
   # Run Ensemble Copula Coupling and check it passes.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
-      rebadging \
+      --rebadging \
       "$IMPROVER_ACC_TEST_DIR/ecc/probabilities_rebadging/multiple_probabilities_wind_cube.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
