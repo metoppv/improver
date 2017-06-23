@@ -45,35 +45,36 @@ Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
 apply these weights to the cube using the BasicWeightedAverage plugin.
 Required for ChooseDefaultWeightsLinear: y0val and ONE of slope, ynval.
-Required for ChooseDefaultWeightsNonLinear: cval
+Required for ChooseDefaultWeightsNonLinear: cval.
 
 positional arguments:
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the weighted average will be
-                        applied
-  INPUT_FILE            A path to an input NetCDF file to be processed
-  OUTPUT_FILE           The output path for the processed NetCDF
+                        applied.
+  INPUT_FILE            A path to an input NetCDF file to be processed.
+  OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --linear              Option to use the ChooseDefaultWeightsLinear plugin
-  --nonlinear           Option to use the ChooseDefaultWeightsNonLinear plugin
+  --linear              Option to use the ChooseDefaultWeightsLinear plugin.
+  --nonlinear           Option to use the ChooseDefaultWeightsNonLinear
+                        plugin.
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the weighted
-                        averaging has been applied
+                        averaging has been applied.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
 
   --slope LINEAR_SLOPE  The slope of the line used for choosing default linear
-                        weights. Only one of ynval and slope may be set
+                        weights. Only one of ynval and slope may be set.
   --ynval LINEAR_END_POINT
                         The relative value of the weighting end point for
                         choosing default linear weights. Only one of ynval and
-                        slope may be set
+                        slope may be set.
   --y0val LINEAR_STARTING_POINT
                         The relative value of the weighting start point for
-                        choosing default linear weights
+                        choosing default linear weights.
 
 nonlinear weights options:
   Options for the non-linear weights calculation in
@@ -81,7 +82,7 @@ nonlinear weights options:
 
   --cval NON_LINEAR_FACTOR
                         Factor used to determine how skewed the non linear
-                        weights will be. A value of 1 implies equal weighting
+                        weights will be. A value of 1 implies equal weighting.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
