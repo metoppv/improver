@@ -80,10 +80,10 @@ def main():
                              'percentile. "quantile" is the default option.')
 
     reordering = parser.add_argument_group(
-        "Reordering options:", "Options for reordering the input percentiles"
+        "Reordering options", "Options for reordering the input percentiles"
         "using the raw ensemble forecast as required to create ensemble"
         "members.")
-    reordering.add_argument('raw_forecast_filepath',
+    reordering.add_argument('--raw_forecast_filepath',
                         metavar='RAW_FORECAST_FILE',
                         help='A path to an raw forecast NetCDF file to be '
                              'processed.')
@@ -92,7 +92,7 @@ def main():
                              'within the ensemble reordering step.' )
 
     rebadging = parser.add_argument_group(
-        "Rebadging options:", "Options for rebadging the input percentiles"
+        "Rebadging options", "Options for rebadging the input percentiles"
         "as ensemble members.")
     rebadging.add_argument('--member_numbers', default=None,
         metavar='MEMBER_NUMBERS',

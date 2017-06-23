@@ -33,11 +33,12 @@
   run improver nbhood -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ecc [-h]
-                    [[--reordering | --raw_forecast_filepath RAW_FORECAST_FILE | --random_ordering]
-                    [--rebadging | --member_numbers MEMBER_NUMBERS]
+usage: improver-ecc [-h] (--reordering | --rebadging)
                     [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                    [--raw_forecast_filepath RAW_FORECAST_FILE]
+                    [--random_ordering RANDOM_ORDERING]
+                    [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 
 Apply the requested neighbourhood method via the NeighbourhoodProcessing
@@ -52,21 +53,31 @@ optional arguments:
   --reordering          The option used to create ensemble members from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.
-  --raw_forecast_filepath RAW_FORECAST_FILE
-                        A path to an raw forecast NetCDF file to be processed.
-  --random_ordering     Decide whether or not to use random ordering within
-                        the ensemble reordering step.
   --rebadging           The option used to create ensemble members from
                         percentiles by rebadging the input percentiles.
-  --member_numbers MEMBER_NUMBERS
-                        A list of ensemble member numbers to use when
-                        rebadging the percentiles into members.
   --no_of_percentiles NUMBER_OF_PERCENTILES
                         The number of percentiles to be generated.
   --sampling_method [PERCENTILE_SAMPLING_METHOD]
                         Method to be used for generating the list of
                         percentiles with forecasts generated at each
                         percentile. "quantile" is the default option.
+
+Reordering options:
+  Options for reordering the input percentilesusing the raw ensemble
+  forecast as required to create ensemblemembers.
+
+  --raw_forecast_filepath RAW_FORECAST_FILE
+                        A path to an raw forecast NetCDF file to be processed.
+  --random_ordering RANDOM_ORDERING
+                        Decide whether or not to use random ordering within
+                        the ensemble reordering step.
+
+Rebadging options:
+  Options for rebadging the input percentilesas ensemble members.
+
+  --member_numbers MEMBER_NUMBERS
+                        A list of ensemble member numbers to use when
+                        rebadging the percentiles into members.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

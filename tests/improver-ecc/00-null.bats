@@ -33,11 +33,13 @@
   run improver nbhood
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-ecc [-h]
-                    [[--reordering | --raw_forecast_filepath RAW_FORECAST_FILE | --random_ordering RANDOM_ORDERING]
-                    [--rebadging | --member_numbers MEMBER_NUMBERS]
+bash-4.1$ improver ecc
+usage: improver-ecc [-h] (--reordering | --rebadging)
                     [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                    [--raw_forecast_filepath RAW_FORECAST_FILE]
+                    [--random_ordering RANDOM_ORDERING]
+                    [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
