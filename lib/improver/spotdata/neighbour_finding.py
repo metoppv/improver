@@ -35,8 +35,8 @@ import numpy as np
 from improver.spotdata.read_input import data_from_dictionary
 from improver.spotdata.common_functions import (
     ConditionalListExtract, nearest_n_neighbours, get_nearest_coords,
-    index_of_minimum_difference, list_entry_from_index, node_edge_test,
-    apply_bias, xy_test, xy_transform, isclose)
+    index_of_minimum_difference, list_entry_from_index, node_edge_check,
+    apply_bias, xy_determine, xy_transform)
 
 
 class PointSelection(object):
@@ -174,7 +174,7 @@ class PointSelection(object):
                                                  ('edgepoint', 'bool_')])
 
         # Check cube coords are lat/lon, else transform lookup coordinates.
-        trg_crs = xy_test(cube)
+        trg_crs = xy_determine(cube)
 
         imax = cube.coord(axis='y').shape[0]
         jmax = cube.coord(axis='x').shape[0]
@@ -272,7 +272,7 @@ class PointSelection(object):
 
             node_list = nearest_n_neighbours(i, j, no_neighbours)
             if edgepoint:
-                node_list = node_edge_test(node_list, cube)
+                node_list = node_edge_check(node_list, cube)
 
             if self.land_constraint:
                 # Check that we are considering a land point and that at least
@@ -282,7 +282,7 @@ class PointSelection(object):
                 neighbour_nodes = nearest_n_neighbours(i, j, no_neighbours,
                                                        exclude_self=True)
                 if edgepoint:
-                    neighbour_nodes = node_edge_test(neighbour_nodes, cube)
+                    neighbour_nodes = node_edge_check(neighbour_nodes, cube)
                 if not land_mask[i, j] or not any(land_mask[neighbour_nodes]):
                     continue
 
@@ -301,7 +301,7 @@ class PointSelection(object):
             # Test to ensure that if multiple vertical displacements are the
             # same we don't select a more distant point because of array
             # ordering.
-            if not isclose(dz_min, abs(dz_nearest)):
+            if not np.isclose(dz_min, abs(dz_nearest)):
                 neighbours[i_site] = i_min, j_min, dzs[ij_min], edgepoint
 
         return neighbours

@@ -28,7 +28,6 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """
 Plugins written for the Improver site specific process chain.
 
@@ -37,6 +36,7 @@ Plugins written for the Improver site specific process chain.
 import warnings
 import numpy as np
 from iris import Constraint
+import iris
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 
@@ -44,7 +44,7 @@ import cartopy.crs as ccrs
 class ConditionalListExtract(object):
     '''
     Performs a numerical comparison, the type selected with method, of data
-    in an array and returns an array of indices in that data array that
+    in a 2D array and returns an array of indices in that data array that
     fulfill the comparison.
 
     '''
@@ -85,7 +85,12 @@ class ConditionalListExtract(object):
         """
 
         array_of_indices = np.array(indices_list)
-        function = getattr(self, self.method)
+        try:
+            function = getattr(self, self.method)
+        except:
+            raise AttributeError('Unknown method "{}" passed to {}.'.format(
+                self.method, self.__class__.__name__))
+
         subset = function(data, array_of_indices, comparison_value)
 
         return array_of_indices[0:2, subset[0]].tolist()
@@ -176,7 +181,7 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
         ).astype(int).tolist()
 
 
-def node_edge_test(node_list, cube):
+def node_edge_check(node_list, cube):
     """
     Node lists produced using the nearest_n_neighbours function may overspill
     the domain of the array from which data is to be extracted. This function
@@ -264,6 +269,8 @@ def index_of_minimum_difference(whole_list, subset_list=None):
     Index of the minimum value in whole_list.
 
     """
+    whole_list = np.array(whole_list)
+
     if subset_list is None:
         subset_list = np.arange(len(whole_list))
     return subset_list[np.argmin(abs(whole_list[subset_list]))]
@@ -337,8 +344,8 @@ def apply_bias(vertical_bias, dzs):
         relative to the site; above/below/None.
 
     dzs : numpy.array
-        Array of vertical displacements calculated as the subtraction of grid
-        orography altitudes from spot site altitudes.
+        1D array of vertical displacements calculated as the subtraction of
+        grid orography altitudes from spot site altitudes.
 
     Returns:
     --------
@@ -352,14 +359,13 @@ def apply_bias(vertical_bias, dzs):
     elif vertical_bias == 'below':
         dz_subset, = np.where(dzs >= 0)
 
-    if (vertical_bias is None or len(dz_subset) == 0 or
-            len(dz_subset) == len(dzs)):
+    if vertical_bias is None or dz_subset.size == 0:
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
 
 
-def xy_test(cube):
+def xy_determine(cube):
     """
     Test whether a diagnostic cube is on a latitude/longitude grid or uses an
     alternative projection.
@@ -412,14 +418,6 @@ def xy_transform(trg_crs, latitude, longitude):
                                        ccrs.PlateCarree())
 
 
-def isclose(val1, val2, rel_tol=1e-09, abs_tol=0.0):
-    """
-    Floating point comparison for nearly equal.
-
-    """
-    return abs(val1-val2) <= max(rel_tol * max(abs(val1), abs(val2)), abs_tol)
-
-
 def extract_cube_at_time(cubes, time, time_extract):
     """
     Extract a single cube at a given time from a cubelist.
@@ -446,7 +444,8 @@ def extract_cube_at_time(cubes, time, time_extract):
 
     """
     try:
-        cube_in, = cubes.extract(time_extract)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube_in, = cubes.extract(time_extract)
         return cube_in
     except ValueError:
         msg = ('Forecast time {} not found within data cubes.'.format(

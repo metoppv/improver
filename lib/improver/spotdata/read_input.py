@@ -35,11 +35,11 @@ For reading data files from UM output and site specification input.
 
 """
 
+import iris
 from iris import load_cube, load
-from iris import FUTURE
 from iris.cube import CubeList
 
-FUTURE.netcdf_promote = True
+iris.FUTURE.netcdf_promote = True
 
 
 class Load(object):
@@ -144,15 +144,15 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
                       data, with a single entry is time_extract is provided.
 
     """
-    with FUTURE.context(cell_datetime_objects=True):
-        cubes = Load('multi_file').process(
-            diagnostic_data_path + '/*/*' + diagnostic_name + '*',
-            None)
-        if time_extract is not None:
+    cubes = Load('multi_file').process(
+        diagnostic_data_path + '/*/*' + diagnostic_name + '*',
+        None)
+    if time_extract is not None:
+        with iris.FUTURE.context(cell_datetime_objects=True):
             cube = cubes.extract(time_extract)
-            cubes = CubeList()
-            cubes.append(cube)
-        return cubes
+        cubes = CubeList()
+        cubes.append(cube)
+    return cubes
 
 
 def data_from_dictionary(dictionary_data, key):
