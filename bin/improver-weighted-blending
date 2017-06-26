@@ -41,9 +41,9 @@ from improver.weights import (
 from improver.weighted_blend import BasicWeightedAverage
 
 
-def wrong_args_error(args, method):
+def wrong_args_error(parser, args, method):
      msg = 'Method: {} does not accept arguments: {}'
-     raise ValueError(msg.format(method, args))
+     parser.error(msg.format(method, args))
 
 def main():
     """Load in arguments and ensure arguments with non-None defaults are set 
@@ -119,13 +119,13 @@ def main():
 
     if args.linear:
         if args.cval:
-            wrong_args_error('cval', 'linear')
+            wrong_args_error(parser, 'cval', 'linear')
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(cube, args.coordinate)
 
     if args.nonlinear:
         if np.any([args.y0val, args.ynval, args.slope]):
-            wrong_args_error('y0val, slope, ynval', 'non-linear')
+            wrong_args_error(parser, 'y0val, slope, ynval', 'non-linear')
         weights = ChooseDefaultWeightsNonLinear(cval).process(cube,
                                                               args.coordinate)
     result = (
