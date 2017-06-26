@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run weighted blending with linear weights and suboptions: y0val and slope. Check it passes.
-  run improver weighted-blending --linear 'time' --y0val 1 --slope 2 \
+  run improver weighted-blending --linear 'time' --y0val 4.0 --slope -2.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
@@ -54,7 +54,7 @@
   improver_check_skip_acceptance
 
   # Run weighted blending with linear weights and suboptions: y0val and ynval. Check it passes.
-  run improver weighted-blending --linear 'time' --y0val 1 --ynval 5 \
+  run improver weighted-blending --linear 'time' --y0val 4.0 --ynval 0.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

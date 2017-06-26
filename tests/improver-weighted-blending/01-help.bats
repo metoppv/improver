@@ -49,7 +49,7 @@ Required for ChooseDefaultWeightsNonLinear: cval.
 
 positional arguments:
   COORDINATE_TO_AVERAGE_OVER
-                        The coordinate over which the weighted average will be
+                        The coordinate over which the blending will be
                         applied.
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
@@ -60,8 +60,8 @@ optional arguments:
   --nonlinear           Option to use the ChooseDefaultWeightsNonLinear
                         plugin.
   --coord_adj COORD_ADJUSTMENT_FUNCTION
-                        Function to apply to the coordinate after the weighted
-                        averaging has been applied.
+                        Function to apply to the coordinate after the blending
+                        has been applied.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
@@ -74,7 +74,9 @@ linear weights options:
                         slope may be set.
   --y0val LINEAR_STARTING_POINT
                         The relative value of the weighting start point for
-                        choosing default linear weights.
+                        choosing default linear weights. This must be a
+                        positive float. If not set, default values of
+                        y0val=20.0 and ynval=2.0 are set.
 
 nonlinear weights options:
   Options for the non-linear weights calculation in
@@ -83,6 +85,7 @@ nonlinear weights options:
   --cval NON_LINEAR_FACTOR
                         Factor used to determine how skewed the non linear
                         weights will be. A value of 1 implies equal weighting.
+                        If not set, a default value of cval=0.85 is set.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

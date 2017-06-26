@@ -46,10 +46,9 @@ def wrong_args_error(parser, args, method):
      parser.error(msg.format(method, args))
 
 def main():
-    """Load in arguments and ensure arguments with non-None defaults are set 
-       correctly. Then load in the data to average over and calculate 
-       default weights using the method chosen before carrying out the
-       weighted average."""
+    """Load in arguments and ensure they are set correctly. 
+       Then load in the data to blend and calculate default weights
+       using the method chosen before carrying out the blending."""
     parser = argparse.ArgumentParser(
     description='Calculate the default weights to apply in weighted ' +
                 'blending plugins using the ChooseDefaultWeightsLinear or ' +
@@ -68,8 +67,8 @@ def main():
 
     parser.add_argument('coordinate',
                         metavar='COORDINATE_TO_AVERAGE_OVER',
-                        help='The coordinate over which the weighted ' +
-                             'average will be applied.')
+                        help='The coordinate over which the blending ' +
+                             'will be applied.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
@@ -90,7 +89,10 @@ def main():
                                'Only one of ynval and slope may be set.')
     linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
                         help='The relative value of the weighting start ' +
-                             'point for choosing default linear weights.')
+                             'point for choosing default linear weights. ' +
+                             'This must be a positive float. If not set, ' +
+                             'default values of y0val=20.0 and ynval=2.0 ' +
+                             'are set.')
     nonlinear = parser.add_argument_group('nonlinear weights options',
                                           'Options for the non-linear ' +
                                           'weights calculation in ' +
@@ -98,16 +100,17 @@ def main():
     nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
                            help='Factor used to determine how skewed the ' +
                                 'non linear weights will be. ' +
-                                'A value of 1 implies equal weighting.')
+                                'A value of 1 implies equal weighting. If ' +
+                                'not set, a default value of cval=0.85 is set.')
     parser.add_argument('--coord_adj', metavar='COORD_ADJUSTMENT_FUNCTION',
                         type=str,
                         help='Function to apply to the coordinate after the ' +
-                             'weighted averaging has been applied.')
+                             'blending has been applied.')
     args = parser.parse_args()
     if args.slope:
         slope = args.slope
     else:
-        slope = 0
+        slope = 0.0
     if args.cval:
         cval = args.cval
     else:
