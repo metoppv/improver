@@ -174,8 +174,6 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
 
     cube = Cube(data, standard_name="precipitation_amount",
                 units="kg m^-2 s^-1")
-    coord_system = OSGB()
-    scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
 
     if source_realizations is not None:
         if isinstance(source_realizations, list):
@@ -186,6 +184,9 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 0)
+
+    coord_system = OSGB()
+    scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
     cube.add_dim_coord(
         DimCoord(
             scaled_y_coord.points[:num_grid_points],
@@ -280,7 +281,7 @@ class Test__find_radii(IrisTest):
 
     """Test the internal _find_radii function is working correctly."""
 
-    def test_basic_float(self):
+    def test_basic_float_cube_lead_times_is_none(self):
         """Test _find_radii returns a float with the correct value."""
         neighbourhood_method = "circular"
         ens_factor = 0.8
@@ -294,7 +295,7 @@ class Test__find_radii(IrisTest):
         self.assertIsInstance(result, float)
         self.assertAlmostEquals(result, expected_result)
 
-    def test_basic_array(self):
+    def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
         neighbourhood_method = "circular"
         ens_factor = 0.9

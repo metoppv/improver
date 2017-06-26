@@ -180,12 +180,13 @@ class Utilities(object):
         Parameters
         ----------
         ens_factor : float
-            Defined Factor with which to adjust the neighbour size
-            If ens_factor = 1.0 this essentially conservers ensemble
+            The factor with which to adjust the neighbourhood size
+            for more than one ensemble member.
+            If ens_factor = 1.0 this essentially conserves ensemble
             members if every grid square is considered to be the
             equivalent of an ensemble member.
         num_ens : float
-            Number of realizations / ensemble members.
+            Number of realizations or ensemble members.
         width_in_km : float
             radius or width appropriate for a single forecast in km.
 
@@ -425,7 +426,7 @@ class NeighbourhoodProcessing(object):
             The radii in kilometres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
-            at the zero indices of the cube projection-x/y coords.
+            at the zero indices of the cube projection-x and y coords.
         lead_times : None or List
             List of lead times or forecast periods, at which thel radii
             within radii_in_km are defined. The lead times are expected
@@ -435,8 +436,12 @@ class NeighbourhoodProcessing(object):
             If False, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
         ens_factor : float
-            The factor with which to multiple the adjustment to the
-            radii_in_km for more than one ensemble member.
+            The factor with which to adjust the neighbourhood size
+            for more than one ensemble member.
+            If ens_factor = 1.0 this essentially conserves ensemble
+            members if every grid square is considered to be the
+            equivalent of an ensemble member.
+            Optional, defaults to 1.0
         """
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
@@ -465,7 +470,7 @@ class NeighbourhoodProcessing(object):
         self.ens_factor = float(ens_factor)
 
     def _find_radii(self, num_ens, cube_lead_times=None):
-        """Revise radius/radii for found lead times and ensemble members
+        """Revise radius or radii for found lead times and ensemble members
 
         If cube_lead_times is None just adjust for ensemble
         members if necessary.
@@ -475,14 +480,14 @@ class NeighbourhoodProcessing(object):
         Parameters
         ----------
         num_ens : float
-            Number of ensemble members / realizations.
+            Number of ensemble members or realizations.
         cube_lead_times : np.array
             Array of forecast times found in cube.
 
         Returns
         -------
         radii : float or np.array of float
-            Required neighbourhood size/s.
+            Required neighbourhood sizes.
         """
         if cube_lead_times is None:
             radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
@@ -542,7 +547,7 @@ class NeighbourhoodProcessing(object):
             slices_over_realization = cube.slices_over("realization")
             if 'source_realizations' in cube.attributes:
                 msg = ("Realizations and attribute source_realizations "
-                       "should not both be set")
+                       "should not both be set in input cube")
                 raise ValueError(msg)
 
         if np.isnan(cube.data).any():

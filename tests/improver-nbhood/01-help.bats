@@ -64,9 +64,11 @@ optional arguments:
                         hour uses a radius of 10km, a lead time of 2 hours
                         uses a radius of 12km, etc.
   --ens_factor ENS_FACTOR
-                        The factor with which to multiple the adjustment to
-                        the radii_in_km for more than one ensemble member.
-                        Optional, defaults to 1.0
+                        The factor with which to adjust the neighbourhood size
+                        for more than one ensemble member. If ens_factor = 1.0
+                        this essentially conserves ensemble members if every
+                        grid square is considered to be the equivalent of an
+                        ensemble member.Optional, defaults to 1.0
 __HELP__
   [[ "$output" == "$expected" ]]
 }
