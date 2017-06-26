@@ -626,7 +626,7 @@ class Test_extract_ad_at_time(Test_common_functions):
 
     def test_invalid_extraction_time(self):
         """
-        Case for a time that is available within the additional diagnostic.
+        Case for a time that is not available within the additional diagnostic.
 
         """
         plugin = extract_ad_at_time
