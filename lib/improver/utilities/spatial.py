@@ -61,17 +61,17 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube from which the discrete differences will be calculated.
+            Cube from which the discrete differences have been calculated.
         coord_name : String
             The name of the coordinate over which the discrete difference
-            will be calculated.
+            have been calculated.
         diffs_along_axis : numpy array
             Array containing the discrete differences.
 
         Returns
         -------
         diff_cube : Iris.cube.Cube
-            Cube after the discrete differences have been calculated along the
+            Cube containing the discrete differences calculated along the
             specified axis.
         """
         points = cube.coord(coord_name).points
@@ -149,6 +149,10 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
         diff_along_x_cube : Iris.cube.Cube
             Cube after the discrete differences have been calculated along the
             x axis.
+
+        Raises
+        ------
+        InvalidCubeError if the input cube has too many dimensions
         """
         if cube.ndim > 2:
             msg = ("The input cube must have two dimensions: y and x."

@@ -110,6 +110,17 @@ class Test_create_discrete_difference_cube(IrisTest):
             result.attributes["direction_of_discrete_difference"],
             "forward_difference")
 
+    def test_othercoords(self):
+        """Test that other coords are transferred properly"""
+        input_array = np.array([[1, 2, 3],
+                                [3, 6, 9]])
+        time_coord = self.cube.coord('time')
+        proj_x_coord = self.cube.coord(axis='x')
+        result = self.plugin.create_discrete_difference_cube(
+            self.cube, "projection_y_coordinate", input_array)
+        self.assertEqual(result.coord(axis='x'), proj_x_coord)
+        self.assertEqual(result.coord('time'), time_coord)
+
 
 class Test_calculate_discrete_difference(IrisTest):
 
@@ -198,8 +209,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1].data, expected_y)
 
     def test_invalid_cube_error(self):
-        """Test that discrete differences are calculated along both the x and
-        y dimensions and returned as separate cubes."""
+        """Test that the correct exception is raised when the input cube has
+        too many dimensions."""
         self.cube = iris.util.new_axis(self.cube, "realization")
         msg = "The input cube must have two dimensions"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
