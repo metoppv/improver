@@ -70,7 +70,7 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
 
         Returns
         -------
-        diff_cube : Iris.cube.Cube
+        discrete_diff_cube : Iris.cube.Cube
             Cube containing the discrete differences calculated along the
             specified axis.
         """
@@ -81,7 +81,7 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
         # Create a new coordinate for the coordinate along which the discrete
         # difference has been calculated.
         metadata_dict = copy.deepcopy(cube.metadata._asdict())
-        diff_cube = Cube(diffs_along_axis, **metadata_dict)
+        discrete_diff_cube = Cube(diffs_along_axis, **metadata_dict)
 
         for coord in cube.dim_coords:
             dims = cube.coord_dims(coord)
@@ -89,21 +89,21 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
                 coord = DimCoord(
                     mean_points, standard_name=coord.standard_name,
                     units=coord.units)
-            diff_cube.add_dim_coord(coord.copy(), dims)
+            discrete_diff_cube.add_dim_coord(coord.copy(), dims)
         for coord in cube.aux_coords:
             dims = cube.coord_dims(coord)
-            diff_cube.add_aux_coord(coord.copy(), dims)
+            discrete_diff_cube.add_aux_coord(coord.copy(), dims)
         for coord in cube.derived_coords:
             dims = cube.coord_dims(coord)
-            diff_cube.add_aux_coord(coord.copy(), dims)
+            discrete_diff_cube.add_aux_coord(coord.copy(), dims)
 
         # Add metadata to indicate that a discrete difference has been
         # calculated.
         cell_method = CellMethod("discrete_difference", coords=[coord_name])
-        diff_cube.add_cell_method(cell_method)
-        diff_cube.attributes["direction_of_discrete_difference"] = (
+        discrete_diff_cube.add_cell_method(cell_method)
+        discrete_diff_cube.attributes["form_of_discrete_difference"] = (
             "forward_difference")
-        return diff_cube
+        return discrete_diff_cube
 
     def calculate_discrete_difference(self, cube, coord_axis):
         """
@@ -152,9 +152,9 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
 
         Raises
         ------
-        InvalidCubeError if the input cube has too many dimensions
+        InvalidCubeError if the input cube has too many dimensions.
         """
-        if cube.ndim > 2:
+        if cube.ndim != 2:
             msg = ("The input cube must have two dimensions: y and x."
                    "Instead the input cube was {}".format(cube))
             raise InvalidCubeError(msg)

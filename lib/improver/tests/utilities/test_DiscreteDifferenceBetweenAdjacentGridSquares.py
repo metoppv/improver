@@ -107,7 +107,7 @@ class Test_create_discrete_difference_cube(IrisTest):
         self.assertEqual(
             result.cell_methods[0], cell_method)
         self.assertEqual(
-            result.attributes["direction_of_discrete_difference"],
+            result.attributes["form_of_discrete_difference"],
             "forward_difference")
 
     def test_othercoords(self):
@@ -209,8 +209,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1].data, expected_y)
 
     def test_invalid_cube_error(self):
-        """Test that the correct exception is raised when the input cube has
-        too many dimensions."""
+        """Test that the correct exception is raised when the input cube
+        doesn't have two dimensions."""
         self.cube = iris.util.new_axis(self.cube, "realization")
         msg = "The input cube must have two dimensions"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
