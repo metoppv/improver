@@ -40,10 +40,7 @@ from improver.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.weighted_blend import BasicWeightedAverage
 
-
-def wrong_args_error(parser, args, method):
-     msg = 'Method: {} does not accept arguments: {}'
-     parser.error(msg.format(method, args))
+from lib.utilities import wrong_args_error
 
 def main():
     """Load in arguments and ensure they are set correctly. 
