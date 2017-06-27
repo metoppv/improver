@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run weighted blending."""
 
-import argparse
+
 
 import iris
 import numpy as np
@@ -39,14 +39,13 @@ import numpy as np
 from improver.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.weighted_blend import BasicWeightedAverage
-
-from lib.utilities import wrong_args_error
+from improver.argparser import ArgParser
 
 def main():
     """Load in arguments and ensure they are set correctly. 
        Then load in the data to blend and calculate default weights
        using the method chosen before carrying out the blending."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
     description='Calculate the default weights to apply in weighted ' +
                 'blending plugins using the ChooseDefaultWeightsLinear or ' +
                 'ChooseDefaultWeightsNonLinear plugins. Then apply these ' +
@@ -117,10 +116,10 @@ def main():
 
     if args.linear:
         if args.cval:
-            wrong_args_error(parser, 'cval', 'linear')
+            parser.wrong_args_error('cval', 'linear')
     if args.nonlinear:
         if np.any([args.y0val, args.ynval, args.slope]):
-            wrong_args_error(parser, 'y0val, slope, ynval', 'non-linear')
+            parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
 
     cube = iris.load_cube(args.input_filepath)
 

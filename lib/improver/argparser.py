@@ -28,30 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-""" Provides support utilities for cli scripts"""
+"""Common option utilities for Improver CLIs."""
+
+import argparse
 
 
-def wrong_args_error(parser, args, method):
-    """Function to raise a parser error
+class ArgParser(argparse.ArgumentParser):
+    """Argument parser for improver CLIs"""
 
-    Some CLI scripts have multiple methods of carrying out an action, with
-    each method having different arguments. This function provides a standard
-    error to be used when incompatible method-argument combinations are
-    passed in.
+    def wrong_args_error(self, args, method):
+        """Function to raise a parser error
 
-    Parameters
-    ----------
-    parser : instance of argparse.ArgumentParser
-      The argument parser which has parsed incompatible options and will
-      raise the error.
-    args : string
-      The incompatible arguments
-    method :  string
-      The method with which the arguments are incompatible
+        Some CLI scripts have multiple methods of carrying out an action, with
+        each method having different arguments. This function provides a
+        standard error to be used when incompatible method-argument
+        combinations are passed in.
 
-    Raises
-    ------
-    parser.error to notify user of incompatible method-argument combinations.
-    """
-    msg = 'Method: {} does not accept arguments: {}'
-    parser.error(msg.format(method, args))
+        Parameters
+        ----------
+        args : string
+          The incompatible arguments
+        method :  string
+          The method with which the arguments are incompatible
+
+        Raises
+        ------
+        parser.error to notify user of incompatible method-argument
+        combinations.
+        """
+        msg = 'Method: {} does not accept arguments: {}'
+        self.error(msg.format(method, args))
