@@ -118,17 +118,20 @@ def main():
     if args.coord_adj:
         args.coord_adj = eval(args.coord_adj)
 
-    cube = iris.load_cube(args.input_filepath)
-
     if args.linear:
         if args.cval:
             wrong_args_error(parser, 'cval', 'linear')
+    if args.nonlinear:
+        if np.any([args.y0val, args.ynval, args.slope]):
+            wrong_args_error(parser, 'y0val, slope, ynval', 'non-linear')
+
+    cube = iris.load_cube(args.input_filepath)
+
+    if args.linear:
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(cube, args.coordinate)
 
     if args.nonlinear:
-        if np.any([args.y0val, args.ynval, args.slope]):
-            wrong_args_error(parser, 'y0val, slope, ynval', 'non-linear')
         weights = ChooseDefaultWeightsNonLinear(cval).process(cube,
                                                               args.coordinate)
     result = (

@@ -34,7 +34,7 @@
 @test "weighted-blending --linear --ynval --cval" {
   # Run blending with non-linear weights calculation but linear args: check it fails.
   run improver weighted-blending --nonlinear 'time' --ynval 1 --y0val 0\
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
+      "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
