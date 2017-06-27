@@ -29,15 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood [-h]
-                       [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
-RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--ens_factor ENS_FACTOR]
-                       NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "nbhood 'circular' --radius-in-km=20 --ens_factor=2.0 input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run neighbourhood processing and check it passes for an ensemble.
+  run improver nbhood 'circular' --radius-in-km=20 --ens_factor=2.0 \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/ens/input.nc" "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/ens/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood --radius-in-km=20 input output" {
+@test "nbhood 'circular' --radius-in-km=20 input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
