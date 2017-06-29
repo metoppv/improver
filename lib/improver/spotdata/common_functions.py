@@ -35,6 +35,8 @@ Plugins written for the Improver site specific process chain.
 
 import warnings
 import numpy as np
+from datetime import datetime as dt
+import iris
 from iris import Constraint
 import iris
 from iris.time import PartialDateTime
@@ -289,7 +291,7 @@ def list_entry_from_index(list_in, index_in):
     return list(zip(*list_in)[index_in])
 
 
-def datetime_constraint(time_in):
+def datetime_constraint(time_in, time_max=None):
     """
     Constructs an iris equivalence constraint from a python datetime object.
 
@@ -297,15 +299,25 @@ def datetime_constraint(time_in):
     -----
     time_in : datetime.datetime object
         The time to be used to build an iris constraint.
+    time_max : datetime.datetime object
+        Optional max time, which if provided leads to a range constraint
+        being returned up to < time_max.
 
     Returns: iris.Constraint
         An iris constraint to be used in extracting data at the given time from
         a cube.
 
     """
-    return Constraint(
-        time=PartialDateTime(time_in.year, time_in.month,
-                             time_in.day, time_in.hour))
+    if time_max is not None:
+        time_start = PartialDateTime(
+            time_in.year, time_in.month, time_in.day, time_in.hour)
+        time_limit = PartialDateTime(
+            time_max.year, time_max.month, time_max.day, time_max.hour)
+        return Constraint(time=lambda cell: time_start <= cell < time_limit)
+    else:
+        return Constraint(
+            time=PartialDateTime(time_in.year, time_in.month,
+                                 time_in.day, time_in.hour))
 
 
 def construct_neighbour_hash(neighbour_finding):
@@ -482,3 +494,40 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
         cubes = additional_diagnostics[key]
         ad_extracted[key] = extract_cube_at_time(cubes, time, time_extract)
     return ad_extracted
+
+
+def iris_time_to_datetime(time):
+    """
+    Convert iris time to pythond datetime object.
+
+    Args:
+    -----
+    time : iris.coord.Coord
+        Iris time coordinate element(s).
+
+    Returns:
+    --------
+    list of datetime.datetime objects
+        The time element(s) recast as a python datetime object.
+
+    """
+    time.convert_units('seconds since 1970-01-01 00:00:00')
+    return [dt.utcfromtimestamp(value) for value in time.points]
+
+
+def dt_to_utc_hours(dt_in):
+    """
+    Convert python datetime.datetime into hours since 1970-01-01 00Z.
+
+    Args:
+    -----
+    dt_in : datetime.datetime object
+
+    Returns:
+    --------
+    hours since epoch : float
+
+    """
+    from time import mktime
+    utc_seconds = mktime(dt_in.utctimetuple())
+    return utc_seconds/3600.
