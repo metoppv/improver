@@ -52,7 +52,11 @@ class Test_get_ancillary_data(IrisTest):
     """
 
     def setUp(self):
+        """
+        Create a cube containing a regular lat-lon grid and other necessary
+        ingredients for unit tests.
 
+        """
         data = np.zeros((20, 20))
         latitudes = np.linspace(-90, 90, 20)
         longitudes = np.linspace(-180, 180, 20)
@@ -82,6 +86,7 @@ class Test_get_ancillary_data(IrisTest):
         iris.save(land, self.land_path)
 
     def tearDown(self):
+        """Remove temporary directories created for testing."""
         Call(['rm', '-rf', self.directory])
 
     def test_return_type(self):

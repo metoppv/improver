@@ -62,7 +62,11 @@ class Test_read_input(IrisTest):
     """
 
     def setUp(self):
-        """Create components required for testing framework."""
+        """
+        Create a cube containing a regular lat-lon grid and other necessary
+        ingredients for unit tests.
+
+        """
         data = np.arange(0, 800, 1)
         data.resize(2, 20, 20)
         latitudes = np.linspace(-90, 90, 20)
@@ -171,6 +175,7 @@ class Test_read_input(IrisTest):
         self.time_extract = time_extract
 
     def tearDown(self):
+        """Remove temporary directories created for testing."""
         Call(['rm', '-rf', self.data_directory])
 
 
