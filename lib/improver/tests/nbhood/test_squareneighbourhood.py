@@ -35,6 +35,8 @@ import unittest
 
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.coords import DimCoord
+
 import numpy as np
 
 from improver.nbhood import SquareNeighbourhood
@@ -72,26 +74,6 @@ class Test_cumulate_array(IrisTest):
         result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
-
-    def test_masked_array(self):
-        """
-        Test that the y-dimension and x-dimension accumulation produces the
-        intended result for a masked array. A 2d cube is passed in.
-        """
-        data = np.array([[0., 0., 0., 0., 0.],
-                         [0., 0., 0., 0., 0.],
-                         [0.5, 0.5, 0.5, 0.5, 1.],
-                         [0., 0., 0., 0., 0.],
-                         [0., 0., 0., 0., 0.]])
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
-        cube.data[0, 0, 2, 0] = 0.5
-        cube.data[0, 0, 2, 4] = 0.5
-        cube.data = np.ma.masked_greater(cube.data, 0.5)
-        result = SquareNeighbourhood().cumulate_array(cube)
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data.data, data)
 
     def test_for_multiple_times(self):
         """
@@ -159,25 +141,90 @@ class Test_cumulate_array(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
 
 
-class Test_run(IrisTest):
+class Test_mean_over_neighbourhood(IrisTest):
 
-    """Test the run method on the SquareNeighbourhood class."""
+    """Test for calculating mean value in neighbourhood"""
 
-    RADIUS_IN_KM = 10
-
-    def test_basic(self):
-        """Test that a cube with correct data is produced by the run method"""
+    def setUp(self):
         data = np.array([[1., 2., 3., 4., 5.],
                          [2., 4., 6., 8., 10.],
                          [3., 6., 8., 11., 14.],
                          [4., 8., 11., 15., 19.],
                          [5., 10., 14., 19., 24.]])
+        self.cube = Cube(data, long_name='test')
+        self.x_coord = DimCoord([0, 1, 2, 3, 4], standard_name='longitude')
+        self.y_coord = DimCoord([0, 1, 2, 3, 4], standard_name='latitude')
+        self.cube.add_dim_coord(self.x_coord, 0)
+        self.cube.add_dim_coord(self.y_coord, 1)
+        self.result = np.array([[1., 1., 1., 1., 1.],
+                                [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                                [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                                [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                                [1., 1., 1., 1., 1.]])
+        self.width = 1
+
+    def test_basic(self):
+        """Test cube with correct data is produced when mean over
+           neighbourhood is calculated."""
+        result = SquareNeighbourhood().mean_over_neighbourhood(
+            self.cube, self.width, self.width)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, self.result)
+
+    def test_multiple_times(self):
+        """Test mean over neighbourhood with more than two dimensions."""
+        data = np.array([[[1., 2., 3., 4., 5.],
+                          [2., 4., 6., 8., 10.],
+                          [3., 6., 8., 11., 14.],
+                          [4., 8., 11., 15., 19.],
+                          [5., 10., 14., 19., 24.]],
+                         [[0., 2., 3., 4., 5.],
+                          [2., 4., 6., 8., 10.],
+                          [3., 6., 8., 11., 14.],
+                          [4., 8., 11., 15., 19.],
+                          [5., 10., 14., 19., 24.]]])
+        cube = Cube(data, long_name='two times test')
+        cube.add_dim_coord(self.x_coord, 1)
+        cube.add_dim_coord(self.y_coord, 2)
+        t_coord = DimCoord([0, 1], standard_name='time')
+        cube.add_dim_coord(t_coord, 0)
+        expected_result = np.array([self.result, self.result])
+        expected_result[1, 2, 2] = 0.77777778
+        result = SquareNeighbourhood().mean_over_neighbourhood(
+            cube, self.width, self.width)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+
+
+class Test_run(IrisTest):
+
+    """Test the run method on the SquareNeighbourhood class."""
+
+    RADIUS_IN_KM = 2.5
+
+    def test_basic(self):
+        """Test that a cube with correct data is produced by the run method"""
+        data = np.array([[1., 1., 1., 1., 1.],
+                         [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                         [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                         [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+                         [1., 1., 1., 1., 1.]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         result = SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
+
+    def test_masked_array_fail(self):
+        """Test that the correct exception is raised when a masked array
+           is passed in."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = np.ma.masked_equal(cube.data, 1)
+        msg = 'Masked data is not currently supported'
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
 
 
 if __name__ == '__main__':

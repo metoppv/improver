@@ -46,7 +46,8 @@ def main():
                 'to a file with one cube.')
     parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
                         help='The neighbourhood method to apply in '
-                             'neighbourhood processing. Options: "circular".')
+                             'neighbourhood processing. Options: "circular", '
+                             '"square".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
                        help='The radius for neighbourhood processing')
