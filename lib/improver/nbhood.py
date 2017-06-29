@@ -222,29 +222,20 @@ class SquareNeighbourhood(object):
         cube : iris.cube.Cube
             Cube to which square neighbourhood has been applied.
         """
-        def _sum_and_area_of_neighbourhood(cube, cells_x, cells_y, i, j):
+        def _sum_and_area_for_edge_cases(cube, cells_x, cells_y, i, j):
             """
-            Function to calculate the total sum and area of the neighbourhood
-            surrounding a single grid point.
+            Function to calculate the total sum and area of neighbourhoods
+            surrounding edge cases which can't use the flatten and roll method.
             """
             x_min = i-cells_x-1
             x_max = min(cube.shape[1]-1, i+cells_x)
             y_min = j-cells_y-1
             y_max = min(cube.shape[0]-1, j+cells_y)
             summed_array = cube.data
-            if x_min < 0 and y_min < 0:
-                total = summed_array[y_max, x_max]
-            elif x_min < 0 and y_min >= 0:
-                total = (summed_array[y_max, x_max] -
-                         summed_array[y_min, x_max])
-            elif x_min >= 0 and y_min < 0:
-                total = (summed_array[y_max, x_max] -
-                         summed_array[y_max, x_min])
-            else:
-                total = (summed_array[y_max, x_max] -
-                         summed_array[y_min, x_max] -
-                         summed_array[y_max, x_min] +
-                         summed_array[y_min, x_min])
+            total = (summed_array[y_max, x_max] -
+                     summed_array[y_min, x_max]*(y_min >= 0) -
+                     summed_array[y_max, x_min]*(x_min >= 0) +
+                     summed_array[y_min, x_min]*(y_min >= 0 and x_min >= 0))
             x_min = max(-1, x_min)
             y_min = max(-1, y_min)
             area = (y_max - y_min) * (x_max - x_min)
@@ -252,17 +243,49 @@ class SquareNeighbourhood(object):
 
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
+
+        # Calculate displacement factors to find 4-points after flattening
+        # the array.
+        n_rows = len(cube.coord(axis="y").points)
+        n_columns = len(cube.coord(axis="x").points)
+        ymax_xmax_disp = (cells_y*n_columns) + cells_x  # array1
+        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x  # array2
+        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1  # array3
+        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1  # array4
+
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
-            sum_over_neighbourhood = np.zeros(slice_2d.shape)
-            neighbourhood_area = np.zeros(slice_2d.shape)
-            # Calculate total sum and area of neighbourhood at each grid point
-            for i in range(slice_2d.shape[1]):
-                for j in range(slice_2d.shape[0]):
-                    sum_over_neighbourhood[j, i], neighbourhood_area[j, i] = (
-                        _sum_and_area_of_neighbourhood(
+            # Flatten the 2d slice and calculate the sum over the array for
+            # non-edge cases. This is done by creating 4 copies of the
+            # flattened array which are rolled to allign the 4-points which
+            # are needed for the calculation.
+            flattened = slice_2d.data.flatten()
+            array1 = np.roll(flattened, -ymax_xmax_disp)
+            array2 = np.roll(flattened, -ymin_xmax_disp)
+            array3 = np.roll(flattened, -ymin_xmin_disp)
+            array4 = np.roll(flattened, -ymax_xmin_disp)
+            neighbourhood_total = array1 - array2 + array3 - array4
+            neighbourhood_total.resize(n_rows, n_columns)
+
+            # Initialise the neighbourhood size array and calculate
+            # neighbourhood size for non edge cases.
+            neighbourhood_area = np.zeros(neighbourhood_total.shape)
+            neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
+            # Calculate total sum and area of neighbourhood for edge cases.
+            edge_rows = range(cells_x*2) + range(n_rows-2*cells_x, n_rows)
+            edge_columns = range(cells_x*2) + range(n_columns-2*cells_x,
+                                                    n_columns)
+            for j in range(n_rows):
+                for i in (edge_columns):
+                    neighbourhood_total[j, i], neighbourhood_area[j, i] = (
+                        _sum_and_area_for_edge_cases(
                             slice_2d, cells_x, cells_y, i, j))
-            slice_2d.data = sum_over_neighbourhood/neighbourhood_area
+            for i in range(n_columns):
+                for j in (edge_rows):
+                    neighbourhood_total[j, i], neighbourhood_area[j, i] = (
+                        _sum_and_area_for_edge_cases(
+                            slice_2d, cells_x, cells_y, i, j))
+            slice_2d.data = neighbourhood_total/neighbourhood_area
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
