@@ -34,12 +34,10 @@ Plugins written for the Improver site specific process chain.
 For reading data files from UM output and site specification input.
 
 """
-
+import os
 import iris
+import json
 from iris import load_cube, load
-from iris.cube import CubeList
-
-iris.FUTURE.netcdf_promote = True
 
 
 class Load(object):
@@ -144,14 +142,22 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
                       data, with a single entry is time_extract is provided.
 
     """
-    cubes = Load('multi_file').process(
-        diagnostic_data_path + '/*/*' + diagnostic_name + '*',
-        None)
+    # Search directory structure for all files relevant to current diagnostic.
+    files_to_read = [
+        os.path.join(dirpath, filename)
+        for dirpath, _, files in os.walk(diagnostic_data_path)
+        for filename in files if diagnostic_name in filename]
+
+    if not files_to_read:
+        raise IOError('No relevant data files found in {}.'.format(
+            diagnostic_data_path))
+    cubes = Load('multi_file').process(files_to_read, None)
+
     if time_extract is not None:
         with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = cubes.extract(time_extract)
-        cubes = CubeList()
-        cubes.append(cube)
+            cubes = cubes.extract(time_extract)
+        if not cubes:
+            raise ValueError('No diagnostics match {}'.format(time_extract))
     return cubes
 
 
@@ -184,4 +190,36 @@ def data_from_dictionary(dictionary_data, key):
     if key in dictionary_data.keys():
         return dictionary_data[key]
 
-    raise Exception('Data {} not found in dictionary.'.format(key))
+    raise ValueError('Data {} not found in dictionary.'.format(key))
+
+
+def read_config(file_path):
+    """
+    Read a json file containing configuration information.
+
+    Args:
+    -----
+    file_path : string
+        Path to the configuration file.
+
+    Returns:
+    --------
+    configuration : dict
+        Dictionary containing configuration information.
+
+    Raises:
+    -------
+    IOError : Raised when no file is found at given path.
+
+    """
+    try:
+        config_file = open(file_path, 'r')
+    except:
+        raise IOError("Config file {} not found.".format(file_path))
+
+    try:
+        configuration = json.load(config_file)
+    except:
+        raise TypeError('Invalid json format. Unable to read configuration '
+                        'from {}.'.format(file_path))
+    return configuration
