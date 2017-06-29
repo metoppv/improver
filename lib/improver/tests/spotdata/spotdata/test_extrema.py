@@ -36,15 +36,12 @@ import numpy as np
 import numpy.ma as ma
 import cf_units
 from iris import Constraint
-from iris import coord_systems
 from iris.coords import (DimCoord,
                          AuxCoord)
 from iris.cube import Cube
 from iris.tests import IrisTest
 from time import mktime
 from datetime import datetime as dt
-from datetime import timedelta
-from datetime import time
 
 from improver.spotdata.extrema import ExtractExtrema as Plugin
 from improver.spotdata.extrema import make_local_time_cube
@@ -293,9 +290,11 @@ class Test_get_valid_dates(Test_extrema):
 
         """
         expected_start = dt(2017, 03, 27, 6)
-        expected_start = dt(2017, 03, 29, 6)
+        expected_end = dt(2017, 03, 29, 6)
         result_start, result_end = get_valid_dates(self.time_coord,
                                                    start_hour=6)
+        self.assertEqual(expected_start, result_start)
+        self.assertEqual(expected_end, result_end)
 
     def test_get_valid_dates_non_int_hour(self):
         """
@@ -308,6 +307,7 @@ class Test_get_valid_dates(Test_extrema):
 
 
 class Test_make_local_time_cube(Test_extrema):
+    """Test time localisation function."""
 
     def test_time_coord(self):
         """
