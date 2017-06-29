@@ -146,6 +146,7 @@ class Test_mean_over_neighbourhood(IrisTest):
     """Test for calculating mean value in neighbourhood"""
 
     def setUp(self):
+        """Set up cube and expected results for tests."""
         data = np.array([[1., 2., 3., 4., 5.],
                          [2., 4., 6., 8., 10.],
                          [3., 6., 8., 11., 14.],
@@ -224,7 +225,7 @@ class Test_run(IrisTest):
         cube.data = np.ma.masked_equal(cube.data, 1)
         msg = 'Masked data is not currently supported'
         with self.assertRaisesRegexp(ValueError, msg):
-            result = SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
+            SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
 
 
 if __name__ == '__main__':
