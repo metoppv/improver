@@ -44,26 +44,31 @@ from improver.weights import WeightsUtilities
 
 
 def set_up_cube():
-        data = np.zeros((2, 2, 2))
-        data[0][:][:] = 0.0
-        data[1][:][:] = 1.0
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                    units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        time_coord = AuxCoord([402192.5, 402193.5],
-                              "time", units=tunit)
-        cube.add_aux_coord(time_coord, 0)
-        dummy_scalar_coord = iris.coords.AuxCoord(1,
-                                                  long_name='scalar_coord',
-                                                  units='no_unit')
-        cube.add_aux_coord(dummy_scalar_coord)
-        return cube
+    """Create a cube for testing
+        Returns:
+            cube : iris.cube.Cube
+                   dummy cube for testing
+    """
+    data = np.zeros((2, 2, 2))
+    data[0][:][:] = 0.0
+    data[1][:][:] = 1.0
+    cube = Cube(data, standard_name="precipitation_amount",
+                units="kg m^-2 s^-1")
+    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
+                                units='degrees'), 1)
+    cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
+                                units='degrees'), 2)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    time_coord = AuxCoord([402192.5, 402193.5],
+                          "time", units=tunit)
+    cube.add_aux_coord(time_coord, 0)
+    dummy_scalar_coord = iris.coords.AuxCoord(1,
+                                              long_name='scalar_coord',
+                                              units='no_unit')
+    cube.add_aux_coord(dummy_scalar_coord)
+    return cube
 
 
 def add_realizations(cube, num):
@@ -299,6 +304,7 @@ class Test_process_coord(IrisTest):
     """Test the linear weights function. """
 
     def setUp(self):
+        """Setup for testing process coord"""
         self.cube = set_up_cube()
         self.coord = self.cube.coord("time")
 
@@ -360,9 +366,6 @@ class Test_process_coord(IrisTest):
 
     def test_fails_if_can_not_convert_units(self):
         """Test fails if it can not convert units """
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
         time_coord = AuxCoord([402191.5, 402192.5],
                               "time", units="mm")
         msg = ('Failed to convert coord units ')
@@ -385,6 +388,7 @@ class Test_process_coord(IrisTest):
          result_missing) = WeightsUtilities.process_coord(self.cube,
                                                           time_coord)
         self.assertAlmostEquals(result_num_of_weights, expected_num)
+        self.assertArrayAlmostEqual(result_missing, expected_array)
 
 if __name__ == '__main__':
     unittest.main()
