@@ -145,5 +145,18 @@ class TestChooseDefaultWeightsLinear(IrisTest):
                                     0.13333333, 0.11111111])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_works_with_missing_coord(self):
+        """Test it works with missing coord """
+        plugin = LinearWeights(y0val=10.0, ynval=5.0)
+        cubenew = add_realizations(self.cube, 6)
+        coord = iris.coords.AuxCoord([0, 1, 2, 3, 4, 5, 6],
+                                     standard_name='realization')
+        result = plugin.process(cubenew, coord)
+        expected_result = np.array([0.206349, 0.190476,
+                                    0.174603, 0.15873,
+                                    0.142857, 0.126984])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
 if __name__ == '__main__':
     unittest.main()

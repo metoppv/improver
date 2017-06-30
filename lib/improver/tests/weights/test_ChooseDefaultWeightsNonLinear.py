@@ -128,5 +128,18 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
                                     0.03174603, 0.01587302])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_works_with_missing_coord(self):
+        """Test it works with missing coord """
+        plugin = NonLinearWeights(cval=0.6)
+        cubenew = add_realizations(self.cube, 6)
+        coord = iris.coords.AuxCoord([0, 1, 2, 3, 4, 5, 6],
+                                     standard_name='realization')
+        result = plugin.process(cubenew, coord)
+        expected_result = np.array([0.41472, 0.250112,
+                                    0.151347, 0.092088,
+                                    0.056533, 0.0352])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
 if __name__ == '__main__':
     unittest.main()

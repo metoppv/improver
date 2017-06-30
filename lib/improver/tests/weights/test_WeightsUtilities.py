@@ -303,12 +303,88 @@ class Test_process_coord(IrisTest):
         self.coord = self.cube.coord("time")
 
     def test_basic(self):
-        """Test it returns num and array of missing_weights. """
+        """Test process_cord returns num and array of missing_weights. """
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(self.cube,
                                                           self.coord)
         self.assertIsInstance(result_num_of_weights, int)
         self.assertIsInstance(result_missing, np.ndarray)
+
+    def test_fails_not_a_coord(self):
+        """ Test it fails if second argument is not a Coord """
+        coord = "time"
+        msg = ('The second argument must be an instance of '
+               'iris.coords.Coord')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WeightsUtilities.process_coord(self.cube,
+                                           coord)
+
+    def test_fails_coord_not_in_cube(self):
+        """ Test process_cord fails if coord not in cube """
+        coord = iris.coords.AuxCoord(1,
+                                     long_name='not_in_cube',
+                                     units='no_unit')
+        msg = ('The coord for this plugin must be '
+               'an existing coordinate in the input cube.')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WeightsUtilities.process_coord(self.cube,
+                                           coord)
+
+    def test_no_points_set_in_coord(self):
+        """Test returns num in coordinate if no points set in coord. """
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        time_coord = AuxCoord([],
+                              "time", units=tunit)
+        expected_num = len(self.coord.points)
+        expected_array = np.ones(expected_num)
+        (result_num_of_weights,
+         result_missing) = WeightsUtilities.process_coord(self.cube,
+                                                          time_coord)
+        self.assertAlmostEquals(result_num_of_weights, expected_num)
+        self.assertArrayAlmostEqual(result_missing, expected_array)
+
+    def test_fails_less_points_in_coord(self):
+        """Test fails if less points in coord than in cube. """
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        time_coord = AuxCoord([402192.5],
+                              "time", units=tunit)
+        msg = ('The cube coordinate has more points '
+               'than requested coord, ')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WeightsUtilities.process_coord(self.cube,
+                                           time_coord)
+
+    def test_fails_if_can_not_convert_units(self):
+        """Test fails if it can not convert units """
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        time_coord = AuxCoord([402191.5, 402192.5],
+                              "time", units="mm")
+        msg = ('Failed to convert coord units ')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WeightsUtilities.process_coord(self.cube,
+                                           time_coord)
+
+    def test_finds_missing_points(self):
+        """Test finds missing points correctly"""
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        time_coord = AuxCoord([402191.5, 402192.5,
+                               402193.5],
+                              "time", units=tunit)
+        expected_num = 3
+        expected_array = np.ones(expected_num)
+        expected_array[0] = 0.0
+        (result_num_of_weights,
+         result_missing) = WeightsUtilities.process_coord(self.cube,
+                                                          time_coord)
+        self.assertAlmostEquals(result_num_of_weights, expected_num)
 
 if __name__ == '__main__':
     unittest.main()

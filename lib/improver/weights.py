@@ -238,7 +238,7 @@ class WeightsUtilities(object):
         """
         if not isinstance(coord, iris.coords.Coord):
             msg = ('The second argument must be an instance of '
-                   'iris.corrd.Coord but is'
+                   'iris.coords.Coord but is'
                    ' {0:s}'.format(type(coord)))
             raise ValueError(msg)
 
@@ -267,7 +267,8 @@ class WeightsUtilities(object):
         if len(cube_coord.points < num_of_weights):
             # Firstly check that coord is in the right units
             # Do not try if coord.units not set
-            if coord.units != cf_units.Unit('1'):
+            if (coord.units != cf_units.Unit('1') and
+                    str(coord.units) != 'no_unit'):
                 if coord.units != cube_coord.units:
                     try:
                         coord.convert_units(cube_coord.units)

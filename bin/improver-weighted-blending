@@ -65,6 +65,11 @@ def main():
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending ' +
                              'will be applied.')
+    parser.add_argument('--coord_exp_val', metavar='COORD_EXPECTED_VALUES',
+                        type=str,
+                        help='Optional string of expected coordinate points '
+                              'seperated by , '
+                              'e.g. "1496289600, 1496293200"')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
@@ -123,13 +128,24 @@ def main():
 
     cube = iris.load_cube(args.input_filepath)
 
+    if args.coord_exp_val:
+        coord_values = args.coord_exp_val.split(",")
+        for i, val in enumerate(coord_values):
+            coord_values[i] = int(val)
+        weights_coord = iris.coords.AuxCoord(coord_values,
+                                            long_name=args.coordinate,
+                                            units='no_unit')
+    else:
+        weights_coord = iris.coords.AuxCoord([],
+                                           long_name=args.coordinate,
+                                            units='no_unit')
     if args.linear:
         weights = ChooseDefaultWeightsLinear(
-            args.y0val, slope, args.ynval).process(cube, args.coordinate)
+            args.y0val, slope, args.ynval).process(cube, weights_coord)
 
     if args.nonlinear:
         weights = ChooseDefaultWeightsNonLinear(cval).process(cube,
-                                                              args.coordinate)
+                                                              weights_coord)
     result = (
         BasicWeightedAverage(
             args.coordinate, args.coord_adj).process(cube, weights))
