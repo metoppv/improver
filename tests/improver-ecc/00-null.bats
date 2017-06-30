@@ -29,18 +29,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood
+@test "ecc no arguments" {
+  run improver ecc
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-bash-4.1$ improver ecc
-usage: improver-ecc [-h] (--reordering | --rebadging)
-                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
+usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                    (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
                     [--random_ordering RANDOM_ORDERING]
                     [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
+improver-ecc: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
