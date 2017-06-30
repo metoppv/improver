@@ -102,27 +102,7 @@ def main():
 
     args = parser.parse_args()
 
-    cube = iris.load_cube(args.input_filepath)
-
-# TODO: Implement percentiles from probabilities
-#    threshold_coords = (coord for coord in cube.coords()
-#                            if 'threshold' in coord.name())
-
-    if cube.coords('percentile_over_realization'):
-        result_cube = ResamplePercentiles().process(
-            cube, no_of_percentiles=int(args.no_of_percentiles[0]),
-            sampling=args.sampling_method)
-
-# TODO: Percentiles from probabilities
-#    elif len(list(threshold_coords))>0:
-#        result_cube = GeneratePercentilesFromProbabilities().process(
-#            cube, no_of_percentiles=int(args.no_of_percentiles[0]),
-#            sampling=args.sampling_method)
-    else:
-        msg = ('The input cube: {} does not have a '
-               'percentile_over_realization dimension.'.format(cube))
-        raise CoordinateNotFoundError(msg)
-
+    # CLI argument checking:
     # Can only do one of reordering or rebadging: if options are passed which
     # correspond to the opposite method, raise an exception.
     # Note: Shouldn't need to check that both/none are set, since they are
@@ -130,13 +110,31 @@ def main():
     if args.reordering:
         if np.any([args.member_numbers]):
             parser.wrong_args_error('member_numbers', 'reordering')
-        raw_forecast = iris.load_cube(args.raw_forecast_filepath)
-        result_cube = EnsembleReordering().process(
-            cube, raw_forecast, random_ordering=args.random_ordering)
     elif args.rebadging:
         if np.any([args.raw_forecast_filepath, args.random_ordering]):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
+
+
+    # Safe to now actually do the work...
+    cube = iris.load_cube(args.input_filepath)
+
+    # TODO: checking should eventually be moved into the framework itself:
+    if not cube.coords('percentile_over_realization'):
+        msg = ('The input cube: {} does not have a '
+               'percentile_over_realization dimension.'.format(cube))
+        raise CoordinateNotFoundError(msg)
+
+    # For now, assume only doing percentiles -> percentiles
+    result_cube = ResamplePercentiles().process(
+        cube, no_of_percentiles=int(args.no_of_percentiles[0]),
+        sampling=args.sampling_method)
+
+    if args.reordering:
+        raw_forecast = iris.load_cube(args.raw_forecast_filepath)
+        result_cube = EnsembleReordering().process(
+            cube, raw_forecast, random_ordering=args.random_ordering)
+    elif args.rebadging:
         result_cube = RebadgePercentilesAsMembers().process(
             cube, ensemble_member_numbers=args.member_numbers)
 
