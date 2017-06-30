@@ -37,11 +37,11 @@ from iris.exceptions import InvalidCubeError
 import numpy as np
 
 
-class DiscreteDifferenceBetweenAdjacentGridSquares(object):
+class DifferenceBetweenAdjacentGridSquares(object):
 
     """
-    Calculate the discrete difference between adjacent grid squares within
-    a cube. The discrete difference is calculated along the x and y axis
+    Calculate the difference between adjacent grid squares within
+    a cube. The difference is calculated along the x and y axis
     individually.
     """
 
@@ -52,36 +52,36 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
         pass
 
     @staticmethod
-    def create_discrete_difference_cube(
-            cube, coord_name, diffs_along_axis):
+    def create_difference_cube(
+            cube, coord_name, diff_along_axis):
         """
-        Put the discrete difference array into a cube with the appropriate
+        Put the difference array into a cube with the appropriate
         metadata.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube from which the discrete differences have been calculated.
+            Cube from which the differences have been calculated.
         coord_name : String
-            The name of the coordinate over which the discrete difference
+            The name of the coordinate over which the difference
             have been calculated.
-        diffs_along_axis : numpy array
-            Array containing the discrete differences.
+        diff_along_axis : numpy array
+            Array containing the differences.
 
         Returns
         -------
-        discrete_diff_cube : Iris.cube.Cube
-            Cube containing the discrete differences calculated along the
+        diff_cube : Iris.cube.Cube
+            Cube containing the differences calculated along the
             specified axis.
         """
         points = cube.coord(coord_name).points
         mean_points = (points[1:] + points[:-1]) / 2
 
         # Copy cube metadata and coordinates into a new cube.
-        # Create a new coordinate for the coordinate along which the discrete
+        # Create a new coordinate for the coordinate along which the
         # difference has been calculated.
         metadata_dict = copy.deepcopy(cube.metadata._asdict())
-        discrete_diff_cube = Cube(diffs_along_axis, **metadata_dict)
+        diff_cube = Cube(diff_along_axis, **metadata_dict)
 
         for coord in cube.dim_coords:
             dims = cube.coord_dims(coord)
@@ -89,65 +89,69 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
                 coord = DimCoord(
                     mean_points, standard_name=coord.standard_name,
                     units=coord.units)
-            discrete_diff_cube.add_dim_coord(coord.copy(), dims)
+            diff_cube.add_dim_coord(coord.copy(), dims)
         for coord in cube.aux_coords:
             dims = cube.coord_dims(coord)
-            discrete_diff_cube.add_aux_coord(coord.copy(), dims)
+            diff_cube.add_aux_coord(coord.copy(), dims)
         for coord in cube.derived_coords:
             dims = cube.coord_dims(coord)
-            discrete_diff_cube.add_aux_coord(coord.copy(), dims)
+            diff_cube.add_aux_coord(coord.copy(), dims)
 
-        # Add metadata to indicate that a discrete difference has been
-        # calculated.
-        cell_method = CellMethod("discrete_difference", coords=[coord_name])
-        discrete_diff_cube.add_cell_method(cell_method)
-        discrete_diff_cube.attributes["form_of_discrete_difference"] = (
+        # Add metadata to indicate that a difference has been calculated.
+        # TODO: update this metadata when proper conventions have been
+        #       agreed upon.
+        cell_method = CellMethod("difference", coords=[coord_name],
+                                 intervals='1 grid length')
+        diff_cube.add_cell_method(cell_method)
+        diff_cube.attributes["form_of_difference"] = (
             "forward_difference")
-        return discrete_diff_cube
+        diff_cube.rename('difference_of_' + cube.name())
+        print diff_cube
+        return diff_cube
 
-    def calculate_discrete_difference(self, cube, coord_axis):
+    def calculate_difference(self, cube, coord_axis):
         """
-        Calculate the discrete difference along the axis specified by the
+        Calculate the difference along the axis specified by the
         coordinate.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube from which the discrete differences will be calculated.
+            Cube from which the differences will be calculated.
         coord_axis : String
             Short-hand reference for the x or y coordinate, as allowed by
             iris.util.guess_coord_axis.
 
         Returns
         -------
-        diff_along_cube : Iris.cube.Cube
-            Cube after the discrete differences have been calculated along the
+        diff_cube : Iris.cube.Cube
+            Cube after the differences have been calculated along the
             specified axis.
         """
         coord_name = cube.coord(axis=coord_axis).name()
         diff_axis = cube.coord_dims(coord_name)[0]
-        diffs_along_axis = np.diff(cube.data, axis=diff_axis)
-        diff_along_cube = self.create_discrete_difference_cube(
-            cube, coord_name, diffs_along_axis)
-        return diff_along_cube
+        diff_along_axis = np.diff(cube.data, axis=diff_axis)
+        diff_cube = self.create_difference_cube(
+            cube, coord_name, diff_along_axis)
+        return diff_cube
 
     def process(self, cube):
         """
-        Calculate the discrete difference along the x and y axes and return
+        Calculate the difference along the x and y axes and return
         the result in separate cubes.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube from which the discrete differences will be calculated.
+            Cube from which the differences will be calculated.
 
         Returns
         -------
         diff_along_y_cube : Iris.cube.Cube
-            Cube after the discrete differences have been calculated along the
+            Cube after the differences have been calculated along the
             y axis.
         diff_along_x_cube : Iris.cube.Cube
-            Cube after the discrete differences have been calculated along the
+            Cube after the differences have been calculated along the
             x axis.
 
         Raises
@@ -158,6 +162,6 @@ class DiscreteDifferenceBetweenAdjacentGridSquares(object):
             msg = ("The input cube must have two dimensions: y and x."
                    "Instead the input cube was {}".format(cube))
             raise InvalidCubeError(msg)
-        diff_along_y_cube = self.calculate_discrete_difference(cube, "y")
-        diff_along_x_cube = self.calculate_discrete_difference(cube, "x")
+        diff_along_y_cube = self.calculate_difference(cube, "y")
+        diff_along_x_cube = self.calculate_difference(cube, "x")
         return diff_along_x_cube, diff_along_y_cube

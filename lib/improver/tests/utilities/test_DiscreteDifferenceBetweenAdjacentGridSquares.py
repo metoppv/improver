@@ -42,7 +42,7 @@ import numpy as np
 from numpy import ma
 
 from improver.utilities.spatial import (
-    DiscreteDifferenceBetweenAdjacentGridSquares)
+    DifferenceBetweenAdjacentGridSquares)
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
@@ -65,9 +65,9 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
     return cube
 
 
-class Test_create_discrete_difference_cube(IrisTest):
+class Test_create_difference_cube(IrisTest):
 
-    """Test the create_discrete_difference_cube method."""
+    """Test the create_difference_cube method."""
 
     def setUp(self):
         """Set up cube."""
@@ -75,56 +75,58 @@ class Test_create_discrete_difference_cube(IrisTest):
                          [2, 4, 6],
                          [5, 10, 15]])
         self.cube = set_up_cube(data, "wind_speed", "m s-1")
-        self.plugin = DiscreteDifferenceBetweenAdjacentGridSquares()
+        self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_y_dimension(self):
-        """Test discrete differences calculated along the y dimension."""
-        input_array = np.array([[1, 2, 3],
-                                [3, 6, 9]])
-        result = self.plugin.create_discrete_difference_cube(
-            self.cube, "projection_y_coordinate", input_array)
+        """Test differences calculated along the y dimension."""
+        diff_array = np.array([[1, 2, 3],
+                               [3, 6, 9]])
+        result = self.plugin.create_difference_cube(
+            self.cube, "projection_y_coordinate", diff_array)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, input_array)
+        self.assertArrayAlmostEqual(result.data, diff_array)
 
     def test_x_dimension(self):
-        """Test discrete differences calculated along the x dimension."""
-        input_array = np.array([[1, 1],
-                                [2, 2],
-                                [5, 5]])
-        result = self.plugin.create_discrete_difference_cube(
-            self.cube, "projection_x_coordinate", input_array)
+        """Test differences calculated along the x dimension."""
+        diff_array = np.array([[1, 1],
+                               [2, 2],
+                               [5, 5]])
+        result = self.plugin.create_difference_cube(
+            self.cube, "projection_x_coordinate", diff_array)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, input_array)
+        self.assertArrayAlmostEqual(result.data, diff_array)
 
     def test_metadata(self):
         """Test that the result has the expected metadata."""
-        input_array = np.array([[1, 2, 3],
-                                [3, 6, 9]])
+        diff_array = np.array([[1, 2, 3],
+                               [3, 6, 9]])
         cell_method = CellMethod(
-            "discrete_difference", coords=["projection_y_coordinate"])
-        result = self.plugin.create_discrete_difference_cube(
-            self.cube, "projection_y_coordinate", input_array)
+            "difference", coords=["projection_y_coordinate"],
+            intervals='1 grid length')
+        result = self.plugin.create_difference_cube(
+            self.cube, "projection_y_coordinate", diff_array)
         self.assertEqual(
             result.cell_methods[0], cell_method)
         self.assertEqual(
-            result.attributes["form_of_discrete_difference"],
+            result.attributes["form_of_difference"],
             "forward_difference")
+        self.assertEqual(result.name(), 'difference_of_wind_speed')
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
-        input_array = np.array([[1, 2, 3],
-                                [3, 6, 9]])
+        diff_array = np.array([[1, 2, 3],
+                               [3, 6, 9]])
         time_coord = self.cube.coord('time')
         proj_x_coord = self.cube.coord(axis='x')
-        result = self.plugin.create_discrete_difference_cube(
-            self.cube, "projection_y_coordinate", input_array)
+        result = self.plugin.create_difference_cube(
+            self.cube, "projection_y_coordinate", diff_array)
         self.assertEqual(result.coord(axis='x'), proj_x_coord)
         self.assertEqual(result.coord('time'), time_coord)
 
 
-class Test_calculate_discrete_difference(IrisTest):
+class Test_calculate_difference(IrisTest):
 
-    """Test the calculate_discrete_difference method."""
+    """Test the calculate_difference method."""
 
     def setUp(self):
         """Set up cube."""
@@ -132,22 +134,22 @@ class Test_calculate_discrete_difference(IrisTest):
                          [2, 4, 6],
                          [5, 10, 15]])
         self.cube = set_up_cube(data, "wind_speed", "m s-1")
-        self.plugin = DiscreteDifferenceBetweenAdjacentGridSquares()
+        self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_x_dimension(self):
-        """Test discrete differences calculated along the x dimension."""
+        """Test differences calculated along the x dimension."""
         expected = np.array([[1, 1],
                              [2, 2],
                              [5, 5]])
-        result = self.plugin.calculate_discrete_difference(self.cube, "x")
+        result = self.plugin.calculate_difference(self.cube, "x")
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_y_dimension(self):
-        """Test discrete differences calculated along the y dimension."""
+        """Test differences calculated along the y dimension."""
         expected = np.array([[1, 2, 3],
                              [3, 6, 9]])
-        result = self.plugin.calculate_discrete_difference(self.cube, "y")
+        result = self.plugin.calculate_difference(self.cube, "y")
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -159,7 +161,7 @@ class Test_calculate_discrete_difference(IrisTest):
         cube = set_up_cube(data, "wind_speed", "m s-1")
         expected = np.array([[np.nan, 2, 3],
                              [np.nan, 6, 9]])
-        result = self.plugin.calculate_discrete_difference(cube, "y")
+        result = self.plugin.calculate_difference(cube, "y")
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -176,7 +178,7 @@ class Test_calculate_discrete_difference(IrisTest):
                              [3, 6, 9]],
                             mask=[[1, 0, 0],
                                   [1, 0, 0]])
-        result = self.plugin.calculate_discrete_difference(cube, "y")
+        result = self.plugin.calculate_difference(cube, "y")
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.data, expected)
         self.assertArrayEqual(result.data.mask, expected.mask)
@@ -192,10 +194,10 @@ class Test_process(IrisTest):
                          [2, 4, 6],
                          [5, 10, 15]])
         self.cube = set_up_cube(data, "wind_speed", "m s-1")
-        self.plugin = DiscreteDifferenceBetweenAdjacentGridSquares()
+        self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_basic(self):
-        """Test that discrete differences are calculated along both the x and
+        """Test that differences are calculated along both the x and
         y dimensions and returned as separate cubes."""
         expected_x = np.array([[1, 1],
                               [2, 2],
