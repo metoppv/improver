@@ -36,7 +36,6 @@ from cf_units import Unit
 import iris
 from iris.cube import Cube
 from iris.coords import AuxCoord, CellMethod, DimCoord
-from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 import numpy as np
 from numpy import ma

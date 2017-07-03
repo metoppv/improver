@@ -33,7 +33,6 @@
 import copy
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
-from iris.exceptions import InvalidCubeError
 import numpy as np
 
 
