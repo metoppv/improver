@@ -90,7 +90,8 @@ def main():
                         metavar='RAW_FORECAST_FILE',
                         help='A path to an raw forecast NetCDF file to be '
                              'processed.')
-    reordering.add_argument('--random_ordering',
+    reordering.add_argument('--random_ordering', default=False,
+                        action='store_true',
                         help='Decide whether or not to use random ordering '
                              'within the ensemble reordering step.')
 
