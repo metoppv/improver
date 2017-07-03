@@ -36,6 +36,8 @@
 import iris
 from iris.exceptions import CoordinateNotFoundError
 
+import numpy as np
+
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsMembers, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
@@ -54,7 +56,7 @@ def main():
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    parser.add_argument('--no_of_percentiles', nargs=1, default=None,
+    parser.add_argument('--no_of_percentiles', default=None, type=int,
                         metavar='NUMBER_OF_PERCENTILES',
                         help='The number of percentiles to be generated.')
     parser.add_argument('--sampling_method', default='quantile',
@@ -127,7 +129,7 @@ def main():
 
     # For now, assume only doing percentiles -> percentiles
     result_cube = ResamplePercentiles().process(
-        cube, no_of_percentiles=int(args.no_of_percentiles[0]),
+        cube, no_of_percentiles=args.no_of_percentiles,
         sampling=args.sampling_method)
 
     if args.reordering:

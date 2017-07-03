@@ -32,8 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast input output" {
-  #TEST_DIR=$(mktemp -d)
-  TEST_DIR="/net/data/nwp1/gevans/improver/cli_tests/ecc/"
+  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run Ensemble Copula Coupling and check it passes.
