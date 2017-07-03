@@ -135,10 +135,10 @@ def main():
     if args.reordering:
         raw_forecast = iris.load_cube(args.raw_forecast_filepath)
         result_cube = EnsembleReordering().process(
-            cube, raw_forecast, random_ordering=args.random_ordering)
+            result_cube, raw_forecast, random_ordering=args.random_ordering)
     elif args.rebadging:
         result_cube = RebadgePercentilesAsMembers().process(
-            cube, ensemble_member_numbers=args.member_numbers)
+            result_cube, ensemble_member_numbers=args.member_numbers)
 
     iris.save(result_cube, args.output_filepath)
 
