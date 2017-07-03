@@ -106,7 +106,6 @@ class DifferenceBetweenAdjacentGridSquares(object):
         diff_cube.attributes["form_of_difference"] = (
             "forward_difference")
         diff_cube.rename('difference_of_' + cube.name())
-        print diff_cube
         return diff_cube
 
     def calculate_difference(self, cube, coord_axis):
@@ -155,14 +154,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
             Cube after the differences have been calculated along the
             x axis.
 
-        Raises
-        ------
-        InvalidCubeError if the input cube has too many dimensions.
         """
-        if cube.ndim != 2:
-            msg = ("The input cube must have two dimensions: y and x."
-                   "Instead the input cube was {}".format(cube))
-            raise InvalidCubeError(msg)
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
         return diff_along_x_cube, diff_along_y_cube
