@@ -581,7 +581,6 @@ class Test_process(IrisTest):
         plugin = Plugin()
         result = plugin.process(post_processed_percentiles, raw_cube,
                                 random_ordering=True)
-        result.transpose([1, 0])
 
         permutations = list(itertools.permutations(raw_data))
         permutations = [np.array(permutation) for permutation in permutations]
@@ -648,7 +647,6 @@ class Test_process(IrisTest):
 
         plugin = Plugin()
         result = plugin.process(post_processed_percentiles, raw_cube)
-        result.transpose([1, 0])
         permutations = [expected_first, expected_second]
         matches = [
             np.array_equal(aresult, result.data) for aresult in permutations]

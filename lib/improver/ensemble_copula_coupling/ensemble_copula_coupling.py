@@ -793,4 +793,9 @@ class EnsembleReordering(object):
         post_processed_forecast_members = (
             RebadgePercentilesAsMembers.process(
                 post_processed_forecast_members))
+
+        post_processed_forecast_members = (
+            ensure_dimension_is_the_zeroth_dimension(
+                post_processed_forecast_members,
+                "realization"))
         return post_processed_forecast_members
