@@ -138,7 +138,8 @@ class DifferenceBetweenAdjacentGridSquares(object):
     def process(self, cube):
         """
         Calculate the difference along the x and y axes and return
-        the result in separate cubes.
+        the result in separate cubes. The difference along each axis is
+         calculated using numpy.diff.
 
         Parameters
         ----------
