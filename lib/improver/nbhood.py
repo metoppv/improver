@@ -208,6 +208,17 @@ class SquareNeighbourhood(object):
         sum is then divided by the area of the neighbourhood to calculate the
         mean value in the neighbourhood.
 
+        At edge points, the sum and area of the neighbourhood are calculated
+        for each point individually. For non-edge points, a faster, vectorised
+        approach is taken:
+        1. The displacements between the four points used to calculate the
+           neighbourhood total sum and the central grid point are calculated.
+        2. Four copies of the cumulate array output are flattened and rolled
+           by these displacements to align the four terms used in the
+           neighbourhood total sum calculation.
+        3. The neighbourhood total at all non-edge points can then be
+           calculated simultaneously in a single vector sum.
+
         Parameters
         ----------
         cube : iris.cube.Cube
@@ -232,6 +243,11 @@ class SquareNeighbourhood(object):
             y_min = j-cells_y-1
             y_max = min(cube.shape[0]-1, j+cells_y)
             summed_array = cube.data
+            # The neighbourhood of some edge-points will fall off the edge of
+            # the domain which will necessitate modifying formulae to calculate
+            # the sum over the  at these points. The equation below simplifies
+            # the formulae needed for edge points by using masks to remove
+            # terms when a particular domain edge is exceeded.
             total = (summed_array[y_max, x_max] -
                      summed_array[y_min, x_max]*(y_min >= 0) -
                      summed_array[y_max, x_min]*(x_min >= 0) +
@@ -244,14 +260,14 @@ class SquareNeighbourhood(object):
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
 
-        # Calculate displacement factors to find 4-points after flattening
-        # the array.
+        # Calculate displacement factors to find 4-points after flattening the
+        # array.
         n_rows = len(cube.coord(axis="y").points)
         n_columns = len(cube.coord(axis="x").points)
-        ymax_xmax_disp = (cells_y*n_columns) + cells_x  # array1
-        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x  # array2
-        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1  # array3
-        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1  # array4
+        ymax_xmax_disp = (cells_y*n_columns) + cells_x
+        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x
+        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1
+        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1
 
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
@@ -260,11 +276,12 @@ class SquareNeighbourhood(object):
             # flattened array which are rolled to allign the 4-points which
             # are needed for the calculation.
             flattened = slice_2d.data.flatten()
-            array1 = np.roll(flattened, -ymax_xmax_disp)
-            array2 = np.roll(flattened, -ymin_xmax_disp)
-            array3 = np.roll(flattened, -ymin_xmin_disp)
-            array4 = np.roll(flattened, -ymax_xmin_disp)
-            neighbourhood_total = array1 - array2 + array3 - array4
+            ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
+            ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
+            ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
+            ymax_ymin_array = np.roll(flattened, -ymax_xmin_disp)
+            neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
+                                   ymin_xmin_array - ymax_ymin_array)
             neighbourhood_total.resize(n_rows, n_columns)
 
             # Initialise the neighbourhood size array and calculate
