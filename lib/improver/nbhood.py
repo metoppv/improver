@@ -269,10 +269,33 @@ class SquareNeighbourhood(object):
         def _sum_and_area_for_edge_cases(cube, cells_x, cells_y, i, j):
             """
             Function to calculate the total sum and area of neighbourhoods
-            surrounding edge cases which can't use the flatten and roll method.
+            surrounding edge grid point (i,j) which can't use the flatten and
+            roll method. These values are used to calculate the mean value of
+            the neighbourhood.
 
-            Calculates the total sum and area of the neighbourhood surrounding
-            grid point (i,j) using the 4-point method.
+            Parameters
+            ----------
+            cube : iris.cube.Cube
+                Cube to which neighbourhood processing is being applied. Must
+                be passed through cumulate_array method first.
+            cells_x, cells_y : integer
+                The maximum radius of the neighbourhood in grid points, in the
+                x and y directions (excluding the central grid point). For
+                edge cases, the radius may be less than this, if the
+                neighbourhood falls off the domain edge.
+            i, j : integer
+                x and y indices of the grid point for which the total sum and
+                neighbourhood area is sought.
+
+            Returns
+            -------
+            total : float
+                The sum of all values in the neighbourhood surrounding grid
+                point (i,j).
+            area : integer
+                The area of the neighbourhood surrounding grid point (i,j).
+                This accounts for cases where the neighbourhood extends beyond
+                domain bounds.
             """
             x_min = i-cells_x-1
             x_max = min(cube.shape[1]-1, i+cells_x)
@@ -325,6 +348,8 @@ class SquareNeighbourhood(object):
             neighbourhood_area = np.zeros(neighbourhood_total.shape)
             neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
             # Calculate total sum and area of neighbourhood for edge cases.
+            # NOTE: edge cases could be dealt with more efficiently.
+            # If neighbourhoods get large, this method will need revision.
             edge_rows = range(cells_x*2) + range(n_rows-2*cells_x, n_rows)
             edge_columns = range(cells_x*2) + range(n_columns-2*cells_x,
                                                     n_columns)
