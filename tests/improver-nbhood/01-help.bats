@@ -36,6 +36,7 @@
 usage: improver-nbhood [-h]
                        [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
 RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
+                       [--ens_factor ENS_FACTOR]
                        NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
 
 Apply the requested neighbourhood method via the NeighbourhoodProcessing
@@ -62,6 +63,12 @@ optional arguments:
                         For example: 10,12,14 1,2,3 where a lead time of 1
                         hour uses a radius of 10km, a lead time of 2 hours
                         uses a radius of 12km, etc.
+  --ens_factor ENS_FACTOR
+                        The factor with which to adjust the neighbourhood size
+                        for more than one ensemble member. If ens_factor = 1.0
+                        this essentially conserves ensemble members if every
+                        grid square is considered to be the equivalent of an
+                        ensemble member.Optional, defaults to 1.0
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -64,6 +64,15 @@ def main():
                        'should be used. For example: 10,12,14 1,2,3 '
                        'where a lead time of 1 hour uses a radius of 10km, '
                        'a lead time of 2 hours uses a radius of 12km, etc.')
+    parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
+                        default=1.0,
+                        help='The factor with which to adjust the '
+                        'neighbourhood size for more than one '
+                        'ensemble member. If ens_factor = 1.0 this '
+                        'essentially conserves ensemble members if '
+                        'every grid square is considered to be the '
+                        'equivalent of an ensemble member.'
+                        'Optional, defaults to 1.0')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
@@ -79,7 +88,7 @@ def main():
     result = (
         NeighbourhoodProcessing(
             args.neighbourhood_method, radius_or_radii_in_km,
-            lead_times=lead_times).process(cube))
+            lead_times=lead_times, ens_factor=args.ens_factor).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
