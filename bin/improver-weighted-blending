@@ -1,0 +1,140 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to run weighted blending."""
+
+
+
+import iris
+import numpy as np
+
+from improver.weights import (
+    ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
+from improver.weighted_blend import BasicWeightedAverage
+from improver.argparser import ArgParser
+
+def main():
+    """Load in arguments and ensure they are set correctly. 
+       Then load in the data to blend and calculate default weights
+       using the method chosen before carrying out the blending."""
+    parser = ArgParser(
+    description='Calculate the default weights to apply in weighted ' +
+                'blending plugins using the ChooseDefaultWeightsLinear or ' +
+                'ChooseDefaultWeightsNonLinear plugins. Then apply these ' +
+                'weights to the cube using the BasicWeightedAverage plugin.' +
+                ' Required for ChooseDefaultWeightsLinear: y0val and ONE ' +
+                'of slope, ynval. Required for ' +
+                'ChooseDefaultWeightsNonLinear: cval.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--linear', default=False, action='store_true',
+                       help='Option to use the ChooseDefaultWeightsLinear ' +
+                            'plugin.')
+    group.add_argument('--nonlinear', default=False, action='store_true',
+                       help='Option to use the ' +
+                            'ChooseDefaultWeightsNonLinear plugin.')
+
+    parser.add_argument('coordinate',
+                        metavar='COORDINATE_TO_AVERAGE_OVER',
+                        help='The coordinate over which the blending ' +
+                             'will be applied.')
+    parser.add_argument('input_filepath', metavar='INPUT_FILE',
+                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF.')
+    linear = parser.add_argument_group('linear weights options',
+                                       'Options for the linear weights ' +
+                                       'calculation in ' +
+                                       'ChooseDefaultWeightsLinear')
+    lin_opts = linear.add_mutually_exclusive_group()
+    lin_opts.add_argument('--slope', metavar='LINEAR_SLOPE', type=float,
+                          help='The slope of the line used for choosing ' +
+                               'default linear weights. Only one of ynval ' +
+                               'and slope may be set.')
+    lin_opts.add_argument('--ynval', metavar='LINEAR_END_POINT', 
+                          type=float,
+                          help='The relative value of the weighting end ' +
+                               'point for choosing default linear weights. ' +
+                               'Only one of ynval and slope may be set.')
+    linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
+                        help='The relative value of the weighting start ' +
+                             'point for choosing default linear weights. ' +
+                             'This must be a positive float. If not set, ' +
+                             'default values of y0val=20.0 and ynval=2.0 ' +
+                             'are set.')
+    nonlinear = parser.add_argument_group('nonlinear weights options',
+                                          'Options for the non-linear ' +
+                                          'weights calculation in ' +
+                                          'ChooseDefaultWeightsNonLinear')
+    nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
+                           help='Factor used to determine how skewed the ' +
+                                'non linear weights will be. ' +
+                                'A value of 1 implies equal weighting. If ' +
+                                'not set, a default value of cval=0.85 is set.')
+    parser.add_argument('--coord_adj', metavar='COORD_ADJUSTMENT_FUNCTION',
+                        type=str,
+                        help='Function to apply to the coordinate after the ' +
+                             'blending has been applied.')
+    args = parser.parse_args()
+    if args.slope:
+        slope = args.slope
+    else:
+        slope = 0.0
+    if args.cval:
+        cval = args.cval
+    else:
+        cval = 0.85
+    if args.coord_adj:
+        args.coord_adj = eval(args.coord_adj)
+
+    if args.linear:
+        if args.cval:
+            parser.wrong_args_error('cval', 'linear')
+    if args.nonlinear:
+        if np.any([args.y0val, args.ynval, args.slope]):
+            parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
+
+    cube = iris.load_cube(args.input_filepath)
+
+    if args.linear:
+        weights = ChooseDefaultWeightsLinear(
+            args.y0val, slope, args.ynval).process(cube, args.coordinate)
+
+    if args.nonlinear:
+        weights = ChooseDefaultWeightsNonLinear(cval).process(cube,
+                                                              args.coordinate)
+    result = (
+        BasicWeightedAverage(
+            args.coordinate, args.coord_adj).process(cube, weights))
+    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+
+
+if __name__ == "__main__":
+    main()
