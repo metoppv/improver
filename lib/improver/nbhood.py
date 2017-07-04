@@ -40,6 +40,9 @@ import scipy.ndimage.filters
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     concatenate_cubes)
 
+# Maximum radius of the neighbourhood width in grid cells.
+MAX_RADIUS_IN_GRID_CELLS = 500
+
 
 class Utilities(object):
 
@@ -228,6 +231,143 @@ class SquareNeighbourhood(object):
         return result.format(self.unweighted_mode)
 
     @staticmethod
+    def mean_over_neighbourhood(cube, cells_x, cells_y):
+        """
+        Method to calculate the average value in a square neighbourhood using
+        the 4-point algorithm to find the total sum over the neighbourhood.
+
+        The output from the cumulate_array method can be used to
+        calculate the sum over a neighbourhood of size
+        (2*cells_x+1)*(2*cells_y+1). This sum is then divided by the area of
+        the neighbourhood to calculate the mean value in the neighbourhood.
+
+        At edge points, the sum and area of the neighbourhood are calculated
+        for each point individually. For non-edge points, a faster, vectorised
+        approach is taken:
+        1. The displacements between the four points used to calculate the
+           neighbourhood total sum and the central grid point are calculated.
+        2. Four copies of the cumulate array output are flattened and rolled
+           by these displacements to align the four terms used in the
+           neighbourhood total sum calculation.
+        3. The neighbourhood total at all non-edge points can then be
+           calculated simultaneously in a single vector sum.
+
+        Parameters
+        ----------
+        cube : iris.cube.Cube
+            Cube to which neighbourhood processing is being applied. Must
+            be passed through cumulate_array method first.
+        cells_x, cells_y : integer
+            The radius of the neighbourhood in grid points, in the x and y
+            directions (excluding the central grid point).
+
+        Returns
+        -------
+        cube : iris.cube.Cube
+            Cube to which square neighbourhood has been applied.
+        """
+        def _sum_and_area_for_edge_cases(cube, cells_x, cells_y, i, j):
+            """
+            Function to calculate the total sum and area of neighbourhoods
+            surrounding edge grid point (i,j) which can't use the flatten and
+            roll method. These values are used to calculate the mean value of
+            the neighbourhood.
+
+            Parameters
+            ----------
+            cube : iris.cube.Cube
+                Cube to which neighbourhood processing is being applied. Must
+                be passed through cumulate_array method first.
+            cells_x, cells_y : integer
+                The maximum radius of the neighbourhood in grid points, in the
+                x and y directions (excluding the central grid point). For
+                edge cases, the radius may be less than this, if the
+                neighbourhood falls off the domain edge.
+            i, j : integer
+                x and y indices of the grid point for which the total sum and
+                neighbourhood area is sought.
+
+            Returns
+            -------
+            total : float
+                The sum of all values in the neighbourhood surrounding grid
+                point (i,j).
+            area : integer
+                The area of the neighbourhood surrounding grid point (i,j).
+                This accounts for cases where the neighbourhood extends beyond
+                domain bounds.
+            """
+            x_min = i-cells_x-1
+            x_max = min(len(cube.coord(axis="x").points)-1, i+cells_x)
+            y_min = j-cells_y-1
+            y_max = min(len(cube.coord(axis="y").points)-1, j+cells_y)
+            summed_array = cube.data
+            # The neighbourhood of some edge-points will fall off the edge of
+            # the domain which will necessitate modifying formulae to calculate
+            # the sum over the  at these points. The equation below simplifies
+            # the formulae needed for edge points by using masks to remove
+            # terms when a particular domain edge is exceeded.
+            total = (summed_array[y_max, x_max] -
+                     summed_array[y_min, x_max]*(y_min >= 0) -
+                     summed_array[y_max, x_min]*(x_min >= 0) +
+                     summed_array[y_min, x_min]*(y_min >= 0 and x_min >= 0))
+            x_min = max(-1, x_min)
+            y_min = max(-1, y_min)
+            area = (y_max - y_min) * (x_max - x_min)
+            return total, area
+
+        yname = cube.coord(axis="y").name()
+        xname = cube.coord(axis="x").name()
+
+        # Calculate displacement factors to find 4-points after flattening the
+        # array.
+        n_rows = len(cube.coord(axis="y").points)
+        n_columns = len(cube.coord(axis="x").points)
+        ymax_xmax_disp = (cells_y*n_columns) + cells_x
+        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x
+        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1
+        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1
+
+        cubelist = iris.cube.CubeList([])
+        for slice_2d in cube.slices([yname, xname]):
+            # Flatten the 2d slice and calculate the sum over the array for
+            # non-edge cases. This is done by creating 4 copies of the
+            # flattened array which are rolled to allign the 4-points which
+            # are needed for the calculation.
+            flattened = slice_2d.data.flatten()
+            ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
+            ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
+            ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
+            ymax_ymin_array = np.roll(flattened, -ymax_xmin_disp)
+            neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
+                                   ymin_xmin_array - ymax_ymin_array)
+            neighbourhood_total.resize(n_rows, n_columns)
+
+            # Initialise the neighbourhood size array and calculate
+            # neighbourhood size for non edge cases.
+            neighbourhood_area = np.zeros(neighbourhood_total.shape)
+            neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
+            # Calculate total sum and area of neighbourhood for edge cases.
+            # NOTE: edge cases could be dealt with more efficiently.
+            # If neighbourhoods get large, this method will need revision.
+            edge_rows = range(cells_x*2) + range(n_rows-2*cells_x, n_rows)
+            edge_columns = range(cells_x*2) + range(n_columns-2*cells_x,
+                                                    n_columns)
+            for j in range(n_rows):
+                for i in (edge_columns):
+                    neighbourhood_total[j, i], neighbourhood_area[j, i] = (
+                        _sum_and_area_for_edge_cases(
+                            slice_2d, cells_x, cells_y, i, j))
+            for i in range(n_columns):
+                for j in (edge_rows):
+                    neighbourhood_total[j, i], neighbourhood_area[j, i] = (
+                        _sum_and_area_for_edge_cases(
+                            slice_2d, cells_x, cells_y, i, j))
+            slice_2d.data = neighbourhood_total/neighbourhood_area
+            cubelist.append(slice_2d)
+        return cubelist.merge_cube()
+
+    @staticmethod
     def cumulate_array(cube):
         """
         Method to calculate the cumulative sum of an m x n array, by first
@@ -282,8 +422,22 @@ class SquareNeighbourhood(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
+        if isinstance(cube.data, np.ma.MaskedArray):
+            msg = ('Masked data is not currently supported in ',
+                   'SquareNeighbourhood.')
+            raise ValueError(msg)
+        if np.any(np.isnan(cube.data)):
+            msg = ('Data array contains NaNs which are not currently ',
+                   'supported in SquareNeighbourhood.')
+            raise ValueError(msg)
         summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
-        return summed_up_cube
+        grid_cells_x, grid_cells_y = (
+            Utilities.get_neighbourhood_width_in_grid_cells(
+                summed_up_cube, radius_in_km, MAX_RADIUS_IN_GRID_CELLS))
+        neighbourhood_averaged_cube = (
+            SquareNeighbourhood.mean_over_neighbourhood(
+                summed_up_cube, grid_cells_x, grid_cells_y))
+        return neighbourhood_averaged_cube
 
 
 class CircularNeighbourhood(object):
@@ -295,9 +449,6 @@ class CircularNeighbourhood(object):
     A maximum kernel radius of 500 grid cells is imposed in order to
     avoid computational ineffiency and possible memory errors.
     """
-
-    # Maximum radius of the neighbourhood width in grid cells.
-    MAX_RADIUS_IN_GRID_CELLS = 500
 
     def __init__(self, unweighted_mode=False):
         """
@@ -393,7 +544,7 @@ class CircularNeighbourhood(object):
             applied.
         """
         ranges = Utilities.get_neighbourhood_width_in_grid_cells(
-            cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+            cube, radius_in_km, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
 
@@ -445,7 +596,8 @@ class NeighbourhoodProcessing(object):
         """
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
-            "circular": CircularNeighbourhood}
+            "circular": CircularNeighbourhood,
+            "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
             self.neighbourhood_method = method(unweighted_mode)
@@ -514,7 +666,7 @@ class NeighbourhoodProcessing(object):
 
     def process(self, cube):
         """
-        Spply neighbourhood processing method, in order to smooth the
+        Supply neighbourhood processing method, in order to smooth the
         input cube.
 
         Parameters

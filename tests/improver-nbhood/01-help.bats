@@ -44,7 +44,7 @@ plugin to a file with one cube.
 
 positional arguments:
   NEIGHBOURHOOD_METHOD  The neighbourhood method to apply in neighbourhood
-                        processing. Options: "circular".
+                        processing. Options: "circular", "square".
   INPUT_FILE            A path to an input NetCDF file to be processed
   OUTPUT_FILE           The output path for the processed NetCDF
 
