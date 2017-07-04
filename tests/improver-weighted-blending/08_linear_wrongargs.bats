@@ -39,6 +39,7 @@
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] (--linear | --nonlinear)
+                                  [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]

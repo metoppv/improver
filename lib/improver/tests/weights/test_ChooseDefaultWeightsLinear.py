@@ -33,79 +33,38 @@
 
 import unittest
 
-from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import iris
 import numpy as np
 
 from improver.weights import ChooseDefaultWeightsLinear as LinearWeights
-
-
-def add_realizations(cube, num):
-    """ Create num realizations of input cube.
-        Args:
-            cube : iris.cube.Cube
-                   Input cube.
-            num : integer
-                  Number of realizations.
-        Returns:
-            cubeout : iris.cube.Cube
-                      Copy of cube with num realizations added.
-    """
-    cubelist = iris.cube.CubeList()
-    for i in range(0, num):
-        newcube = cube.copy()
-        new_ensemble_coord = iris.coords.AuxCoord(i,
-                                                  standard_name='realization')
-        newcube.add_aux_coord(new_ensemble_coord)
-        cubelist.append(newcube)
-    cubeout = cubelist.merge_cube()
-    return cubeout
+from improver.tests.weights.test_WeightsUtilities import (set_up_cube,
+                                                          add_realizations)
 
 
 class TestChooseDefaultWeightsLinear(IrisTest):
     """Test the Default Linear Weights plugin. """
 
     def setUp(self):
-        data = np.zeros((2, 2, 2))
-        data[0][:][:] = 0.0
-        data[1][:][:] = 1.0
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                    units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5, 402193.5],
-                                    "time", units=tunit), 0)
-        dummy_scalar_coord = iris.coords.AuxCoord(1,
-                                                  long_name='scalar_coord',
-                                                  units='no_unit')
-        cube.add_aux_coord(dummy_scalar_coord)
-        self.cube = cube
+        self.cube = set_up_cube()
+        self.coord = self.cube.coord("time")
 
     def test_basic(self):
         """Test that the plugin returns an array of weights. """
-        coord = "time"
         plugin = LinearWeights()
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(self.cube, self.coord)
         self.assertIsInstance(result, np.ndarray)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
-        coord = "time"
         plugin = LinearWeights()
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(self.cube, self.coord)
         self.assertAlmostEquals(result.sum(), 1.0)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube. """
-        coord = "notset"
+        coord = AuxCoord([], long_name="notset")
         plugin = LinearWeights()
         msg = ('The coord for this plugin must be '
                'an existing coordinate in the input cube')
@@ -114,81 +73,88 @@ class TestChooseDefaultWeightsLinear(IrisTest):
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Value Error if not supplied with a cube. """
-        coord = "time"
         plugin = LinearWeights()
         notacube = 0.0
         msg = ('The first argument must be an instance of '
                'iris.cube.Cube')
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(notacube, coord)
+            plugin.process(notacube, self.coord)
 
     def test_fails_y0val_lessthan_zero(self):
         """Test it raises a Value Error if y0val less than zero. """
-        coord = "time"
         plugin = LinearWeights(y0val=-10.0)
         msg = ('y0val must be a float > 0.0')
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(self.cube, coord)
+            plugin.process(self.cube, self.coord)
 
     def test_fails_ynval_and_slope_set(self):
         """Test it raises a Value Error if slope and ynval set. """
-        coord = "time"
         plugin = LinearWeights(y0val=10.0, slope=-5.0, ynval=5.0)
         msg = ('Relative end point weight or slope must be set'
                ' but not both.')
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(self.cube, coord)
+            plugin.process(self.cube, self.coord)
 
     def test_fails_weights_negative(self):
         """Test it raises a Value Error if weights become negative. """
-        coord = "realization"
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
         cubenew = add_realizations(self.cube, 6)
+        coord = cubenew.coord('realization')
         msg = 'Weights must be positive, at least one value < 0.0'
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(cubenew, coord)
 
     def test_works_scalar_coord(self):
         """Test it works if scalar coordinate. """
-        coord = 'scalar_coord'
+        coord = self.cube.coord("scalar_coord")
         plugin = LinearWeights()
         result = plugin.process(self.cube, coord)
         self.assertArrayAlmostEqual(result, np.array([1.0]))
 
     def test_works_defaults_used(self):
         """Test it works if defaults used. """
-        coord = "time"
         plugin = LinearWeights()
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(self.cube, self.coord)
         expected_result = np.array([0.90909091, 0.09090909])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_y0val_and_slope_set(self):
         """Test it works if y0val and slope_set. """
-        coord = "time"
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(self.cube, self.coord)
         expected_result = np.array([0.66666667, 0.33333333])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_y0val_and_ynval_set(self):
         """Test it works if y0val and ynval set. """
-        coord = "time"
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(self.cube, self.coord)
         expected_result = np.array([0.66666667, 0.33333333])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals. """
-        coord = "realization"
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
         cubenew = add_realizations(self.cube, 6)
+        coord = cubenew.coord('realization')
         result = plugin.process(cubenew, coord)
         expected_result = np.array([0.22222222, 0.2,
                                     0.17777778, 0.15555556,
                                     0.13333333, 0.11111111])
         self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_works_with_missing_coord(self):
+        """Test it works with missing coord """
+        plugin = LinearWeights(y0val=10.0, ynval=5.0)
+        cubenew = add_realizations(self.cube, 6)
+        coord = iris.coords.AuxCoord([0, 1, 2, 3, 4, 5, 6],
+                                     standard_name='realization')
+        result = plugin.process(cubenew, coord)
+        expected_result = np.array([0.206349, 0.190476,
+                                    0.174603, 0.15873,
+                                    0.142857, 0.126984])
+        self.assertArrayAlmostEqual(result, expected_result)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -34,6 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-weighted-blending [-h] (--linear | --nonlinear)
+                                  [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
@@ -59,6 +60,9 @@ optional arguments:
   --linear              Option to use the ChooseDefaultWeightsLinear plugin.
   --nonlinear           Option to use the ChooseDefaultWeightsNonLinear
                         plugin.
+  --coord_exp_val COORD_EXPECTED_VALUES
+                        Optional string of expected coordinate points
+                        seperated by , e.g. "1496289600, 1496293200"
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
                         has been applied.

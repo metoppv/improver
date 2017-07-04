@@ -29,23 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+. $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --nonlinear" {
-  # Run blending with linear and nonlinear: check it fails.
-  run improver weighted-blending --linear --nonlinear 'time' \
+@test "weighted-blending --nonlinear input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run weighted blending with expected coordinate values.
+  run improver weighted-blending --nonlinear \
+      --coord_exp_val "1496286000, 1496289600, 1496293200, 1496296800" \
+      'time' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] (--linear | --nonlinear)
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
-improver-weighted-blending: error: argument --nonlinear: not allowed with argument --linear
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/coord_exp_val/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
