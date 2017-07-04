@@ -38,6 +38,7 @@
   # Run Ensemble Copula Coupling and check it passes.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
       --reordering --raw_forecast_filepath="$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/raw_forecast.nc"\
+      --fixed_random_seed 0 \
       "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/multiple_percentiles_wind_cube.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

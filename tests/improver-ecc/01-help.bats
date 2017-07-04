@@ -37,7 +37,8 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering RANDOM_ORDERING]
+                    [--random_ordering]
+                    [--fixed_random_seed FIXED_RANDOM_SEED]
                     [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 
@@ -67,9 +68,12 @@ Reordering options:
 
   --raw_forecast_filepath RAW_FORECAST_FILE
                         A path to an raw forecast NetCDF file to be processed.
-  --random_ordering RANDOM_ORDERING
-                        Decide whether or not to use random ordering within
+  --random_ordering     Decide whether or not to use random ordering within
                         the ensemble reordering step.
+  --fixed_random_seed FIXED_RANDOM_SEED
+                        Decide whether or not a fixed random seed is used to
+                        create the random numbers, either used for the
+                        random_ordering or for splitting tied values.
 
 Rebadging options:
   Options for rebadging the input percentiles as ensemble members.

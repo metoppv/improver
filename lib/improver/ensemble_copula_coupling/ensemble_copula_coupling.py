@@ -695,7 +695,7 @@ class EnsembleReordering(object):
     @staticmethod
     def rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
-            random_ordering=False):
+            random_ordering=False, fixed_random_seed=None):
         """
         Function to apply Ensemble Copula Coupling. This ranks the
         post-processed forecast members based on a ranking determined from
@@ -714,6 +714,11 @@ class EnsembleReordering(object):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.
+        fixed_random_seed : Integer or None
+            If fixed_random_seed is an integer, the integer value is used for
+            the random seed.
+            If fixed_random_seed is None, no random seed is set, so the random
+            values generated are not predictable.
 
         Returns
         -------
@@ -727,7 +732,11 @@ class EnsembleReordering(object):
         for rawfc, calfc in zip(
                 raw_forecast_members.slices_over("time"),
                 post_processed_forecast_percentiles.slices_over("time")):
-            random_data = np.random.random(rawfc.data.shape)
+            if fixed_random_seed is not None:
+                random_seed = np.random.RandomState(int(fixed_random_seed))
+                random_data = random_seed.rand(*rawfc.data.shape)
+            else:
+                random_data = np.random.random(rawfc.data.shape)
             if random_ordering:
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
@@ -749,7 +758,7 @@ class EnsembleReordering(object):
 
     def process(
             self, post_processed_forecast, raw_forecast,
-            random_ordering=False):
+            random_ordering=False, fixed_random_seed=False):
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.
@@ -766,6 +775,11 @@ class EnsembleReordering(object):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.
+        fixed_random_seed : Integer or None
+            If fixed_random_seed is an integer, the integer value is used for
+            the random seed.
+            If fixed_random_seed is None, no random seed is set, so the random
+            values generated are not predictable.
 
         Returns
         -------
@@ -789,7 +803,8 @@ class EnsembleReordering(object):
                 post_processed_forecast_percentiles, raw_forecast_members))
         post_processed_forecast_members = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
-            random_ordering=random_ordering)
+            random_ordering=random_ordering,
+            fixed_random_seed=fixed_random_seed)
         post_processed_forecast_members = (
             RebadgePercentilesAsMembers.process(
                 post_processed_forecast_members))

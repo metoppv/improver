@@ -94,6 +94,11 @@ def main():
                         action='store_true',
                         help='Decide whether or not to use random ordering '
                              'within the ensemble reordering step.')
+    reordering.add_argument('--fixed_random_seed', default=None,
+                        help='Decide whether or not a fixed random seed is '
+                             'used to create the random numbers, either '
+                             'used for the random_ordering or for splitting '
+                             'tied values.')
 
     rebadging = parser.add_argument_group(
         'Rebadging options', 'Options for rebadging the input percentiles '
@@ -136,7 +141,8 @@ def main():
     if args.reordering:
         raw_forecast = iris.load_cube(args.raw_forecast_filepath)
         result_cube = EnsembleReordering().process(
-            result_cube, raw_forecast, random_ordering=args.random_ordering)
+            result_cube, raw_forecast, random_ordering=args.random_ordering,
+            fixed_random_seed=args.fixed_random_seed)
     elif args.rebadging:
         result_cube = RebadgePercentilesAsMembers().process(
             result_cube, ensemble_member_numbers=args.member_numbers)
