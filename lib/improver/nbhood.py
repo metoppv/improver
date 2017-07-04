@@ -298,9 +298,9 @@ class SquareNeighbourhood(object):
                 domain bounds.
             """
             x_min = i-cells_x-1
-            x_max = min(cube.shape[1]-1, i+cells_x)
+            x_max = min(len(cube.coord(axis="x").points)-1, i+cells_x)
             y_min = j-cells_y-1
-            y_max = min(cube.shape[0]-1, j+cells_y)
+            y_max = min(len(cube.coord(axis="y").points)-1, j+cells_y)
             summed_array = cube.data
             # The neighbourhood of some edge-points will fall off the edge of
             # the domain which will necessitate modifying formulae to calculate
