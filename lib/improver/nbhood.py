@@ -204,9 +204,9 @@ class SquareNeighbourhood(object):
         the 4-point algorithm to find the total sum over the neighbourhood.
 
         The output from the cumulate_array method can be used to
-        calculate the sum over a neighbourhood of size cells_x*cells_y. This
-        sum is then divided by the area of the neighbourhood to calculate the
-        mean value in the neighbourhood.
+        calculate the sum over a neighbourhood of size
+        (2*cells_x+1)*(2*cells_y+1). This sum is then divided by the area of
+        the neighbourhood to calculate the mean value in the neighbourhood.
 
         At edge points, the sum and area of the neighbourhood are calculated
         for each point individually. For non-edge points, a faster, vectorised
@@ -225,8 +225,8 @@ class SquareNeighbourhood(object):
             Cube to which neighbourhood processing is being applied. Must
             be passed through cumulate_array method first.
         cells_x, cells_y : integer
-            The width of the neighbourhood in grid cells, in the x and y
-            directions.
+            The radius of the neighbourhood in grid points, in the x and y
+            directions (excluding the central grid point).
 
         Returns
         -------
@@ -237,6 +237,9 @@ class SquareNeighbourhood(object):
             """
             Function to calculate the total sum and area of neighbourhoods
             surrounding edge cases which can't use the flatten and roll method.
+
+            Calculates the total sum and area of the neighbourhood surrounding
+            grid point (i,j) using the 4-point method.
             """
             x_min = i-cells_x-1
             x_max = min(cube.shape[1]-1, i+cells_x)
@@ -364,6 +367,10 @@ class SquareNeighbourhood(object):
         if isinstance(cube.data, np.ma.MaskedArray):
             msg = ('Masked data is not currently supported in ',
                    'SquareNeighbourhood.')
+            raise ValueError(msg)
+        if np.any(np.isnan(cube.data)):
+            msg = ('Data array contains NaNs which are not currently ',
+                   'supported in SquareNeighbourhood.')
             raise ValueError(msg)
         summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
         grid_cells_x, grid_cells_y = (

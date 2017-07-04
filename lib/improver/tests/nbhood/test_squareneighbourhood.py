@@ -147,6 +147,9 @@ class Test_mean_over_neighbourhood(IrisTest):
 
     def setUp(self):
         """Set up cube and expected results for tests."""
+
+        # This array is the output from cumulate_array when a 5x5 array of 1's
+        # with a 0 at the centre point (2,2) is passed in.
         data = np.array([[1., 2., 3., 4., 5.],
                          [2., 4., 6., 8., 10.],
                          [3., 6., 8., 11., 14.],
@@ -224,6 +227,17 @@ class Test_run(IrisTest):
             num_grid_points=5)
         cube.data = np.ma.masked_equal(cube.data, 1)
         msg = 'Masked data is not currently supported'
+        with self.assertRaisesRegexp(ValueError, msg):
+            SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
+
+    def test_NaN_array_fail(self):
+        """Test that the correct exception is raised when an array containing
+           NaNs is passed in."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data[0, 0] = np.NaN
+        msg = 'Data array contains NaNs'
         with self.assertRaisesRegexp(ValueError, msg):
             SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
 

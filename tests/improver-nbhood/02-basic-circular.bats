@@ -46,20 +46,3 @@
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
-
-@test "nbhood 'square' --radius-in-km=20 input output" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  # Run square neighbourhood processing and check it passes.
-  run improver nbhood 'square' --radius-in-km=20 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_square.nc" \
-      "$TEST_DIR/output_square.nc"
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output_square.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_square.nc"
-  rm "$TEST_DIR/output_square.nc"
-  rmdir "$TEST_DIR"
-}
