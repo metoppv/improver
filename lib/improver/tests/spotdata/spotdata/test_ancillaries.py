@@ -44,19 +44,13 @@ from improver.spotdata.ancillaries import get_ancillary_data as Plugin
 
 
 class Test_get_ancillary_data(IrisTest):
-
-    """
-    Test the reading of ancillary data files amd creation of an ancillaries
-    dictionary.
-
-    """
+    """Test the reading of ancillary data files and creation of an ancillaries
+    dictionary."""
 
     def setUp(self):
-        """
-        Create a cube containing a regular lat-lon grid and other necessary
-        ingredients for unit tests.
+        """Create a cube containing a regular lat-lon grid and other necessary
+        ingredients for unit tests."""
 
-        """
         data = np.zeros((20, 20))
         latitudes = np.linspace(-90, 90, 20)
         longitudes = np.linspace(-180, 180, 20)
@@ -85,24 +79,37 @@ class Test_get_ancillary_data(IrisTest):
         iris.save(orography, self.orography_path)
         iris.save(land, self.land_path)
 
+        self.diagnostics = {
+            "wind_speed": {
+                "diagnostic_name": "wind_speed",
+                "extrema": False,
+                "filepath": "horizontal_wind_speed_and_direction_at_10m",
+                "interpolation_method": "use_nearest",
+                "neighbour_finding": {
+                    "land_constraint": True,
+                    "method": "fast_nearest_neighbour",
+                    "vertical_bias": None
+                    }
+                }
+            }
+
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-rf', self.directory])
+        Call(['rm', '-f', self.orography_path])
+        Call(['rm', '-f', self.land_path])
+        Call(['rmdir', self.directory])
 
     def test_return_type(self):
-        """
-        Test return type is a dictionary containing cubes.
+        """Test return type is a dictionary containing cubes."""
 
-        """
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIsInstance(result, dict)
+        self.assertIsInstance(result[result.keys()[0]], Cube)
 
     def test_read_orography(self):
-        """
-        Test reading an orography netcdf file.
+        """Test reading an orography netcdf file."""
 
-        """
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIn('orography', result.keys())
@@ -110,35 +117,18 @@ class Test_get_ancillary_data(IrisTest):
         self.assertArrayEqual(result['orography'].data, self.orography.data)
 
     def test_read_land_mask(self):
-        """
-        Test reading a landmask netcdf file if a diagnostic makes use of a land
-        constraint condition.
+        """Test reading a landmask netcdf file if a diagnostic makes use of a land
+        constraint condition."""
 
-        """
-        diagnostics = {
-            "wind_speed": {
-                "diagnostic_name": "wind_speed",
-                "extrema": False,
-                "filepath": "horizontal_wind_speed_and_direction_at_10m",
-                "interpolation_method": "use_nearest",
-                "neighbour_finding": {
-                    "land_constraint": True,
-                    "method": "fast_nearest_neighbour",
-                    "vertical_bias": None
-                    }
-                }
-            }
-
-        result = Plugin(diagnostics, self.directory)
+        result = Plugin(self.diagnostics, self.directory)
         self.assertIn('land_mask', result.keys())
         self.assertIsInstance(result['land_mask'], Cube)
         self.assertArrayEqual(result['land_mask'].data, self.land.data)
 
     def test_missing_orography(self):
-        """
-        Test attempt to read orography with missing orography netcdf file.
+        """Test attempt to read orography with missing orography netcdf
+        file."""
 
-        """
         Call(['rm', self.orography_path])
         diagnostics = {}
         msg = 'Orography file not found.'
@@ -146,29 +136,13 @@ class Test_get_ancillary_data(IrisTest):
             Plugin(diagnostics, self.directory)
 
     def test_missing_land_mask(self):
-        """
-        Test attempt to read land_mask with missing land_mask netcdf file.
+        """Test attempt to read land_mask with missing land_mask netcdf
+        file."""
 
-        """
         Call(['rm', self.land_path])
-
-        diagnostics = {
-            "wind_speed": {
-                "diagnostic_name": "wind_speed",
-                "extrema": False,
-                "filepath": "horizontal_wind_speed_and_direction_at_10m",
-                "interpolation_method": "use_nearest",
-                "neighbour_finding": {
-                    "land_constraint": True,
-                    "method": "fast_nearest_neighbour",
-                    "vertical_bias": None
-                    }
-                }
-            }
-
         msg = 'Land mask file not found.'
         with self.assertRaisesRegexp(IOError, msg):
-            Plugin(diagnostics, self.directory)
+            Plugin(self.diagnostics, self.directory)
 
 
 if __name__ == '__main__':

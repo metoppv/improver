@@ -31,6 +31,7 @@
 """Plugins written for the Improver site specific process chain."""
 
 import os
+import iris
 from iris import FUTURE
 
 FUTURE.netcdf_no_unlimited = True
@@ -45,11 +46,18 @@ class WriteOutput(object):
 
         Args:
         -----
-        method : String that sets the method.
+        method : string
+            Method of writing data. Currently supported methods are:
+            - as_netcdf : writes out a netcdf file.
 
         """
         self.method = method
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<WriteOutput: method: {}>')
+        return result.format(self.method)
 
     def process(self, cube, path=None):
         """Call the required method"""
@@ -66,8 +74,10 @@ class WriteOutput(object):
 
         Args:
         -----
-        cube : iris.cube.Cube diagnostic data cube.
-        path : Optional string setting the output path for the file.
+        cube : iris.cube.Cube
+            Diagnostic data cube.
+        path : string
+            Optional string setting the output path for the file.
 
         Returns:
         --------
@@ -77,5 +87,4 @@ class WriteOutput(object):
         from iris.fileformats.netcdf import Saver
         if path is None:
             path = self.dir_path
-        with Saver('{}/{}.nc'.format(path, cube.name()), 'NETCDF4') as output:
-            output.write(cube)
+        iris.save(cube, '{}/{}.nc'.format(path, cube.name()))

@@ -54,19 +54,13 @@ from improver.spotdata.read_input import read_config
 
 
 class Test_read_input(IrisTest):
-
-    """
-    Test the reading of ancillary data files and creation of an ancillaries
-    dictionary.
-
-    """
+    """Test the reading of ancillary data files and creation of an ancillaries
+    dictionary."""
 
     def setUp(self):
-        """
-        Create a cube containing a regular lat-lon grid and other necessary
-        ingredients for unit tests.
+        """Create a cube containing a regular lat-lon grid and other necessary
+        ingredients for unit tests."""
 
-        """
         data = np.arange(0, 800, 1)
         data.resize(2, 20, 20)
         latitudes = np.linspace(-90, 90, 20)
@@ -167,6 +161,10 @@ class Test_read_input(IrisTest):
                   separators=(',', ': ',))
         ff.close()
 
+        self.made_files = [self.cube_path, self.cube_path2, orography_path,
+                           land_path, ad_path_temperature, ad_path_pressure,
+                           ad_path_s_pressure, self.config_path]
+
         self.cube = cube
         self.cube2 = cube2
         self.temperature_on_height_levels = temperature_on_height_levels
@@ -176,7 +174,9 @@ class Test_read_input(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-rf', self.data_directory])
+        for a_file in self.made_files:
+            Call(['rm', a_file])
+        Call(['rmdir', self.data_directory])
 
 
 class Test_Load(Test_read_input):
@@ -203,23 +203,27 @@ class Test_Load(Test_read_input):
             self.assertEqual(ex.name(), re.name())
             self.assertArrayEqual(ex.data, re.data)
 
-    def test_single_file_invalid_diagnostic(self):
-        """
-        Test attempt to load a diagnostic cube from a file within which it
-        cannot be found.
+    def test_invalid_method(self):
+        """Test attempting to load data with an invalid method."""
 
-        """
+        method = 'not_a_valid_method'
+        msg = 'Unknown method ".*" passed to .*'
+        with self.assertRaisesRegexp(AttributeError, msg):
+            Plugin(method).process(self.cube_path, 'air_temperature')
+
+    def test_single_file_invalid_diagnostic(self):
+        """Test attempt to load a diagnostic cube from a file within which it
+        cannot be found."""
+
         diagnostic = 'not_a_valid_diagnostic'
         msg = 'no cubes found'
         with self.assertRaisesRegexp(ConstraintMismatchError, msg):
             Plugin('single_file').process(self.cube_path, diagnostic)
 
     def test_multi_file_invalid_diagnostic(self):
-        """
-        Test attempt to load diagnostic cubes from files within which they
-        cannot be found.
+        """Test attempt to load diagnostic cubes from files within which they
+        cannot be found."""
 
-        """
         diagnostic = 'not_a_valid_diagnostic'
         msg = 'no cubes found'
         with self.assertRaisesRegexp(ConstraintMismatchError, msg):
@@ -228,11 +232,8 @@ class Test_Load(Test_read_input):
 
 
 class Test_get_method_prerequisites(Test_read_input):
-    """
-    Test the retrieval of a predefined dictionary of additional diagnostics
-    required for given method of data extraction.
-
-    """
+    """Test the retrieval of a predefined dictionary of additional diagnostics
+    required for given method of data extraction."""
 
     def test_known_method(self):
         """Test functionality with an expected method."""
@@ -256,11 +257,9 @@ class Test_get_method_prerequisites(Test_read_input):
 
 
 class Test_get_additional_diagnostics(Test_read_input):
-    """
-    Test method for loading additional diagnostic cubes into CubeLists that
-    are returned with suitable keys in a dictionary.
+    """Test method for loading additional diagnostic cubes into CubeLists that
+    are returned with suitable keys in a dictionary."""
 
-    """
     def test_available_data_files(self):
         """Test with files available."""
 
@@ -271,7 +270,7 @@ class Test_get_additional_diagnostics(Test_read_input):
         self.assertArrayEqual(result[0].data,
                               self.temperature_on_height_levels.data)
 
-    def test_mising_data_files(self):
+    def test_missing_data_files(self):
         """Test with missing files."""
 
         diagnostic_name = 'temperature_on_height_levels'
@@ -280,10 +279,9 @@ class Test_get_additional_diagnostics(Test_read_input):
             get_additional_diagnostics(diagnostic_name, 'not_a_valid_path')
 
     def test_available_data_files_with_time_extraction(self):
-        """
-        Test with files available and an extraction of data at a given time.
+        """Test with files available and an extraction of data at a given
+        time."""
 
-        """
         diagnostic_name = 'temperature_on_height_levels'
         result = get_additional_diagnostics(
             diagnostic_name, self.data_directory,
@@ -294,11 +292,9 @@ class Test_get_additional_diagnostics(Test_read_input):
                               self.temperature_on_height_levels[0].data)
 
     def test_available_data_files_with_invalid_time_extraction(self):
-        """
-        Test with files available and an attempted extraction of data at a
-        time that is not valid.
+        """Test with files available and an attempted extraction of data at a
+        time that is not valid."""
 
-        """
         diagnostic_name = 'temperature_on_height_levels'
         msg = 'No diagnostics match .*'
         time_extract = Constraint(time=PartialDateTime(2018, 01, 01, 0))
@@ -322,7 +318,7 @@ class Test_data_from_dictionary(Test_read_input):
 
         key = 'not_a_valid_key'
         msg = 'Data .* not found in dictionary.'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(KeyError, msg):
             data_from_dictionary(self.additional_data, key)
 
     def test_invalid_type(self):
@@ -335,10 +331,9 @@ class Test_data_from_dictionary(Test_read_input):
 
 
 class Test_read_config(Test_read_input):
-    """
-    Test reading of json config files that setup diagnostics and constants.
+    """Test reading of json config files that setup diagnostics and
+    constants."""
 
-    """
     def test_available_config_file(self):
         """Test return from a valid json config file."""
 
@@ -348,18 +343,16 @@ class Test_read_config(Test_read_input):
     def test_missing_config_file(self):
         """Test raising of exception for missing config file."""
 
-        msg = 'Config file .* not found.'
+        msg = 'No such file or directory'
         with self.assertRaisesRegexp(IOError, msg):
             read_config('not_a_valid_path')
 
     def test_invalid_config_file(self):
-        """
-        Test raising of exception for invalid config file.
-        e.g. not a valid json file.
+        """Test raising of exception for invalid config file.
+        e.g. not a valid json file."""
 
-        """
         msg = 'Invalid json format. Unable to read configuration'
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegexp(ValueError, msg):
             read_config(self.cube_path)
 
 

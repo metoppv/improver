@@ -48,11 +48,9 @@ class Test_write_output(IrisTest):
     """Test the writing of SpotData output."""
 
     def setUp(self):
-        """
-        Create a cube containing a regular lat-lon grid and other necessary
-        ingredients for unit tests.
+        """Create a cube containing a regular lat-lon grid and other necessary
+        ingredients for unit tests."""
 
-        """
         data = np.zeros((20, 20))
         latitudes = np.linspace(-90, 90, 20)
         longitudes = np.linspace(-180, 180, 20)
@@ -71,7 +69,8 @@ class Test_write_output(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-rf', self.data_directory])
+        Call(['rm', '-f', self.data_directory + '/test_data.nc'])
+        Call(['rmdir', self.data_directory])
         self.fnull.close()
 
     def test_write_netcdf(self):

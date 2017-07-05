@@ -59,6 +59,11 @@ class Load(object):
         """
         self.method = method
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<Load: method: {}>')
+        return result.format(self.method)
+
     def process(self, filepath, diagnostic):
         """
         Simple wrapper for using iris load on a supplied netCDF file.
@@ -76,7 +81,12 @@ class Load(object):
         An iris.cube.Cube containing the data from the netCDF file.
 
         """
-        function = getattr(self, self.method)
+        try:
+            function = getattr(self, self.method)
+        except:
+            raise AttributeError('Unknown method "{}" passed to {}.'.format(
+                self.method, self.__class__.__name__))
+
         return function(filepath, diagnostic)
 
     @staticmethod
@@ -128,21 +138,27 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
     """
     Load additional diagnostics needed for particular spot data processes.
 
-    Args
-    ----
+    Args:
+    -----
     diagnostic_name : The name of the diagnostic to be loaded. Used to find
                       the relevant file.
 
     time_extract    : An iris constraint to extract and return only data from
                       the desired time.
 
-    Returns
-    -------
+    Returns:
+    --------
     cube            : An iris.cube.CubeList containing the desired diagnostic
-                      data, with a single entry is time_extract is provided.
+                      data, with a single entry if time_extract is provided.
+
+    Raises:
+    -------
+    IOError : If files are not found.
+    ValueError : If required diagnostics are not found in the read files.
 
     """
-    # Search directory structure for all files relevant to current diagnostic.
+    # Search diadnostic data directory for all files relevant to current
+    # diagnostic.
     files_to_read = [
         os.path.join(dirpath, filename)
         for dirpath, _, files in os.walk(diagnostic_data_path)
@@ -180,7 +196,8 @@ def data_from_dictionary(dictionary_data, key):
 
     Raises:
     -------
-    Exception if the <key> is not available in the dictionary.
+    TypeError : If sent a non-dictionary type from which to extract data.
+    KeyError : If the <key> is not available in the dictionary.
 
     """
     if not isinstance(dictionary_data, dict):
@@ -190,7 +207,7 @@ def data_from_dictionary(dictionary_data, key):
     if key in dictionary_data.keys():
         return dictionary_data[key]
 
-    raise ValueError('Data {} not found in dictionary.'.format(key))
+    raise KeyError('Data {} not found in dictionary.'.format(key))
 
 
 def read_config(file_path):
@@ -210,16 +227,14 @@ def read_config(file_path):
     Raises:
     -------
     IOError : Raised when no file is found at given path.
+    TypeError : json file provided is unreadable.
 
     """
-    try:
-        config_file = open(file_path, 'r')
-    except:
-        raise IOError("Config file {} not found.".format(file_path))
+    config_file = open(file_path, 'r')
 
     try:
         configuration = json.load(config_file)
-    except:
-        raise TypeError('Invalid json format. Unable to read configuration '
-                        'from {}.'.format(file_path))
+    except ValueError:
+        raise ValueError('Invalid json format. Unable to read configuration '
+                         'from {}.'.format(file_path))
     return configuration
