@@ -403,6 +403,9 @@ class GeneratePercentilesFromProbabilities(object):
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
 
+        # Convert percentiles back into percentages.
+        percentiles = [x*100.0 for x in percentiles]
+
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = (
@@ -555,6 +558,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
                        "percentile. Unable to calculate the percent point "
                        "function.")
                 raise ValueError(msg)
+
+        # Convert percentiles back into percentages.
+        percentiles = [x*100.0 for x in percentiles]
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
