@@ -84,7 +84,6 @@ class WriteOutput(object):
         Nil. Writes out file to filepath or working directory.
 
         """
-        from iris.fileformats.netcdf import Saver
         if path is None:
             path = self.dir_path
         iris.save(cube, '{}/{}.nc'.format(path, cube.name()))
