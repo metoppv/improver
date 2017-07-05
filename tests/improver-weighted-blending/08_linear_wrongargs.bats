@@ -40,10 +40,13 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] (--linear | --nonlinear)
                                   [--coord_exp_val COORD_EXPECTED_VALUES]
+                                  [--coordinate_unit UNIT_STRING]
+                                  [--calendar CALENDER]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
+                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   COORDINATE_TO_AVERAGE_OVER INPUT_FILE
                                   OUTPUT_FILE
 improver-weighted-blending: error: argument --slope: not allowed with argument --ynval

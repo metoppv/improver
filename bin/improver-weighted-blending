@@ -35,6 +35,7 @@
 
 import iris
 import numpy as np
+from cf_units import Unit
 
 from improver.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
@@ -46,68 +47,86 @@ def main():
        Then load in the data to blend and calculate default weights
        using the method chosen before carrying out the blending."""
     parser = ArgParser(
-    description='Calculate the default weights to apply in weighted ' +
-                'blending plugins using the ChooseDefaultWeightsLinear or ' +
-                'ChooseDefaultWeightsNonLinear plugins. Then apply these ' +
-                'weights to the cube using the BasicWeightedAverage plugin.' +
-                ' Required for ChooseDefaultWeightsLinear: y0val and ONE ' +
-                'of slope, ynval. Required for ' +
+    description='Calculate the default weights to apply in weighted '
+                'blending plugins using the ChooseDefaultWeightsLinear or '
+                'ChooseDefaultWeightsNonLinear plugins. Then apply these '
+                'weights to the cube using the BasicWeightedAverage plugin.'
+                ' Required for ChooseDefaultWeightsLinear: y0val and ONE '
+                'of slope, ynval. Required for '
                 'ChooseDefaultWeightsNonLinear: cval.')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--linear', default=False, action='store_true',
-                       help='Option to use the ChooseDefaultWeightsLinear ' +
+                       help='Option to use the ChooseDefaultWeightsLinear '
                             'plugin.')
     group.add_argument('--nonlinear', default=False, action='store_true',
                        help='Option to use the ' +
                             'ChooseDefaultWeightsNonLinear plugin.')
 
-    parser.add_argument('coordinate',
+    parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
-                        help='The coordinate over which the blending ' +
+                        help='The coordinate over which the blending '
                              'will be applied.')
     parser.add_argument('--coord_exp_val', metavar='COORD_EXPECTED_VALUES',
                         type=str,
                         help='Optional string of expected coordinate points '
                               'seperated by , '
                               'e.g. "1496289600, 1496293200"')
+    parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
+                        default='hours since 1970-01-01 00:00:00',
+                        help='Units for time coordinate. Default= '
+                             'hours since 1970-01-01 00:00:00.')
+    parser.add_argument('--calendar', metavar='CALENDER',
+                        help='Calendar for time coordinate. Default=gregorian')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     linear = parser.add_argument_group('linear weights options',
-                                       'Options for the linear weights ' +
-                                       'calculation in ' +
+                                       'Options for the linear weights '
+                                       'calculation in '
                                        'ChooseDefaultWeightsLinear')
     lin_opts = linear.add_mutually_exclusive_group()
     lin_opts.add_argument('--slope', metavar='LINEAR_SLOPE', type=float,
-                          help='The slope of the line used for choosing ' +
-                               'default linear weights. Only one of ynval ' +
+                          help='The slope of the line used for choosing '
+                               'default linear weights. Only one of ynval '
                                'and slope may be set.')
     lin_opts.add_argument('--ynval', metavar='LINEAR_END_POINT', 
                           type=float,
-                          help='The relative value of the weighting end ' +
-                               'point for choosing default linear weights. ' +
+                          help='The relative value of the weighting end '
+                               'point for choosing default linear weights. '
                                'Only one of ynval and slope may be set.')
     linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
-                        help='The relative value of the weighting start ' +
-                             'point for choosing default linear weights. ' +
-                             'This must be a positive float. If not set, ' +
-                             'default values of y0val=20.0 and ynval=2.0 ' +
+                        help='The relative value of the weighting start '
+                             'point for choosing default linear weights. '
+                             'This must be a positive float. If not set, '
+                             'default values of y0val=20.0 and ynval=2.0 '
                              'are set.')
     nonlinear = parser.add_argument_group('nonlinear weights options',
-                                          'Options for the non-linear ' +
-                                          'weights calculation in ' +
+                                          'Options for the non-linear '
+                                          'weights calculation in '
                                           'ChooseDefaultWeightsNonLinear')
     nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
-                           help='Factor used to determine how skewed the ' +
+                           help='Factor used to determine how skewed the '
                                 'non linear weights will be. ' +
-                                'A value of 1 implies equal weighting. If ' +
+                                'A value of 1 implies equal weighting. If '
                                 'not set, a default value of cval=0.85 is set.')
     parser.add_argument('--coord_adj', metavar='COORD_ADJUSTMENT_FUNCTION',
                         type=str,
-                        help='Function to apply to the coordinate after the ' +
+                        help='Function to apply to the coordinate after the '
                              'blending has been applied.')
+    parser.add_argument('--wts_redistrib_method',
+                        metavar='METHOD_TO_REDISTRIBUTE_WEIGHTS',
+                        default='evenly',
+                        help='The method to use when redistributing weights '
+                             'in cases where forecasts are missing. Options: '
+                             '"evenly": redistribute weights evenly between '
+                             'the forecasts that are available. '
+                             '"proportional": redistribute weights using the '
+                             'original weighting function.')
     args = parser.parse_args()
+    # Fix default values for slope and cval. The argparser default value isn't
+    # used for this, because it would make it impossible to tell whether a
+    # a value was user inputted (which is needed for wrong_args_error calls).
     if args.slope:
         slope = args.slope
     else:
@@ -126,26 +145,26 @@ def main():
         if np.any([args.y0val, args.ynval, args.slope]):
             parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
 
+    if args.coordinate == 'time':
+        coord_unit = Unit(args.coordinate_unit, args.calendar)
+    elif args.coordinate_unit != 'hours since 1970-01-01 00:00:00.':
+        coord_unit = args.coordinate_unit
+    else:
+        coord_unit = 'no_unit'
+
+
     cube = iris.load_cube(args.input_filepath)
 
-    if args.coord_exp_val:
-        coord_values = args.coord_exp_val.split(",")
-        for i, val in enumerate(coord_values):
-            coord_values[i] = int(val)
-        weights_coord = iris.coords.AuxCoord(coord_values,
-                                            long_name=args.coordinate,
-                                            units='no_unit')
-    else:
-        weights_coord = iris.coords.AuxCoord([],
-                                           long_name=args.coordinate,
-                                            units='no_unit')
     if args.linear:
         weights = ChooseDefaultWeightsLinear(
-            args.y0val, slope, args.ynval).process(cube, weights_coord)
+            args.y0val, slope, args.ynval).process(
+                cube, args.coordinate, args.coord_exp_val, coord_unit,
+                args.wts_redistrib_method)
 
     if args.nonlinear:
-        weights = ChooseDefaultWeightsNonLinear(cval).process(cube,
-                                                              weights_coord)
+        weights = ChooseDefaultWeightsNonLinear(cval).process(
+                cube, args.coordinate, args.coord_exp_val, coord_unit,
+                args.wts_redistrib_method)
     result = (
         BasicWeightedAverage(
             args.coordinate, args.coord_adj).process(cube, weights))

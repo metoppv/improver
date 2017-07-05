@@ -122,7 +122,7 @@ class Test_normalise_weights(IrisTest):
     def test_fails_weight_less_than_zero(self):
         """Test it fails if weight less than zero. """
         weights_in = np.array([-1.0, 0.1])
-        msg = ('Weights must be positive, at least one value < 0.0')
+        msg = ('Weights must be positive')
         with self.assertRaisesRegexp(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
@@ -174,7 +174,7 @@ class Test_redistribute_weights(IrisTest):
         """Test it fails if weights and missing_weights not the same size."""
         weights_in = np.array([0.7, 0.2, 0.1])
         missing_weights = np.ones(2)
-        msg = ('Arrays weights and missing_weights not the same size')
+        msg = ('Arrays weights and forecast_present not the same size')
         with self.assertRaisesRegexp(ValueError, msg):
             WeightsUtilities.redistribute_weights(weights_in,
                                                   missing_weights)
@@ -189,7 +189,7 @@ class Test_redistribute_weights(IrisTest):
         result = WeightsUtilities.redistribute_weights(weights_in,
                                                        missing_weights)
         expected_result = np.array([0.44978518, 0.28195489,
-                                    -1.0, 0.12083781,
+                                    0.12083781,
                                     0.08458647, 0.06283566])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -204,100 +204,16 @@ class Test_redistribute_weights(IrisTest):
                                                        missing_weights,
                                                        method='proportional')
         expected_result = np.array([0.49422742, 0.29653645,
-                                    -1.0, 0.10675312,
+                                    0.10675312,
                                     0.06405187, 0.03843112])
         self.assertArrayAlmostEqual(result, expected_result)
 
-
-class Test_nonlinear_weights(IrisTest):
-    """Test the nonlinear weights function. """
-
-    def test_basic(self):
-        """Test that the function returns an array of weights. """
-        result = WeightsUtilities.nonlinear_weights(3, 0.85)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_fails_num_of_weights_set_wrong(self):
-        """Test it fails if num_of_weights not an integer or > 0. """
-        msg = ('Number of weights must be integer > 0')
+    def test_all_missing(self):
+        weights_in = np.array([0.6, 0.3, 0.1])
+        missing_weights = np.zeros(3)
+        msg = 'None of the expected forecasts were found.'
         with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.nonlinear_weights(3.0, 0.85)
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.nonlinear_weights(-1, 0.85)
-
-    def test_fails_cval_set_wrong(self):
-        """Test it fails if < """
-        msg = ('cval must be greater than 0.0')
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.nonlinear_weights(3, -0.1)
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.nonlinear_weights(3, 1.85)
-
-    def test_returns_correct_values(self):
-        """Test it returns the correct values for num_of_weights 6, cval 0.6"""
-        result = WeightsUtilities.nonlinear_weights(6, 0.6)
-        expected_result = np.array([0.41957573, 0.25174544,
-                                    0.15104726, 0.09062836,
-                                    0.05437701, 0.03262621])
-        self.assertArrayAlmostEqual(result, expected_result)
-
-
-class Test_linear_weights(IrisTest):
-    """Test the linear weights function. """
-
-    def test_basic(self):
-        """Test that the function returns an array of weights. """
-        result = WeightsUtilities.linear_weights(3)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_fails_num_of_weights_set_wrong(self):
-        """Test it fails if num_of_weights not an integer or > 0. """
-        msg = ('Number of weights must be integer > 0')
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.linear_weights(3.0)
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.linear_weights(-1)
-
-    def test_fails_y0val_set_wrong(self):
-        """Test it fails if y0val not set properly """
-        msg = ('y0val must be a float > 0.0')
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.linear_weights(3, y0val=-0.1)
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.linear_weights(3, y0val=2)
-
-    def test_fails_ynval_and_slope_set(self):
-        """Test it fails if y0val not set properly """
-        msg = ('Relative end point weight or slope must be set'
-               ' but not both.')
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.linear_weights(3, ynval=3.0, slope=-1.0)
-
-    def test_returns_correct_values_num_of_weights_one(self):
-        """Test it returns the correct values, method is proportional."""
-        result = WeightsUtilities.linear_weights(1)
-        expected_result = np.array([1.0])
-        self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_returns_correct_values_y0val_ynval_set(self):
-        """Test it returns the correct values when y0val and ynval set"""
-        result = WeightsUtilities.linear_weights(6,
-                                                 y0val=100.0,
-                                                 ynval=10.0)
-        expected_result = np.array([0.3030303, 0.24848485,
-                                    0.19393939, 0.13939394,
-                                    0.08484848, 0.0303030])
-        self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_returns_correct_values_y0val_slope_set(self):
-        """Test it returns the correct values when y0val and slope set"""
-        result = WeightsUtilities.linear_weights(6,
-                                                 y0val=10.0,
-                                                 slope=-1.0)
-        expected_result = np.array([0.22222222, 0.2,
-                                    0.17777778, 0.15555556,
-                                    0.13333333, 0.11111111])
-        self.assertArrayAlmostEqual(result, expected_result)
+            WeightsUtilities.redistribute_weights(weights_in, missing_weights)
 
 
 class Test_process_coord(IrisTest):
@@ -306,87 +222,63 @@ class Test_process_coord(IrisTest):
     def setUp(self):
         """Setup for testing process coord"""
         self.cube = set_up_cube()
-        self.coord = self.cube.coord("time")
+        self.cube_coord = self.cube.coord("time")
+        self.coordinate = self.cube_coord.name()
+        self.exp_coord_vals = ','.join(
+            [str(x) for x in self.cube_coord.points])
 
     def test_basic(self):
         """Test process_cord returns num and array of missing_weights. """
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(self.cube,
-                                                          self.coord)
+                                                          self.coordinate,
+                                                          self.exp_coord_vals)
         self.assertIsInstance(result_num_of_weights, int)
         self.assertIsInstance(result_missing, np.ndarray)
 
-    def test_fails_not_a_coord(self):
-        """ Test it fails if second argument is not a Coord """
-        coord = "time"
-        msg = ('The second argument must be an instance of '
-               'iris.coords.Coord')
-        with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.process_coord(self.cube,
-                                           coord)
-
     def test_fails_coord_not_in_cube(self):
         """ Test process_cord fails if coord not in cube """
-        coord = iris.coords.AuxCoord(1,
-                                     long_name='not_in_cube',
-                                     units='no_unit')
         msg = ('The coord for this plugin must be '
                'an existing coordinate in the input cube.')
         with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.process_coord(self.cube,
-                                           coord)
+            WeightsUtilities.process_coord(self.cube, 'not_in_cube', '0')
 
     def test_no_points_set_in_coord(self):
         """Test returns num in coordinate if no points set in coord. """
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        time_coord = AuxCoord([],
-                              "time", units=tunit)
-        expected_num = len(self.coord.points)
+        expected_num = len(self.cube_coord.points)
         expected_array = np.ones(expected_num)
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(self.cube,
-                                                          time_coord)
+                                                          self.coordinate)
         self.assertAlmostEquals(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 
     def test_fails_less_points_in_coord(self):
         """Test fails if less points in coord than in cube. """
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        time_coord = AuxCoord([402192.5],
-                              "time", units=tunit)
+        exp_coord_vals = self.exp_coord_vals[0]
         msg = ('The cube coordinate has more points '
                'than requested coord, ')
         with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.process_coord(self.cube,
-                                           time_coord)
+            WeightsUtilities.process_coord(self.cube, self.coordinate,
+                                           exp_coord_vals)
 
     def test_fails_if_can_not_convert_units(self):
         """Test fails if it can not convert units """
-        time_coord = AuxCoord([402191.5, 402192.5],
-                              "time", units="mm")
+        units = 'mm'
+        exp_coord_vals = '402191.5, 402192.5, 402193.5'
         msg = ('Failed to convert coord units ')
         with self.assertRaisesRegexp(ValueError, msg):
-            WeightsUtilities.process_coord(self.cube,
-                                           time_coord)
+            WeightsUtilities.process_coord(
+                self.cube, self.coordinate, exp_coord_vals, units)
 
     def test_finds_missing_points(self):
-        """Test finds missing points correctly"""
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        time_coord = AuxCoord([402191.5, 402192.5,
-                               402193.5],
-                              "time", units=tunit)
         expected_num = 3
         expected_array = np.ones(expected_num)
         expected_array[0] = 0.0
+        exp_coord_vals = '402191.5, 402192.5, 402193.5'
         (result_num_of_weights,
-         result_missing) = WeightsUtilities.process_coord(self.cube,
-                                                          time_coord)
+         result_missing) = WeightsUtilities.process_coord(
+            self.cube, self.coordinate, exp_coord_vals)
         self.assertAlmostEquals(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 

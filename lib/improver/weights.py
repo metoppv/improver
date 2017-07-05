@@ -57,9 +57,14 @@ class WeightsUtilities(object):
             Returns:
                 normalised_weights : array of weights
                                      where sum = 1.0
+
+            Raises:
+                ValueError 1 : any negative weights are found in input.
+                ValueError 2 : sum of weights in the input is 0.
         """
         if weights.min() < 0.0:
-            msg = 'Weights must be positive, at least one value < 0.0'
+            msg = ('Weights must be positive. The weights have at least one '
+                   'value < 0.0: {}'.format(weights))
             raise ValueError(msg)
 
         sumval = weights.sum()
@@ -71,12 +76,12 @@ class WeightsUtilities(object):
         return normalised_weights
 
     @staticmethod
-    def redistribute_weights(weights, missing_weights, method='evenly'):
+    def redistribute_weights(weights, forecast_present, method='evenly'):
         """Redistribute weights if any of the forecasts are missing.
 
             Args:
                 weights : (numpy.ndarray) of weights.
-                missing_weights : (numpy.ndarray) size of weights
+                forecast_present : (numpy.ndarray) size of weights
                                   with values set as
                                   1.0 for present
                                   0.0 for missing.
@@ -88,10 +93,22 @@ class WeightsUtilities(object):
                          proportional - re-weight according to the
                                    proportion of the previous weights.
                          Default is evenly
+
             Returns:
                 redistributed_weights : (numpy.ndarray) of weights
                                        where sum = 1.0
                                        and missing weights are set to -1.0
+
+            Raises:
+                ValueError 1 : the weights input do not add up to 1.
+                ValueError 2 : any of the input weights are negative.
+                ValueError 3 : an unexpected number of weights are input.
+                ValueError 4 : none of the forecasts expected (according to
+                               the user input coord_exp_vals) were found on the
+                               cube being blended.
+                ValueError 5 : an unknown weights redistribution method is
+                               entered (only recognised methods are 'evenly'
+                               and 'proportional').
         """
         sumval = weights.sum()
 
@@ -103,17 +120,22 @@ class WeightsUtilities(object):
             msg = 'Weights should be positive or at least one > 0.0'
             raise ValueError(msg)
 
-        if len(weights) != len(missing_weights):
-            msg = ('Arrays weights and missing_weights not the same size'
+        if len(weights) != len(forecast_present):
+            msg = ('Arrays weights and forecast_present not the same size'
                    ' weights is len {0:}'.format(len(weights)) +
-                   ' missing_weights is len {0:}'.format(len(missing_weights)))
+                   ' forecast_present is len {0:}'.format(
+                      len(forecast_present)))
             raise ValueError(msg)
 
-        missing_sum = missing_weights.sum()
-        if missing_sum > 0.0:
-            combined_weights = weights*missing_weights
+        num_forecasts_present = forecast_present.sum()
+        if num_forecasts_present == 0:
+            msg = 'None of the expected forecasts were found.'
+            raise ValueError(msg)
+        elif num_forecasts_present < len(forecast_present):
+            combined_weights = weights*forecast_present
             if method == 'evenly':
-                missing_avg_weight = (1.0 - combined_weights.sum())/missing_sum
+                missing_avg_weight = (
+                    1.0 - combined_weights.sum())/num_forecasts_present
                 redistributed_weights = combined_weights + missing_avg_weight
             elif method == 'proportional':
                 redistributed_weights = (
@@ -123,166 +145,90 @@ class WeightsUtilities(object):
                        ': {}'.format(method))
                 raise ValueError(msg)
             # Set missing values to -1.0
-            redistributed_weights[np.where(missing_weights == 0.0)] = -1.0
-        else:
+            redistributed_weights = redistributed_weights[np.where(
+                forecast_present == 1)]
+        elif num_forecasts_present == len(forecast_present):
             redistributed_weights = weights
         return redistributed_weights
 
     @staticmethod
-    def nonlinear_weights(num_of_weights, cval):
-        """Create nonlinear weights.
-
-            Args:
-                num_of_weights : Positive Integer
-                                 Number of weights to create.
-
-                cval : Float
-                       greater than 0.0 but less than or equal to 1,0,
-                       to be used for the nonlinear weights function.
-                       1.0 = equal weights for all.
-
-                       Weights will be calculated as
-                         cval**(tval-1)/Sum(of all weights)
-                       tval is the value of 1 to num_of_weights,
-
-            Returns:
-                weights : array of weights, sum of all weights = 1.0
-
-        """
-        if not isinstance(num_of_weights, int) or num_of_weights <= 0:
-            msg = ('Number of weights must be integer > 0, '
-                   'num = {0:s}'.format(str(num_of_weights)))
-            raise ValueError(msg)
-        if cval <= 0.0 or cval > 1.0:
-            msg = ('cval must be greater than 0.0 and less '
-                   'than or equal to 1.0 '
-                   'cval = {0:s}'.format(str(cval)))
-            raise ValueError(msg)
-
-        weights_list = []
-        for tval_minus1 in range(0, num_of_weights):
-            weights_list.append(cval**(tval_minus1))
-
-        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
-
-        return weights
-
-    @staticmethod
-    def linear_weights(num_of_weights, y0val=1.0, slope=0.0,
-                       ynval=None):
-        """Create linear weights
-
-            Args:
-                num_of_weights : Positive Integer
-                                 Number of weights to create.
-                y0val : Positive float
-                        relative value of starting point. Default = 1.0
-
-                AND EITHER:
-                slope : float
-                        slope of the line. Default = 0.0 (equal weights)
-                OR
-                ynval : Positive float or None
-                        Relative weights of last point.
-                        Default value is None
-
-            Returns:
-                weights : array of weights
-                          sum of all weights = 1.0
-
-        """
-        if not isinstance(num_of_weights, int) or num_of_weights <= 0:
-            msg = ('Number of weights must be integer > 0 '
-                   'num = {0:s}'.format(str(num_of_weights)))
-            raise ValueError(msg)
-        # Special case num_of_weighs == 1 i.e. Scalar coordinate.
-        if num_of_weights == 1:
-            weights = np.array([1.0])
-            return weights
-        if not isinstance(y0val, float) or y0val <= 0.0:
-            msg = ('y0val must be a float > 0.0, '
-                   'y0val = {0:s}'.format(str(y0val)))
-            raise ValueError(msg)
-        if ynval is not None:
-            if slope != 0.0:
-                msg = ('Relative end point weight or slope must be set'
-                       ' but not both.')
-                raise ValueError(msg)
-            else:
-                slope = (ynval - y0val)/(num_of_weights - 1.0)
-
-        weights_list = []
-        for tval in range(0, num_of_weights):
-            weights_list.append(slope*tval + y0val)
-
-        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
-
-        return weights
-
-    @staticmethod
-    def process_coord(cube, coord):
+    def process_coord(cube, coordinate, coord_exp_vals=None,
+                      coord_unit='no_unit'):
         """Calculated weights for a given cube and coord.
 
             Args:
                 cube : iris.cube.Cube
                        Cube to blend across the coord.
-                coord : iris.corrd.Coord
-                        Coordinate in the cube to be blended.
-            Returns:
-                weights :  (numpy.ndarray) of weights
-                           where sum = 1.0
-                           and missing weights are set to -1.0
-                           size is the same as points in coord if
-                           points set in coord otherwise defaults to
-                           point in cube.coord
-        """
-        if not isinstance(coord, iris.coords.Coord):
-            msg = ('The second argument must be an instance of '
-                   'iris.coords.Coord but is'
-                   ' {0:s}'.format(type(coord)))
-            raise ValueError(msg)
+                coordinate : string
+                       Name of coordinate in the cube to be blended.
+                coord_exp_vals : string
+                       String list of values which are expected on the
+                       coordinate to be blended over.
+                coord_unit : cf_units.Unit
+                       The unit in which the coord_exp_vals have been passed
+                       in.
 
-        req_coord_name = str(coord.name())
-        if not cube.coords(req_coord_name):
+            Returns:
+                exp_coord_len: int
+                       The number of forecasts we expect to blend, based on the
+                       length of the coordinate we are going to blend over.
+                exp_forecast_found: binary mask
+                       Array showing where the input cube coordinate values
+                       agree with the input expected coordinate values.
+
+            Raises:
+                ValueError 1 : the coordinate to blend over does not exist on
+                               the cube being blended over.
+                ValueError 2 : the length of the expected coordinate input is
+                               less than the length of the corresponding cube
+                               coordinate.
+                ValueError 3 : the input coordinate units cannot be converted
+                               to the units of the corresponding cube
+                               coordinate.
+        """
+        if not cube.coords(coordinate):
             msg = ('The coord for this plugin must be '
                    'an existing coordinate in the input cube.')
             raise ValueError(msg)
-
-        cube_coord = cube.coord(req_coord_name)
-
-        if len(coord.points) == 0:
-            # coord points unset will default to all points in cube
-            num_of_weights = len(cube_coord.points)
-        elif len(coord.points) < len(cube_coord.points):
-            msg = ('The cube coordinate has more points '
-                   'than requested coord, '
-                   'len coord points = {0:d} '.format(len(coord.points)) +
-                   'len cube points = {0:d}'.format(len(cube_coord.points)))
-            raise ValueError(msg)
+        cube_coord = cube.coord(coordinate)
+        if coord_exp_vals is not None:
+            coord_values = [float(x) for x in coord_exp_vals.split(',')]
+            if len(coord_values) < len(cube_coord.points):
+                msg = ('The cube coordinate has more points '
+                       'than requested coord, '
+                       'len coord points = {0:d} '.format(len(coord_values)) +
+                       'len cube points = {0:d}'.format(
+                          len(cube_coord.points)))
+                raise ValueError(msg)
+            else:
+                exp_coord = iris.coords.AuxCoord(coord_values,
+                                                 long_name=coordinate,
+                                                 units=coord_unit)
+                exp_coord_len = len(exp_coord.points)
         else:
-            num_of_weights = len(coord.points)
-
-        # Find missing points
-        missing_weights = np.ones(num_of_weights)
-        if len(cube_coord.points < num_of_weights):
+            exp_coord_len = len(cube_coord.points)
+        # Find which coordinates are present in exp_coord but not in cube_coord
+        # ie: find missing forecasts.
+        if len(cube_coord.points) < exp_coord_len:
             # Firstly check that coord is in the right units
             # Do not try if coord.units not set
-            if (coord.units != cf_units.Unit('1') and
-                    str(coord.units) != 'no_unit'):
-                if coord.units != cube_coord.units:
+            if (exp_coord.units != cf_units.Unit('1') and
+                    str(exp_coord.units) != 'no_unit'):
+                if exp_coord.units != cube_coord.units:
                     try:
-                        coord.convert_units(cube_coord.units)
+                        exp_coord.convert_units(cube_coord.units)
                     except:
                         msg = ('Failed to convert coord units '
                                'requested coord units '
-                               '= {0:s} '.format(str(coord.units)) +
+                               '= {0:s} '.format(str(exp_coord.units)) +
                                'cube units '
                                '= {0:s}'.format(str(cube_coord.units)))
                         raise ValueError(msg)
-            for i, val in enumerate(coord.points):
-                if val not in cube_coord.points:
-                    missing_weights[i] = 0.0
-        return (num_of_weights, missing_weights)
+            exp_forecast_found = np.array([int(x in cube_coord.points)
+                                          for x in exp_coord.points])
+        else:
+            exp_forecast_found = np.ones(exp_coord_len)
+        return (exp_coord_len, exp_forecast_found)
 
 
 class ChooseDefaultWeightsLinear(object):
@@ -316,16 +262,80 @@ class ChooseDefaultWeightsLinear(object):
         else:
             self.y0val = y0val
 
-    def process(self, cube, coord):
+    def linear_weights(self, num_of_weights):
+        """Create linear weights
+
+            Args:
+                num_of_weights : Positive Integer
+                                 Number of weights to create.
+                y0val : Positive float
+                        relative value of starting point. Default = 1.0
+
+                AND EITHER:
+                slope : float
+                        slope of the line. Default = 0.0 (equal weights)
+                OR
+                ynval : Positive float or None
+                        Relative weights of last point.
+                        Default value is None
+
+            Returns:
+                weights : array of weights
+                          sum of all weights = 1.0
+
+            Raises:
+                ValueError 1 : an inappropriate value of y0val is input.
+                ValueError 2 : both slope and ynval are set at input.
+
+        """
+        # Special case num_of_weighs == 1 i.e. Scalar coordinate.
+        if num_of_weights == 1:
+            weights = np.array([1.0])
+            return weights
+        if not isinstance(self.y0val, float) or self.y0val <= 0.0:
+            msg = ('y0val must be a float > 0.0, '
+                   'y0val = {0:s}'.format(str(self.y0val)))
+            raise ValueError(msg)
+        if self.ynval is not None:
+            if self.slope == 0.0:
+                self.slope = (self.ynval - self.y0val)/(num_of_weights - 1.0)
+            else:
+                msg = ('Relative end point weight or slope must be set'
+                       ' but not both.')
+                raise ValueError(msg)
+
+        weights_list = []
+        for tval in range(0, num_of_weights):
+            weights_list.append(self.slope*tval + self.y0val)
+
+        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
+
+        return weights
+
+    def process(self, cube, coord_name, coord_vals=None, coord_unit='no_unit',
+                weights_distrib_method='evenly'):
         """Calculated weights for a given cube and coord.
 
             Args:
                 cube : (iris.cube.Cube)
                        Cube to blend across the coord.
-                coord : (iris.coords.Coord)
-                        coordinate in the cube.
+                coord_name : string
+                       Name of coordinate in the cube to be blended.
+                coord_vals : string
+                       String list of values which are expected on the
+                       coordinate to be blended over.
+                coord_unit : cf_units.Unit
+                       The unit in which the coord_exp_vals have been passed
+                       in.
+                weights_distrib_method : string
+                        The method to use when redistributing weights in cases
+                        where there are some forecasts missing. Options:
+                        "evenly", "proportional".
             Returns:
                 weights : array of weights, sum of all weights = 1.0
+
+            Raises:
+                ValueError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
@@ -334,16 +344,13 @@ class ChooseDefaultWeightsLinear(object):
             raise ValueError(msg)
 
         (num_of_weights,
-         missing_weights) = WeightsUtilities.process_coord(cube, coord)
+         exp_coord_found) = WeightsUtilities.process_coord(
+            cube, coord_name, coord_vals, coord_unit)
 
-        weights_in = WeightsUtilities.linear_weights(num_of_weights,
-                                                     y0val=self.y0val,
-                                                     slope=self.slope,
-                                                     ynval=self.ynval)
+        weights_in = self.linear_weights(num_of_weights)
 
-        redist_weights = WeightsUtilities.redistribute_weights(weights_in,
-                                                               missing_weights)
-        weights = redist_weights[np.where(redist_weights != -1.0)]
+        weights = WeightsUtilities.redistribute_weights(
+            weights_in, exp_coord_found, weights_distrib_method)
 
         return weights
 
@@ -370,16 +377,57 @@ class ChooseDefaultWeightsNonLinear(object):
         """
         self.cval = cval
 
-    def process(self, cube, coord):
+    def nonlinear_weights(self, num_of_weights):
+        """Create nonlinear weights.
+
+            Args:
+                num_of_weights : Positive Integer
+                                 Number of weights to create.
+
+            Returns:
+                weights : array of weights, sum of all weights = 1.0
+
+            Raises:
+                ValueError: an inappropriate value of cval is input.
+        """
+        if self.cval <= 0.0 or self.cval > 1.0:
+            msg = ('cval must be greater than 0.0 and less '
+                   'than or equal to 1.0 '
+                   'cval = {0:s}'.format(str(self.cval)))
+            raise ValueError(msg)
+
+        weights_list = []
+        for tval_minus1 in range(0, num_of_weights):
+            weights_list.append(self.cval**(tval_minus1))
+
+        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
+
+        return weights
+
+    def process(self, cube, coord_name, coord_vals=None, coord_unit='no_unit',
+                weights_distrib_method='evenly'):
         """Calculated weights for a given cube and coord.
 
             Args:
                 cube : iris.cube.Cube
                        Cube to blend across the coord.
-                coord : (iris.coords.Coord)
-                        coordinate in the cube.
+                coord_name : string
+                       Name of coordinate in the cube to be blended.
+                coord_vals : string
+                       String list of values which are expected on the
+                       coordinate to be blended over.
+                coord_unit : cf_units.Unit
+                       The unit in which the coord_exp_vals have been passed
+                       in.
+                weights_distrib_method : string
+                        The method to use when redistributing weights in cases
+                        where there are some forecasts missing. Options:
+                        "evenly", "proportional".
             Returns:
                 weights : array of weights, sum of all weights = 1.0
+
+            Raises:
+                ValueError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
@@ -388,14 +436,13 @@ class ChooseDefaultWeightsNonLinear(object):
             raise ValueError(msg)
 
         (num_of_weights,
-         missing_weights) = WeightsUtilities.process_coord(cube, coord)
+         exp_coord_found) = WeightsUtilities.process_coord(
+            cube, coord_name, coord_vals, coord_unit)
 
-        weights_in = WeightsUtilities.nonlinear_weights(num_of_weights,
-                                                        cval=self.cval)
+        weights_in = self.nonlinear_weights(num_of_weights)
 
-        redist_weights = WeightsUtilities.redistribute_weights(weights_in,
-                                                               missing_weights)
-        weights = redist_weights[np.where(redist_weights != -1.0)]
+        weights = WeightsUtilities.redistribute_weights(
+            weights_in, exp_coord_found, weights_distrib_method)
 
         return weights
 

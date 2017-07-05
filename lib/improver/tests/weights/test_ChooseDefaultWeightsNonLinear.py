@@ -43,28 +43,55 @@ from improver.tests.weights.test_WeightsUtilities import (set_up_cube,
                                                           add_realizations)
 
 
+class Test_nonlinear_weights(IrisTest):
+    """Test the nonlinear weights function. """
+
+    def test_basic(self):
+        """Test that the function returns an array of weights. """
+        result = NonLinearWeights(0.85).nonlinear_weights(3)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_fails_cval_set_wrong(self):
+        """Test it fails if cval is not >0 and <=1 """
+        msg = ('cval must be greater than 0.0')
+        with self.assertRaisesRegexp(ValueError, msg):
+            NonLinearWeights(-0.1).nonlinear_weights(3)
+        with self.assertRaisesRegexp(ValueError, msg):
+            NonLinearWeights(1.85).nonlinear_weights(3)
+
+    def test_returns_correct_values(self):
+        """Test it returns the correct values for num_of_weights 6, cval 0.6"""
+        result = NonLinearWeights(0.6).nonlinear_weights(6)
+        expected_result = np.array([0.41957573, 0.25174544,
+                                    0.15104726, 0.09062836,
+                                    0.05437701, 0.03262621])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
 class TestChooseDefaultWeightsNonLinear(IrisTest):
     """Test the Default non-Linear Weights plugin. """
 
     def setUp(self):
         self.cube = set_up_cube()
-        self.coord = self.cube.coord("time")
+        self.coord_name = "time"
+        self.coord_vals = ','.join(
+            [str(x) for x in self.cube.coord("time").points])
 
     def test_basic(self):
         """Test that the plugin returns an array of weights. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord)
+        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         self.assertIsInstance(result, np.ndarray)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord)
+        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         self.assertAlmostEquals(result.sum(), 1.0)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube. """
-        coord = AuxCoord([], long_name="notset")
+        coord = "notset"
         plugin = NonLinearWeights()
         msg = ('The coord for this plugin must be '
                'an existing coordinate in the input cube')
@@ -78,7 +105,7 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
         msg = ('The first argument must be an instance of '
                'iris.cube.Cube')
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(notacube, self.coord)
+            plugin.process(notacube, self.coord_name)
 
     def test_fails_if_cval_not_valid(self):
         """Test it raises a Value Error if cval is not in range,
@@ -89,10 +116,10 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
         msg = ('cval must be greater than 0.0 and less '
                'than or equal to 1.0')
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(self.cube, self.coord)
+            plugin.process(self.cube, self.coord_name, self.coord_vals)
         plugin2 = NonLinearWeights(cval=1.1)
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin2.process(self.cube, self.coord)
+            plugin2.process(self.cube, self.coord_name, self.coord_vals)
 
     def test_works_if_scalar_coord(self):
         """Test it works if scalar coordinate. """
@@ -104,14 +131,14 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
     def test_works_with_default_cval(self):
         """Test it works with default cval. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord)
+        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.54054054, 0.45945946])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_works_with_cval_equal_one(self):
         """Test it works with cval = 1.0, i.e. equal weights. """
         plugin = NonLinearWeights(cval=1.0)
-        result = plugin.process(self.cube, self.coord)
+        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.5, 0.5])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -119,8 +146,10 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
         """Test it works with larger num_of_vals. """
         plugin = NonLinearWeights(cval=0.5)
         cubenew = add_realizations(self.cube, 6)
-        coord = cubenew.coord('realization')
-        result = plugin.process(cubenew, coord)
+        coord_name = 'realization'
+        coord_vals = ','.join(
+            [str(x) for x in cubenew.coord('realization').points])
+        result = plugin.process(cubenew, coord_name, coord_vals)
         expected_result = np.array([0.50793651, 0.25396825,
                                     0.12698413, 0.06349206,
                                     0.03174603, 0.01587302])
@@ -130,9 +159,9 @@ class TestChooseDefaultWeightsNonLinear(IrisTest):
         """Test it works with missing coord """
         plugin = NonLinearWeights(cval=0.6)
         cubenew = add_realizations(self.cube, 6)
-        coord = iris.coords.AuxCoord([0, 1, 2, 3, 4, 5, 6],
-                                     standard_name='realization')
-        result = plugin.process(cubenew, coord)
+        coord_vals = '0, 1, 2, 3, 4, 5, 6'
+        coord_name = 'realization'
+        result = plugin.process(cubenew, coord_name, coord_vals)
         expected_result = np.array([0.41472, 0.250112,
                                     0.151347, 0.092088,
                                     0.056533, 0.0352])
