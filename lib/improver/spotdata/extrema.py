@@ -31,13 +31,10 @@
 """Calculate extrema values for diagnostics."""
 
 import numpy as np
-import numpy.ma as ma
 import datetime
 from datetime import datetime as dt
 import iris
 from iris.cube import Cube, CubeList
-from iris.analysis import MAX as IMAX
-from iris.analysis import MIN as IMIN
 from iris.coords import DimCoord
 from improver.spotdata.common_functions import (iris_time_to_datetime,
                                                 datetime_constraint,
@@ -56,13 +53,13 @@ class ExtractExtrema(object):
 
         Args:
         -----
-        period : int
+        period : int (units: hours)
             Period in hours over which to calculate the extrema values, e.g.
             24 hours for maxima/minima in a whole day.
 
-        start_hour : int
-            Hour in the 24hr clock at which to start the series of periods,
-            e.g. period=12, start_hour=9 --> 09-21, 21-09, etc.
+        start_hour : int (units: hours)
+            Hour in local_time on the 24hr clock at which to start the series
+            of periods, e.g. period=12, start_hour=9 --> 09-21, 21-09, etc.
 
         """
         self.period = period
@@ -70,11 +67,13 @@ class ExtractExtrema(object):
 
     def process(self, cube):
         """
-        Calculate extrema values for diagnostic in cube over 24 hour period.
+        Calculate extrema values for diagnostic in cube over the period given
+        from the start_hour, both set at initialisation.
 
         Args:
         -----
-        cube  : Cube of diagnostic data at site locations.
+        cube  : iris.cube.Cube
+            Cube of diagnostic data with a utc_offset coordinate.
 
         Returns:
         --------
@@ -82,6 +81,8 @@ class ExtractExtrema(object):
             CubeList of diagnostic extrema cubes.
 
         """
+        # Change to 64 bit to avoid the 2038 problem with any time
+        # manipulations on units in seconds since the epoch.
         cube.coord('time').points = cube.coord('time').points.astype(np.int64)
 
         # Adjust times on cube to be local to each site.
@@ -89,8 +90,8 @@ class ExtractExtrema(object):
 
         # Starts at start_hour on first available day, runs until start_hour on
         # final_date.
-        start_time, end_time = get_valid_dates(local_tz_cube.coord('time'),
-                                               self.start_hour)
+        start_time, end_time = get_datetime_limits(local_tz_cube.coord('time'),
+                                                   self.start_hour)
         num_periods = int(
             np.ceil((end_time - start_time).total_seconds()/3600/self.period))
         starts = [start_time + datetime.timedelta(hours=i*self.period)
@@ -112,7 +113,8 @@ class ExtractExtrema(object):
                 bounds = [dt_to_utc_hours(period_start),
                           dt_to_utc_hours(period_end)]
 
-                extremas = [['max', IMAX], ['min', IMIN]]
+                extremas = [['max', iris.analysis.MAX],
+                            ['min', iris.analysis.MIN]]
                 for name, method in extremas:
                     cube_out = cube_over_period.collapsed('time', method)
                     cube_out.long_name = cube_out.name() + '_' + name
@@ -128,7 +130,7 @@ class ExtractExtrema(object):
 
 def make_local_time_cube(cube):
     """
-    Construct a cube in which data is arranged along a dimension coordinate of
+    Construct a cube in which data are arranged along a dimension coordinate of
     local time. This allows for the calculation of maxima/minima values over
     given ranges of local time (e.g. 09Z - 21Z maxima).
 
@@ -144,9 +146,10 @@ def make_local_time_cube(cube):
     Data: Site 1  300  302  296  294  290  -    -    -    -
           Site 2  -    -    -    -    280  282  283  280  279
 
-    There will be MDI data in locations which are not forecast at the given
-    local time, e.g. a SpotData site at a UTC location for a 12Z run will have
-    no forecast temperatures on the local time axis for times earlier than 12Z.
+    There will be missing but masked data in locations which are not forecast
+    at the given local time, e.g. a SpotData site at a UTC location for a 12Z
+    run will have no forecast temperatures on the local time axis for times
+    earlier than 12Z.
 
     Maxima/Minima can then be calculated on local time, as makes sense for
     quantities such as maximum in day.
@@ -194,7 +197,7 @@ def make_local_time_cube(cube):
                                 units=hour_coordinates.units)
 
     # Create empty array to contain extrema data.
-    new_data = np.full((len(local_times), cube.data.shape[1]), None)
+    new_data = np.full((len(local_times), cube.data.shape[1]), np.nan)
 
     # Create ascending indices to help with filling new_data array.
     n_sites = cube.data.shape[1]
@@ -207,15 +210,13 @@ def make_local_time_cube(cube):
         new_data[indices, row_index] = cube.data[i_time]
 
     # Mask invalid/unset data points.
-    new_data = ma.masked_invalid(new_data)
+    new_data = np.ma.masked_invalid(new_data)
 
-    # Return cube on local time.
-    index_coord = DimCoord(np.arange(new_data.shape[1]), long_name='index',
-                           units='1')
+#    # Return cube on local time.
     new_cube = Cube(new_data,
                     long_name=cube.name(),
                     dim_coords_and_dims=[(local_time_coord, 0),
-                                         (index_coord, 1)],
+                                         (cube.coord('index'), 1)],
                     units=cube.units)
     for coord in cube.aux_coords:
         new_cube.add_aux_coord(coord, 1)
@@ -223,7 +224,7 @@ def make_local_time_cube(cube):
     return new_cube
 
 
-def get_valid_dates(time_coord, start_hour):
+def get_datetime_limits(time_coord, start_hour):
     """
     Determine the date limits of a time coordinate axis and return time limits
     using a provided hour on that day.
@@ -233,7 +234,7 @@ def get_valid_dates(time_coord, start_hour):
     time_coord : iris.coords.DimCoord
         An iris time coordinate from which to extract the date limits.
 
-    start_hour : int/float
+    start_hour : int
         The hour on a 24hr clock at which to set the returned times.
 
     Returns:

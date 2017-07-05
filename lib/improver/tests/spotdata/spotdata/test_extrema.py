@@ -45,7 +45,7 @@ from datetime import datetime as dt
 
 from improver.spotdata.extrema import ExtractExtrema as Plugin
 from improver.spotdata.extrema import make_local_time_cube
-from improver.spotdata.extrema import get_valid_dates
+from improver.spotdata.extrema import get_datetime_limits
 
 
 class Test_extrema(IrisTest):
@@ -78,14 +78,13 @@ class Test_extrema(IrisTest):
                     aux_coords_and_dims=[(utc_offset, 1)],
                     units="K")
         self.cube = cube
-        self.data = data
         self.time_coord = time_coord
         self.n_data = n_data
 
 
 class Test_ExtractExtrema(Test_extrema):
     """
-    Test the extraction of maximma/minima values in given periods, where the
+    Test the extraction of maxima/minima values in given periods, where the
     periods are in local time.
 
     Imagine that 27 sites sample all timeszones from UTC-12 to UTC+14.
@@ -111,9 +110,9 @@ class Test_ExtractExtrema(Test_extrema):
 
         """
         n_periods = 72/24
-        mid_start = mktime(dt(2017, 03, 26, 12).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 03, 26, 00).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 03, 27, 00).utctimetuple())/3600.
+        mid_start = mktime(dt(2017, 3, 26, 12).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 26, 00).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
 
         result = Plugin(24, start_hour=0).process(self.cube)
         result = result.extract(Constraint(name='air_temperature_max'))
@@ -121,12 +120,12 @@ class Test_ExtractExtrema(Test_extrema):
         # Expected time coordinate values.
         for i in range(n_periods):
             mid_time = mid_start + (i*24.)
-            l_bound = lower_bound + (i*24.)
-            u_bound = upper_bound + (i*24.)
+            low_bound = lower_bound + (i*24.)
+            up_bound = upper_bound + (i*24.)
 
             self.assertEqual(result[i].coord('time').points, [mid_time])
-            self.assertEqual(result[i].coord('time').bounds[0, 0], [l_bound])
-            self.assertEqual(result[i].coord('time').bounds[0, 1], [u_bound])
+            self.assertEqual(result[i].coord('time').bounds[0, 0], [low_bound])
+            self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
     def test_time_coordinates_9_hour(self):
         """
@@ -147,9 +146,9 @@ class Test_ExtractExtrema(Test_extrema):
 
         """
         n_periods = 72/9 - 1  # -1 as no data falls in the first 9 hour period.
-        mid_start = mktime(dt(2017, 03, 26, 13, 30).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 03, 26, 9).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 03, 26, 18).utctimetuple())/3600.
+        mid_start = mktime(dt(2017, 3, 26, 13, 30).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 26, 9).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 26, 18).utctimetuple())/3600.
 
         result = Plugin(9, start_hour=0).process(self.cube)
         result = result.extract(Constraint(name='air_temperature_max'))
@@ -157,11 +156,11 @@ class Test_ExtractExtrema(Test_extrema):
         # Expected time coordinate values.
         for i in range(n_periods):
             mid_time = mid_start + (i*9.)
-            l_bound = lower_bound + (i*9.)
-            u_bound = upper_bound + (i*9.)
+            low_bound = lower_bound + (i*9.)
+            up_bound = upper_bound + (i*9.)
             self.assertEqual(result[i].coord('time').points, [mid_time])
-            self.assertEqual(result[i].coord('time').bounds[0, 0], [l_bound])
-            self.assertEqual(result[i].coord('time').bounds[0, 1], [u_bound])
+            self.assertEqual(result[i].coord('time').bounds[0, 0], [low_bound])
+            self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
     def test_time_shifting(self):
         """
@@ -280,10 +279,10 @@ class Test_ExtractExtrema(Test_extrema):
         self.assertArrayEqual(result[0].data, expected)
 
 
-class Test_get_valid_dates(Test_extrema):
+class Test_get_datetime_limits(Test_extrema):
     """Test extraction of day min and max and hour setting."""
 
-    def test_get_valid_dates_6(self):
+    def test_get_datetime_limits_6(self):
         """
         Given an iris time coord, check that this function returns the day
         min and maxima with the provided hour appended.
@@ -291,19 +290,19 @@ class Test_get_valid_dates(Test_extrema):
         """
         expected_start = dt(2017, 03, 27, 6)
         expected_end = dt(2017, 03, 29, 6)
-        result_start, result_end = get_valid_dates(self.time_coord,
-                                                   start_hour=6)
+        result_start, result_end = get_datetime_limits(self.time_coord,
+                                                       start_hour=6)
         self.assertEqual(expected_start, result_start)
         self.assertEqual(expected_end, result_end)
 
-    def test_get_valid_dates_non_int_hour(self):
+    def test_get_datetime_limits_non_int_hour(self):
         """
         Check an error is raised if a non-integer hour is provided.
 
         """
         msg = "integer argument expected, got float"
         with self.assertRaisesRegexp(TypeError, msg):
-            get_valid_dates(self.time_coord, start_hour=6.2)
+            get_datetime_limits(self.time_coord, start_hour=6.2)
 
 
 class Test_make_local_time_cube(Test_extrema):
