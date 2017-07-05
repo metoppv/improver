@@ -209,6 +209,8 @@ class Test_redistribute_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_all_missing(self):
+        """Test it raises the correct error when none of the expected
+           coordinate values are present on the cube."""
         weights_in = np.array([0.6, 0.3, 0.1])
         missing_weights = np.zeros(3)
         msg = 'None of the expected forecasts were found.'
@@ -272,6 +274,8 @@ class Test_process_coord(IrisTest):
                 self.cube, self.coordinate, exp_coord_vals, units)
 
     def test_finds_missing_points(self):
+        """Test correct values are returned for case where not all expected
+           coordinate values are present in cube."""
         expected_num = 3
         expected_array = np.ones(expected_num)
         expected_array[0] = 0.0
