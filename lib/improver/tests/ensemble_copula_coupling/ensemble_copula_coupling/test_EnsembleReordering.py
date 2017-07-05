@@ -461,6 +461,43 @@ class Test_rank_ecc(IrisTest):
             np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
+    def test_3d_cube_tied_values_random_seed(self):
+        """
+        Test that the plugin returns the correct cube data for a
+        3d input cube, when there are tied values witin the
+        raw ensemble members. The random seed is specified to ensure that
+        only one option, out of the two possible options will be returned.
+        """
+        raw_data = np.array(
+            [[[1, 1]],
+             [[3, 2]],
+             [[2, 2]]])
+
+        calibrated_data = np.array(
+            [[[1, 1]],
+             [[2, 2]],
+             [[3, 3]]])
+
+        # Reordering of the calibrated_data array to match
+        # the raw_data ordering
+        result_data = np.array(
+            [[[1, 1]],
+             [[3, 2]],
+             [[2, 3]]])
+
+        cube = self.cube.copy()
+        cube = cube[:, :, :2, 0]
+
+        raw_cube = cube.copy()
+        raw_cube.data = raw_data
+
+        calibrated_cube = cube.copy()
+        calibrated_cube.data = calibrated_data
+        plugin = Plugin()
+        result = plugin.rank_ecc(calibrated_cube, raw_cube, random_seed=0)
+        result.transpose([1, 0, 2])
+        self.assertArrayAlmostEqual(result.data, result_data)
+
     def test_2d_cube(self):
         """
         Test that the plugin returns the correct cube data for a
@@ -544,8 +581,7 @@ class Test_process(IrisTest):
         self.post_processed_percentiles.coord("realization").rename(
             "percentile_over_realization")
         self.post_processed_percentiles.coord(
-            "percentile_over_realization").points = (
-                [0.1, 0.5, 0.9])
+            "percentile_over_realization").points = [10, 50, 90]
 
     def test_basic(self):
         """

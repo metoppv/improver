@@ -35,7 +35,9 @@
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run Ensemble Copula Coupling and check it passes.
+  # Run Ensemble Copula Coupling to convert one set of percentiles to another
+  # set of percentiles, and then rebadge the percentiles to be ensemble
+  # members.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
       --rebadging \
       "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \

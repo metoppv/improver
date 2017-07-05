@@ -37,8 +37,7 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering]
-                    [--fixed_random_seed FIXED_RANDOM_SEED]
+                    [--random_ordering] [--random_seed RANDOM_SEED]
                     [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 improver-ecc: error: too few arguments

@@ -53,19 +53,22 @@ def main():
 
     # General options:
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed')
+                        help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
+                        help='The output path for the processed NetCDF.')
     parser.add_argument('--no_of_percentiles', default=None, type=int,
                         metavar='NUMBER_OF_PERCENTILES',
-                        help='The number of percentiles to be generated.')
+                        help='The number of percentiles to be generated. '
+                             'This is also equal to the number of ensemble '
+                             'members that will be generated.')
     parser.add_argument('--sampling_method', default='quantile',
                         const='quantile', nargs='?',
                         choices=['quantile', 'random'],
                         metavar='PERCENTILE_SAMPLING_METHOD',
                         help='Method to be used for generating the list of '
                              'percentiles with forecasts generated at each '
-                             'percentile. "quantile" is the default option.')
+                             'percentile. The options are "quantile" and '
+                             '"random". "quantile" is the default option.')
 
     # Different use cases:
     # (We can either reorder OR rebadge)
@@ -89,16 +92,22 @@ def main():
     reordering.add_argument('--raw_forecast_filepath',
                         metavar='RAW_FORECAST_FILE',
                         help='A path to an raw forecast NetCDF file to be '
-                             'processed.')
+                             'processed. This option is compulsory, if the '
+                             'reordering option is selected.')
     reordering.add_argument('--random_ordering', default=False,
                         action='store_true',
                         help='Decide whether or not to use random ordering '
                              'within the ensemble reordering step.')
-    reordering.add_argument('--fixed_random_seed', default=None,
-                        help='Decide whether or not a fixed random seed is '
-                             'used to create the random numbers, either '
-                             'used for the random_ordering or for splitting '
-                             'tied values.')
+    reordering.add_argument(
+        '--random_seed', default=None,
+        help='Option to specify a value for the random seed for testing '
+            'purposes, otherwise, the default random seed behaviour is '
+            'utilised. The random seed is used in the generation of the '
+            'random numbers used for either the random_ordering option to '
+            'order the input percentiles randomly, rather than use the '
+            'ordering from the raw ensemble, or for splitting tied values '
+            'within the raw ensemble, so that the values from the input '
+            'percentiles can be ordered to match the raw ensemble.')
 
     rebadging = parser.add_argument_group(
         'Rebadging options', 'Options for rebadging the input percentiles '
@@ -118,7 +127,7 @@ def main():
     if args.reordering:
         if np.any([args.member_numbers]):
             parser.wrong_args_error('member_numbers', 'reordering')
-    elif args.rebadging:
+    if args.rebadging:
         if np.any([args.raw_forecast_filepath, args.random_ordering]):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
@@ -127,13 +136,13 @@ def main():
     # Safe to now actually do the work...
     cube = iris.load_cube(args.input_filepath)
 
-    # TODO: checking should eventually be moved into the framework itself:
     if not cube.coords('percentile_over_realization'):
         msg = ('The input cube: {} does not have a '
                'percentile_over_realization dimension.'.format(cube))
         raise CoordinateNotFoundError(msg)
 
-    # For now, assume only doing percentiles -> percentiles
+    # TODO: For now, assume only doing percentiles -> percentiles.
+    # TODO: Support for probabilities is not yet provided.
     result_cube = ResamplePercentiles().process(
         cube, no_of_percentiles=args.no_of_percentiles,
         sampling=args.sampling_method)
@@ -142,7 +151,7 @@ def main():
         raw_forecast = iris.load_cube(args.raw_forecast_filepath)
         result_cube = EnsembleReordering().process(
             result_cube, raw_forecast, random_ordering=args.random_ordering,
-            fixed_random_seed=args.fixed_random_seed)
+            random_seed=args.random_seed)
     elif args.rebadging:
         result_cube = RebadgePercentilesAsMembers().process(
             result_cube, ensemble_member_numbers=args.member_numbers)

@@ -31,14 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast input output" {
+@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast --random_seed 0 input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run Ensemble Copula Coupling and check it passes.
+  # Run Ensemble Copula Coupling to convert one set of percentiles to another
+  # set of percentiles, and then reorder the ensemble using the raw ensemble
+  # members.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
       --reordering --raw_forecast_filepath="$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/raw_forecast.nc"\
-      --fixed_random_seed 0 \
+      --random_seed 0 \
       "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/multiple_percentiles_wind_cube.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
