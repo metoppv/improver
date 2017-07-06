@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -85,10 +85,8 @@ class DifferenceBetweenAdjacentGridSquares(object):
         for coord in cube.dim_coords:
             dims = cube.coord_dims(coord)
             if coord.name() in [coord_name]:
-                coord = DimCoord(
-                    mean_points, standard_name=coord.standard_name,
-                    units=coord.units)
-            diff_cube.add_dim_coord(coord.copy(), dims)
+                coord = coord.copy(points=mean_points)
+            diff_cube.add_dim_coord(coord, dims)
         for coord in cube.aux_coords:
             dims = cube.coord_dims(coord)
             diff_cube.add_aux_coord(coord.copy(), dims)
