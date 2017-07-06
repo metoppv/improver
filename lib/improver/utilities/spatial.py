@@ -85,9 +85,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         for coord in cube.dim_coords:
             dims = cube.coord_dims(coord)
             if coord.name() in [coord_name]:
-                coord = DimCoord(
-                    mean_points, standard_name=coord.standard_name,
-                    units=coord.units)
+                coord = coord.copy(points=mean_points)
             diff_cube.add_dim_coord(coord.copy(), dims)
         for coord in cube.aux_coords:
             dims = cube.coord_dims(coord)
