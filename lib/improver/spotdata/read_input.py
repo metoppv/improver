@@ -230,11 +230,7 @@ def read_config(file_path):
     TypeError : json file provided is unreadable.
 
     """
-    config_file = open(file_path, 'r')
-
-    try:
+    with open(file_path, 'r') as config_file:
         configuration = json.load(config_file)
-    except ValueError:
-        raise ValueError('Invalid json format. Unable to read configuration '
-                         'from {}.'.format(file_path))
+
     return configuration

@@ -351,7 +351,7 @@ class Test_read_config(Test_read_input):
         """Test raising of exception for invalid config file.
         e.g. not a valid json file."""
 
-        msg = 'Invalid json format. Unable to read configuration'
+        msg = 'No JSON object could be decoded'
         with self.assertRaisesRegexp(ValueError, msg):
             read_config(self.cube_path)
 
