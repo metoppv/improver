@@ -45,7 +45,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, choose_set_of_percentiles,
-            find_coordinate, get_bounds_of_distribution,
+            get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
 
@@ -77,17 +77,19 @@ class RebadgePercentilesAsMembers(object):
         ensemble member.
 
         """
-        if not cube.coords("percentile"):
+        if not cube.coords("percentile_over_realization"):
             msg = ("The percentile coordinate could not be found within"
                    "the input cube: {}.".format(cube))
             raise CoordinateNotFoundError(msg)
 
         if ensemble_member_numbers is None:
             ensemble_member_numbers = (
-                np.arange(len(cube.coord("percentile").points)))
+                np.arange(
+                    len(cube.coord("percentile_over_realization").points)))
 
-        cube.coord("percentile").points = ensemble_member_numbers
-        cube.coord("percentile").rename("realization")
+        cube.coord("percentile_over_realization").points = (
+            ensemble_member_numbers)
+        cube.coord("percentile_over_realization").rename("realization")
         return cube
 
 
@@ -134,7 +136,7 @@ class ResamplePercentiles(object):
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(
-            percentiles, 0, 1)
+            percentiles, 0, 100)
         forecast_at_percentiles = concatenate_2d_array_with_2d_array_endpoints(
             forecast_at_percentiles, lower_bound, upper_bound)
         if np.any(np.diff(forecast_at_percentiles) < 0):
@@ -179,15 +181,16 @@ class ResamplePercentiles(object):
 
         """
         original_percentiles = (
-            forecast_at_percentiles.coord("percentile").points)
+            forecast_at_percentiles.coord(
+                "percentile_over_realization").points)
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_at_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
-                forecast_at_percentiles, "percentile"))
+                forecast_at_percentiles, "percentile_over_realization"))
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord="percentile")
+            forecast_at_percentiles, coord="percentile_over_realization")
 
         original_percentiles, forecast_at_reshaped_percentiles = (
             self._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -208,11 +211,11 @@ class ResamplePercentiles(object):
         forecast_at_percentiles_data = (
             restore_non_probabilistic_dimensions(
                 forecast_at_interpolated_percentiles, forecast_at_percentiles,
-                "percentile", len(desired_percentiles)))
+                "percentile_over_realization", len(desired_percentiles)))
 
         for template_cube in forecast_at_percentiles.slices_over(
-                "percentile"):
-            template_cube.remove_coord("percentile")
+                "percentile_over_realization"):
+            template_cube.remove_coord("percentile_over_realization")
             break
         percentile_cube = create_cube_with_percentiles(
             desired_percentiles, template_cube, forecast_at_percentiles_data)
@@ -256,7 +259,8 @@ class ResamplePercentiles(object):
 
         if no_of_percentiles is None:
             no_of_percentiles = (
-                len(forecast_at_percentiles.coord("percentile").points))
+                len(forecast_at_percentiles.coord(
+                    "percentile_over_realization").points))
 
         percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
@@ -363,7 +367,7 @@ class GeneratePercentilesFromProbabilities(object):
             air_temperature at the required percentiles.
 
         """
-        threshold_coord = find_coordinate(forecast_probabilities, "threshold")
+        threshold_coord = forecast_probabilities.coord("threshold")
         threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
@@ -389,12 +393,18 @@ class GeneratePercentilesFromProbabilities(object):
                    "The probabilities are {}".format(probabilities_for_cdf))
             raise ValueError(msg)
 
+        # Convert percentiles into fractions.
+        percentiles = [x/100.0 for x in percentiles]
+
         forecast_at_percentiles = (
             np.empty((len(percentiles), probabilities_for_cdf.shape[0])))
         for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
+
+        # Convert percentiles back into percentages.
+        percentiles = [x*100.0 for x in percentiles]
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -447,7 +457,9 @@ class GeneratePercentilesFromProbabilities(object):
 
         """
         forecast_probabilities = concatenate_cubes(forecast_probabilities)
-        threshold_coord = find_coordinate(forecast_probabilities, "threshold")
+        threshold_coord = forecast_probabilities.coord("threshold")
+        phenom_name = (
+            forecast_probabilities.name().replace("probability_of_", ""))
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -461,7 +473,7 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities.coord(threshold_coord.name()).units)
         bounds_pairing = (
             get_bounds_of_distribution(
-                threshold_coord.name(), cube_units))
+                phenom_name, cube_units))
 
         forecast_at_percentiles = self._probabilities_to_percentiles(
             forecast_probabilities, percentiles, bounds_pairing)
@@ -519,6 +531,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
         calibrated_forecast_variance_data = (
             calibrated_forecast_variance.data.flatten())
 
+        # Convert percentiles into fractions.
+        percentiles = [x/100.0 for x in percentiles]
+
         result = np.zeros((len(percentiles),
                            calibrated_forecast_predictor_data.shape[0]))
 
@@ -543,6 +558,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
                        "percentile. Unable to calculate the percent point "
                        "function.")
                 raise ValueError(msg)
+
+        # Convert percentiles back into percentages.
+        percentiles = [x*100.0 for x in percentiles]
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -648,7 +666,8 @@ class EnsembleReordering(object):
 
         """
         plen = len(
-            post_processed_forecast_percentiles.coord("percentile").points)
+            post_processed_forecast_percentiles.coord(
+                "percentile_over_realization").points)
         mlen = len(raw_forecast_members.coord("realization").points)
         if plen == mlen:
             pass
@@ -682,7 +701,7 @@ class EnsembleReordering(object):
     @staticmethod
     def rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
-            random_ordering=False):
+            random_ordering=False, random_seed=None):
         """
         Function to apply Ensemble Copula Coupling. This ranks the
         post-processed forecast members based on a ranking determined from
@@ -701,6 +720,11 @@ class EnsembleReordering(object):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.
+        random_seed : Integer or None
+            If random_seed is an integer, the integer value is used for
+            the random seed.
+            If random_seed is None, no random seed is set, so the random
+            values generated are not reproducible.
 
         Returns
         -------
@@ -714,7 +738,10 @@ class EnsembleReordering(object):
         for rawfc, calfc in zip(
                 raw_forecast_members.slices_over("time"),
                 post_processed_forecast_percentiles.slices_over("time")):
-            random_data = np.random.random(rawfc.data.shape)
+            if random_seed is not None:
+                random_seed = int(random_seed)
+            random_seed = np.random.RandomState(random_seed)
+            random_data = random_seed.rand(*rawfc.data.shape)
             if random_ordering:
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
@@ -736,7 +763,7 @@ class EnsembleReordering(object):
 
     def process(
             self, post_processed_forecast, raw_forecast,
-            random_ordering=False):
+            random_ordering=False, random_seed=False):
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.
@@ -753,6 +780,11 @@ class EnsembleReordering(object):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.
+        random_seed : Integer or None
+            If random_seed is an integer, the integer value is used for
+            the random seed.
+            If random_seed is None, no random seed is set, so the random
+            values generated are not reproducible.
 
         Returns
         -------
@@ -763,10 +795,11 @@ class EnsembleReordering(object):
         """
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
-            coords_to_slice_over=["percentile", "time"])
+            coords_to_slice_over=["percentile_over_realization", "time"])
         post_processed_forecast_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
-                post_processed_forecast_percentiles, "percentile"))
+                post_processed_forecast_percentiles,
+                "percentile_over_realization"))
         raw_forecast_members = concatenate_cubes(raw_forecast)
         raw_forecast_members = ensure_dimension_is_the_zeroth_dimension(
             raw_forecast_members, "realization")
@@ -775,8 +808,14 @@ class EnsembleReordering(object):
                 post_processed_forecast_percentiles, raw_forecast_members))
         post_processed_forecast_members = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
-            random_ordering=random_ordering)
+            random_ordering=random_ordering,
+            random_seed=random_seed)
         post_processed_forecast_members = (
             RebadgePercentilesAsMembers.process(
                 post_processed_forecast_members))
+
+        post_processed_forecast_members = (
+            ensure_dimension_is_the_zeroth_dimension(
+                post_processed_forecast_members,
+                "realization"))
         return post_processed_forecast_members

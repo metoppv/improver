@@ -52,10 +52,10 @@ def set_up_probability_above_threshold_cube(
     values for the coordinate.
     """
     cube_long_name = (
-        "probability_of_{}_above_threshold".format(phenomenon_standard_name))
+        "probability_of_{}".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
                 units=phenomenon_units)
-    coord_long_name = "{}_threshold".format(phenomenon_standard_name)
+    coord_long_name = "threshold"
     cube.add_dim_coord(
         DimCoord(forecast_thresholds, long_name=coord_long_name,
                  units='degreesC'), 0)
@@ -68,6 +68,7 @@ def set_up_probability_above_threshold_cube(
                                 'latitude', units='degrees'), 2)
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
                                 'longitude', units='degrees'), 3)
+    cube.attributes["relative_to_threshold"] = "above"
     return cube
 
 
@@ -97,10 +98,10 @@ def set_up_probability_above_threshold_spot_cube(
     dimensions is an index used for spot forecasts.
     """
     cube_long_name = (
-        "probability_of_{}_above_threshold".format(phenomenon_standard_name))
+        "probability_of_{}".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
                 units=phenomenon_units)
-    coord_long_name = "{}_threshold".format(phenomenon_standard_name)
+    coord_long_name = "threshold"
     cube.add_dim_coord(
         DimCoord(forecast_thresholds, long_name=coord_long_name,
                  units='degreesC'), 0)
@@ -115,6 +116,7 @@ def set_up_probability_above_threshold_spot_cube(
                                 'latitude', units='degrees'), data_dims=2)
     cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length),
                                 'longitude', units='degrees'), data_dims=2)
+    cube.attributes["relative_to_threshold"] = "above"
     return cube
 
 

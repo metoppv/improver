@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,27 +28,19 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module to contain constants used for Ensemble Copula Coupling."""
 
-from collections import namedtuple
-
-from improver.constants import ABSOLUTE_ZERO
-
-# Define a namedtuple for use in the bounds_for_ecdf dictionary.
-bounds = namedtuple("bounds", "value units")
-
-# For the creation of an empirical cumulative distribution function,
-# the following dictionary specifies the end points of the distribution,
-# as a first approximation of likely climatological lower and upper bounds.
-# The units for the end points of the distribution are specified for each
-# phenomenon. SI units are used exclusively.
-# Scientific Reference:
-# Flowerdew, J., 2014.
-# Calibrated ensemble reliability whilst preserving spatial structure.
-# Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
-
-bounds_for_ecdf = {
-    "air_temperature": (
-        bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
-    "wind_speed": bounds((0, 50), "m s^-1"),
-    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa")}
+@test "ecc no arguments" {
+  run improver ecc
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
+                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                    (--reordering | --rebadging)
+                    [--raw_forecast_filepath RAW_FORECAST_FILE]
+                    [--random_ordering] [--random_seed RANDOM_SEED]
+                    [--member_numbers MEMBER_NUMBERS]
+                    INPUT_FILE OUTPUT_FILE
+improver-ecc: error: too few arguments
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
+}

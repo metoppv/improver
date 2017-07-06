@@ -83,7 +83,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
@@ -123,7 +123,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
@@ -160,7 +160,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
@@ -201,7 +201,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
@@ -218,7 +218,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = np.linspace(0.01, 0.99, num=1000, endpoint=True)
+        percentiles = np.linspace(1, 99, num=1000, endpoint=True)
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance, percentiles)
@@ -234,7 +234,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [-0.1, 0.1]
+        percentiles = [-10, 10]
         plugin = Plugin()
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegexp(ValueError, msg):
@@ -264,7 +264,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        percentiles = [0.1, 0.5, 0.9]
+        percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(
             current_forecast_predictor, current_forecast_variance,
@@ -319,8 +319,9 @@ class Test_process(IrisTest):
 
         plugin = Plugin()
         result = plugin.process(predictor_and_variance, no_of_percentiles)
-        self.assertEqual(len(raw_forecast.coord("realization").points),
-                         len(result.coord("percentile").points))
+        self.assertEqual(
+            len(raw_forecast.coord("realization").points),
+            len(result.coord("percentile_over_realization").points))
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,27 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module to contain constants used for Ensemble Copula Coupling."""
 
-from collections import namedtuple
+. $IMPROVER_DIR/tests/lib/utils
 
-from improver.constants import ABSOLUTE_ZERO
+@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
 
-# Define a namedtuple for use in the bounds_for_ecdf dictionary.
-bounds = namedtuple("bounds", "value units")
+  # Run Ensemble Copula Coupling to convert one set of percentiles to another
+  # set of percentiles, and then rebadge the percentiles to be ensemble
+  # members.
+  run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
+      --rebadging \
+      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-# For the creation of an empirical cumulative distribution function,
-# the following dictionary specifies the end points of the distribution,
-# as a first approximation of likely climatological lower and upper bounds.
-# The units for the end points of the distribution are specified for each
-# phenomenon. SI units are used exclusively.
-# Scientific Reference:
-# Flowerdew, J., 2014.
-# Calibrated ensemble reliability whilst preserving spatial structure.
-# Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
-
-bounds_for_ecdf = {
-    "air_temperature": (
-        bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
-    "wind_speed": bounds((0, 50), "m s^-1"),
-    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa")}
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
+}
