@@ -33,7 +33,6 @@
 
 import unittest
 import numpy as np
-import numpy.ma as ma
 import cf_units
 from iris import Constraint
 from iris.coords import (DimCoord,
@@ -179,7 +178,7 @@ class Test_ExtractExtrema(Test_extrema):
             values = range(min(n_data, i+1))
             expected = np.full(n_data, np.nan)
             expected[0:i+1] = values
-            expected = ma.masked_invalid(expected)
+            expected = np.ma.masked_invalid(expected)
             self.assertArrayEqual(expected, result.data[i])
 
         # Generate masked array that shifts from being full of valid entries
@@ -191,7 +190,7 @@ class Test_ExtractExtrema(Test_extrema):
             values = base[ii+1:]
             expected = np.full(n_data, np.nan)
             expected[ii+1:] = values
-            expected = ma.masked_invalid(expected)
+            expected = np.ma.masked_invalid(expected)
             self.assertArrayEqual(expected, result.data[i])
 
     def test_data_arrays_day1(self):
@@ -207,14 +206,14 @@ class Test_ExtractExtrema(Test_extrema):
 
         """
         # Expected time coordinate values.
-        mid_time = mktime(dt(2017, 03, 26, 12).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 03, 26, 00).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 03, 27, 00).utctimetuple())/3600.
+        mid_time = mktime(dt(2017, 3, 26, 12).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 26, 00).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
 
         # Expected data array.
         expected = np.full(self.n_data, np.nan)
         expected[0:12] = range(12)
-        expected = ma.masked_invalid(expected)
+        expected = np.ma.masked_invalid(expected)
 
         result = Plugin(24, start_hour=0).process(self.cube)
         result = result.extract(Constraint(name='air_temperature_max'))
@@ -231,9 +230,9 @@ class Test_ExtractExtrema(Test_extrema):
 
         """
         # Expected time coordinate values.
-        mid_time = mktime(dt(2017, 03, 27, 12).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 03, 27, 00).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 03, 28, 00).utctimetuple())/3600.
+        mid_time = mktime(dt(2017, 3, 27, 12).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 28, 00).utctimetuple())/3600.
 
         # Expected data array.
         expected = np.arange(0, 27)
@@ -288,8 +287,8 @@ class Test_get_datetime_limits(Test_extrema):
         min and maxima with the provided hour appended.
 
         """
-        expected_start = dt(2017, 03, 27, 6)
-        expected_end = dt(2017, 03, 29, 6)
+        expected_start = dt(2017, 3, 27, 6)
+        expected_end = dt(2017, 3, 29, 6)
         result_start, result_end = get_datetime_limits(self.time_coord,
                                                        start_hour=6)
         self.assertEqual(expected_start, result_start)

@@ -65,6 +65,11 @@ class ExtractExtrema(object):
         self.period = period
         self.start_hour = start_hour
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ExtractExtrema: period: {}, start_hour: {}>')
+        return result.format(self.period, self.start_hour)
+
     def process(self, cube):
         """
         Calculate extrema values for diagnostic in cube over the period given
