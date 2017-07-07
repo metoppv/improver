@@ -8,6 +8,7 @@
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
                                      [--num_members NUMBER_OF_MEMBERS]
                                      [--random_ordering]
+                                     [--random_seed RANDOM_SEED]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE

@@ -38,13 +38,15 @@ usage: improver-ensemble-calibration [-h]
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
                                      [--num_members NUMBER_OF_MEMBERS]
                                      [--random_ordering]
+                                     [--random_seed RANDOM_SEED]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
                                      TRUTH_DATA_FILE OUTPUT_FILE
 
 Apply the requested ensemble calibration method using historical forecast and
-"truth" data.
+"truth" data. Then apply ensemble copula coupling to regenerate ensemble
+members from output.
 
 positional arguments:
   ENSEMBLE_CALIBRATION_METHOD
@@ -62,7 +64,7 @@ positional arguments:
   INPUT_FILE            A path to an input NetCDF file containing the current
                         forecast to be processed.
   HISTORIC_DATA_FILE    A path to an input NetCDF file containing the historic
-                        forecast used for calibration.
+                        forecast(s) used for calibration.
   TRUTH_DATA_FILE       A path to an input NetCDF file containing the historic
                         truth analyses used for calibration.
   OUTPUT_FILE           The output path for the processed NetCDF
@@ -85,6 +87,16 @@ optional arguments:
   --random_ordering     Option to reorder the post-processed forecasts
                         randomly. If not set, the ordering of the raw ensemble
                         is used.
+  --random_seed RANDOM_SEED
+                        Option to specify a value for the random seed for
+                        testing purposes, otherwise, the default random seed
+                        behaviour is utilised. The random seed is used in the
+                        generation of the random numbers used for either the
+                        random_ordering option to order the input percentiles
+                        randomly, rather than use the ordering from the raw
+                        ensemble, or for splitting tied values within the raw
+                        ensemble, so that the values from the input
+                        percentiles can be ordered to match the raw ensemble.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

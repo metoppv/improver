@@ -40,7 +40,7 @@
       'gaussian' "$IMPROVER_ACC_TEST_DIR/ens_calib/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ens_calib/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ens_calib/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo members and check it passes.
