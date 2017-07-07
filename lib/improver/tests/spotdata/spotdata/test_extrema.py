@@ -82,17 +82,22 @@ class Test_extrema(IrisTest):
 
 
 class Test_ExtractExtrema(Test_extrema):
-    """
-    Test the extraction of maxima/minima values in given periods, where the
+    """Test the extraction of maxima/minima values in given periods, where the
     periods are in local time.
 
-    Imagine that 27 sites sample all timeszones from UTC-12 to UTC+14.
+    Imagine that 27 sites sample all timeszones from UTC-12 to UTC+14."""
 
-    """
+    def test_repr(self):
+        """Test return from __repr__ in class."""
+        expected = '<ExtractExtrema: period: 24, start_hour: 9>'
+        self.assertEqual(expected, Plugin(24).__repr__())
+        expected = '<ExtractExtrema: period: 12, start_hour: 9>'
+        self.assertEqual(expected, Plugin(12).__repr__())
+        expected = '<ExtractExtrema: period: 12, start_hour: 12>'
+        self.assertEqual(expected, Plugin(12, start_hour=12).__repr__())
 
     def test_time_coordinates_24_hour(self):
-        """
-        Time coordinate should be a series of mid points calculated from the
+        """Time coordinate should be a series of mid points calculated from the
         start hour + half the period. Each should have an associated pair of
         bounds that show the range over which the extrema values have been
         calculated.
@@ -105,9 +110,8 @@ class Test_ExtractExtrema(Test_extrema):
         which any site has data; a UTC+14 site.
 
         Input data spans 48 hours, this will spread to three days with timezone
-        adjustments.
+        adjustments."""
 
-        """
         n_periods = 72/24
         mid_start = mktime(dt(2017, 3, 26, 12).utctimetuple())/3600.
         lower_bound = mktime(dt(2017, 3, 26, 00).utctimetuple())/3600.
@@ -127,8 +131,7 @@ class Test_ExtractExtrema(Test_extrema):
             self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
     def test_time_coordinates_9_hour(self):
-        """
-        Time coordinate should be a series of mid points calculated from the
+        """Time coordinate should be a series of mid points calculated from the
         start hour + half the period. Each should have an associated pair of
         bounds that show the range over which the extrema values have been
         calculated.
@@ -141,9 +144,8 @@ class Test_ExtractExtrema(Test_extrema):
         to the latest day for which any site has data; a UTC+14 site.
 
         Input data spans 48 hours, this will spread to three days with timezone
-        adjustments.
+        adjustments."""
 
-        """
         n_periods = 72/9 - 1  # -1 as no data falls in the first 9 hour period.
         mid_start = mktime(dt(2017, 3, 26, 13, 30).utctimetuple())/3600.
         lower_bound = mktime(dt(2017, 3, 26, 9).utctimetuple())/3600.
@@ -161,12 +163,126 @@ class Test_ExtractExtrema(Test_extrema):
             self.assertEqual(result[i].coord('time').bounds[0, 0], [low_bound])
             self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
-    def test_time_shifting(self):
-        """
-        Test that "temperature" data has been shifted to the correct local time
-        accounting for the sites UTC_offset.
+    def test_data_arrays_day1(self):
+        """Test extraction of maxima and minima values from the time localised
+        cube in the first 24 hours. The first day is the first day for which
+        any site has valid data. The UTC time coord starts at 00 UTC on 27th
+        April 2017, so the first day in which any data falls is 26th April
+        2017 (for any UTC-N sites). The first 24 hours starting at 00
+        therefore runs 00 26th to 00 27th. Any sites UTC+N will be have no
+        valid data for this first day. That the correct sites return valid data
+        is tested here."""
 
-        """
+        # Expected time coordinate values.
+        mid_time = mktime(dt(2017, 3, 26, 12).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 26, 00).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
+
+        # Expected data array.
+        expected = np.full(self.n_data, np.nan)
+        expected[0:12] = range(12)
+        expected = np.ma.masked_invalid(expected)
+
+        result = Plugin(24, start_hour=0).process(self.cube)
+        result = result.extract(Constraint(name='air_temperature_max'))
+        self.assertArrayEqual(expected, result[0].data)
+        self.assertEqual(result[0].coord('time').points, [mid_time])
+        self.assertEqual(result[0].coord('time').bounds[0, 0], [lower_bound])
+        self.assertEqual(result[0].coord('time').bounds[0, 1], [upper_bound])
+
+    def test_data_arrays_day2(self):
+        """Test extraction of maxima and minima values from the time localised
+        cube in the second 24 hours. All sites should return valid data during
+        day 2 which runs 00 27th to 00 28th."""
+
+        # Expected time coordinate values.
+        mid_time = mktime(dt(2017, 3, 27, 12).utctimetuple())/3600.
+        lower_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
+        upper_bound = mktime(dt(2017, 3, 28, 00).utctimetuple())/3600.
+
+        # Expected data array.
+        expected = np.arange(0, 27)
+
+        result = Plugin(24, start_hour=0).process(self.cube)
+        result = result.extract(Constraint(name='air_temperature_max'))
+        self.assertArrayEqual(expected, result[2].data)
+        self.assertEqual(result[1].coord('time').points, [mid_time])
+        self.assertEqual(result[1].coord('time').bounds[0, 0], [lower_bound])
+        self.assertEqual(result[1].coord('time').bounds[0, 1], [upper_bound])
+
+    def test_extrema_values_day1(self):
+        """Test the actual values returned by the collapse method to ensure it
+        is successfully extracting the maximum/minimum temperatures in the
+        defined period.
+
+        UTC times : 00  01  02  ... 10 11 12 13 14
+        UTC offset:-12 -11 -10  ... -2 -1  0  1  2
+        site index:  0   1   2  ... 10 11 12 13 14
+        Local time: 12  13  14  ... 22 23 00 01 02
+
+        site_index 12 at time_index 0 should be adjusted to fall at 00 27th
+        April 2017 in local time, so is expected to fall outside day 1. Thus
+        setting a high value for this site should leave the maximum unset for
+        site 12.
+
+        site_index 2 at time_index 9 (09Z 27 April 2017) will fall at 23 26th
+        April 2017 local time, so setting this to 40 should modify the maximum
+        for site 2 on day 1."""
+
+        self.cube.data[9, 2] = 40
+        self.cube.data[0, 12] = 40
+
+        # Expected data array.
+        expected = np.arange(0, 27).astype(float)
+        expected[2] = 40.
+
+        result = Plugin(24, start_hour=0).process(self.cube)
+        result = result.extract(Constraint(name='air_temperature_max'))
+        self.assertTrue(result[0].data[12].mask)
+        self.assertArrayEqual(result[0].data, expected)
+
+
+class Test_get_datetime_limits(Test_extrema):
+    """Test extraction of day min and max and hour setting."""
+
+    def test_get_datetime_limits_6(self):
+        """Given an iris time coord, check that this function returns the day
+        min and maxima with the provided hour appended."""
+
+        expected_start = dt(2017, 3, 27, 6)
+        expected_end = dt(2017, 3, 29, 6)
+        result_start, result_end = get_datetime_limits(self.time_coord,
+                                                       start_hour=6)
+        self.assertEqual(expected_start, result_start)
+        self.assertEqual(expected_end, result_end)
+
+    def test_get_datetime_limits_non_int_hour(self):
+        """Check an error is raised if a non-integer hour is provided."""
+
+        msg = "integer argument expected, got float"
+        with self.assertRaisesRegexp(TypeError, msg):
+            get_datetime_limits(self.time_coord, start_hour=6.2)
+
+
+class Test_make_local_time_cube(Test_extrema):
+    """Test time localisation function."""
+
+    def test_time_coord(self):
+        """Test that a new time_coord has been constructed that spans all local
+        times. UTC-12 to UTC+14 is the maximum range of timezones."""
+
+        expected_first_time = self.time_coord.points[0] - 12
+        expected_last_time = self.time_coord.points[-1] + 14
+        result = make_local_time_cube(self.cube)
+        self.assertEqual(result.coord('time').points[0],
+                         expected_first_time)
+        self.assertEqual(result.coord('time').points[-1],
+                         expected_last_time)
+
+    def test_time_shifting(self):
+        """Test that "temperature" data has been shifted to the correct local
+        time accounting for the sites UTC_offset."""
+
         result = make_local_time_cube(self.cube)
         n_times, n_data = result.data.shape
 
@@ -192,134 +308,6 @@ class Test_ExtractExtrema(Test_extrema):
             expected[ii+1:] = values
             expected = np.ma.masked_invalid(expected)
             self.assertArrayEqual(expected, result.data[i])
-
-    def test_data_arrays_day1(self):
-        """
-        Test extraction of maxima and minima values from the time localised
-        cube in the first 24 hours. The first day is the first day for which
-        any site has valid data. The UTC time coord starts at 00 UTC on 27th
-        April 2017, so the first day in which any data falls is 26th April
-        2017 (for any UTC-N sites). The first 24 hours starting at 00
-        therefore runs 00 26th to 00 27th. Any sites UTC+N will be have no
-        valid data for this first day. That the correct sites return valid data
-        is tested here.
-
-        """
-        # Expected time coordinate values.
-        mid_time = mktime(dt(2017, 3, 26, 12).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 3, 26, 00).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
-
-        # Expected data array.
-        expected = np.full(self.n_data, np.nan)
-        expected[0:12] = range(12)
-        expected = np.ma.masked_invalid(expected)
-
-        result = Plugin(24, start_hour=0).process(self.cube)
-        result = result.extract(Constraint(name='air_temperature_max'))
-        self.assertArrayEqual(expected, result[0].data)
-        self.assertEqual(result[0].coord('time').points, [mid_time])
-        self.assertEqual(result[0].coord('time').bounds[0, 0], [lower_bound])
-        self.assertEqual(result[0].coord('time').bounds[0, 1], [upper_bound])
-
-    def test_data_arrays_day2(self):
-        """
-        Test extraction of maxima and minima values from the time localised
-        cube in the second 24 hours. All sites should return valid data during
-        day 2 which runs 00 27th to 00 28th.
-
-        """
-        # Expected time coordinate values.
-        mid_time = mktime(dt(2017, 3, 27, 12).utctimetuple())/3600.
-        lower_bound = mktime(dt(2017, 3, 27, 00).utctimetuple())/3600.
-        upper_bound = mktime(dt(2017, 3, 28, 00).utctimetuple())/3600.
-
-        # Expected data array.
-        expected = np.arange(0, 27)
-
-        result = Plugin(24, start_hour=0).process(self.cube)
-        result = result.extract(Constraint(name='air_temperature_max'))
-        self.assertArrayEqual(expected, result[2].data)
-        self.assertEqual(result[1].coord('time').points, [mid_time])
-        self.assertEqual(result[1].coord('time').bounds[0, 0], [lower_bound])
-        self.assertEqual(result[1].coord('time').bounds[0, 1], [upper_bound])
-
-    def test_extrema_values_day1(self):
-        """
-        Test the actual values returned by the collapse method to ensure it is
-        successfully extracting the maximum/minimum temperatures in the
-        defined period.
-
-        UTC times : 00  01  02  ... 10 11 12 13 14
-        UTC offset:-12 -11 -10  ... -2 -1  0  1  2
-        site index:  0   1   2  ... 10 11 12 13 14
-        Local time: 12  13  14  ... 22 23 00 01 02
-
-        site_index 12 at time_index 0 should be adjusted to fall at 00 27th
-        April 2017 in local time, so is expected to fall outside day 1. Thus
-        setting a high value for this site should leave the maximum unset for
-        site 12.
-
-        site_index 2 at time_index 9 (09Z 27 April 2017) will fall at 23 26th
-        April 2017 local time, so setting this to 40 should modify the maximum
-        for site 2 on day 1.
-
-        """
-        self.cube.data[9, 2] = 40
-        self.cube.data[0, 12] = 40
-
-        # Expected data array.
-        expected = np.arange(0, 27).astype(float)
-        expected[2] = 40.
-
-        result = Plugin(24, start_hour=0).process(self.cube)
-        result = result.extract(Constraint(name='air_temperature_max'))
-        self.assertTrue(result[0].data[12].mask)
-        self.assertArrayEqual(result[0].data, expected)
-
-
-class Test_get_datetime_limits(Test_extrema):
-    """Test extraction of day min and max and hour setting."""
-
-    def test_get_datetime_limits_6(self):
-        """
-        Given an iris time coord, check that this function returns the day
-        min and maxima with the provided hour appended.
-
-        """
-        expected_start = dt(2017, 3, 27, 6)
-        expected_end = dt(2017, 3, 29, 6)
-        result_start, result_end = get_datetime_limits(self.time_coord,
-                                                       start_hour=6)
-        self.assertEqual(expected_start, result_start)
-        self.assertEqual(expected_end, result_end)
-
-    def test_get_datetime_limits_non_int_hour(self):
-        """
-        Check an error is raised if a non-integer hour is provided.
-
-        """
-        msg = "integer argument expected, got float"
-        with self.assertRaisesRegexp(TypeError, msg):
-            get_datetime_limits(self.time_coord, start_hour=6.2)
-
-
-class Test_make_local_time_cube(Test_extrema):
-    """Test time localisation function."""
-
-    def test_time_coord(self):
-        """
-        Test that a new time_coord has been constructed that spans all local
-        times. UTC-12 to UTC+14 is the maximum range of timezones.
-
-        """
-        expected_first_time = self.time_coord.points[0] - 12
-        expected_last_time = self.time_coord.points[-1] + 14
-        result = make_local_time_cube(self.cube)
-        self.assertEqual(result.coord('time').points[0],
-                         expected_first_time)
-        self.assertEqual(result.coord('time').points[-1],
-                         expected_last_time)
 
 
 if __name__ == '__main__':

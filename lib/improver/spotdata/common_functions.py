@@ -36,9 +36,9 @@ Plugins written for the Improver site specific process chain.
 import warnings
 import numpy as np
 from datetime import datetime as dt
+from time import mktime
 import iris
 from iris import Constraint
-import iris
 from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 
@@ -498,7 +498,7 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
 
 def iris_time_to_datetime(time):
     """
-    Convert iris time to pythond datetime object.
+    Convert iris time to python datetime object.
 
     Args:
     -----
@@ -528,6 +528,5 @@ def dt_to_utc_hours(dt_in):
     hours since epoch : float
 
     """
-    from time import mktime
     utc_seconds = mktime(dt_in.utctimetuple())
     return utc_seconds/3600.
