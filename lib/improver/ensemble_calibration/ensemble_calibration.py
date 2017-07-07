@@ -389,10 +389,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         will be used.
 
         Default values have been chosen based on Figure 8 in the
-        ensemble calibration documentation in
-        https://exxreldocs:8099/display/TEPPV/Science+Plugin+Documents
-        or
-        http://www-nwp/~gevans/reports/EMOS_report_20170327.pdf
+        ensemble calibration documentation in which can be found on the
+        Science Plugin Documents page on Confluence.
 
         Parameters
         ----------
