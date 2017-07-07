@@ -40,14 +40,14 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    concatenate_cubes, convert_cube_data_to_2d,
-    ensure_dimension_is_the_zeroth_dimension)
+    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, choose_set_of_percentiles,
             get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 class RebadgePercentilesAsMembers(object):

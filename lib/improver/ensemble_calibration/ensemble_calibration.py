@@ -42,9 +42,9 @@ import cf_units as unit
 import iris
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, concatenate_cubes,
-    ensure_dimension_is_the_zeroth_dimension,
+    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension,
     rename_coordinate, check_predictor_of_mean_flag)
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
