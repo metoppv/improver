@@ -526,3 +526,7 @@ class Test__strip_var_names(IrisTest):
         for cube in result:
             for coord in cube.coords():
                 self.assertIsNone(coord.var_name, None)
+
+
+if __name__ == '__main__':
+    unittest.main()

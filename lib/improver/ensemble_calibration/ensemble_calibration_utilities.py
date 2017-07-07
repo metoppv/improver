@@ -37,8 +37,6 @@ import numpy as np
 
 import iris
 
-from improver.utilities.cube import concatenate_cubes
-
 
 def convert_cube_data_to_2d(
         forecast, coord="realization", transpose=True):

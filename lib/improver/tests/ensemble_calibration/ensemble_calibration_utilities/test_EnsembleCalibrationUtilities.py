@@ -35,11 +35,8 @@ module.
 """
 import unittest
 
-from cf_units import Unit
 import iris
-from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 import numpy as np
 

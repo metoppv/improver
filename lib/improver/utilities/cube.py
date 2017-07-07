@@ -157,10 +157,8 @@ def _strip_var_names(cubes):
 
 
 def concatenate_cubes(
-        cubes, coords_to_slice_over=["realization", "time"],
-        master_coord="time",
-        coordinates_for_association=["forecast_reference_time",
-                                     "forecast_period"]):
+        cubes, coords_to_slice_over=None, master_coord="time",
+        coordinates_for_association=None):
     """
     Function to concatenate cubes, accounting for differences in the
     history attribute, and allow promotion of forecast_reference_time
@@ -184,6 +182,11 @@ def concatenate_cubes(
         Concatenated cube.
 
     """
+    if coords_to_slice_over is None:
+        coords_to_slice_over = ["realization", "time"]
+    if coordinates_for_association is None:
+        coordinates_for_association = ["forecast_reference_time",
+                                       "forecast_period"]
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
