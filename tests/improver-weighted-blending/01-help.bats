@@ -54,9 +54,9 @@ Required for ChooseDefaultWeightsNonLinear: cval.
 positional arguments:
   WEIGHTS_CALCULATION_METHOD
                         Method to use to calculate weights used in blending.
-                        "linear": option to use the ChooseDefaultWeightsLinear
-                        plugin. "nonlinear": option to use the
-                        ChooseDefaultWeightsNonLinear plugin.
+                        "linear": calculate linearly varying blending weights.
+                        "nonlinear": calculate exponentially varying blending
+                        weights.
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.

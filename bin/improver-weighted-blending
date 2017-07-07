@@ -58,10 +58,9 @@ def main():
                         metavar='WEIGHTS_CALCULATION_METHOD',
                         choices=['linear', 'nonlinear'],
                         help='Method to use to calculate weights used in '
-                             'blending. "linear": option to use the '
-                             'ChooseDefaultWeightsLinear plugin. "nonlinear": '
-                             'option to use the ChooseDefaultWeightsNonLinear '
-                             'plugin.')
+                             'blending. "linear": calculate linearly varying '
+                             'blending weights. "nonlinear": calculate '
+                             'exponentially varying blending weights.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
