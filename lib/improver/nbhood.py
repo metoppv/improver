@@ -37,8 +37,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
-from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    concatenate_cubes)
+from improver.utilities.cube import concatenate_cubes
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
