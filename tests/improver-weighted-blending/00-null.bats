@@ -33,8 +33,7 @@
   run improver weighted-blending
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] (--linear | --nonlinear)
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
+usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDER]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
@@ -42,6 +41,7 @@ usage: improver-weighted-blending [-h] (--linear | --nonlinear)
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
+                                  WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER INPUT_FILE
                                   OUTPUT_FILE
 __TEXT__

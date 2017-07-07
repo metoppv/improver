@@ -82,17 +82,18 @@ class WeightsUtilities(object):
             Args:
                 weights : (numpy.ndarray) of weights.
                 forecast_present : (numpy.ndarray) size of weights
-                                  with values set as
-                                  1.0 for present
-                                  0.0 for missing.
+                                   with values set as
+                                   1.0 for present
+                                   0.0 for missing.
                 method : (string) method to redistribute weights
-                         Options are
-                         evenly - adding the weights from the
-                                   missing forecasts evenly across
-                                   the remaining forecasts.
-                         proportional - re-weight according to the
-                                   proportion of the previous weights.
-                         Default is evenly
+                                   Options are
+                                   evenly - adding the weights from the
+                                            missing forecasts evenly across
+                                            the remaining forecasts.
+                                   proportional - re-weight according to the
+                                                  proportion of the previous
+                                                  weights.
+                                   Default is evenly
 
             Returns:
                 redistributed_weights : (numpy.ndarray) of weights
@@ -178,7 +179,7 @@ class WeightsUtilities(object):
 
             Raises:
                 ValueError 1 : the coordinate to blend over does not exist on
-                               the cube being blended over.
+                               the cube being blended.
                 ValueError 2 : the length of the expected coordinate input is
                                less than the length of the corresponding cube
                                coordinate.
@@ -217,7 +218,7 @@ class WeightsUtilities(object):
                 if exp_coord.units != cube_coord.units:
                     try:
                         exp_coord.convert_units(cube_coord.units)
-                    except:
+                    except ValueError:
                         msg = ('Failed to convert coord units '
                                'requested coord units '
                                '= {0:s} '.format(str(exp_coord.units)) +
@@ -249,8 +250,7 @@ class ChooseDefaultWeightsLinear(object):
             slope OR ynval should be set but NOT BOTH.
 
             If y0val value is not set or set to None then the code
-            assumes that the ultimate default values of
-            y0val = 20.0 and ynval = 2.0 are required.
+            uses default values of y0val = 20.0 and ynval = 2.0.
 
             equal weights when slope = 0.0 or y0val = ynval
         """
@@ -328,9 +328,9 @@ class ChooseDefaultWeightsLinear(object):
                        The unit in which the coord_exp_vals have been passed
                        in.
                 weights_distrib_method : string
-                        The method to use when redistributing weights in cases
-                        where there are some forecasts missing. Options:
-                        "evenly", "proportional".
+                       The method to use when redistributing weights in cases
+                       where there are some forecasts missing. Options:
+                       "evenly", "proportional".
             Returns:
                 weights : array of weights, sum of all weights = 1.0
 

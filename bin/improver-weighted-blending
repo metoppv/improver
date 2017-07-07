@@ -54,14 +54,14 @@ def main():
                 ' Required for ChooseDefaultWeightsLinear: y0val and ONE '
                 'of slope, ynval. Required for '
                 'ChooseDefaultWeightsNonLinear: cval.')
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--linear', default=False, action='store_true',
-                       help='Option to use the ChooseDefaultWeightsLinear '
-                            'plugin.')
-    group.add_argument('--nonlinear', default=False, action='store_true',
-                       help='Option to use the ' +
-                            'ChooseDefaultWeightsNonLinear plugin.')
-
+    parser.add_argument('wts_calc_method',
+                        metavar='WEIGHTS_CALCULATION_METHOD',
+                        choices=['linear', 'nonlinear'],
+                        help='Method to use to calculate weights used in '
+                             'blending. "linear": option to use the '
+                             'ChooseDefaultWeightsLinear plugin. "nonlinear": '
+                             'option to use the ChooseDefaultWeightsNonLinear '
+                             'plugin.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
@@ -138,10 +138,10 @@ def main():
     if args.coord_adj:
         args.coord_adj = eval(args.coord_adj)
 
-    if args.linear:
+    if args.wts_calc_method == "linear":
         if args.cval:
             parser.wrong_args_error('cval', 'linear')
-    if args.nonlinear:
+    else:
         if np.any([args.y0val, args.ynval, args.slope]):
             parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
 
@@ -154,14 +154,13 @@ def main():
 
 
     cube = iris.load_cube(args.input_filepath)
-
-    if args.linear:
+    if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(
                 cube, args.coordinate, args.coord_exp_val, coord_unit,
                 args.wts_redistrib_method)
 
-    if args.nonlinear:
+    else:
         weights = ChooseDefaultWeightsNonLinear(cval).process(
                 cube, args.coordinate, args.coord_exp_val, coord_unit,
                 args.wts_redistrib_method)

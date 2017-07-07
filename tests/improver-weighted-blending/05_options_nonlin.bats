@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run weighted blending with non linear weights and sub-options and check it passes.
-  run improver weighted-blending --nonlinear 'time' --cval 1.0 \
+  run improver weighted-blending 'nonlinear' 'time' --cval 1.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

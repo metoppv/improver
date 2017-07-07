@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear --coord_exp_val input output" {
+@test "weighted-blending nonlinear --coord_exp_val input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run weighted blending with expected coordinate values.
-  run improver weighted-blending --nonlinear \
+  run improver weighted-blending 'nonlinear' \
       --coord_exp_val "415635.0, 415636.0, 415637.0, 415638.0" \
       'time' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
