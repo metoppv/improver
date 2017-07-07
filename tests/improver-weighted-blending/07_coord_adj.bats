@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run linear weighted blending with coord adj option.
-  run improver weighted-blending --linear 'time' \
+  run improver weighted-blending 'linear' 'time' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc" \
       --coord_adj "lambda pnts: pnts[len(pnts)/2]"

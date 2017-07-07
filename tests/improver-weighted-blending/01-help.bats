@@ -33,11 +33,15 @@
   run improver weighted-blending -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-weighted-blending [-h] (--linear | --nonlinear)
+usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
+                                  [--coordinate_unit UNIT_STRING]
+                                  [--calendar CALENDER]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
+                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
+                                  WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER INPUT_FILE
                                   OUTPUT_FILE
 
@@ -48,6 +52,11 @@ Required for ChooseDefaultWeightsLinear: y0val and ONE of slope, ynval.
 Required for ChooseDefaultWeightsNonLinear: cval.
 
 positional arguments:
+  WEIGHTS_CALCULATION_METHOD
+                        Method to use to calculate weights used in blending.
+                        "linear": calculate linearly varying blending weights.
+                        "nonlinear": calculate blending weights that decrease
+                        exponentially with increasing blending coordinate.
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.
@@ -56,12 +65,22 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --linear              Option to use the ChooseDefaultWeightsLinear plugin.
-  --nonlinear           Option to use the ChooseDefaultWeightsNonLinear
-                        plugin.
+  --coord_exp_val COORD_EXPECTED_VALUES
+                        Optional string of expected coordinate points
+                        seperated by , e.g. "1496289600, 1496293200"
+  --coordinate_unit UNIT_STRING
+                        Units for time coordinate. Default= hours since
+                        1970-01-01 00:00:00.
+  --calendar CALENDER   Calendar for time coordinate. Default=gregorian
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
                         has been applied.
+  --wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS
+                        The method to use when redistributing weights in cases
+                        where forecasts are missing. Options: "evenly":
+                        redistribute weights evenly between the forecasts that
+                        are available. "proportional": redistribute weights
+                        using the original weighting function.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear

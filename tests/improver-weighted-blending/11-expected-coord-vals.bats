@@ -31,37 +31,21 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear coordinate input output y0val slope" {
+@test "weighted-blending nonlinear --coord_exp_val input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run weighted blending with linear weights and suboptions: y0val and slope. Check it passes.
-  run improver weighted-blending 'linear' 'time' --y0val 4.0 --slope -2.0 \
+  # Run weighted blending with expected coordinate values.
+  run improver weighted-blending 'nonlinear' \
+      --coord_exp_val "415635.0, 415636.0, 415637.0, 415638.0" \
+      'time' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/options_lin/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
-}
-
-
-@test "weighted-blending --linear coordinate input output y0val ynval" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  # Run weighted blending with linear weights and suboptions: y0val and ynval. Check it passes.
-  run improver weighted-blending 'linear' 'time' --y0val 4.0 --ynval 0.0 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/options_lin/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/coord_exp_val/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
