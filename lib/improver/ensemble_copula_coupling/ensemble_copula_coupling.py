@@ -47,7 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
-from improver.utilities.cube import concatenate_cubes
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 class RebadgePercentilesAsMembers(object):

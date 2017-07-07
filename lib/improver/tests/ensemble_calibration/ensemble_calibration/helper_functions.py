@@ -39,7 +39,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 import numpy as np
 
-from improver.utilities.cube import concatenate_cubes
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 def set_up_probability_above_threshold_cube(
