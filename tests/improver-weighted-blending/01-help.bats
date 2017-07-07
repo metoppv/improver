@@ -55,8 +55,8 @@ positional arguments:
   WEIGHTS_CALCULATION_METHOD
                         Method to use to calculate weights used in blending.
                         "linear": calculate linearly varying blending weights.
-                        "nonlinear": calculate exponentially varying blending
-                        weights.
+                        "nonlinear": calculate blending weights that decrease
+                        exponentially with increasing blending coordinate.
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.

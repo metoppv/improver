@@ -60,7 +60,8 @@ def main():
                         help='Method to use to calculate weights used in '
                              'blending. "linear": calculate linearly varying '
                              'blending weights. "nonlinear": calculate '
-                             'exponentially varying blending weights.')
+                             'blending weights that decrease exponentially '
+                             'with increasing blending coordinate.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
