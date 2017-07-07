@@ -389,8 +389,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         will be used.
 
         Default values have been chosen based on Figure 8 in the
-        ensemble calibration documentation in which can be found on the
-        Science Plugin Documents page on Confluence.
+        2017 ensemble calibration report available on the Science Plugin
+        Documents Confluence page.
 
         Parameters
         ----------
