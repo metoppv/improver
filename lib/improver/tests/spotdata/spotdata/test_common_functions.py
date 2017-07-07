@@ -85,6 +85,11 @@ class Test_common_functions(IrisTest):
             [1487311200], standard_name='time',
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
+        long_time_coord = DimCoord(
+            range(1487311200, 1487397600, 3600),
+            standard_name='time',
+            units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
+                                calendar='gregorian'))
 
         time_dt = dt(2017, 2, 17, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
@@ -96,6 +101,13 @@ class Test_common_functions(IrisTest):
                                          (latitude, 1),
                                          (longitude, 2)],
                     units="K")
+
+        long_cube = Cube(np.arange(3456).reshape(24, 12, 12),
+                         long_name="air_temperature",
+                         dim_coords_and_dims=[(long_time_coord, 0),
+                                              (latitude, 1),
+                                              (longitude, 2)],
+                         units="K")
 
         orography = Cube(np.ones((12, 12)),
                          long_name="surface_altitude",
@@ -123,6 +135,7 @@ class Test_common_functions(IrisTest):
                         list(data.nonzero()[1])]
 
         self.cube = cube
+        self.long_cube = long_cube
         self.data = data
         self.time_dt = time_dt
         self.time_extract = time_extract
@@ -443,7 +456,7 @@ class Test_list_entry_from_index(Test_common_functions):
         self.assertEqual(expected, result)
 
 
-class Test_date_time_constraint(Test_common_functions):
+class Test_datetime_constraint(Test_common_functions):
     """
     Test construction of an iris.Constraint from a python.datetime.datetime
     object.
@@ -456,6 +469,19 @@ class Test_date_time_constraint(Test_common_functions):
         dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
         self.assertEqual(self.time_extract._coord_values,
                          dt_constraint._coord_values)
+
+    def test_constraint_list_equality(self):
+        """Check a list of constraints is as expected."""
+        plugin = datetime_constraint
+        time_start = dt(2017, 2, 17, 6, 0)
+        time_limit = dt(2017, 2, 17, 18, 0)
+        expected_times = range(1487311200, 1487354400, 3600)
+        dt_constraint = plugin(time_start, time_max=time_limit)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.long_cube.extract(dt_constraint)
+        self.assertEqual(result.shape, (12, 12, 12))
+        self.assertArrayEqual(result.coord('time').points,
+                              expected_times)
 
     def test_constraint_type(self):
         """Check type is iris.Constraint."""
