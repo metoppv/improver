@@ -763,7 +763,7 @@ class EnsembleReordering(object):
 
     def process(
             self, post_processed_forecast, raw_forecast,
-            random_ordering=False, random_seed=False):
+            random_ordering=False, random_seed=None):
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.
