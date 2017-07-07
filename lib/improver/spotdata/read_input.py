@@ -31,7 +31,7 @@
 
 """
 Plugins written for the Improver site specific process chain.
-For reading data files from UM output and site specification input.
+For reading data processed by IMPROVER, and site specification input.
 
 """
 import os
