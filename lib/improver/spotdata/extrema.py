@@ -60,6 +60,8 @@ class ExtractExtrema(object):
         start_hour : int (units: hours)
             Hour in local_time on the 24hr clock at which to start the series
             of periods, e.g. period=12, start_hour=9 --> 09-21, 21-09, etc.
+            The default hour of 0900 is chosen to align with the NCM (national
+            climate message) reporting period.
 
         """
         self.period = period
