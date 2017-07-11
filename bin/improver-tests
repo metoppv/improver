@@ -52,18 +52,20 @@ function improver_test_unit {
 function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
-    test_dir=$IMPROVER_DIR/tests/improver-*$CLISUBTEST*/
-    test_dir="$(echo -e "${test_dir}" | tr -d '[:space:]')"
-    if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
-        PROVE_VERBOSE_OPT=
-        if [[ -n $DEBUG_OPT ]]; then
-            PROVE_VERBOSE_OPT='-v'
+    for SUBTEST in $CLISUBTEST; do
+        test_dir=$IMPROVER_DIR/tests/improver-*$SUBTEST*/
+        test_dir="$(echo -e "${test_dir}" | tr -d '[:space:]')"
+        if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
+            PROVE_VERBOSE_OPT=
+            if [[ -n $DEBUG_OPT ]]; then
+                PROVE_VERBOSE_OPT='-v'
+            fi
+            prove $PROVE_VERBOSE_OPT --directives -r \
+                -e "bats --tap" --ext ".bats" $test_dir
+        else
+            bats $(find $test_dir -name "*.bats")
         fi
-        prove $PROVE_VERBOSE_OPT --directives -r \
-            -e "bats --tap" --ext ".bats" $test_dir
-    else
-        bats $(find $test_dir -name "*.bats")
-    fi
+    done
     echo_ok "CLI tests"
 }
 
@@ -137,10 +139,11 @@ else
     TESTS="pep8 pylintE doc unit cli"
 fi
 
-# If cli sub test is not specified by user, do all cli tests (*).
+# If cli sub test is not specified by user, do all cli tests.
 # Otherwise set CLISUBTEST to the sub test to run.
-CLISUBTEST="*"
-if [ $TESTS == "cli" ]; then
+CLISUBTEST=$cli_tasks
+STRIPPED_TEST="$(echo -e "${TESTS}" | tr -d '[:space:]')"
+if [[ $STRIPPED_TEST == "cli" ]]; then
     if [[ -n "$SUBCLI" ]]; then
         CLISUBTEST="$SUBCLI"
     fi
