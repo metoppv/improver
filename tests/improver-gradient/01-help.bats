@@ -29,22 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "generate-orography-gradient-ancillary input.nc output.nc" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/orog_gradient/basic/
-
-  # Run orography gradient ancillary generation and check it passes.
-  run improver generate-orography-gradient \
-      "$test_path/input.nc" \
-      "$TEST_DIR/output.nc"
+@test "gradient -h" {
+  run improver gradient -h
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-gradient [-h] [--force] INPUT_FILE_STANDARD OUTPUT_FILE
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+Read the input field, and calculate the gradient in x and y directions.
+
+positional arguments:
+  INPUT_FILE_STANDARD  A path to an input NetCDF file to be processed
+  OUTPUT_FILE          The output path for the processed NetCDF
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --force              If True, ancillaries will be generated even if doing so
+                       will overwrite existing files.
+__HELP__
+  [[ "$output" == "$expected" ]]
 }

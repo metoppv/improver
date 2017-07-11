@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run orography gradient ancillary generation."""
+"""Script to calculate gradient of input field in x and y direction."""
 
 import argparse
 import os
@@ -43,8 +43,8 @@ from improver.generate_ancillaries.generate_ancillary import (
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read the input orography field, and calculate the '
-                     'gradient in x and y directions.'))
+        description=('Read the input field, and calculate the gradient'
+                     ' in x and y directions.'))
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
                         help=('If True, ancillaries will be generated '
@@ -56,13 +56,11 @@ def main():
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
     args = parser.parse_args()
-    print args
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
-        orography = find_standard_ancil(args.input_filepath_standard)
-        gradients = DifferenceBetweenAdjacentGridSquares().process(orography)
-        iris.save(gradients, args.output_filepath,
-                  unlimited_dimensions=[])
+        input_field = find_standard_ancil(args.input_filepath_standard)
+        gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
+        iris.save(gradients, args.output_filepath,  unlimited_dimensions=[])
     else:
         print args.output_filepath
         msg = 'File already exists here: {}'.format(args.output_filepath)
