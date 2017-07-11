@@ -122,7 +122,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
         data[realization_index][time_index][lat_index][lon_index] = 0
 
     cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2 s^-1")
+                units="kg m^-2")
     coord_system = OSGB()
     scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
     cube.add_dim_coord(
@@ -173,7 +173,7 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
         data[time_index][lat_index][lon_index] = 0
 
     cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2 s^-1")
+                units="kg m^-2")
 
     if source_realizations is not None:
         if isinstance(source_realizations, list):
@@ -214,7 +214,7 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
     for time_index, lat_index, lon_index in zero_point_indices:
         data[time_index][lat_index][lon_index] = 0
     cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2 s^-1")
+                units="kg m^-2")
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_aux_coord(
