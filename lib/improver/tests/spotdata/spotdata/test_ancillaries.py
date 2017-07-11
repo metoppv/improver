@@ -105,7 +105,8 @@ class Test_get_ancillary_data(IrisTest):
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIsInstance(result, dict)
-        [self.assertIsInstance(item, Cube) for item in result.values()]
+        for item in result.values():
+            self.assertIsInstance(item, Cube)
 
     def test_read_orography(self):
         """Test reading an orography netcdf file."""

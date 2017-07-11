@@ -35,7 +35,6 @@ import unittest
 import os
 import numpy as np
 from tempfile import mkdtemp
-from subprocess import check_call
 from subprocess import call as Call
 import iris
 from iris.tests import IrisTest
