@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the spotdata.ancillaries."""
+"""Unit tests for spotdata.ancillaries."""
 
 
 import unittest
@@ -105,7 +105,7 @@ class Test_get_ancillary_data(IrisTest):
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIsInstance(result, dict)
-        self.assertIsInstance(result[result.keys()[0]], Cube)
+        [self.assertIsInstance(item, Cube) for item in result.values()]
 
     def test_read_orography(self):
         """Test reading an orography netcdf file."""

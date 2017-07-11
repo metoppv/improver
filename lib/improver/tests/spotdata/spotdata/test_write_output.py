@@ -37,6 +37,7 @@ import numpy as np
 from tempfile import mkdtemp
 from subprocess import check_call
 from subprocess import call as Call
+import iris
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
@@ -77,10 +78,11 @@ class Test_write_output(IrisTest):
         """Test writing of iris.cube.Cube to netcdf file."""
 
         method = 'as_netcdf'
-        Plugin(method).process(self.cube, self.data_directory)
-        result = check_call(['ls', self.data_directory + '/test_data.nc'],
-                            stdout=self.fnull)
-        self.assertEqual(result, 0)
+        Plugin(method, self.data_directory).process(self.cube)
+        result = iris.load_cube(self.data_directory + '/test_data.nc')
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'test_data')
+        self.assertEqual(result.data.shape, (20, 20))
 
     def test_invalid_method(self):
         """Test attempt to write with invalid method."""
@@ -88,7 +90,7 @@ class Test_write_output(IrisTest):
         method = 'unknown_file_type'
         msg = 'Unknown method ".*" passed to WriteOutput.'
         with self.assertRaisesRegexp(AttributeError, msg):
-            Plugin(method).process(self.cube, self.data_directory)
+            Plugin(method, self.data_directory).process(self.cube)
 
     def test_invalid_output_path(self):
         """Test attempt to write to unwritable location."""
@@ -96,7 +98,7 @@ class Test_write_output(IrisTest):
         method = 'as_netcdf'
         msg = 'Permission denied'
         with self.assertRaisesRegexp(IOError, msg):
-            Plugin(method).process(self.cube, '/')
+            Plugin(method, '/').process(self.cube)
 
 
 if __name__ == '__main__':

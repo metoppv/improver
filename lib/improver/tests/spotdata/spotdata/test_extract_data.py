@@ -250,8 +250,7 @@ class Test_ExtractData(IrisTest):
     def missing_ancillary_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing ancillary data."""
         plugin = Plugin(method)
-        msg = "Data "
-        with self.assertRaisesRegexp(Exception, msg):
+        with self.assertRaises(KeyError):
             plugin.process(
                 self.cube, self.sites, self.neighbour_list,
                 ancillary_data, additional_data)
@@ -259,8 +258,7 @@ class Test_ExtractData(IrisTest):
     def missing_additional_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing additional data."""
         plugin = Plugin(method)
-        msg = "Data "
-        with self.assertRaisesRegexp(Exception, msg):
+        with self.assertRaises(KeyError):
             plugin.process(
                 self.cube, self.sites, self.neighbour_list,
                 ancillary_data, additional_data)

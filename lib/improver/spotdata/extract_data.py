@@ -38,7 +38,6 @@ from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
-from improver.spotdata.read_input import data_from_dictionary
 from improver.constants import (R_DRY_AIR,
                                 CP_DRY_AIR)
 
@@ -107,29 +106,25 @@ class ExtractData(object):
         if self.method == 'use_nearest':
             return self.use_nearest(cube, sites, neighbours)
         elif self.method == 'orography_derived_temperature_lapse_rate':
-            orography = data_from_dictionary(ancillary_data, 'orography').data
+            orography = ancillary_data['orography'].data
             return self.orography_derived_temperature_lapse_rate(
                 cube, sites, neighbours, orography,
                 no_neighbours=no_neighbours)
         elif self.method == 'model_level_temperature_lapse_rate':
             pressure_on_height_levels = (
-                data_from_dictionary(
-                    additional_data, 'pressure_on_height_levels')
-                )
+                additional_data['pressure_on_height_levels'])
+
             # Ensure that pressure units are in Pa.
             pressure_on_height_levels.convert_units('Pa')
 
             lower_pressure = pressure_on_height_levels[lower_level, ...]
             upper_pressure = pressure_on_height_levels[upper_level, ...]
 
-            surface_pressure = data_from_dictionary(additional_data,
-                                                    'surface_pressure')
+            surface_pressure = additional_data['surface_pressure']
             surface_pressure.convert_units('Pa')
 
             temperature_on_height_levels = (
-                data_from_dictionary(
-                    additional_data, 'temperature_on_height_levels')
-                )
+                additional_data['temperature_on_height_levels'])
             lower_temperature = temperature_on_height_levels[lower_level, ...]
             upper_temperature = temperature_on_height_levels[upper_level, ...]
 

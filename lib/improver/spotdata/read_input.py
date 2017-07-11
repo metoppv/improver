@@ -78,7 +78,8 @@ class Load(object):
 
         Returns
         -------
-        An iris.cube.Cube containing the data from the netCDF file.
+        An iris.cube.Cube or CubeList containing the data from the netCDF
+        file(s).
 
         """
         try:
@@ -114,23 +115,25 @@ def get_method_prerequisites(method, diagnostic_data_path):
     --------
     additional_diagnostics: dict
         A dictionary keyed with the diagnostic names and containing the
-        additional cubes that are required.
+        additional iris.cube.Cubes that are required.
 
     """
-    if method == 'model_level_temperature_lapse_rate':
-        diagnostics = [
-            'temperature_on_height_levels',
-            'pressure_on_height_levels',
-            'surface_pressure']
-    else:
-        return None
+
+    prereq = {
+        'model_level_temperature_lapse_rate': ['temperature_on_height_levels',
+                                               'pressure_on_height_levels',
+                                               'surface_pressure']
+        }
 
     additional_diagnostics = {}
-    for item in diagnostics:
-        additional_diagnostics[item] = get_additional_diagnostics(
-            item, diagnostic_data_path)
+    if method in prereq.keys():
+        for item in prereq[method]:
+            additional_diagnostics[item] = get_additional_diagnostics(
+                item, diagnostic_data_path)
 
-    return additional_diagnostics
+        return additional_diagnostics
+
+    return None
 
 
 def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
@@ -175,62 +178,3 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
         if not cubes:
             raise ValueError('No diagnostics match {}'.format(time_extract))
     return cubes
-
-
-def data_from_dictionary(dictionary_data, key):
-    """
-    Check for an iris.cube.Cube of <key> information in a data
-    dictionary, such as the ancillaries dictionary.
-
-    Args:
-    -----
-    dictionary_data : dict
-        Dictionary of data to be extracted.
-
-    key : string
-        Name of data field requested.
-
-    Returns:
-    --------
-    <type unknown> data extracted from the dictionary.
-
-    Raises:
-    -------
-    TypeError : If sent a non-dictionary type from which to extract data.
-    KeyError : If the <key> is not available in the dictionary.
-
-    """
-    if not isinstance(dictionary_data, dict):
-        raise TypeError('Invalid type sent to data_from_dictionary - '
-                        'Not a dictionary.')
-
-    if key in dictionary_data.keys():
-        return dictionary_data[key]
-
-    raise KeyError('Data {} not found in dictionary.'.format(key))
-
-
-def read_config(file_path):
-    """
-    Read a json file containing configuration information.
-
-    Args:
-    -----
-    file_path : string
-        Path to the configuration file.
-
-    Returns:
-    --------
-    configuration : dict
-        Dictionary containing configuration information.
-
-    Raises:
-    -------
-    IOError : Raised when no file is found at given path.
-    TypeError : json file provided is unreadable.
-
-    """
-    with open(file_path, 'r') as config_file:
-        configuration = json.load(config_file)
-
-    return configuration

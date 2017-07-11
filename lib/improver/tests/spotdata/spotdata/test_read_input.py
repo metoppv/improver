@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the spotdata.read_data"""
+"""Unit tests for spotdata.read_data"""
 
 
 import unittest
@@ -49,8 +49,6 @@ from iris.exceptions import ConstraintMismatchError
 from improver.spotdata.read_input import Load as Plugin
 from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
-from improver.spotdata.read_input import data_from_dictionary
-from improver.spotdata.read_input import read_config
 
 
 class Test_read_input(IrisTest):
@@ -122,25 +120,25 @@ class Test_read_input(IrisTest):
 
         self.data_directory = mkdtemp()
 
-        self.cube_path = (self.data_directory +
+        self.cube_file = (self.data_directory +
                           '/01-temperature_at_screen_level.nc')
-        self.cube_path2 = (self.data_directory +
+        self.cube_file2 = (self.data_directory +
                            '/02-temperature_at_screen_level.nc')
-        orography_path = self.data_directory + '/orography.nc'
-        land_path = self.data_directory + '/land_mask.nc'
-        ad_path_temperature = (self.data_directory +
+        orography_file = self.data_directory + '/orography.nc'
+        land_file = self.data_directory + '/land_mask.nc'
+        ad_file_temperature = (self.data_directory +
                                '/temperature_on_height_levels.nc')
-        ad_path_pressure = (self.data_directory +
+        ad_file_pressure = (self.data_directory +
                             '/pressure_on_height_levels.nc')
-        ad_path_s_pressure = self.data_directory + '/surface_pressure.nc'
+        ad_file_s_pressure = self.data_directory + '/surface_pressure.nc'
 
-        iris.save(cube, self.cube_path)
-        iris.save(cube2, self.cube_path2)
-        iris.save(orography, orography_path)
-        iris.save(land, land_path)
-        iris.save(temperature_on_height_levels, ad_path_temperature)
-        iris.save(pressure_on_height_levels, ad_path_pressure)
-        iris.save(surface_pressure, ad_path_s_pressure)
+        iris.save(cube, self.cube_file)
+        iris.save(cube2, self.cube_file2)
+        iris.save(orography, orography_file)
+        iris.save(land, land_file)
+        iris.save(temperature_on_height_levels, ad_file_temperature)
+        iris.save(pressure_on_height_levels, ad_file_pressure)
+        iris.save(surface_pressure, ad_file_s_pressure)
 
         diagnostic_recipe = {
             "temperature": {
@@ -155,15 +153,15 @@ class Test_read_input(IrisTest):
                 }
             }
 
-        self.config_path = self.data_directory + '/spotdata_diagnostics.json'
-        ff = open(self.config_path, 'w')
+        self.config_file = self.data_directory + '/spotdata_diagnostics.json'
+        ff = open(self.config_file, 'w')
         json.dump(diagnostic_recipe, ff, sort_keys=True, indent=4,
                   separators=(',', ': ',))
         ff.close()
 
-        self.made_files = [self.cube_path, self.cube_path2, orography_path,
-                           land_path, ad_path_temperature, ad_path_pressure,
-                           ad_path_s_pressure, self.config_path]
+        self.made_files = [self.cube_file, self.cube_file2, orography_file,
+                           land_file, ad_file_temperature, ad_file_pressure,
+                           ad_file_s_pressure, self.config_file]
 
         self.cube = cube
         self.cube2 = cube2
@@ -186,8 +184,8 @@ class Test_Load(Test_read_input):
         """Test loading of a single file as an iris.cube.Cube."""
 
         expected = self.cube
-        result = Plugin('single_file').process(self.cube_path,
-                                               'air_temperature')
+        result = Plugin('single_file').process(self.cube_file,
+                                               self.cube.name())
         self.assertArrayEqual(expected.data, result.data)
         for ex_coord, re_coord in zip(expected.dim_coords, result.dim_coords):
             self.assertEqual(ex_coord, re_coord)
@@ -197,7 +195,7 @@ class Test_Load(Test_read_input):
 
         expected = CubeList([self.cube, self.cube2])
         result = Plugin('multi_file').process(
-            [self.cube_path, self.cube_path2], 'air_temperature')
+            [self.cube_file, self.cube_file2], 'air_temperature')
 
         for ex, re in zip(expected, result):
             self.assertEqual(ex.name(), re.name())
@@ -209,7 +207,7 @@ class Test_Load(Test_read_input):
         method = 'not_a_valid_method'
         msg = 'Unknown method ".*" passed to .*'
         with self.assertRaisesRegexp(AttributeError, msg):
-            Plugin(method).process(self.cube_path, 'air_temperature')
+            Plugin(method).process(self.cube_file, self.cube.name())
 
     def test_single_file_invalid_diagnostic(self):
         """Test attempt to load a diagnostic cube from a file within which it
@@ -218,7 +216,7 @@ class Test_Load(Test_read_input):
         diagnostic = 'not_a_valid_diagnostic'
         msg = 'no cubes found'
         with self.assertRaisesRegexp(ConstraintMismatchError, msg):
-            Plugin('single_file').process(self.cube_path, diagnostic)
+            Plugin('single_file').process(self.cube_file, diagnostic)
 
     def test_multi_file_invalid_diagnostic(self):
         """Test attempt to load diagnostic cubes from files within which they
@@ -227,7 +225,7 @@ class Test_Load(Test_read_input):
         diagnostic = 'not_a_valid_diagnostic'
         msg = 'no cubes found'
         with self.assertRaisesRegexp(ConstraintMismatchError, msg):
-            Plugin('single_file').process([self.cube_path, self.cube_path2],
+            Plugin('single_file').process([self.cube_file, self.cube_file2],
                                           diagnostic)
 
 
@@ -297,63 +295,10 @@ class Test_get_additional_diagnostics(Test_read_input):
 
         diagnostic_name = 'temperature_on_height_levels'
         msg = 'No diagnostics match .*'
-        time_extract = Constraint(time=PartialDateTime(2018, 01, 01, 0))
+        time_extract = Constraint(time=PartialDateTime(2018, 1, 1, 0))
         with self.assertRaisesRegexp(ValueError, msg):
             get_additional_diagnostics(diagnostic_name, self.data_directory,
                                        time_extract=time_extract)
-
-
-class Test_data_from_dictionary(Test_read_input):
-    """Test return of data from dictionary with error handling."""
-
-    def test_valid_key(self):
-        """Test valid key and return of data."""
-
-        key = 'temperature_on_height_levels'
-        result = data_from_dictionary(self.additional_data, key)
-        self.assertIsInstance(result, CubeList)
-
-    def test_invalid_key(self):
-        """Test invalid key and raising of exception."""
-
-        key = 'not_a_valid_key'
-        msg = 'Data .* not found in dictionary.'
-        with self.assertRaisesRegexp(KeyError, msg):
-            data_from_dictionary(self.additional_data, key)
-
-    def test_invalid_type(self):
-        """Test case of something other than a dictionary being passed in."""
-
-        key = 'temperature_on_height_levels'
-        msg = 'Invalid type sent to data_from_dictionary'
-        with self.assertRaisesRegexp(TypeError, msg):
-            data_from_dictionary(self.cube, key)
-
-
-class Test_read_config(Test_read_input):
-    """Test reading of json config files that setup diagnostics and
-    constants."""
-
-    def test_available_config_file(self):
-        """Test return from a valid json config file."""
-
-        result = read_config(self.config_path)
-        self.assertIsInstance(result, dict)
-
-    def test_missing_config_file(self):
-        """Test raising of exception for missing config file."""
-
-        msg = 'No such file or directory'
-        with self.assertRaisesRegexp(IOError, msg):
-            read_config('not_a_valid_path')
-
-    def test_invalid_config_file(self):
-        """Test raising of exception for invalid config file.
-        e.g. not a valid json file."""
-
-        msg = 'No JSON object could be decoded'
-        with self.assertRaisesRegexp(ValueError, msg):
-            read_config(self.cube_path)
 
 
 if __name__ == '__main__':

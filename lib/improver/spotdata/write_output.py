@@ -40,7 +40,7 @@ FUTURE.netcdf_no_unlimited = True
 class WriteOutput(object):
     """ Writes diagnostic cube data in a format determined by the method."""
 
-    def __init__(self, method):
+    def __init__(self, method, dir_path=None):
         """
         Select the method (format) for writing out the data cubes.
 
@@ -50,25 +50,31 @@ class WriteOutput(object):
             Method of writing data. Currently supported methods are:
             - as_netcdf : writes out a netcdf file.
 
+        path : string
+            Optional string setting the output path for the file. If unset
+            files are written to current working directory.
+
         """
         self.method = method
-        self.dir_path = os.path.dirname(os.path.realpath(__file__))
+        self.dir_path = dir_path
+        if dir_path is None:
+            self.dir_path = os.getcwd()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<WriteOutput: method: {}>')
-        return result.format(self.method)
+        result = ('<WriteOutput: method: {}, dir_path: {}>')
+        return result.format(self.method, self.dir_path)
 
-    def process(self, cube, path=None):
+    def process(self, cube):
         """Call the required method"""
         try:
             function = getattr(self, self.method)
         except:
             raise AttributeError('Unknown method "{}" passed to '
                                  'WriteOutput.'.format(self.method))
-        function(cube, path)
+        function(cube)
 
-    def as_netcdf(self, cube, path):
+    def as_netcdf(self, cube):
         """
         Writes iris.cube.Cube data out to netCDF format files.
 
@@ -76,14 +82,10 @@ class WriteOutput(object):
         -----
         cube : iris.cube.Cube
             Diagnostic data cube.
-        path : string
-            Optional string setting the output path for the file.
 
         Returns:
         --------
         Nil. Writes out file to filepath or working directory.
 
         """
-        if path is None:
-            path = self.dir_path
-        iris.save(cube, '{}/{}.nc'.format(path, cube.name()))
+        iris.save(cube, '{}/{}.nc'.format(self.dir_path, cube.name()))

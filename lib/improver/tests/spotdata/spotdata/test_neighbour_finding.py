@@ -113,8 +113,7 @@ class Test_PointSelection(IrisTest):
             result = plugin.process(self.cube, self.sites, {})
             self.assertIsInstance(result, np.ndarray)
         else:
-            msg = 'Data '
-            with self.assertRaisesRegexp(Exception, msg):
+            with self.assertRaises(KeyError):
                 plugin.process(self.cube, self.sites, {})
 
 
