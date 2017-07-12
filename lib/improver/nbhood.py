@@ -652,8 +652,7 @@ class NeighbourhoodProcessing(object):
         """
         if cube_lead_times is None:
             radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
-                                                   num_ens,
-                                                   self.radii)
+                                                   num_ens, self.radii)
         else:
             # Interpolate to find the radius at each required lead time.
             radii = (

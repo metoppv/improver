@@ -50,7 +50,7 @@ def main():
                              '"square".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius', metavar='RADIUS', type=float,
-                       help='The radius for neighbourhood processing.')
+                       help='The radius (in m) for neighbourhood processing.')
     group.add_argument('--radii-by-lead-time',
                        metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
                        nargs=2,
