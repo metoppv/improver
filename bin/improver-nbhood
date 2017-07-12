@@ -49,21 +49,21 @@ def main():
                              'neighbourhood processing. Options: "circular", '
                              '"square".')
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--radius-in-km', metavar='RADIUS', type=float,
-                       help='The radius for neighbourhood processing')
-    group.add_argument('--radii-in-km-by-lead-time',
+    group.add_argument('--radius', metavar='RADIUS', type=float,
+                       help='The radius for neighbourhood processing.')
+    group.add_argument('--radii-by-lead-time',
                        metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
                        nargs=2,
                        help='The radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
-                       'valid. The radii are in km whilst the lead time '
+                       'valid. The radii are in m whilst the lead time '
                        'has units of hours. The radii and lead times are '
                        'expected as individual comma-separated lists with '
                        'the list of radii given first followed by a list of '
                        'lead times to indicate at what lead time each radii '
-                       'should be used. For example: 10,12,14 1,2,3 '
-                       'where a lead time of 1 hour uses a radius of 10km, '
-                       'a lead time of 2 hours uses a radius of 12km, etc.')
+                       'should be used. For example: 10000,12000,14000 1,2,3 '
+                       'where a lead time of 1 hour uses a radius of 10000m, '
+                       'a lead time of 2 hours uses a radius of 12000m, etc.')
     parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
                         default=1.0,
                         help='The factor with which to adjust the '
@@ -72,22 +72,22 @@ def main():
                         'essentially conserves ensemble members if '
                         'every grid square is considered to be the '
                         'equivalent of an ensemble member.'
-                        'Optional, defaults to 1.0')
+                        'Optional, defaults to 1.0.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed')
+                        help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
+                        help='The output path for the processed NetCDF.')
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
-    if args.radius_in_km:
-        radius_or_radii_in_km = args.radius_in_km
+    if args.radius:
+        radius_or_radii = args.radius
         lead_times = None
-    elif args.radii_in_km_by_lead_time:
-        radius_or_radii_in_km = args.radii_in_km_by_lead_time[0].split(",")
-        lead_times = args.radii_in_km_by_lead_time[1].split(",")
+    elif args.radii_by_lead_time:
+        radius_or_radii = args.radii_by_lead_time[0].split(",")
+        lead_times = args.radii_by_lead_time[1].split(",")
     result = (
         NeighbourhoodProcessing(
-            args.neighbourhood_method, radius_or_radii_in_km,
+            args.neighbourhood_method, radius_or_radii,
             lead_times=lead_times, ens_factor=args.ens_factor).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

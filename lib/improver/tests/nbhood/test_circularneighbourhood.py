@@ -341,7 +341,7 @@ class Test_run(IrisTest):
 
     """Test the run method on the CircularNeighbourhood class."""
 
-    RADIUS_IN_KM = 6.1
+    RADIUS = 6100
 
     def test_basic(self):
         """Test that a cube with correct data is produced by the run method"""
@@ -353,7 +353,7 @@ class Test_run(IrisTest):
 
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
-        result = CircularNeighbourhood().run(cube, self.RADIUS_IN_KM)
+        result = CircularNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 

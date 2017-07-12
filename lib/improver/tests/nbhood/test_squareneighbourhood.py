@@ -203,7 +203,7 @@ class Test_run(IrisTest):
 
     """Test the run method on the SquareNeighbourhood class."""
 
-    RADIUS_IN_KM = 2.5
+    RADIUS = 2500
 
     def test_basic(self):
         """Test that a cube with correct data is produced by the run method"""
@@ -215,7 +215,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -228,7 +228,7 @@ class Test_run(IrisTest):
         cube.data = np.ma.masked_equal(cube.data, 1)
         msg = 'Masked data is not currently supported'
         with self.assertRaisesRegexp(ValueError, msg):
-            SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
+            SquareNeighbourhood().run(cube, self.RADIUS)
 
     def test_NaN_array_fail(self):
         """Test that the correct exception is raised when an array containing
@@ -239,7 +239,7 @@ class Test_run(IrisTest):
         cube.data[0, 0] = np.NaN
         msg = 'Data array contains NaNs'
         with self.assertRaisesRegexp(ValueError, msg):
-            SquareNeighbourhood().run(cube, self.RADIUS_IN_KM)
+            SquareNeighbourhood().run(cube, self.RADIUS)
 
 
 if __name__ == '__main__':

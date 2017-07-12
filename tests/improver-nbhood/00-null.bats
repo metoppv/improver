@@ -34,7 +34,7 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nbhood [-h]
-                       [--radius-in-km RADIUS | --radii-in-km-by-lead-time \
+                       [--radius RADIUS | --radii-by-lead-time \
 RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR]
                        NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE

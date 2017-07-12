@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'square' --radius-in-km=20 input output" {
+@test "nbhood 'square' --radius=20000 input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run square neighbourhood processing and check it passes.
-  run improver nbhood 'square' --radius-in-km=20 \
+  run improver nbhood 'square' --radius=20000 \
       "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_square.nc" \
       "$TEST_DIR/output_square.nc"
   [[ "$status" -eq 0 ]]

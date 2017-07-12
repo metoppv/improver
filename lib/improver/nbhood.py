@@ -114,11 +114,11 @@ class Utilities(object):
 
     @staticmethod
     def get_neighbourhood_width_in_grid_cells(
-            cube, radius_in_km, max_radius_in_grid_cells):
+            cube, radius, max_radius_in_grid_cells):
         """
         Return the number of grid cells in the x and y direction
         used to define the neighbourhood width in the x and y direction
-        based on the input radius in km.
+        based on the input radius in metres.
 
         Parameters
         ----------
@@ -126,8 +126,8 @@ class Utilities(object):
             Cube containing the x and y coordinates, which will be used for
             calculating the number of grid cells in the x and y direction,
             which equates to the size of the desired radius.
-        radius_in_km : Float
-            Radius in kilometres for use in specifying the number of
+        radius : Float
+            Radius in metres for use in specifying the number of
             grid cells used to create a circular neighbourhood.
         max_radius_in_grid_cells : integer
             Maximum radius of the neighbourhood width in grid cells.
@@ -136,10 +136,10 @@ class Utilities(object):
         -------
         grid_cells_x : Integer
             Number of grid cells in the x direction based on the requested
-            radius in km.
+            radius in metres.
         grid_cells_y : Integer
             Number of grid cells in the y direction based on the requested
-            radius in km.
+            radius in metres.
 
         """
         try:
@@ -151,31 +151,31 @@ class Utilities(object):
         y_coord.convert_units("metres")
         d_north_metres = y_coord.points[1] - y_coord.points[0]
         d_east_metres = x_coord.points[1] - x_coord.points[0]
-        grid_cells_y = int(radius_in_km * 1000 / abs(d_north_metres))
-        grid_cells_x = int(radius_in_km * 1000 / abs(d_east_metres))
+        grid_cells_y = int(radius / abs(d_north_metres))
+        grid_cells_x = int(radius / abs(d_east_metres))
         if grid_cells_x == 0 or grid_cells_y == 0:
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radius_in_km) +
+                 "{0}m ".format(radius) +
                  "gives zero cell extent")
             )
         elif grid_cells_x < 0 or grid_cells_y < 0:
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radius_in_km) +
+                 "{0}m ".format(radius) +
                  "gives a negative cell extent")
             )
         if (grid_cells_x > max_radius_in_grid_cells or
                 grid_cells_y > max_radius_in_grid_cells):
             raise ValueError(
                 ("Neighbourhood processing radius of " +
-                 "{0} km ".format(radius_in_km) +
+                 "{0}m ".format(radius) +
                  "exceeds maximum grid cell extent")
             )
         return grid_cells_x, grid_cells_y
 
     @staticmethod
-    def adjust_nsize_for_ens(ens_factor, num_ens, width_in_km):
+    def adjust_nsize_for_ens(ens_factor, num_ens, width):
         """
         Adjust neighbourhood size according to ensemble size.
 
@@ -189,20 +189,20 @@ class Utilities(object):
             equivalent of an ensemble member.
         num_ens : float
             Number of realizations or ensemble members.
-        width_in_km : float
-            radius or width appropriate for a single forecast in km.
+        width : float
+            radius or width appropriate for a single forecast in m.
 
         Returns
         -------
         new_width : float
-            new neighbourhood radius (km).
+            new neighbourhood radius (m).
 
         """
         if num_ens <= 1.0:
-            new_width = width_in_km
+            new_width = width
         else:
             new_width = (ens_factor *
-                         math.sqrt((width_in_km**2.0)/num_ens))
+                         math.sqrt((width**2.0)/num_ens))
         return new_width
 
 
@@ -401,7 +401,7 @@ class SquareNeighbourhood(object):
         return cubelist.merge_cube()
 
     @staticmethod
-    def run(cube, radius_in_km):
+    def run(cube, radius):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -411,8 +411,8 @@ class SquareNeighbourhood(object):
         cube : Iris.cube.Cube
             Cube containing the array to which the square neighbourhood
             will be applied.
-        radius_in_km : Float
-            Radius in kilometres for use in specifying the number of
+        radius : Float
+            Radius in metres for use in specifying the number of
             grid cells used to create a square neighbourhood.
 
         Returns
@@ -432,7 +432,7 @@ class SquareNeighbourhood(object):
         summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
         grid_cells_x, grid_cells_y = (
             Utilities.get_neighbourhood_width_in_grid_cells(
-                summed_up_cube, radius_in_km, MAX_RADIUS_IN_GRID_CELLS))
+                summed_up_cube, radius, MAX_RADIUS_IN_GRID_CELLS))
         neighbourhood_averaged_cube = (
             SquareNeighbourhood.mean_over_neighbourhood(
                 summed_up_cube, grid_cells_x, grid_cells_y))
@@ -522,7 +522,7 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / np.sum(kernel)
         return cube
 
-    def run(self, cube, radius_in_km):
+    def run(self, cube, radius):
         """
         Call the methods required to calculate and apply a circular
         neighbourhood.
@@ -532,8 +532,8 @@ class CircularNeighbourhood(object):
         cube : Iris.cube.Cube
             Cube containing to array to apply CircularNeighbourhood processing
             to.
-        radius_in_km : Float
-            Radius in kilometres for use in specifying the number of
+        radius : Float
+            Radius in metres for use in specifying the number of
             grid cells used to create a circular neighbourhood.
 
         Returns
@@ -543,7 +543,7 @@ class CircularNeighbourhood(object):
             applied.
         """
         ranges = Utilities.get_neighbourhood_width_in_grid_cells(
-            cube, radius_in_km, MAX_RADIUS_IN_GRID_CELLS)
+            cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
 
@@ -561,7 +561,7 @@ class NeighbourhoodProcessing(object):
 
     """
 
-    def __init__(self, neighbourhood_method, radii_in_km, lead_times=None,
+    def __init__(self, neighbourhood_method, radii, lead_times=None,
                  unweighted_mode=False, ens_factor=1.0):
         """
         Create a neighbourhood processing plugin that applies a smoothing
@@ -572,14 +572,14 @@ class NeighbourhoodProcessing(object):
 
         neighbourhood_method : str
             Name of the neighbourhood method to use. Options: 'circular'.
-        radii_in_km : float or List (if defining lead times)
-            The radii in kilometres of the neighbourhood to apply.
+        radii : float or List (if defining lead times)
+            The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x and y coords.
         lead_times : None or List
-            List of lead times or forecast periods, at which thel radii
-            within radii_in_km are defined. The lead times are expected
+            List of lead times or forecast periods, at which the radii
+            within 'radii' are defined. The lead times are expected
             in hours.
         unweighted_mode : boolean
             If True, use a circle with constant weighting.
@@ -606,13 +606,13 @@ class NeighbourhoodProcessing(object):
                        neighbourhood_method, methods.keys()))
             raise KeyError(msg)
 
-        if isinstance(radii_in_km, list):
-            self.radii_in_km = [float(x) for x in radii_in_km]
+        if isinstance(radii, list):
+            self.radii = [float(x) for x in radii]
         else:
-            self.radii_in_km = float(radii_in_km)
+            self.radii = float(radii)
         self.lead_times = lead_times
         if self.lead_times is not None:
-            if len(radii_in_km) != len(lead_times):
+            if len(radii) != len(lead_times):
                 msg = ("There is a mismatch in the number of radii "
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
@@ -643,12 +643,12 @@ class NeighbourhoodProcessing(object):
         if cube_lead_times is None:
             radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
                                                    num_ens,
-                                                   self.radii_in_km)
+                                                   self.radii)
         else:
             # Interpolate to find the radius at each required lead time.
             radii = (
                 np.interp(
-                    cube_lead_times, self.lead_times, self.radii_in_km))
+                    cube_lead_times, self.lead_times, self.radii))
             for i, val in enumerate(radii):
                 radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
                                                           num_ens, val)
@@ -657,10 +657,10 @@ class NeighbourhoodProcessing(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii_in_km: {}; lead_times: {}; '
+                  'radii: {}; lead_times: {}; '
                   'unweighted_mode: {}; ens_factor: {}>')
         return result.format(
-            self.neighbourhood_method_key, self.radii_in_km, self.lead_times,
+            self.neighbourhood_method_key, self.radii, self.lead_times,
             self.unweighted_mode, self.ens_factor)
 
     def process(self, cube):
@@ -707,14 +707,14 @@ class NeighbourhoodProcessing(object):
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
-                radius_in_km = self._find_radii(num_ens)
+                radius = self._find_radii(num_ens)
                 cube_new = self.neighbourhood_method.run(cube_realization,
-                                                         radius_in_km)
+                                                         radius)
             else:
                 cube_lead_times = (
                     Utilities.find_required_lead_times(cube_realization))
                 # Interpolate to find the radius at each required lead time.
-                required_radii_in_km = (
+                required_radii = (
                     self._find_radii(num_ens,
                                      cube_lead_times=cube_lead_times))
 
@@ -722,11 +722,11 @@ class NeighbourhoodProcessing(object):
                 # Find the number of grid cells required for creating the
                 # neighbourhood, and then apply the neighbourhood
                 # processing method to smooth the field.
-                for cube_slice, radius_in_km in (
+                for cube_slice, radius in (
                         zip(cube_realization.slices_over("time"),
-                            required_radii_in_km)):
+                            required_radii)):
                     cube_slice = self.neighbourhood_method.run(
-                        cube_slice, radius_in_km)
+                        cube_slice, radius)
                     cube_slice = iris.util.new_axis(cube_slice, "time")
                     cubes.append(cube_slice)
                 cube_new = concatenate_cubes(cubes,
