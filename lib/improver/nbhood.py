@@ -149,6 +149,15 @@ class Utilities(object):
             raise ValueError("Invalid grid: projection_x/y coords required")
         x_coord.convert_units("metres")
         y_coord.convert_units("metres")
+        max_radius_of_domain = np.sqrt(
+            (x_coord.points.max() - x_coord.points.min())**2 +
+            (y_coord.points.max() - y_coord.points.min())**2)
+        if radius > max_radius_of_domain:
+            raise ValueError(
+                ("Neighbourhood processing radius of " +
+                 "{0}m ".format(radius) +
+                 "exceeds max domain radius of {}m".format(
+                  max_radius_of_domain)))
         d_north_metres = y_coord.points[1] - y_coord.points[0]
         d_east_metres = x_coord.points[1] - x_coord.points[0]
         grid_cells_y = int(radius / abs(d_north_metres))
@@ -349,9 +358,10 @@ class SquareNeighbourhood(object):
             # Calculate total sum and area of neighbourhood for edge cases.
             # NOTE: edge cases could be dealt with more efficiently.
             # If neighbourhoods get large, this method will need revision.
-            edge_rows = range(cells_x*2) + range(n_rows-2*cells_x, n_rows)
-            edge_columns = range(cells_x*2) + range(n_columns-2*cells_x,
-                                                    n_columns)
+            edge_rows = (range(min(cells_x*2, n_rows)) +
+                         range(max(n_rows-2*cells_x, 0), n_rows))
+            edge_columns = (range(min(cells_x*2, n_columns)) +
+                            range(max(n_columns-2*cells_x, 0), n_columns))
             for j in range(n_rows):
                 for i in (edge_columns):
                     neighbourhood_total[j, i], neighbourhood_area[j, i] = (

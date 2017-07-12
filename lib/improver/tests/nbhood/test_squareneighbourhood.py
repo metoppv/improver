@@ -198,6 +198,18 @@ class Test_mean_over_neighbourhood(IrisTest):
             cube, self.width, self.width)
         self.assertArrayAlmostEqual(result.data, expected_result)
 
+    def test_neighbourhood_larger_than_half_domain(self):
+        """Test the calculation of edge columns and rows is ok when the
+           neighbourhood size is larger than hald the domain"""
+        expected_result = np.array([[0.9375, 0.95, 0.95, 0.95, 0.9375],
+                                    [0.95, 0.96, 0.96, 0.96, 0.95],
+                                    [0.95, 0.96, 0.96, 0.96, 0.95],
+                                    [0.95, 0.96, 0.96, 0.96, 0.95],
+                                    [0.9375, 0.95, 0.95, 0.95, 0.9375]])
+        result = SquareNeighbourhood().mean_over_neighbourhood(
+            self.cube, 3, 3)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+
 
 class Test_run(IrisTest):
 

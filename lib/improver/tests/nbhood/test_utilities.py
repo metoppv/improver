@@ -215,8 +215,19 @@ class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
         cube = set_up_cube()
-        radius = 500000000.0
-        msg = "radius of 500000000.0m exceeds maximum grid cell extent"
+        radius = 40000.0
+        max_radius_in_grid_cells = 10
+        msg = "radius of 40000.0m exceeds maximum grid cell extent"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, radius, max_radius_in_grid_cells)
+
+    def test_single_point_range_greater_than_domain(self):
+        """Test correct exception raised when the radius is larger than the
+           corner-to-corner radius of the domain."""
+        cube = set_up_cube()
+        radius = 42500.0
+        msg = "radius of 42500.0m exceeds max domain radius of "
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities().get_neighbourhood_width_in_grid_cells(
                 cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
