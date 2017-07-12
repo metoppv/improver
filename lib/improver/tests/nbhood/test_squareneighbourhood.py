@@ -200,7 +200,7 @@ class Test_mean_over_neighbourhood(IrisTest):
 
     def test_neighbourhood_larger_than_half_domain(self):
         """Test the calculation of edge columns and rows is ok when the
-           neighbourhood size is larger than hald the domain"""
+           neighbourhood size is larger than half the domain."""
         expected_result = np.array([[0.9375, 0.95, 0.95, 0.95, 0.9375],
                                     [0.95, 0.96, 0.96, 0.96, 0.95],
                                     [0.95, 0.96, 0.96, 0.96, 0.95],
