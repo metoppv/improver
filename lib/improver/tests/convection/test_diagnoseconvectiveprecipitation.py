@@ -36,7 +36,7 @@ import unittest
 
 from cf_units import Unit
 import iris
-from iris.coords import DimCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
@@ -63,7 +63,8 @@ def set_up_precipitation_rate_cube():
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                realizations=np.array([0]), timesteps=1,
+                realizations=np.array([0]),
+                timesteps=np.array([402192.5]),
                 y_dimension_values=np.array([0., 2000., 4000., 6000.]),
                 x_dimension_values=np.array([0., 2000., 4000., 6000.])):
     """Create a cube containing the required realizations, timesteps,
@@ -75,8 +76,7 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
-                                "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(timesteps, "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(y_dimension_values,
                                 'projection_y_coordinate', units='m'), 2)
     cube.add_dim_coord(DimCoord(x_dimension_values,
@@ -137,7 +137,7 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_no_precipitation(self):
         """If there is no precipitation, then the convective ratio will try
         to do a 0/0 division, which will result in NaN values. Check that
-        that output array works as intended."""
+        the output array works as intended."""
         expected = np.array(
             [[np.nan, np.nan, np.nan, np.nan],
              [np.nan, np.nan, np.nan, np.nan],
@@ -178,11 +178,153 @@ class Test__calculate_convective_ratio(IrisTest):
         radii_in_km = 4.0
         cube = set_up_cube(
             data, "lwe_precipitation_rate", "m s-1",
-            realizations=np.array([0, 1]), timesteps=2)
+            realizations=np.array([0, 1]),
+            timesteps=np.array([402192.5, 402195.5]))
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
             radii_in_km)._calculate_convective_ratio(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_catch_infinity_values(self):
+        """Test an example where the infinity values are generated.
+        Ensure these are caught are intended."""
+        expected = np.array(
+            [[0., 0.166667, 0.166667, 0.25],
+             [0.2, 0.285714, 0.285714, 0.25],
+             [0.5, 0.4, 0.25, 0.],
+             [1., 1., 1., np.nan]])
+        below_thresh_ok = True
+        msg = "A value of infinity was found"
+        with self.assertRaisesRegexp(ValueError, msg):
+            DiagnoseConvectivePrecipitation(
+                self.lower_threshold, self.higher_threshold,
+                self.neighbourhood_method,
+                self.radii_in_km, below_thresh_ok=below_thresh_ok
+                )._calculate_convective_ratio(self.cube)
+
+    def test_fuzzy_factor(self):
+        """Test an example where a fuzzy_factor is specified."""
+        expected = np.array(
+            [[0.083333, 0.1, 0.1, 0.111111],
+             [0.266667, 0.357143, 0.357143, 0.466667],
+             [0.583333, 0.642857, 0.6875, 0.722222],
+             [1., 1., 1., 1.]])
+        fuzzy_factor = 0.7
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method,
+            self.radii_in_km, fuzzy_factor=fuzzy_factor
+            )._calculate_convective_ratio(self.cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_below_threshold(self):
+        """Test an example where the points below the specified threshold
+        are regarded as significant."""
+        expected = np.array(
+            [[0., 0.166667, 0.166667, 0.25],
+             [0.2, 0.285714, 0.285714, 0.25],
+             [0.5, 0.4, 0.25, 0.],
+             [1., 1., 1., np.nan]])
+        below_thresh_ok = True
+        lower_threshold = 5 * mm_hr_to_m_s
+        higher_threshold = 0.001 * mm_hr_to_m_s
+        result = DiagnoseConvectivePrecipitation(
+            lower_threshold, higher_threshold,
+            self.neighbourhood_method,
+            self.radii_in_km, below_thresh_ok=below_thresh_ok
+            )._calculate_convective_ratio(self.cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multiple_lead_times_neighbourhooding(self):
+        """Test where neighbourhood is applied for multiple lead times, where
+        different radii are applied at each lead time."""
+        expected = np.array(
+          [[[0.25, 0.16666667, 0.16666667, 0.],
+            [0.16666667, 0.11111111, 0.11111111, 0.],
+            [0.16666667, 0.11111111, 0.11111111, 0.],
+            [0., 0., 0., 0.]],
+           [[0.11111111, 0.08333333, 0.08333333, 0.11111111],
+            [0.08333333, 0.0625, 0.0625, 0.08333333],
+            [0.08333333, 0.0625, 0.0625, 0.08333333],
+            [0.11111111, 0.08333333, 0.08333333, 0.11111111]]])
+        data = np.full((1, 2, 4, 4), 1.0 * mm_hr_to_m_s)
+        data[0, 0, 1, 1] = 20.0 * mm_hr_to_m_s
+        data[0, 1, 1, 1] = 20.0 * mm_hr_to_m_s
+        lead_times = [3, 6]
+        cube = set_up_cube(
+            data, "lwe_precipitation_rate", "m s-1",
+            timesteps=np.array([402192.5, 402195.5]))
+        cube.add_aux_coord(AuxCoord(
+            lead_times, "forecast_period", units="hours"), 1)
+        radii_in_km = [2, 4]
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method,
+            radii_in_km, lead_times=lead_times
+            )._calculate_convective_ratio(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_specify_ens_factor(self):
+        """Test an example where the ens_factor is specified."""
+        expected = np.array(
+            [[[0., 0., 0., 0.],
+              [0., 0., 0., 0.],
+              [0., 0., 0., 0.],
+              [0., 0., 0., 0.]],
+             [[0.11111111, 0.08333333, 0.08333333, 0.11111111],
+              [0.08333333, 0.0625, 0.0625, 0.08333333],
+              [0.08333333, 0.0625, 0.0625, 0.08333333],
+              [0.11111111, 0.08333333, 0.08333333, 0.11111111]]])
+        data = np.full((2, 1, 4, 4), 1.0 * mm_hr_to_m_s)
+        data[1, 0, 1, 1] = 20.0 * mm_hr_to_m_s
+        cube = set_up_cube(
+            data, "lwe_precipitation_rate", "m s-1",
+            realizations=np.array([0, 1]))
+        radii_in_km = 8.0
+        ens_factor = 0.8
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method,
+            radii_in_km, ens_factor=ens_factor
+            )._calculate_convective_ratio(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_circular_neighbourhood(self):
+        """Test a circular neighbourhood."""
+        expected = np.array(
+            [[[0., 0., np.nan, 0.],
+              [0., 0., 0., 0.],
+              [1., np.nan, 1., 1.],
+              [np.nan, 1., 1., 1.]]])
+        neighbourhood_method = "circular"
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            neighbourhood_method, self.radii_in_km
+            )._calculate_convective_ratio(self.cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_circular_neighbourhood_unweighted_mode(self):
+        """Test a circular neighbourhood with the unweighted_mode
+        set to True."""
+        expected = np.array(
+            [[[0., 0., 0., 0.],
+              [0.2, 0., 0.25, 0.2],
+              [0.666667, 0.75, 0.75, 0.8],
+              [1., 1., 1., 1.]]])
+        neighbourhood_method = "circular"
+        unweighted_mode = True
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            neighbourhood_method,
+            self.radii_in_km, unweighted_mode=unweighted_mode
+            )._calculate_convective_ratio(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

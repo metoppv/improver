@@ -59,9 +59,6 @@ class DiagnoseConvectivePrecipitation(object):
             higher_threshold : float
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
-            fuzzy_factor : float or None
-                Percentage above or below threshold for fuzzy membership value.
-                If None, no fuzzy_factor is applied.
             neighbourhood_method : str
                 Name of the neighbourhood method to use. Options: 'circular'.
             radii_in_km : float or List (if defining lead times)
@@ -69,6 +66,9 @@ class DiagnoseConvectivePrecipitation(object):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
+            fuzzy_factor : float or None
+                Percentage above or below threshold for fuzzy membership value.
+                If None, no fuzzy_factor is applied.
             below_thresh_ok : boolean
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
@@ -122,9 +122,9 @@ class DiagnoseConvectivePrecipitation(object):
     def _calculate_convective_ratio(self, cube):
         """
         Calculate the convective ratio by:
-        1. Threshold the input cube using using the lower_threshold and
+        1. Threshold the input cube using the lower_threshold and
            apply neighbourhood processing.
-        2. Threshold the input cube using using the higher_threshold and
+        2. Threshold the input cube using the higher_threshold and
            apply neighbourhood processing.
         3. Calculate the convective ratio by:
            higher_threshold_cube / lower_threshold_cube.
@@ -152,7 +152,9 @@ class DiagnoseConvectivePrecipitation(object):
 
         for threshold in [self.lower_threshold, self.higher_threshold]:
             threshold_cube = (
-                BasicThreshold(threshold).process(cube.copy()))
+                BasicThreshold(
+                    threshold, fuzzy_factor=self.fuzzy_factor,
+                    below_thresh_ok=self.below_thresh_ok).process(cube.copy()))
             neighbourhooded_cube = NeighbourhoodProcessing(
                 self.neighbourhood_method, self.radii_in_km,
                 lead_times=self.lead_times,
@@ -165,6 +167,14 @@ class DiagnoseConvectivePrecipitation(object):
             convective_ratio = (
                 threshold_dict[self.higher_threshold] /
                 threshold_dict[self.lower_threshold])
+        if np.sum(np.isinf(convective_ratio.data)) > 0.0:
+            msg = ("A value of infinity was found for the "
+                   "convective ratio: {}.\n"
+                   "This value is not plausible as the fraction above the "
+                   "higher threshold must be lower than the fraction "
+                   "above the lower threshold.").format(
+                       convective_ratio.data)
+            raise ValueError(msg)
         convective_ratio.long_name = "convective_ratio"
         return convective_ratio
 
