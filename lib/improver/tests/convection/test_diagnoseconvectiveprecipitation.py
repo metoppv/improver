@@ -190,11 +190,6 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_catch_infinity_values(self):
         """Test an example where the infinity values are generated.
         Ensure these are caught are intended."""
-        expected = np.array(
-            [[0., 0.166667, 0.166667, 0.25],
-             [0.2, 0.285714, 0.285714, 0.25],
-             [0.5, 0.4, 0.25, 0.],
-             [1., 1., 1., np.nan]])
         below_thresh_ok = True
         msg = "A value of infinity was found"
         with self.assertRaisesRegexp(ValueError, msg):
