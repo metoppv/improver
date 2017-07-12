@@ -31,15 +31,12 @@
 
 """
 Plugins written for the Improver site specific process chain.
-For reading data files from UM output and site specification input.
+For reading data processed by IMPROVER, and site specification input.
 
 """
-
+import os
 import iris
 from iris import load_cube, load
-from iris.cube import CubeList
-
-iris.FUTURE.netcdf_promote = True
 
 
 class Load(object):
@@ -61,6 +58,11 @@ class Load(object):
         """
         self.method = method
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<Load: method: {}>')
+        return result.format(self.method)
+
     def process(self, filepath, diagnostic):
         """
         Simple wrapper for using iris load on a supplied netCDF file.
@@ -75,10 +77,16 @@ class Load(object):
 
         Returns
         -------
-        An iris.cube.Cube containing the data from the netCDF file.
+        An iris.cube.Cube or CubeList containing the data from the netCDF
+        file(s).
 
         """
-        function = getattr(self, self.method)
+        try:
+            function = getattr(self, self.method)
+        except:
+            raise AttributeError('Unknown method "{}" passed to {}.'.format(
+                self.method, self.__class__.__name__))
+
         return function(filepath, diagnostic)
 
     @staticmethod
@@ -106,23 +114,25 @@ def get_method_prerequisites(method, diagnostic_data_path):
     --------
     additional_diagnostics: dict
         A dictionary keyed with the diagnostic names and containing the
-        additional cubes that are required.
+        additional iris.cube.Cubes that are required.
 
     """
-    if method == 'model_level_temperature_lapse_rate':
-        diagnostics = [
-            'temperature_on_height_levels',
-            'pressure_on_height_levels',
-            'surface_pressure']
-    else:
-        return None
+
+    prereq = {
+        'model_level_temperature_lapse_rate': ['temperature_on_height_levels',
+                                               'pressure_on_height_levels',
+                                               'surface_pressure']
+        }
 
     additional_diagnostics = {}
-    for item in diagnostics:
-        additional_diagnostics[item] = get_additional_diagnostics(
-            item, diagnostic_data_path)
+    if method in prereq.keys():
+        for item in prereq[method]:
+            additional_diagnostics[item] = get_additional_diagnostics(
+                item, diagnostic_data_path)
 
-    return additional_diagnostics
+        return additional_diagnostics
+
+    return None
 
 
 def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
@@ -130,58 +140,40 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
     """
     Load additional diagnostics needed for particular spot data processes.
 
-    Args
-    ----
+    Args:
+    -----
     diagnostic_name : The name of the diagnostic to be loaded. Used to find
                       the relevant file.
 
     time_extract    : An iris constraint to extract and return only data from
                       the desired time.
 
-    Returns
-    -------
-    cube            : An iris.cube.CubeList containing the desired diagnostic
-                      data, with a single entry is time_extract is provided.
-
-    """
-    cubes = Load('multi_file').process(
-        diagnostic_data_path + '/*/*' + diagnostic_name + '*',
-        None)
-    if time_extract is not None:
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = cubes.extract(time_extract)
-        cubes = CubeList()
-        cubes.append(cube)
-    return cubes
-
-
-def data_from_dictionary(dictionary_data, key):
-    """
-    Check for an iris.cube.Cube of <key> information in a data
-    dictionary, such as the ancillaries dictionary.
-
-    Args:
-    -----
-    dictionary_data : dict
-        Dictionary of data to be extracted.
-
-    key : string
-        Name of data field requested.
-
     Returns:
     --------
-    <type unknown> data extracted from the dictionary.
+    cube            : An iris.cube.CubeList containing the desired diagnostic
+                      data, with a single entry if time_extract is provided.
 
     Raises:
     -------
-    Exception if the <key> is not available in the dictionary.
+    IOError : If files are not found.
+    ValueError : If required diagnostics are not found in the read files.
 
     """
-    if not isinstance(dictionary_data, dict):
-        raise TypeError('Invalid type sent to data_from_dictionary - '
-                        'Not a dictionary.')
+    # Search diadnostic data directory for all files relevant to current
+    # diagnostic.
+    files_to_read = [
+        os.path.join(dirpath, filename)
+        for dirpath, _, files in os.walk(diagnostic_data_path)
+        for filename in files if diagnostic_name in filename]
 
-    if key in dictionary_data.keys():
-        return dictionary_data[key]
+    if not files_to_read:
+        raise IOError('No relevant data files found in {}.'.format(
+            diagnostic_data_path))
+    cubes = Load('multi_file').process(files_to_read, None)
 
-    raise Exception('Data {} not found in dictionary.'.format(key))
+    if time_extract is not None:
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cubes = cubes.extract(time_extract)
+        if not cubes:
+            raise ValueError('No diagnostics match {}'.format(time_extract))
+    return cubes

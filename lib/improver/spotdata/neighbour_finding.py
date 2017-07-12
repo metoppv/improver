@@ -32,7 +32,6 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import numpy as np
-from improver.spotdata.read_input import data_from_dictionary
 from improver.spotdata.common_functions import (
     ConditionalListExtract, nearest_n_neighbours, get_nearest_coords,
     index_of_minimum_difference, list_entry_from_index, node_edge_check,
@@ -119,19 +118,17 @@ class PointSelection(object):
         """
         if self.method == 'fast_nearest_neighbour':
             if 'orography' in ancillary_data.keys():
-                orography = data_from_dictionary(
-                    ancillary_data, 'orography').data
+                orography = ancillary_data['orography'].data
             else:
                 orography = None
             return self.fast_nearest_neighbour(cube, sites,
                                                orography=orography)
         elif self.method == 'minimum_height_error_neighbour':
-            orography = data_from_dictionary(ancillary_data, 'orography').data
+            orography = ancillary_data['orography'].data
 
             land_mask = None
             if self.land_constraint:
-                land_mask = data_from_dictionary(
-                    ancillary_data, 'land_mask').data
+                land_mask = ancillary_data['land_mask'].data
 
             return self.minimum_height_error_neighbour(
                 cube, sites, orography, land_mask=land_mask,
