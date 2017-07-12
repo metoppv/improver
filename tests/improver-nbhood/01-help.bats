@@ -49,7 +49,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --radius RADIUS       The radius for neighbourhood processing.
+  --radius RADIUS       The radius (in m) for neighbourhood processing.
   --radii-by-lead-time RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS
                         The radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
