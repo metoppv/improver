@@ -50,6 +50,8 @@ Arguments:
                     Valid names are tasks which appear in /improver/tests/
                     without the "improver-" prefix. The default is to run all
                     cli tests in the /improver/tests/ directory.
+                    e.g. 'improver tests cli nbhood' will run neighbourhood
+                    processing cli tests only.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
