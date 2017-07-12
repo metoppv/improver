@@ -45,7 +45,7 @@ class BasicThreshold(object):
 
     """
 
-    def __init__(self, threshold, fuzzy_factor,
+    def __init__(self, threshold, fuzzy_factor=None,
                  below_thresh_ok=False):
         """Set up for processing an in-or-out of threshold binary field.
 
@@ -57,6 +57,7 @@ class BasicThreshold(object):
 
         fuzzy_factor : float
             Percentage above or below threshold for fuzzy membership value.
+            If None, no fuzzy_factor is applied.
 
         below_thresh_ok : boolean
             True to count points as significant if *below* the threshold,
@@ -67,10 +68,11 @@ class BasicThreshold(object):
             raise ValueError(
                 "Invalid threshold: zero not allowed")
         self.threshold = threshold
-        if not 0 < fuzzy_factor < 1:
-            raise ValueError(
-                "Invalid fuzzy_factor: must be >0 and <1: {}".format(
-                    fuzzy_factor))
+        if fuzzy_factor is not None:
+            if not 0 < fuzzy_factor < 1:
+                raise ValueError(
+                    "Invalid fuzzy_factor: must be >0 and <1: {}".format(
+                        fuzzy_factor))
         self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
 
@@ -91,13 +93,16 @@ class BasicThreshold(object):
             Cube to threshold. The code is dimension-agnostic.
 
         """
-        lower_threshold = self.threshold * self.fuzzy_factor
-        if np.isnan(cube.data).any():
-            raise ValueError("Error: NaN detected in input cube data")
-        truth_value = (
-            (cube.data - lower_threshold) /
-            ((self.threshold * (2. - self.fuzzy_factor)) - lower_threshold)
-        )
+        if self.fuzzy_factor is None:
+            truth_value = cube.data > self.threshold
+        else:
+            lower_threshold = self.threshold * self.fuzzy_factor
+            if np.isnan(cube.data).any():
+                raise ValueError("Error: NaN detected in input cube data")
+            truth_value = (
+                (cube.data - lower_threshold) /
+                ((self.threshold * (2. - self.fuzzy_factor)) - lower_threshold)
+            )
         truth_value = np.clip(truth_value, 0., 1.)
         if self.below_thresh_ok:
             truth_value = 1. - truth_value
