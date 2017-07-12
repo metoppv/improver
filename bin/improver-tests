@@ -85,6 +85,10 @@ Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
                     Valid names are: pep8, pylint, pylintE, doc, unit, cli.
                     pep8, pylintE, doc, unit, and cli are the default tests.
+    SUBCLI          Name(s) of cli subtests to run without running the rest.
+                    Valid names are tasks which appear in /improver/tests/
+                    without the "improver-" prefix. The default is to run all
+                    cli tests in the /improver/tests/ directory.
 __USAGE__
 }
 
