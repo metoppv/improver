@@ -156,25 +156,25 @@ class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
 
     """Test conversion of kernel radius in kilometres to grid cells."""
 
-    RADIUS_IN_KM = 6.1
+    RADIUS = 6100
     MAX_RADIUS_IN_GRID_CELLS = 500
 
     def test_basic_radius_to_grid_cells(self):
-        """Test the radius in km to grid cell conversion."""
+        """Test the radius in m to grid cell conversion."""
         cube = set_up_cube()
         result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+            cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
         self.assertEqual(result, (3, 3))
 
     def test_basic_radius_to_grid_cells_different_max_radius(self):
         """
-        Test the radius in km to grid cell conversion for an alternative
+        Test the radius in m to grid cell conversion for an alternative
         max radius in grid cells.
         """
         cube = set_up_cube()
         max_radius_in_grid_cells = 50
         result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS_IN_KM, max_radius_in_grid_cells)
+            cube, self.RADIUS, max_radius_in_grid_cells)
         self.assertEqual(result, (3, 3))
 
     def test_basic_radius_to_grid_cells_km_grid(self):
@@ -183,7 +183,7 @@ class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
         cube.coord("projection_x_coordinate").convert_units("kilometres")
         cube.coord("projection_y_coordinate").convert_units("kilometres")
         result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+            cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
         self.assertEqual(result, (3, 3))
 
     def test_single_point_lat_long(self):
@@ -192,34 +192,45 @@ class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
         msg = "Invalid grid: projection_x/y coords required"
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, self.RADIUS_IN_KM, self.MAX_RADIUS_IN_GRID_CELLS)
+                cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
 
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
         cube = set_up_cube()
-        radius_in_km = -1.0 * self.RADIUS_IN_KM
-        msg = "radius of -6.1 km gives a negative cell extent"
+        radius = -1.0 * self.RADIUS
+        msg = "radius of -6100.0m gives a negative cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
         cube = set_up_cube()
-        radius_in_km = 0.005
-        msg = "radius of 0.005 km gives zero cell extent"
+        radius = 5
+        msg = "radius of 5m gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
 
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
         cube = set_up_cube()
-        radius_in_km = 500000.0
-        msg = "radius of 500000.0 km exceeds maximum grid cell extent"
+        radius = 40000.0
+        max_radius_in_grid_cells = 10
+        msg = "radius of 40000.0m exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius_in_km, self.MAX_RADIUS_IN_GRID_CELLS)
+                cube, radius, max_radius_in_grid_cells)
+
+    def test_single_point_range_greater_than_domain(self):
+        """Test correct exception raised when the radius is larger than the
+           corner-to-corner radius of the domain."""
+        cube = set_up_cube()
+        radius = 42500.0
+        msg = "radius of 42500.0m exceeds max domain radius of "
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().get_neighbourhood_width_in_grid_cells(
+                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
 
 
 class Test_adjust_nsize_for_ens(IrisTest):

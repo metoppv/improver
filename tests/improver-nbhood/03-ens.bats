@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'circular' --radius-in-km=20 --ens_factor=2.0 input output" {
+@test "nbhood 'circular' --radius=20000 --ens_factor=2.0 input output" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes for an ensemble.
-  run improver nbhood 'circular' --radius-in-km=20 --ens_factor=2.0 \
+  run improver nbhood 'circular' --radius=20000 --ens_factor=2.0 \
       "$IMPROVER_ACC_TEST_DIR/nbhood/ens/input.nc" "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
