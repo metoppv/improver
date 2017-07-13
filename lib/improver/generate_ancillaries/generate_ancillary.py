@@ -81,13 +81,13 @@ def _make_mask_cube(mask_data, key, coords,
     return mask_cube
 
 
-def find_standard_ancil(standard_ancil_file, msg=None):
+def find_standard_ancil(standard_ancil_glob, msg=None):
     """
     Reads standard ancillary or raises exception.
 
     Parameters
     -----------
-    standard_ancil_file : string
+    standard_ancil_glob : string
       Location of input ancillaries
 
     msg : str
@@ -102,14 +102,13 @@ def find_standard_ancil(standard_ancil_file, msg=None):
     -------
     IOError: if input ancillary cannot be found in the directory provided.
     """
-    standard_ancil_file = glob(standard_ancil_file)
+    standard_ancil_file = glob(standard_ancil_glob)
     if len(standard_ancil_file) > 0:
         standard_ancil = iris.load_cube(standard_ancil_file[0])
     else:
-        print msg
         if msg is None:
             msg = ('Cannot find input ancillary. Tried directory: '
-                   '{}'.format(standard_ancil_file))
+                   '{}'.format(standard_ancil_glob))
         raise IOError(msg)
     return standard_ancil
 
