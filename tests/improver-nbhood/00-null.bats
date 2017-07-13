@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time \
-RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
+RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR]
                        NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
 __TEXT__

@@ -206,8 +206,9 @@ class Test_mean_over_neighbourhood(IrisTest):
                                     [0.95, 0.96, 0.96, 0.96, 0.95],
                                     [0.95, 0.96, 0.96, 0.96, 0.95],
                                     [0.9375, 0.95, 0.95, 0.95, 0.9375]])
+        width = 3
         result = SquareNeighbourhood().mean_over_neighbourhood(
-            self.cube, 3, 3)
+            self.cube, width, width)
         self.assertArrayAlmostEqual(result.data, expected_result)
 
 

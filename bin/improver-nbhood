@@ -52,11 +52,11 @@ def main():
     group.add_argument('--radius', metavar='RADIUS', type=float,
                        help='The radius (in m) for neighbourhood processing.')
     group.add_argument('--radii-by-lead-time',
-                       metavar=('RADIUS_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                       metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
                        nargs=2,
                        help='The radii for neighbourhood processing '
                        'and the associated lead times at which the radii are '
-                       'valid. The radii are in m whilst the lead time '
+                       'valid. The radii are in metres whilst the lead time '
                        'has units of hours. The radii and lead times are '
                        'expected as individual comma-separated lists with '
                        'the list of radii given first followed by a list of '

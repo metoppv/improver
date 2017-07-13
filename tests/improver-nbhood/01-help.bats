@@ -34,7 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h]
-                       [--radius RADIUS | --radii-by-lead-time RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
+                       [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR]
                        NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
 
@@ -50,11 +50,11 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --radius RADIUS       The radius (in m) for neighbourhood processing.
-  --radii-by-lead-time RADIUS_BY_LEAD_TIME LEAD_TIME_IN_HOURS
+  --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS
                         The radii for neighbourhood processing and the
                         associated lead times at which the radii are valid.
-                        The radii are in m whilst the lead time has units of
-                        hours. The radii and lead times are expected as
+                        The radii are in metres whilst the lead time has units
+                        of hours. The radii and lead times are expected as
                         individual comma-separated lists with the list of
                         radii given first followed by a list of lead times to
                         indicate at what lead time each radii should be used.
