@@ -34,7 +34,7 @@ import iris
 import numpy as np
 
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver.threshold import BasicThreshold
+from improver.utilities.threshold import BasicThreshold
 from improver.nbhood import NeighbourhoodProcessing
 
 
