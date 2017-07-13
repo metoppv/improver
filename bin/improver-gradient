@@ -40,7 +40,7 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 def main():
     """Load in arguments to calculate the gradient between adjacent grid cells
-       and save the ouput gradient fields."""
+       and save the output gradient fields."""
     parser = argparse.ArgumentParser(
         description=('Read the input field, and calculate the gradient'
                      ' in x and y directions.'))
