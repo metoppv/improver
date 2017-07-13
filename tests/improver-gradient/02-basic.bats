@@ -34,7 +34,7 @@
 @test "gradient input.nc output.nc" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/gradient/basic/
+  test_path=$IMPROVER_ACC_TEST_DIR/utilities/gradient/basic/
 
   # Calculate gradients of test input and check it passes.
   run improver gradient "$test_path/input.nc" "$TEST_DIR/output.nc"

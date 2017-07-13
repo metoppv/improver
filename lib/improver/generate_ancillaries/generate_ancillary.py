@@ -106,7 +106,6 @@ def find_standard_ancil(standard_ancil_glob, msg=None):
     if len(standard_ancil_file) > 0:
         standard_ancil = iris.load_cube(standard_ancil_file[0])
     else:
-        print msg
         if msg is None:
             msg = ('Cannot find input ancillary. Tried directory: '
                    '{}'.format(standard_ancil_glob))

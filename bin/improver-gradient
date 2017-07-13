@@ -36,12 +36,11 @@ import os
 import iris
 
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver.generate_ancillaries.generate_ancillary import (
-    find_standard_ancil)
 
 
 def main():
-    """Load in arguments and get going."""
+    """Load in arguments to calculate the gradient between adjacent grid cells
+       and save the ouput gradient fields."""
     parser = argparse.ArgumentParser(
         description=('Read the input field, and calculate the gradient'
                      ' in x and y directions.'))
@@ -50,15 +49,15 @@ def main():
                         help=('If True, ancillaries will be generated '
                               'even if doing so will overwrite existing '
                               'files.'))
-    parser.add_argument('input_filepath_standard',
-                        metavar='INPUT_FILE_STANDARD',
+    parser.add_argument('input_filepath',
+                        metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
     args = parser.parse_args()
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
-        input_field = find_standard_ancil(args.input_filepath_standard)
+        input_field = iris.load_cube(args.input_filepath)
         gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
         iris.save(gradients, args.output_filepath,  unlimited_dimensions=[])
     else:
