@@ -48,6 +48,7 @@ class TestThreshold(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
+        self.fuzzy_factor = 0.5
         data = np.zeros((1, 5, 5))
         data[0][2][2] = 0.5  # ~2 mm/hr
         cube = Cube(data, standard_name="precipitation_amount",
@@ -101,8 +102,7 @@ class TestThreshold(IrisTest):
 
     def test_threshold_fuzzy(self):
         """Test when a point is in the fuzzy threshold area."""
-        fuzzy_factor = 0.5
-        plugin = Threshold(0.6, fuzzy_factor=fuzzy_factor)
+        plugin = Threshold(0.6, fuzzy_factor=self.fuzzy_factor)
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         expected_result_array[0][2][2] = 1.0/3.0
@@ -110,34 +110,30 @@ class TestThreshold(IrisTest):
 
     def test_threshold_fuzzy_miss(self):
         """Test when a point is not within the fuzzy threshold area."""
-        fuzzy_factor = 0.5
-        plugin = Threshold(2.0, fuzzy_factor=fuzzy_factor)
+        plugin = Threshold(2.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzy_miss_high_threshold(self):
         """Test when a point is not within the fuzzy high threshold area."""
-        fuzzy_factor = 0.5
-        plugin = Threshold(3.0, fuzzy_factor=fuzzy_factor)
+        plugin = Threshold(3.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_negative(self):
         """Test a point when the threshold is negative."""
-        fuzzy_factor = 0.5
         plugin = Threshold(
-            -1.0, fuzzy_factor=fuzzy_factor, below_thresh_ok=True)
+            -1.0, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_below(self):
         """Test a point when we are in below-threshold mode."""
-        fuzzy_factor = 0.5
         plugin = Threshold(
-            0.1, fuzzy_factor=fuzzy_factor, below_thresh_ok=True)
+            0.1, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         expected_result_array[0][2][2] = 0
@@ -145,9 +141,8 @@ class TestThreshold(IrisTest):
 
     def test_threshold_below_fuzzy(self):
         """Test a point in fuzzy threshold in below-threshold-mode."""
-        fuzzy_factor = 0.5
         plugin = Threshold(
-            0.6, fuzzy_factor=fuzzy_factor, below_thresh_ok=True)
+            0.6, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         expected_result_array[0][2][2] = 2.0/3.0
@@ -155,9 +150,8 @@ class TestThreshold(IrisTest):
 
     def test_threshold_below_fuzzy_miss(self):
         """Test not meeting the threshold in fuzzy below-threshold-mode."""
-        fuzzy_factor = 0.5
         plugin = Threshold(
-            2.0, fuzzy_factor=fuzzy_factor, below_thresh_ok=True)
+            2.0, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -165,11 +159,10 @@ class TestThreshold(IrisTest):
     def test_threshold_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
         # Need to copy the cube as we're adjusting the data.
-        fuzzy_factor = 0.5
         self.cube.data[0][2][2] = np.NAN
         msg = "NaN detected in input cube data"
         plugin = Threshold(
-            2.0, fuzzy_factor=fuzzy_factor, below_thresh_ok=True)
+            2.0, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(self.cube)
 

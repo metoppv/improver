@@ -581,7 +581,8 @@ class NeighbourhoodProcessing(object):
         ----------
 
         neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular'.
+            Name of the neighbourhood method to use. Options: 'circular',
+            'square'.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid

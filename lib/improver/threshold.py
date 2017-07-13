@@ -49,19 +49,20 @@ class BasicThreshold(object):
                  below_thresh_ok=False):
         """Set up for processing an in-or-out of threshold binary field.
 
-        Parameters
-        ----------
+        Args:
+            threshold : float
+                The threshold point for 'significant' datapoints.
+            fuzzy_factor : float
+                Percentage above or below threshold for fuzzy membership value.
+                If None, no fuzzy_factor is applied.
+            below_thresh_ok : boolean
+                True to count points as significant if *below* the threshold,
+                False to count points as significant if *above* the threshold.
 
-        threshold : float
-            The threshold point for 'significant' datapoints.
-
-        fuzzy_factor : float
-            Percentage above or below threshold for fuzzy membership value.
-            If None, no fuzzy_factor is applied.
-
-        below_thresh_ok : boolean
-            True to count points as significant if *below* the threshold,
-            False to count points as significant if *above* the threshold.
+        Raises:
+            ValueError: If a threshold of 0.0 is requested.
+            ValueError: If the fuzzy_factor is not greater than 0 and less
+                        than 1.
 
         """
         if threshold == 0.0:
@@ -84,13 +85,22 @@ class BasicThreshold(object):
         ).format(self.threshold, self.fuzzy_factor, self.below_thresh_ok)
 
     def process(self, cube):
-        """Convert each point to a fuzzy truth value based on threshold.
+        """Convert each point to a truth value based on threshold. The truth
+        value may or may not be fuzzy depending upon if a fuzzy_factor is
+        supplied.
 
-        Parameters
-        ----------
+        Args:
+            cube : iris.cube.Cube
+                Cube to threshold. The code is dimension-agnostic.
 
-        cube : iris.cube.Cube
-            Cube to threshold. The code is dimension-agnostic.
+        Returns:
+            cube : iris.cube.Cube
+                Cube after a threshold has been found. The data within this
+                cube will contain values between 0 and 1 to indicate whether
+                a given threshold has been exceeded or not.
+
+        Raises:
+            ValueError: if a np.nan value is detected within the input cube.
 
         """
         if self.fuzzy_factor is None:

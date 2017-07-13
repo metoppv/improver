@@ -40,15 +40,16 @@ from improver.nbhood import NeighbourhoodProcessing
 
 class DiagnoseConvectivePrecipitation(object):
     """
-    Diagnose convective precipitation by using sharp differences between
-    adjacent grid squares to help distinguish convective precipitation with
-    sharp features from stratiform precipitation with broader (less sharp)
-    features.
+    Diagnose convective precipitation by using differences between
+    adjacent grid squares to help distinguish convective and stratiform
+    precipitation. Convective precipitation features would be anticipated
+    to have sharp features compared with broader (less sharp) features for
+    stratiform precipitation.
     """
 
     def __init__(
             self, lower_threshold, higher_threshold, neighbourhood_method,
-            radii_in_km, fuzzy_factor=None, below_thresh_ok=False,
+            radii, fuzzy_factor=None, below_thresh_ok=False,
             lead_times=None, unweighted_mode=False, ens_factor=1.0,
             use_adjacent_grid_square_differences=True):
         """
@@ -60,9 +61,10 @@ class DiagnoseConvectivePrecipitation(object):
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
             neighbourhood_method : str
-                Name of the neighbourhood method to use. Options: 'circular'.
-            radii_in_km : float or List (if defining lead times)
-                The radii in kilometres of the neighbourhood to apply.
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
+            radii : float or List (if defining lead times)
+                The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
@@ -73,8 +75,8 @@ class DiagnoseConvectivePrecipitation(object):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
             lead_times : None or List
-                List of lead times or forecast periods, at which thel radii
-                within radii_in_km are defined. The lead times are expected
+                List of lead times or forecast periods, at which the radii
+                within radii are defined. The lead times are expected
                 in hours.
             unweighted_mode : boolean
                 If True, use a circle with constant weighting.
@@ -96,7 +98,7 @@ class DiagnoseConvectivePrecipitation(object):
         self.lower_threshold = lower_threshold
         self.higher_threshold = higher_threshold
         self.neighbourhood_method = neighbourhood_method
-        self.radii_in_km = radii_in_km
+        self.radii = radii
         self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
         self.lead_times = lead_times
@@ -109,13 +111,13 @@ class DiagnoseConvectivePrecipitation(object):
         """Represent the configured plugin instance as a string."""
         result = ('<DiagnoseConvectivePrecipitation: lower_threshold {}; '
                   'higher_threshold {}; neighbourhood_method: {}; '
-                  'radii_in_km: {}; fuzzy_factor {}; '
+                  'radii: {}; fuzzy_factor {}; '
                   'below_thresh_ok: {}; lead_times: {}; '
                   'unweighted_mode: {}; ens_factor: {}; '
                   'use_adjacent_grid_square_differences: {}>')
         return result.format(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii_in_km, self.fuzzy_factor,
+            self.neighbourhood_method, self.radii, self.fuzzy_factor,
             self.below_thresh_ok, self.lead_times, self.unweighted_mode,
             self.ens_factor, self.use_adjacent_grid_square_differences)
 
@@ -137,8 +139,7 @@ class DiagnoseConvectivePrecipitation(object):
             * A zero value, if the lower threshold was exceeded, whilst the
               higher threshold was not exceeded.
             * A NaN value (np.nan), if neither the higher or lower thresholds
-              were exceeded, and therefore a NaN value results from the
-              0/0 division.
+              were exceeded, such that the convective ratio was 0/0.
 
         Args:
             cube : Iris.cube.Cube
@@ -147,6 +148,11 @@ class DiagnoseConvectivePrecipitation(object):
         Returns:
             convective_ratio : Iris.cube.Cube
                 Cube containing the convective ratio
+
+        Raises:
+            ValueError: If a value of infinity or a value greater than 1.0
+                        are found within the convective ratio.
+
         """
         threshold_dict = {}
 
@@ -156,25 +162,37 @@ class DiagnoseConvectivePrecipitation(object):
                     threshold, fuzzy_factor=self.fuzzy_factor,
                     below_thresh_ok=self.below_thresh_ok).process(cube.copy()))
             neighbourhooded_cube = NeighbourhoodProcessing(
-                self.neighbourhood_method, self.radii_in_km,
+                self.neighbourhood_method, self.radii,
                 lead_times=self.lead_times,
                 unweighted_mode=self.unweighted_mode,
                 ens_factor=self.ens_factor).process(threshold_cube)
             threshold_dict[threshold] = neighbourhooded_cube
 
         # Ignore runtime warnings from divide by 0 errors.
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid='ignore', divide='ignore'):
             convective_ratio = (
                 threshold_dict[self.higher_threshold] /
                 threshold_dict[self.lower_threshold])
-        if np.sum(np.isinf(convective_ratio.data)) > 0.0:
-            msg = ("A value of infinity was found for the "
-                   "convective ratio: {}.\n"
-                   "This value is not plausible as the fraction above the "
+
+        infinity_condition = np.sum(np.isinf(convective_ratio.data)) > 0.0
+        with np.errstate(invalid='ignore'):
+            greater_than_1_condition = (
+                np.sum(convective_ratio.data > 1.0) > 0.0)
+
+        if infinity_condition or greater_than_1_condition:
+            if infinity_condition:
+                start_msg = ("A value of infinity was found for the "
+                             "convective ratio: {}.").format(
+                                 convective_ratio.data)
+            elif greater_than_1_condition:
+                start_msg = ("A value of greater than 1.0 was found for the "
+                             "convective ratio: {}.").format(
+                                 convective_ratio.data)
+            msg = ("{}\nThis value is not plausible as the fraction above the "
                    "higher threshold must be lower than the fraction "
-                   "above the lower threshold.").format(
-                       convective_ratio.data)
+                   "above the lower threshold.").format(start_msg)
             raise ValueError(msg)
+
         convective_ratio.long_name = "convective_ratio"
         return convective_ratio
 
@@ -190,13 +208,20 @@ class DiagnoseConvectivePrecipitation(object):
 
         Returns:
             convective_ratios : Iris.cube.CubeList
-                Cube containing the convective ratio defined as the ratio
-                between a cube with a high threshold applied and a cube with
-                a low threshold applied.
+                Cubelist containing cubes that define the convective ratio
+                defined as the ratio between a cube with a high threshold
+                applied and a cube with a low threshold applied.
+                If adjacent grid square differences have been calculated,
+                two cubes will be returned within the cubelist, otherwise one
+                cube will be within the cubelist.
         """
         if self.use_adjacent_grid_square_differences:
             diff_along_x_cube, diff_along_y_cube = (
                 DifferenceBetweenAdjacentGridSquares().process(cube))
+            # Compute the absolute values of the differences to ensure that
+            # negative differences are included.
+            diff_along_x_cube.data = np.absolute(diff_along_x_cube.data)
+            diff_along_y_cube.data = np.absolute(diff_along_y_cube.data)
             cubelist = [diff_along_x_cube, diff_along_y_cube]
         else:
             cubelist = [cube]
