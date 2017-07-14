@@ -95,7 +95,7 @@ class BasicThreshold(object):
 
         Returns:
             cube : iris.cube.Cube
-                Cube after a threshold has been found. The data within this
+                Cube after a threshold has been applied. The data within this
                 cube will contain values between 0 and 1 to indicate whether
                 a given threshold has been exceeded or not.
 
@@ -103,12 +103,12 @@ class BasicThreshold(object):
             ValueError: if a np.nan value is detected within the input cube.
 
         """
+        if np.isnan(cube.data).any():
+            raise ValueError("Error: NaN detected in input cube data")
         if self.fuzzy_factor is None:
             truth_value = cube.data > self.threshold
         else:
             lower_threshold = self.threshold * self.fuzzy_factor
-            if np.isnan(cube.data).any():
-                raise ValueError("Error: NaN detected in input cube data")
             truth_value = (
                 (cube.data - lower_threshold) /
                 ((self.threshold * (2. - self.fuzzy_factor)) - lower_threshold)

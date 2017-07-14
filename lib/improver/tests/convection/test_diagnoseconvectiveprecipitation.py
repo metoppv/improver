@@ -85,6 +85,23 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
     return cube
 
 
+def apply_threshold(cube, threshold):
+    """Apply threshold and convert to binary, rather than logical values."""
+    cube.data = cube.data > threshold
+    cube.data = cube.data.astype(int)
+    return cube
+
+
+def lower_higher_threshold_cubelist(
+        lower_cube, higher_cube, lower_threshold, higher_threshold):
+    """Apply low and high thresholds and put into a cube list."""
+    lower_cube = (
+        apply_threshold(lower_cube, lower_threshold))
+    higher_cube = (
+        apply_threshold(higher_cube, higher_threshold))
+    return iris.cube.CubeList([lower_cube, higher_cube])
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -117,6 +134,12 @@ class Test__calculate_convective_ratio(IrisTest):
         self.neighbourhood_method = "square"
         self.radii = 2.0
         self.cube = set_up_precipitation_rate_cube()
+        self.lower_cube = self.cube.copy()
+        self.higher_cube = self.cube.copy()
+        self.cubelist = lower_higher_threshold_cubelist(
+            self.lower_cube, self.higher_cube, self.lower_threshold,
+            self.higher_threshold)
+        self.threshold_list = [self.lower_threshold, self.higher_threshold]
 
     def test_basic(self):
         """Test a basic example using the default values for the keyword
@@ -130,7 +153,8 @@ class Test__calculate_convective_ratio(IrisTest):
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
-            self.radii)._calculate_convective_ratio(self.cube)
+            self.radii)._calculate_convective_ratio(
+                self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -145,10 +169,14 @@ class Test__calculate_convective_ratio(IrisTest):
              [np.nan, np.nan, np.nan, np.nan]])
         data = np.zeros((1, 1, 4, 4))
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1")
+        cubelist = lower_higher_threshold_cubelist(
+            cube.copy(), cube.copy(), self.lower_threshold,
+            self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
-            self.radii)._calculate_convective_ratio(cube)
+            self.radii)._calculate_convective_ratio(
+                cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -180,72 +208,47 @@ class Test__calculate_convective_ratio(IrisTest):
             data, "lwe_precipitation_rate", "m s-1",
             realizations=np.array([0, 1]),
             timesteps=np.array([402192.5, 402195.5]))
+        cubelist = lower_higher_threshold_cubelist(
+            cube.copy(), cube.copy(), self.lower_threshold,
+            self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
-            radii)._calculate_convective_ratio(cube)
+            radii)._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_catch_infinity_values(self):
         """Test an example where the infinity values are generated.
         Ensure these are caught as intended."""
-        below_thresh_ok = True
+        lower_threshold = 5 * mm_hr_to_m_s
+        higher_threshold = 0.001 * mm_hr_to_m_s
+        cubelist = lower_higher_threshold_cubelist(
+            self.cube.copy(), self.cube.copy(), lower_threshold,
+            higher_threshold)
         msg = "A value of infinity was found"
         with self.assertRaisesRegexp(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
                 self.neighbourhood_method,
-                self.radii, below_thresh_ok=below_thresh_ok
-                )._calculate_convective_ratio(self.cube)
+                self.radii
+                )._calculate_convective_ratio(cubelist, self.threshold_list)
 
     def test_catch_greater_than_1_values(self):
         """Test an example where the greater than 1 values are generated.
         Ensure these are caught as intended."""
-        below_thresh_ok = True
+        lower_threshold = 5 * mm_hr_to_m_s
+        higher_threshold = 0.001 * mm_hr_to_m_s
+        cubelist = lower_higher_threshold_cubelist(
+            self.cube.copy(), self.cube.copy(), lower_threshold,
+            higher_threshold)
         radii = 4.0
         msg = "A value of greater than 1.0 was found"
         with self.assertRaisesRegexp(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
                 self.neighbourhood_method, radii,
-                below_thresh_ok=below_thresh_ok
-                )._calculate_convective_ratio(self.cube)
-
-    def test_fuzzy_factor(self):
-        """Test an example where a fuzzy_factor is specified."""
-        expected = np.array(
-            [[0.083333, 0.1, 0.1, 0.111111],
-             [0.266667, 0.357143, 0.357143, 0.466667],
-             [0.583333, 0.642857, 0.6875, 0.722222],
-             [1., 1., 1., 1.]])
-        fuzzy_factor = 0.7
-        result = DiagnoseConvectivePrecipitation(
-            self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
-            self.radii, fuzzy_factor=fuzzy_factor
-            )._calculate_convective_ratio(self.cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_below_threshold(self):
-        """Test an example where the points below the specified threshold
-        are regarded as significant."""
-        expected = np.array(
-            [[0., 0.166667, 0.166667, 0.25],
-             [0.2, 0.285714, 0.285714, 0.25],
-             [0.5, 0.4, 0.25, 0.],
-             [1., 1., 1., np.nan]])
-        below_thresh_ok = True
-        lower_threshold = 5 * mm_hr_to_m_s
-        higher_threshold = 0.001 * mm_hr_to_m_s
-        result = DiagnoseConvectivePrecipitation(
-            lower_threshold, higher_threshold,
-            self.neighbourhood_method,
-            self.radii, below_thresh_ok=below_thresh_ok
-            )._calculate_convective_ratio(self.cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+                )._calculate_convective_ratio(cubelist, self.threshold_list)
 
     def test_multiple_lead_times_neighbourhooding(self):
         """Test where neighbourhood is applied for multiple lead times, where
@@ -269,11 +272,14 @@ class Test__calculate_convective_ratio(IrisTest):
         cube.add_aux_coord(AuxCoord(
             lead_times, "forecast_period", units="hours"), 1)
         radii = [2, 4]
+        cubelist = lower_higher_threshold_cubelist(
+            cube.copy(), cube.copy(), self.lower_threshold,
+            self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
             radii, lead_times=lead_times
-            )._calculate_convective_ratio(cube)
+            )._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -295,11 +301,14 @@ class Test__calculate_convective_ratio(IrisTest):
             realizations=np.array([0, 1]))
         radii = 8.0
         ens_factor = 0.8
+        cubelist = lower_higher_threshold_cubelist(
+            cube.copy(), cube.copy(), self.lower_threshold,
+            self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
             radii, ens_factor=ens_factor
-            )._calculate_convective_ratio(cube)
+            )._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -314,7 +323,7 @@ class Test__calculate_convective_ratio(IrisTest):
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             neighbourhood_method, self.radii
-            )._calculate_convective_ratio(self.cube)
+            )._calculate_convective_ratio(self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -332,7 +341,194 @@ class Test__calculate_convective_ratio(IrisTest):
             self.lower_threshold, self.higher_threshold,
             neighbourhood_method,
             self.radii, unweighted_mode=unweighted_mode
-            )._calculate_convective_ratio(self.cube)
+            )._calculate_convective_ratio(self.cubelist, self.threshold_list)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
+class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
+
+    """Test the absolute_differences_between_adjacent_grid_squares method."""
+
+    def setUp(self):
+        """Set up the cube."""
+        self.lower_threshold = 0.001 * mm_hr_to_m_s
+        self.higher_threshold = 5 * mm_hr_to_m_s
+        self.neighbourhood_method = "square"
+        self.radii = 2.0
+        self.cube = set_up_precipitation_rate_cube()
+
+    def test_basic(self):
+        """Test that differences are calculated correctly between adjacent
+        grid squares along x and y. Check that absolute values are returned."""
+        expected_x = np.array(
+            [[[[0.000000e+00, 5.555600e-07, 5.555600e-07],
+               [0.000000e+00, 0.000000e+00, 0.000000e+00],
+               [2.222240e-06, 2.222240e-06, 0.000000e+00],
+               [4.444480e-06, 0.000000e+00, 0.000000e+00]]]])
+        expected_y = np.array(
+            [[[[5.555600e-07, 5.555600e-07, 1.111120e-06, 5.555600e-07],
+               [1.111120e-06, 1.111120e-06, 1.111120e-06, 1.111120e-06],
+               [2.222240e-06, 4.444480e-06, 2.222240e-06, 2.222240e-06]]]])
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method, self.radii
+            ).absolute_differences_between_adjacent_grid_squares(
+                self.cube, self.higher_threshold)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(result[0].data, expected_x)
+        self.assertArrayAlmostEqual(result[1].data, expected_y)
+
+
+class Test_iterate_over_threshold(IrisTest):
+
+    """Test the iterate_over_threshold method."""
+
+    def setUp(self):
+        """Set up the cube."""
+        self.lower_threshold = 0.001 * mm_hr_to_m_s
+        self.higher_threshold = 5 * mm_hr_to_m_s
+        self.neighbourhood_method = "square"
+        self.radii = 2.0
+        self.cube = set_up_precipitation_rate_cube()
+
+    def test_basic(self):
+        """Test an example for iterating over a list of thresholds."""
+        expected = np.array(
+            [[[[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [1., 0., 1., 1.],
+               [0., 1., 1., 1.]]]])
+        cubelist = iris.cube.CubeList([self.cube, self.cube])
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method,
+            self.radii).iterate_over_threshold(cubelist, self.higher_threshold)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(result[0].data, expected)
+
+    def test_fuzzy_factor(self):
+        """Test an example where a fuzzy_factor is specified."""
+        expected = np.array(
+            [[[[0., 0., 0., 0.],
+               [0.166667, 0.166667, 0.166667, 0.166667],
+               [1., 0., 1., 1.],
+               [0., 1., 1., 1.]]]])
+        fuzzy_factor = 0.7
+        cubelist = iris.cube.CubeList([self.cube, self.cube])
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method,
+            self.radii, fuzzy_factor=fuzzy_factor
+            ).iterate_over_threshold(cubelist, self.higher_threshold)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertArrayAlmostEqual(result[1].data, expected)
+
+    def test_below_threshold(self):
+        """Test an example where the points below the specified threshold
+        are regarded as significant."""
+        expected = np.array(
+            [[[[1., 1., 1., 1.],
+               [1., 1., 1., 1.],
+               [0., 1., 0., 0.],
+               [1., 0., 0., 0.]]]])
+        below_thresh_ok = True
+        lower_threshold = 5 * mm_hr_to_m_s
+        higher_threshold = 0.001 * mm_hr_to_m_s
+        cubelist = iris.cube.CubeList([self.cube, self.cube])
+        result = DiagnoseConvectivePrecipitation(
+            lower_threshold, higher_threshold,
+            self.neighbourhood_method,
+            self.radii, below_thresh_ok=below_thresh_ok
+            ).iterate_over_threshold(cubelist, self.higher_threshold)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertArrayAlmostEqual(result[1].data, expected)
+
+
+class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
+
+    """Test the sum_differences_between_adjacent_grid_squares method."""
+
+    def setUp(self):
+        """Set up the cube."""
+        self.lower_threshold = 0.001 * mm_hr_to_m_s
+        self.higher_threshold = 5 * mm_hr_to_m_s
+        self.neighbourhood_method = "square"
+        self.radii = 2.0
+        self.cube = set_up_precipitation_rate_cube()
+
+    def test_basic(self):
+        """Test that the sum of differences between adjacent grid squares,
+        when accounting for the offset between the grid of the difference
+        cube and the original grid is as expected."""
+        expected = np.array(
+            [[[[0., 1., 1., 0.],
+               [1., 1., 0., 1.],
+               [1., 1., 1., 1.],
+               [1., 1., 1., 1.]]]])
+        # Set up threshold_cube_x.
+        threshold_cube_x_data = np.array(
+            [[[[0., 1., 0.],
+               [1., 0., 0.],
+               [0., 1., 1.],
+               [1., 0., 0.]]]])
+        threshold_cube_x = self.cube.copy()
+        threshold_cube_x = threshold_cube_x[:, :, :, :-1]
+        threshold_cube_x.data = threshold_cube_x_data
+        # Set up threshold_cube_y.
+        threshold_cube_y_data = np.array(
+            [[[[0., 1., 0., 0.],
+               [1., 0., 0., 1.],
+               [0., 1., 1., 1.]]]])
+        threshold_cube_y = self.cube.copy()
+        threshold_cube_y = threshold_cube_y[:, :, :-1, :]
+        threshold_cube_y.data = threshold_cube_y_data
+        thresholded_cube = iris.cube.CubeList(
+            [threshold_cube_x, threshold_cube_y])
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method, self.radii
+            ).sum_differences_between_adjacent_grid_squares(
+                self.cube, thresholded_cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_2d_input_cube(self):
+        """Test that the sum of differences between adjacent grid squares,
+        when accounting for the offset between the grid of the difference
+        cube and the original grid is as expected for a 2d cube."""
+        expected = np.array(
+            [[0., 1., 1., 0.],
+             [1., 1., 0., 1.],
+             [1., 1., 1., 1.],
+             [1., 1., 1., 1.]])
+        cube = self.cube[0, 0, :, :]
+        # Set up threshold_cube_x.
+        threshold_cube_x_data = np.array(
+            [[0., 1., 0.],
+             [1., 0., 0.],
+             [0., 1., 1.],
+             [1., 0., 0.]])
+        threshold_cube_x = cube.copy()
+        threshold_cube_x = threshold_cube_x[:, :-1]
+        threshold_cube_x.data = threshold_cube_x_data
+        # Set up threshold_cube_y.
+        threshold_cube_y_data = np.array(
+            [[0., 1., 0., 0.],
+             [1., 0., 0., 1.],
+             [0., 1., 1., 1.]])
+        threshold_cube_y = cube.copy()
+        threshold_cube_y = threshold_cube_y[:-1, :]
+        threshold_cube_y.data = threshold_cube_y_data
+        thresholded_cube = iris.cube.CubeList(
+            [threshold_cube_x, threshold_cube_y])
+        result = DiagnoseConvectivePrecipitation(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method, self.radii
+            ).sum_differences_between_adjacent_grid_squares(
+                cube, thresholded_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -352,21 +548,16 @@ class Test_process(IrisTest):
     def test_use_adjacent_grid_square_differences(self):
         """Diagnose convective precipitation using the differences between
         adjacent grid squares."""
-        expected_x = np.array(
-            [[0., 0., 0.],
-             [0.666667, 0.5, 0.333333],
-             [1., 1., 1.],
-             [1., 1., 1.]])
-        expected_y = np.array(
+        expected = np.array(
             [[0., 0., 0., 0.],
              [0.333333, 0.333333, 0.333333, 0.333333],
-             [0.5, 0.5, 0.5, 0.5]])
+             [0.666667, 0.666667, 0.666667, 0.666667],
+             [1., 1., 1., 1.]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii).process(self.cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertArrayAlmostEqual(result[0].data, expected_x)
-        self.assertArrayAlmostEqual(result[1].data, expected_y)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def test_does_not_use_adjacent_grid_square_differences(self):
         """Diagnose convective precipitation using the precipitation rate
@@ -381,8 +572,8 @@ class Test_process(IrisTest):
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii,
             use_adjacent_grid_square_differences=False).process(self.cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
 
 if __name__ == '__main__':
