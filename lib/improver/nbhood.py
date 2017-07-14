@@ -372,7 +372,9 @@ class SquareNeighbourhood(object):
                     neighbourhood_total[j, i], neighbourhood_area[j, i] = (
                         _sum_and_area_for_edge_cases(
                             slice_2d, cells_x, cells_y, i, j))
-            slice_2d.data = neighbourhood_total/neighbourhood_area
+            with np.errstate(invalid='ignore', divide='ignore'):
+                slice_2d.data = (neighbourhood_total.astype(float) /
+                                 neighbourhood_area.astype(float))
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
@@ -431,21 +433,44 @@ class SquareNeighbourhood(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
-        if isinstance(cube.data, np.ma.MaskedArray):
-            msg = ('Masked data is not currently supported in ',
-                   'SquareNeighbourhood.')
-            raise ValueError(msg)
+        masked_flag = False
         if np.any(np.isnan(cube.data)):
             msg = ('Data array contains NaNs which are not currently ',
                    'supported in SquareNeighbourhood.')
             raise ValueError(msg)
-        summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
-        grid_cells_x, grid_cells_y = (
-            Utilities.get_neighbourhood_width_in_grid_cells(
-                summed_up_cube, radius, MAX_RADIUS_IN_GRID_CELLS))
-        neighbourhood_averaged_cube = (
-            SquareNeighbourhood.mean_over_neighbourhood(
-                summed_up_cube, grid_cells_x, grid_cells_y))
+        # If the data is masked, the mask will be processed as well as the
+        # original_data * mask array.
+        if isinstance(cube.data, np.ma.MaskedArray):
+            masked_flag = True
+            mask_cube = cube.copy()
+            mask_cube.data = np.logical_not(cube.data.mask.astype(int))
+            cube.data = cube.data.data * mask_cube.data
+            cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
+        else:
+            cubes_to_sum = [cube]
+        neighbourhood_averaged_cubes = []
+        for cube in cubes_to_sum:
+            summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
+            grid_cells_x, grid_cells_y = (
+                Utilities.get_neighbourhood_width_in_grid_cells(
+                    cube, radius, MAX_RADIUS_IN_GRID_CELLS))
+            neighbourhood_averaged_cubes.append(
+                SquareNeighbourhood.mean_over_neighbourhood(
+                    summed_up_cube, grid_cells_x, grid_cells_y))
+        # Correct neighbourhood averages for masked data, which may have been
+        # calculated using larger neighbourhood areas than are present in
+        # reality.
+        if masked_flag:
+            neighbourhood_averaged_cube = neighbourhood_averaged_cubes[0]
+            mask_probs = neighbourhood_averaged_cubes[1].data
+            with np.errstate(invalid='ignore', divide='ignore'):
+                masked_neighbourhood_average = (
+                    neighbourhood_averaged_cube.data/mask_probs)
+            neighbourhood_averaged_cube.data = (
+                np.ma.masked_where(np.logical_not(mask_cube.data.squeeze()),
+                                   masked_neighbourhood_average))
+        else:
+            neighbourhood_averaged_cube = neighbourhood_averaged_cubes[0]
         return neighbourhood_averaged_cube
 
 

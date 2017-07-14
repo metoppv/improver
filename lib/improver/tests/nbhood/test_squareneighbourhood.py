@@ -219,7 +219,7 @@ class Test_run(IrisTest):
     RADIUS = 2500
 
     def test_basic(self):
-        """Test that a cube with correct data is produced by the run method"""
+        """Test that a cube with correct data is produced by the run method."""
         data = np.array([[1., 1., 1., 1., 1.],
                          [1., 0.88888889, 0.88888889, 0.88888889, 1.],
                          [1., 0.88888889, 0.88888889, 0.88888889, 1.],
@@ -232,16 +232,71 @@ class Test_run(IrisTest):
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
-    def test_masked_array_fail(self):
-        """Test that the correct exception is raised when a masked array
-           is passed in."""
+    def test_masked_array(self):
+        """Test that the run method produces a cube with correct data when a
+           cube containing masked data is passed in."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        cube.data = np.ma.masked_equal(cube.data, 1)
-        msg = 'Masked data is not currently supported'
-        with self.assertRaisesRegexp(ValueError, msg):
-            SquareNeighbourhood().run(cube, self.RADIUS)
+        cube.data = np.array([[[[1, 1, 0, 1, 1],
+                                [1, 1, 1, 0, 0],
+                                [1, 0, 1, 0, 0],
+                                [0, 0, 1, 1, 0],
+                                [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        expected_array = np.array([[0., 0., 0.6, 0.5, 0.],
+                                   [0., 0.75, 0.57142857, 0.42857143, 0.],
+                                   [0., 0., 0.71428571, 0.57142857, 0.25],
+                                   [0., 0., 0.66666667, 0.57142857, 0.],
+                                   [0., 0., 0.75, 0.75, 0.]])
+        cube.data = np.ma.masked_where(mask == 0, cube.data)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_multiple_times_with_mask(self):
+        """Test that the run method produces a cube with correct data when a
+           cube containing masked data at multiple time steps is passed in."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=2,
+            num_grid_points=5)
+        data = np.array([[[[1, 1, 0, 1, 1],
+                           [1, 1, 1, 0, 0],
+                           [1, 0, 1, 0, 0],
+                           [0, 0, 1, 1, 0],
+                           [0, 1, 1, 0, 1]],
+                          [[1, 1, 0, 1, 1],
+                           [1, 1, 1, 0, 0],
+                           [1, 0, 1, 0, 0],
+                           [0, 0, 1, 0, 0],
+                           [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]],
+                          [[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 1, 1, 1, 1],
+                           [0, 0, 0, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        masked_data = np.ma.masked_where(mask == 0, data)
+        cube.data = masked_data
+        expected_array = np.array([[[0., 0., 0.6, 0.5, 0.],
+                                    [0., 0.75, 0.57142857, 0.42857143, 0.],
+                                    [0., 0., 0.71428571, 0.57142857, 0.25],
+                                    [0., 0., 0.66666667, 0.57142857, 0.],
+                                    [0., 0., 0.75, 0.75, 0.]],
+                                   [[0., 0., 0.6, 0.5, 0.],
+                                    [0., 0.6, 0.5, 0.42857143, 0.],
+                                    [0., 0.75, 0.42857143,  0.33333333, 0.],
+                                    [0., 0., 0., 0.33333333, 0.],
+                                    [0., 0., 0.33333333, 0.33333333, 0.]]])
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_NaN_array_fail(self):
         """Test that the correct exception is raised when an array containing
