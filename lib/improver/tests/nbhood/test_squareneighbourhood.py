@@ -68,7 +68,7 @@ class Test_cumulate_array(IrisTest):
                          [3., 6., 8., 11., 14.],
                          [4., 8., 11., 15., 19.],
                          [5., 10., 14., 19., 24.]])
-        nanmask = np.zeros([5,5]).astype(bool)
+        nanmask = np.zeros([5, 5]).astype(bool)
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -102,7 +102,7 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
             num_time_points=3, num_grid_points=5)
-        result, nan_mask = SquareNeighbourhood().cumulate_array(cube)
+        result = SquareNeighbourhood().cumulate_array(cube)[0]
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -150,16 +150,17 @@ class Test_cumulate_array(IrisTest):
                          [2., 5., 7., 10., 13.],
                          [3., 7., 10., 14., 18.],
                          [4., 9., 13., 18., 23.]])
-        nanmask = np.zeros([5,5]).astype(bool)
-        nanmask[0,0] = True
+        nanmask = np.zeros([5, 5]).astype(bool)
+        nanmask[0, 0] = True
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        cube.data[0,0,0,0] = np.nan
+        cube.data[0, 0, 0, 0] = np.nan
         result, nan_mask = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayAlmostEqual(nan_mask, nanmask)
+
 
 class Test_mean_over_neighbourhood(IrisTest):
 
@@ -248,8 +249,8 @@ class Test_mean_over_neighbourhood(IrisTest):
                          [4., 9., 13., 18., 23.]])
         cube = self.cube
         cube.data = data
-        nanmask = np.zeros([5,5]).astype(bool)
-        nanmask[0,0] = True
+        nanmask = np.zeros([5, 5]).astype(bool)
+        nanmask[0, 0] = True
         expected_data = np.array(
             [[np.nan, 0.83333333, 1., 1., 1.],
              [0.83333333, 0.77777778, 0.88888889, 0.88888889, 1.],
@@ -306,7 +307,6 @@ class Test_run(IrisTest):
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
-
     def test_masked_array_with_nans(self):
         """Test that the run method produces a cube with correct data when a
            cube containing masked nans is passed in."""
@@ -338,7 +338,6 @@ class Test_run(IrisTest):
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
         self.assertArrayAlmostEqual(result.data.data, expected_array_data)
-
 
     def test_multiple_times_with_mask(self):
         """Test that the run method produces a cube with correct data when a
