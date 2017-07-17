@@ -193,8 +193,8 @@ class DiagnoseConvectivePrecipitation(object):
         convective_ratio.long_name = "convective_ratio"
         return convective_ratio
 
-    def absolute_differences_between_adjacent_grid_squares(
-            self, cube, threshold):
+    @staticmethod
+    def absolute_differences_between_adjacent_grid_squares(cube, threshold):
         """
         Compute the absolute differences between grid squares and put the
         resulting cubes into a cubelist.
@@ -244,8 +244,8 @@ class DiagnoseConvectivePrecipitation(object):
             cubes.append(threshold_cube)
         return cubes
 
-    def sum_differences_between_adjacent_grid_squares(
-            self, cube, thresholded_cubes):
+    @staticmethod
+    def sum_differences_between_adjacent_grid_squares(cube, thresholded_cubes):
         """
         Put the differences back onto the original grid by summing together
         the array with offsets. This covers the fact that the difference
