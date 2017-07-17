@@ -268,6 +268,10 @@ class SquareNeighbourhood(object):
         cells_x, cells_y : integer
             The radius of the neighbourhood in grid points, in the x and y
             directions (excluding the central grid point).
+        nan_mask : numpy.array
+            Mask of where the original input data array had nans. Nans will
+            be reapplied at these points after neighbourhood processing has
+             been carried out.
 
         Returns
         -------
@@ -399,7 +403,10 @@ class SquareNeighbourhood(object):
         cube : Iris.cube.Cube
             Cube to which the cumulative summing along the y and x direction
             has been applied.
-
+        nan_mask : numpy array
+            Mask of where the original input data array had nans. Nans will
+            be reapplied at these points after neighbourhood processing has
+             been carried out.
         """
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
