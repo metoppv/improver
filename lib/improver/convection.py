@@ -131,7 +131,7 @@ class DiagnoseConvectivePrecipitation(object):
            For example, the higher_threshold might be 5 mm/hr, whilst the
            lower_threshold might be 0.1 mm/hr.
 
-        The Convective Ratio can have the following values:
+        The convective ratio can have the following values:
             * A non-zero fractional value, indicating that both the higher
               and lower thresholds were exceeded.
             * A zero value, if the lower threshold was exceeded, whilst the
@@ -140,10 +140,10 @@ class DiagnoseConvectivePrecipitation(object):
               were exceeded, such that the convective ratio was 0/0.
 
         Args:
-            cube : Iris.cube.Cube
-                The cube from which the convective ratio will be calculated.
-                The cube should have been thresholded, so that values within
-                cube.data are between 0.0 and 1.0.
+            cube : Iris.cube.CubeList
+                Cubelist containing cubes from which the convective ratio
+                will be calculated. The cube should have been thresholded,
+                so that values within cube.data are between 0.0 and 1.0.
             threshold_list : List
                 The list of thresholds.
 
@@ -186,7 +186,7 @@ class DiagnoseConvectivePrecipitation(object):
                              "convective ratio: {}.").format(
                                  convective_ratio.data)
             msg = ("{}\nThis value is not plausible as the fraction above the "
-                   "higher threshold must be lower than the fraction "
+                   "higher threshold must be less than the fraction "
                    "above the lower threshold.").format(start_msg)
             raise ValueError(msg)
 
