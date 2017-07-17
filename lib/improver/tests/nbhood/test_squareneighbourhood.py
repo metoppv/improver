@@ -138,7 +138,7 @@ class Test_cumulate_array(IrisTest):
             zero_point_indices=(
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
-        result, nan_mask = SquareNeighbourhood().cumulate_array(cube)
+        result = SquareNeighbourhood().cumulate_array(cube)[0]
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
