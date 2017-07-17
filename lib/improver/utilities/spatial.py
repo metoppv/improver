@@ -155,3 +155,143 @@ class DifferenceBetweenAdjacentGridSquares(object):
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
         return diff_along_x_cube, diff_along_y_cube
+
+
+class ProbabilityOfOccurrence(object):
+
+    def __init__(self, distance, neighbourhood_method, radii, lead_times=None,
+                 unweighted_mode=False, ens_factor=1.0):
+        """
+        distance : float
+            Distance in metres used to define whether there is an occurrence
+            within the vicinity.
+            identify whether 
+        neighbourhood_method : str
+            Name of the neighbourhood method to use. Options: 'circular',
+            'square'.
+        radii : float or List (if defining lead times)
+            The radii in metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid
+            points east and north, based on the characteristic spacing
+            at the zero indices of the cube projection-x and y coords.
+        lead_times : None or List
+            List of lead times or forecast periods, at which the radii
+            within 'radii' are defined. The lead times are expected
+            in hours.
+        unweighted_mode : boolean
+            If True, use a circle with constant weighting.
+            If False, use a circle for neighbourhood kernel with
+            weighting decreasing with radius.
+        ens_factor : float
+            The factor with which to adjust the neighbourhood size
+            for more than one ensemble member.
+            If ens_factor = 1.0 this essentially conserves ensemble
+            members if every grid square is considered to be the
+            equivalent of an ensemble member.
+            Optional, defaults to 1.0
+        """
+        self.distance = distance
+        self.neighbourhood_method = neighbourhood_method
+        self.radii = radii
+        self.lead_times = lead_times
+        self.unweighted_mode = unweighted_mode
+        self.ens_factor = ens_factor
+
+    def process(self, cube):
+        """
+        Identify the probability of having a phenomenon occur within a
+        vicinity.
+        The steps for this are as follows:
+        1. 
+
+        """
+        cube = OccurrenceWithinVicinity(distance).process(cube)
+        if cube.coords('realization'):
+            cube = cube.collapsed('realization', iris.analysis.MEAN)
+        cube = NeighbourhoodProcessing(
+            self.neighbourhood_method, self.radii, self.lead_times,
+            self.unweighted_mode, self.ens_factor).process(cube)
+        return cube
+
+
+class OccurrenceWithinVicinity(object):
+
+    def __init__(self, distance):
+        self.distance = distance
+
+    def maximum_within_vicinity(self, cube):
+
+        grid_cell_x, grid_cell_y = (
+            Utilities.get_neighbourhood_width_in_grid_cells(
+                cube, radius, MAX_RADIUS_IN_GRID_CELLS))
+
+        # Option 1
+        max_cube = cube.copy()
+        max_cube.data = np.zeros(cube.data.shape)
+        for ii in range(cube.coord(axis="y").points):
+            for jj in range(cube.coord(axis="x").points):
+                if ii-grid_cell_y < 0:
+                    for index in range(ii-grid_cell_y, 0):
+                        if index >= 0:
+                            break
+                    lower_y_index = index
+                else:
+                    lower_y_index = ii-grid_cell_y
+                if jj-grid_cell_x < 0:
+                    for index in range(jj-grid_cell_x, 0):
+                        if index >= 0:
+                            break
+                    lower_x_index = index
+                else:
+                    lower_x_index = jj-grid_cell_x
+                if ii+grid_cell_y > ylen:
+                    for index in range(ii+grid_cell_y, 0):
+                        if index >= 0:
+                            break
+                    upper_y_index = index
+                else:
+                    lower_y_index = ii-grid_cell_y
+                if jj+grid_cell_x > xlen:
+                    for index in range(jj+grid_cell_x, 0):
+                        if index >= 0:
+                            break
+                    upper_x_index = index
+                else:
+                    upper_x_index = jj+grid_cell_x
+                max_cube[ii, jj] = np.max(
+                    cube.data[lower_y_index:upper_y_index,
+                              lower_x_index:upper_x_index])
+
+        # Option 2
+        max_cube = cube.copy()
+        ylen = len(max_cube.coord(axis="y").points)
+        xlen = len(max_cube.coord(axis="x").points)
+        nlen = xlen * ylen
+
+        data_1d = max_cube.data.flatten()
+        indices_above_zero = np.where(data_1d>0)
+
+        for index in indices_above_zero:
+            increment = ylen * self.distance
+            for index_1d in range(index-increment,index+increment, ylen):
+                if index_1d >= 0 and index_1d <= nlen-1:
+                    data_1d[index_1d] = (
+                        np.max(data_1d[index], data_1d[index_1d]))
+
+        data = data_1d.reshape([ylen, xlen])
+        max_cube.data = data
+        return max_cube
+
+    def process(self, cube):
+
+        try:
+            realization_coord = cube.coord('realization')
+            slices_over_realization = cube.slices_over("realization")
+        except iris.exceptions.CoordinateNotFoundError:
+            slices_over_realization = iris.cube.CubeList([cube])
+
+        max_cubes = iris.cube.CubeList([])
+        for realization_slice in slices_over_realization:
+            for time_slice in realization_slice.slices_over("time"):
+                max_cubes.append(self.maximum_within_vicinity(time_slice))
+        return max_cubes.merge_cube()
