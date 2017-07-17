@@ -111,13 +111,13 @@ class Test__repr__(IrisTest):
         lower_threshold = 0.001 * mm_hr_to_m_s
         higher_threshold = 5 * mm_hr_to_m_s
         neighbourhood_method = "square"
-        radii = 2
+        radii = 2000.0
         result = str(DiagnoseConvectivePrecipitation(
             lower_threshold, higher_threshold,
             neighbourhood_method, radii))
         msg = ('<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; '
                'higher_threshold 1.3889e-06; neighbourhood_method: square; '
-               'radii: 2; fuzzy_factor None; below_thresh_ok: False; '
+               'radii: 2000.0; fuzzy_factor None; below_thresh_ok: False; '
                'lead_times: None; unweighted_mode: False; ens_factor: 1.0; '
                'use_adjacent_grid_square_differences: True>')
         self.assertEqual(str(result), msg)
@@ -132,7 +132,7 @@ class Test__calculate_convective_ratio(IrisTest):
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
         self.neighbourhood_method = "square"
-        self.radii = 2.0
+        self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
         self.lower_cube = self.cube.copy()
         self.higher_cube = self.cube.copy()
@@ -203,7 +203,7 @@ class Test__calculate_convective_ratio(IrisTest):
                [0.5, 0.33333333,  0., 0.]]]])
         data = np.full((2, 2, 4, 4), 1.0 * mm_hr_to_m_s)
         data[1, 1, :, 0] = 20.0 * mm_hr_to_m_s
-        radii = 4.0
+        radii = 4000.0
         cube = set_up_cube(
             data, "lwe_precipitation_rate", "m s-1",
             realizations=np.array([0, 1]),
@@ -242,7 +242,7 @@ class Test__calculate_convective_ratio(IrisTest):
         cubelist = lower_higher_threshold_cubelist(
             self.cube.copy(), self.cube.copy(), lower_threshold,
             higher_threshold)
-        radii = 4.0
+        radii = 4000.0
         msg = "A value of greater than 1.0 was found"
         with self.assertRaisesRegexp(ValueError, msg):
             DiagnoseConvectivePrecipitation(
@@ -271,7 +271,7 @@ class Test__calculate_convective_ratio(IrisTest):
             timesteps=np.array([402192.5, 402195.5]))
         cube.add_aux_coord(AuxCoord(
             lead_times, "forecast_period", units="hours"), 1)
-        radii = [2, 4]
+        radii = [2000.0, 4000.0]
         cubelist = lower_higher_threshold_cubelist(
             cube.copy(), cube.copy(), self.lower_threshold,
             self.higher_threshold)
@@ -299,7 +299,7 @@ class Test__calculate_convective_ratio(IrisTest):
         cube = set_up_cube(
             data, "lwe_precipitation_rate", "m s-1",
             realizations=np.array([0, 1]))
-        radii = 8.0
+        radii = 8000.0
         ens_factor = 0.8
         cubelist = lower_higher_threshold_cubelist(
             cube.copy(), cube.copy(), self.lower_threshold,
@@ -355,7 +355,7 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
         self.neighbourhood_method = "square"
-        self.radii = 2.0
+        self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
     def test_basic(self):
@@ -389,7 +389,7 @@ class Test_iterate_over_threshold(IrisTest):
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
         self.neighbourhood_method = "square"
-        self.radii = 2.0
+        self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
     def test_basic(self):
@@ -456,7 +456,7 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
         self.neighbourhood_method = "square"
-        self.radii = 2.0
+        self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
     def test_basic(self):
@@ -542,7 +542,7 @@ class Test_process(IrisTest):
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
         self.neighbourhood_method = "square"
-        self.radii = 2
+        self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
     def test_use_adjacent_grid_square_differences(self):
