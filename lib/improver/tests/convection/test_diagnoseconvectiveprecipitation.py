@@ -464,10 +464,10 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         when accounting for the offset between the grid of the difference
         cube and the original grid is as expected."""
         expected = np.array(
-            [[[[0., 1., 1., 0.],
-               [1., 1., 0., 1.],
-               [1., 1., 1., 1.],
-               [1., 1., 1., 1.]]]])
+            [[[[0., 2., 1., 0.],
+               [2., 2., 0., 1.],
+               [1., 2., 3., 3.],
+               [1., 2., 1., 1.]]]])
         # Set up threshold_cube_x.
         threshold_cube_x_data = np.array(
             [[[[0., 1., 0.],
@@ -500,10 +500,10 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         when accounting for the offset between the grid of the difference
         cube and the original grid is as expected for a 2d cube."""
         expected = np.array(
-            [[0., 1., 1., 0.],
-             [1., 1., 0., 1.],
-             [1., 1., 1., 1.],
-             [1., 1., 1., 1.]])
+            [[0., 2., 1., 0.],
+             [2., 2., 0., 1.],
+             [1., 2., 3., 3.],
+             [1., 2., 1., 1.]])
         cube = self.cube[0, 0, :, :]
         # Set up threshold_cube_x.
         threshold_cube_x_data = np.array(
@@ -550,9 +550,9 @@ class Test_process(IrisTest):
         adjacent grid squares."""
         expected = np.array(
             [[0., 0., 0., 0.],
-             [0.333333, 0.333333, 0.333333, 0.333333],
-             [0.666667, 0.666667, 0.666667, 0.666667],
-             [1., 1., 1., 1.]])
+             [0.357143, 0.318182, 0.272727, 0.214286],
+             [0.6, 0.571429, 0.526316, 0.454545],
+             [0.818182, 0.8, 0.769231, 0.714286]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii).process(self.cube)
