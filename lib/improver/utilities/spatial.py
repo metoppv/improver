@@ -219,11 +219,39 @@ class DifferenceBetweenAdjacentGridSquares(object):
 
 class OccurrenceWithinVicinity(object):
 
+    """Calculate whether a phenomenon occurs within the specified distance."""
+
     def __init__(self, distance):
+        """
+        Initialise the class.
+
+        Args:
+            distance : float
+                Distance in metres used to define whether there is an
+                occurrence within the vicinity.
+
+        """
         self.distance = distance
 
     def maximum_within_vicinity(self, cube):
+        """
+        Find grid points where a phenomenon occurs within a defined distance.
+        The occurrences within this vicinity are maximised, such that all
+        grid points within the vicinity are recorded as having an occurrence.
+        For non-binary fields, if the vicinity of two occurrences overlap,
+        the maximum value within the vicinity is chosen.
 
+        Args:
+            cube : Iris.cube.Cube
+                Thresholded cube.
+
+        Returns:
+            cube : Iris.cube.Cube
+                Cube where the occurrences have been spatially spread, so that
+                they're equally likely to have occurred anywhere within the
+                vicinity defined using the specified distance.
+
+        """
         grid_cell_x, grid_cell_y = (
             Utilities.get_neighbourhood_width_in_grid_cells(
                 cube, radius, MAX_RADIUS_IN_GRID_CELLS))
@@ -286,7 +314,20 @@ class OccurrenceWithinVicinity(object):
         return max_cube
 
     def process(self, cube):
+        """
+        Ensure that the cube passed to the maximum_within_vicinity method is
+        2d and subsequently merged back together.
 
+        Args:
+            cube : Iris.cube.Cube
+                Thresholded cube.
+
+        Returns:
+            Iris.cube.Cube
+                Cube containing the occurrences within a vicinity for each
+                xy 2d slice, which have been merged back together.
+
+        """
         try:
             realization_coord = cube.coord('realization')
             slices_over_realization = cube.slices_over("realization")
