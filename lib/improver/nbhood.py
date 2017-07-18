@@ -239,7 +239,7 @@ class SquareNeighbourhood(object):
         return result.format(self.unweighted_mode)
 
     @staticmethod
-    def mean_over_neighbourhood(cube, cells_x, cells_y):
+    def mean_over_neighbourhood(cube, cells_x, cells_y, nan_mask):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
@@ -268,6 +268,10 @@ class SquareNeighbourhood(object):
         cells_x, cells_y : integer
             The radius of the neighbourhood in grid points, in the x and y
             directions (excluding the central grid point).
+        nan_mask : numpy.array
+            Mask of where the original input data array had nans. Nans will
+            be reapplied at these points after neighbourhood processing has
+             been carried out.
 
         Returns
         -------
@@ -372,7 +376,10 @@ class SquareNeighbourhood(object):
                     neighbourhood_total[j, i], neighbourhood_area[j, i] = (
                         _sum_and_area_for_edge_cases(
                             slice_2d, cells_x, cells_y, i, j))
-            slice_2d.data = neighbourhood_total/neighbourhood_area
+            with np.errstate(invalid='ignore', divide='ignore'):
+                slice_2d.data = (neighbourhood_total.astype(float) /
+                                 neighbourhood_area.astype(float))
+            slice_2d.data[nan_mask] = np.NaN
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
@@ -396,19 +403,24 @@ class SquareNeighbourhood(object):
         cube : Iris.cube.Cube
             Cube to which the cumulative summing along the y and x direction
             has been applied.
-
+        nan_mask : numpy array
+            Mask of where the original input data array had nans. Nans will
+            be reapplied at these points after neighbourhood processing has
+             been carried out.
         """
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
             data = slice_2d.data
+            nan_mask = np.isnan(data)
+            data[nan_mask] = 0
             data_summed_along_y = np.cumsum(data, axis=0)
             data_summed_along_x = (
                 np.cumsum(data_summed_along_y, axis=1))
             slice_2d.data = data_summed_along_x
             cubelist.append(slice_2d)
-        return cubelist.merge_cube()
+        return cubelist.merge_cube(), nan_mask
 
     @staticmethod
     def run(cube, radius):
@@ -431,21 +443,49 @@ class SquareNeighbourhood(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
-        if isinstance(cube.data, np.ma.MaskedArray):
-            msg = ('Masked data is not currently supported in ',
-                   'SquareNeighbourhood.')
-            raise ValueError(msg)
+        masked_flag = False
         if np.any(np.isnan(cube.data)):
             msg = ('Data array contains NaNs which are not currently ',
                    'supported in SquareNeighbourhood.')
             raise ValueError(msg)
-        summed_up_cube = SquareNeighbourhood.cumulate_array(cube)
-        grid_cells_x, grid_cells_y = (
-            Utilities.get_neighbourhood_width_in_grid_cells(
-                summed_up_cube, radius, MAX_RADIUS_IN_GRID_CELLS))
-        neighbourhood_averaged_cube = (
-            SquareNeighbourhood.mean_over_neighbourhood(
-                summed_up_cube, grid_cells_x, grid_cells_y))
+        # If the data is masked, the mask will be processed as well as the
+        # original_data * mask array.
+        cubes_to_sum = iris.cube.CubeList([cube])
+        if isinstance(cube.data, np.ma.MaskedArray):
+            masked_flag = True
+            mask_cube = cube.copy()
+            mask_cube.rename('mask_data')
+            mask_cube.data = np.logical_not(cube.data.mask.astype(int))
+            cube.data = cube.data.data * mask_cube.data
+            cubes_to_sum.append(mask_cube)
+        else:
+            cubes_to_sum = [cube]
+        neighbourhood_averaged_cubes = iris.cube.CubeList([])
+        for cube_to_process in cubes_to_sum:
+            summed_up_cube, nan_mask = SquareNeighbourhood.cumulate_array(
+                cube_to_process)
+            grid_cells_x, grid_cells_y = (
+                Utilities.get_neighbourhood_width_in_grid_cells(
+                    cube_to_process, radius, MAX_RADIUS_IN_GRID_CELLS))
+            neighbourhood_averaged_cubes.append(
+                SquareNeighbourhood.mean_over_neighbourhood(
+                    summed_up_cube, grid_cells_x, grid_cells_y, nan_mask))
+        # Correct neighbourhood averages for masked data, which may have been
+        # calculated using larger neighbourhood areas than are present in
+        # reality.
+        if masked_flag:
+            neighbourhood_averaged_cube, = (
+                neighbourhood_averaged_cubes.extract(cube.name()))
+            mask_probs, = neighbourhood_averaged_cubes.extract('mask_data')
+            with np.errstate(invalid='ignore', divide='ignore'):
+                masked_neighbourhood_average = (
+                    neighbourhood_averaged_cube.data/mask_probs.data)
+            neighbourhood_averaged_cube.data = (
+                np.ma.masked_where(np.logical_not(mask_cube.data.squeeze()),
+                                   masked_neighbourhood_average))
+        else:
+            neighbourhood_averaged_cube, = (
+                neighbourhood_averaged_cubes.extract(cube.name()))
         return neighbourhood_averaged_cube
 
 
