@@ -36,6 +36,66 @@ from iris.cube import Cube
 import numpy as np
 
 
+def convert_distance_into_number_of_grid_cells(
+        cube, distance, max_distance_in_grid_cells):
+    """
+    Return the number of grid cells in the x and y direction based on the
+    input distance in metres.
+
+    Parameters
+    ----------
+    cube : Iris.cube.Cube
+        Cube containing the x and y coordinates, which will be used for
+        calculating the number of grid cells in the x and y direction,
+        which equates to the requested distance in the x and y direction.
+    distance : Float
+        Distance in metres.
+    max_distance_in_grid_cells : integer
+        Maximum distance in grid cells.
+
+    Returns
+    -------
+    grid_cells_x : Integer
+        Number of grid cells in the x direction based on the requested
+        distance in metres.
+    grid_cells_y : Integer
+        Number of grid cells in the y direction based on the requested
+        distance in metres.
+
+    """
+    try:
+        x_coord = cube.coord("projection_x_coordinate").copy()
+        y_coord = cube.coord("projection_y_coordinate").copy()
+    except CoordinateNotFoundError:
+        raise ValueError("Invalid grid: projection_x/y coords required")
+    x_coord.convert_units("metres")
+    y_coord.convert_units("metres")
+    max_distance_of_domain = np.sqrt(
+        (x_coord.points.max() - x_coord.points.min())**2 +
+        (y_coord.points.max() - y_coord.points.min())**2)
+    if distance > max_distance_of_domain:
+        raise ValueError(
+            ("Distance of {0}m exceeds max domain distance of {1}m".format(
+                 distance, max_distance_of_domain)))
+    d_north_metres = y_coord.points[1] - y_coord.points[0]
+    d_east_metres = x_coord.points[1] - x_coord.points[0]
+    grid_cells_y = int(distance / abs(d_north_metres))
+    grid_cells_x = int(distance / abs(d_east_metres))
+    if grid_cells_x == 0 or grid_cells_y == 0:
+        raise ValueError(
+            "Distance of {0}m gives zero cell extent".format(distance))
+    elif grid_cells_x < 0 or grid_cells_y < 0:
+        raise ValueError(
+            "Neighbourhood processing distance of {0}m "
+            "gives a negative cell extent".format(distance))
+    if (grid_cells_x > max_distance_in_grid_cells or
+            grid_cells_y > max_distance_in_grid_cells):
+        raise ValueError(
+            "Neighbourhood processing distance of {0}m "
+            "exceeds maximum grid cell extent".format(distance))
+    return grid_cells_x, grid_cells_y
+
+
 class DifferenceBetweenAdjacentGridSquares(object):
 
     """
