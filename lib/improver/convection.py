@@ -273,7 +273,6 @@ class DiagnoseConvectivePrecipitation(object):
         cube_on_orig_grid.data[..., 1:, :] += threshold_cube_y.data
         cube_on_orig_grid.data[..., :, :-1] += threshold_cube_x.data
         cube_on_orig_grid.data[..., :, 1:] += threshold_cube_x.data
-        cube_on_orig_grid.data = np.clip(cube_on_orig_grid.data, 0.0, 1.0)
         return cube_on_orig_grid
 
     def process(self, cube):
