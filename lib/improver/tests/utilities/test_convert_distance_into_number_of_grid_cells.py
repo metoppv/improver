@@ -30,6 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the convert_distance_into_number_of_grid_cells function."""
 
+import iris
+from iris.tests import IrisTest
+
+
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
 
     """Test conversion of distance in metres into number of grid cells."""

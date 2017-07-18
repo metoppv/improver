@@ -79,6 +79,16 @@ class ProbabilityOfOccurrence(object):
         self.unweighted_mode = unweighted_mode
         self.ens_factor = ens_factor
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ProbabilityOfOccurrence: distance: {};'
+                  'neighbourhood_method: {}; radii: {};'
+                  'lead_times: {}; unweighted_mode: {};'
+                  'ens_factor: {}>')
+        return result.format(
+            self.distance, self.neighbourhood_method, self.radii,
+            self.lead_times, self.unweighted_mode, self.ens_factor)
+
     def process(self, cube):
         """
         Identify the probability of having a phenomenon occur within a

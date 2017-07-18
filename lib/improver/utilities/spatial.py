@@ -233,6 +233,19 @@ class OccurrenceWithinVicinity(object):
         """
         self.distance = distance
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<OccurrenceWithinVicinity: distance: {}>')
+        return result.format(self.distance)
+
+    def find_slices_over_coordinate(self, cube, coord_name):
+        try:
+            coord = cube.coord(coord_name, dim_coords=True)
+            slices_over_coord = cube.slices_over(coord_name)
+        except iris.exceptions.CoordinateNotFoundError:
+            slices_over_coord = iris.cube.CubeList([cube])
+        return slices_over_coord
+
     def maximum_within_vicinity(self, cube):
         """
         Find grid points where a phenomenon occurs within a defined distance.
@@ -328,14 +341,11 @@ class OccurrenceWithinVicinity(object):
                 xy 2d slice, which have been merged back together.
 
         """
-        try:
-            realization_coord = cube.coord('realization')
-            slices_over_realization = cube.slices_over("realization")
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_realization = iris.cube.CubeList([cube])
+        slices_over_realization = self.slices_over_coord(cube, "realization")
 
         max_cubes = iris.cube.CubeList([])
         for realization_slice in slices_over_realization:
-            for time_slice in realization_slice.slices_over("time"):
+            slices_over_time = self.slices_over_coord(realization_slice, "time")
+            for time_slice in slices_over_time:
                 max_cubes.append(self.maximum_within_vicinity(time_slice))
         return max_cubes.merge_cube()

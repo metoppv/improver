@@ -29,3 +29,161 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the utilities.OccurrenceWithinVicinity plugin."""
+
+from iris.tests import IrisTest
+
+from improver.utilities.spatial import OccurrenceWithinVicinity
+
+
+def set_up_thresholded_cube():
+    """Create a cube with metadata and values suitable for a thresholded
+    cube."""
+    data = np.zeros((1, 1, 4, 4))
+    # Convert from mm/hr to m/s.
+    data[0, 0, 0, 2] = 1.0
+    data[0, 0, 2, 1] = 1.0
+    data[0, 0, 3, 0] = 1.0
+return set_up_cube(data, "lwe_precipitation_rate", "m s-1")
+
+
+def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
+                realizations=np.array([0]),
+                timesteps=np.array([402192.5]),
+                y_dimension_values=np.array([0., 2000., 4000., 6000.]),
+                x_dimension_values=np.array([0., 2000., 4000., 6000.])):
+    """Create a cube containing the required realizations, timesteps,
+    y-dimension values and x-dimension values."""
+    cube = Cube(data, standard_name=phenomenon_standard_name,
+                units=phenomenon_units)
+    cube.add_dim_coord(DimCoord(realizations, 'realization',
+                                units='1'), 0)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.add_dim_coord(DimCoord(timesteps, "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(y_dimension_values,
+                                'projection_y_coordinate', units='m'), 2)
+    cube.add_dim_coord(DimCoord(x_dimension_values,
+                                'projection_x_coordinate', units='m'), 3)
+return cube
+
+
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(OccurrenceWithinVicinity(10000))
+        msg = ('<OccurrenceWithinVicinity: distance: 10000')
+        self.assertEqual(result, msg)
+
+class Test_find_slices_over_coordinate(IrisTest):
+
+    """Test the find_slices_over_coordinate."""
+
+    def setUp(self):
+        self.cube = set_up_thresholded_cube
+
+    def test_basic(self):
+        result = OccurrenceWithinVicinity(
+            self.distance).find_slices_over_coordinate(self.cube, "realization")
+        self.assertIsInstance(result, cube)
+
+    def test_missing_coord(self):
+        result = OccurrenceWithinVicinity(
+            self.distance).find_slices_over_coordinate(self.cube, "foo")
+        self.assertIsInstance(result, iris.cube.CubeList)
+
+
+class Test_maximum_within_vicinity(IrisTest):
+
+    """Test the maximum_within_vicinity method."""
+
+    def setUp(self):
+        self.distance = 2000
+
+    def test_basic(self):
+
+        data = np.zeros((1, 1, 5, 5))
+        data[0, 0, 1, 0] = 1.0
+        data[0, 0, 3, 2] = 1.0
+        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           y_dimension_values=y_dimension_values,
+                           x_dimension_values=y_dimension_values)
+        result = OccurrenceWithinVicinity(
+            self.distance).maximum_within_vicinity(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
+    def test_fuzzy(self):
+        data = np.zeros((1, 1, 5, 5))
+        data[0, 0, 1, 0] = 1.0
+        data[0, 0, 3, 2] = 0.5
+        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           y_dimension_values=y_dimension_values,
+                           x_dimension_values=y_dimension_values)
+        result = OccurrenceWithinVicinity(
+            self.distance).maximum_within_vicinity(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
+
+class Test_process(IrisTest):
+
+    """Test the process method."""
+
+    def setUp(self):
+        self.distance = 2000
+
+    def test_with_multiple_realizations_and_times(self):
+        expected = np.array([0])
+        data = np.zeros((2, 2, 4, 4))
+        data[0, 0, 2, 1] = 1.0
+        data[1, 1, 1, 3] = 1.0
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           timesteps=np.array([402192.5, 402195.5]))
+        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_with_multiple_realizations(self):
+        expected = np.array([0])
+        data = np.zeros((2, 1, 4, 4))
+        data[0, 0, 2, 1] = 1.0
+        data[1, 0, 1, 3] = 1.0
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           realizations=np.array([0, 1]))
+        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_with_multiple_times(self):
+        expected = np.array([0])
+        data = np.zeros((1, 2, 4, 4))
+        data[0, 0, 2, 1] = 1.0
+        data[0, 1, 1, 3] = 1.0
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           timesteps=np.array([402192.5, 402195.5]))
+        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_no_realization_or_time(self):
+        expected = np.array([0])
+        data = np.zeros((1, 1, 4, 4))
+        data[0, 0, 2, 1] = 1.0
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           realizations=np.array([0]))
+        cube = iris.util.squeeze(cube)
+        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
