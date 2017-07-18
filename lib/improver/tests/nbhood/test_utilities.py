@@ -39,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood import Utilities
+from improver.nbhood.nbhood import Utilities
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.test_neighbourhoodprocessing import (
@@ -152,87 +152,6 @@ class Test_find_required_lead_times(IrisTest):
             Utilities.find_required_lead_times(cube)
 
 
-class Test_get_neighbourhood_width_in_grid_cells(IrisTest):
-
-    """Test conversion of kernel radius in kilometres to grid cells."""
-
-    RADIUS = 6100
-    MAX_RADIUS_IN_GRID_CELLS = 500
-
-    def test_basic_radius_to_grid_cells(self):
-        """Test the radius in m to grid cell conversion."""
-        cube = set_up_cube()
-        result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
-        self.assertEqual(result, (3, 3))
-
-    def test_basic_radius_to_grid_cells_different_max_radius(self):
-        """
-        Test the radius in m to grid cell conversion for an alternative
-        max radius in grid cells.
-        """
-        cube = set_up_cube()
-        max_radius_in_grid_cells = 50
-        result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS, max_radius_in_grid_cells)
-        self.assertEqual(result, (3, 3))
-
-    def test_basic_radius_to_grid_cells_km_grid(self):
-        """Test the radius-to-grid-cell conversion, grid in km."""
-        cube = set_up_cube()
-        cube.coord("projection_x_coordinate").convert_units("kilometres")
-        cube.coord("projection_y_coordinate").convert_units("kilometres")
-        result = Utilities().get_neighbourhood_width_in_grid_cells(
-            cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
-        self.assertEqual(result, (3, 3))
-
-    def test_single_point_lat_long(self):
-        """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_cube_lat_long()
-        msg = "Invalid grid: projection_x/y coords required"
-        with self.assertRaisesRegexp(ValueError, msg):
-            Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, self.RADIUS, self.MAX_RADIUS_IN_GRID_CELLS)
-
-    def test_single_point_range_negative(self):
-        """Test behaviour with a non-zero point with negative range."""
-        cube = set_up_cube()
-        radius = -1.0 * self.RADIUS
-        msg = "radius of -6100.0m gives a negative cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
-            Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
-
-    def test_single_point_range_0(self):
-        """Test behaviour with a non-zero point with zero range."""
-        cube = set_up_cube()
-        radius = 5
-        msg = "radius of 5m gives zero cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
-            Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
-
-    def test_single_point_range_lots(self):
-        """Test behaviour with a non-zero point with unhandleable range."""
-        cube = set_up_cube()
-        radius = 40000.0
-        max_radius_in_grid_cells = 10
-        msg = "radius of 40000.0m exceeds maximum grid cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
-            Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius, max_radius_in_grid_cells)
-
-    def test_single_point_range_greater_than_domain(self):
-        """Test correct exception raised when the radius is larger than the
-           corner-to-corner radius of the domain."""
-        cube = set_up_cube()
-        radius = 42500.0
-        msg = "radius of 42500.0m exceeds max domain radius of "
-        with self.assertRaisesRegexp(ValueError, msg):
-            Utilities().get_neighbourhood_width_in_grid_cells(
-                cube, radius, self.MAX_RADIUS_IN_GRID_CELLS)
-
-
 class Test_adjust_nsize_for_ens(IrisTest):
 
     """Test adjusting neighbourhood size according to ensemble size."""
@@ -251,6 +170,7 @@ class Test_adjust_nsize_for_ens(IrisTest):
         """Test returns the correct values."""
         result = Utilities().adjust_nsize_for_ens(0.8, 3.0, 20.0)
         self.assertAlmostEqual(result, 9.2376043070399998)
+
 
 if __name__ == '__main__':
     unittest.main()

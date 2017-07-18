@@ -43,7 +43,7 @@ import numpy as np
 
 
 from improver.grids.osgb import OSGBGRID
-from improver.nbhood import NeighbourhoodProcessing as NBHood
+from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
