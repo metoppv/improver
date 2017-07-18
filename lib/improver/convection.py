@@ -1,0 +1,321 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Module containing convection diagnosis utilities."""
+
+import iris
+import numpy as np
+
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+from improver.utilities.threshold import BasicThreshold
+from improver.nbhood import NeighbourhoodProcessing
+
+
+class DiagnoseConvectivePrecipitation(object):
+    """
+    Diagnose convective precipitation by using differences between
+    adjacent grid squares to help distinguish convective and stratiform
+    precipitation. Convective precipitation features would be anticipated
+    to have sharp features compared with broader (less sharp) features for
+    stratiform precipitation.
+    """
+
+    def __init__(
+            self, lower_threshold, higher_threshold, neighbourhood_method,
+            radii, fuzzy_factor=None, below_thresh_ok=False,
+            lead_times=None, unweighted_mode=False, ens_factor=1.0,
+            use_adjacent_grid_square_differences=True):
+        """
+        Args:
+            lower_threshold : float
+                The threshold point for 'significant' datapoints to define the
+                lower threshold e.g. 0 mm/hr.
+            higher_threshold : float
+                The threshold point for 'significant' datapoints to define the
+                higher threshold e.g. 5 mm/hr.
+            neighbourhood_method : str
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
+            radii : float or List (if defining lead times)
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+            fuzzy_factor : float or None
+                Percentage above or below threshold for fuzzy membership value.
+                If None, no fuzzy_factor is applied.
+            below_thresh_ok : boolean
+                True to count points as significant if *below* the threshold,
+                False to count points as significant if *above* the threshold.
+            lead_times : None or List
+                List of lead times or forecast periods, at which the radii
+                within radii are defined. The lead times are expected
+                in hours.
+            unweighted_mode : boolean
+                If True, use a circle with constant weighting.
+                If False, use a circle for neighbourhood kernel with
+                weighting decreasing with radius.
+            ens_factor : float
+                The factor with which to adjust the neighbourhood size
+                for more than one ensemble member.
+                If ens_factor = 1.0 this essentially conserves ensemble
+                members if every grid square is considered to be the
+                equivalent of an ensemble member.
+                Optional, defaults to 1.0
+            use_adjacent_grid_square_differences : Logical
+                If True, use the differences between adjacent grid squares
+                to diagnose convective precipitation.
+                If False, use the raw field without calculating differences to
+                diagnose convective precipitation.
+        """
+        self.lower_threshold = lower_threshold
+        self.higher_threshold = higher_threshold
+        self.neighbourhood_method = neighbourhood_method
+        self.radii = radii
+        self.fuzzy_factor = fuzzy_factor
+        self.below_thresh_ok = below_thresh_ok
+        self.lead_times = lead_times
+        self.unweighted_mode = unweighted_mode
+        self.ens_factor = ens_factor
+        self.use_adjacent_grid_square_differences = (
+            use_adjacent_grid_square_differences)
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<DiagnoseConvectivePrecipitation: lower_threshold {}; '
+                  'higher_threshold {}; neighbourhood_method: {}; '
+                  'radii: {}; fuzzy_factor {}; '
+                  'below_thresh_ok: {}; lead_times: {}; '
+                  'unweighted_mode: {}; ens_factor: {}; '
+                  'use_adjacent_grid_square_differences: {}>')
+        return result.format(
+            self.lower_threshold, self.higher_threshold,
+            self.neighbourhood_method, self.radii, self.fuzzy_factor,
+            self.below_thresh_ok, self.lead_times, self.unweighted_mode,
+            self.ens_factor, self.use_adjacent_grid_square_differences)
+
+    def _calculate_convective_ratio(self, cubelist, threshold_list):
+        """
+        Calculate the convective ratio by:
+        1. Apply neighbourhood processing to cubes that have been thresholded
+           using an upper and lower threshold.
+        2. Calculate the convective ratio by:
+           higher_threshold_cube / lower_threshold_cube.
+           For example, the higher_threshold might be 5 mm/hr, whilst the
+           lower_threshold might be 0.1 mm/hr.
+
+        The convective ratio can have the following values:
+            * A non-zero fractional value, indicating that both the higher
+              and lower thresholds were exceeded.
+            * A zero value, if the lower threshold was exceeded, whilst the
+              higher threshold was not exceeded.
+            * A NaN value (np.nan), if neither the higher or lower thresholds
+              were exceeded, such that the convective ratio was 0/0.
+
+        Args:
+            cube : Iris.cube.CubeList
+                Cubelist containing cubes from which the convective ratio
+                will be calculated. The cube should have been thresholded,
+                so that values within cube.data are between 0.0 and 1.0.
+            threshold_list : List
+                The list of thresholds.
+
+        Returns:
+            convective_ratio : Iris.cube.Cube
+                Cube containing the convective ratio.
+
+        Raises:
+            ValueError: If a value of infinity or a value greater than 1.0
+                        are found within the convective ratio.
+
+        """
+        neighbourhooded_cube_dict = {}
+        for cube, threshold in zip(cubelist, threshold_list):
+            neighbourhooded_cube = NeighbourhoodProcessing(
+                self.neighbourhood_method, self.radii,
+                lead_times=self.lead_times,
+                unweighted_mode=self.unweighted_mode,
+                ens_factor=self.ens_factor).process(cube)
+            neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
+
+        # Ignore runtime warnings from divide by 0 errors.
+        with np.errstate(invalid='ignore', divide='ignore'):
+            convective_ratio = (
+                neighbourhooded_cube_dict[self.higher_threshold] /
+                neighbourhooded_cube_dict[self.lower_threshold])
+
+        infinity_condition = np.sum(np.isinf(convective_ratio.data)) > 0.0
+        with np.errstate(invalid='ignore'):
+            greater_than_1_condition = (
+                np.sum(convective_ratio.data > 1.0) > 0.0)
+
+        if infinity_condition or greater_than_1_condition:
+            if infinity_condition:
+                start_msg = ("A value of infinity was found for the "
+                             "convective ratio: {}.").format(
+                                 convective_ratio.data)
+            elif greater_than_1_condition:
+                start_msg = ("A value of greater than 1.0 was found for the "
+                             "convective ratio: {}.").format(
+                                 convective_ratio.data)
+            msg = ("{}\nThis value is not plausible as the fraction above the "
+                   "higher threshold must be less than the fraction "
+                   "above the lower threshold.").format(start_msg)
+            raise ValueError(msg)
+
+        convective_ratio.long_name = "convective_ratio"
+        return convective_ratio
+
+    @staticmethod
+    def absolute_differences_between_adjacent_grid_squares(cube, threshold):
+        """
+        Compute the absolute differences between grid squares and put the
+        resulting cubes into a cubelist.
+
+        Args:
+            cube : Iris.cube.Cube
+                The cube from which adjacent grid square differences will be
+                calculated.
+            threshold : float
+                The threshold that will be applied.
+
+        Returns:
+            cubelist : Iris.cube.CubeList
+                Cubelist containing cubes with the absolute difference
+                between adjacent grid squares along x and y, respectively.
+        """
+        diff_along_x_cube, diff_along_y_cube = (
+            DifferenceBetweenAdjacentGridSquares().process(cube))
+        # Compute the absolute values of the differences to ensure that
+        # negative differences are included.
+        diff_along_x_cube.data = np.absolute(diff_along_x_cube.data)
+        diff_along_y_cube.data = np.absolute(diff_along_y_cube.data)
+        cubelist = iris.cube.CubeList([diff_along_x_cube, diff_along_y_cube])
+        return cubelist
+
+    def iterate_over_threshold(self, cubelist, threshold):
+        """
+        Iterate over the application of thresholding to multiple cubes.
+
+        Args:
+            cubelist : Iris.cube.CubeList
+                Cubelist containing cubes to be thresholded.
+            threshold : float
+                The threshold that will be applied.
+
+        Returns:
+            cubes : Iris.cube.CubeList
+                Cubelist after thresholding each cube.
+        """
+        cubes = iris.cube.CubeList([])
+        for cube in cubelist:
+            threshold_cube = (
+                BasicThreshold(
+                    threshold, fuzzy_factor=self.fuzzy_factor,
+                    below_thresh_ok=self.below_thresh_ok
+                    ).process(cube.copy()))
+            cubes.append(threshold_cube)
+        return cubes
+
+    @staticmethod
+    def sum_differences_between_adjacent_grid_squares(cube, thresholded_cubes):
+        """
+        Put the differences back onto the original grid by summing together
+        the array with offsets. This covers the fact that the difference
+        cubes will result in output on a staggered grid compared with the
+        input cube.
+
+        Args:
+            cube : Iris.cube.Cube
+                The cube with the original grid.
+            thresholded_cubes : Iris.cube.CubeList
+                Cubelist containing differences between adjacent grid squares
+                along x and differences between adjacent grid squares along y,
+                which have been thresholded.
+
+        Args:
+            cube_on_orig_grid : Iris.cube.Cube
+                Cube on the original grid with the values from the thresholded
+                adjacent grid square difference cubes inserted. The resulting
+                values have been restricted to be between 0 and 1.
+        """
+        threshold_cube_x, threshold_cube_y = thresholded_cubes
+        cube_on_orig_grid = cube.copy()
+        cube_on_orig_grid.data = np.zeros(cube_on_orig_grid.shape)
+        cube_on_orig_grid.data[..., :-1, :] += threshold_cube_y.data
+        cube_on_orig_grid.data[..., 1:, :] += threshold_cube_y.data
+        cube_on_orig_grid.data[..., :, :-1] += threshold_cube_x.data
+        cube_on_orig_grid.data[..., :, 1:] += threshold_cube_x.data
+        return cube_on_orig_grid
+
+    def process(self, cube):
+        """
+        Calculate the convective ratio either for the underlying field e.g.
+        precipitation rate, or using the differences between adjacent grid
+        squares.
+
+        If the difference between adjacent grid squares is used, firstly the
+        absolute differences are calculated, and then the difference cubes are
+        thresholded using a high and low threshold. The thresholded difference
+        cubes are then summed in order to put these cubes back onto the grid
+        of the original cube. The convective ratio is then calculated by
+        applying neighbourhood processing to the resulting cubes by dividing
+        the high threshold cube by the low threshold cube.
+
+        Args:
+            cube : Iris.cube.Cube
+                The cube from which the convective ratio will be calculated.
+
+        Returns:
+            convective_ratios : Iris.cube.Cube
+                Cube containing the convective ratio defined as the ratio
+                between a cube with a high threshold applied and a cube with a
+                low threshold applied.
+        """
+        cubelist = iris.cube.CubeList([])
+        threshold_list = [self.lower_threshold, self.higher_threshold]
+        if self.use_adjacent_grid_square_differences:
+            for threshold in threshold_list:
+                diff_cubelist = (
+                    self.absolute_differences_between_adjacent_grid_squares(
+                        cube, threshold))
+                thresholded_cubes = self.iterate_over_threshold(
+                    diff_cubelist, threshold)
+                cubelist.append(
+                    self.sum_differences_between_adjacent_grid_squares(
+                        cube, thresholded_cubes))
+        else:
+            cube = [cube]
+            for threshold in threshold_list:
+                cubelist.extend(self.iterate_over_threshold(cube, threshold))
+
+        convective_ratios = (
+            self._calculate_convective_ratio(cubelist, threshold_list))
+        return convective_ratios
