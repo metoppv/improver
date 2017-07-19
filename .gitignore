@@ -17,3 +17,7 @@
 
 # Site-specific setup
 etc/site-init
+
+# Files from build of doc
+*.rst
+/doc/build/
