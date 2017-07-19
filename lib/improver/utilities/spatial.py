@@ -274,6 +274,10 @@ class OccurrenceWithinVicinity(object):
             convert_distance_into_number_of_grid_cells(
                 cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
 
+        # Convert the number of grid points (e.g. grid_cell_y) represented
+        # by self.distance, e.g. where grid_cell_y=1 is an increment to
+        # a central point, into grid_cells which is the total number of points
+        # within the defined vicinity along the y axis e.g grid_cells=3.
         grid_cells = (2 * grid_cell_y) + 1
 
         max_cube = cube.copy()
@@ -296,11 +300,13 @@ class OccurrenceWithinVicinity(object):
                 xy 2d slice, which have been merged back together.
 
         """
-        slices_over_realization = self.find_slices_over_coordinate(cube, "realization")
+        slices_over_realization = (
+            self.find_slices_over_coordinate(cube, "realization"))
 
         max_cubes = CubeList([])
         for realization_slice in slices_over_realization:
-            slices_over_time = self.find_slices_over_coordinate(realization_slice, "time")
+            slices_over_time = (
+                self.find_slices_over_coordinate(realization_slice, "time"))
             for time_slice in slices_over_time:
                 max_cubes.append(self.maximum_within_vicinity(time_slice))
         return max_cubes.merge_cube()

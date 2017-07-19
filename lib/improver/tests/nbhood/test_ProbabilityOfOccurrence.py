@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the vicinity_nbhood.ProbabilityOfOccurrence plugin."""
 
+import unittest
+
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.vicinity_nbhood import ProbabilityOfOccurrence
+from improver.nbhood.vicinity import ProbabilityOfOccurrence
 from improver.tests.utilities.test_OccurrenceWithinVicinity import (
     set_up_cube)
 
@@ -59,6 +61,7 @@ class Test_process(IrisTest):
     """Test the process method."""
 
     def setUp(self):
+        """Set up a cube."""
         data = np.zeros((1, 1, 5, 5))
         data[0, 0, 0, 1] = 1.0
         data[0, 0, 2, 3] = 1.0
@@ -68,6 +71,7 @@ class Test_process(IrisTest):
                                 x_dimension_values=y_dimension_values)
 
     def test_with_realization(self):
+        """Test when a realization coordinate is present."""
         expected = np.array(
             [[1., 1., 0.83333333, 0.66666667, 0.5],
              [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
@@ -84,6 +88,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_without_realization(self):
+        """Test when a realization coordinate is not present."""
         expected = np.array(
             [[1., 1., 0.83333333, 0.66666667, 0.5],
              [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
@@ -102,6 +107,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_additional_arguments(self):
+        """Test when all keyword arguments are passed in."""
         expected = np.array(
             [[[1., 1., 0.8, 0.4, 0.2],
               [0.8, 0.8, 1., 0.8, 0.8],

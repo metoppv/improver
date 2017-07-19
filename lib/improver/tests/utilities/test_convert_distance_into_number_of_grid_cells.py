@@ -30,22 +30,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the convert_distance_into_number_of_grid_cells function."""
 
+import unittest
+
 import iris
 from iris.tests import IrisTest
+
+from improver.tests.nbhood.test_NeighbourhoodProcessing import (
+    set_up_cube, set_up_cube_lat_long)
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
 
     """Test conversion of distance in metres into number of grid cells."""
 
-    DISTANCE = 6100
-    MAX_DISTANCE_IN_GRID_CELLS = 500
+    def setUp(self):
+        self.DISTANCE = 6100
+        self.MAX_DISTANCE_IN_GRID_CELLS = 500
+        self.cube = set_up_cube()
 
     def test_basic_distance_to_grid_cells(self):
         """Test the distance in metres to grid cell conversion."""
-        cube = set_up_cube()
         result = convert_distance_into_number_of_grid_cells(
-            cube, self.DISTANCE, self.MAX_RADIUS_IN_GRID_CELLS)
+            self.cube, self.DISTANCE, self.MAX_DISTANCE_IN_GRID_CELLS)
         self.assertEqual(result, (3, 3))
 
     def test_basic_distance_to_grid_cells_different_max_distance(self):
@@ -53,19 +61,17 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         Test the distance in metres to grid cell conversion for an alternative
         max distance in grid cells.
         """
-        cube = set_up_cube()
         max_distance_in_grid_cells = 50
         result = convert_distance_into_number_of_grid_cells(
-            cube, self.DISTANCE, max_distance_in_grid_cells)
+            self.cube, self.DISTANCE, max_distance_in_grid_cells)
         self.assertEqual(result, (3, 3))
 
     def test_basic_distance_to_grid_cells_km_grid(self):
         """Test the distance-to-grid-cell conversion, grid in km."""
-        cube = set_up_cube()
-        cube.coord("projection_x_coordinate").convert_units("kilometres")
-        cube.coord("projection_y_coordinate").convert_units("kilometres")
+        self.cube.coord("projection_x_coordinate").convert_units("kilometres")
+        self.cube.coord("projection_y_coordinate").convert_units("kilometres")
         result = convert_distance_into_number_of_grid_cells(
-            cube, self.DISTANCE, self.MAX_DISTANCE_IN_GRID_CELLS)
+            self.cube, self.DISTANCE, self.MAX_DISTANCE_IN_GRID_CELLS)
         self.assertEqual(result, (3, 3))
 
     def test_single_point_lat_long(self):
@@ -78,41 +84,37 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
 
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
-        cube = set_up_cube()
         distance = -1.0 * self.DISTANCE
         msg = "distance of -6100.0m gives a negative cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
-                cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
+                self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
     def test_single_point_range_0(self):
         """Test behaviour with a non-zero point with zero range."""
-        cube = set_up_cube()
         distance = 5
-        msg = "distance of 5m gives zero cell extent"
+        msg = "Distance of 5m gives zero cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
-                cube, distance, self.MAX_RADIUS_IN_GRID_CELLS)
+                self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
     def test_single_point_range_lots(self):
         """Test behaviour with a non-zero point with unhandleable range."""
-        cube = set_up_cube()
         distance = 40000.0
         max_distance_in_grid_cells = 10
         msg = "distance of 40000.0m exceeds maximum grid cell extent"
         with self.assertRaisesRegexp(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
-                cube, distance, max_distance_in_grid_cells)
+                self.cube, distance, max_distance_in_grid_cells)
 
     def test_single_point_range_greater_than_domain(self):
         """Test correct exception raised when the distance is larger than the
            corner-to-corner distance of the domain."""
-        cube = set_up_cube()
         distance = 42500.0
-        msg = "distance of 42500.0m exceeds max domain distance of "
+        msg = "Distance of 42500.0m exceeds max domain distance of "
         with self.assertRaisesRegexp(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
-                cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
+                self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
 
 if __name__ == '__main__':

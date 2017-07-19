@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing to apply neighbourhood processing to a vicinity."""
 
+import iris
 
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.nbhood.nbhood import NeighbourhoodProcessing

@@ -92,15 +92,19 @@ class Test_find_slices_over_coordinate(IrisTest):
     """Test the find_slices_over_coordinate."""
 
     def setUp(self):
+        """Set up the cube."""
         self.distance = 2000
         self.cube = set_up_thresholded_cube()
 
     def test_basic(self):
+        """Test that a _SliceIterator is returned for iterating."""
         result = OccurrenceWithinVicinity(
-            self.distance).find_slices_over_coordinate(self.cube, "realization")
+                     self.distance).find_slices_over_coordinate(
+                         self.cube, "realization")
         self.assertIsInstance(result, iris.cube._SliceIterator)
 
     def test_missing_coord(self):
+        """Test that a CubeList is returned for iterating."""
         result = OccurrenceWithinVicinity(
             self.distance).find_slices_over_coordinate(self.cube, "foo")
         self.assertIsInstance(result, CubeList)
@@ -111,9 +115,12 @@ class Test_maximum_within_vicinity(IrisTest):
     """Test the maximum_within_vicinity method."""
 
     def setUp(self):
+        """Set up distance."""
         self.distance = 2000
 
     def test_basic(self):
+        """Test for binary events to determine where there is an occurrence
+        within the vicinity."""
         expected = np.array(
             [[1., 1., 1., 0., 0.],
              [1., 1., 1., 1., 1.],
@@ -133,8 +140,9 @@ class Test_maximum_within_vicinity(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-
     def test_fuzzy(self):
+        """Test for non-binary events to determine where there is an occurrence
+        within the vicinity."""
         expected = np.array(
             [[1., 1., 1., 0., 0.],
              [1., 1., 1., 0.5, 0.5],
@@ -154,15 +162,41 @@ class Test_maximum_within_vicinity(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_different_distance(self):
+        """Test for binary events to determine where there is an occurrence
+        within the vicinity for an alternative distance."""
+        expected = np.array(
+            [[1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [0., 1., 1., 1., 1.],
+             [0., 1., 1., 1., 1.]])
+        data = np.zeros((1, 1, 5, 5))
+        data[0, 0, 0, 1] = 1.0
+        data[0, 0, 2, 3] = 1.0
+        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           y_dimension_values=y_dimension_values,
+                           x_dimension_values=y_dimension_values)
+        cube = cube[0, 0, :, :]
+        distance = 4000.0
+        result = OccurrenceWithinVicinity(
+            distance).maximum_within_vicinity(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
 
 class Test_process(IrisTest):
 
     """Test the process method."""
 
     def setUp(self):
+        """Set up distance."""
         self.distance = 2000
 
     def test_with_multiple_realizations_and_times(self):
+        """Test for multiple realizations and times, so that multiple
+        iterations will be required within the process method."""
         expected = np.array(
             [[[[0., 0., 0., 0.],
                [1., 1., 1., 0.],
@@ -191,6 +225,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_with_multiple_realizations(self):
+        """Test for multiple realizations, so that multiple
+        iterations will be required within the process method."""
         expected = np.array(
             [[[0., 0., 0., 0.],
               [1., 1., 1., 0.],
@@ -210,6 +246,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_with_multiple_times(self):
+        """Test for multiple times, so that multiple
+        iterations will be required within the process method."""
         expected = np.array(
             [[[0., 0., 0., 0.],
               [1., 1., 1., 0.],
@@ -229,6 +267,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_no_realization_or_time(self):
+        """Test for no realizations and no times, so that the iterations
+        will not require slicing cubes within the process method."""
         expected = np.array(
             [[0., 0., 0., 0.],
              [1., 1., 1., 0.],
@@ -240,7 +280,6 @@ class Test_process(IrisTest):
                            realizations=np.array([0]))
         cube = iris.util.squeeze(cube)
         result = OccurrenceWithinVicinity(self.distance).process(cube)
-        print repr(result.data)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
