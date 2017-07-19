@@ -31,6 +31,10 @@
 """Module containing to apply neighbourhood processing to a vicinity."""
 
 
+from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver.nbhood.nbhood import NeighbourhoodProcessing
+
+
 class ProbabilityOfOccurrence(object):
 
     """
@@ -81,9 +85,9 @@ class ProbabilityOfOccurrence(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ProbabilityOfOccurrence: distance: {};'
-                  'neighbourhood_method: {}; radii: {};'
-                  'lead_times: {}; unweighted_mode: {};'
+        result = ('<ProbabilityOfOccurrence: distance: {}; '
+                  'neighbourhood_method: {}; radii: {}; '
+                  'lead_times: {}; unweighted_mode: {}; '
                   'ens_factor: {}>')
         return result.format(
             self.distance, self.neighbourhood_method, self.radii,
@@ -110,8 +114,8 @@ class ProbabilityOfOccurrence(object):
                 pre-defined spatial uncertainty.
 
         """
-        cube = OccurrenceWithinVicinity(distance).process(cube)
-        if cube.dim_coords('realization'):
+        cube = OccurrenceWithinVicinity(self.distance).process(cube)
+        if cube.coord_dims('realization'):
             cube = cube.collapsed('realization', iris.analysis.MEAN)
         cube = NeighbourhoodProcessing(
             self.neighbourhood_method, self.radii, self.lead_times,

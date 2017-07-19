@@ -30,7 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the utilities.OccurrenceWithinVicinity plugin."""
 
+import unittest
+
+from cf_units import Unit
+import iris
+from iris.coords import DimCoord
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
+
+import numpy as np
 
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
@@ -43,7 +51,7 @@ def set_up_thresholded_cube():
     data[0, 0, 0, 2] = 1.0
     data[0, 0, 2, 1] = 1.0
     data[0, 0, 3, 0] = 1.0
-return set_up_cube(data, "lwe_precipitation_rate", "m s-1")
+    return set_up_cube(data, "lwe_precipitation_rate", "m s-1")
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
@@ -65,7 +73,7 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
                                 'projection_y_coordinate', units='m'), 2)
     cube.add_dim_coord(DimCoord(x_dimension_values,
                                 'projection_x_coordinate', units='m'), 3)
-return cube
+    return cube
 
 
 class Test__repr__(IrisTest):
@@ -75,25 +83,27 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(OccurrenceWithinVicinity(10000))
-        msg = ('<OccurrenceWithinVicinity: distance: 10000')
+        msg = ('<OccurrenceWithinVicinity: distance: 10000>')
         self.assertEqual(result, msg)
+
 
 class Test_find_slices_over_coordinate(IrisTest):
 
     """Test the find_slices_over_coordinate."""
 
     def setUp(self):
-        self.cube = set_up_thresholded_cube
+        self.distance = 2000
+        self.cube = set_up_thresholded_cube()
 
     def test_basic(self):
         result = OccurrenceWithinVicinity(
             self.distance).find_slices_over_coordinate(self.cube, "realization")
-        self.assertIsInstance(result, cube)
+        self.assertIsInstance(result, iris.cube._SliceIterator)
 
     def test_missing_coord(self):
         result = OccurrenceWithinVicinity(
             self.distance).find_slices_over_coordinate(self.cube, "foo")
-        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertIsInstance(result, CubeList)
 
 
 class Test_maximum_within_vicinity(IrisTest):
@@ -104,33 +114,45 @@ class Test_maximum_within_vicinity(IrisTest):
         self.distance = 2000
 
     def test_basic(self):
-
+        expected = np.array(
+            [[1., 1., 1., 0., 0.],
+             [1., 1., 1., 1., 1.],
+             [0., 0., 1., 1., 1.],
+             [0., 0., 1., 1., 1.],
+             [0., 0., 0., 0., 0.]])
         data = np.zeros((1, 1, 5, 5))
-        data[0, 0, 1, 0] = 1.0
-        data[0, 0, 3, 2] = 1.0
+        data[0, 0, 0, 1] = 1.0
+        data[0, 0, 2, 3] = 1.0
         y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            y_dimension_values=y_dimension_values,
                            x_dimension_values=y_dimension_values)
+        cube = cube[0, 0, :, :]
         result = OccurrenceWithinVicinity(
             self.distance).maximum_within_vicinity(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
     def test_fuzzy(self):
+        expected = np.array(
+            [[1., 1., 1., 0., 0.],
+             [1., 1., 1., 0.5, 0.5],
+             [0., 0., 0.5, 0.5, 0.5],
+             [0., 0., 0.5, 0.5, 0.5],
+             [0., 0., 0., 0., 0.]])
         data = np.zeros((1, 1, 5, 5))
-        data[0, 0, 1, 0] = 1.0
-        data[0, 0, 3, 2] = 0.5
+        data[0, 0, 0, 1] = 1.0
+        data[0, 0, 2, 3] = 0.5
         y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            y_dimension_values=y_dimension_values,
                            x_dimension_values=y_dimension_values)
+        cube = cube[0, 0, :, :]
         result = OccurrenceWithinVicinity(
             self.distance).maximum_within_vicinity(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
-
 
 
 class Test_process(IrisTest):
@@ -141,47 +163,85 @@ class Test_process(IrisTest):
         self.distance = 2000
 
     def test_with_multiple_realizations_and_times(self):
-        expected = np.array([0])
+        expected = np.array(
+            [[[[0., 0., 0., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.]],
+              [[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]]],
+             [[[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]],
+              [[0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 0., 0.]]]])
         data = np.zeros((2, 2, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[1, 1, 1, 3] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
-                           timesteps=np.array([402192.5, 402195.5]))
+                           timesteps=np.array([402192.5, 402195.5]),
+                           realizations=np.array([0, 1]))
         result = OccurrenceWithinVicinity(self.distance).process(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_with_multiple_realizations(self):
-        expected = np.array([0])
+        expected = np.array(
+            [[[0., 0., 0., 0.],
+              [1., 1., 1., 0.],
+              [1., 1., 1., 0.],
+              [1., 1., 1., 0.]],
+             [[0., 0., 1., 1.],
+              [0., 0., 1., 1.],
+              [0., 0., 1., 1.],
+              [0., 0., 0., 0.]]])
         data = np.zeros((2, 1, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[1, 0, 1, 3] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            realizations=np.array([0, 1]))
         result = OccurrenceWithinVicinity(self.distance).process(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_with_multiple_times(self):
-        expected = np.array([0])
+        expected = np.array(
+            [[[0., 0., 0., 0.],
+              [1., 1., 1., 0.],
+              [1., 1., 1., 0.],
+              [1., 1., 1., 0.]],
+             [[0., 0., 1., 1.],
+              [0., 0., 1., 1.],
+              [0., 0., 1., 1.],
+              [0., 0., 0., 0.]]])
         data = np.zeros((1, 2, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[0, 1, 1, 3] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            timesteps=np.array([402192.5, 402195.5]))
         result = OccurrenceWithinVicinity(self.distance).process(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_no_realization_or_time(self):
-        expected = np.array([0])
+        expected = np.array(
+            [[0., 0., 0., 0.],
+             [1., 1., 1., 0.],
+             [1., 1., 1., 0.],
+             [1., 1., 1., 0.]])
         data = np.zeros((1, 1, 4, 4))
         data[0, 0, 2, 1] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            realizations=np.array([0]))
         cube = iris.util.squeeze(cube)
         result = OccurrenceWithinVicinity(self.distance).process(cube)
-        self.assertIsInstance(result, iris.cube.Cube)
+        print repr(result.data)
+        self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 

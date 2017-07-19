@@ -28,9 +28,114 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.ProbabilityOfOccurrence plugin."""
+"""Unit tests for the vicinity_nbhood.ProbabilityOfOccurrence plugin."""
+
+from iris.coords import AuxCoord
+from iris.cube import Cube
+from iris.tests import IrisTest
+import numpy as np
+
+from improver.nbhood.vicinity_nbhood import ProbabilityOfOccurrence
+from improver.tests.utilities.test_OccurrenceWithinVicinity import (
+    set_up_cube)
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(ProbabilityOfOccurrence(2000, "square", 2000))
+        msg = ('<ProbabilityOfOccurrence: distance: 2000; '
+               'neighbourhood_method: square; radii: 2000; '
+               'lead_times: None; unweighted_mode: False; '
+               'ens_factor: 1.0>')
+        self.assertEqual(result, msg)
+
+
+class Test_process(IrisTest):
+
+    """Test the process method."""
+
+    def setUp(self):
+        data = np.zeros((1, 1, 5, 5))
+        data[0, 0, 0, 1] = 1.0
+        data[0, 0, 2, 3] = 1.0
+        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
+        self.cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                                y_dimension_values=y_dimension_values,
+                                x_dimension_values=y_dimension_values)
+
+    def test_with_realization(self):
+        expected = np.array(
+            [[1., 1., 0.83333333, 0.66666667, 0.5],
+             [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
+             [0.33333333, 0.55555556, 0.77777778, 1., 1.],
+             [0., 0.22222222, 0.44444444, 0.66666667,  0.66666667],
+             [0., 0.16666667, 0.33333333, 0.5, 0.5]])
+        distance = 2000
+        neighbourhood_method = "square"
+        radii = 2000
+        result = (
+            ProbabilityOfOccurrence(
+                distance, neighbourhood_method, radii).process(self.cube))
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_without_realization(self):
+        expected = np.array(
+            [[1., 1., 0.83333333, 0.66666667, 0.5],
+             [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
+             [0.33333333, 0.55555556, 0.77777778, 1., 1.],
+             [0., 0.22222222, 0.44444444, 0.66666667,  0.66666667],
+             [0., 0.16666667, 0.33333333, 0.5, 0.5]])
+        cube = self.cube[0, :, :, :]
+        cube.remove_coord("realization")
+        distance = 2000
+        neighbourhood_method = "square"
+        radii = 2000
+        result = (
+            ProbabilityOfOccurrence(
+                distance, neighbourhood_method, radii).process(self.cube))
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_additional_arguments(self):
+        expected = np.array(
+            [[[1., 1., 0.8, 0.4, 0.2],
+              [0.8, 0.8, 1., 0.8, 0.8],
+              [0.2, 0.4, 0.8, 1., 1.],
+              [0., 0.2, 0.6, 0.8, 0.8],
+              [0., 0., 0.2, 0.2, 0.2]],
+             [[0.92307692, 0.84615385, 0.76923077, 0.53846154, 0.38461538],
+              [0.69230769, 0.76923077, 0.84615385, 0.76923077, 0.69230769],
+              [0.38461538, 0.53846154, 0.69230769, 0.76923077, 0.84615385],
+              [0.15384615, 0.30769231, 0.46153846, 0.61538462, 0.69230769],
+              [0., 0.07692308, 0.23076923, 0.30769231, 0.30769231]]])
+        data = np.zeros((1, 2, 5, 5))
+        data[0, :, 0, 1] = 1.0
+        data[0, :, 2, 3] = 1.0
+        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
+        cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
+                           y_dimension_values=y_dimension_values,
+                           x_dimension_values=y_dimension_values,
+                           timesteps=np.array([402192.5, 402195.5]))
+        distance = 2000
+        neighbourhood_method = "circular"
+        radii = [2000, 4000]
+        lead_times = [3, 6]
+        cube.add_aux_coord(AuxCoord(
+            lead_times, "forecast_period", units="hours"), 1)
+        unweighted_mode = True
+        ens_factor = 0.9
+        result = (
+            ProbabilityOfOccurrence(
+                distance, neighbourhood_method, radii, lead_times=lead_times,
+                unweighted_mode=unweighted_mode, ens_factor=ens_factor
+                ).process(cube))
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
 
 if __name__ == '__main__':

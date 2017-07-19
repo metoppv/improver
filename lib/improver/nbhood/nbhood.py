@@ -41,8 +41,8 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
+# Maximum distance of the neighbourhood width in grid cells.
+MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
 class Utilities(object):
@@ -396,8 +396,8 @@ class SquareNeighbourhood(object):
             summed_up_cube, nan_mask = SquareNeighbourhood.cumulate_array(
                 cube_to_process)
             grid_cells_x, grid_cells_y = (
-                Utilities.get_neighbourhood_width_in_grid_cells(
-                    cube_to_process, radius, MAX_RADIUS_IN_GRID_CELLS))
+                convert_distance_into_number_of_grid_cells(
+                    cube_to_process, radius, MAX_DISTANCE_IN_GRID_CELLS))
             neighbourhood_averaged_cubes.append(
                 SquareNeighbourhood.mean_over_neighbourhood(
                     summed_up_cube, grid_cells_x, grid_cells_y, nan_mask))
@@ -524,7 +524,7 @@ class CircularNeighbourhood(object):
             applied.
         """
         ranges = convert_distance_into_number_of_grid_cells(
-            cube, radius, MAX_RADIUS_IN_GRID_CELLS)
+            cube, radius, MAX_DISTANCE_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
 

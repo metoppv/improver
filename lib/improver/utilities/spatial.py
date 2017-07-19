@@ -32,8 +32,13 @@
 
 import copy
 from iris.coords import CellMethod, DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+import scipy.ndimage
+
+# Maximum radius of the neighbourhood width in grid cells.
+MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
 def convert_distance_into_number_of_grid_cells(
@@ -242,8 +247,8 @@ class OccurrenceWithinVicinity(object):
         try:
             coord = cube.coord(coord_name, dim_coords=True)
             slices_over_coord = cube.slices_over(coord_name)
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_coord = iris.cube.CubeList([cube])
+        except CoordinateNotFoundError:
+            slices_over_coord = CubeList([cube])
         return slices_over_coord
 
     def maximum_within_vicinity(self, cube):
@@ -266,64 +271,14 @@ class OccurrenceWithinVicinity(object):
 
         """
         grid_cell_x, grid_cell_y = (
-            Utilities.get_neighbourhood_width_in_grid_cells(
-                cube, radius, MAX_RADIUS_IN_GRID_CELLS))
+            convert_distance_into_number_of_grid_cells(
+                cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
 
-        # Option 1
+        grid_cells = (2 * grid_cell_y) + 1
+
         max_cube = cube.copy()
-        max_cube.data = np.zeros(cube.data.shape)
-        for ii in range(cube.coord(axis="y").points):
-            for jj in range(cube.coord(axis="x").points):
-                if ii-grid_cell_y < 0:
-                    for index in range(ii-grid_cell_y, 0):
-                        if index >= 0:
-                            break
-                    lower_y_index = index
-                else:
-                    lower_y_index = ii-grid_cell_y
-                if jj-grid_cell_x < 0:
-                    for index in range(jj-grid_cell_x, 0):
-                        if index >= 0:
-                            break
-                    lower_x_index = index
-                else:
-                    lower_x_index = jj-grid_cell_x
-                if ii+grid_cell_y > ylen:
-                    for index in range(ii+grid_cell_y, 0):
-                        if index >= 0:
-                            break
-                    upper_y_index = index
-                else:
-                    lower_y_index = ii-grid_cell_y
-                if jj+grid_cell_x > xlen:
-                    for index in range(jj+grid_cell_x, 0):
-                        if index >= 0:
-                            break
-                    upper_x_index = index
-                else:
-                    upper_x_index = jj+grid_cell_x
-                max_cube[ii, jj] = np.max(
-                    cube.data[lower_y_index:upper_y_index,
-                              lower_x_index:upper_x_index])
-
-        # Option 2
-        max_cube = cube.copy()
-        ylen = len(max_cube.coord(axis="y").points)
-        xlen = len(max_cube.coord(axis="x").points)
-        nlen = xlen * ylen
-
-        data_1d = max_cube.data.flatten()
-        indices_above_zero = np.where(data_1d>0)
-
-        for index in indices_above_zero:
-            increment = ylen * self.distance
-            for index_1d in range(index-increment,index+increment, ylen):
-                if index_1d >= 0 and index_1d <= nlen-1:
-                    data_1d[index_1d] = (
-                        np.max(data_1d[index], data_1d[index_1d]))
-
-        data = data_1d.reshape([ylen, xlen])
-        max_cube.data = data
+        max_cube.data = (
+            scipy.ndimage.filters.maximum_filter(cube.data, size=grid_cells))
         return max_cube
 
     def process(self, cube):
@@ -341,11 +296,11 @@ class OccurrenceWithinVicinity(object):
                 xy 2d slice, which have been merged back together.
 
         """
-        slices_over_realization = self.slices_over_coord(cube, "realization")
+        slices_over_realization = self.find_slices_over_coordinate(cube, "realization")
 
-        max_cubes = iris.cube.CubeList([])
+        max_cubes = CubeList([])
         for realization_slice in slices_over_realization:
-            slices_over_time = self.slices_over_coord(realization_slice, "time")
+            slices_over_time = self.find_slices_over_coordinate(realization_slice, "time")
             for time_slice in slices_over_time:
                 max_cubes.append(self.maximum_within_vicinity(time_slice))
         return max_cubes.merge_cube()
