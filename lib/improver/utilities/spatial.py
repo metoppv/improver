@@ -243,9 +243,25 @@ class OccurrenceWithinVicinity(object):
         result = ('<OccurrenceWithinVicinity: distance: {}>')
         return result.format(self.distance)
 
-    def find_slices_over_coordinate(self, cube, coord_name):
+    @staticmethod
+    def find_slices_over_coordinate(cube, coord_name):
+        """
+        Try slicing over the given coordinate. If the requested coordinate is
+        not a dimension coordinate then still return an iterable.
+
+        Args:
+            cube : iris.cube.Cube
+                Cube to be sliced.
+            coord_name : String
+                Name of the coordinate to be used for slicing.
+
+        Returns:
+            slices_over_coord : iris.cube._SliceIterator or iris.cube.CubeList
+                Iterable returned to slice over the requested coordinate, or
+                a CubeList.
+        """
         try:
-            coord = cube.coord(coord_name, dim_coords=True)
+            cube.coord(coord_name, dim_coords=True)
             slices_over_coord = cube.slices_over(coord_name)
         except CoordinateNotFoundError:
             slices_over_coord = CubeList([cube])
@@ -270,7 +286,9 @@ class OccurrenceWithinVicinity(object):
                 vicinity defined using the specified distance.
 
         """
-        grid_cell_x, grid_cell_y = (
+        # The number of grid cells returned along the x and y axis will be
+        # the same.
+        _, grid_cell_y = (
             convert_distance_into_number_of_grid_cells(
                 cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
 

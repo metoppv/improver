@@ -32,7 +32,6 @@
 
 import unittest
 
-import iris
 from iris.tests import IrisTest
 
 from improver.tests.nbhood.test_NeighbourhoodProcessing import (
@@ -46,6 +45,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     """Test conversion of distance in metres into number of grid cells."""
 
     def setUp(self):
+        """Set up the cube."""
         self.DISTANCE = 6100
         self.MAX_DISTANCE_IN_GRID_CELLS = 500
         self.cube = set_up_cube()

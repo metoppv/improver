@@ -42,8 +42,7 @@ import numpy as np
 from improver.nbhood.nbhood import Utilities
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
-from improver.tests.nbhood.test_NeighbourhoodProcessing import (
-    set_up_cube, set_up_cube_lat_long)
+from improver.tests.nbhood.test_NeighbourhoodProcessing import set_up_cube
 
 
 class Test__repr__(IrisTest):
