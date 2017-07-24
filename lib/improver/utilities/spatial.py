@@ -232,8 +232,8 @@ class OccurrenceWithinVicinity(object):
 
         Args:
             distance : float
-                Distance in metres used to define whether there is an
-                occurrence within the vicinity.
+                Distance in metres used to define the vicinity within which to
+                search for an occurrence.
 
         """
         self.distance = distance

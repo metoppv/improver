@@ -28,7 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing to apply neighbourhood processing to a vicinity."""
+"""Module to determine the occurrence of a phenomenon within a vicinity and
+apply neighbourhood processing."""
 
 import iris
 
@@ -50,8 +51,8 @@ class ProbabilityOfOccurrence(object):
 
         Args:
             distance : float
-                Distance in metres used to define whether there is an
-                occurrence within the vicinity.
+                Distance in metres used to define the vicinity within which to
+                search for an occurrence.
             neighbourhood_method : str
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
