@@ -34,7 +34,7 @@ import unittest
 
 from iris.tests import IrisTest
 
-from improver.tests.nbhood.test_NeighbourhoodProcessing import (
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)

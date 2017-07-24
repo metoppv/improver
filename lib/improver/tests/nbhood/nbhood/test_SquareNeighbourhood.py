@@ -40,7 +40,8 @@ from iris.coords import DimCoord
 import numpy as np
 
 from improver.nbhood.nbhood import SquareNeighbourhood
-from improver.tests.nbhood.test_NeighbourhoodProcessing import set_up_cube
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+    set_up_cube)
 
 
 class Test__repr__(IrisTest):
