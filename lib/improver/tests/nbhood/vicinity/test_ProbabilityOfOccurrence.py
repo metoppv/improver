@@ -42,6 +42,19 @@ from improver.tests.utilities.test_OccurrenceWithinVicinity import (
     set_up_cube)
 
 
+class Test__init__(IrisTest):
+
+    """Test the __init__ method."""
+
+    def test_exception(self):
+        """Test the expected exception is raised."""
+        distance = 2000
+        radius = 2000
+        msg = "Only a square neighbourhood is accepted"
+        with self.assertRaisesRegexp(ValueError, msg):
+            ProbabilityOfOccurrence(distance, "circular", radius)
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -109,16 +122,16 @@ class Test_process(IrisTest):
     def test_additional_arguments(self):
         """Test when all keyword arguments are passed in."""
         expected = np.array(
-            [[[1., 1., 0.8, 0.4, 0.2],
-              [0.8, 0.8, 1., 0.8, 0.8],
-              [0.2, 0.4, 0.8, 1., 1.],
-              [0., 0.2, 0.6, 0.8, 0.8],
-              [0., 0., 0.2, 0.2, 0.2]],
-             [[0.92307692, 0.84615385, 0.76923077, 0.53846154, 0.38461538],
-              [0.69230769, 0.76923077, 0.84615385, 0.76923077, 0.69230769],
-              [0.38461538, 0.53846154, 0.69230769, 0.76923077, 0.84615385],
-              [0.15384615, 0.30769231, 0.46153846, 0.61538462, 0.69230769],
-              [0., 0.07692308, 0.23076923, 0.30769231, 0.30769231]]])
+            [[[1., 1., 0.83333333, 0.66666667, 0.5],
+              [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
+              [0.33333333, 0.55555556, 0.77777778, 1., 1.],
+              [0., 0.22222222, 0.44444444, 0.66666667, 0.66666667],
+              [0., 0.16666667, 0.33333333, 0.5, 0.5]],
+             [[0.77777778, 0.75, 0.73333333, 0.75, 0.77777778],
+              [0.66666667, 0.6875, 0.7, 0.75, 0.83333333],
+              [0.53333333, 0.55, 0.56, 0.6,  0.66666667],
+              [0.41666667, 0.5, 0.55, 0.625, 0.75],
+              [0.22222222, 0.33333333, 0.4, 0.5, 0.66666667]]])
         data = np.zeros((1, 2, 5, 5))
         data[0, :, 0, 1] = 1.0
         data[0, :, 2, 3] = 1.0
@@ -128,7 +141,7 @@ class Test_process(IrisTest):
                            x_dimension_values=y_dimension_values,
                            timesteps=np.array([402192.5, 402195.5]))
         distance = 2000
-        neighbourhood_method = "circular"
+        neighbourhood_method = "square"
         radii = [2000, 4000]
         lead_times = [3, 6]
         cube.add_aux_coord(AuxCoord(

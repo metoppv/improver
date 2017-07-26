@@ -77,9 +77,20 @@ class ProbabilityOfOccurrence(object):
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
 
+        Raises:
+            ValueError : Raise error if non-square neighbourhood method
+                is requested.
+
         """
         self.distance = distance
-        self.neighbourhood_method = neighbourhood_method
+        if neighbourhood_method in ["square"]:
+            self.neighbourhood_method = neighbourhood_method
+        else:
+            msg = ("Only a square neighbourhood is accepted for "
+                   "probability of occurrence calculations. "
+                   "Requested a {} neighbourhood.".format(
+                       neighbourhood_method))
+            raise ValueError(msg)
         self.radii = radii
         self.lead_times = lead_times
         self.unweighted_mode = unweighted_mode
