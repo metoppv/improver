@@ -58,7 +58,7 @@ class NeighbourhoodPercentiles(object):
 
     """
 
-    def __init__(self, method, radii, lead_times=None, debug_points=None,
+    def __init__(self, method, radii, lead_times=None,
                  unweighted_mode=False, ens_factor=1.0,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
@@ -93,15 +93,13 @@ class NeighbourhoodPercentiles(object):
         percentiles : float or List
         """
         self.percentiles = percentiles
-        self.debug_points = debug_points
         self.method_key = method
         methods = {
             "circular_scipy": CircularKernelScipy,
             "circular_numpy": CircularKernelNumpy}
         try:
             usemethod = methods[self.method_key]
-            self.method = usemethod(unweighted_mode, percentiles=self.percentiles,
-                                    debug_points=(self.debug_points))
+            self.method = usemethod(unweighted_mode, percentiles=self.percentiles)
         except KeyError:
             msg = ("The method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -233,7 +231,7 @@ class NeighbourhoodPercentiles(object):
         return cube_new
 
 class CircularKernelScipy(object):
-    def __init__(self, unweighted_mode=False, debug_points=None,
+    def __init__(self, unweighted_mode=False,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
 
@@ -248,7 +246,6 @@ class CircularKernelScipy(object):
         """
         self.percentiles = percentiles
         self.unweighted_mode = bool(unweighted_mode)
-        self.debug_points = debug_points
 
     def run(self, cube, ranges):
         """
@@ -307,16 +304,11 @@ class CircularKernelScipy(object):
             pctcube.add_aux_coord(iris.coords.DimCoord(pct, long_name='percentiles', units='%'))
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
-        if self.debug_points is not None:
-            print "Debug output for point ", self.debug_points
-            print "Original data with buffer of {}".format(ranges[0])
-            print data[self.debug_points[1]-ranges[0]:self.debug_points[1]+ranges[0],self.debug_points[0]-ranges[0]:self.debug_points[0]+ranges[0]]
-            print "Percentiles at point ", result.data[:,self.debug_points[1], self.debug_points[0]]
         return result
 
 
 class CircularKernelNumpy(object):
-    def __init__(self, unweighted_mode=False, debug_points=None,
+    def __init__(self, unweighted_mode=False,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
 
@@ -331,7 +323,6 @@ class CircularKernelNumpy(object):
         """
         self.percentiles = percentiles
         self.unweighted_mode = bool(unweighted_mode)
-        self.debug_points = debug_points
 
     def run(self, cube, ranges):
         """
@@ -402,19 +393,7 @@ class CircularKernelNumpy(object):
             # And put in data, removing the padding
             pctcube.data = perc_data[:,fullranges[0]:-fullranges[0], fullranges[1]:-fullranges[1]]
             pctcubelist.append(pctcube)
-            if self.debug_points is not None:
-                spot = padshape[1]*self.debug_points[1]+self.debug_points[0]
-                print "Debug output for single slice at point ", spot
-                print padshape[1],self.debug_points[1],self.debug_points[0]
-                print "Neighbourhood data"
-                print np.array(nbhood_slices)[:,spot]
-                print "Percentiles at point ", perc_data[:,self.debug_points[1]+max(fullranges), self.debug_points[0]+max(fullranges)]
         result = pctcubelist.merge_cube()
-        if self.debug_points is not None:
-            print "Debug output for point ", self.debug_points
-            print "Original data with buffer of {}".format(ranges[0])
-            print data[self.debug_points[1]-ranges[0]:self.debug_points[1]+ranges[0],self.debug_points[0]-ranges[0]:self.debug_points[0]+ranges[0]]
-            print "Percentiles at point ", result.data[:,self.debug_points[1], self.debug_points[0]]
         return result
 
     def make_percentile_cube(self, cube):
