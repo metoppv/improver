@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing neighbourhood processing utilities."""
-
-import math
+"""Module containing neighbourhood processing percentiles classes."""
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -49,16 +47,16 @@ class NeighbourhoodPercentiles(object):
     Apply a neigbourhood processing method to each 2D slice in a cube.
 
     When applied to a cube, it samples all points in a neighbourhood as
-    equal realizations and derives the percentile distribution.
+    equal realizations and derives the requested percentile distribution.
 
     The neighbourhood methods will presently only work with projections in
     which the x grid point spacing and y grid point spacing are constant
-    over the entire domain, such as the UK national grid projection
+    over the entire domain, such as the UK Standard Grid projection
 
     """
 
     def __init__(self, method, radii, lead_times=None,
-                 unweighted_mode=False, ens_factor=1.0,
+                 ens_factor=1.0,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
         Create a neighbourhood processing plugin that applies a smoothing
@@ -67,29 +65,27 @@ class NeighbourhoodPercentiles(object):
         Parameters
         ----------
 
-        neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: TBC.
+        method : str
+            Name of the method to use. Options: circular_numpy.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x and y coords.
-        lead_times : None or List
+        lead_times : None or List (optional)
             List of lead times or forecast periods, at which the radii
             within 'radii' are defined. The lead times are expected
             in hours.
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
-        ens_factor : float
+        ens_factor : float (optional)
             The factor with which to adjust the neighbourhood size
             for more than one ensemble member.
             If ens_factor = 1.0 this essentially conserves ensemble
             members if every grid square is considered to be the
             equivalent of an ensemble member.
             Optional, defaults to 1.0
-        percentiles : float or List
+        percentiles : list (optional)
+            Percentile values at which to calculate; if not provided uses
+            DEFAULT_PERCENTILES from percentile module.
         """
         self.percentiles = percentiles
         self.method_key = method
@@ -97,7 +93,7 @@ class NeighbourhoodPercentiles(object):
             "circular_numpy": CircularKernelNumpy}
         try:
             usemethod = methods[self.method_key]
-            self.method = usemethod(unweighted_mode, percentiles=self.percentiles)
+            self.method = usemethod(percentiles=self.percentiles)
         except KeyError:
             msg = ("The method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -114,7 +110,6 @@ class NeighbourhoodPercentiles(object):
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
-        self.unweighted_mode = bool(unweighted_mode)
         self.ens_factor = float(ens_factor)
 
     def _find_radii(self, num_ens, cube_lead_times=None):
@@ -152,29 +147,28 @@ class NeighbourhoodPercentiles(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodPercentiles: '
+        result = ('<NeighbourhoodPercentiles: method: {}; '
                   'radii: {}; lead_times: {}; '
-                  'unweighted_mode: {}; ens_factor: {}; percentile-count: {}>')
+                  'ens_factor: {}; percentile-count: {}>')
         return result.format(
-            self.radii, self.lead_times,
-            self.unweighted_mode, self.ens_factor, len(self.percentiles))
+            self.method_key, self.radii, self.lead_times,
+            self.ens_factor, len(self.percentiles))
 
     def process(self, cube):
         """
-        Supply neighbourhood processing method, in order to smooth the
-        input cube.
+        Apply neighbourhood processing method to return percentiles over area.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
             Cube to apply a neighbourhood processing method to, in order to
-            generate a smoother field.
+            generate percentiles.
 
         Returns
         -------
         cube : Iris.cube.Cube
-            Cube after applying a neighbourhood processing method, so that the
-            resulting field is smoothed.
+            Cube after applying a neighbourhood processing method with additional
+            percentile coordinate.
 
         """
         # Check if the realization coordinate exists. If there are multiple
@@ -200,6 +194,8 @@ class NeighbourhoodPercentiles(object):
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
+        # Find the number of grid cells required for creating the
+        # neighbourhood
         ranges = Utilities.get_neighbourhood_width_in_grid_cells(
             cube, self.radii, MAX_RADIUS_IN_GRID_CELLS)
         if self.lead_times is None:
@@ -214,47 +210,45 @@ class NeighbourhoodPercentiles(object):
                                   cube_lead_times=cube_lead_times))
 
             cubes = iris.cube.CubeList([])
-            # Find the number of grid cells required for creating the
-            # neighbourhood
             for cube_slice, radius in (
                     zip(cube.slices_over("time"),
                         required_radii)):
-                cube_perc = self.method.run(cube_slice, ranges)
+                cube_perc = self.method.run(cube_slice, radius)
                 cube_perc = iris.util.new_axis(cube_perc, "time")
                 cubes.append(cube_perc)
                 cube_new = concatenate_cubes(cubes,
                                              coords_to_slice_over=["time"])
 
-
         return cube_new
 
 class CircularKernelNumpy(object):
-    def __init__(self, unweighted_mode=False,
+    def __init__(self,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
 
         Parameters
         ----------
 
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
-        percentiles : float or List
+        percentiles : list (optional)
+            Percentile values at which to calculate; if not provided uses
+            DEFAULT_PERCENTILES from percentile module.
         """
         self.percentiles = percentiles
-        self.unweighted_mode = bool(unweighted_mode)
+
+    def __repr__(self):
+        """Represent the configured class instance as a string."""
+        result = ('<CircularKernelNumpy: percentiles: {}>')
+        return result.format(self.percentiles)
 
     def run(self, cube, ranges):
         """
         Method to apply a circular kernel to the data within the input cube in
-        order to smooth the resulting field.
+        order to derive percentiles over the kernel.
 
         Parameters
         ----------
         cube : Iris.cube.Cube
-            Cube containing to array to apply CircularNeighbourhood processing
-            to.
+            Cube containing array to apply processing to.
         ranges : Tuple
             Number of grid cells in the x and y direction used to create
             the kernel.
@@ -263,8 +257,10 @@ class CircularKernelNumpy(object):
         -------
         outcube : Iris.cube.Cube
             Cube containing the percentile fields.
+            Has percentile as an added dimension.
 
         """
+        # Take data array and identify X and Y axes indices
         data = cube.data
         fullranges = np.zeros([np.ndim(data)])
         axes = []
@@ -282,25 +278,19 @@ class CircularKernelNumpy(object):
         kernel = np.ones([int(1 + x * 2) for x in fullranges])
         # Create an open multi-dimensional meshgrid.
         open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if self.unweighted_mode:
-            mask = np.reshape(
-                np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
-        else:
-            # Create a kernel, such that the central grid point has the
-            # highest weighting, with the weighting decreasing with distance
-            # away from the central grid point.
-            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-            kernel[:] = (
-                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
-            mask = kernel < 0.
+        # Always generate kernel in unweighted mode as later logic doesn't make sense otherwise
+        mask = np.reshape(
+            np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
         kernel[mask] = 0.
+
+        # Loop over each 2D slice to reduce memory demand and derive percentiles
+        # on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
         for slice_2d in cube.slices(['projection_x_coordinate',
                                      'projection_y_coordinate']):
-            # Derive percentiles on the kernel. Will return an extra dimension.
             # Create a 1D data array padded with repeats of the local boundary mean.
-            datashape = np.shape(cube.data)
-            padded = np.pad(cube.data, max(fullranges), mode='mean', stat_length=fullranges[0])
+            datashape = np.shape(slice_2d.data)
+            padded = np.pad(slice_2d.data, max(fullranges), mode='mean', stat_length=fullranges[0])
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
@@ -318,7 +308,19 @@ class CircularKernelNumpy(object):
         return result
 
     def make_percentile_cube(self, cube):
-        """Returns a cube with the same metadata as the sample cube, but with an added percentile dimension"""
+        """Returns a cube with the same metadata as the sample cube, but with an added percentile dimension
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube to copy meta data from.
+
+        Returns
+        -------
+        cube : Iris.cube.Cube
+            Cube like input but with added percentiles coordinate.
+            Each slice along this coordinate is identical.
+        """
         pctcubelist = iris.cube.CubeList()
         for pct in self.percentiles:
             pctcube = cube.copy()
