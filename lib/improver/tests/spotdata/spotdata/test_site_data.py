@@ -31,7 +31,6 @@
 """Unit tests for the spotdata.site_data"""
 
 import unittest
-import warnings
 import numpy as np
 import json
 from subprocess import call as Call
@@ -74,6 +73,7 @@ class Test_ImportSiteData(IrisTest):
         self.variables = ['latitude', 'longitude', 'altitude', 'utc_offset']
 
     def tearDown(self):
+        """Remove temporary directories created for testing."""
         Call(['rm', '-f', self.data_directory + '/site_data.json'])
         Call(['rmdir', self.data_directory])
 
