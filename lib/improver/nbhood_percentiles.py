@@ -35,7 +35,6 @@ import math
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
-import scipy.ndimage.filters
 
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.nbhood import Utilities
@@ -95,7 +94,6 @@ class NeighbourhoodPercentiles(object):
         self.percentiles = percentiles
         self.method_key = method
         methods = {
-            "circular_scipy": CircularKernelScipy,
             "circular_numpy": CircularKernelNumpy}
         try:
             usemethod = methods[self.method_key]
@@ -229,83 +227,6 @@ class NeighbourhoodPercentiles(object):
 
 
         return cube_new
-
-class CircularKernelScipy(object):
-    def __init__(self, unweighted_mode=False,
-                 percentiles=PercentileConverter.DEFAULT_PERCENTILES):
-        """
-
-        Parameters
-        ----------
-
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
-        percentiles : float or List
-        """
-        self.percentiles = percentiles
-        self.unweighted_mode = bool(unweighted_mode)
-
-    def run(self, cube, ranges):
-        """
-        Method to apply a circular kernel to the data within the input cube in
-        order to smooth the resulting field.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing to array to apply CircularNeighbourhood processing
-            to.
-        ranges : Tuple
-            Number of grid cells in the x and y direction used to create
-            the kernel.
-
-        Returns
-        -------
-        outcube : Iris.cube.Cube
-            Cube containing the percentile fields.
-
-        """
-        data = cube.data
-        fullranges = np.zeros([np.ndim(data)])
-        axes = []
-        try:
-            for coord_name in ['projection_x_coordinate',
-                               'projection_y_coordinate']:
-                axes.append(cube.coord_dims(coord_name)[0])
-        except CoordinateNotFoundError:
-            raise ValueError("Invalid grid: projection_x/y coords required")
-        for axis_index, axis in enumerate(axes):
-            fullranges[axis] = ranges[axis_index]
-        # Define the size of the kernel based on the number of grid cells
-        # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in fullranges])
-        # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if self.unweighted_mode:
-            mask = np.reshape(
-                np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
-        else:
-            # Create a kernel, such that the central grid point has the
-            # highest weighting, with the weighting decreasing with distance
-            # away from the central grid point.
-            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-            kernel[:] = (
-                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
-            mask = kernel < 0.
-        kernel[mask] = 0.
-        # Derive percentiles on the kernel. Will return an extra dimension.
-        pctcubelist = iris.cube.CubeList()
-        for pct in self.percentiles:
-            pctcube = cube.copy()
-            pctcube.data = np.array(scipy.ndimage.filters.percentile_filter(
-                data, pct, footprint=kernel, mode='nearest'))
-            pctcube.add_aux_coord(iris.coords.DimCoord(pct, long_name='percentiles', units='%'))
-            pctcubelist.append(pctcube)
-        result = pctcubelist.merge_cube()
-        return result
-
 
 class CircularKernelNumpy(object):
     def __init__(self, unweighted_mode=False,
