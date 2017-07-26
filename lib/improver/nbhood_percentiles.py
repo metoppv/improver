@@ -386,9 +386,9 @@ class CircularKernelNumpy(object):
         for slice_2d in cube.slices(['projection_x_coordinate',
                                      'projection_y_coordinate']):
             # Derive percentiles on the kernel. Will return an extra dimension.
-            # Create a 1D data array padded with NaNs
+            # Create a 1D data array padded with repeats of the local boundary mean.
             datashape = np.shape(cube.data)
-            padded = np.pad(cube.data, max(fullranges), mode='edge')
+            padded = np.pad(cube.data, max(fullranges), mode='mean', stat_length=fullranges[0])
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
@@ -415,8 +415,6 @@ class CircularKernelNumpy(object):
             print "Original data with buffer of {}".format(ranges[0])
             print data[self.debug_points[1]-ranges[0]:self.debug_points[1]+ranges[0],self.debug_points[0]-ranges[0]:self.debug_points[0]+ranges[0]]
             print "Percentiles at point ", result.data[:,self.debug_points[1], self.debug_points[0]]
-        else:
-            print "No debug"
         return result
 
     def make_percentile_cube(self, cube):
