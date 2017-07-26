@@ -392,7 +392,7 @@ class CircularKernelNumpy(object):
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
-            nbhood_slices = [np.roll(padded, padshape[0]*j+i) for i in range(-fullranges[0], fullranges[0]+1) for j in range(-fullranges[1], fullranges[1]+1) if kernel[i+fullranges[0], j+fullranges[1]]>0.]
+            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-fullranges[0], fullranges[0]+1) for j in range(-fullranges[1], fullranges[1]+1) if kernel[i+fullranges[0], j+fullranges[1]]>0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.nanpercentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
@@ -403,10 +403,11 @@ class CircularKernelNumpy(object):
             pctcube.data = perc_data[:,fullranges[0]:-fullranges[0], fullranges[1]:-fullranges[1]]
             pctcubelist.append(pctcube)
             if self.debug_points is not None:
-                spot = padshape[0]*self.debug_points[1]+self.debug_points[0]
+                spot = padshape[1]*self.debug_points[1]+self.debug_points[0]
                 print "Debug output for single slice at point ", spot
+                print padshape[1],self.debug_points[1],self.debug_points[0]
                 print "Neighbourhood data"
-                print nbhood_slices[:,spot]
+                print np.array(nbhood_slices)[:,spot]
                 print "Percentiles at point ", perc_data[:,self.debug_points[1]+max(fullranges), self.debug_points[0]+max(fullranges)]
         result = pctcubelist.merge_cube()
         if self.debug_points is not None:
