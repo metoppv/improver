@@ -32,7 +32,6 @@
 Plugins written for the Improver site specific process chain.
 
 """
-import warnings
 import numpy as np
 import json
 from collections import OrderedDict

@@ -36,7 +36,6 @@ For reading data processed by IMPROVER, and site specification input.
 """
 import os
 import iris
-import json
 from iris import load_cube, load
 
 

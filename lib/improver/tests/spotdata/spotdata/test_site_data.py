@@ -247,7 +247,6 @@ class Test_runtime_list(Test_ImportSiteData):
         # unset, so none can be flagged as wmo_sites
         expected_wmo_sites = np.zeros(len(result))
 
-
         self.assertArrayEqual(
             self.latitudes,
             np.array([result[index]['latitude'] for index in result]))
