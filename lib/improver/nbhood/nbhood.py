@@ -37,7 +37,6 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
-import time
 
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
@@ -360,7 +359,6 @@ class SquareNeighbourhood(object):
         for slice_2d in cube.slices([yname, xname]):
             # Pad a halo around the original data with the extent of the halo
             # given by width_y and width_x.
-            kwargs = {}
             padded_data = np.pad(
                 slice_2d.data,
                 ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),

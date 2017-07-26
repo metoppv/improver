@@ -37,7 +37,6 @@ import copy
 
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 import numpy as np
@@ -258,9 +257,6 @@ class Test__check_for_x_and_y_axes(IrisTest):
         for sliced_cube in self.cube.slices(
                 ["projection_x_coordinate"]):
             break
-        data = sliced_cube.data
-        coord_x = sliced_cube.coord("projection_x_coordinate")
-        coord_y = sliced_cube.coord("projection_y_coordinate")
         sliced_cube.remove_coord("projection_y_coordinate")
         msg = "The cube does not contain the expected"
         with self.assertRaisesRegexp(ValueError, msg):
