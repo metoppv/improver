@@ -388,13 +388,13 @@ class CircularKernelNumpy(object):
             # Derive percentiles on the kernel. Will return an extra dimension.
             # Create a 1D data array padded with NaNs
             datashape = np.shape(cube.data)
-            padded = np.pad(cube.data, max(fullranges), mode='constant', constant_values=np.nan)
+            padded = np.pad(cube.data, max(fullranges), mode='edge')
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
             nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-fullranges[0], fullranges[0]+1) for j in range(-fullranges[1], fullranges[1]+1) if kernel[i+fullranges[0], j+fullranges[1]]>0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
-            perc_data = np.nanpercentile(nbhood_slices, self.percentiles, axis=0)
+            perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
             perc_data = perc_data.reshape(len(self.percentiles), padshape[0], padshape[1])
             # Create a cube for these data:
