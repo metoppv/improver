@@ -272,11 +272,11 @@ class SquareNeighbourhood(object):
                 msg = ("Non-uniform increments between grid points: "
                        "{}.".format(increment))
                 raise ValueError(msg)
-            num_of_new_points = len(orig_points) + 2*2*width
+            num_of_new_points = len(orig_points) + 2*width + 2*width
             new_points = (
                 np.linspace(
-                    orig_points.min() - (2*width+1)*increment,
-                    orig_points.max() + (2*width+1)*increment,
+                    orig_points.min() - 2*width*increment,
+                    orig_points.max() + 2*width*increment,
                     num_of_new_points))
         elif method == 'remove':
             end_width = -2*width if width != 0 else None
@@ -358,11 +358,12 @@ class SquareNeighbourhood(object):
         cubelist = iris.cube.CubeList([])
         for slice_2d in cube.slices([yname, xname]):
             # Pad a halo around the original data with the extent of the halo
-            # given by width_y and width_x.
+            # given by width_y and width_x. Assumption to pad using the mean
+            # value within the neighbourhood width.
             padded_data = np.pad(
                 slice_2d.data,
                 ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
-                "mean", stat_length=width_y)
+                "mean", stat_length=((width_y, width_y), (width_x, width_x)))
             coord_x = cube.coord(axis='x')
             padded_x_coord = (
                 SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
@@ -601,8 +602,8 @@ class SquareNeighbourhood(object):
         return neighbourhood_averaged_cubes
 
     def _remove_padding_and_mask(
-            self, neighbourhood_averaged_cubes, cube_name,
-            grid_cells_x, grid_cells_y):
+            self, neighbourhood_averaged_cubes, pre_neighbourhood_cubes,
+            cube_name, grid_cells_x, grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
 
@@ -612,6 +613,10 @@ class SquareNeighbourhood(object):
             CubeList containing the smoothed field after the square
             neighbourhood method has been applied to either the input cube, or
             both the input cube and a mask cube.
+        pre_neighhourhood_cubes : Iris.cube.CubeList
+            CubeList containing the fields prior to applying neighbourhood
+            processing. This is required to be able to know the original mask
+            cube.
         cube_name : String
             Name of the variable that has been neighbourhooded.
         grid_cells_x : Float
@@ -638,11 +643,16 @@ class SquareNeighbourhood(object):
             mask_cube, = neighbourhood_averaged_cubes.extract('mask_data')
             mask_cube = self.remove_halo_from_cube(
                 mask_cube, grid_cells_x, grid_cells_y)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                neighbourhood_averaged_cube.data = (
+                    neighbourhood_averaged_cube.data / mask_cube.data)
+            original_mask_cube, = pre_neighbourhood_cubes.extract('mask_data')
             neighbourhood_averaged_cube.data = (
-                neighbourhood_averaged_cube.data * mask_cube.data)
-            neighbourhood_averaged_cube.data = (
-                np.ma.masked_where(np.logical_not(mask_cube.data.squeeze()),
-                                   neighbourhood_averaged_cube.data))
+                np.ma.masked_where(
+                    np.logical_not(original_mask_cube.data.squeeze()),
+                    neighbourhood_averaged_cube.data))
+            # Insert a fill value of NaN.
+            np.ma.set_fill_value(neighbourhood_averaged_cube.data, np.nan)
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius):
@@ -676,7 +686,6 @@ class SquareNeighbourhood(object):
         # original_data * mask array.
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
-
         grid_cells_x, grid_cells_y = (
             convert_distance_into_number_of_grid_cells(
                 cube_to_process, radius, MAX_RADIUS_IN_GRID_CELLS))
@@ -687,7 +696,7 @@ class SquareNeighbourhood(object):
                 cubes_to_sum, grid_cells_x, grid_cells_y))
         neighbourhood_averaged_cube = (
             self._remove_padding_and_mask(
-                neighbourhood_averaged_cubes, cube.name(),
+                neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
                 grid_cells_x, grid_cells_y))
 
         neighbourhood_averaged_cube.cell_methods = original_methods
