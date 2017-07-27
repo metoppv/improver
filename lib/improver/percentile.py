@@ -37,6 +37,9 @@ from iris import FUTURE
 
 FUTURE.netcdf_promote = True
 
+DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
+                       60, 70, 75, 80, 90, 95, 100]
+
 
 class PercentileConverter(object):
 
@@ -45,10 +48,6 @@ class PercentileConverter(object):
     Generate percentiles together with min, max, mean, stdev.
 
     """
-
-    # Default percentile boundaries to calculate at.
-    DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
-                           60, 70, 75, 80, 90, 95, 100]
 
     def __init__(self, collapse_coord, percentiles=None):
         """
@@ -74,7 +73,7 @@ class PercentileConverter(object):
         if percentiles is not None:
             self.percentiles = [int(value) for value in percentiles]
         else:
-            self.percentiles = self.DEFAULT_PERCENTILES
+            self.percentiles = DEFAULT_PERCENTILES
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such
