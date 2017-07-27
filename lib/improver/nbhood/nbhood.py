@@ -688,7 +688,7 @@ class SquareNeighbourhood(object):
         original_methods = cube.cell_methods
         grid_cells_x, grid_cells_y = (
             convert_distance_into_number_of_grid_cells(
-                cube_to_process, radius, MAX_RADIUS_IN_GRID_CELLS))
+                cube, radius, MAX_RADIUS_IN_GRID_CELLS))
         cubes_to_sum = (
             self._set_up_cubes_to_be_neighbourhooded(cube))
         neighbourhood_averaged_cubes = (
