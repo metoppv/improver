@@ -35,7 +35,7 @@ import numpy as np
 
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 from improver.utilities.threshold import BasicThreshold
-from improver.nbhood import NeighbourhoodProcessing
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
 class DiagnoseConvectivePrecipitation(object):

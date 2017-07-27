@@ -38,6 +38,8 @@ import numpy as np
 import scipy.ndimage.filters
 
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -111,77 +113,6 @@ class Utilities(object):
                        "the forecast_period.".format(cube))
                 raise CoordinateNotFoundError(msg)
         return required_lead_times
-
-    @staticmethod
-    def get_neighbourhood_width_in_grid_cells(
-            cube, radius, max_radius_in_grid_cells):
-        """
-        Return the number of grid cells in the x and y direction
-        used to define the neighbourhood width in the x and y direction
-        based on the input radius in metres.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing the x and y coordinates, which will be used for
-            calculating the number of grid cells in the x and y direction,
-            which equates to the size of the desired radius.
-        radius : Float
-            Radius in metres for use in specifying the number of
-            grid cells used to create a circular neighbourhood.
-        max_radius_in_grid_cells : integer
-            Maximum radius of the neighbourhood width in grid cells.
-
-        Returns
-        -------
-        grid_cells_x : Integer
-            Number of grid cells in the x direction based on the requested
-            radius in metres.
-        grid_cells_y : Integer
-            Number of grid cells in the y direction based on the requested
-            radius in metres.
-
-        """
-        try:
-            x_coord = cube.coord("projection_x_coordinate").copy()
-            y_coord = cube.coord("projection_y_coordinate").copy()
-        except CoordinateNotFoundError:
-            raise ValueError("Invalid grid: projection_x/y coords required")
-        x_coord.convert_units("metres")
-        y_coord.convert_units("metres")
-        max_radius_of_domain = np.sqrt(
-            (x_coord.points.max() - x_coord.points.min())**2 +
-            (y_coord.points.max() - y_coord.points.min())**2)
-        if radius > max_radius_of_domain:
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0}m ".format(radius) +
-                 "exceeds max domain radius of {}m".format(
-                  max_radius_of_domain)))
-        d_north_metres = y_coord.points[1] - y_coord.points[0]
-        d_east_metres = x_coord.points[1] - x_coord.points[0]
-        grid_cells_y = int(radius / abs(d_north_metres))
-        grid_cells_x = int(radius / abs(d_east_metres))
-        if grid_cells_x == 0 or grid_cells_y == 0:
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0}m ".format(radius) +
-                 "gives zero cell extent")
-            )
-        elif grid_cells_x < 0 or grid_cells_y < 0:
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0}m ".format(radius) +
-                 "gives a negative cell extent")
-            )
-        if (grid_cells_x > max_radius_in_grid_cells or
-                grid_cells_y > max_radius_in_grid_cells):
-            raise ValueError(
-                ("Neighbourhood processing radius of " +
-                 "{0}m ".format(radius) +
-                 "exceeds maximum grid cell extent")
-            )
-        return grid_cells_x, grid_cells_y
 
     @staticmethod
     def adjust_nsize_for_ens(ens_factor, num_ens, width):
@@ -465,7 +396,7 @@ class SquareNeighbourhood(object):
             summed_up_cube, nan_mask = SquareNeighbourhood.cumulate_array(
                 cube_to_process)
             grid_cells_x, grid_cells_y = (
-                Utilities.get_neighbourhood_width_in_grid_cells(
+                convert_distance_into_number_of_grid_cells(
                     cube_to_process, radius, MAX_RADIUS_IN_GRID_CELLS))
             neighbourhood_averaged_cubes.append(
                 SquareNeighbourhood.mean_over_neighbourhood(
@@ -592,7 +523,7 @@ class CircularNeighbourhood(object):
             Cube containing the smoothed field after the kernel has been
             applied.
         """
-        ranges = Utilities.get_neighbourhood_width_in_grid_cells(
+        ranges = convert_distance_into_number_of_grid_cells(
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube

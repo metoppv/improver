@@ -32,8 +32,73 @@
 
 import copy
 from iris.coords import CellMethod, DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+import scipy.ndimage
+
+# Maximum radius of the neighbourhood width in grid cells.
+MAX_DISTANCE_IN_GRID_CELLS = 500
+
+
+def convert_distance_into_number_of_grid_cells(
+        cube, distance, max_distance_in_grid_cells):
+    """
+    Return the number of grid cells in the x and y direction based on the
+    input distance in metres.
+
+    Parameters
+    ----------
+    cube : Iris.cube.Cube
+        Cube containing the x and y coordinates, which will be used for
+        calculating the number of grid cells in the x and y direction,
+        which equates to the requested distance in the x and y direction.
+    distance : Float
+        Distance in metres.
+    max_distance_in_grid_cells : integer
+        Maximum distance in grid cells.
+
+    Returns
+    -------
+    grid_cells_x : Integer
+        Number of grid cells in the x direction based on the requested
+        distance in metres.
+    grid_cells_y : Integer
+        Number of grid cells in the y direction based on the requested
+        distance in metres.
+
+    """
+    try:
+        x_coord = cube.coord("projection_x_coordinate").copy()
+        y_coord = cube.coord("projection_y_coordinate").copy()
+    except CoordinateNotFoundError:
+        raise ValueError("Invalid grid: projection_x/y coords required")
+    x_coord.convert_units("metres")
+    y_coord.convert_units("metres")
+    max_distance_of_domain = np.sqrt(
+        (x_coord.points.max() - x_coord.points.min())**2 +
+        (y_coord.points.max() - y_coord.points.min())**2)
+    if distance > max_distance_of_domain:
+        raise ValueError(
+            ("Distance of {0}m exceeds max domain distance of {1}m".format(
+                 distance, max_distance_of_domain)))
+    d_north_metres = y_coord.points[1] - y_coord.points[0]
+    d_east_metres = x_coord.points[1] - x_coord.points[0]
+    grid_cells_y = int(distance / abs(d_north_metres))
+    grid_cells_x = int(distance / abs(d_east_metres))
+    if grid_cells_x == 0 or grid_cells_y == 0:
+        raise ValueError(
+            "Distance of {0}m gives zero cell extent".format(distance))
+    elif grid_cells_x < 0 or grid_cells_y < 0:
+        raise ValueError(
+            "Neighbourhood processing distance of {0}m "
+            "gives a negative cell extent".format(distance))
+    if (grid_cells_x > max_distance_in_grid_cells or
+            grid_cells_y > max_distance_in_grid_cells):
+        raise ValueError(
+            "Neighbourhood processing distance of {0}m "
+            "exceeds maximum grid cell extent".format(distance))
+    return grid_cells_x, grid_cells_y
 
 
 class DifferenceBetweenAdjacentGridSquares(object):
@@ -155,3 +220,111 @@ class DifferenceBetweenAdjacentGridSquares(object):
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
         return diff_along_x_cube, diff_along_y_cube
+
+
+class OccurrenceWithinVicinity(object):
+
+    """Calculate whether a phenomenon occurs within the specified distance."""
+
+    def __init__(self, distance):
+        """
+        Initialise the class.
+
+        Args:
+            distance : float
+                Distance in metres used to define the vicinity within which to
+                search for an occurrence.
+
+        """
+        self.distance = distance
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<OccurrenceWithinVicinity: distance: {}>')
+        return result.format(self.distance)
+
+    @staticmethod
+    def find_slices_over_coordinate(cube, coord_name):
+        """
+        Try slicing over the given coordinate. If the requested coordinate is
+        not a dimension coordinate then still return an iterable.
+
+        Args:
+            cube : iris.cube.Cube
+                Cube to be sliced.
+            coord_name : String
+                Name of the coordinate to be used for slicing.
+
+        Returns:
+            slices_over_coord : iris.cube._SliceIterator or iris.cube.CubeList
+                Iterable returned to slice over the requested coordinate, or
+                a CubeList.
+        """
+        try:
+            cube.coord(coord_name, dim_coords=True)
+            slices_over_coord = cube.slices_over(coord_name)
+        except CoordinateNotFoundError:
+            slices_over_coord = CubeList([cube])
+        return slices_over_coord
+
+    def maximum_within_vicinity(self, cube):
+        """
+        Find grid points where a phenomenon occurs within a defined distance.
+        The occurrences within this vicinity are maximised, such that all
+        grid points within the vicinity are recorded as having an occurrence.
+        For non-binary fields, if the vicinity of two occurrences overlap,
+        the maximum value within the vicinity is chosen.
+
+        Args:
+            cube : Iris.cube.Cube
+                Thresholded cube.
+
+        Returns:
+            cube : Iris.cube.Cube
+                Cube where the occurrences have been spatially spread, so that
+                they're equally likely to have occurred anywhere within the
+                vicinity defined using the specified distance.
+
+        """
+        # The number of grid cells returned along the x and y axis will be
+        # the same.
+        _, grid_cell_y = (
+            convert_distance_into_number_of_grid_cells(
+                cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
+
+        # Convert the number of grid points (e.g. grid_cell_y) represented
+        # by self.distance, e.g. where grid_cell_y=1 is an increment to
+        # a central point, into grid_cells which is the total number of points
+        # within the defined vicinity along the y axis e.g grid_cells=3.
+        grid_cells = (2 * grid_cell_y) + 1
+
+        max_cube = cube.copy()
+        max_cube.data = (
+            scipy.ndimage.filters.maximum_filter(cube.data, size=grid_cells))
+        return max_cube
+
+    def process(self, cube):
+        """
+        Ensure that the cube passed to the maximum_within_vicinity method is
+        2d and subsequently merged back together.
+
+        Args:
+            cube : Iris.cube.Cube
+                Thresholded cube.
+
+        Returns:
+            Iris.cube.Cube
+                Cube containing the occurrences within a vicinity for each
+                xy 2d slice, which have been merged back together.
+
+        """
+        slices_over_realization = (
+            self.find_slices_over_coordinate(cube, "realization"))
+
+        max_cubes = CubeList([])
+        for realization_slice in slices_over_realization:
+            slices_over_time = (
+                self.find_slices_over_coordinate(realization_slice, "time"))
+            for time_slice in slices_over_time:
+                max_cubes.append(self.maximum_within_vicinity(time_slice))
+        return max_cubes.merge_cube()

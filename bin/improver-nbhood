@@ -35,7 +35,7 @@ import argparse
 
 import iris
 
-from improver.nbhood import NeighbourhoodProcessing
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
 def main():
