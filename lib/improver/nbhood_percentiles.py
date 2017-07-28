@@ -36,7 +36,7 @@ import numpy as np
 
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.nbhood import Utilities
-from percentile import PercentileConverter
+from improver.percentile import PercentileConverter
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -262,20 +262,16 @@ class CircularKernelNumpy(object):
         """
         # Take data array and identify X and Y axes indices
         data = cube.data
-        fullranges = np.zeros([np.ndim(data)])
-        axes = []
         try:
             for coord_name in ['projection_x_coordinate',
                                'projection_y_coordinate']:
-                axes.append(cube.coord_dims(coord_name)[0])
+                check = cube.coord(coord_name)
         except CoordinateNotFoundError:
             raise ValueError("Invalid grid: projection_x/y coords required")
-        for axis_index, axis in enumerate(axes):
-            fullranges[axis] = int(max(np.array(ranges)))
-        fullranges = fullranges.astype(int)
+        ranges = np.array(ranges).astype(int)
         # Define the size of the kernel based on the number of grid cells
         # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in fullranges])
+        kernel = np.ones([int(1 + x * 2) for x in ranges])
         # Create an open multi-dimensional meshgrid.
         open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
         # Always generate kernel in unweighted mode as later logic doesn't make sense otherwise
@@ -290,22 +286,67 @@ class CircularKernelNumpy(object):
                                      'projection_y_coordinate']):
             # Create a 1D data array padded with repeats of the local boundary mean.
             datashape = np.shape(slice_2d.data)
-            padded = np.pad(slice_2d.data, max(fullranges), mode='mean', stat_length=fullranges[0])
+            padded = np.pad(slice_2d.data, max(ranges), mode='mean', stat_length=ranges[0])
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
-            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-fullranges[0], fullranges[0]+1) for j in range(-fullranges[1], fullranges[1]+1) if kernel[i+fullranges[0], j+fullranges[1]]>0.]
+            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-ranges[0], ranges[0]+1) for j in range(-ranges[1], ranges[1]+1) if kernel[...,i+ranges[0], j+ranges[1]]>0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
             perc_data = perc_data.reshape(len(self.percentiles), padshape[0], padshape[1])
             # Create a cube for these data:
-            pctcube = self.make_percentile_cube(cube)
+            pctcube = self.make_percentile_cube(slice_2d)
             # And put in data, removing the padding
-            pctcube.data = perc_data[:,fullranges[0]:-fullranges[0], fullranges[1]:-fullranges[1]]
+            pctcube.data = perc_data[:,ranges[0]:-ranges[0], ranges[1]:-ranges[1]]
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
+        result = self.check_coords(result, cube)
         return result
+
+    @staticmethod
+    def check_coords(cube, cube_orig):
+        """Checks the coordinates of cube match those of cube_orig
+        and promotes any that are not dimensions.
+        This function expects that cube will have an additional "percentiles" dimension.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube to ensure compliance in. May be modified if not compliant.
+
+        cube_orig : Iris.cube.Cube
+            Cube to ensure compliance against. Will NOT be modified.
+
+        Returns
+        -------
+        cube : Iris.cube.Cube
+            Cube after ensuring compliance.
+
+        Exceptions
+        -------
+        Raises ValueError if cube cannot be made compliant.
+        """
+
+        # Promote any missing dimension coords from auxilliary coords
+        for coord in cube_orig.coords():
+            if len(cube_orig.coord_dims(coord)) == 0:
+                continue
+            try:
+                cube.coord_dims(coord)[0]
+            except IndexError:
+                cube = iris.util.new_axis(cube, coord)
+        # Now check axis order
+        required_order = []
+        for coord in cube.coords():
+            if coord.long_name is "percentiles":
+                required_order.append(0)
+            else:
+                if len(cube_orig.coord_dims(coord)) == 0:
+                    continue
+                required_order.append(cube_orig.coord_dims(coord)[0] + 1)
+        cube.transpose(required_order)
+        return cube
 
     def make_percentile_cube(self, cube):
         """Returns a cube with the same metadata as the sample cube, but with an added percentile dimension
