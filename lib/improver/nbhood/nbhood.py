@@ -38,6 +38,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
+from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
@@ -211,29 +212,6 @@ class SquareNeighbourhood(object):
         return cubelist.merge_cube(), nan_masks
 
     @staticmethod
-    def _check_for_x_and_y_axes(cube):
-        """
-        Check whether the cube has an x and y axis, otherwise raise an error.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to be checked for x and y axes.
-
-        Raises
-        ------
-        ValueError : Raise an error if non-uniform increments exist between
-                     grid points.
-        """
-        for axis in ["x", "y"]:
-            if cube.coords(axis=axis):
-                pass
-            else:
-                msg = ("The cube does not contain the expected {}"
-                       "coordinates.".format(axis))
-                raise ValueError(msg)
-
-    @staticmethod
     def pad_coord(coord, width, method):
         """
         Construct a new coordinate by extending the current coordinate by the
@@ -307,7 +285,7 @@ class SquareNeighbourhood(object):
             Cube built from the template cube using the requested data and the
             supplied x and y axis coordinates.
         """
-        self._check_for_x_and_y_axes(cube)
+        check_for_x_and_y_axes(cube)
 
         yname = cube.coord(axis='y').name()
         xname = cube.coord(axis='x').name()
@@ -334,24 +312,27 @@ class SquareNeighbourhood(object):
 
     def pad_cube_with_halo(self, cube, width_x, width_y):
         """
-        Method to pad a halo around the data in an iris cube with 0s.
+        Method to pad a halo around the data in an iris cube. The padding
+        calculates the mean within the neighbourhood radius in grid cells
+        i.e. the neighbourhood width at the edge of the data and uses this
+        mean value as the padding value.
 
         Parameters
         ----------
         cube : iris.cube.Cube
-            The original cube to be padded out with zeros.
+            The original cube prior to applyint padding.
         width_x, width_y : integer
             The width in x and y directions of the neighbourhood radius in
-            grid cells. This will be the width of zeros added to the numpy
-            array.
+            grid cells. This will be the width of padding to be added to the
+            numpy array.
 
         Returns
         -------
         iris.cube.Cube
-            Cube containing the new zero padded cube, with appropriate
+            Cube containing the new padded cube, with appropriate
             changes to the cube's dimension coordinates.
         """
-        self._check_for_x_and_y_axes(cube)
+        check_for_x_and_y_axes(cube)
 
         yname = cube.coord(axis='y').name()
         xname = cube.coord(axis='x').name()
@@ -377,7 +358,7 @@ class SquareNeighbourhood(object):
 
     def remove_halo_from_cube(self, cube, width_x, width_y):
         """
-        Method to remove rows/columnds from the edge of an iris cube.
+        Method to remove rows/columns from the edge of an iris cube.
         Used to 'unpad' cubes which have been previously padded by
         pad_cube_with_halo.
 
@@ -396,7 +377,7 @@ class SquareNeighbourhood(object):
             Cube containing the new trimmed cube, with appropriate
             changes to the cube's dimension coordinates.
         """
-        self._check_for_x_and_y_axes(cube)
+        check_for_x_and_y_axes(cube)
 
         yname = cube.coord(axis='y')
         xname = cube.coord(axis='x')
@@ -427,15 +408,14 @@ class SquareNeighbourhood(object):
         (2*cells_x+1)*(2*cells_y+1). This sum is then divided by the area of
         the neighbourhood to calculate the mean value in the neighbourhood.
 
-        For non-edge points, a faster, vectorised
-        approach is taken:
+        For all points, a fast vectorised approach is taken:
         1. The displacements between the four points used to calculate the
            neighbourhood total sum and the central grid point are calculated.
         2. Four copies of the cumulate array output are flattened and rolled
            by these displacements to align the four terms used in the
            neighbourhood total sum calculation.
-        3. The neighbourhood total at all non-edge points can then be
-           calculated simultaneously in a single vector sum.
+        3. The neighbourhood total at all points can then be calculated
+           simultaneously in a single vector sum.
 
         Displacements are calculated as follows for the following input array,
         where the accumulation has occurred from left to right and top to
@@ -483,7 +463,7 @@ class SquareNeighbourhood(object):
         cube : iris.cube.Cube
             Cube to which square neighbourhood has been applied.
         """
-        self._check_for_x_and_y_axes(cube)
+        check_for_x_and_y_axes(cube)
 
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
@@ -506,10 +486,9 @@ class SquareNeighbourhood(object):
 
         cubelist = iris.cube.CubeList([])
         for slice_2d, nan_mask in zip(cube.slices([yname, xname]), nan_masks):
-            # Flatten the 2d slice and calculate the sum over the array for
-            # non-edge cases. This is done by creating 4 copies of the
-            # flattened array which are rolled to allign the 4-points which
-            # are needed for the calculation.
+            # Flatten the 2d slice and creating 4 copies of the flattened
+            # array which are rolled to align the 4-points which are needed
+            # for the calculation.
             flattened = slice_2d.data.flatten()
             ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
             ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
@@ -518,8 +497,7 @@ class SquareNeighbourhood(object):
             neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
                                    ymin_xmin_array - ymax_xmin_array)
             neighbourhood_total.resize(n_rows, n_columns)
-            # Initialise the neighbourhood size array and calculate
-            # neighbourhood size for non edge cases.
+            # Initialise and calculate the neighbourhood area.
             neighbourhood_area = np.zeros(neighbourhood_total.shape)
             neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
             with np.errstate(invalid='ignore', divide='ignore'):
@@ -546,8 +524,9 @@ class SquareNeighbourhood(object):
             CubeList containing either the input cube, or the input cube and
             a mask cube.
         """
-        # If there is no mask, make a mask of ones. This will speed up the
-        # calculation.
+        # If there is a mask, fill the data array of the mask_cube with a
+        # logical array, logically inverted compared to the integer version of
+        # the mask within the original data array.
         if isinstance(cube.data, np.ma.MaskedArray):
             mask_cube = cube.copy()
             mask_cube.rename('mask_data')
@@ -581,14 +560,14 @@ class SquareNeighbourhood(object):
 
         Returns
         -------
-        neighhourhood_averaged_cubes : Iris.cube.CubeList
+        neighbourhood_averaged_cubes : Iris.cube.CubeList
             CubeList containing the smoothed field after the square
             neighbourhood method has been applied to either the input cube, or
             both the input cube and a mask cube.
         """
         neighbourhood_averaged_cubes = iris.cube.CubeList([])
         for cube_to_process in cubes_to_sum:
-            # Pad the iris cube with zeros. This way, the edge effects produced
+            # Pad the iris cube. This way, the edge effects produced
             # by the vectorisation of the 4-point method will appear outside
             # our domain of interest. These unwanted points can be trimmed off
             # later.
@@ -609,11 +588,11 @@ class SquareNeighbourhood(object):
 
         Parameters
         ----------
-        neighhourhood_averaged_cubes : Iris.cube.CubeList
+        neighbourhood_averaged_cubes : Iris.cube.CubeList
             CubeList containing the smoothed field after the square
             neighbourhood method has been applied to either the input cube, or
             both the input cube and a mask cube.
-        pre_neighhourhood_cubes : Iris.cube.CubeList
+        pre_neighbourhood_cubes : Iris.cube.CubeList
             CubeList containing the fields prior to applying neighbourhood
             processing. This is required to be able to know the original mask
             cube.
@@ -628,7 +607,7 @@ class SquareNeighbourhood(object):
 
         Returns
         -------
-        neighhourhood_averaged_cube : Iris.cube.Cube
+        neighbourhood_averaged_cube : Iris.cube.Cube
             Cube containing the smoothed field after the square
             neighbourhood method has been applied.
         """
@@ -660,8 +639,8 @@ class SquareNeighbourhood(object):
         Call the methods required to apply a square neighbourhood
         method to a cube.
 
-        The steps for undertaken are:
-        1. Set to cubes by determining, if the arrays are masked.
+        The steps undertaken are:
+        1. Set up cubes by determining, if the arrays are masked.
         2. Pad the input array with a halo and then calculate the neighbourhood
            of the haloed array.
         3. Remove the halo from the neighbourhooded array and deal with a mask,
@@ -678,7 +657,7 @@ class SquareNeighbourhood(object):
 
         Returns
         -------
-        neighhourhood_averaged_cube : Iris.cube.Cube
+        neighbourhood_averaged_cube : Iris.cube.Cube
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """

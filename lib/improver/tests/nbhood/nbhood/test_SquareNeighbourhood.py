@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.CircularNeighbourhood plugin."""
+"""Unit tests for the nbhood.SquareNeighbourhood plugin."""
 
 
 import unittest
@@ -71,7 +71,6 @@ class Test_cumulate_array(IrisTest):
                          [3., 6., 8., 11., 14.],
                          [4., 8., 11., 15., 19.],
                          [5., 10., 14., 19., 24.]])
-        nanmask = np.zeros([5, 5]).astype(bool)
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -112,7 +111,7 @@ class Test_cumulate_array(IrisTest):
         self.assertArrayAlmostEqual(result[0].data, data)
         self.assertArrayAlmostEqual(result[1][0].data, nan_mask)
 
-    def test_for_multiple_times_NaNs(self):
+    def test_for_multiple_times_nans(self):
         """
         Test that the y-dimension and x-dimension accumulation produces the
         intended result when the input cube has multiple times. The input
@@ -194,7 +193,7 @@ class Test_cumulate_array(IrisTest):
         self.assertArrayAlmostEqual(result[1][0].data, nan_mask)
 
     def test_nan_array(self):
-        """Test correct nanmask is returned when array containing NaN data
+        """Test correct nanmask is returned when array containing nan data
            is input."""
         data = np.array([[0., 1., 2., 3., 4.],
                          [1., 3., 5., 7., 9.],
@@ -261,28 +260,6 @@ class Test_pad_coord(IrisTest):
         new_coord = SquareNeighbourhood.pad_coord(coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
         self.assertArrayAlmostEqual(new_coord.points, expected)
-
-
-class Test__check_for_x_and_y_axes(IrisTest):
-
-    """Test whether the cube has an x and y axis."""
-
-    def setUp(self):
-        """Set up a cube."""
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
-
-    def test_no_y_coordinate(self):
-        """Test that the expected exception is raised, if there is no
-        y coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_x_coordinate"]):
-            break
-        sliced_cube.remove_coord("projection_y_coordinate")
-        msg = "The cube does not contain the expected"
-        with self.assertRaisesRegexp(ValueError, msg):
-            SquareNeighbourhood._check_for_x_and_y_axes(sliced_cube)
 
 
 class Test__create_cube_with_new_data(IrisTest):
@@ -509,7 +486,7 @@ class Test_remove_halo_from_cube(IrisTest):
 
     def test_different_widths(self):
         """Test that removing a halo of points from the data on a cube
-        has worked as intended for difference x and y widths."""
+        has worked as intended for different x and y widths."""
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 5, 5),), num_time_points=1,
             num_grid_points=10)
@@ -636,7 +613,7 @@ class Test_mean_over_neighbourhood(IrisTest):
             result.data[1, 2:-2, 2:-2], self.padded_result)
 
     def test_nan_mask(self):
-        """Test the correct result is returned when a nans must be substituded
+        """Test the correct result is returned when a nan must be substituted
            into the final array. Note: this type of data should also be masked,
            so the expected_data array looks strange because there is further
            processing to be done on it."""
@@ -897,8 +874,8 @@ class Test_run(IrisTest):
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data.filled(), expected_array)
 
-    def test_NaN_array(self):
-        """Test that the an array containing NaNs is handled correctly."""
+    def test_nan_array(self):
+        """Test that the an array containing nans is handled correctly."""
         data = np.array(
             [[np.nan, 0.777778, 1., 1., 1.],
              [0.777778, 0.77777778, 0.88888889, 0.88888889, 1.],
@@ -908,7 +885,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        cube.data[0, 0, 0, 0] = np.NaN
+        cube.data[0, 0, 0, 0] = np.nan
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -919,7 +896,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        cube.data = np.array([[[[np.NaN, 1, 0, 1, 1],
+        cube.data = np.array([[[[np.nan, 1, 0, 1, 1],
                                 [1, 1, 1, 0, 0],
                                 [1, 0, 1, 0, 0],
                                 [0, 0, 1, 1, 0],
@@ -1011,9 +988,9 @@ class Test_run(IrisTest):
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data.filled(), expected_array)
 
-    def test_multiple_times_NaN(self):
+    def test_multiple_times_nan(self):
         """Test that a cube with correct data is produced by the run method
-        for multiple times and for when NaNs are present."""
+        for multiple times and for when nans are present."""
         expected_1 = np.array(
             [[np.nan, 0.666667, 0.88888889, 0.88888889, 1.],
              [0.777778, 0.66666667, 0.77777778, 0.77777778,  1.],
@@ -1029,8 +1006,8 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2), (0, 0, 1, 2)), num_time_points=2,
             num_grid_points=5)
-        cube.data[0, 0, 0, 0] = np.NaN
-        cube.data[0, 1, 1, 1] = np.NaN
+        cube.data[0, 0, 0, 0] = np.nan
+        cube.data[0, 1, 1, 1] = np.nan
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data[0], expected_1)
