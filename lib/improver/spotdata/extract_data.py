@@ -209,10 +209,11 @@ class ExtractData(object):
         """
         time_coord = cube.coord('time')
         time_coord.convert_units('hours since 1970-01-01 00:00:00')
-        latitudes = [site['latitude'] for site in sites.itervalues()]
-        longitudes = [site['longitude'] for site in sites.itervalues()]
-        utc_offsets = [site['utc_offset'] for site in sites.itervalues()]
-        site_ids = sites.keys()
+        latitudes = [float(site['latitude']) for site in sites.itervalues()]
+        longitudes = [float(site['longitude']) for site in sites.itervalues()]
+        utc_offsets = [float(site['utc_offset'])
+                       for site in sites.itervalues()]
+        site_ids = [int(site) for site in sites.keys()]
 
         indices, bd_ids, latitude, longitude, utc_offset = (
             self._build_coordinates(
@@ -301,7 +302,7 @@ class ExtractData(object):
             gradient, intercept = lstsq(matrix, y_data)[0]
             return [gradient, intercept]
 
-        data = np.empty(shape=(len(sites)))
+        data = np.empty(shape=(len(sites)), dtype=float)
 
         for i_site, site in enumerate(sites.itervalues()):
             altitude = site['altitude']
@@ -522,7 +523,7 @@ class ExtractData(object):
         z_upper, = upper_pressure.coord('height').points
         dz_model_levels = z_upper - z_lower
 
-        data = np.empty(shape=(len(sites)))
+        data = np.empty(shape=(len(sites)), dtype=float)
         for i_site in range(len(sites)):
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])

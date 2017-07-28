@@ -187,8 +187,15 @@ class PointSelection(object):
             i_latitude, j_longitude = get_nearest_coords(
                 cube, latitude, longitude, iname, jname)
             dz_site_grid = 0.
-            if orography is not None:
+
+            # Calculate SpotData site vertical displacement from model
+            # orography. If site altitude set with np.nan or orography data
+            # is unavailable, assume site is at equivalent altitude to nearest
+            # neighbour.
+            if orography is not None and altitude != np.nan:
                 dz_site_grid = altitude - orography[i_latitude, j_longitude]
+            else:
+                dz_site_grid = 0.
 
             neighbours[i_site] = (int(i_latitude), int(j_longitude),
                                   dz_site_grid,
@@ -261,6 +268,10 @@ class PointSelection(object):
         for i_site, site in enumerate(sites.itervalues()):
 
             altitude = site['altitude']
+
+            # If site altitude is set with np.nan this method cannot be used.
+            if altitude == np.nan:
+                continue
 
             i, j, dz_nearest = (neighbours['i'][i_site],
                                 neighbours['j'][i_site],

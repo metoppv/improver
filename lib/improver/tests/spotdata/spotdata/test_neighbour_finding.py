@@ -32,12 +32,11 @@
 
 
 import unittest
-
+import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 from collections import OrderedDict
-import numpy as np
 
 from improver.spotdata.neighbour_finding import PointSelection as Plugin
 
