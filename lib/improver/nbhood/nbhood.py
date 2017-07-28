@@ -261,7 +261,8 @@ class SquareNeighbourhood(object):
             new_points = np.float32(orig_points[2*width:end_width])
         return coord.copy(points=new_points)
 
-    def _create_cube_with_new_data(self, cube, data, coord_x, coord_y):
+    @staticmethod
+    def _create_cube_with_new_data(cube, data, coord_x, coord_y):
         """
         Create a cube with newly created data where the metadata is copied from
         the input cube and the supplied x and y coordinates are added to the
@@ -398,7 +399,8 @@ class SquareNeighbourhood(object):
                     slice_2d, trimmed_data, trimmed_x_coord, trimmed_y_coord))
         return cubelist.merge_cube()
 
-    def mean_over_neighbourhood(self, cube, cells_x, cells_y, nan_masks):
+    @staticmethod
+    def mean_over_neighbourhood(cube, cells_x, cells_y, nan_masks):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
