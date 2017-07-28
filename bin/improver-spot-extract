@@ -52,6 +52,23 @@ def valid_longitude(value):
             "{} not in range [-180,180]".format(value))
     return value
 
+def site_dictionary(latitudes, longitudes, altitudes):
+    if len(latitudes) != len(longitudes):
+        raise ValueError('Unequal no. of latitudes and longitudes provided.')
+
+    if altitudes is None:
+        altitudes = [None] * len(latitudes)
+
+    site_properties = []
+    for site in range(len(latitudes)):
+        site_properties.append({
+                'latitude': latitudes[site],
+                'longitude': longitudes[site],
+                'altitude': altitudes[site]
+                })
+
+    return site_properties
+
 
 def main():
     """Load in arguments and start spotdata process."""
@@ -92,8 +109,6 @@ def main():
                         help='List of longitudes of sites of interest.')
     parser.add_argument('--altitudes', type=float, nargs='+',
                         help='List of altitudes of sites of interest.')
-    parser.add_argument('--site_ids', type=int, nargs='+',
-                        help='ID numbers for sites can be set if desired.')
 
     # Forecast date/time information.
     parser.add_argument('--forecast_date', type=str,
@@ -111,12 +126,13 @@ def main():
 
     args = parser.parse_args()
 
-    site_properties = {
-        'latitudes': args.latitudes,
-        'longitudes': args.longitudes,
-        'altitudes': args.altitudes,
-        'site_ids': args.site_ids
-        }
+
+    site_properties = {}
+    if args.latitudes != None:
+        site_properties = site_dictionary(args.latitudes, args.longitudes,
+                                          args.altitudes)
+
+    print site_properties
 
     run_spotdata(args.config_file_path, args.data_path, args.ancillary_path,
                  diagnostic_list=args.diagnostics, site_path=args.site_path,

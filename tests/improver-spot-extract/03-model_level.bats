@@ -31,13 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spotdata args kwargs" {
+@test "spot-extract args kwargs" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run spotdata framework and check it passes. Using model-level derived
+  # Run spot-extract framework and check it passes. Using model-level derived
   # temperature lapse rate.
-  run improver spotdata \
+  run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spotdata/basic/model_level_diagnostics.json" \
       "$IMPROVER_ACC_TEST_DIR/spotdata/basic" \
       "$IMPROVER_ACC_TEST_DIR/spotdata/basic" \
@@ -45,7 +45,6 @@
       --latitudes 10 20 30 40 50 60 \
       --longitudes 0 0 0 0 0 0 \
       --altitudes 0 1 2 3 4 5 \
-      --site_ids 0 1 2 3 4 5 \
       --forecast_date 20170217 \
       --forecast_time 6 \
       --forecast_length 2 \

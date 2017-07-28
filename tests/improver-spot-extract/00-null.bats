@@ -29,23 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "spotdata no arguments" {
-  run improver spotdata
+@test "spot-extract no arguments" {
+  run improver spot-extract
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-spotdata [-h] [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
-                         [--site_path SITE_PATH]
-                         [--constants_path CONSTANTS_PATH]
-                         [--latitudes -90,90) [(-90,90) ...]]
-                         [--longitudes (-180,180) [(-180,180 ...]]
-                         [--altitudes ALTITUDES [ALTITUDES ...]]
-                         [--site_ids SITE_IDS [SITE_IDS ...]]
-                         [--forecast_date FORECAST_DATE]
-                         [--forecast_time FORECAST_TIME]
-                         [--forecast_length FORECAST_LENGTH]
-                         [--output_path OUTPUT_PATH]
-                         [--multiprocess MULTIPROCESS]
-                         config_file_path data_path ancillary_path
+usage: improver-spot-extract [-h]
+                             [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
+                             [--site_path SITE_PATH]
+                             [--constants_path CONSTANTS_PATH]
+                             [--latitudes -90,90) [(-90,90) ...]]
+                             [--longitudes (-180,180) [(-180,180 ...]]
+                             [--altitudes ALTITUDES [ALTITUDES ...]]
+                             [--forecast_date FORECAST_DATE]
+                             [--forecast_time FORECAST_TIME]
+                             [--forecast_length FORECAST_LENGTH]
+                             [--output_path OUTPUT_PATH]
+                             [--multiprocess MULTIPROCESS]
+                             config_file_path data_path ancillary_path
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

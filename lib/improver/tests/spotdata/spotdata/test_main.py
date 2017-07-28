@@ -118,19 +118,14 @@ class Test_main(IrisTest):
         self.cube = cube
         self.diagnostic_recipe = diagnostic_recipe
 
-        site_properties = {
-            'latitudes': [10, 20, 30, 40, 50, 60],
-            'longitudes': [0, 0, 0, 0, 0, 0],
-            'altitudes': [0, 1, 2, 3, 4, 5],
-            'site_ids': [0, 1, 2, 3, 4, 5],
-            }
-
         self.sites = OrderedDict()
         self.sites['100'] = {'latitude': 50,
                              'longitude': 0,
                              'altitude': 10,
                              'utc_offset': 0
                              }
+
+        site_properties = [self.sites['100']]
 
         self.args = (self.config_path, self.data_directory,
                      self.data_directory)
@@ -165,8 +160,7 @@ class Test_run_spotdata(Test_main):
         """Test framework raises an error when no SpotData site information is
         provided."""
 
-        self.kwargs['site_properties']['latitudes'] = None
-        self.kwargs['site_properties']['longitudes'] = None
+        self.kwargs.pop('site_properties', None)
         msg = 'No SpotData site information has been provided'
         with self.assertRaisesRegexp(ValueError, msg):
             Function(*self.args, **self.kwargs)
@@ -177,6 +171,7 @@ class Test_run_spotdata(Test_main):
 
         self.kwargs['forecast_date'] = '20150217'
         msg = 'No data available at given forecast times.'
+
         with self.assertRaisesRegexp(Exception, msg):
             Function(*self.args, **self.kwargs)
 

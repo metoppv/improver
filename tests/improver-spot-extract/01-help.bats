@@ -29,23 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "spotdata -h" {
-  run improver spotdata -h
+@test "spot-extract -h" {
+  run improver spot-extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-spotdata [-h] [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
-                         [--site_path SITE_PATH]
-                         [--constants_path CONSTANTS_PATH]
-                         [--latitudes -90,90) [(-90,90) ...]]
-                         [--longitudes (-180,180) [(-180,180 ...]]
-                         [--altitudes ALTITUDES [ALTITUDES ...]]
-                         [--site_ids SITE_IDS [SITE_IDS ...]]
-                         [--forecast_date FORECAST_DATE]
-                         [--forecast_time FORECAST_TIME]
-                         [--forecast_length FORECAST_LENGTH]
-                         [--output_path OUTPUT_PATH]
-                         [--multiprocess MULTIPROCESS]
-                         config_file_path data_path ancillary_path
+usage: improver-spot-extract [-h]
+                             [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
+                             [--site_path SITE_PATH]
+                             [--constants_path CONSTANTS_PATH]
+                             [--latitudes -90,90) [(-90,90) ...]]
+                             [--longitudes (-180,180) [(-180,180 ...]]
+                             [--altitudes ALTITUDES [ALTITUDES ...]]
+                             [--forecast_date FORECAST_DATE]
+                             [--forecast_time FORECAST_TIME]
+                             [--forecast_length FORECAST_LENGTH]
+                             [--output_path OUTPUT_PATH]
+                             [--multiprocess MULTIPROCESS]
+                             config_file_path data_path ancillary_path
 
 SpotData : A configurable tool to extract spot-data from gridded diagnostics.
 The method of interpolating and adjusting the resulting data can be set by
@@ -76,8 +76,6 @@ optional arguments:
                         List of longitudes of sites of interest.
   --altitudes ALTITUDES [ALTITUDES ...]
                         List of altitudes of sites of interest.
-  --site_ids SITE_IDS [SITE_IDS ...]
-                        ID numbers for sites can be set if desired.
   --forecast_date FORECAST_DATE
                         Start date of forecast in format YYYYMMDD (e.g.
                         20170327 = 27th March 2017).

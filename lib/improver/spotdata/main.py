@@ -147,8 +147,7 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
                                         forecast_length=forecast_length)
 
     # Check site data has been provided.
-    if (site_path is None and site_properties['latitudes'] is None and
-            site_properties['longitudes'] is None):
+    if site_path is None and not site_properties:
         raise ValueError("No SpotData site information has been provided "
                          "from a file or defined at runtime.")
 
