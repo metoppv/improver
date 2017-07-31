@@ -32,16 +32,15 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "spot-extract args kwargs" {
-  TEST_DIR='/home/h02/bayliffe/improver/'
-#  TEST_DIR=$(mktemp -d)
+  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run spot-extract framework and check it passes. Using model-level derived
   # temperature lapse rate.
   run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spotdata/basic/model_level_diagnostics.json" \
-      "$IMPROVER_ACC_TEST_DIR/spotdata/basic" \
-      "$IMPROVER_ACC_TEST_DIR/spotdata/basic" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_diagnostics.json" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
       --diagnostics temperature \
       --latitudes 10 20 30 40 50 60 \
       --longitudes 0 0 0 0 0 0 \
@@ -54,13 +53,13 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/air_temperature.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spotdata/basic/model_level_kgo.nc"
+                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_kgo.nc"
   improver_compare_output "$TEST_DIR/air_temperature_max.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spotdata/basic/model_level_air_temperature_max_kgo.nc"
+                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_max_kgo.nc"
   improver_compare_output "$TEST_DIR/air_temperature_min.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spotdata/basic/model_level_air_temperature_min_kgo.nc"
-#  rm "$TEST_DIR/air_temperature.nc"
-#  rm "$TEST_DIR/air_temperature_max.nc"
-#  rm "$TEST_DIR/air_temperature_min.nc"
-#  rmdir "$TEST_DIR"
+                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_min_kgo.nc"
+  rm "$TEST_DIR/air_temperature.nc"
+  rm "$TEST_DIR/air_temperature_max.nc"
+  rm "$TEST_DIR/air_temperature_min.nc"
+  rmdir "$TEST_DIR"
 }
