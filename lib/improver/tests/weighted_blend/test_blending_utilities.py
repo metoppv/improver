@@ -199,14 +199,24 @@ class TestBlendingUtilities(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def test_blend_percentile_aggregate(self):
+        """Test blend_percentile_aggregate function works"""
+        weights = np.array([0.8, 0.2])
+        percentiles = np.array([0, 20, 40, 60, 80, 100])
+        result = BlendingUtilities.blend_percentile_aggregate(
+            np.reshape(PERCENTILE_DATA, (6, 2, 2, 2)), 1,
+            percentiles,
+            weights, 0)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
+                                           (6, 2, 2))
+        self.assertArrayAlmostEqual(result, expected_result_array)
+
     def test_blend_percentiles(self):
         """Test blend_percentile function works"""
         weights = np.array([0.38872692, 0.33041788, 0.2808552])
         percentiles = np.array([0., 10., 20., 30., 40., 50.,
                                 60., 70., 80., 90., 100.])
-        num = 3
-        result = BlendingUtilities.blend_percentiles(num,
-                                                     PERCENTILE_VALUES,
+        result = BlendingUtilities.blend_percentiles(PERCENTILE_VALUES,
                                                      percentiles,
                                                      weights)
         expected_result_array = np.array([12.70237152, 16.65161847,

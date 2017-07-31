@@ -33,6 +33,7 @@ import warnings
 
 import numpy as np
 import iris
+from iris.analysis import Aggregator
 
 
 class BlendingUtilities(object):
@@ -60,7 +61,7 @@ class BlendingUtilities(object):
                      or None (equivalent to equal weights)
             coord : string
                      The name of a coordinate dimension in the cube.
-            coord_dim : integer
+            coord_dim : tuple
                      The index of the coordinate dimension in the cube.
 
         Returns:
@@ -89,7 +90,7 @@ class BlendingUtilities(object):
                      or None (equivalent to equal weights)
             coord : string
                      The name of a coordinate dimension in the cube.
-            coord_dim : integer
+            coord_dim : tuple
                      The index of the coordinate dimension in the cube.
             perc_coord : iris.cube.DimCoord
                      The perecentile coordinate
@@ -104,16 +105,15 @@ class BlendingUtilities(object):
         num = cube.data.shape[coord_dim[0]]
         if weights is None:
             weights = np.ones(num)/float(num)
-        result = cube.collapsed(coord,
-                                iris.analysis.MEAN)
+        PERCENTILE_BLEND = (Aggregator('percentile_blend',
+                            BlendingUtilities.blend_percentile_aggregate))
         perc_dim, = cube.coord_dims(perc_coord.name())
-        type(coord_dim)
-        result.data = (
-            BlendingUtilities.blend_percentile_aggregate(cube.data,
-                                                         coord_dim[0],
-                                                         percentiles,
-                                                         weights,
-                                                         perc_dim))
+
+        result = cube.collapsed(coord,
+                                PERCENTILE_BLEND,
+                                arr_percent=percentiles,
+                                arr_weights=weights,
+                                perc_dim=perc_dim)
 
         # Add meta data
         new_name = 'over {}'.format(coord)
@@ -121,7 +121,8 @@ class BlendingUtilities(object):
         return result
 
     @staticmethod
-    def blend_percentile_aggregate(data, axis, percent, weights, perc_dim):
+    def blend_percentile_aggregate(data, axis,
+                                   arr_percent, arr_weights, perc_dim):
         """ Blend percentile aggregate function
 
         Args:
@@ -129,27 +130,30 @@ class BlendingUtilities(object):
                    Array containing the data to blend
             axis : integer
                    The index of the coordinate dimension in the cube.
-            percent: np.array
+            arr_percent: np.array
                      Array of percentile values e.g
                      [0, 20.0, 50.0, 70.0, 100.0],
                      same size as the percentile dimension of data.
-            weights: np.array
+            arr_weights: np.array
                      Array of weights, same size as the axis dimension of data.
             perc_dim : integer
                      The index of the perecentile coordinate
+            (Note percent and weights have special meaning in Aggregator
+             hence the rename.)
 
         Returns:
             result : np.array
                      containing the weighted percentile blend data
                      across the chosen coord
         """
+        if axis < 0:
+            axis += data.ndim
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
         data = np.rollaxis(data, perc_dim, start=0)
         data = np.rollaxis(data, axis, start=0)
         # Determine the rest of the shape
         shape = data.shape[2:]
-        # print shape
 
         result = None
         if shape:
@@ -167,14 +171,13 @@ class BlendingUtilities(object):
             for i in range(data.shape[-1]):
                 # print 'Loop i, shape,', i, data[:,:,i].shape
                 result[:, i] = (
-                    BlendingUtilities.blend_percentiles(data.shape[0],
-                                                        data[:, :, i],
-                                                        percent,
-                                                        weights))
+                    BlendingUtilities.blend_percentiles(data[:, :, i],
+                                                        arr_percent,
+                                                        arr_weights))
         # Reshape the data and put the percentile dimension
         # back in the right place
-        if percent.shape > (1,):
-            shape = percent.shape + shape
+        if arr_percent.shape > (1,):
+            shape = arr_percent.shape + shape
             result = result.reshape(shape)
             if axis < perc_dim:
                 if perc_dim != 1:
@@ -182,10 +185,32 @@ class BlendingUtilities(object):
             else:
                 if perc_dim != 0:
                     result = np.rollaxis(result, 0, start=perc_dim)
+        # print 'Result shape',result.shape
         return result
 
     @staticmethod
-    def blend_percentiles(num, perc_values, percentiles, weights):
+    def blend_percentiles(perc_values, percentiles, weights):
+        """ Blend percentiles function
+
+        Args:
+            perc_values : np.array
+                   Array containing the percentile values to blend
+                   shape (length of coord to blend, num of percentiles)
+            percentiles: np.array
+                         Array of percentile values e.g
+                         [0, 20.0, 50.0, 70.0, 100.0],
+                         same size as the percentile dimension of data.
+            weights: np.array
+                     Array of weights, same size as the axis dimension of data.
+            perc_dim : integer
+                     The index of the perecentile coordinate
+
+        Returns:
+            result : np.array
+                     containing the weighted percentile blend data
+                     across the chosen coord
+        """
+        num = perc_values.shape[0]
         recalc_values_in_pdf = np.zeros((num, num, len(percentiles)))
         for i in range(0, num):
             for j in range(0, num):
