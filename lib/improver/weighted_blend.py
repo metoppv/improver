@@ -101,29 +101,87 @@ class BlendingUtilities(object):
         """
 
         percentiles = np.array(perc_coord.points, dtype=float)
-        result = cube.collapsed(coord,
-                                iris.analysis.MEAN)
-        new_name = 'over {}'.format(coord)
-        result.attributes.update({'Blended': new_name})
         num = cube.data.shape[coord_dim[0]]
         if weights is None:
             weights = np.ones(num)/float(num)
-        for slicecube in cube.slices([coord, perc_coord.name()]):
+        result = cube.collapsed(coord,
+                                iris.analysis.MEAN)
+        perc_dim, = cube.coord_dims(perc_coord.name())
+        type(coord_dim)
+        result.data = (
+            BlendingUtilities.blend_percentile_aggregate(cube.data,
+                                                         coord_dim[0],
+                                                         percentiles,
+                                                         weights,
+                                                         perc_dim))
 
-            new_perc = BlendingUtilities.blend_percentiles(num,
-                                                           slicecube.data,
-                                                           percentiles,
-                                                           weights)
-            slicelat = slicecube.coord('latitude').points[0]
+        # Add meta data
+        new_name = 'over {}'.format(coord)
+        result.attributes.update({'Blended': new_name})
+        return result
 
-            slicelon = slicecube.coord('longitude').points[0]
+    @staticmethod
+    def blend_percentile_aggregate(data, axis, percent, weights, perc_dim):
+        """ Blend percentile aggregate function
 
-            latpoints = result.coord('latitude').points
-            ilat = np.where(latpoints == slicelat)[0][0]
-            lonpoints = result.coord('longitude').points
-            ilon = np.where(lonpoints == slicelon)[0][0]
+        Args:
+            data : np.array
+                   Array containing the data to blend
+            axis : integer
+                   The index of the coordinate dimension in the cube.
+            percent: np.array
+                     Array of percentile values e.g
+                     [0, 20.0, 50.0, 70.0, 100.0],
+                     same size as the percentile dimension of data.
+            weights: np.array
+                     Array of weights, same size as the axis dimension of data.
+            perc_dim : integer
+                     The index of the perecentile coordinate
 
-            result.data[:, ilat, ilon] = new_perc
+        Returns:
+            result : np.array
+                     containing the weighted percentile blend data
+                     across the chosen coord
+        """
+        # Firstly ensure axis coordinate and percentile coordinate
+        # are indexed as the first and second values in the data array
+        data = np.rollaxis(data, perc_dim, start=0)
+        data = np.rollaxis(data, axis, start=0)
+        # Determine the rest of the shape
+        shape = data.shape[2:]
+        # print shape
+
+        result = None
+        if shape:
+            input_shape = [data.shape[0],
+                           data.shape[1],
+                           np.prod(shape)]
+            # print ' input_shape', input_shape
+            # Flatten the data that is not percentile or coord data
+            data = data.reshape(input_shape)
+            # print 'data shape', data.shape
+            # Create the resulting data array
+            result = np.zeros(input_shape[1:])
+            # print 'result shape', result.shape
+            # Loop over the flatten data
+            for i in range(data.shape[-1]):
+                # print 'Loop i, shape,', i, data[:,:,i].shape
+                result[:, i] = (
+                    BlendingUtilities.blend_percentiles(data.shape[0],
+                                                        data[:, :, i],
+                                                        percent,
+                                                        weights))
+        # Reshape the data and put the percentile dimension
+        # back in the right place
+        if percent.shape > (1,):
+            shape = percent.shape + shape
+            result = result.reshape(shape)
+            if axis < perc_dim:
+                if perc_dim != 1:
+                    result = np.rollaxis(result, 0, start=perc_dim-1)
+            else:
+                if perc_dim != 0:
+                    result = np.rollaxis(result, 0, start=perc_dim)
         return result
 
     @staticmethod
