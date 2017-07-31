@@ -167,7 +167,7 @@ class TestBlendingUtilities(IrisTest):
         expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_blend_percentile_cube(self):
+    def test_blend_percentile_cube1(self):
         """Test blending percentile cube works with equal weights."""
         coord = "time"
         weights = np.array([0.5, 0.5])
@@ -183,7 +183,7 @@ class TestBlendingUtilities(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_blend_percentile_cube(self):
+    def test_blend_percentile_cube2(self):
         """Test blending percentile cube works with unequal weights."""
         coord = "time"
         weights = np.array([0.8, 0.2])
