@@ -37,7 +37,6 @@ import warnings
 from numpy.linalg import lstsq
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
-from iris.exceptions import InvalidCubeError
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
 from improver.constants import (R_DRY_AIR,
