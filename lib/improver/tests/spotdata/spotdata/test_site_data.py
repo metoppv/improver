@@ -69,7 +69,7 @@ class Test_ImportSiteData(IrisTest):
         self.latitudes = [site['latitude'] for site in self.site_data]
         self.longitudes = [site['longitude'] for site in self.site_data]
         self.altitudes = [site['altitude'] for site in self.site_data]
-        self.wmo_sites = [0, 1, 1, 1, 1]
+        self.wmo_sites = [0, 15, 10, 17, 18]
         self.variables = ['latitude', 'longitude', 'altitude', 'utc_offset']
 
     def tearDown(self):
