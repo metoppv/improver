@@ -321,7 +321,7 @@ class SquareNeighbourhood(object):
         Parameters
         ----------
         cube : iris.cube.Cube
-            The original cube prior to applyint padding.
+            The original cube prior to applying padding.
         width_x, width_y : integer
             The width in x and y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to the
@@ -488,7 +488,7 @@ class SquareNeighbourhood(object):
 
         cubelist = iris.cube.CubeList([])
         for slice_2d, nan_mask in zip(cube.slices([yname, xname]), nan_masks):
-            # Flatten the 2d slice and creating 4 copies of the flattened
+            # Flatten the 2d slice and create 4 copies of the flattened
             # array which are rolled to align the 4-points which are needed
             # for the calculation.
             flattened = slice_2d.data.flatten()

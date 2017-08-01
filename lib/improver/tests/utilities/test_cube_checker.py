@@ -61,6 +61,17 @@ class Test__check_for_x_and_y_axes(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             check_for_x_and_y_axes(sliced_cube)
 
+    def test_no_x_coordinate(self):
+        """Test that the expected exception is raised, if there is no
+        x coordinate."""
+        for sliced_cube in self.cube.slices(
+                ["projection_y_coordinate"]):
+            break
+        sliced_cube.remove_coord("projection_x_coordinate")
+        msg = "The cube does not contain the expected"
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_for_x_and_y_axes(sliced_cube)
+
 
 if __name__ == '__main__':
     unittest.main()
