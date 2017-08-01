@@ -195,11 +195,11 @@ class NeighbourhoodPercentiles(object):
             raise ValueError("Error: NaN detected in input cube data")
 
         # Find the number of grid cells required for creating the
-        # neighbourhood
-        ranges = Utilities.get_neighbourhood_width_in_grid_cells(
-            cube, self.radii, MAX_RADIUS_IN_GRID_CELLS)
+        # neighbourhood (take largest value from returned tuple)
         if self.lead_times is None:
             radius = self._find_radii(num_ens)
+            ranges = max(Utilities.get_neighbourhood_width_in_grid_cells(
+                cube, radius, MAX_RADIUS_IN_GRID_CELLS))
             cube_new = self.method.run(cube, ranges)
         else:
             cube_lead_times = (
@@ -213,7 +213,9 @@ class NeighbourhoodPercentiles(object):
             for cube_slice, radius in (
                     zip(cube.slices_over("time"),
                         required_radii)):
-                cube_perc = self.method.run(cube_slice, radius)
+                ranges = max(Utilities.get_neighbourhood_width_in_grid_cells(
+                    cube, radius, MAX_RADIUS_IN_GRID_CELLS))
+                cube_perc = self.method.run(cube_slice, ranges)
                 cube_perc = iris.util.new_axis(cube_perc, "time")
                 cubes.append(cube_perc)
                 cube_new = concatenate_cubes(cubes,
