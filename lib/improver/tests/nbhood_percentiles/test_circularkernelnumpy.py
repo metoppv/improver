@@ -43,7 +43,8 @@ from improver.tests.nbhood.test_neighbourhoodprocessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.percentile import PercentileConverter
 
-# Standard percentile answers for radius 2 grid points (==> circle of 13 points)
+# Standard percentile answers for radius 2 grid points
+# (==> circle of 13 points)
 # Array name indicates how many of the 13 grid points were ones;
 # remaining points are zeroes.
 PERCENTILES_1_IN_13 = np.ones(15)
@@ -55,9 +56,11 @@ PERCENTILES_2_IN_13[:3] = [0., 0., 0.2]
 PERCENTILES_1_IN_5 = np.ones(15)
 PERCENTILES_1_IN_5[:4] = [0., 0.2, 0.4, 0.8]
 
-# Standard percentile answers for radius 3 grid points (==> circle of 25 points)
+# Standard percentile answers for radius 3 grid points
+# (==> circle of 25 points)
 PERCENTILES_1_IN_25 = np.ones(15)
 PERCENTILES_1_IN_25[:1] = [0.]
+
 
 class Test__repr__(IrisTest):
 
@@ -76,7 +79,10 @@ class Test_make_percentile_cube(IrisTest):
     """Test CircularKernelNumpy.make_percentile_cube."""
 
     def test_basic(self):
-        """Test that the plugin returns an iris.cube.Cube and that percentile coord is added."""
+        """
+        Test that the plugin returns an iris.cube.Cube and that percentile
+        coord is added.
+        """
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -106,9 +112,12 @@ class Test_run(IrisTest):
         cube = set_up_cube()
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0, 5:10, 7] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 0, 6:9, 8] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 6:9, 6] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 0, 5:10, 7] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
+        expected[:, 0, 0, 6:9, 8] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
         result = CircularKernelNumpy().run(cube, ranges)
@@ -122,14 +131,20 @@ class Test_run(IrisTest):
         )
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 10, 8] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 9:12, 9] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0, 8:13, 10] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 0, 9:12, 11] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 9:12, 9] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 0, 8:13, 10] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
+        expected[:, 0, 0, 9:12, 11] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 10, 12] = PERCENTILES_1_IN_13
         expected[:, 0, 1, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 1, 6:9, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 1, 5:10, 7] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 1, 6:9, 8] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 1, 6:9, 6] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 1, 5:10, 7] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
+        expected[:, 0, 1, 6:9, 8] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 1, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -157,9 +172,12 @@ class Test_run(IrisTest):
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0, 5:10, 7] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 0, 6:9, 8] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 6:9, 6] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 0, 5:10, 7] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
+        expected[:, 0, 0, 6:9, 8] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -177,9 +195,12 @@ class Test_run(IrisTest):
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0, 5:10, 7] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 0, 6:9, 8] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 6:9, 6] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 0, 5:10, 7] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
+        expected[:, 0, 0, 6:9, 8] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -190,7 +211,8 @@ class Test_run(IrisTest):
         cube = set_up_cube()
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 6] = PERCENTILES_1_IN_5
-        expected[:, 0, 0, 6:9, 7] = np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1)))
+        expected[:, 0, 0, 6:9, 7] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1))))
         expected[:, 0, 0, 7, 8] = PERCENTILES_1_IN_5
         ranges = 1
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -210,13 +232,18 @@ class Test_run(IrisTest):
             zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 4] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 5] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0, 5:10, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
+        expected[:, 0, 0, 6:9, 5] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
+        expected[:, 0, 0, 5:10, 6] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
         expected[:, 0, 0, 7, 6] = PERCENTILES_2_IN_13
-        expected[:, 0, 0, 6:9, 7] = np.transpose(np.tile(PERCENTILES_2_IN_13, (3, 1)))
-        expected[:, 0, 0, 5:10, 8] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
+        expected[:, 0, 0, 6:9, 7] = (
+            np.transpose(np.tile(PERCENTILES_2_IN_13, (3, 1))))
+        expected[:, 0, 0, 5:10, 8] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
         expected[:, 0, 0, 7, 8] = PERCENTILES_2_IN_13
-        expected[:, 0, 0, 6:9, 9] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 6:9, 9] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 10] = PERCENTILES_1_IN_13
         ranges = 2
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -235,13 +262,18 @@ class Test_run(IrisTest):
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 4] = np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1)))
-        expected[:, 0, 0, 5:10, 3] = np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1)))
-        expected[:, 0, 0, 4:11, 2] = np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1)))
+        expected[:, 0, 0, 5:10, 4] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
+        expected[:, 0, 0, 5:10, 3] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
+        expected[:, 0, 0, 4:11, 2] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
         expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 5:10, 1] = np.transpose(np.tile(border_rows_1, (5, 1)))
+        expected[:, 0, 0, 5:10, 1] = (
+            np.transpose(np.tile(border_rows_1, (5, 1))))
         expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 5:10, 0] = np.transpose(np.tile(border_rows_2, (5, 1)))
+        expected[:, 0, 0, 5:10, 0] = (
+            np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -259,13 +291,18 @@ class Test_run(IrisTest):
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 4] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 3] = np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1)))
-        expected[:, 0, 0, 5:10, 2] = np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1)))
+        expected[:, 0, 0, 5:10, 3] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
+        expected[:, 0, 0, 5:10, 2] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
         expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 4:11, 1] = np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1)))
-        expected[:, 0, 0, 5:10, 1] = np.transpose(np.tile(border_rows_1, (5, 1)))
+        expected[:, 0, 0, 4:11, 1] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
+        expected[:, 0, 0, 5:10, 1] = (
+            np.transpose(np.tile(border_rows_1, (5, 1))))
         expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 5:10, 0] = np.transpose(np.tile(border_rows_2, (5, 1)))
+        expected[:, 0, 0, 5:10, 0] = (
+            np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -289,12 +326,16 @@ class Test_run(IrisTest):
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
         expected[:, 0, 0, 7, 3] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 2] = np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1)))
+        expected[:, 0, 0, 5:10, 2] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
         expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 5:10, 1] = np.transpose(np.tile(border_rows_1, (5, 1)))
+        expected[:, 0, 0, 5:10, 1] = (
+            np.transpose(np.tile(border_rows_1, (5, 1))))
         expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 4:11, 0] = np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1)))
-        expected[:, 0, 0, 5:10, 0] = np.transpose(np.tile(border_rows_2, (5, 1)))
+        expected[:, 0, 0, 4:11, 0] = (
+            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
+        expected[:, 0, 0, 5:10, 0] = (
+            np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
         result = (CircularKernelNumpy().run(cube, ranges))
@@ -349,7 +390,8 @@ class Test_check_coords(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         cube_with_perc = cube.copy()
-        perc_coord = iris.coords.DimCoord(50., long_name='percentiles', units='%')
+        perc_coord = iris.coords.DimCoord(50., long_name='percentiles',
+                                          units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
@@ -363,7 +405,8 @@ class Test_check_coords(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         cube_with_perc = cube.copy()
-        perc_coord = iris.coords.DimCoord(50., long_name='percentiles', units='%')
+        perc_coord = iris.coords.DimCoord(
+            50., long_name='percentiles', units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         cube_with_perc.transpose([2, 0, 3, 4, 1])
@@ -371,7 +414,8 @@ class Test_check_coords(IrisTest):
         self.assertEqual(result.coord_dims('percentiles')[0], 0)
         for coord in cube.coords():
             if len(cube.coord_dims(coord)) > 0:
-                self.assertEqual(result.coord_dims(coord)[0], cube.coord_dims(coord)[0]+1)
+                self.assertEqual(result.coord_dims(coord)[0],
+                                 cube.coord_dims(coord)[0]+1)
 
 
 if __name__ == '__main__':

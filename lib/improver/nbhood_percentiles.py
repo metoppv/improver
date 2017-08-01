@@ -167,8 +167,8 @@ class NeighbourhoodPercentiles(object):
         Returns
         -------
         cube : Iris.cube.Cube
-            Cube after applying a neighbourhood processing method with additional
-            percentile coordinate.
+            Cube after applying a neighbourhood processing method with
+            additional percentile coordinate.
 
         """
         # Check if the realization coordinate exists. If there are multiple
@@ -220,9 +220,11 @@ class NeighbourhoodPercentiles(object):
 
         return cube_new
 
+
 class CircularKernelNumpy(object):
     """
-    Methods for use in calculating percentiles from a 2D circular neighbourhood.
+    Methods for use in calculating percentiles from a 2D circular
+    neighbourhood.
 
     A maximum kernel radius of 500 grid cells is imposed in order to
     avoid computational ineffiency and possible memory errors.
@@ -280,30 +282,36 @@ class CircularKernelNumpy(object):
         # contained within the desired radius.
         kernel = np.ones([int(1 + x * 2) for x in ranges_xy])
         # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges_xy])])
-        # Always generate kernel in unweighted mode as later logic doesn't make sense otherwise
+        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1)
+                                      for x in ranges_xy])])
+        # Always generate kernel in unweighted mode as later logic doesn't
+        # make sense otherwise
         mask = np.reshape(
             np.sum(open_grid**2) > np.prod(ranges_xy), np.shape(kernel))
         kernel[mask] = 0.
 
-        # Loop over each 2D slice to reduce memory demand and derive percentiles
-        # on the kernel. Will return an extra dimension.
+        # Loop over each 2D slice to reduce memory demand and derive
+        # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
-        for slice_2d in cube.slices(['projection_x_coordinate',
-                                     'projection_y_coordinate']):
-            # Create a 1D data array padded with repeats of the local boundary mean.
-            padded = np.pad(slice_2d.data, ranges, mode='mean', stat_length=ranges)
-            padshape = np.shape(padded) # Store size to make unflatten easier
+        for slice_2d in cube.slices(['projection_y_coordinate',
+                                     'projection_x_coordinate']):
+            # Create a 1D data array padded with repeats of the local boundary
+            # mean.
+            padded = np.pad(slice_2d.data, ranges, mode='mean',
+                            stat_length=ranges)
+            padshape = np.shape(padded)  # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
             nbhood_slices = [
                 np.roll(padded, padshape[1]*j+i)
                 for i in range(-ranges, ranges+1)
-                for j in range(-ranges, ranges+1) if kernel[..., i+ranges, j+ranges] > 0.]
+                for j in range(-ranges, ranges+1)
+                if kernel[..., i+ranges, j+ranges] > 0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
-            perc_data = perc_data.reshape(len(self.percentiles), padshape[0], padshape[1])
+            perc_data = perc_data.reshape(
+                len(self.percentiles), padshape[0], padshape[1])
             # Create a cube for these data:
             pctcube = self.make_percentile_cube(slice_2d)
             # And put in data, removing the padding
@@ -317,7 +325,8 @@ class CircularKernelNumpy(object):
     def check_coords(cube, cube_orig):
         """Checks the coordinates of cube match those of cube_orig
         and promotes any that are not dimensions.
-        This function expects that cube will have an additional "percentiles" dimension.
+        This function expects that cube will have an additional
+        "percentiles" dimension.
 
         Parameters
         ----------
@@ -373,6 +382,7 @@ class CircularKernelNumpy(object):
         pctcubelist = iris.cube.CubeList()
         for pct in self.percentiles:
             pctcube = cube.copy()
-            pctcube.add_aux_coord(iris.coords.DimCoord(pct, long_name='percentiles', units='%'))
+            pctcube.add_aux_coord(iris.coords.DimCoord(
+                pct, long_name='percentiles', units='%'))
             pctcubelist.append(pctcube)
         return pctcubelist.merge_cube()

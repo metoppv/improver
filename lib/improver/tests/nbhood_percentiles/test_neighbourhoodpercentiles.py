@@ -177,7 +177,10 @@ class Test_process(IrisTest):
             NBHood(method, self.RADIUS).process(cube)
 
     def test_multiple_realizations(self):
-        """Test when the cube has a realization dimension that same coord is returned."""
+        """
+        Test when the cube has a realization dimension that same coord is
+        returned.
+        """
         cube = set_up_cube(num_realization_points=4)
         radii = 15000
         method = "circular"
@@ -189,7 +192,10 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord('realization').points, expected)
 
     def test_multiple_realizations_and_times(self):
-        """Test when the cube has a realization and time dimension that both are returned."""
+        """
+        Test when the cube has a realization and time dimension that both are
+        returned.
+        """
         cube = set_up_cube(num_time_points=3,
                            num_realization_points=4)
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
