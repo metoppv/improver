@@ -42,7 +42,7 @@ import numpy as np
 from improver.nbhood_percentiles import NeighbourhoodPercentiles as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
-from improver.tests.nbhood.test_neighbourhoodprocessing import (
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.percentile import PercentileConverter
 

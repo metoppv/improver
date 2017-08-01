@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood_percentiles import CircularKernelNumpy
-from improver.tests.nbhood.test_neighbourhoodprocessing import (
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.percentile import PercentileConverter
 

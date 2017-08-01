@@ -35,7 +35,9 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.nbhood import Utilities
+from improver.nbhood.nbhood import Utilities
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 from improver.percentile import PercentileConverter
 
 # Maximum radius of the neighbourhood width in grid cells.
@@ -196,7 +198,7 @@ class NeighbourhoodPercentiles(object):
         # neighbourhood (take largest value from returned tuple)
         if self.lead_times is None:
             radius = self._find_radii(num_ens)
-            ranges = max(Utilities.get_neighbourhood_width_in_grid_cells(
+            ranges = max(convert_distance_into_number_of_grid_cells(
                 cube, radius, MAX_RADIUS_IN_GRID_CELLS))
             cube_new = self.method.run(cube, ranges)
         else:
@@ -210,7 +212,7 @@ class NeighbourhoodPercentiles(object):
             for cube_slice, radius in (
                     zip(cube.slices_over("time"),
                         required_radii)):
-                ranges = max(Utilities.get_neighbourhood_width_in_grid_cells(
+                ranges = max(convert_distance_into_number_of_grid_cells(
                     cube, radius, MAX_RADIUS_IN_GRID_CELLS))
                 cube_perc = self.method.run(cube_slice, ranges)
                 cube_perc = iris.util.new_axis(cube_perc, "time")
