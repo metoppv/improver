@@ -36,7 +36,7 @@ install:
 
   # Add scitools requirements
   - conda config --add channels scitools
-  - conda config --add channels Scitools
+  - conda install -c Scitools biggus
   - conda install --quiet --file conda-requirements.txt
   - PREFIX=$HOME/miniconda/envs/$ENV_NAME
 
