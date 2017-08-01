@@ -355,8 +355,10 @@ class Test_check_coords(IrisTest):
         result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
         self.assertIsInstance(result, Cube)
 
-    def test_perc_zeroth_coord(self):
-        """Test that the method returns the percentile coord at position zero."""
+    def test_coord_order(self):
+        """Test that the method returns the coordinates in the right order
+        The new percentiles coordinate will be at position 0.
+        All other coordinate positions will be incremented by 1"""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -367,6 +369,9 @@ class Test_check_coords(IrisTest):
         cube_with_perc.transpose([2, 0, 3, 4, 1])
         result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
         self.assertEqual(result.coord_dims('percentiles')[0], 0)
+        for coord in cube.coords():
+            if len(cube.coord_dims(coord)) > 0:
+                self.assertEqual(result.coord_dims(coord)[0], cube.coord_dims(coord)[0]+1)
 
 
 if __name__ == '__main__':
