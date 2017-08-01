@@ -204,8 +204,7 @@ class NeighbourhoodPercentiles(object):
                 Utilities.find_required_lead_times(cube))
             # Interpolate to find the radius at each required lead time.
             required_radii = (
-                self._find_radii(num_ens,
-                                  cube_lead_times=cube_lead_times))
+                self._find_radii(num_ens, cube_lead_times=cube_lead_times))
 
             cubes = iris.cube.CubeList([])
             for cube_slice, radius in (
@@ -297,7 +296,10 @@ class CircularKernelNumpy(object):
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
-            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-ranges, ranges+1) for j in range(-ranges, ranges+1) if kernel[...,i+ranges, j+ranges]>0.]
+            nbhood_slices = [
+                np.roll(padded, padshape[1]*j+i)
+                for i in range(-ranges, ranges+1)
+                for j in range(-ranges, ranges+1) if kernel[..., i+ranges, j+ranges] > 0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
@@ -305,7 +307,7 @@ class CircularKernelNumpy(object):
             # Create a cube for these data:
             pctcube = self.make_percentile_cube(slice_2d)
             # And put in data, removing the padding
-            pctcube.data = perc_data[:,ranges:-ranges, ranges:-ranges]
+            pctcube.data = perc_data[:, ranges:-ranges, ranges:-ranges]
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
         result = self.check_coords(result, cube)
@@ -354,7 +356,8 @@ class CircularKernelNumpy(object):
         return cube
 
     def make_percentile_cube(self, cube):
-        """Returns a cube with the same metadata as the sample cube, but with an added percentile dimension
+        """Returns a cube with the same metadata as the sample cube
+        but with an added percentile dimension.
 
         Parameters
         ----------

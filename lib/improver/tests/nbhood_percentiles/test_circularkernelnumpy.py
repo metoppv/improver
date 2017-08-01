@@ -66,7 +66,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CircularKernelNumpy())
-        msg = '<CircularKernelNumpy: percentiles: {}>'.format(PercentileConverter.DEFAULT_PERCENTILES)
+        msg = '<CircularKernelNumpy: percentiles: {}>'.format(
+            PercentileConverter.DEFAULT_PERCENTILES)
         self.assertEqual(str(result), msg)
 
 
@@ -120,11 +121,11 @@ class Test_run(IrisTest):
             num_time_points=2
         )
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0,10, 8] = PERCENTILES_1_IN_13
-        expected[:, 0, 0,9:12, 9] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0,8:13,10] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
-        expected[:, 0, 0,9:12,11] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
-        expected[:, 0, 0,10,12] = PERCENTILES_1_IN_13
+        expected[:, 0, 0, 10, 8] = PERCENTILES_1_IN_13
+        expected[:, 0, 0, 9:12, 9] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 8:13, 10] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))
+        expected[:, 0, 0, 9:12, 11] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
+        expected[:, 0, 0, 10, 12] = PERCENTILES_1_IN_13
         expected[:, 0, 1, 7, 5] = PERCENTILES_1_IN_13
         expected[:, 0, 1, 6:9, 6] = np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1)))
         expected[:, 0, 1, 5:10, 7] = np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1)))

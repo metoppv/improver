@@ -85,7 +85,7 @@ class Test__repr__(IrisTest):
         msg = ('<NeighbourhoodPercentiles: method: circular_numpy; '
                'radii: 10000.0; lead_times: None; '
                'ens_factor: 1.0; percentile-count: {}>'.format(
-                  len(PercentileConverter.DEFAULT_PERCENTILES)))
+                   len(PercentileConverter.DEFAULT_PERCENTILES)))
         self.assertEqual(result, msg)
 
 
