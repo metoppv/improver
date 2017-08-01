@@ -79,7 +79,6 @@ class Test_make_percentile_cube(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        ranges = 2
         result = (
             CircularKernelNumpy().make_percentile_cube(cube))
         self.assertIsInstance(result, Cube)

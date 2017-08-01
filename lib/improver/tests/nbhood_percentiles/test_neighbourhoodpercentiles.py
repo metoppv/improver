@@ -33,16 +33,12 @@
 
 import unittest
 
-from cf_units import Unit
 import iris
-from iris.coords import AuxCoord, DimCoord
-from iris.coord_systems import OSGB
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
 
-from improver.grids.osgb import OSGBGRID
 from improver.nbhood_percentiles import NeighbourhoodPercentiles as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
