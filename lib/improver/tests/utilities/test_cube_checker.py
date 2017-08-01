@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,23 +28,50 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Unit tests for the cube_checker utility."""
 
-. $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'square' --radius=20000 input output" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
+import unittest
 
-  # Run square neighbourhood processing with masked data and check it passes.
-  run improver nbhood 'square' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input_masked.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+from iris.tests import IrisTest
 
-  # Run cmp -bl to compare the output and kgo.
-  cmp -bl "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_masked.nc"
-  [[ "$status" -eq 0 ]]
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
-}
+from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+    set_up_cube)
+
+
+class Test__check_for_x_and_y_axes(IrisTest):
+
+    """Test whether the cube has an x and y axis."""
+
+    def setUp(self):
+        """Set up a cube."""
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+
+    def test_no_y_coordinate(self):
+        """Test that the expected exception is raised, if there is no
+        y coordinate."""
+        for sliced_cube in self.cube.slices(
+                ["projection_x_coordinate"]):
+            break
+        sliced_cube.remove_coord("projection_y_coordinate")
+        msg = "The cube does not contain the expected"
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_for_x_and_y_axes(sliced_cube)
+
+    def test_no_x_coordinate(self):
+        """Test that the expected exception is raised, if there is no
+        x coordinate."""
+        for sliced_cube in self.cube.slices(
+                ["projection_y_coordinate"]):
+            break
+        sliced_cube.remove_coord("projection_x_coordinate")
+        msg = "The cube does not contain the expected"
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_for_x_and_y_axes(sliced_cube)
+
+
+if __name__ == '__main__':
+    unittest.main()

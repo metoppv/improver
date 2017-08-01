@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,23 +28,27 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+""" Provides support utilities for checking cubes."""
 
-. $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'square' --radius=20000 input output" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
+def check_for_x_and_y_axes(cube):
+    """
+    Check whether the cube has an x and y axis, otherwise raise an error.
 
-  # Run square neighbourhood processing with masked data and check it passes.
-  run improver nbhood 'square' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input_masked.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+    Parameters
+    ----------
+    cube : Iris.cube.Cube
+        Cube to be checked for x and y axes.
 
-  # Run cmp -bl to compare the output and kgo.
-  cmp -bl "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_masked.nc"
-  [[ "$status" -eq 0 ]]
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
-}
+    Raises
+    ------
+    ValueError : Raise an error if non-uniform increments exist between
+                  grid points.
+    """
+    for axis in ["x", "y"]:
+        if cube.coords(axis=axis):
+            pass
+        else:
+            msg = ("The cube does not contain the expected {}"
+                   "coordinates.".format(axis))
+            raise ValueError(msg)
