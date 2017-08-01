@@ -34,7 +34,6 @@
 import unittest
 import json
 import shutil
-from subprocess import call as Call
 import cf_units
 from tempfile import mkdtemp
 import iris
