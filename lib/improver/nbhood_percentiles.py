@@ -249,7 +249,7 @@ class CircularKernelNumpy(object):
         ----------
         cube : Iris.cube.Cube
             Cube containing array to apply processing to.
-        ranges : Tuple
+        ranges : Int
             Number of grid cells in the x and y direction used to create
             the kernel.
 
@@ -268,15 +268,18 @@ class CircularKernelNumpy(object):
                 check = cube.coord(coord_name)
         except CoordinateNotFoundError:
             raise ValueError("Invalid grid: projection_x/y coords required")
-        ranges = np.array(ranges).astype(int)
+        ranges = int(ranges)
+        if ranges < 1:
+            raise ValueError("Range size too small. {} < 1".format(ranges))
+        ranges_xy = np.array([ranges]*2)
         # Define the size of the kernel based on the number of grid cells
         # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in ranges])
+        kernel = np.ones([int(1 + x * 2) for x in ranges_xy])
         # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
+        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges_xy])])
         # Always generate kernel in unweighted mode as later logic doesn't make sense otherwise
         mask = np.reshape(
-            np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
+            np.sum(open_grid**2) > np.prod(ranges_xy), np.shape(kernel))
         kernel[mask] = 0.
 
         # Loop over each 2D slice to reduce memory demand and derive percentiles
@@ -286,11 +289,11 @@ class CircularKernelNumpy(object):
                                      'projection_y_coordinate']):
             # Create a 1D data array padded with repeats of the local boundary mean.
             datashape = np.shape(slice_2d.data)
-            padded = np.pad(slice_2d.data, max(ranges), mode='mean', stat_length=ranges[0])
+            padded = np.pad(slice_2d.data, ranges, mode='mean', stat_length=ranges)
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
-            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-ranges[0], ranges[0]+1) for j in range(-ranges[1], ranges[1]+1) if kernel[...,i+ranges[0], j+ranges[1]]>0.]
+            nbhood_slices = [np.roll(padded, padshape[1]*j+i) for i in range(-ranges, ranges+1) for j in range(-ranges, ranges+1) if kernel[...,i+ranges, j+ranges]>0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
@@ -298,7 +301,7 @@ class CircularKernelNumpy(object):
             # Create a cube for these data:
             pctcube = self.make_percentile_cube(slice_2d)
             # And put in data, removing the padding
-            pctcube.data = perc_data[:,ranges[0]:-ranges[0], ranges[1]:-ranges[1]]
+            pctcube.data = perc_data[:,ranges:-ranges, ranges:-ranges]
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
         result = self.check_coords(result, cube)
@@ -337,14 +340,12 @@ class CircularKernelNumpy(object):
             except IndexError:
                 cube = iris.util.new_axis(cube, coord)
         # Now check axis order
-        required_order = []
-        for coord in cube.coords():
-            if coord.long_name is "percentiles":
-                required_order.append(0)
-            else:
-                if len(cube_orig.coord_dims(coord)) == 0:
-                    continue
-                required_order.append(cube_orig.coord_dims(coord)[0] + 1)
+        required_order = list(np.shape(cube.data))
+        for indx, coord in enumerate(cube_orig.coords()):
+            if len(cube_orig.coord_dims(coord)) == 0:
+                continue
+            required_order[indx+1] = cube.coord_dims(coord)[0]
+        required_order[0] = cube.coord_dims("percentiles")[0]
         cube.transpose(required_order)
         return cube
 
