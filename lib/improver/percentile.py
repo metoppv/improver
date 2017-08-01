@@ -47,8 +47,8 @@ class PercentileConverter(object):
     """
 
     # Default percentile boundaries to calculate at.
-    DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
-                           60, 70, 75, 80, 90, 95, 100]
+    DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50,
+                           60, 70, 75, 80, 90, 95, 100)
 
     def __init__(self, collapse_coord, percentiles=None):
         """

@@ -182,10 +182,8 @@ class NeighbourhoodPercentiles(object):
                 num_ens = len(cube.attributes['source_realizations'])
             else:
                 num_ens = 1.0
-            slices_over_realization = [cube]
         else:
             num_ens = len(realiz_coord.points)
-            slices_over_realization = cube.slices_over("realization")
             if 'source_realizations' in cube.attributes:
                 msg = ("Realizations and attribute source_realizations "
                        "should not both be set in input cube")
@@ -224,6 +222,12 @@ class NeighbourhoodPercentiles(object):
         return cube_new
 
 class CircularKernelNumpy(object):
+    """
+    Methods for use in calculating percentiles from a 2D circular neighbourhood.
+
+    A maximum kernel radius of 500 grid cells is imposed in order to
+    avoid computational ineffiency and possible memory errors.
+    """
     def __init__(self,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
@@ -263,11 +267,10 @@ class CircularKernelNumpy(object):
 
         """
         # Take data array and identify X and Y axes indices
-        data = cube.data
         try:
             for coord_name in ['projection_x_coordinate',
                                'projection_y_coordinate']:
-                check = cube.coord(coord_name)
+                cube.coord(coord_name)
         except CoordinateNotFoundError:
             raise ValueError("Invalid grid: projection_x/y coords required")
         ranges = int(ranges)
@@ -290,7 +293,6 @@ class CircularKernelNumpy(object):
         for slice_2d in cube.slices(['projection_x_coordinate',
                                      'projection_y_coordinate']):
             # Create a 1D data array padded with repeats of the local boundary mean.
-            datashape = np.shape(slice_2d.data)
             padded = np.pad(slice_2d.data, ranges, mode='mean', stat_length=ranges)
             padshape = np.shape(padded) # Store size to make unflatten easier
             padded = padded.flatten()
