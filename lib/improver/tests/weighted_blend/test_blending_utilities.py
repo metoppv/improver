@@ -32,7 +32,6 @@
 
 
 import unittest
-import warnings
 
 from cf_units import Unit
 import iris
