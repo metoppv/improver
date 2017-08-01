@@ -351,7 +351,6 @@ class Test_check_coords(IrisTest):
         perc_coord = iris.coords.DimCoord(50., long_name='percentiles', units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
-        ranges = 2
         result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
         self.assertIsInstance(result, Cube)
 
@@ -365,7 +364,6 @@ class Test_check_coords(IrisTest):
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         cube_with_perc.transpose([2, 0, 3, 4, 1])
-        ranges = 2
         result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
         self.assertEqual(result.coord_dims('percentiles')[0], 0)
 
