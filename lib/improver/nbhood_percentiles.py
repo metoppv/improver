@@ -66,7 +66,7 @@ class NeighbourhoodPercentiles(object):
         ----------
 
         method : str
-            Name of the method to use. Options: circular_numpy.
+            Name of the method to use. Options: circular.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
@@ -90,7 +90,7 @@ class NeighbourhoodPercentiles(object):
         self.percentiles = percentiles
         self.method_key = method
         methods = {
-            "circular_numpy": CircularKernelNumpy}
+            "circular": CircularKernelNumpy}
         try:
             usemethod = methods[self.method_key]
             self.method = usemethod(percentiles=self.percentiles)

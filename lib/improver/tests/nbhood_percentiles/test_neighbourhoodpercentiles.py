@@ -60,7 +60,7 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
-            method = 'circular_numpy'
+            method = 'circular'
             NBHood(method, radii, lead_times=lead_times)
 
     def test_method_does_not_exist(self):
@@ -81,8 +81,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(NBHood("circular_numpy", 10000))
-        msg = ('<NeighbourhoodPercentiles: method: circular_numpy; '
+        result = str(NBHood("circular", 10000))
+        msg = ('<NeighbourhoodPercentiles: method: circular; '
                'radii: 10000.0; lead_times: None; '
                'ens_factor: 1.0; percentile-count: {}>'.format(
                    len(PercentileConverter.DEFAULT_PERCENTILES)))
@@ -95,7 +95,7 @@ class Test__find_radii(IrisTest):
 
     def test_basic_float_cube_lead_times_is_none(self):
         """Test _find_radii returns a float with the correct value."""
-        method = "circular_numpy"
+        method = "circular"
         ens_factor = 0.8
         num_ens = 2.0
         radius = 6300
@@ -109,7 +109,7 @@ class Test__find_radii(IrisTest):
 
     def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
-        method = "circular_numpy"
+        method = "circular"
         ens_factor = 0.9
         num_ens = 2.0
         fp_points = np.array([2, 3, 4])
@@ -128,7 +128,7 @@ class Test__find_radii(IrisTest):
     def test_interpolation(self):
         """Test that interpolation is working as expected in _find_radii."""
         fp_points = np.array([2, 3, 4])
-        method = "circular_numpy"
+        method = "circular"
         ens_factor = 0.8
         num_ens = 4.0
         fp_points = np.array([2, 3, 4])
@@ -153,7 +153,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube()
-        method = "circular_numpy"
+        method = "circular"
         result = NBHood(method, self.RADIUS).process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -163,7 +163,7 @@ class Test_process(IrisTest):
         cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegexp(ValueError, msg):
-            method = "circular_numpy"
+            method = "circular"
             NBHood(method, self.RADIUS).process(cube)
 
     def test_realizations_and_source_realizations_fails(self):
@@ -173,14 +173,14 @@ class Test_process(IrisTest):
         msg = ('Realizations and attribute source_realizations should not'
                ' both be set')
         with self.assertRaisesRegexp(ValueError, msg):
-            method = "circular_numpy"
+            method = "circular"
             NBHood(method, self.RADIUS).process(cube)
 
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension that same coord is returned."""
         cube = set_up_cube(num_realization_points=4)
         radii = 15000
-        method = "circular_numpy"
+        method = "circular"
         ens_factor = 0.8
         result = NBHood(method, radii,
                         ens_factor=ens_factor).process(cube)
@@ -199,7 +199,7 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii = [15000, 15000, 15000]
         lead_times = [2, 3, 4]
-        method = "circular_numpy"
+        method = "circular"
         ens_factor = 0.8
         result = NBHood(method, radii,
                         lead_times=lead_times,
@@ -214,7 +214,7 @@ class Test_process(IrisTest):
         """Test the expected percentiles coord exists."""
         cube = set_up_cube_with_no_realizations()
         radii = 6000
-        method = "circular_numpy"
+        method = "circular"
         result = NBHood(method, radii).process(cube)
         self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
         self.assertArrayEqual(result.coord('percentiles').points,
@@ -224,7 +224,7 @@ class Test_process(IrisTest):
         """Test when the array has no realization coord."""
         cube = set_up_cube_with_no_realizations()
         radii = 6000
-        method = "circular_numpy"
+        method = "circular"
         result = NBHood(method, radii).process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -235,7 +235,7 @@ class Test_process(IrisTest):
             set_up_cube_with_no_realizations(source_realizations=member_list))
         radii = 15000
         ens_factor = 0.8
-        method = "circular_numpy"
+        method = "circular"
         plugin = NBHood(method, radii,
                         ens_factor=ens_factor)
         result = plugin.process(cube)
@@ -253,7 +253,7 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
-        method = "circular_numpy"
+        method = "circular"
         plugin = NBHood(method, radii, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
@@ -274,7 +274,7 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii = [10000, 30000]
         lead_times = [2, 4]
-        method = "circular_numpy"
+        method = "circular"
         plugin = NBHood(method, radii, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
