@@ -74,12 +74,12 @@ class ExtractData(object):
         cube : iris.cube.Cube
             Cube of diagnostic data from which to extract spotdata.
 
-        sites : dict
+        sites : OrderedDict
             A dictionary containing the properties of spotdata sites.
 
         neighbours : numpy.array
             Array of neighbouring grid points that are associated with sites
-            in the SortedDictionary of sites.
+            in the OrderedDict of sites.
 
         additional_data : dict
             A dictionary containing any supplmentary time varying diagnostics
@@ -217,7 +217,7 @@ class ExtractData(object):
         data : numpy.array
             Array of diagnostic values extracted for the defined sites.
 
-        sites : dict
+        sites : OrderedDict
             A dictionary containing the properties of spotdata sites.
 
         Returns:
@@ -227,15 +227,13 @@ class ExtractData(object):
             at the spotdata sites.
 
         """
-        # Ensure leading dimension axis is time.
+        # Ensure time is a dimension coordinate.
         if 'time' not in cube.dim_coords:
             cube = iris.util.new_axis(cube, 'time')
 
         n_non_spatial_dimcoords = len(cube.dim_coords) - 2
         non_spatial_dimcoords = cube.dim_coords[0:n_non_spatial_dimcoords]
-        for coord in non_spatial_dimcoords:
-            if coord.name() == 'time':
-                coord.convert_units('hours since 1970-01-01 00:00:00')
+        cube.coord('time').convert_units('hours since 1970-01-01 00:00:00')
 
         latitudes = [float(site['latitude']) for site in sites.itervalues()]
         longitudes = [float(site['longitude']) for site in sites.itervalues()]

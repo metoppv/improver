@@ -33,6 +33,7 @@
 
 import unittest
 import json
+import shutil
 from subprocess import call as Call
 import cf_units
 from tempfile import mkdtemp
@@ -53,9 +54,14 @@ class Test_main(IrisTest):
     """Test the SpotData framework."""
 
     def setUp(self):
-        """Create components required for testing framework."""
-        data = np.arange(0, 800, 1)
+        """Create components required for testing the spotdata framework.
+        Here we are testing various error captures, so we need enough data
+        to get to the various error checks within run_spotdata and
+        process_diagnostic.
 
+        """
+        # Create air temperature data cube.
+        data = np.arange(0, 800, 1)
         data.resize(2, 20, 20)
         latitudes = np.linspace(-90, 90, 20)
         longitudes = np.linspace(-180, 180, 20)
@@ -64,7 +70,7 @@ class Test_main(IrisTest):
         longitude = DimCoord(longitudes, standard_name='longitude',
                              units='degrees')
 
-        # Use time of 2017-02-17 06:00:00, 07:00:00
+        # Valid at times 2017-02-17 06:00:00, 07:00:00
         time = DimCoord(
             [1487311200, 1487314800], standard_name='time',
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
@@ -77,6 +83,7 @@ class Test_main(IrisTest):
                                          (longitude, 2)],
                     units="K")
 
+        # Create the orography ancillary cube.
         orography = Cube(np.ones((20, 20)),
                          long_name="surface_altitude",
                          dim_coords_and_dims=[(latitude, 0),
@@ -86,6 +93,8 @@ class Test_main(IrisTest):
         self.ancillary_data = {}
         self.ancillary_data.update({'orography': orography})
 
+        # A sample spotdata diagnostic recipe specifying how to select the
+        # neighbouring grid point and then extract the data.
         diagnostic_recipe = {
             "temperature": {
                 "diagnostic_name": "air_temperature",
@@ -100,6 +109,7 @@ class Test_main(IrisTest):
                 }
             }
 
+        # Save cubes to temporary location for reading.
         self.data_directory = mkdtemp()
         self.output_directory = mkdtemp()
 
@@ -144,17 +154,20 @@ class Test_main(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.data_path])
-        Call(['rm', '-f', self.orography_path])
-        Call(['rm', '-f', self.config_path])
-        Call(['rm', '-f', self.output_directory + '/air_temperature.nc'])
-
-        Call(['rmdir', self.data_directory])
-        Call(['rmdir', self.output_directory])
+        shutil.rmtree(self.data_directory, ignore_errors=True)
+        shutil.rmtree(self.output_directory, ignore_errors=True)
 
 
 class Test_run_spotdata(Test_main):
     """Test the run_framework interface with various options."""
+
+    def test_nominal_run(self):
+        """Test a typical run of the routine completes successfully."""
+        result = Function(*self.args, **self.kwargs)
+        output = iris.load_cube(self.output_directory + '/air_temperature.nc')
+        self.assertIsInstance(output, Cube)
+        self.assertEqual(output.name(), 'air_temperature')
+        self.assertEqual(result, 0)
 
     def test_no_site_data(self):
         """Test framework raises an error when no SpotData site information is

@@ -54,7 +54,7 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
                  diagnostic_list=None,
                  site_path=None, constants_file_path=None,
                  site_properties=None, forecast_date=None,
-                 forecast_time=None, forecast_length=None,
+                 forecast_time=None, forecast_length=168,
                  output_path=None, use_multiprocessing=False):
     """
     A routine that calls the components of the spotdata code. This includes
@@ -119,7 +119,7 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
 
     forecast_length : integer
         An integer giving the desired length of the forecast output in hours
-        (e.g. 48 for a two day forecast period).
+        (e.g. 48 for a two day forecast period). Defaults to 168 (7 days).
 
     output_path : string
         Path to which output file containing processed diagnostic should be
@@ -134,6 +134,8 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
     Writes out cubes of the requested diagnostics, with data extracted to the
     sites read from a file or defined at run time.
 
+    0 upon successful completion.
+
     Raises:
     -------
     ValueError : raised if no site specifications are provided.
@@ -142,9 +144,9 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
     """
     # Establish forecast time list based upon input specifications, or if not
     # provided, use defaults.
-    forecast_times = get_forecast_times(forecast_date=forecast_date,
-                                        forecast_time=forecast_time,
-                                        forecast_length=forecast_length)
+    forecast_times = get_forecast_times(forecast_length,
+                                        forecast_date=forecast_date,
+                                        forecast_time=forecast_time)
 
     # Check site data has been provided.
     if site_path is None and not site_properties:
@@ -242,6 +244,8 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
                                data_path, ancillary_data,
                                output_path=output_path)
 
+    return 0
+
 
 def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
                        data_path, ancillary_data, output_path=None):
@@ -277,7 +281,7 @@ def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
 
     Returns:
     --------
-    Nil.
+    None
 
     Raises:
     -------

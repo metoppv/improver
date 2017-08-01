@@ -36,8 +36,8 @@ from datetime import time
 from datetime import timedelta
 
 
-def get_forecast_times(forecast_date=None, forecast_time=None,
-                       forecast_length=None):
+def get_forecast_times(forecast_length, forecast_date=None,
+                       forecast_time=None):
     """
     Generate a list of python datetime objects specifying the desired forecast
     times. This list will be created from input specifications if provided.
@@ -46,6 +46,10 @@ def get_forecast_times(forecast_date=None, forecast_time=None,
 
     Args:
     -----
+    forecast_length : integer
+        An integer giving the desired length of the forecast output in hours
+        (e.g. 48 for a two day forecast period).
+
     forecast_date : string (YYYYMMDD)
         A string of format YYYYMMDD defining the start date for which forecasts
         are required. If unset it defaults to today in UTC.
@@ -54,10 +58,6 @@ def get_forecast_times(forecast_date=None, forecast_time=None,
         An integer giving the hour on the forecast_date at which to start the
         forecast output; 24hr clock such that 17 = 17Z for example. If unset it
         defaults to the latest 6 hour cycle as a start time.
-
-    forecast_length : integer
-        An integer giving the desired length of the forecast output in hours
-        (e.g. 48 for a two day forecast period).
 
     Returns:
     --------
@@ -72,25 +72,22 @@ def get_forecast_times(forecast_date=None, forecast_time=None,
     """
     date_format = re.compile('[0-9]{8}')
 
-    if forecast_date is not None:
+    if forecast_date is None:
+        start_date = dt.utcnow().date()
+    else:
         if date_format.match(forecast_date) and len(forecast_date) == 8:
             start_date = dt.strptime(forecast_date, "%Y%m%d").date()
         else:
             raise ValueError('Date {} is in unexpected format; should be '
                              'YYYYMMDD.'.format(forecast_date))
-    else:
-        start_date = dt.utcnow().date()
 
-    if forecast_time is not None:
-        forecast_start_time = dt.combine(start_date, time(forecast_time))
-    else:
+    if forecast_time is None:
         # If no start hour provided, go back to the nearest multiple of 6
         # hours (e.g. utcnow = 11Z --> 06Z).
         forecast_start_time = dt.combine(
             start_date, time(divmod(dt.utcnow().hour, 6)[0]*6))
-
-    if forecast_length is None:
-        forecast_length = 144
+    else:
+        forecast_start_time = dt.combine(start_date, time(forecast_time))
 
     # Generate forecast times. Hourly to T+48, 3 hourly to T+forecast_length.
     forecast_times = [forecast_start_time + timedelta(hours=x) for x in

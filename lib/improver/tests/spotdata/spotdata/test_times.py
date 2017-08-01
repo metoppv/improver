@@ -53,7 +53,8 @@ class Test_get_forecast_times(IrisTest):
         forecast_time = int(forecast_start.strftime("%H"))
         forecast_length = 300
         forecast_end = forecast_start + timedelta(hours=forecast_length)
-        result = Function(forecast_date, forecast_time, forecast_length)
+        result = Function(forecast_length, forecast_date=forecast_date,
+                          forecast_time=forecast_time)
         self.assertEqual(forecast_start, result[0])
         self.assertEqual(forecast_end, result[-1])
         self.assertEqual(timedelta(hours=1), result[1] - result[0])
@@ -62,7 +63,7 @@ class Test_get_forecast_times(IrisTest):
     def test_no_data_provided(self):
         """Test setting up a forecast range when no data is provided. Expect a
         range of times starting from last hour before now that was an interval
-        of 6 hours, on today's date and going out to T+144.
+        of 6 hours. Length set to 7 days (168 hours).
 
         Note: this could fail if time between forecast_start being set and
         reaching the function call bridges a 6-hour time (00, 06, 12, 18). As
@@ -76,12 +77,13 @@ class Test_get_forecast_times(IrisTest):
             expected_hour = time(divmod(forecast_start.hour, 6)[0]*6)
             forecast_date = None
             forecast_time = None
-            forecast_length = None
-            result = Function(forecast_date, forecast_time, forecast_length)
+            forecast_length = 168
+            result = Function(forecast_length, forecast_date=forecast_date,
+                              forecast_time=forecast_time)
 
             check1 = (expected_date == result[0].date())
             check2 = (expected_hour.hour == result[0].hour)
-            check3 = (timedelta(hours=144) == (result[-1] - result[0]))
+            check3 = (timedelta(hours=168) == (result[-1] - result[0]))
 
             if not all([check1, check2, check3]):
                 second_chance += 1
@@ -104,7 +106,8 @@ class Test_get_forecast_times(IrisTest):
         expected_date = dt.utcnow().date()
         expected_start = dt.combine(expected_date, time(forecast_time))
         expected_end = expected_start + timedelta(hours=144)
-        result = Function(forecast_date, forecast_time, forecast_length)
+        result = Function(forecast_length, forecast_date=forecast_date,
+                          forecast_time=forecast_time)
 
         self.assertEqual(expected_start, result[0])
         self.assertEqual(expected_end, result[-1])
@@ -118,7 +121,7 @@ class Test_get_forecast_times(IrisTest):
         forecast_date = '17MARCH2017'
         msg = 'Date .* is in unexpected format'
         with self.assertRaisesRegexp(ValueError, msg):
-            Function(forecast_date, 6, 144)
+            Function(144, forecast_date=forecast_date, forecast_time=6)
 
 
 if __name__ == '__main__':

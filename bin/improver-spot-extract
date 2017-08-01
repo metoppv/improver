@@ -36,7 +36,24 @@ from improver.spotdata.main import run_spotdata
 
 
 def valid_latitude(value):
-    """Ensures latitude values fall in allowed range."""
+    """
+    Ensures latitude values fall in allowed range.
+    
+    Args:
+    -----
+    value : int/float
+        The latitude value to be checked.
+
+    Returns:
+    --------
+    value : int/float
+        The checked latitude value.
+
+    Raises:
+    -------
+    ArgumentTypeError if latitude is not in valid range.
+
+    """
     value = float(value)
     if value < -90 or value > 90:
         raise argparse.ArgumentTypeError(
@@ -45,7 +62,24 @@ def valid_latitude(value):
 
 
 def valid_longitude(value):
-    """Ensures longitude values fall in allowed range."""
+    """
+    Ensures longitude values fall in allowed range.
+    
+    Args:
+    -----
+    value : int/float
+        The longitude value to be checked.
+
+    Returns:
+    --------
+    value : int/float
+        The checked longitude value.
+
+    Raises:
+    -------
+    ArgumentTypeError if longitude is not in valid range.
+
+    """
     value = float(value)
     if value < -180 or value > 180:
         raise argparse.ArgumentTypeError(
@@ -53,11 +87,32 @@ def valid_longitude(value):
     return value
 
 def site_dictionary(latitudes, longitudes, altitudes):
+    """
+    Format lists of latitudes, latitude and altitudes into site by site
+    dictionary entries.
+
+    Args:
+    -----
+    latitude/longitudes/altitudes : Lists of ints/floats
+        Lists of latitudes, longitudes, and altitudes that define the spotdata
+        sites.
+
+    Returns:
+    --------
+    site_properties : dict
+        A dictionary of sites, with a latitude, longitude and altitude defined
+        for each site.
+
+    """
     if len(latitudes) != len(longitudes):
         raise ValueError('Unequal no. of latitudes and longitudes provided.')
 
     if altitudes is None:
         altitudes = [None] * len(latitudes)
+
+    if len(latitudes) != len(altitudes):
+        raise ValueError('No. of altitudes does not match no. of latitudes/'
+                         ' longitudes.')
 
     site_properties = []
     for site in range(len(latitudes)):
@@ -131,8 +186,6 @@ def main():
     if args.latitudes != None:
         site_properties = site_dictionary(args.latitudes, args.longitudes,
                                           args.altitudes)
-
-    print site_properties
 
     run_spotdata(args.config_file_path, args.data_path, args.ancillary_path,
                  diagnostic_list=args.diagnostics, site_path=args.site_path,
