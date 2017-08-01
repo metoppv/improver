@@ -41,9 +41,10 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  # Run cmp -bl to compare the output and kgo.
+  cmp -bl "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_masked.nc"
+  [[ "$status" -eq 0 ]]
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
