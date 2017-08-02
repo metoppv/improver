@@ -50,7 +50,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CircularNeighbourhood())
-        msg = '<CircularNeighbourhood: unweighted_mode: False>'
+        msg = '<CircularNeighbourhood: weighted_mode: True>'
         self.assertEqual(str(result), msg)
 
 
@@ -66,7 +66,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=True).apply_circular_kernel(cube, ranges))
+                weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -78,7 +78,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
@@ -96,7 +96,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=True).apply_circular_kernel(cube, ranges))
+                weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -113,7 +113,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
@@ -123,7 +123,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         with self.assertRaisesRegexp(ValueError, msg):
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges)
+                weighted_mode=True).apply_circular_kernel(cube, ranges)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -144,7 +144,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -164,7 +164,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -175,7 +175,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (1, 1)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -188,7 +188,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
@@ -208,7 +208,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -228,7 +228,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -242,7 +242,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -255,7 +255,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -281,7 +281,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
@@ -294,7 +294,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
@@ -309,7 +309,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -333,7 +333,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
 

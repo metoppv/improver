@@ -161,7 +161,7 @@ class DiagnoseConvectivePrecipitation(object):
             neighbourhooded_cube = NeighbourhoodProcessing(
                 self.neighbourhood_method, self.radii,
                 lead_times=self.lead_times,
-                unweighted_mode=self.unweighted_mode,
+                weighted_mode=(not self.unweighted_mode),
                 ens_factor=self.ens_factor).process(cube)
             neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
 

@@ -44,7 +44,9 @@ from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
-from improver.nbhood.circular_kernel import CircularNeighbourhood
+from improver.nbhood.circular_kernel import (
+    CircularNeighbourhood, CircularKernelNumpy)
+from improver.percentile import PercentileConverter
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -214,7 +216,8 @@ class NeighbourhoodProcessing(object):
     """
 
     def __init__(self, neighbourhood_method, radii, lead_times=None,
-                 unweighted_mode=False, ens_factor=1.0):
+                 weighted_mode=True, ens_factor=1.0,
+                 percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -234,9 +237,9 @@ class NeighbourhoodProcessing(object):
             List of lead times or forecast periods, at which the radii
             within 'radii' are defined. The lead times are expected
             in hours.
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
+        weighted_mode : boolean
+            If False, use a circle with constant weighting.
+            If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
         ens_factor : float
             The factor with which to adjust the neighbourhood size
@@ -245,14 +248,20 @@ class NeighbourhoodProcessing(object):
             members if every grid square is considered to be the
             equivalent of an ensemble member.
             Optional, defaults to 1.0
+        percentiles : list (optional)
+            Percentile values at which to calculate; if not provided uses
+            DEFAULT_PERCENTILES from percentile module.
+            This value is ignored for probability methods.
         """
+        self.percentiles = percentiles
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
             "circular": CircularNeighbourhood,
+            "circular_percentiles": CircularKernelNumpy,
             "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(unweighted_mode)
+            self.neighbourhood_method = method(weighted_mode)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -270,7 +279,7 @@ class NeighbourhoodProcessing(object):
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
-        self.unweighted_mode = bool(unweighted_mode)
+        self.weighted_mode = bool(weighted_mode)
         self.ens_factor = float(ens_factor)
 
     def _find_radii(self, num_ens, cube_lead_times=None):
@@ -310,10 +319,10 @@ class NeighbourhoodProcessing(object):
         """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; '
-                  'unweighted_mode: {}; ens_factor: {}>')
+                  'weighted_mode: {}; ens_factor: {}>')
         return result.format(
             self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.unweighted_mode, self.ens_factor)
+            self.weighted_mode, self.ens_factor)
 
     def process(self, cube):
         """

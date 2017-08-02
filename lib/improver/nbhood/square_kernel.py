@@ -53,22 +53,27 @@ class SquareNeighbourhood(object):
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self, unweighted_mode=False):
+    def __init__(self, weighted_mode=True, percentiles=None):
         """
         Initialise class.
 
         Parameters
         ----------
-        unweighted_mode : boolean
+        weighted_mode : boolean
             This is included to allow a standard interface for both the
             square and circular neighbourhood plugins.
+
+        percentiles : list (optional)
+            This is included to allow a standard interface for both the
+            percentile and probability neighbourhood plugins.
         """
-        self.unweighted_mode = unweighted_mode
+        self.weighted_mode = weighted_mode
+        self.percentiles = percentiles
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SquareNeighbourhood: unweighted_mode: {}>')
-        return result.format(self.unweighted_mode)
+        result = ('<SquareNeighbourhood>')
+        return result
 
     @staticmethod
     def cumulate_array(cube):

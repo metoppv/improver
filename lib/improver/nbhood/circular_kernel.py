@@ -119,24 +119,28 @@ class CircularNeighbourhood(object):
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, unweighted_mode=False):
+    def __init__(self, weighted_mode=True, percentiles=None):
         """
         Initialise class.
 
         Parameters
         ----------
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
+        weighted_mode : boolean
+            If False, use a circle with constant weighting.
+            If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
 
+        percentiles : list (optional)
+            This is included to allow a standard interface for both the
+            percentile and probability neighbourhood plugins.
         """
-        self.unweighted_mode = unweighted_mode
+        self.weighted_mode = weighted_mode
+        self.percentiles = percentiles
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<CircularNeighbourhood: unweighted_mode: {}>')
-        return result.format(self.unweighted_mode)
+        result = ('<CircularNeighbourhood: weighted_mode: {}>')
+        return result.format(self.weighted_mode)
 
     def apply_circular_kernel(self, cube, ranges):
         """
@@ -171,7 +175,7 @@ class CircularNeighbourhood(object):
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
         kernel = Utilities.circular_kernel(fullranges, ranges,
-                                           (not self.unweighted_mode))
+                                           self.weighted_mode)
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)

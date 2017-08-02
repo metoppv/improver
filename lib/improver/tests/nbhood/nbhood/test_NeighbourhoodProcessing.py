@@ -273,7 +273,7 @@ class Test__repr__(IrisTest):
         result = str(NBHood("circular", 10000))
         msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
                'radii: 10000.0; lead_times: None; '
-               'unweighted_mode: False; ens_factor: 1.0>')
+               'weighted_mode: True; ens_factor: 1.0>')
         self.assertEqual(result, msg)
 
 

@@ -53,7 +53,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(SquareNeighbourhood())
-        msg = '<SquareNeighbourhood: unweighted_mode: False>'
+        msg = '<SquareNeighbourhood>'
         self.assertEqual(result, msg)
 
 
