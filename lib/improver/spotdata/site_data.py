@@ -177,14 +177,14 @@ class ImportSiteData(object):
 
         # If altitudes are unset use np.nan to indicate that they are at the
         # altitude of their neighbouring grid point. Likewise, if sites are
-        # wmo sites set wmo_site to 1, else set it to 0.
+        # wmo sites set wmo_site to wmo_id, else set it to 0.
         self.altitudes = np.full(n_sites, np.nan)
         self.wmo_site = np.full(n_sites, 0, dtype=int)
         for i_site, site in enumerate(site_data):
             if 'altitude' in site.keys() and site['altitude'] is not None:
                 self.altitudes[i_site] = site['altitude']
             if 'wmo_id' in site.keys() and site['wmo_id'] is not None:
-                self.wmo_site[i_site] = 1
+                self.wmo_site[i_site] = site['wmo_id']
 
         # Identify UTC offset if it is provided in the input, otherwise set it
         # based upon site longitude.

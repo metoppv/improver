@@ -308,16 +308,16 @@ def datetime_constraint(time_in, time_max=None):
         a cube.
 
     """
-    if time_max is not None:
-        time_start = PartialDateTime(
-            time_in.year, time_in.month, time_in.day, time_in.hour)
-        time_limit = PartialDateTime(
-            time_max.year, time_max.month, time_max.day, time_max.hour)
-        return Constraint(time=lambda cell: time_start <= cell < time_limit)
-    else:
-        return Constraint(
-            time=PartialDateTime(time_in.year, time_in.month,
-                                 time_in.day, time_in.hour))
+    time_start = PartialDateTime(
+        time_in.year, time_in.month, time_in.day, time_in.hour)
+
+    if time_max is None:
+        return Constraint(time=time_start)
+
+    time_limit = PartialDateTime(
+        time_max.year, time_max.month, time_max.day, time_max.hour)
+
+    return Constraint(time=lambda cell: time_start <= cell < time_limit)
 
 
 def construct_neighbour_hash(neighbour_finding):
@@ -498,7 +498,7 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
 
 def iris_time_to_datetime(time):
     """
-    Convert iris time to python datetime object.
+    Convert iris time to python datetime object. Working in UTC.
 
     Args:
     -----

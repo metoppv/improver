@@ -32,10 +32,11 @@
 """Gridded data extraction for the Improver site specific process chain."""
 
 import numpy as np
+import iris
+import warnings
 from numpy.linalg import lstsq
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
-from iris.exceptions import InvalidCubeError
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
 from improver.constants import (R_DRY_AIR,
@@ -60,7 +61,9 @@ class ExtractData(object):
         self.method = method
 
     def process(self, cube, sites, neighbours, ancillary_data, additional_data,
-                no_neighbours=9, lower_level=1, upper_level=3):
+                no_neighbours=9, lower_level=1, upper_level=3,
+                dz_tolerance=2., dthetadz_threshold=0.02,
+                dz_max_adjustment=70.):
         """
         Call the correct function to enact the method of data extraction
         specified. This function also handles multiple timesteps, consolidating
@@ -71,12 +74,12 @@ class ExtractData(object):
         cube : iris.cube.Cube
             Cube of diagnostic data from which to extract spotdata.
 
-        sites : dict
+        sites : OrderedDict
             A dictionary containing the properties of spotdata sites.
 
         neighbours : numpy.array
             Array of neighbouring grid points that are associated with sites
-            in the SortedDictionary of sites.
+            in the OrderedDict of sites.
 
         additional_data : dict
             A dictionary containing any supplmentary time varying diagnostics
@@ -95,6 +98,23 @@ class ExtractData(object):
             Define the hybrid height model levels to use when calculating
             potential temperature gradients for use in lapse rate temperature
             adjustment.
+
+        dz_tolerance : float (units: m)
+            Vertical displacement between spotdata site and neighbouring grid
+            point below which there is no need to perform a lapse rate
+            adjustment. Defaults to value of 2m.
+
+        dthetadz_threshold : float (units: K/m)
+            Potential temperature gradient threshold, with gradients above this
+            value deemed to have been calculated across an inversion. Defaults
+            to UKPP value of 0.02 K/m.
+
+        dz_max_adjustment : float (units: m)
+            Maximum vertical distance over which a temperature will be adjusted
+            using the lapse rate. If the spotdata site is more than this
+            distance above or below its neighbouring grid point, the adjustment
+            will be made using dz = dz_max_adjustment. Defaults to UKPP value
+            of 70m.
 
         Returns:
         --------
@@ -128,24 +148,17 @@ class ExtractData(object):
             lower_temperature = temperature_on_height_levels[lower_level, ...]
             upper_temperature = temperature_on_height_levels[upper_level, ...]
 
-            if ancillary_data.get('config_constants') is not None:
-                consts = ancillary_data['config_constants']
-                return self.model_level_temperature_lapse_rate(
-                    cube, sites, neighbours, surface_pressure, lower_pressure,
-                    upper_pressure, lower_temperature, upper_temperature,
-                    dz_tolerance=consts['dz_tolerance'],
-                    dthetadz_threshold=consts['dthetadz_threshold'],
-                    dz_max_adjustment=consts['dz_max_adjustment'])
-            else:
-                return self.model_level_temperature_lapse_rate(
-                    cube, sites, neighbours, surface_pressure, lower_pressure,
-                    upper_pressure, lower_temperature, upper_temperature)
+            return self.model_level_temperature_lapse_rate(
+                cube, sites, neighbours, surface_pressure, lower_pressure,
+                upper_pressure, lower_temperature, upper_temperature,
+                dz_tolerance, dthetadz_threshold, dz_max_adjustment)
 
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
 
     @staticmethod
-    def _build_coordinates(latitudes, longitudes, site_ids, utc_offsets):
+    def _build_coordinates(latitudes, longitudes, altitudes, utc_offsets,
+                           wmo_sites):
         """
         Construct coordinates for the irregular iris.Cube containing site data.
         A single dimensional coordinate is created using the running order,
@@ -160,12 +173,16 @@ class ExtractData(object):
         longitudes : list
             A list of longitudes ordered to match the sites OrderedDict.
 
-        site_ids   : list
-            A list of bestdata site_ids ordered to match the sites OrderedDict.
+        altitudes : list
+            A list of altitudes ordered to match the sites OrderedDict.
 
         utc_offsets : list
             A list of UTC off sets in hours ordered to match the sites
             OrderedDict.
+
+        wmo_sites : list
+            A list of flags indicating whether the site is associated with a
+            wmo observing site (1) or is not associated (0).
 
         Returns:
         --------
@@ -175,14 +192,17 @@ class ExtractData(object):
         """
         indices = DimCoord(np.arange(len(latitudes)), long_name='index',
                            units='1')
-        bd_ids = AuxCoord(site_ids, long_name='bestdata_id', units='1')
         latitude = AuxCoord(latitudes, standard_name='latitude',
                             units='degrees')
         longitude = AuxCoord(longitudes, standard_name='longitude',
                              units='degrees')
+        altitude = AuxCoord(altitudes, standard_name='altitude',
+                            units='m')
         utc_offset = AuxCoord(utc_offsets, long_name='utc_offset',
                               units='hours')
-        return indices, bd_ids, latitude, longitude, utc_offset
+        wmo_site = AuxCoord(wmo_sites, long_name='wmo_site', units='1')
+
+        return indices, latitude, longitude, altitude, utc_offset, wmo_site
 
     def make_cube(self, cube, data, sites):
         """
@@ -197,7 +217,7 @@ class ExtractData(object):
         data : numpy.array
             Array of diagnostic values extracted for the defined sites.
 
-        sites : dict
+        sites : OrderedDict
             A dictionary containing the properties of spotdata sites.
 
         Returns:
@@ -207,28 +227,39 @@ class ExtractData(object):
             at the spotdata sites.
 
         """
-        time_coord = cube.coord('time')
-        time_coord.convert_units('hours since 1970-01-01 00:00:00')
+        # Ensure time is a dimension coordinate.
+        if 'time' not in cube.dim_coords:
+            cube = iris.util.new_axis(cube, 'time')
+
+        n_non_spatial_dimcoords = len(cube.dim_coords) - 2
+        non_spatial_dimcoords = cube.dim_coords[0:n_non_spatial_dimcoords]
+        cube.coord('time').convert_units('hours since 1970-01-01 00:00:00')
+
         latitudes = [float(site['latitude']) for site in sites.itervalues()]
         longitudes = [float(site['longitude']) for site in sites.itervalues()]
+        altitudes = [np.nanmin([site['altitude'], 0.])
+                     for site in sites.itervalues()]
         utc_offsets = [float(site['utc_offset'])
                        for site in sites.itervalues()]
-        site_ids = [int(site) for site in sites.keys()]
+        wmo_sites = [site['wmo_site'] for site in sites.itervalues()]
 
-        indices, bd_ids, latitude, longitude, utc_offset = (
+        indices, latitude, longitude, altitude, utc_offset, wmo_site = (
             self._build_coordinates(
-                latitudes, longitudes, site_ids, utc_offsets))
+                latitudes, longitudes, altitudes, utc_offsets, wmo_sites))
+
+        dim_coords = [coord for coord in non_spatial_dimcoords]
+        dim_coords.append(indices)
+        n_dim_coords = len(dim_coords)
+        dim_coords = zip(dim_coords, range(n_dim_coords))
+        aux_coords = zip([latitude, longitude, altitude, utc_offset, wmo_site],
+                         [n_dim_coords-1]*5)
 
         # Add leading dimension for time.
-        data.resize(1, len(data))
+        data = np.expand_dims(data, axis=0)
         result_cube = Cube(data,
                            long_name=cube.name(),
-                           dim_coords_and_dims=[(time_coord, 0),
-                                                (indices, 1)],
-                           aux_coords_and_dims=[(latitude, 1),
-                                                (longitude, 1),
-                                                (utc_offset, 1),
-                                                (bd_ids, 1)],
+                           dim_coords_and_dims=dim_coords,
+                           aux_coords_and_dims=aux_coords,
                            units=cube.units)
 
         # Enables use of long_name above for any name, and then moves it
@@ -252,11 +283,7 @@ class ExtractData(object):
         points associated with spotdata sites.
 
         """
-        if (cube.coord_dims(cube.coord(axis='y').name())[0] != 0 or
-                cube.coord_dims(cube.coord(axis='x').name())[0] != 1):
-            raise InvalidCubeError("Cube dimensions not as expected.")
-
-        data = cube.data[neighbours['i'], neighbours['j']]
+        data = cube.data[..., neighbours['i'], neighbours['j']]
         return self.make_cube(cube, data, sites)
 
     def orography_derived_temperature_lapse_rate(self, cube, sites, neighbours,
@@ -305,9 +332,17 @@ class ExtractData(object):
         data = np.empty(shape=(len(sites)), dtype=float)
 
         for i_site, site in enumerate(sites.itervalues()):
-            altitude = site['altitude']
-
             i, j = neighbours['i'][i_site], neighbours['j'][i_site]
+
+            altitude = site['altitude']
+            if np.isnan(altitude):
+                msg = ('orography_derived_temperature_lapse_rate method '
+                       'requires site to have an altitude. Leaving value '
+                       'unchanged.')
+                warnings.warn(msg)
+                data[i_site] = cube.data[i, j]
+                continue
+
             edgepoint = neighbours['edgepoint'][i_site]
             node_list = nearest_n_neighbours(i, j, no_neighbours)
             if edgepoint:
@@ -321,7 +356,7 @@ class ExtractData(object):
     def model_level_temperature_lapse_rate(
             self, cube, sites, neighbours, surface_pressure, lower_pressure,
             upper_pressure, lower_temperature, upper_temperature,
-            dz_tolerance=2., dthetadz_threshold=0.02, dz_max_adjustment=70.):
+            dz_tolerance, dthetadz_threshold, dz_max_adjustment):
 
         """
         Lapse rate method based on potential temperature. Follows the work of
@@ -471,22 +506,8 @@ class ExtractData(object):
             levels, each at an equivalent time to the cube of screen level
             temperatures.
 
-        dz_tolerance : float (units: m)
-            Vertical displacement between spotdata site and neighbouring grid
-            point below which there is no need to perform a lapse rate
-            adjustment. Defaults to value of 2m.
-
-        dthetadz_threshold : float (units: K/m)
-            Potential temperature gradient threshold, with gradients above this
-            value deemed to have been calculated across an inversion. Defaults
-            to UKPP value of 0.02 K/m.
-
-        dz_max_adjustment : float (units: m)
-            Maximum vertical distance over which a temperature will be adjusted
-            using the lapse rate. If the spotdata site is more than this
-            distance above or below its neighbouring grid point, the adjustment
-            will be made using dz = dz_max_adjustment. Defaults to UKPP value
-            of 70m.
+        dz_tolerance/dthetadz_threshold/dz_max_adjustment :
+            See process docstring.
 
         Returns:
         --------

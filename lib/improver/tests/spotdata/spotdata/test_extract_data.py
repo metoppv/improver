@@ -164,7 +164,8 @@ class Test_ExtractData(IrisTest):
                 'latitude': 4.74,
                 'longitude': 9.47,
                 'altitude': 10,
-                'utc_offset': 0
+                'utc_offset': 0,
+                'wmo_site': 0
                 }}
             )
 
@@ -175,6 +176,12 @@ class Test_ExtractData(IrisTest):
 
         neighbour_list[0] = 10, 10, 0, False
 
+        self.kwargs = {'upper_level': 2,
+                       'lower_level': 1,
+                       'dz_tolerance': 2.,
+                       'dthetadz_threshold': 0.02,
+                       'dz_max_adjustment': 70.}
+
         self.cube = cube
         self.ancillary_data = ancillary_data
         self.ad = ad
@@ -182,30 +189,29 @@ class Test_ExtractData(IrisTest):
         self.time_extract = time_extract
         self.neighbour_list = neighbour_list
 
-    def return_type(self, method, ancillary_data, additional_data):
+    def return_type(self, method, ancillary_data, additional_data, **kwargs):
         """Test that the plugin returns an iris.cube.Cube."""
         plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data, lower_level=1,
-                                upper_level=2)
+                                ancillary_data, additional_data, **kwargs)
 
         self.assertIsInstance(result, Cube)
 
     def extracted_value(self, method, ancillary_data, additional_data,
-                        expected, no_neighbours=9):
+                        expected, **kwargs):
         """Test that the plugin returns the correct value."""
         plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data, lower_level=1,
-                                upper_level=2, no_neighbours=no_neighbours)
+                                ancillary_data, additional_data, **kwargs)
+
         self.assertAlmostEqual(result.data, expected)
 
     def different_projection(self, method, ancillary_data, additional_data,
-                             expected):
+                             expected, **kwargs):
         """Test that the plugin copes with non-lat/lon grids."""
 
         trg_crs = None
@@ -237,8 +243,7 @@ class Test_ExtractData(IrisTest):
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
-                                ancillary_data, additional_data, lower_level=1,
-                                upper_level=2)
+                                ancillary_data, additional_data, **kwargs)
 
         self.assertEqual(cube.coord_system(), trg_crs_iris)
         self.assertAlmostEqual(result.data, expected)
@@ -277,7 +282,8 @@ class Test_miscellaneous(Test_ExtractData):
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = self.cube.extract(self.time_extract)
         with self.assertRaisesRegexp(AttributeError, msg):
-            plugin.process(cube, self.sites, self.neighbour_list, {}, None)
+            plugin.process(cube, self.sites, self.neighbour_list, {}, None,
+                           **self.kwargs)
 
     def test__build_coordinates(self):
         """
@@ -286,12 +292,14 @@ class Test_miscellaneous(Test_ExtractData):
         """
         plugin = Plugin()._build_coordinates
         points = np.array([0, 1, 2])
-        indices, _, latitude, longitude, utc_offset = (
-            plugin(points, points, points, points[::-1]))
+        indices, latitude, longitude, altitude, utc_offset, wmo_site = (
+            plugin(points, points, points, points[::-1], points))
         self.assertArrayEqual(indices.points, points)
+        self.assertArrayEqual(altitude.points, points)
         self.assertArrayEqual(utc_offset.points, points[::-1])
         self.assertEqual(latitude.name(), 'latitude')
         self.assertEqual(longitude.name(), 'longitude')
+        self.assertEqual(wmo_site.name(), 'wmo_site')
         self.assertIsInstance(indices, DimCoord)
         self.assertIsInstance(latitude, AuxCoord)
 
@@ -398,7 +406,8 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
 
     def test_return_type(self):
         """Test this method returns a cube as expected."""
-        self.return_type(self.method, self.ancillary_data, self.ad)
+        self.return_type(self.method, self.ancillary_data, self.ad,
+                         **self.kwargs)
 
     def test_extracted_value_valley(self):
         """
@@ -414,11 +423,8 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
         self.sites['100']['altitude'] = 3.6446955
         self.neighbour_list['dz'] = -6.3553045
         expected = 22.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': 0.02,
-                                                   'dz_max_adjustment': 70.}
         self.extracted_value(self.method, self.ancillary_data, self.ad,
-                             expected, )
+                             expected, **self.kwargs)
 
     def test_extracted_value_deep_valley(self):
         """
@@ -447,21 +453,16 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
 
         self.sites['100']['altitude'] = -90.
         self.neighbour_list['dz'] = -100.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': 0.02,
-                                                   'dz_max_adjustment': 70.}
-
         plugin = Plugin(self.method)
 
         result_dz = plugin.process(cube, self.sites, self.neighbour_list,
-                                   self.ancillary_data, self.ad,
-                                   lower_level=1, upper_level=2)
+                                   self.ancillary_data, self.ad, **self.kwargs)
 
         self.sites['100']['altitude'] = -60.
         self.neighbour_list['dz'] = -70.
         result_70 = plugin.process(cube, self.sites, self.neighbour_list,
-                                   self.ancillary_data, self.ad,
-                                   lower_level=1, upper_level=2)
+                                   self.ancillary_data, self.ad, **self.kwargs)
+
         self.assertEqual(result_dz.data, result_70.data)
 
     def test_extracted_value_hill_mixed(self):
@@ -479,11 +480,8 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = 10.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': 0.02,
-                                                   'dz_max_adjustment': 70.}
         self.extracted_value(self.method, self.ancillary_data, self.ad,
-                             expected, )
+                             expected, **self.kwargs)
 
     def test_extracted_value_hill_stable_lower_dthetadz(self):
         """
@@ -527,11 +525,9 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
         self.neighbour_list['dz'] = 25.
 
         expected = 20.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': -0.2,
-                                                   'dz_max_adjustment': 70.}
+        self.kwargs['dthetadz_threshold'] = -0.2
         self.extracted_value(self.method, self.ancillary_data, self.ad,
-                             expected, )
+                             expected, **self.kwargs)
 
     def test_extracted_value_hill_stable(self):
         """
@@ -555,11 +551,8 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = 21.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': 0.02,
-                                                   'dz_max_adjustment': 70.}
         self.extracted_value(self.method, self.ancillary_data, self.ad,
-                             expected, )
+                             expected, **self.kwargs)
 
     def test_different_projection(self):
         """
@@ -579,11 +572,8 @@ class Test_model_level_temperature_lapse_rate(Test_ExtractData):
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = 10.
-        self.ancillary_data['config_constants'] = {'dz_tolerance': 2.,
-                                                   'dthetadz_threshold': 0.02,
-                                                   'dz_max_adjustment': 70.}
         self.different_projection(self.method, self.ancillary_data, self.ad,
-                                  expected)
+                                  expected, **self.kwargs)
 
     def test_missing_additional_data(self):
         """
