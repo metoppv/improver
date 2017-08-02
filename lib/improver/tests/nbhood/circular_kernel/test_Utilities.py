@@ -33,7 +33,6 @@
 
 import unittest
 
-from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 

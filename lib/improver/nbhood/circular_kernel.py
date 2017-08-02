@@ -30,18 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-import copy
-import math
-
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
-from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
 from improver.percentile import PercentileConverter
 
 # Maximum radius of the neighbourhood width in grid cells.
@@ -267,7 +261,6 @@ class CircularPercentiles(object):
         ranges_tuple = tuple([ranges]*2)
         kernel = Utilities.circular_kernel(ranges_xy, ranges_tuple,
                                            weighted_mode=False)
-
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
