@@ -582,4 +582,3 @@ class SquareNeighbourhood(object):
         neighbourhood_averaged_cube.cell_methods = original_methods
         neighbourhood_averaged_cube.attributes = original_attributes
         return neighbourhood_averaged_cube
-

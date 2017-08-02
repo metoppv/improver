@@ -47,6 +47,67 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
+class Utilities(object):
+    """
+    Contains methods useful to multiple circular_kernel plugins.
+    """
+
+    def __init__(self):
+        """
+        Initialise class.
+        """
+        pass
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<Utilities>')
+        return result
+
+    @staticmethod
+    def circular_kernel(fullranges, ranges, weighted_mode):
+        """
+        Method to apply a circular kernel to the data within the input cube in
+        order to smooth the resulting field.
+
+        Parameters
+        ----------
+        fullranges : Numpy.array
+            Number of grid cells in all dimensions used to create the kernel.
+            This should have the value 0 for any dimension other than x and y.
+        ranges : Tuple
+            Number of grid cells in the x and y direction used to create
+            the kernel.
+        weighted_mode : Boolean
+            True when a weighted circular kernel is required.
+            False will return a kernel consisting only of ones and zeroes.
+
+        Returns
+        -------
+        kernel : Numpy.array
+            Array containing the circular smoothing kernel.
+            This will have the same number of dimensions as fullranges.
+
+        """
+        # Define the size of the kernel based on the number of grid cells
+        # contained within the desired radius.
+        kernel = np.ones([int(1 + x * 2) for x in fullranges])
+        # Create an open multi-dimensional meshgrid.
+        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
+        if weighted_mode:
+            # Create a kernel, such that the central grid point has the
+            # highest weighting, with the weighting decreasing with distance
+            # away from the central grid point.
+            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
+            kernel[:] = (
+                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
+            mask = kernel < 0.
+        else:
+            mask = np.reshape(
+                np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
+        kernel[mask] = 0.
+        return kernel
+
+
 class CircularNeighbourhood(object):
 
     """
@@ -108,23 +169,8 @@ class CircularNeighbourhood(object):
             raise ValueError("Invalid grid: projection_x/y coords required")
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        # Define the size of the kernel based on the number of grid cells
-        # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in fullranges])
-        # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if self.unweighted_mode:
-            mask = np.reshape(
-                np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
-        else:
-            # Create a kernel, such that the central grid point has the
-            # highest weighting, with the weighting decreasing with distance
-            # away from the central grid point.
-            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-            kernel[:] = (
-                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
-            mask = kernel < 0.
-        kernel[mask] = 0.
+        kernel = Utilities.circular_kernel(fullranges, ranges,
+                                           (not self.unweighted_mode))
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)
@@ -154,4 +200,3 @@ class CircularNeighbourhood(object):
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
-

@@ -35,7 +35,8 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.nbhood.nbhood import Utilities
+from improver.nbhood.nbhood import Utilities as NBUtilities
+from improver.nbhood.circular_kernel import Utilities
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 from improver.percentile import PercentileConverter
@@ -135,16 +136,16 @@ class NeighbourhoodPercentiles(object):
             Required neighbourhood sizes.
         """
         if cube_lead_times is None:
-            radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
-                                                   num_ens, self.radii)
+            radii = NBUtilities.adjust_nsize_for_ens(self.ens_factor,
+                                                     num_ens, self.radii)
         else:
             # Interpolate to find the radius at each required lead time.
             radii = (
                 np.interp(
                     cube_lead_times, self.lead_times, self.radii))
             for i, val in enumerate(radii):
-                radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
-                                                          num_ens, val)
+                radii[i] = NBUtilities.adjust_nsize_for_ens(self.ens_factor,
+                                                            num_ens, val)
         return radii
 
     def __repr__(self):
@@ -203,7 +204,7 @@ class NeighbourhoodPercentiles(object):
             cube_new = self.method.run(cube, ranges)
         else:
             cube_lead_times = (
-                Utilities.find_required_lead_times(cube))
+                NBUtilities.find_required_lead_times(cube))
             # Interpolate to find the radius at each required lead time.
             required_radii = (
                 self._find_radii(num_ens, cube_lead_times=cube_lead_times))
@@ -280,17 +281,9 @@ class CircularKernelNumpy(object):
         if ranges < 1:
             raise ValueError("Range size too small. {} < 1".format(ranges))
         ranges_xy = np.array([ranges]*2)
-        # Define the size of the kernel based on the number of grid cells
-        # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in ranges_xy])
-        # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1)
-                                      for x in ranges_xy])])
-        # Always generate kernel in unweighted mode as later logic doesn't
-        # make sense otherwise
-        mask = np.reshape(
-            np.sum(open_grid**2) > np.prod(ranges_xy), np.shape(kernel))
-        kernel[mask] = 0.
+        ranges_tuple = tuple([ranges]*2)
+        kernel = Utilities.circular_kernel(ranges_xy, ranges_tuple,
+                                           weighted_mode=False)
 
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
