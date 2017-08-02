@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.CircularNeighbourhood plugin."""
+"""Unit tests for the nbhood.circular_kernel.CircularPercentiles plugin."""
 
 
 import unittest
@@ -38,7 +38,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.circular_kernel import CircularKernelNumpy
+from improver.nbhood.circular_kernel import CircularPercentiles
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.percentile import PercentileConverter
@@ -68,15 +68,15 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(CircularKernelNumpy())
-        msg = '<CircularKernelNumpy: percentiles: {}>'.format(
+        result = str(CircularPercentiles())
+        msg = '<CircularPercentiles: percentiles: {}>'.format(
             PercentileConverter.DEFAULT_PERCENTILES)
         self.assertEqual(str(result), msg)
 
 
 class Test_make_percentile_cube(IrisTest):
 
-    """Test CircularKernelNumpy.make_percentile_cube."""
+    """Test CircularPercentiles.make_percentile_cube."""
 
     def test_basic(self):
         """
@@ -87,7 +87,7 @@ class Test_make_percentile_cube(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         result = (
-            CircularKernelNumpy().make_percentile_cube(cube))
+            CircularPercentiles().make_percentile_cube(cube))
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
         self.assertArrayEqual(result.coord('percentiles').points,
@@ -104,7 +104,7 @@ class Test_run(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         ranges = 2
-        result = CircularKernelNumpy().run(cube, ranges)
+        result = CircularPercentiles().run(cube, ranges)
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -120,7 +120,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
-        result = CircularKernelNumpy().run(cube, ranges)
+        result = CircularPercentiles().run(cube, ranges)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -147,7 +147,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 1, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
@@ -156,7 +156,7 @@ class Test_run(IrisTest):
         msg = "Invalid grid: projection_x/y coords required"
         ranges = 3
         with self.assertRaisesRegexp(ValueError, msg):
-            CircularKernelNumpy().run(cube, ranges)
+            CircularPercentiles().run(cube, ranges)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -180,7 +180,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -203,7 +203,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
         ranges = 2
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -215,7 +215,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1))))
         expected[:, 0, 0, 7, 8] = PERCENTILES_1_IN_5
         ranges = 1
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_0(self):
@@ -224,7 +224,7 @@ class Test_run(IrisTest):
         ranges = 0
         msg = "Range size too small. {} < 1".format(ranges)
         with self.assertRaisesRegexp(ValueError, msg):
-            CircularKernelNumpy().run(cube, ranges)
+            CircularPercentiles().run(cube, ranges)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
@@ -246,7 +246,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 10] = PERCENTILES_1_IN_13
         ranges = 2
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -276,7 +276,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -305,7 +305,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -338,7 +338,7 @@ class Test_run(IrisTest):
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
         ranges = 3
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -376,7 +376,7 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 1, 0] = border_rows_5
         expected[:, 0, 0, 0, 0] = border_rows_7
         ranges = 3
-        result = (CircularKernelNumpy().run(cube, ranges))
+        result = (CircularPercentiles().run(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
 
@@ -394,7 +394,7 @@ class Test_check_coords(IrisTest):
                                           units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
-        result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
+        result = CircularPercentiles().check_coords(cube_with_perc, cube)
         self.assertIsInstance(result, Cube)
 
     def test_coord_order(self):
@@ -410,7 +410,7 @@ class Test_check_coords(IrisTest):
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         cube_with_perc.transpose([2, 0, 3, 4, 1])
-        result = CircularKernelNumpy().check_coords(cube_with_perc, cube)
+        result = CircularPercentiles().check_coords(cube_with_perc, cube)
         self.assertEqual(result.coord_dims('percentiles')[0], 0)
         for coord in cube.coords():
             if len(cube.coord_dims(coord)) > 0:

@@ -110,13 +110,14 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         lower_threshold = 0.001 * mm_hr_to_m_s
         higher_threshold = 5 * mm_hr_to_m_s
-        neighbourhood_method = "square"
+        neighbourhood_method = "square_probabilities"
         radii = 2000.0
         result = str(DiagnoseConvectivePrecipitation(
             lower_threshold, higher_threshold,
             neighbourhood_method, radii))
         msg = ('<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; '
-               'higher_threshold 1.3889e-06; neighbourhood_method: square; '
+               'higher_threshold 1.3889e-06; '
+               'neighbourhood_method: square_probabilities; '
                'radii: 2000.0; fuzzy_factor None; below_thresh_ok: False; '
                'lead_times: None; unweighted_mode: False; ens_factor: 1.0; '
                'use_adjacent_grid_square_differences: True>')
@@ -131,7 +132,7 @@ class Test__calculate_convective_ratio(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "square_probabilities"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
         self.lower_cube = self.cube.copy()
@@ -315,11 +316,11 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_circular_neighbourhood(self):
         """Test a circular neighbourhood."""
         expected = np.array(
-            [[[[0., 0., np.nan, 0.],
-               [0., 0., 0., 0.],
-               [1., np.nan, 1., 1.],
-               [np.nan, 1., 1., 1.]]]])
-        neighbourhood_method = "circular"
+            [[[0., 0., np.nan, 0.],
+              [0., 0., 0., 0.],
+              [1., np.nan, 1., 1.],
+              [np.nan, 1., 1., 1.]]])
+        neighbourhood_method = "circular_probabilities"
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             neighbourhood_method, self.radii
@@ -331,11 +332,11 @@ class Test__calculate_convective_ratio(IrisTest):
         """Test a circular neighbourhood with the unweighted_mode
         set to True."""
         expected = np.array(
-            [[[[0., 0., 0., 0.],
-               [0.2, 0., 0.25, 0.2],
-               [0.666667, 0.75, 0.75, 0.8],
-               [1., 1., 1., 1.]]]])
-        neighbourhood_method = "circular"
+            [[[0., 0., 0., 0.],
+              [0.2, 0., 0.25, 0.2],
+              [0.666667, 0.75, 0.75, 0.8],
+              [1., 1., 1., 1.]]])
+        neighbourhood_method = "circular_probabilities"
         unweighted_mode = True
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
@@ -354,7 +355,7 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "square_probabilities"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -388,7 +389,7 @@ class Test_iterate_over_threshold(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "square_probabilities"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -455,7 +456,7 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "square_probabilities"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -541,7 +542,7 @@ class Test_process(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "square_probabilities"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 

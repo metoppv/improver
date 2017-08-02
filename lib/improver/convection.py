@@ -61,8 +61,10 @@ class DiagnoseConvectivePrecipitation(object):
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
             neighbourhood_method : str
-                Name of the neighbourhood method to use. Options: 'circular',
-                'square'.
+                Name of the neighbourhood method to use. Options:
+                'circular_probabilities',
+                'circular_percentiles',
+                'square_probabilities'.
             radii : float or List (if defining lead times)
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid

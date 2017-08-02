@@ -47,7 +47,7 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-class SquareNeighbourhood(object):
+class SquareProbabilities(object):
 
     """
     Methods for use in application of a square neighbourhood.
@@ -72,7 +72,7 @@ class SquareNeighbourhood(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SquareNeighbourhood>')
+        result = ('<SquareProbabilities>')
         return result
 
     @staticmethod
@@ -252,10 +252,10 @@ class SquareNeighbourhood(object):
                 "mean", stat_length=((width_y, width_y), (width_x, width_x)))
             coord_x = cube.coord(axis='x')
             padded_x_coord = (
-                SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
+                SquareProbabilities.pad_coord(coord_x, width_x, 'add'))
             coord_y = cube.coord(axis='y')
             padded_y_coord = (
-                SquareNeighbourhood.pad_coord(coord_y, width_y, 'add'))
+                SquareProbabilities.pad_coord(coord_y, width_y, 'add'))
             cubelist.append(
                 self._create_cube_with_new_data(
                     slice_2d, padded_data, padded_x_coord, padded_y_coord))
@@ -294,10 +294,10 @@ class SquareNeighbourhood(object):
                                          2*width_x:end_x]
             coord_x = slice_2d.coord(axis='x')
             trimmed_x_coord = (
-                SquareNeighbourhood.pad_coord(coord_x, width_x, 'remove'))
+                SquareProbabilities.pad_coord(coord_x, width_x, 'remove'))
             coord_y = slice_2d.coord(axis='y')
             trimmed_y_coord = (
-                SquareNeighbourhood.pad_coord(coord_y, width_y, 'remove'))
+                SquareProbabilities.pad_coord(coord_y, width_y, 'remove'))
             cubelist.append(
                 self._create_cube_with_new_data(
                     slice_2d, trimmed_data, trimmed_x_coord, trimmed_y_coord))

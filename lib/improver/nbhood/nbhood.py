@@ -43,9 +43,9 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
-from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.nbhood.square_kernel import SquareProbabilities
 from improver.nbhood.circular_kernel import (
-    CircularNeighbourhood, CircularKernelNumpy)
+    CircularProbabilities, CircularPercentiles)
 from improver.percentile import PercentileConverter
 
 # Maximum radius of the neighbourhood width in grid cells.
@@ -226,8 +226,10 @@ class NeighbourhoodProcessing(object):
         ----------
 
         neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular',
-            'square'.
+            Name of the neighbourhood method to use. Options:
+            'circular_probabilities',
+            'circular_percentiles',
+            'square_probabilities'.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
@@ -241,6 +243,8 @@ class NeighbourhoodProcessing(object):
             If False, use a circle with constant weighting.
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
+            This value only has an effect with the circular_probabilities
+            method.
         ens_factor : float
             The factor with which to adjust the neighbourhood size
             for more than one ensemble member.
@@ -256,9 +260,9 @@ class NeighbourhoodProcessing(object):
         self.percentiles = percentiles
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
-            "circular": CircularNeighbourhood,
-            "circular_percentiles": CircularKernelNumpy,
-            "square": SquareNeighbourhood}
+            "circular_probabilities": CircularProbabilities,
+            "circular_percentiles": CircularPercentiles,
+            "square_probabilities": SquareProbabilities}
         try:
             method = methods[neighbourhood_method]
             self.neighbourhood_method = method(weighted_mode)
@@ -319,10 +323,12 @@ class NeighbourhoodProcessing(object):
         """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; '
-                  'weighted_mode: {}; ens_factor: {}>')
+                  'weighted_mode: {}; ens_factor: {}; '
+                  'percentile-count: {}>')
         return result.format(
             self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.weighted_mode, self.ens_factor)
+            self.weighted_mode, self.ens_factor,
+            len(PercentileConverter.DEFAULT_PERCENTILES))
 
     def process(self, cube):
         """
@@ -334,12 +340,16 @@ class NeighbourhoodProcessing(object):
         cube : Iris.cube.Cube
             Cube to apply a neighbourhood processing method to, in order to
             generate a smoother field.
+            For probability methods, the cube should have already been
+            thresholded.
 
         Returns
         -------
         cube : Iris.cube.Cube
             Cube after applying a neighbourhood processing method, so that the
-            resulting field is smoothed.
+            resulting field is either:
+            Smoothed probability threshold data.
+            Smoothed percentile data (with percentiles as an added dimension)
 
         """
         # Check if the realization coordinate exists. If there are multiple

@@ -109,7 +109,7 @@ class Utilities(object):
         return kernel
 
 
-class CircularNeighbourhood(object):
+class CircularProbabilities(object):
 
     """
     Methods for use in the calculation and application of a circular
@@ -139,7 +139,7 @@ class CircularNeighbourhood(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<CircularNeighbourhood: weighted_mode: {}>')
+        result = ('<CircularProbabilities: weighted_mode: {}>')
         return result.format(self.weighted_mode)
 
     def apply_circular_kernel(self, cube, ranges):
@@ -207,7 +207,7 @@ class CircularNeighbourhood(object):
         return cube
 
 
-class CircularKernelNumpy(object):
+class CircularPercentiles(object):
     """
     Methods for use in calculating percentiles from a 2D circular
     neighbourhood.
@@ -230,7 +230,7 @@ class CircularKernelNumpy(object):
 
     def __repr__(self):
         """Represent the configured class instance as a string."""
-        result = ('<CircularKernelNumpy: percentiles: {}>')
+        result = ('<CircularPercentiles: percentiles: {}>')
         return result.format(self.percentiles)
 
     def run(self, cube, ranges):
