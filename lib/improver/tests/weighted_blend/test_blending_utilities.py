@@ -210,6 +210,40 @@ class TestBlendingUtilities(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result, expected_result_array)
 
+    def test_blend_percentile_aggregate_reorder1(self):
+        """Test blend_percentile_aggregate works with out of order dims 1"""
+        weights = np.array([0.8, 0.2])
+        percentiles = np.array([0, 20, 40, 60, 80, 100])
+        perc_data = np.reshape(PERCENTILE_DATA, (6, 2, 2, 2))
+        # print 'Before', perc_data.shape
+        perc_data = np.moveaxis(perc_data, [0, 1], [3, 1])
+        # print 'After ',perc_data.shape
+        result = BlendingUtilities.blend_percentile_aggregate(
+            perc_data, 1,
+            percentiles,
+            weights, 3)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
+                                           (6, 2, 2))
+        expected_result_array = np.moveaxis(expected_result_array, 0, 2)
+        self.assertArrayAlmostEqual(result, expected_result_array)
+
+    def test_blend_percentile_aggregate_reorder2(self):
+        """Test blend_percentile_aggregate works with out of order dims 2"""
+        weights = np.array([0.8, 0.2])
+        percentiles = np.array([0, 20, 40, 60, 80, 100])
+        perc_data = np.reshape(PERCENTILE_DATA, (6, 2, 2, 2))
+        # print 'Before', perc_data.shape
+        perc_data = np.moveaxis(perc_data, [0, 1], [1, 2])
+        # print 'After ',perc_data.shape
+        result = BlendingUtilities.blend_percentile_aggregate(
+            perc_data, 2,
+            percentiles,
+            weights, 1)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
+                                           (6, 2, 2))
+        expected_result_array = np.moveaxis(expected_result_array, 0, 1)
+        self.assertArrayAlmostEqual(result, expected_result_array)
+
     def test_blend_percentiles(self):
         """Test blend_percentile function works"""
         weights = np.array([0.38872692, 0.33041788, 0.2808552])

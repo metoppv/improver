@@ -104,7 +104,7 @@ class BlendingUtilities(object):
         percentiles = np.array(perc_coord.points, dtype=float)
         num = cube.data.shape[coord_dim[0]]
         if weights is None:
-            weights = np.ones(num)/float(num)
+            weights = np.ones(num) / float(num)
         PERCENTILE_BLEND = (Aggregator('percentile_blend',
                             BlendingUtilities.blend_percentile_aggregate))
         perc_dim, = cube.coord_dims(perc_coord.name())
@@ -114,10 +114,6 @@ class BlendingUtilities(object):
                                 arr_percent=percentiles,
                                 arr_weights=weights,
                                 perc_dim=perc_dim)
-
-        # Add meta data
-        new_name = 'over {}'.format(coord)
-        result.attributes.update({'Blended': new_name})
         return result
 
     @staticmethod
@@ -150,26 +146,22 @@ class BlendingUtilities(object):
             axis += data.ndim
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
-        data = np.rollaxis(data, perc_dim, start=0)
-        data = np.rollaxis(data, axis, start=0)
+
+        data = np.moveaxis(data, [perc_dim, axis], [1, 0])
+
         # Determine the rest of the shape
         shape = data.shape[2:]
-
         result = None
         if shape:
             input_shape = [data.shape[0],
                            data.shape[1],
                            np.prod(shape)]
-            # print ' input_shape', input_shape
             # Flatten the data that is not percentile or coord data
             data = data.reshape(input_shape)
-            # print 'data shape', data.shape
             # Create the resulting data array
             result = np.zeros(input_shape[1:])
-            # print 'result shape', result.shape
             # Loop over the flatten data
             for i in range(data.shape[-1]):
-                # print 'Loop i, shape,', i, data[:,:,i].shape
                 result[:, i] = (
                     BlendingUtilities.blend_percentiles(data[:, :, i],
                                                         arr_percent,
@@ -181,11 +173,10 @@ class BlendingUtilities(object):
             result = result.reshape(shape)
             if axis < perc_dim:
                 if perc_dim != 1:
-                    result = np.rollaxis(result, 0, start=perc_dim-1)
+                    result = np.moveaxis(result, 0, perc_dim-1)
             else:
                 if perc_dim != 0:
-                    result = np.rollaxis(result, 0, start=perc_dim)
-        # print 'Result shape',result.shape
+                    result = np.moveaxis(result, 0, perc_dim)
         return result
 
     @staticmethod
