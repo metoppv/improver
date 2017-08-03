@@ -4,7 +4,7 @@
 
 language: python
 python:
-  - 2.7
+  - 2.7.12
 sudo: false
 
 git:
@@ -29,41 +29,12 @@ install:
   - conda create --quiet -n $ENV_NAME python=$TRAVIS_PYTHON_VERSION
   - source activate $ENV_NAME
 
-  # Download Iris 1.12.
-  - wget https://github.com/SciTools/iris/archive/v1.12.0.tar.gz -O $HOME/iris.tar.gz
-  - tar -xvf $HOME/iris.tar.gz -C $HOME
-  - cd $HOME/iris-1.12.0
+  # Download Iris 1.13 and all dependencies.
+  - conda install -c conda-forge iris=1.13
 
-  # Add scitools requirements
-  - conda config --add channels scitools
-  - conda install -c scitools/label/dev biggus
-  - conda install --quiet --file conda-requirements.txt
-  - PREFIX=$HOME/miniconda/envs/$ENV_NAME
-
-  # Output debug info
-  - conda list
-  - conda info -a
-
-  # Setup
-  - python setup.py --with-unpack build_ext --include-dirs=${PREFIX}/include --library-dirs=${PREFIX}/lib
-  - IRIS=$(ls -d1 build/lib*/iris)
-  - mkdir $IRIS/etc
-
-  # Set config paths
-  - SITE_CFG=$IRIS/etc/site.cfg
-  - echo "[System]" > $SITE_CFG
-  - echo "udunits2_path = $PREFIX/lib/libudunits2.so" >> $SITE_CFG
-
-  # Build Iris
-  - python setup.py --quiet --with-unpack build
-  - python setup.py --quiet --with-unpack install
-
-  # Get pylint
-  - pip install pylint
-
-  # CD back to IMPROVER
-  - cd -
-
+  # Install our own extra dependencies (+ filelock for Iris test).
+  - conda install -c conda-forge mock filelock pep8 pylint sphinx
+ 
 script:
   - python -c "import iris"
   - bin/improver tests
