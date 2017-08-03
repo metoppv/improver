@@ -38,7 +38,7 @@ from cf_units import Unit
 
 from improver.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
-from improver.weighted_blend import BasicWeightedAverage
+from improver.weighted_blend import WeightedBlend
 from improver.argparser import ArgParser
 
 
@@ -162,7 +162,7 @@ def main():
             cube, args.coordinate, args.coord_exp_val, coord_unit,
             args.wts_redistrib_method)
     result = (
-        BasicWeightedAverage(
+        WeightedBlend(
             args.coordinate, args.coord_adj).process(cube, weights))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
