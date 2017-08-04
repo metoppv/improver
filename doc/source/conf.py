@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 #
 # IMPROVER documentation build configuration file, created by
 # sphinx-quickstart on Fri May 19 13:27:21 2017.
