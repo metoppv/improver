@@ -168,10 +168,31 @@ class Utilities(object):
             Modified neighbourhooded cube with relevant scalar coordinates
             promoted to dimension coordinates.
 
+        Raises
+        ------
+        iris.exceptions.CoordinateNotFoundError raised if the final dimension
+        coordinates of the returned cube do not match the input cube.
+
         """
+        # Promote available and relevant scalar coordinates
         for coord in new_cube.aux_coords[::-1]:
             if coord in cube.dim_coords:
                 new_cube = iris.util.new_axis(new_cube, coord)
+
+        # Ensure dimension order matches; if lengths are unequal a coordinate
+        # is missing, so raise an appropriate error.
+        cube_dimension_order = {coord.name(): cube.coord_dims(coord.name())[0]
+                                for coord in cube.dim_coords}
+        correct_order = [cube_dimension_order[coord.name()]
+                         for coord in new_cube.dim_coords]
+        if len(cube_dimension_order) == len(correct_order):
+            new_cube.transpose(correct_order)
+        else:
+            msg = ('Returned cube dimension coordinates do not match input '
+                   'cube dimension coordinates. \n input cube shape {} '
+                   ' returned cube shape {}'.format(
+                    cube.shape, new_cube.shape))
+            raise iris.exceptions.CoordinateNotFoundError(msg)
 
         return new_cube
 
