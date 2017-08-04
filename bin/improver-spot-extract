@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -38,7 +38,7 @@ from improver.spotdata.main import run_spotdata
 def valid_latitude(value):
     """
     Ensures latitude values fall in allowed range.
-    
+
     Args:
     -----
     value : int/float
@@ -64,7 +64,7 @@ def valid_latitude(value):
 def valid_longitude(value):
     """
     Ensures longitude values fall in allowed range.
-    
+
     Args:
     -----
     value : int/float
@@ -85,6 +85,7 @@ def valid_longitude(value):
         raise argparse.ArgumentTypeError(
             "{} not in range [-180,180]".format(value))
     return value
+
 
 def site_dictionary(latitudes, longitudes, altitudes):
     """
@@ -117,10 +118,10 @@ def site_dictionary(latitudes, longitudes, altitudes):
     site_properties = []
     for site in range(len(latitudes)):
         site_properties.append({
-                'latitude': latitudes[site],
-                'longitude': longitudes[site],
-                'altitude': altitudes[site]
-                })
+            'latitude': latitudes[site],
+            'longitude': longitudes[site],
+            'altitude': altitudes[site]
+            })
 
     return site_properties
 
@@ -181,9 +182,8 @@ def main():
 
     args = parser.parse_args()
 
-
     site_properties = {}
-    if args.latitudes != None:
+    if args.latitudes is not None:
         site_properties = site_dictionary(args.latitudes, args.longitudes,
                                           args.altitudes)
 
