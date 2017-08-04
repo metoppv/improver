@@ -556,9 +556,11 @@ class Test_process(IrisTest):
 #        radii = 6000
 #        neighbourhood_method = "circular_percentiles"
 #        result = NBHood(neighbourhood_method, radii).process(cube)
-#        self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
-#        self.assertArrayEqual(result.coord('percentiles').points,
-#                              PercentileConverter.DEFAULT_PERCENTILES)
+#        self.assertIsInstance(result.coord('percentiles_over_neighbourhood'),
+#            iris.coords.Coord)
+#        self.assertArrayEqual(result.coord(
+#            'percentiles_over_neighbourhood').points,
+#            PercentileConverter.DEFAULT_PERCENTILES)
 
 
 if __name__ == '__main__':

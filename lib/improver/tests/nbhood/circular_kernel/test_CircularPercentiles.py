@@ -89,9 +89,11 @@ class Test_make_percentile_cube(IrisTest):
         result = (
             CircularPercentiles().make_percentile_cube(cube))
         self.assertIsInstance(result, Cube)
-        self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
-        self.assertArrayEqual(result.coord('percentiles').points,
-                              PercentileConverter.DEFAULT_PERCENTILES)
+        self.assertIsInstance(result.coord(
+            'percentiles_over_neighbourhood'), iris.coords.Coord)
+        self.assertArrayEqual(result.coord(
+            'percentiles_over_neighbourhood').points,
+            PercentileConverter.DEFAULT_PERCENTILES)
 
 
 class Test_run(IrisTest):
@@ -390,8 +392,8 @@ class Test_check_coords(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         cube_with_perc = cube.copy()
-        perc_coord = iris.coords.DimCoord(50., long_name='percentiles',
-                                          units='%')
+        perc_coord = iris.coords.DimCoord(
+            50., long_name='percentiles_over_neighbourhood', units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         result = CircularPercentiles().check_coords(cube_with_perc, cube)
@@ -406,12 +408,13 @@ class Test_check_coords(IrisTest):
             num_grid_points=5)
         cube_with_perc = cube.copy()
         perc_coord = iris.coords.DimCoord(
-            50., long_name='percentiles', units='%')
+            50., long_name='percentiles_over_neighbourhood', units='%')
         cube_with_perc.add_aux_coord(perc_coord)
         cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
         cube_with_perc.transpose([2, 0, 3, 4, 1])
         result = CircularPercentiles().check_coords(cube_with_perc, cube)
-        self.assertEqual(result.coord_dims('percentiles')[0], 0)
+        self.assertEqual(result.coord_dims(
+            'percentiles_over_neighbourhood')[0], 0)
         for coord in cube.coords():
             if len(cube.coord_dims(coord)) > 0:
                 self.assertEqual(result.coord_dims(coord)[0],

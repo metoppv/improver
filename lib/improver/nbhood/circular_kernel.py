@@ -332,7 +332,8 @@ class CircularPercentiles(object):
             if len(cube_orig.coord_dims(coord)) == 0:
                 continue
             required_order[indx+1] = cube.coord_dims(coord)[0]
-        required_order[0] = cube.coord_dims("percentiles")[0]
+        required_order[0] = cube.coord_dims(
+            "percentiles_over_neighbourhood")[0]
         cube.transpose(required_order)
         return cube
 
@@ -355,6 +356,6 @@ class CircularPercentiles(object):
         for pct in self.percentiles:
             pctcube = cube.copy()
             pctcube.add_aux_coord(iris.coords.DimCoord(
-                pct, long_name='percentiles', units='%'))
+                pct, long_name="percentiles_over_neighbourhood", units='%'))
             pctcubelist.append(pctcube)
         return pctcubelist.merge_cube()
