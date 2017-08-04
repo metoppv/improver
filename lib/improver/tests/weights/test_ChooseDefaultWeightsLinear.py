@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -89,7 +89,7 @@ class Test_linear_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
 
-class TestChooseDefaultWeightsLinear(IrisTest):
+class Test_process(IrisTest):
     """Test the Default Linear Weights plugin. """
 
     def setUp(self):
