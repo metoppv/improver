@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -55,7 +55,7 @@ def example_coord_adjust(pnts):
     return pnts[len(pnts)-1]
 
 
-class TestBasicWeightedAverage(IrisTest):
+class Test_process(IrisTest):
 
     """Test the Basic Weighted Average plugin."""
 
