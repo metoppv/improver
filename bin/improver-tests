@@ -14,14 +14,14 @@
 
 set -eu
 
-FILES_TO_TEST=''
-
 function echo_ok {
     echo -e "\033[1;32m[OK]\033[0m $1"
 }
 
 function get_python_files {
-    FILES_TO_TEST=`find $IMPROVER_DIR -type f \( -name '*.py' -o -name 'improver-*' \)`
+    FILES_TO_TEST=`find $IMPROVER_DIR -type f \( -name '*.py' \
+                                              -o -name 'improver-*' \
+                                               ! -name 'improver-tests' \)`
 }
 
 function improver_test_pep8 {
@@ -163,6 +163,7 @@ if [[ $STRIPPED_TEST == "cli" ]]; then
 fi
 
 # Build a list of python files throughout IMPROVER.
+FILES_TO_TEST=''
 get_python_files
 
 for TEST_NAME in $TESTS; do
