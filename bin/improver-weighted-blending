@@ -139,7 +139,8 @@ def main():
 
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
-    elif (args.wts_calc_method == "nonlinear") and np.any([args.y0val, args.ynval, args.slope]):
+    elif ((args.wts_calc_method == "nonlinear") and
+          np.any([args.y0val, args.ynval, args.slope])):
         parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
 
     if args.coordinate == 'time':
