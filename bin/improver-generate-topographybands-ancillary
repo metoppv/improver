@@ -34,7 +34,6 @@
 import argparse
 import os
 import iris
-from glob import glob
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils)

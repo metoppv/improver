@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -59,7 +59,7 @@ def main():
     if not os.path.exists(args.output_filepath) or args.force:
         input_field = iris.load_cube(args.input_filepath)
         gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
-        iris.save(gradients, args.output_filepath,  unlimited_dimensions=[])
+        iris.save(gradients, args.output_filepath, unlimited_dimensions=[])
     else:
         print args.output_filepath
         msg = 'File already exists here: {}'.format(args.output_filepath)

@@ -95,7 +95,6 @@ def main():
     else:
         veg_roughness_cube = None
     try:
-        realization_coord = wind_speed.coord('realization')
         wind_speed_iterator = wind_speed.slices_over('realization')
     except CoordinateNotFoundError:
         wind_speed_iterator = [wind_speed]

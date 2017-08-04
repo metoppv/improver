@@ -41,8 +41,8 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description='Apply the requested neighbourhood method via ' +
-                    'the NeighbourhoodProcessing plugin ' +
+        description='Apply the requested neighbourhood method via '
+                    'the NeighbourhoodProcessing plugin '
                     'to a file with one cube.')
     parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
                         help='The neighbourhood method to apply in '

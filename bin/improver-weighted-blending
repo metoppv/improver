@@ -106,7 +106,7 @@ def main():
                                           'ChooseDefaultWeightsNonLinear')
     nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
                            help='Factor used to determine how skewed the '
-                                'non linear weights will be. ' +
+                                'non linear weights will be. '
                                 'A value of 1 implies equal weighting. If not '
                                 'set, a default value of cval=0.85 is set.')
     parser.add_argument('--coord_adj', metavar='COORD_ADJUSTMENT_FUNCTION',
@@ -137,12 +137,10 @@ def main():
     if args.coord_adj:
         args.coord_adj = eval(args.coord_adj)
 
-    if args.wts_calc_method == "linear":
-        if args.cval:
-            parser.wrong_args_error('cval', 'linear')
-    else:
-        if np.any([args.y0val, args.ynval, args.slope]):
-            parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
+    if (args.wts_calc_method == "linear") and args.cval:
+        parser.wrong_args_error('cval', 'linear')
+    elif np.any([args.y0val, args.ynval, args.slope]):
+        parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
 
     if args.coordinate == 'time':
         coord_unit = Unit(args.coordinate_unit, args.calendar)

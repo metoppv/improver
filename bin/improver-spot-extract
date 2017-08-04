@@ -116,7 +116,7 @@ def site_dictionary(latitudes, longitudes, altitudes):
                          ' longitudes.')
 
     site_properties = []
-    for site in range(len(latitudes)):
+    for site, _ in enumerate(latitudes):
         site_properties.append({
             'latitude': latitudes[site],
             'longitude': longitudes[site],
@@ -182,7 +182,7 @@ def main():
 
     args = parser.parse_args()
 
-    site_properties = {}
+    site_properties = []
     if args.latitudes is not None:
         site_properties = site_dictionary(args.latitudes, args.longitudes,
                                           args.altitudes)
