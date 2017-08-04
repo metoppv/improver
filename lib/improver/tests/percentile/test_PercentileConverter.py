@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: iso-8859-1 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -43,7 +43,7 @@ import numpy as np
 from improver.percentile import PercentileConverter
 
 
-class TestPercentiles(IrisTest):
+class Test_process(IrisTest):
 
     """Test the creation of percentiles by the plugin."""
 
