@@ -462,15 +462,15 @@ class Test_process(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
             num_time_points=3)
-        expected = np.ones_like(cube.data[0])
-        expected[0, 6:9, 6:9] = (
+        expected = np.ones_like(cube.data)
+        expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667])
 
-        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-        expected[2, 4:11, 4:11] = (
+        expected[0, 2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
@@ -517,15 +517,15 @@ class Test_process(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
             num_time_points=3)
-        expected = np.ones_like(cube.data[0])
-        expected[0, 6:9, 6:9] = (
+        expected = np.ones_like(cube.data)
+        expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667])
 
-        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-        expected[2, 4:11, 4:11] = (
+        expected[0, 2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],

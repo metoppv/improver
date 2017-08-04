@@ -147,6 +147,34 @@ class Utilities(object):
                          math.sqrt((width**2.0)/num_ens))
         return new_width
 
+    @staticmethod
+    def check_cube_coordinates(cube, new_cube):
+        """
+        Find and promote to dimension coordinates any scalar coordinates in
+        new_cube that were originally dimension coordinates in the progenitor
+        cube.
+
+        Parameters
+        ----------
+        cube : iris.cube.Cube
+            The input cube provided to nbhood.
+        new_cube : iris.cube.Cube
+            The cube produced by the neighbourhooding process that must be
+            checked for demoted dimensional coordinates.
+
+        Returns
+        -------
+        new_cubewidth : iris.cube.Cube
+            Modified neighbourhooded cube with relevant scalar coordinates
+            promoted to dimension coordinates.
+
+        """
+        for coord in new_cube.aux_coords[::-1]:
+            if coord in cube.dim_coords:
+                new_cube = iris.util.new_axis(new_cube, coord)
+
+        return new_cube
+
 
 class SquareNeighbourhood(object):
 
@@ -682,6 +710,7 @@ class SquareNeighbourhood(object):
 
         neighbourhood_averaged_cube.cell_methods = original_methods
         neighbourhood_averaged_cube.attributes = original_attributes
+
         return neighbourhood_averaged_cube
 
 
@@ -979,6 +1008,8 @@ class NeighbourhoodProcessing(object):
                                              coords_to_slice_over=["time"])
 
             cubelist.append(cube_new)
-        cube = cubelist.merge_cube()
+        merged_cube = cubelist.merge_cube()
+        # Promote dimensional coordinates that have been demoted to scalars.
+        merged_cube = Utilities.check_cube_coordinates(cube, merged_cube)
 
-        return cube
+        return merged_cube
