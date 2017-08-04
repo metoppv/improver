@@ -550,15 +550,15 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_returns_percentiles_coord(self):
-        """Test the expected percentiles coord exists."""
-        cube = set_up_cube_with_no_realizations()
-        radii = 6000
-        neighbourhood_method = "circular_percentiles"
-        # result = NBHood(neighbourhood_method, radii).process(cube)
-        # self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
-        # self.assertArrayEqual(result.coord('percentiles').points,
-        #                      PercentileConverter.DEFAULT_PERCENTILES)
+#    def test_returns_percentiles_coord(self):
+#        """Test the expected percentiles coord exists."""
+#        cube = set_up_cube_with_no_realizations()
+#        radii = 6000
+#        neighbourhood_method = "circular_percentiles"
+#        result = NBHood(neighbourhood_method, radii).process(cube)
+#        self.assertIsInstance(result.coord('percentiles'), iris.coords.Coord)
+#        self.assertArrayEqual(result.coord('percentiles').points,
+#                              PercentileConverter.DEFAULT_PERCENTILES)
 
 
 if __name__ == '__main__':
