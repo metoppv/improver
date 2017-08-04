@@ -42,7 +42,7 @@ import numpy as np
 from improver.utilities.threshold import BasicThreshold as Threshold
 
 
-class TestThreshold(IrisTest):
+class Test_process(IrisTest):
 
     """Test the thresholding plugin."""
 

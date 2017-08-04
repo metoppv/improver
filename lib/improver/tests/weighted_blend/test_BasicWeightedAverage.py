@@ -55,7 +55,7 @@ def example_coord_adjust(pnts):
     return pnts[len(pnts)-1]
 
 
-class TestBasicWeightedAverage(IrisTest):
+class Test_process(IrisTest):
 
     """Test the Basic Weighted Average plugin."""
 

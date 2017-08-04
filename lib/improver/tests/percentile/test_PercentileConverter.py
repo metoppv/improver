@@ -43,7 +43,7 @@ import numpy as np
 from improver.percentile import PercentileConverter
 
 
-class TestPercentiles(IrisTest):
+class Test_process(IrisTest):
 
     """Test the creation of percentiles by the plugin."""
 

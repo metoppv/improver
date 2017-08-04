@@ -89,7 +89,7 @@ class Test_linear_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
 
-class TestChooseDefaultWeightsLinear(IrisTest):
+class Test_process(IrisTest):
     """Test the Default Linear Weights plugin. """
 
     def setUp(self):
