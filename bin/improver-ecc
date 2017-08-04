@@ -29,9 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+
 """Script to run Ensemble Copula Coupling processing."""
-
-
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -41,6 +40,7 @@ import numpy as np
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsMembers, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
+
 
 def main():
     """
@@ -75,14 +75,14 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument('--reordering', default=False, action='store_true',
-        help='The option used to create ensemble members '
-             'from percentiles by reordering the input '
-             'percentiles based on the order of the '
-             'raw ensemble forecast.')
+                       help='The option used to create ensemble members '
+                       'from percentiles by reordering the input '
+                       'percentiles based on the order of the '
+                       'raw ensemble forecast.')
     group.add_argument('--rebadging', default=False, action='store_true',
-        help='The option used to create ensemble members '
-              'from percentiles by rebadging the input '
-              'percentiles.')
+                       help='The option used to create ensemble members '
+                       'from percentiles by rebadging the input '
+                       'percentiles.')
 
     # If reordering, can do so either based on original members, or randomly.
     reordering = parser.add_argument_group(
@@ -90,32 +90,32 @@ def main():
         'using the raw ensemble forecast as required to create ensemble '
         'members.')
     reordering.add_argument('--raw_forecast_filepath',
-                        metavar='RAW_FORECAST_FILE',
-                        help='A path to an raw forecast NetCDF file to be '
-                             'processed. This option is compulsory, if the '
-                             'reordering option is selected.')
+                            metavar='RAW_FORECAST_FILE',
+                            help='A path to an raw forecast NetCDF file to be '
+                            'processed. This option is compulsory, if the '
+                            'reordering option is selected.')
     reordering.add_argument('--random_ordering', default=False,
-                        action='store_true',
-                        help='Decide whether or not to use random ordering '
-                             'within the ensemble reordering step.')
+                            action='store_true',
+                            help='Decide whether or not to use random '
+                            'ordering within the ensemble reordering step.')
     reordering.add_argument(
         '--random_seed', default=None,
         help='Option to specify a value for the random seed for testing '
-            'purposes, otherwise, the default random seed behaviour is '
-            'utilised. The random seed is used in the generation of the '
-            'random numbers used for either the random_ordering option to '
-            'order the input percentiles randomly, rather than use the '
-            'ordering from the raw ensemble, or for splitting tied values '
-            'within the raw ensemble, so that the values from the input '
-            'percentiles can be ordered to match the raw ensemble.')
+             'purposes, otherwise, the default random seed behaviour is '
+             'utilised. The random seed is used in the generation of the '
+             'random numbers used for either the random_ordering option to '
+             'order the input percentiles randomly, rather than use the '
+             'ordering from the raw ensemble, or for splitting tied values '
+             'within the raw ensemble, so that the values from the input '
+             'percentiles can be ordered to match the raw ensemble.')
 
     rebadging = parser.add_argument_group(
         'Rebadging options', 'Options for rebadging the input percentiles '
         'as ensemble members.')
     rebadging.add_argument('--member_numbers', default=None,
-        metavar='MEMBER_NUMBERS',
-        help='A list of ensemble member numbers to use '
-              'when rebadging the percentiles into members.')
+                           metavar='MEMBER_NUMBERS',
+                           help='A list of ensemble member numbers to use '
+                           'when rebadging the percentiles into members.')
 
     args = parser.parse_args()
 
@@ -131,7 +131,6 @@ def main():
         if np.any([args.raw_forecast_filepath, args.random_ordering]):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
-
 
     # Safe to now actually do the work...
     cube = iris.load_cube(args.input_filepath)

@@ -45,16 +45,16 @@ def main():
     """Load in arguments for ensemble calibration. 3 sources of input data
        must be provided: current forecast (to be calibrated), historical
        forecasts and historical truth data (to use in calibration). Output from
-       EnsembleCalibration plugin can be written to file if required. 
+       EnsembleCalibration plugin can be written to file if required.
 
        The mean and variance calculated by this plugin are passed to
        GeneratePercentilesFromMeanAndVariance and EnsembleReordering plugins
        to regenerate members.
     """
     parser = argparse.ArgumentParser(
-    description='Apply the requested ensemble calibration method using '
-                'historical forecast and "truth" data. Then apply ensemble '
-                'copula coupling to regenerate ensemble members from output.')
+        description='Apply the requested ensemble calibration method using '
+        'historical forecast and "truth" data. Then apply ensemble '
+        'copula coupling to regenerate ensemble members from output.')
     # Arguments for EnsembleCalibration
     parser.add_argument('calibration_method',
                         metavar='ENSEMBLE_CALIBRATION_METHOD',
@@ -111,14 +111,16 @@ def main():
                              'randomly. If not set, the ordering of the raw '
                              'ensemble is used.')
     parser.add_argument('--random_seed', default=None,
-                        help='Option to specify a value for the random seed for testing '
-                             'purposes, otherwise, the default random seed behaviour is '
-                             'utilised. The random seed is used in the generation of the '
-                             'random numbers used for either the random_ordering option to '
-                             'order the input percentiles randomly, rather than use the '
-                             'ordering from the raw ensemble, or for splitting tied values '
-                             'within the raw ensemble, so that the values from the input '
-                             'percentiles can be ordered to match the raw ensemble.')
+                        help='Option to specify a value for the random seed '
+                        'for testing purposes, otherwise, the default random '
+                        'seed behaviour is utilised. The random seed is used '
+                        'in the generation of the random numbers used for '
+                        'either the random_ordering option to order the input '
+                        'percentiles randomly, rather than use the ordering '
+                        'from the raw ensemble, or for splitting tied values '
+                        'within the raw ensemble, so that the values from the '
+                        'input percentiles can be ordered to match the raw '
+                        'ensemble.')
     args = parser.parse_args()
 
     current_forecast = iris.load_cube(args.input_filepath)
@@ -134,7 +136,7 @@ def main():
         predictor_of_mean_flag=args.predictor_of_mean).process(
             current_forecast, historic_forecast, truth)
     # If required, save the mean and variance.
-    if args.save_mean_variance: 
+    if args.save_mean_variance:
         mean_variance = [x for y in forecast_predictor_and_variance for x in y]
         mean_variance = iris.cube.CubeList(mean_variance)
         iris.save(mean_variance, args.save_mean_variance,
@@ -144,7 +146,8 @@ def main():
     percentiles = GeneratePercentilesFromMeanAndVariance().process(
         forecast_predictor_and_variance, args.num_members)
     result = EnsembleReordering().process(percentiles, current_forecast,
-        random_ordering=args.random_ordering, random_seed=args.random_seed)
+                                          random_ordering=args.random_ordering,
+                                          random_seed=args.random_seed)
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

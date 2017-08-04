@@ -59,7 +59,7 @@ def main():
     if not os.path.exists(args.output_filepath) or args.force:
         input_field = iris.load_cube(args.input_filepath)
         gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
-        iris.save(gradients, args.output_filepath,  unlimited_dimensions=[])
+        iris.save(gradients, args.output_filepath, unlimited_dimensions=[])
     else:
         print args.output_filepath
         msg = 'File already exists here: {}'.format(args.output_filepath)
