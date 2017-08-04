@@ -18,20 +18,26 @@ function echo_ok {
     echo -e "\033[1;32m[OK]\033[0m $1"
 }
 
+function get_python_files {
+    FILES_TO_TEST=`find $IMPROVER_DIR -type f \( -name '*.py' \
+                                              -o -name 'improver-*' \
+                                               ! -name 'improver-tests' \)`
+}
+
 function improver_test_pep8 {
     # PEP8 testing.
-    ${PEP8:-pep8} improver
+    ${PEP8:-pep8} $FILES_TO_TEST
     echo_ok "pep8"
 }
 
 function improver_test_pylint {
     # Pylint score generation.
-    ${PYLINT:-pylint} --rcfile=../etc/pylintrc improver
+    ${PYLINT:-pylint} --rcfile=../etc/pylintrc $FILES_TO_TEST
 }
 
 function improver_test_pylintE {
     # Pylint obvious-errors-only testing.
-    ${PYLINT:-pylint} -E --rcfile=../etc/pylintrc improver
+    ${PYLINT:-pylint} -E --rcfile=../etc/pylintrc $FILES_TO_TEST
     echo_ok "pylint -E"
 }
 
@@ -95,6 +101,7 @@ __USAGE__
 }
 
 cd $IMPROVER_DIR/lib
+#cd $IMPROVER_DIR
 
 # Find cli test options and format to work with case statement
 shopt -s extglob
@@ -154,6 +161,10 @@ if [[ $STRIPPED_TEST == "cli" ]]; then
         CLISUBTEST="$SUBCLI"
     fi
 fi
+
+# Build a list of python files throughout IMPROVER.
+FILES_TO_TEST=''
+get_python_files
 
 for TEST_NAME in $TESTS; do
     "improver_test_$TEST_NAME" "$DEBUG_OPT" "$@" "$CLISUBTEST"
