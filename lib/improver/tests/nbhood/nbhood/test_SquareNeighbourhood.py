@@ -222,20 +222,29 @@ class Test_pad_coord(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         coord_points_x = np.arange(10., 60., 10.)
+        x_bounds = np.array([coord_points_x - 5, coord_points_x + 5]).T
         coord_points_y = np.arange(5., 105., 20.)
+        y_bounds = np.array([coord_points_y - 10, coord_points_y + 10]).T
+
         self.cube.coord("projection_x_coordinate").points = coord_points_x
+        self.cube.coord("projection_x_coordinate").bounds = x_bounds
         self.cube.coord("projection_y_coordinate").points = coord_points_y
+        self.cube.coord("projection_y_coordinate").bounds = y_bounds
 
     def test_add(self):
-        """Test the functionality to add padding to the chosen coordinate."""
+        """Test the functionality to add padding to the chosen coordinate.
+        Includes a test that the coordinate bounds array is modified to reflect
+        the new values."""
         expected = np.array(
             [-10., 0., 10., 20., 30., 40., 50., 60., 70.])
         coord = self.cube.coord("projection_x_coordinate")
+        expected_bounds = np.array([expected - 5, expected + 5]).T
         width = 1
         method = "add"
         new_coord = SquareNeighbourhood.pad_coord(coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
         self.assertArrayAlmostEqual(new_coord.points, expected)
+        self.assertArrayEqual(new_coord.bounds, expected_bounds)
 
     def test_exception(self):
         """Test an exception is raised if the chosen coordinate is
@@ -252,14 +261,17 @@ class Test_pad_coord(IrisTest):
 
     def test_remove(self):
         """Test the functionality to remove padding from the chosen
-        coordinate."""
+        coordinate. Includes a test that the coordinate bounds array is
+        modified to reflect the new values."""
         expected = np.array([30.])
+        expected_bounds = np.array([expected - 5, expected + 5]).T
         coord = self.cube.coord("projection_x_coordinate")
         width = 1
         method = "remove"
         new_coord = SquareNeighbourhood.pad_coord(coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
         self.assertArrayAlmostEqual(new_coord.points, expected)
+        self.assertArrayEqual(new_coord.bounds, expected_bounds)
 
 
 class Test__create_cube_with_new_data(IrisTest):
