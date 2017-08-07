@@ -164,7 +164,7 @@ class Utilities(object):
 
         Returns
         -------
-        new_cubewidth : iris.cube.Cube
+        new_cube : iris.cube.Cube
             Modified neighbourhooded cube with relevant scalar coordinates
             promoted to dimension coordinates.
 
@@ -291,14 +291,15 @@ class SquareNeighbourhood(object):
                      grid points.
         """
         orig_points = coord.points
+        increment = orig_points[1:] - orig_points[:-1]
+        if np.isclose(np.sum(np.diff(increment)), 0):
+            increment = increment[0]
+        else:
+            msg = ("Non-uniform increments between grid points: "
+                   "{}.".format(increment))
+            raise ValueError(msg)
+
         if method == 'add':
-            increment = orig_points[1:] - orig_points[:-1]
-            if np.isclose(np.sum(np.diff(increment)), 0):
-                increment = increment[0]
-            else:
-                msg = ("Non-uniform increments between grid points: "
-                       "{}.".format(increment))
-                raise ValueError(msg)
             num_of_new_points = len(orig_points) + 2*width + 2*width
             new_points = (
                 np.linspace(
@@ -308,7 +309,10 @@ class SquareNeighbourhood(object):
         elif method == 'remove':
             end_width = -2*width if width != 0 else None
             new_points = np.float32(orig_points[2*width:end_width])
-        return coord.copy(points=new_points)
+
+        new_points_bounds = np.array([new_points - 0.5*increment,
+                                      new_points + 0.5*increment]).T
+        return coord.copy(points=new_points, bounds=new_points_bounds)
 
     @staticmethod
     def _create_cube_with_new_data(cube, data, coord_x, coord_y):
