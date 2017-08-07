@@ -44,6 +44,7 @@ import numpy as np
 from improver.generate_ancillaries.generate_ancillary import (
     _make_mask_cube, find_standard_ancil)
 
+
 def _make_test_cube(long_name, stash=None):
     cs = GeogCS(EARTH_RADIUS)
     data = np.array([[1., 1., 1.],
@@ -102,7 +103,6 @@ class Test__make_mask_cube(IrisTest):
                          self.upper)
         self.assertEqual(result.coords('topographic_bound_lower')[0].points,
                          self.lower)
-
 
 
 class Test_find_standard_ancil(IrisTest):
