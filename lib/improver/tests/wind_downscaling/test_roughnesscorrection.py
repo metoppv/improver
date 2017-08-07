@@ -690,7 +690,7 @@ class Test2D(IrisTest):
         msg = "wind input is not a cube, but <class 'iris.cube.CubeList'>"
         with self.assertRaisesRegexp(ValueError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights,
-                                        aslist=True)
+                                       aslist=True)
 
     def test_section3a(self):
         """As test 1c, however with manipulated z_0 cube.
