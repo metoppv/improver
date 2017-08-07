@@ -28,7 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the convert_distance_into_number_of_grid_cells function."""
+"""Unit tests for the convert_distance_into_number_of_grid_cells function from
+ spatial.py."""
 
 import unittest
 
