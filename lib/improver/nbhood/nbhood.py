@@ -147,6 +147,55 @@ class Utilities(object):
                          math.sqrt((width**2.0)/num_ens))
         return new_width
 
+    @staticmethod
+    def check_cube_coordinates(cube, new_cube):
+        """
+        Find and promote to dimension coordinates any scalar coordinates in
+        new_cube that were originally dimension coordinates in the progenitor
+        cube.
+
+        Parameters
+        ----------
+        cube : iris.cube.Cube
+            The input cube provided to nbhood.
+        new_cube : iris.cube.Cube
+            The cube produced by the neighbourhooding process that must be
+            checked for demoted dimensional coordinates.
+
+        Returns
+        -------
+        new_cube : iris.cube.Cube
+            Modified neighbourhooded cube with relevant scalar coordinates
+            promoted to dimension coordinates.
+
+        Raises
+        ------
+        iris.exceptions.CoordinateNotFoundError raised if the final dimension
+        coordinates of the returned cube do not match the input cube.
+
+        """
+        # Promote available and relevant scalar coordinates
+        for coord in new_cube.aux_coords[::-1]:
+            if coord in cube.dim_coords:
+                new_cube = iris.util.new_axis(new_cube, coord)
+
+        # Ensure dimension order matches; if lengths are unequal a coordinate
+        # is missing, so raise an appropriate error.
+        cube_dimension_order = {coord.name(): cube.coord_dims(coord.name())[0]
+                                for coord in cube.dim_coords}
+        correct_order = [cube_dimension_order[coord.name()]
+                         for coord in new_cube.dim_coords]
+        if len(cube_dimension_order) == len(correct_order):
+            new_cube.transpose(correct_order)
+        else:
+            msg = ('Returned cube dimension coordinates do not match input '
+                   'cube dimension coordinates. \n input cube shape {} '
+                   ' returned cube shape {}'.format(
+                    cube.shape, new_cube.shape))
+            raise iris.exceptions.CoordinateNotFoundError(msg)
+
+        return new_cube
+
 
 class SquareNeighbourhood(object):
 
@@ -242,14 +291,15 @@ class SquareNeighbourhood(object):
                      grid points.
         """
         orig_points = coord.points
+        increment = orig_points[1:] - orig_points[:-1]
+        if np.isclose(np.sum(np.diff(increment)), 0):
+            increment = increment[0]
+        else:
+            msg = ("Non-uniform increments between grid points: "
+                   "{}.".format(increment))
+            raise ValueError(msg)
+
         if method == 'add':
-            increment = orig_points[1:] - orig_points[:-1]
-            if np.isclose(np.sum(np.diff(increment)), 0):
-                increment = increment[0]
-            else:
-                msg = ("Non-uniform increments between grid points: "
-                       "{}.".format(increment))
-                raise ValueError(msg)
             num_of_new_points = len(orig_points) + 2*width + 2*width
             new_points = (
                 np.linspace(
@@ -259,7 +309,10 @@ class SquareNeighbourhood(object):
         elif method == 'remove':
             end_width = -2*width if width != 0 else None
             new_points = np.float32(orig_points[2*width:end_width])
-        return coord.copy(points=new_points)
+
+        new_points_bounds = np.array([new_points - 0.5*increment,
+                                      new_points + 0.5*increment]).T
+        return coord.copy(points=new_points, bounds=new_points_bounds)
 
     @staticmethod
     def _create_cube_with_new_data(cube, data, coord_x, coord_y):
@@ -682,6 +735,7 @@ class SquareNeighbourhood(object):
 
         neighbourhood_averaged_cube.cell_methods = original_methods
         neighbourhood_averaged_cube.attributes = original_attributes
+
         return neighbourhood_averaged_cube
 
 
@@ -979,6 +1033,8 @@ class NeighbourhoodProcessing(object):
                                              coords_to_slice_over=["time"])
 
             cubelist.append(cube_new)
-        cube = cubelist.merge_cube()
+        merged_cube = cubelist.merge_cube()
+        # Promote dimensional coordinates that have been demoted to scalars.
+        merged_cube = Utilities.check_cube_coordinates(cube, merged_cube)
 
-        return cube
+        return merged_cube

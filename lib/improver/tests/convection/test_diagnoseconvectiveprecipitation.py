@@ -146,10 +146,10 @@ class Test__calculate_convective_ratio(IrisTest):
         arguments. Make sure that the output is a cube with the expected
         data."""
         expected = np.array(
-            [[0., 0., 0., 0.],
-             [0.25, 0.28571429, 0.28571429, 0.375],
-             [0.5, 0.57142857, 0.625, 0.66666667],
-             [1., 1., 1., 1.]])
+            [[[[0., 0., 0., 0.],
+               [0.25, 0.28571429, 0.28571429, 0.375],
+               [0.5, 0.57142857, 0.625, 0.66666667],
+               [1., 1., 1., 1.]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method,
@@ -163,10 +163,10 @@ class Test__calculate_convective_ratio(IrisTest):
         to do a 0/0 division, which will result in NaN values. Check that
         the output array works as intended."""
         expected = np.array(
-            [[np.nan, np.nan, np.nan, np.nan],
-             [np.nan, np.nan, np.nan, np.nan],
-             [np.nan, np.nan, np.nan, np.nan],
-             [np.nan, np.nan, np.nan, np.nan]])
+            [[[[np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan]]]])
         data = np.zeros((1, 1, 4, 4))
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1")
         cubelist = lower_higher_threshold_cubelist(
@@ -254,14 +254,14 @@ class Test__calculate_convective_ratio(IrisTest):
         """Test where neighbourhood is applied for multiple lead times, where
         different radii are applied at each lead time."""
         expected = np.array(
-          [[[0.11111111, 0.11111111, 0.11111111, 0.],
-            [0.11111111, 0.11111111, 0.11111111, 0.],
-            [0.11111111, 0.11111111, 0.11111111, 0.],
-            [0., 0., 0., 0.]],
-           [[0.04, 0.04, 0.04, 0.04],
-            [0.04, 0.04, 0.04, 0.04],
-            [0.04, 0.04, 0.04, 0.04],
-            [0.04, 0.04, 0.04, 0.04]]])
+            [[[[0.11111111, 0.11111111, 0.11111111, 0.],
+               [0.11111111, 0.11111111, 0.11111111, 0.],
+               [0.11111111, 0.11111111, 0.11111111, 0.],
+               [0., 0., 0., 0.]],
+              [[0.04, 0.04, 0.04, 0.04],
+               [0.04, 0.04, 0.04, 0.04],
+               [0.04, 0.04, 0.04, 0.04],
+               [0.04, 0.04, 0.04, 0.04]]]])
         data = np.full((1, 2, 4, 4), 1.0 * mm_hr_to_m_s)
         data[0, 0, 1, 1] = 20.0 * mm_hr_to_m_s
         data[0, 1, 1, 1] = 20.0 * mm_hr_to_m_s
@@ -286,14 +286,14 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_specify_ens_factor(self):
         """Test an example where the ens_factor is specified."""
         expected = np.array(
-            [[[0., 0., 0., 0.],
-              [0., 0., 0., 0.],
-              [0., 0., 0., 0.],
-              [0., 0., 0., 0.]],
-             [[0.11111111, 0.11111111, 0.11111111, 0.],
-              [0.11111111, 0.11111111, 0.11111111, 0.],
-              [0.11111111, 0.11111111, 0.11111111, 0.],
-              [0., 0., 0., 0.]]])
+            [[[[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]]],
+             [[[0.11111111, 0.11111111, 0.11111111, 0.],
+               [0.11111111, 0.11111111, 0.11111111, 0.],
+               [0.11111111, 0.11111111, 0.11111111, 0.],
+               [0., 0., 0., 0.]]]])
         data = np.full((2, 1, 4, 4), 1.0 * mm_hr_to_m_s)
         data[1, 0, 1, 1] = 20.0 * mm_hr_to_m_s
         cube = set_up_cube(
@@ -315,10 +315,10 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_circular_neighbourhood(self):
         """Test a circular neighbourhood."""
         expected = np.array(
-            [[[0., 0., np.nan, 0.],
-              [0., 0., 0., 0.],
-              [1., np.nan, 1., 1.],
-              [np.nan, 1., 1., 1.]]])
+            [[[[0., 0., np.nan, 0.],
+               [0., 0., 0., 0.],
+               [1., np.nan, 1., 1.],
+               [np.nan, 1., 1., 1.]]]])
         neighbourhood_method = "circular"
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
@@ -331,10 +331,10 @@ class Test__calculate_convective_ratio(IrisTest):
         """Test a circular neighbourhood with the unweighted_mode
         set to True."""
         expected = np.array(
-            [[[0., 0., 0., 0.],
-              [0.2, 0., 0.25, 0.2],
-              [0.666667, 0.75, 0.75, 0.8],
-              [1., 1., 1., 1.]]])
+            [[[[0., 0., 0., 0.],
+               [0.2, 0., 0.25, 0.2],
+               [0.666667, 0.75, 0.75, 0.8],
+               [1., 1., 1., 1.]]]])
         neighbourhood_method = "circular"
         unweighted_mode = True
         result = DiagnoseConvectivePrecipitation(
@@ -549,10 +549,10 @@ class Test_process(IrisTest):
         """Diagnose convective precipitation using the differences between
         adjacent grid squares."""
         expected = np.array(
-            [[0., 0., 0., 0.],
-             [0.35, 0.318182, 0.272727, 0.2],
-             [0.590909, 0.571429, 0.526316, 0.4375],
-             [0.863636, 0.85, 0.823529, 0.769231]])
+            [[[[0., 0., 0., 0.],
+               [0.35, 0.318182, 0.272727, 0.2],
+               [0.590909, 0.571429, 0.526316, 0.4375],
+               [0.863636, 0.85, 0.823529, 0.769231]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii).process(self.cube)
@@ -564,10 +564,10 @@ class Test_process(IrisTest):
         field directly, rather than calculating differences between adjacent
         grid squares."""
         expected = np.array(
-            [[0., 0., 0., 0.],
-             [0.25, 0.28571429, 0.28571429, 0.375],
-             [0.5, 0.57142857, 0.625, 0.66666667],
-             [1., 1., 1., 1.]])
+            [[[[0., 0., 0., 0.],
+               [0.25, 0.28571429, 0.28571429, 0.375],
+               [0.5, 0.57142857, 0.625, 0.66666667],
+               [1., 1., 1., 1.]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii,

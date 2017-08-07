@@ -37,12 +37,12 @@
 
   # Run circular neighbourhood processing and check it passes.
   run improver nbhood 'circular' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input.nc" "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_circular.nc" "$TEST_DIR/output_circular.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo.nc"
-  rm "$TEST_DIR/output.nc"
+  improver_compare_output "$TEST_DIR/output_circular.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_circular.nc"
+  rm "$TEST_DIR/output_circular.nc"
   rmdir "$TEST_DIR"
 }
