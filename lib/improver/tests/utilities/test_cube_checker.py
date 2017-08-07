@@ -40,7 +40,7 @@ from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 
 
-class Test__check_for_x_and_y_axes(IrisTest):
+class Test_check_for_x_and_y_axes(IrisTest):
 
     """Test whether the cube has an x and y axis."""
 

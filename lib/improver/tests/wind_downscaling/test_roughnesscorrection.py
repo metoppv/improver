@@ -174,7 +174,7 @@ class TestMultiPoint(object):
         self.moro_cube = set_up_cube(
             1, [n_x, n_y], 1, data=modelorog, height=0, name=None, unit="m")
 
-    def test_hc_rc(self, wind, dtime=1, height=None, aslist=False):
+    def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
         """Function to set up a wind cube from the supplied np.array.
 
         Set up the wind and call the RoughnessCorrection class. If the
@@ -288,7 +288,7 @@ class TestSinglePoint(object):
         else:
             self.hl_cube = None
 
-    def test_hc_rc(self, wind, height=None):
+    def run_hc_rc(self, wind, height=None):
         """Test single point height correction and roughness correction.
 
         Make an iris cube of the supplied wind and set up the height
@@ -341,7 +341,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=RMDI, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
@@ -349,7 +349,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=np.nan, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
@@ -357,7 +357,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=RMDI, z_0=0.2, pporog=250., modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
@@ -365,7 +365,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=np.nan, z_0=0.2, pporog=250., modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0e(self):
@@ -378,7 +378,7 @@ class Test1D(IrisTest):
             AoS=0.2, Sigma=20.0, z_0=RMDI, pporog=230., modelorog=230.,
             heightlevels=self.hls
         )
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0f(self):
@@ -391,7 +391,7 @@ class Test1D(IrisTest):
             AoS=0.2, Sigma=20.0, z_0=np.nan, pporog=230., modelorog=230.,
             heightlevels=self.hls
         )
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0g(self):
@@ -403,7 +403,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=RMDI, pporog=250., modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data >
                          landpointtests_hc_rc.w_cube.data).all())
 
@@ -419,7 +419,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=RMDI, modelorog=230.,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         land_hc_rc.data[0] == 0)
@@ -437,7 +437,7 @@ class Test1D(IrisTest):
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=np.nan, modelorog=230.,
             heightlevels=self.hls
         )
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         land_hc_rc.data[0] == 0)
@@ -454,7 +454,7 @@ class Test1D(IrisTest):
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250., modelorog=RMDI,
             heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         land_hc_rc.data[0] == 0)
@@ -471,7 +471,7 @@ class Test1D(IrisTest):
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
             heightlevels=hls)
         with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.test_hc_rc(self.uin)
+            _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
     def test_section0l(self):
         """Test fail for np.nan in height grid.
@@ -485,7 +485,7 @@ class Test1D(IrisTest):
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
             heightlevels=hls)
         with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.test_hc_rc(self.uin)
+            _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
     def test_section0m(self):
         """Test fail for RMDI in uin.
@@ -500,7 +500,7 @@ class Test1D(IrisTest):
             heightlevels=self.hls
         )
         with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.test_hc_rc(uin)
+            _ = landpointtests_hc_rc.run_hc_rc(uin)
 
     def test_section0n(self):
         """Test fail for np.nan in uin.
@@ -515,7 +515,7 @@ class Test1D(IrisTest):
             heightlevels=self.hls
         )
         with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.test_hc_rc(uin)
+            _ = landpointtests_hc_rc.run_hc_rc(uin)
 
     def test_section1a(self):
         """Test HC only, HC = 0.
@@ -527,7 +527,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc = TestSinglePoint(
             z_0=None, pporog=250., modelorog=250.)
-        land_hc_rc = landpointtests_hc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc.w_cube, land_hc_rc)
 
     def test_section1b(self):
@@ -540,7 +540,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc = TestSinglePoint(
             z_0=None, pporog=250., modelorog=230.)
-        land_hc_rc = landpointtests_hc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data >=
                          landpointtests_hc.w_cube.data).all() and
                         (land_hc_rc.data >
@@ -556,7 +556,7 @@ class Test1D(IrisTest):
         """
         landpointtests_rc = TestSinglePoint(
             z_0=0.2, pporog=250., modelorog=250.)
-        land_hc_rc = landpointtests_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_rc.w_cube.data).all() and
                         (land_hc_rc.data <
@@ -576,7 +576,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc_rc = TestSinglePoint(
             z_0=0.2, pporog=230., modelorog=250.)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         (land_hc_rc.data <
@@ -594,7 +594,7 @@ class Test1D(IrisTest):
         """
         landpointtests_hc_rc = TestSinglePoint(
             z_0=0.2, AoS=0.)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section1f(self):
@@ -606,7 +606,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(z_0=0.2, Sigma=0.)
-        land_hc_rc = landpointtests_hc_rc.test_hc_rc(self.uin)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
 
@@ -633,7 +633,7 @@ class Test2D(IrisTest):
         uin = np.ones(hlvs)*20
         heights = ((np.arange(hlvs)+1)**2.)*12.
         multip_hc_rc = TestMultiPoint(3)
-        land_hc_rc = multip_hc_rc.test_hc_rc(uin, dtime=1, height=heights)
+        land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
         hidx = land_hc_rc.shape.index(hlvs)
         for field in land_hc_rc.slices_over(hidx):
             self.failUnless((field.data == field.data[0, 0]).all())
@@ -652,7 +652,7 @@ class Test2D(IrisTest):
         multip_hc_rc = TestMultiPoint(
             nx_ny=[3, 1], AoS=[0, 0.2, 0.2], pporog=[0, 250, 250],
             modelorog=[0, 250, 230])
-        land_hc_rc = multip_hc_rc.test_hc_rc(uin, dtime=2, height=heights)
+        land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=2, height=heights)
         tidx = land_hc_rc.shape.index(2)
         time1 = land_hc_rc.data.take(0, axis=tidx)
         time2 = land_hc_rc.data.take(1, axis=tidx)
@@ -689,7 +689,7 @@ class Test2D(IrisTest):
         )
         msg = "wind input is not a cube, but <class 'iris.cube.CubeList'>"
         with self.assertRaisesRegexp(ValueError, msg):
-            _ = multip_hc_rc.test_hc_rc([uin, uin], dtime=2, height=heights,
+            _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights,
                                         aslist=True)
 
     def test_section3a(self):
@@ -708,7 +708,7 @@ class Test2D(IrisTest):
             height=0, name=None, unit="m")
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegexp(ValueError, msg):
-            _ = landpointtests_rc.test_hc_rc(self.uin)
+            _ = landpointtests_rc.run_hc_rc(self.uin)
 
     def test_section3b(self):
         """As test 3a, however with manipulated modelorog cube instead.
@@ -725,7 +725,7 @@ class Test2D(IrisTest):
             height=0, name=None, unit="m")
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegexp(ValueError, msg):
-            _ = landpointtests_rc.test_hc_rc(self.uin)
+            _ = landpointtests_rc.run_hc_rc(self.uin)
 
     def test_section3c(self):
         """As test 3a, however with manipulated z_0 units.
@@ -741,7 +741,7 @@ class Test2D(IrisTest):
         with self.assertRaisesRegexp(
             ValueError, msg.format(Unit('m'),
                                    landpointtests_rc.z0_cube.units)):
-            _ = landpointtests_rc.test_hc_rc(self.uin)
+            _ = landpointtests_rc.run_hc_rc(self.uin)
 
 
 if __name__ == '__main__':

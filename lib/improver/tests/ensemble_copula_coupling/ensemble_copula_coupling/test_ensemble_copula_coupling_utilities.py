@@ -103,6 +103,52 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
                 input_array, -100, 10000)
 
 
+class Test_choose_set_of_percentiles(IrisTest):
+
+    """Test the choose_set_of_percentiles plugin."""
+
+    def test_basic(self):
+        """
+        Test that the plugin returns a list with the expected number of
+        percentiles.
+        """
+        no_of_percentiles = 3
+        result = choose_set_of_percentiles(no_of_percentiles)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), no_of_percentiles)
+
+    def test_data(self):
+        """
+        Test that the plugin returns a list with the expected data values
+        for the percentiles.
+        """
+        data = np.array([25, 50, 75])
+        no_of_percentiles = 3
+        result = choose_set_of_percentiles(no_of_percentiles)
+        self.assertArrayAlmostEqual(result, data)
+
+    def test_random(self):
+        """
+        Test that the plugin returns a list with the expected number of
+        percentiles, if the random sampling option is selected.
+        """
+        no_of_percentiles = 3
+        result = choose_set_of_percentiles(
+            no_of_percentiles, sampling="random")
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), no_of_percentiles)
+
+    def test_unknown_sampling_option(self):
+        """
+        Test that the plugin returns the expected error message,
+        if an unknown sampling option is selected.
+        """
+        no_of_percentiles = 3
+        msg = "The unknown sampling option is not yet implemented"
+        with self.assertRaisesRegexp(ValueError, msg):
+            choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
+
+
 class Test_create_cube_with_percentiles(IrisTest):
 
     """Test the _create_cube_with_percentiles plugin."""
@@ -263,52 +309,6 @@ class Test_create_cube_with_percentiles(IrisTest):
                     "Coordinate: {} not found in cube {}".format(
                         coord, result))
                 raise CoordinateNotFoundError(msg)
-
-
-class Test_choose_set_of_percentiles(IrisTest):
-
-    """Test the choose_set_of_percentiles plugin."""
-
-    def test_basic(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), no_of_percentiles)
-
-    def test_data(self):
-        """
-        Test that the plugin returns a list with the expected data values
-        for the percentiles.
-        """
-        data = np.array([25, 50, 75])
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(no_of_percentiles)
-        self.assertArrayAlmostEqual(result, data)
-
-    def test_random(self):
-        """
-        Test that the plugin returns a list with the expected number of
-        percentiles, if the random sampling option is selected.
-        """
-        no_of_percentiles = 3
-        result = choose_set_of_percentiles(
-            no_of_percentiles, sampling="random")
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), no_of_percentiles)
-
-    def test_unknown_sampling_option(self):
-        """
-        Test that the plugin returns the expected error message,
-        if an unknown sampling option is selected.
-        """
-        no_of_percentiles = 3
-        msg = "The unknown sampling option is not yet implemented"
-        with self.assertRaisesRegexp(ValueError, msg):
-            choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
 
 class Test_get_bounds_of_distribution(IrisTest):
