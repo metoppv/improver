@@ -67,7 +67,7 @@ class Test_nonlinear_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
 
-class TestChooseDefaultWeightsNonLinear(IrisTest):
+class Test_process(IrisTest):
     """Test the Default non-Linear Weights plugin. """
 
     def setUp(self):
