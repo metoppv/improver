@@ -40,8 +40,6 @@ import scipy.ndimage.filters
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
 
 from improver.nbhood.square_kernel import SquareProbabilities
 from improver.nbhood.circular_kernel import (
@@ -257,7 +255,8 @@ class NeighbourhoodProcessing(object):
             DEFAULT_PERCENTILES from percentile module.
             This value is ignored for probability methods.
         """
-        self.percentiles = percentiles
+        self.percentiles = tuple(percentiles)
+        self.weighted_mode = bool(weighted_mode)
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
             "circular_probabilities": CircularProbabilities,
@@ -265,7 +264,9 @@ class NeighbourhoodProcessing(object):
             "square_probabilities": SquareProbabilities}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(weighted_mode)
+            self.neighbourhood_method = method(
+                weighted_mode=self.weighted_mode,
+                percentiles=self.percentiles)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -283,7 +284,6 @@ class NeighbourhoodProcessing(object):
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
-        self.weighted_mode = bool(weighted_mode)
         self.ens_factor = float(ens_factor)
 
     def _find_radii(self, num_ens, cube_lead_times=None):

@@ -211,7 +211,8 @@ class CircularPercentiles(object):
     avoid computational ineffiency and possible memory errors.
     """
     def __init__(self,
-                 percentiles=PercentileConverter.DEFAULT_PERCENTILES):
+                 percentiles=PercentileConverter.DEFAULT_PERCENTILES,
+                 weighted_mode=True):
         """
 
         Parameters
@@ -220,15 +221,19 @@ class CircularPercentiles(object):
         percentiles : list (optional)
             Percentile values at which to calculate; if not provided uses
             DEFAULT_PERCENTILES from percentile module.
+
+        weighted_mode : boolean
+            This is included to allow a standard interface for both the
+            square and circular neighbourhood plugins.
         """
-        self.percentiles = percentiles
+        self.percentiles = tuple(percentiles)
 
     def __repr__(self):
         """Represent the configured class instance as a string."""
         result = ('<CircularPercentiles: percentiles: {}>')
         return result.format(self.percentiles)
 
-    def run(self, cube, ranges):
+    def run(self, cube, radius):
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -237,9 +242,9 @@ class CircularPercentiles(object):
         ----------
         cube : Iris.cube.Cube
             Cube containing array to apply processing to.
-        ranges : Int
-            Number of grid cells in the x and y direction used to create
-            the kernel.
+        radius : Float
+            Radius in metres for use in specifying the number of
+            grid cells used to create a circular neighbourhood.
 
         Returns
         -------
@@ -255,11 +260,9 @@ class CircularPercentiles(object):
                 cube.coord(coord_name)
         except CoordinateNotFoundError:
             raise ValueError("Invalid grid: projection_x/y coords required")
-        ranges = int(ranges)
-        if ranges < 1:
-            raise ValueError("Range size too small. {} < 1".format(ranges))
-        ranges_xy = np.array([ranges]*2)
-        ranges_tuple = tuple([ranges]*2)
+        ranges_tuple = convert_distance_into_number_of_grid_cells(
+            cube, radius, MAX_RADIUS_IN_GRID_CELLS)
+        ranges_xy = np.array(ranges_tuple)
         kernel = Utilities.circular_kernel(ranges_xy, ranges_tuple,
                                            weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
@@ -269,16 +272,16 @@ class CircularPercentiles(object):
                                      'projection_x_coordinate']):
             # Create a 1D data array padded with repeats of the local boundary
             # mean.
-            padded = np.pad(slice_2d.data, ranges, mode='mean',
-                            stat_length=ranges)
+            padded = np.pad(slice_2d.data, ranges_xy, mode='mean',
+                            stat_length=np.max(ranges_xy))
             padshape = np.shape(padded)  # Store size to make unflatten easier
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
             nbhood_slices = [
                 np.roll(padded, padshape[1]*j+i)
-                for i in range(-ranges, ranges+1)
-                for j in range(-ranges, ranges+1)
-                if kernel[..., i+ranges, j+ranges] > 0.]
+                for i in range(-ranges_xy[1], ranges_xy[1]+1)
+                for j in range(-ranges_xy[0], ranges_xy[0]+1)
+                if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
             # Collapse this dimension into percentiles (a new 2nd dimension)
             perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
             # Return to 3D
@@ -287,7 +290,8 @@ class CircularPercentiles(object):
             # Create a cube for these data:
             pctcube = self.make_percentile_cube(slice_2d)
             # And put in data, removing the padding
-            pctcube.data = perc_data[:, ranges:-ranges, ranges:-ranges]
+            pctcube.data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
+                                     ranges_xy[1]:-ranges_xy[1]]
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
         result = self.check_coords(result, cube)

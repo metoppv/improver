@@ -371,7 +371,7 @@ class Test_process(IrisTest):
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension."""
         cube = set_up_cube(num_realization_points=4)
-        radii = 15000
+        radii = 14400.
         neighbourhood_method = "circular_probabilities"
         ens_factor = 0.8
         result = NBHood(neighbourhood_method, radii,
@@ -393,7 +393,7 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [15000, 15000, 15000]
+        radii = [14400, 14400, 14400]
         lead_times = [2, 3, 4]
         neighbourhood_method = "circular_probabilities"
         ens_factor = 0.8
@@ -411,7 +411,7 @@ class Test_process(IrisTest):
     def test_no_realizations(self):
         """Test when the array has no realization coord."""
         cube = set_up_cube_with_no_realizations()
-        radii = 6000
+        radii = 5600
         neighbourhood_method = "circular_probabilities"
         result = NBHood(neighbourhood_method, radii).process(cube)
         self.assertIsInstance(result, Cube)
@@ -427,7 +427,7 @@ class Test_process(IrisTest):
         member_list = [0, 1, 2, 3]
         cube = (
             set_up_cube_with_no_realizations(source_realizations=member_list))
-        radii = 15000
+        radii = 14400
         ens_factor = 0.8
         neighbourhood_method = "circular_probabilities"
         plugin = NBHood(neighbourhood_method, radii,
@@ -488,7 +488,7 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 8000, 10000]
+        radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
         neighbourhood_method = "circular_probabilities"
         plugin = NBHood(neighbourhood_method, radii, lead_times)
@@ -543,24 +543,24 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 10000]
+        radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = "circular_probabilities"
         plugin = NBHood(neighbourhood_method, radii, lead_times)
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-#    def test_returns_percentiles_coord(self):
-#        """Test the expected percentiles coord exists."""
-#        cube = set_up_cube_with_no_realizations()
-#        radii = 6000
-#        neighbourhood_method = "circular_percentiles"
-#        result = NBHood(neighbourhood_method, radii).process(cube)
-#        self.assertIsInstance(result.coord('percentiles_over_neighbourhood'),
-#            iris.coords.Coord)
-#        self.assertArrayEqual(result.coord(
-#            'percentiles_over_neighbourhood').points,
-#            PercentileConverter.DEFAULT_PERCENTILES)
+    def test_returns_percentiles_coord(self):
+        """Test the expected percentiles coord exists."""
+        cube = set_up_cube_with_no_realizations()
+        radii = 6000
+        neighbourhood_method = "circular_percentiles"
+        result = NBHood(neighbourhood_method, radii).process(cube)
+        self.assertIsInstance(result.coord('percentiles_over_neighbourhood'),
+            iris.coords.Coord)
+        self.assertArrayEqual(result.coord(
+            'percentiles_over_neighbourhood').points,
+            PercentileConverter.DEFAULT_PERCENTILES)
 
 
 if __name__ == '__main__':

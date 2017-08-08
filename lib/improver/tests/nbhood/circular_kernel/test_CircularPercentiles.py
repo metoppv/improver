@@ -105,8 +105,8 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        ranges = 2
-        result = CircularPercentiles().run(cube, ranges)
+        radius = 4000.
+        result = CircularPercentiles().run(cube, radius)
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -121,8 +121,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
-        ranges = 2
-        result = CircularPercentiles().run(cube, ranges)
+        radius = 4000.
+        result = CircularPercentiles().run(cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -148,17 +148,17 @@ class Test_run(IrisTest):
         expected[:, 0, 1, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 1, 7, 9] = PERCENTILES_1_IN_13
-        ranges = 2
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 4000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
         msg = "Invalid grid: projection_x/y coords required"
-        ranges = 3
+        radius = 6000.
         with self.assertRaisesRegexp(ValueError, msg):
-            CircularPercentiles().run(cube, ranges)
+            CircularPercentiles().run(cube, radius)
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
@@ -181,8 +181,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
-        ranges = 2
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 4000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -204,8 +204,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
-        ranges = 2
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 4000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -216,17 +216,17 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 6:9, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1))))
         expected[:, 0, 0, 7, 8] = PERCENTILES_1_IN_5
-        ranges = 1
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 2000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_0(self):
         """Test behaviour with zero range."""
         cube = set_up_cube()
-        ranges = 0
-        msg = "Range size too small. {} < 1".format(ranges)
+        radius = 0.
+        msg = "Distance of {0}m gives zero cell extent".format(radius)
         with self.assertRaisesRegexp(ValueError, msg):
-            CircularPercentiles().run(cube, ranges)
+            CircularPercentiles().run(cube, radius)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
@@ -247,8 +247,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 6:9, 9] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
         expected[:, 0, 0, 7, 10] = PERCENTILES_1_IN_13
-        ranges = 2
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 4000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -277,8 +277,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
-        ranges = 3
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 6000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -306,8 +306,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
-        ranges = 3
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 6000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -339,8 +339,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
         expected[:, 0, 0, 7, 0] = border_rows_3
-        ranges = 3
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 6000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -377,8 +377,8 @@ class Test_run(IrisTest):
         expected[:, 0, 0, 2, 0] = border_rows_6
         expected[:, 0, 0, 1, 0] = border_rows_5
         expected[:, 0, 0, 0, 0] = border_rows_7
-        ranges = 3
-        result = (CircularPercentiles().run(cube, ranges))
+        radius = 6000.
+        result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
 
