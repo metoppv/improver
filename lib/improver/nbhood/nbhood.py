@@ -233,17 +233,17 @@ class NeighbourhoodProcessing(object):
             Rounded up to convert into integer number of grid
             points east and north, based on the characteristic spacing
             at the zero indices of the cube projection-x and y coords.
-        lead_times : None or List
+        lead_times : None or List (optional)
             List of lead times or forecast periods, at which the radii
             within 'radii' are defined. The lead times are expected
             in hours.
-        weighted_mode : boolean
+        weighted_mode : boolean (optional)
             If False, use a circle with constant weighting.
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
             This value only has an effect with the circular_probabilities
             method.
-        ens_factor : float
+        ens_factor : float (optional)
             The factor with which to adjust the neighbourhood size
             for more than one ensemble member.
             If ens_factor = 1.0 this essentially conserves ensemble

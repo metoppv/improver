@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing neighbourhood processing utilities."""
+"""This module contains methods for circular neighbourhood processing."""
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -120,7 +120,7 @@ class CircularProbabilities(object):
 
         Parameters
         ----------
-        weighted_mode : boolean
+        weighted_mode : boolean (optional)
             If False, use a circle with constant weighting.
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
@@ -214,15 +214,14 @@ class CircularPercentiles(object):
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES,
                  weighted_mode=True):
         """
+        Initialise class.
 
         Parameters
         ----------
-
         percentiles : list (optional)
             Percentile values at which to calculate; if not provided uses
             DEFAULT_PERCENTILES from percentile module.
-
-        weighted_mode : boolean
+        weighted_mode : boolean (optional)
             This is included to allow a standard interface for both the
             square and circular neighbourhood plugins.
         """
@@ -278,7 +277,7 @@ class CircularPercentiles(object):
             padded = padded.flatten()
             # Add 2nd dimension with each point's neighbourhood points along it
             nbhood_slices = [
-                np.roll(padded, padshape[1]*j+i)
+                np.roll(padded, (padshape[1]*j)+i)
                 for i in range(-ranges_xy[1], ranges_xy[1]+1)
                 for j in range(-ranges_xy[0], ranges_xy[0]+1)
                 if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
