@@ -237,7 +237,7 @@ class ExtractData(object):
 
         latitudes = [float(site['latitude']) for site in sites.itervalues()]
         longitudes = [float(site['longitude']) for site in sites.itervalues()]
-        altitudes = [np.nanmin([site['altitude'], 0.])
+        altitudes = [np.nan_to_num(site['altitude'])
                      for site in sites.itervalues()]
         utc_offsets = [float(site['utc_offset'])
                        for site in sites.itervalues()]
