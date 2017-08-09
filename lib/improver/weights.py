@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -455,7 +455,7 @@ class ChooseDefaultWeightsNonLinear(object):
 
 class ChooseDefaultWeightsTriangular(object):
     """ Calculate Default Weights using a Triangular Function. """
-    def __init__(self, width, midpoint, units="no_units"):
+    def __init__(self, width, midpoint, units="no_unit"):
         """Set up for calculating default weights using triangular function.
 
             Args:
@@ -466,11 +466,11 @@ class ChooseDefaultWeightsTriangular(object):
         """
         self.width = width
         self.midpoint = midpoint
-        if not isinstance(units, cf_units.Unit)
+        if not isinstance(units, cf_units.Unit):
             units = cf_units.Unit(units)
         self.parameters_units = units
 
-    def trianglar_weights(self, coord_vals):
+    def triangular_weights(self, coord_vals):
         """Create triangular weights.
 
             Args:
@@ -484,8 +484,8 @@ class ChooseDefaultWeightsTriangular(object):
             Raises:
                 .
         """
-        
-        def calculate_weight(point,slope):
+
+        def calculate_weight(point, slope):
             """
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
@@ -502,23 +502,22 @@ class ChooseDefaultWeightsTriangular(object):
             if point > self.midpoint:
                 weight = 1-(point-self.midpoint)*slope
             return weight
-        
+
         slope = 1.0/self.width
         weights = np.zeros(coord_vals.shape)
         # Find the indices of the points where there will be non-zero weights.
-        condition = (coord_vals >= (self.midpoint-self.width))
-                     & (coord_vals <= (self.midpoint+self.width))
+        condition = ((coord_vals >= (self.midpoint-self.width)) &
+                     (coord_vals <= (self.midpoint+self.width)))
         points_with_weights = np.where(condition)[0]
         # Calculate for weights for points where we want a non-zero weight.
         for index in points_with_weights:
-            weights[index]=calculate_weight(coord_vals[index],slope)
+            weights[index] = calculate_weight(coord_vals[index], slope)
         # Normalise the weights.
-        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
+        weights = WeightsUtilities.normalise_weights(weights)
 
         return weights
 
-    def process(self, cube, coord_name, coord_vals=None, coord_unit='no_unit',
-                weights_distrib_method='evenly'):
+    def process(self, cube, coord_name):
         """Calculate triangular weights for a given cube and coord.
 
             Args:
@@ -545,17 +544,17 @@ class ChooseDefaultWeightsTriangular(object):
 
         # Rescale width and midpoint if in differnt units to the coordinate
         if coord_units != self.parameters_units:
-            self.width = self.paremeters_units.covert(self.width, coord_units)
-            self.midpoint = self.paremeters_units.covert(self.midpoint,
-                                                         coord_units)
+            self.width = self.parameters_units.convert(self.width, coord_units)
+            self.midpoint = self.parameters_units.convert(self.midpoint,
+                                                          coord_units)
 
-        weights_in = self.triangular_weights(coord_vals)
+        weights = self.triangular_weights(coord_vals)
 
         return weights
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<ChooseDefaultTriangularWeights '
-                'width={0:4.1f}, midpoint={0:4.1f}>'.format(self.width,
-                                                            self.midpoint))
+        string = ("<ChooseDefaultTriangularWeights width={0:4.1f},"
+                  "midpoint={0:4.1f}>")
+        desc = string.format(self.width, self.midpoint)
         return desc
