@@ -57,7 +57,7 @@ class BlendingUtilities(object):
         Args:
             cube : iris.cube.Cube
                    Cube to blend across the coord.
-            weights: Optional list or np.array of weights
+            weights: list or np.array of weights
                      or None (equivalent to equal weights)
             coord : string
                      The name of a coordinate dimension in the cube.
@@ -86,7 +86,7 @@ class BlendingUtilities(object):
         Args:
             cube : iris.cube.Cube
                    Cube to blend across the coord.
-            weights: Optional list or np.array of weights
+            weights: list or np.array of weights
                      or None (equivalent to equal weights)
             coord : string
                      The name of a coordinate dimension in the cube.
@@ -125,7 +125,8 @@ class BlendingUtilities(object):
             data : np.array
                    Array containing the data to blend
             axis : integer
-                   The index of the coordinate dimension in the cube.
+                   The index of the coordinate dimension in the cube. This
+                   dimension will be aggregated over.
             arr_percent: np.array
                      Array of percentile values e.g
                      [0, 20.0, 50.0, 70.0, 100.0],
@@ -133,7 +134,7 @@ class BlendingUtilities(object):
             arr_weights: np.array
                      Array of weights, same size as the axis dimension of data.
             perc_dim : integer
-                     The index of the perecentile coordinate
+                     The index of the percentile coordinate
             (Note percent and weights have special meaning in Aggregator
              hence the rename.)
 
@@ -185,8 +186,8 @@ class BlendingUtilities(object):
 
         Args:
             perc_values : np.array
-                   Array containing the percentile values to blend
-                   shape (length of coord to blend, num of percentiles)
+                   Array containing the percentile values to blend, with
+                   shape: (length of coord to blend, num of percentiles)
             percentiles: np.array
                          Array of percentile values e.g
                          [0, 20.0, 50.0, 70.0, 100.0],

@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the weighted_blend.BasicWeightedAverage plugin."""
+"""Unit tests for the weighted_blend.BlendingUtilities class."""
 
 
 import unittest
@@ -126,9 +126,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class TestBlendingUtilities(IrisTest):
+class SetUp():
 
-    """Test the Blending Utilities functions."""
+    """Set up test cubes used by all the test classes."""
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
@@ -154,7 +154,9 @@ class TestBlendingUtilities(IrisTest):
         cube_with_scalar.add_aux_coord(new_scalar_coord)
         self.cube_with_scalar = cube_with_scalar
 
-    def test_basic_weighted_average(self):
+class Test_basic_weighted_average(IrisTest, SetUp):
+    """Test the basic_weighted_average method"""
+    def test_basic(self):
         """Test basic_weighted_average works."""
         coord = "time"
         weights = [0.8, 0.2]
@@ -166,6 +168,8 @@ class TestBlendingUtilities(IrisTest):
         expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+class Test_blend_percentile_cube(IrisTest, SetUp):
+    """Test the blend_percentile method"""
     def test_blend_percentile_cube1(self):
         """Test blending percentile cube works with equal weights."""
         coord = "time"
@@ -198,6 +202,8 @@ class TestBlendingUtilities(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+class Test_blend_percentile_aggreagate(IrisTest, SetUp):
+    """Test the blend_percentile_aggregate method"""
     def test_blend_percentile_aggregate(self):
         """Test blend_percentile_aggregate function works"""
         weights = np.array([0.8, 0.2])
@@ -244,6 +250,8 @@ class TestBlendingUtilities(IrisTest):
         expected_result_array = np.moveaxis(expected_result_array, 0, 1)
         self.assertArrayAlmostEqual(result, expected_result_array)
 
+class Test_blend_percentiles(IrisTest, SetUp):
+    """Test the blend_percentiles method"""
     def test_blend_percentiles(self):
         """Test blend_percentile function works"""
         weights = np.array([0.38872692, 0.33041788, 0.2808552])
