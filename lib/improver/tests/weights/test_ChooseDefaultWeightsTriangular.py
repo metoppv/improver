@@ -173,6 +173,7 @@ class Test_process(IrisTest):
     """Tests for the process method in ChooseDefaultWeightsTriangular."""
 
     def setUp(self):
+        """Set up cubes used in unit tests"""
         self.cube = set_up_cube()
         self.cube.add_aux_coord(AuxCoord(np.arange(2), 'forecast_period',
                                          units='hours'), 0)

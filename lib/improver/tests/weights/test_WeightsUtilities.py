@@ -34,7 +34,7 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import iris
