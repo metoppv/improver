@@ -93,7 +93,7 @@ class BlendingUtilities(object):
             coord_dim : tuple
                      The index of the coordinate dimension in the cube.
             perc_coord : iris.cube.DimCoord
-                     The perecentile coordinate
+                     The percentile coordinate
 
         Returns:
             result : iris.cube.Cube
