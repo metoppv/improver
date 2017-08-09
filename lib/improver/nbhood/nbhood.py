@@ -213,8 +213,8 @@ class NeighbourhoodProcessing(object):
 
     """
 
-    def __init__(self, neighbourhood_method, radii, lead_times=None,
-                 weighted_mode=True, ens_factor=1.0,
+    def __init__(self, neighbourhood_method, neighbourhood_shape,
+                 radii, lead_times=None, weighted_mode=True, ens_factor=1.0,
                  percentiles=PercentileConverter.DEFAULT_PERCENTILES):
         """
         Create a neighbourhood processing plugin that applies a smoothing
@@ -224,10 +224,11 @@ class NeighbourhoodProcessing(object):
         ----------
 
         neighbourhood_method : str
-            Name of the neighbourhood method to use. Options:
-            'circular_probabilities',
-            'circular_percentiles',
-            'square_probabilities'.
+            Name of the neighbourhood method to use.
+            Options: 'probabilities', 'percentiles'.
+        neighbourhood_shape : str
+            Name of the neighbourhood shape to use.
+            Options: 'circular', 'square'.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
@@ -258,12 +259,17 @@ class NeighbourhoodProcessing(object):
         self.percentiles = tuple(percentiles)
         self.weighted_mode = bool(weighted_mode)
         self.neighbourhood_method_key = neighbourhood_method
+        self.neighbourhood_shape = neighbourhood_shape
+
         methods = {
             "circular_probabilities": CircularProbabilities,
             "circular_percentiles": CircularPercentiles,
             "square_probabilities": SquareProbabilities}
+
+        method_shape = "_".join([neighbourhood_shape, neighbourhood_method])
+
         try:
-            method = methods[neighbourhood_method]
+            method = methods[method_shape]
             self.neighbourhood_method = method(
                 weighted_mode=self.weighted_mode,
                 percentiles=self.percentiles)
@@ -285,6 +291,18 @@ class NeighbourhoodProcessing(object):
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
         self.ens_factor = float(ens_factor)
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'neighbourhood_shape: {}; radii: {}; lead_times: {}; '
+                  'weighted_mode: {}; ens_factor: {}; '
+                  'percentiles: {}>')
+        return result.format(
+            self.neighbourhood_method_key, self.neighbourhood_shape,
+            self.radii, self.lead_times,
+            self.weighted_mode, self.ens_factor,
+            PercentileConverter.DEFAULT_PERCENTILES)
 
     def _find_radii(self, num_ens, cube_lead_times=None):
         """Revise radius or radii for found lead times and ensemble members
@@ -318,17 +336,6 @@ class NeighbourhoodProcessing(object):
                 radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
                                                           num_ens, val)
         return radii
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; '
-                  'weighted_mode: {}; ens_factor: {}; '
-                  'percentile-count: {}>')
-        return result.format(
-            self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.weighted_mode, self.ens_factor,
-            len(PercentileConverter.DEFAULT_PERCENTILES))
 
     def process(self, cube):
         """

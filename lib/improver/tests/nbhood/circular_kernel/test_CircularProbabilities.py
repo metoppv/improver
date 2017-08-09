@@ -56,7 +56,7 @@ class Test__repr__(IrisTest):
 
 class Test_apply_circular_kernel(IrisTest):
 
-    """Test neighbourhood processing plugin on the OS National Grid."""
+    """Test neighbourhood circular probabilities plugin."""
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""

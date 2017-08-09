@@ -36,15 +36,17 @@
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR]
-                       NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
+                       NEIGHBOURHOOD_METHOD NEIGHBOURHOOD_SHAPE INPUT_FILE
+                       OUTPUT_FILE
 
 Apply the requested neighbourhood method via the NeighbourhoodProcessing
 plugin to a file with one cube.
 
 positional arguments:
   NEIGHBOURHOOD_METHOD  The neighbourhood method to apply in neighbourhood
-                        processing. Options: "circular_probabilities",
-                        "circular_percentiles", "square_probabilities".
+                        processing. Options: "probabilities", "percentiles".
+  NEIGHBOURHOOD_SHAPE   The neighbourhood shape to apply in neighbourhood
+                        processing. Options: "circular", "square".
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 

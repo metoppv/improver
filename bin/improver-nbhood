@@ -47,8 +47,11 @@ def main():
     parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
                         help='The neighbourhood method to apply in '
                              'neighbourhood processing. Options: '
-                             '"circular_probabilities", '
-                             '"circular_percentiles", "square_probabilities".')
+                             '"probabilities", "percentiles".')
+    parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
+                        help='The neighbourhood shape to apply in '
+                             'neighbourhood processing. Options: '
+                             '"circular", "square".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius', metavar='RADIUS', type=float,
                        help='The radius (in m) for neighbourhood processing.')
@@ -88,8 +91,9 @@ def main():
         lead_times = args.radii_by_lead_time[1].split(",")
     result = (
         NeighbourhoodProcessing(
-            args.neighbourhood_method, radius_or_radii,
-            lead_times=lead_times, ens_factor=args.ens_factor).process(cube))
+            args.neighbourhood_method, args.neighbourhood_shape,
+            radius_or_radii, lead_times=lead_times,
+            ens_factor=args.ens_factor).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

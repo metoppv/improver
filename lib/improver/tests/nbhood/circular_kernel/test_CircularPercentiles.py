@@ -98,7 +98,7 @@ class Test_make_percentile_cube(IrisTest):
 
 class Test_run(IrisTest):
 
-    """Test neighbourhood percentile plugin on the OS National Grid."""
+    """Test neighbourhood circular percentile plugin."""
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
