@@ -42,6 +42,17 @@ from improver.weights import ChooseDefaultWeightsTriangular
 from improver.tests.weights.test_WeightsUtilities import set_up_cube
 
 
+class Test___repr__(IrisTest):
+    """Tests for the __repr__function"""
+
+    def test_basic(self):
+        """Test the repr function formats the arguements correctly"""
+        TriangularWeightsClass = ChooseDefaultWeightsTriangular(3, 5)
+        result = str(TriangularWeightsClass)
+        expected = "<ChooseDefaultTriangularWeights width= 3.0, midpoint= 5.0>"
+        self.assertEqual(result, expected)
+
+
 class Test_triangular_weights(IrisTest):
     """Tests for the triangular_weights function"""
 
@@ -128,7 +139,7 @@ class Test_triangular_weights(IrisTest):
     def test_unevenly_spaced_coord(self):
         """Test the case where the input coordinate is not equally spaced.
            This represents the case where the data changes to 3 hourly. In this
-           case the weights are assigned acoording to the value in the
+           case the weights are assigned according to the value in the
            coordinate."""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(5, 8)
         coord_vals = np.arange(10)
@@ -190,8 +201,8 @@ class Test_process(IrisTest):
 
     def test_different_units(self):
         """"Test plugin produces the correct weights when the parameters for
-           the triangle are in different units to the input cube's
-           coordinate"""
+            the triangle are in different units to the input cube's
+            coordinate"""
         WeightsClass = ChooseDefaultWeightsTriangular(7200, 3600,
                                                       units="seconds")
         weights = WeightsClass.process(self.cube, self.coord_name)
@@ -200,8 +211,8 @@ class Test_process(IrisTest):
 
     def test_unconvertable_units(self):
         """"Test plugin produces the correct weights when the parameters for
-           the triangle are in different units to the input cube's
-           coordinate"""
+            the triangle cannot be converted to the same units as the
+            coordinate"""
         WeightsClass = ChooseDefaultWeightsTriangular(7200, 3600, units="m")
 
         message = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('hours'\)'"

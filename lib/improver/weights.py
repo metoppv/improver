@@ -542,7 +542,7 @@ class ChooseDefaultWeightsTriangular(object):
         coord_vals = cube_coord.points
         coord_units = cube_coord.units
 
-        # Rescale width and midpoint if in differnt units to the coordinate
+        # Rescale width and midpoint if in different units to the coordinate
         if coord_units != self.parameters_units:
             self.width = self.parameters_units.convert(self.width, coord_units)
             self.midpoint = self.parameters_units.convert(self.midpoint,
@@ -554,7 +554,7 @@ class ChooseDefaultWeightsTriangular(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        string = ("<ChooseDefaultTriangularWeights width={0:4.1f},"
-                  "midpoint={0:4.1f}>")
+        string = ("<ChooseDefaultTriangularWeights width={:4.1f},"
+                  " midpoint={:4.1f}>")
         desc = string.format(self.width, self.midpoint)
         return desc
