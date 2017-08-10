@@ -34,6 +34,7 @@
 import numpy as np
 import iris
 import warnings
+import copy
 from numpy.linalg import lstsq
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
@@ -156,53 +157,117 @@ class ExtractData(object):
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
 
-    @staticmethod
-    def _build_coordinates(latitudes, longitudes, altitudes, utc_offsets,
-                           wmo_sites):
+    def _build_coordinate(self, data, coordinate, coord_type=DimCoord,
+                          data_type=float, units='1', bounds=None,
+                          custom_function=None):
         """
-        Construct coordinates for the irregular iris.Cube containing site data.
-        A single dimensional coordinate is created using the running order,
-        whilst the non-monotonically increasing coordinates (e.g. bestdata_id)
-        are stored in AuxilliaryCoordinates.
+        Construct an iris.coord.Dim/Auxcoord using the provided options.
 
         Args:
         -----
-        latitudes : list
-            A list of latitudes ordered to match the sites OrderedDict.
+        data : list/np.array
+            List or array of values to populate the coordinate points.
+        coordinate : str
+            Name of the coordinate to be built.
+        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord
+            Selection between Dim and Aux coord.
+        data_type : <type>
+            The data type of the coordinate points, e.g. int
+        units : str
+            String defining the coordinate units.
+        bounds : np.array
+            A (len(data), 2) array that defines coordinate bounds.
+        custom_function : function
+            A function to apply to the data values before constructing the
+            coordinate, e.g. np.nan_to_num.
 
-        longitudes : list
-            A list of longitudes ordered to match the sites OrderedDict.
+        Returns:
+        --------
+        iris coodinate : Dim or Auxcoord as chosen.
 
-        altitudes : list
-            A list of altitudes ordered to match the sites OrderedDict.
+        """
+        data = np.array(data, data_type)
+        if custom_function is not None:
+            data = custom_function(data)
 
-        utc_offsets : list
-            A list of UTC off sets in hours ordered to match the sites
-            OrderedDict.
+        return coord_type(data, long_name=coordinate, units=units,
+                          bounds=bounds)
 
-        wmo_sites : list
-            A list of flags indicating whether the site is associated with a
-            wmo observing site (1) or is not associated (0).
+    @staticmethod
+    def _aux_coords_to_make():
+        """
+        Define coordinates that need to made for the cube to be produced.
 
+        """
+        return {'latitude': {'units': 'degrees', 'data_type': float,
+                             'coord_type': AuxCoord},
+                'longitude': {'units': 'degrees', 'data_type': float,
+                              'coord_type': AuxCoord},
+                'altitude': {'units': 'm', 'data_type': float,
+                             'coord_type': AuxCoord,
+                             'custom_function': np.nan_to_num},
+                'wmo_site': {'data_type': int, 'coord_type': AuxCoord},
+                'utc_offset': {'units': 'hours', 'data_type': float,
+                               'coord_type': AuxCoord}
+                }
+
+    @staticmethod
+    def make_stat_coordinate_first(cube):
+        """
+        Reorder cube dimension coordinates to ensure the statistical
+        coordinate is first.
+
+        Args:
+        -----
+        cube : iris.cube.Cube
+        The cube to be reordered.
+
+        Returns:
+        --------
+        cube : iris.cube.Cube
+        Cube with the statitical coordinate moved to be first.
+
+        """
+        stat_coordinates = ['realization', 'percentile']
+        cube_dimension_order = {
+            coord.name(): cube.coord_dims(coord.name())[0]
+            for coord in cube.dim_coords}
+            
+        stat_coord = np.intersect1d(stat_coordinates,
+                                    cube_dimension_order.keys())
+
+        if len(stat_coord) == 1:
+            stat_index = cube_dimension_order[stat_coord.item()]
+            new_order = range(len(cube_dimension_order))
+            new_order.pop(stat_index)
+            new_order.insert(0, stat_index)
+            cube.transpose(new_order)
+
+        return cube
+
+    def _build_aux_coordinates(self, sites):
+        """
+        Wrapper for the creation of aux_coords for spotdata cubes.
+
+        Args:
+        -----
+        sites : OrderedDict
+            A dictionary containing the properties of spotdata sites.
+        
         Returns:
         --------
         Creates iris.DimCoord and iris.AuxCoord objects from the provided data
         for use in constructing new cubes.
 
         """
-        indices = DimCoord(np.arange(len(latitudes)), long_name='index',
-                           units='1')
-        latitude = AuxCoord(latitudes, standard_name='latitude',
-                            units='degrees')
-        longitude = AuxCoord(longitudes, standard_name='longitude',
-                             units='degrees')
-        altitude = AuxCoord(altitudes, standard_name='altitude',
-                            units='m')
-        utc_offset = AuxCoord(utc_offsets, long_name='utc_offset',
-                              units='hours')
-        wmo_site = AuxCoord(wmo_sites, long_name='wmo_site', units='1')
+        crds = self._aux_coords_to_make()
+        cube_crds = []
+        for key, kwargs in zip(crds.keys(), crds.itervalues()):
+            data = np.array([entry[key] for entry in sites.itervalues()])
+            crd = self._build_coordinate(data, key, **kwargs)
+            cube_crds.append(crd)
 
-        return indices, latitude, longitude, altitude, utc_offset, wmo_site
+        return cube_crds
 
     def make_cube(self, cube, data, sites):
         """
@@ -227,45 +292,56 @@ class ExtractData(object):
             at the spotdata sites.
 
         """
-        # Ensure time is a dimension coordinate.
+
+        # Ensure time is a dimension coordinate and convert to seconds.
         if 'time' not in cube.dim_coords:
             cube = iris.util.new_axis(cube, 'time')
+        cube.coord('time').convert_units('seconds since 1970-01-01 00:00:00')
 
+        # Replicate all non spatial dimension coodinates.
         n_non_spatial_dimcoords = len(cube.dim_coords) - 2
         non_spatial_dimcoords = cube.dim_coords[0:n_non_spatial_dimcoords]
-        cube.coord('time').convert_units('hours since 1970-01-01 00:00:00')
-
-        latitudes = [float(site['latitude']) for site in sites.itervalues()]
-        longitudes = [float(site['longitude']) for site in sites.itervalues()]
-        altitudes = [np.nan_to_num(site['altitude'])
-                     for site in sites.itervalues()]
-        utc_offsets = [float(site['utc_offset'])
-                       for site in sites.itervalues()]
-        wmo_sites = [site['wmo_site'] for site in sites.itervalues()]
-
-        indices, latitude, longitude, altitude, utc_offset, wmo_site = (
-            self._build_coordinates(
-                latitudes, longitudes, altitudes, utc_offsets, wmo_sites))
-
         dim_coords = [coord for coord in non_spatial_dimcoords]
+
+        # Add an index coordinate as a dimension coordinate.
+        indices = self._build_coordinate(np.arange(len(sites)), 'index',
+                                         data_type=int)
         dim_coords.append(indices)
+
+        # Include the forecast_reference_time from the source cube.
+        forecast_ref_time = cube.coord('forecast_reference_time')
+        forecast_ref_time.convert_units('seconds since 1970-01-01 00:00:00')
+        forecast_periods = cube.coord('time').points - forecast_ref_time.points
+        forecast_period =  self._build_coordinate(forecast_periods,
+            'forecast_period', units='seconds')
+
+        # Build the auxiliary coordinates.
+        aux_crds =  self._build_aux_coordinates(sites)
+
+        # Construct zipped lists of coordinates and indices.
         n_dim_coords = len(dim_coords)
         dim_coords = zip(dim_coords, range(n_dim_coords))
-        aux_coords = zip([latitude, longitude, altitude, utc_offset, wmo_site],
-                         [n_dim_coords-1]*5)
+        aux_coords = zip(aux_crds, [n_dim_coords-1]*len(aux_crds))
+
+        # Copy other cube metadata.
+        metadata_dict = copy.deepcopy(cube.metadata._asdict())
 
         # Add leading dimension for time.
         data = np.expand_dims(data, axis=0)
         result_cube = Cube(data,
-                           long_name=cube.name(),
                            dim_coords_and_dims=dim_coords,
                            aux_coords_and_dims=aux_coords,
-                           units=cube.units)
+                           **metadata_dict)
+        result_cube.add_aux_coord(forecast_ref_time)
+        result_cube.add_aux_coord(forecast_period, 0)
 
         # Enables use of long_name above for any name, and then moves it
         # to a standard name if possible.
         result_cube.rename(cube.name())
-        return result_cube
+
+        # Promote any statistical coordinates to be first.
+        result_cube = self.make_stat_coordinate_first(result_cube)
+        return result_cube        
 
     def use_nearest(self, cube, sites, neighbours):
         """
