@@ -35,6 +35,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
+from improver.nbhood.utilities import Utilities
 from improver.percentile import PercentileConverter
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
@@ -43,7 +44,7 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-class Utilities(object):
+class CircularUtilities(object):
     """
     Contains methods useful to multiple circular_kernel plugins.
     """
@@ -56,7 +57,7 @@ class Utilities(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<Utilities>')
+        result = ('<CircularUtilities>')
         return result
 
     @staticmethod
@@ -161,16 +162,14 @@ class CircularProbabilities(object):
         data = cube.data
         fullranges = np.zeros([np.ndim(data)])
         axes = []
-        try:
-            for coord_name in ['projection_x_coordinate',
-                               'projection_y_coordinate']:
-                axes.append(cube.coord_dims(coord_name)[0])
-        except CoordinateNotFoundError:
-            raise ValueError("Invalid grid: projection_x/y coords required")
+        for axis in ["x", "y"]:
+            coord_name = cube.coord(axis=axis).name()
+            axes.append(cube.coord_dims(coord_name)[0])
+
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        kernel = Utilities.circular_kernel(fullranges, ranges,
-                                           self.weighted_mode)
+        kernel = CircularUtilities.circular_kernel(fullranges, ranges,
+                                                   self.weighted_mode)
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)
@@ -196,6 +195,8 @@ class CircularProbabilities(object):
             Cube containing the smoothed field after the kernel has been
             applied.
         """
+        # Check that the cube has an equal area grid.
+        Utilities.check_if_grid_is_equal_area(cube)
         ranges = convert_distance_into_number_of_grid_cells(
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
@@ -247,23 +248,19 @@ class CircularPercentiles(object):
 
         Returns
         -------
-        outcube : Iris.cube.Cube
+        result : Iris.cube.Cube
             Cube containing the percentile fields.
             Has percentile as an added dimension.
 
         """
+        # Check that the cube has an equal area grid.
+        Utilities.check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        try:
-            for coord_name in ['projection_x_coordinate',
-                               'projection_y_coordinate']:
-                cube.coord(coord_name)
-        except CoordinateNotFoundError:
-            raise ValueError("Invalid grid: projection_x/y coords required")
         ranges_tuple = convert_distance_into_number_of_grid_cells(
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         ranges_xy = np.array(ranges_tuple)
-        kernel = Utilities.circular_kernel(ranges_xy, ranges_tuple,
-                                           weighted_mode=False)
+        kernel = CircularUtilities.circular_kernel(ranges_xy, ranges_tuple,
+                                                   weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()

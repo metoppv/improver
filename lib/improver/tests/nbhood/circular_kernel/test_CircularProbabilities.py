@@ -116,15 +116,6 @@ class Test_apply_circular_kernel(IrisTest):
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_single_point_lat_long(self):
-        """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_cube_lat_long()
-        msg = "Invalid grid: projection_x/y coords required"
-        ranges = (3, 3)
-        with self.assertRaisesRegexp(ValueError, msg):
-            CircularProbabilities(
-                weighted_mode=True).apply_circular_kernel(cube, ranges)
-
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
 

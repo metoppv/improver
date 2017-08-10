@@ -50,7 +50,7 @@ class DiagnoseConvectivePrecipitation(object):
     def __init__(
             self, lower_threshold, higher_threshold, neighbourhood_method,
             neighbourhood_shape, radii, fuzzy_factor=None,
-            below_thresh_ok=False, lead_times=None, weighted_mode=False,
+            below_thresh_ok=False, lead_times=None, weighted_mode=True,
             ens_factor=1.0, use_adjacent_grid_square_differences=True):
         """
         Args:

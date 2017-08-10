@@ -45,7 +45,7 @@ from improver.nbhood.nbhood import Utilities
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
-    set_up_cube)
+    set_up_cube, set_up_cube_lat_long)
 
 
 class Test__repr__(IrisTest):
@@ -225,6 +225,27 @@ class Test_check_cube_coordinates(IrisTest):
         with self.assertRaisesRegexp(iris.exceptions.CoordinateNotFoundError,
                                      msg):
             Utilities.check_cube_coordinates(cube, new_cube)
+
+
+class Test_check_if_grid_is_equal_area(IrisTest):
+
+    """Test that the grid is an equal area grid."""
+
+    def test_wrong_coordinate(self):
+        """Test an exception is raised if the x and y coordinates are not
+        projection_x_coordinate or projection_y_coordinate."""
+        cube = set_up_cube_lat_long()
+        msg = "Invalid grid"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().check_if_grid_is_equal_area(cube)
+
+    def non_equal_area_grid(self):
+        """Test that the cubes have an equal areas grid."""
+        cube = set_up_cube()
+        cube.coord("projection_x_coordinate").points
+        msg = "Intervals between points along the x and y axis vary."
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().check_if_grid_is_equal_area(cube)
 
 
 if __name__ == '__main__':

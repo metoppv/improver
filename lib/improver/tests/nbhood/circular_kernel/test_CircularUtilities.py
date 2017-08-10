@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.circular_kernel.Utilities plugin."""
+"""Unit tests for the nbhood.circular_kernel.CircularUtilities plugin."""
 
 
 import unittest
@@ -36,7 +36,7 @@ import unittest
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.circular_kernel import Utilities
+from improver.nbhood.circular_kernel import CircularUtilities
 
 
 class Test__repr__(IrisTest):
@@ -45,8 +45,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(Utilities())
-        msg = '<Utilities>'
+        result = str(CircularUtilities())
+        msg = '<CircularUtilities>'
         self.assertEqual(str(result), msg)
 
 
@@ -60,7 +60,8 @@ class Test_circular_kernel(IrisTest):
         fullranges = (0, 2, 2)
         weighted_mode = False
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertIsInstance(result, np.ndarray)
 
     def test_single_point_weighted(self):
@@ -70,7 +71,8 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = True
         expected = [[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_single_point_unweighted(self):
@@ -85,7 +87,8 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = False
         expected = [[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayEqual(result, expected)
 
     def test_range5_weighted(self):
@@ -106,7 +109,8 @@ class Test_circular_kernel(IrisTest):
             [0.,   0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
             [0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_range5_unweighted(self):
@@ -126,7 +130,8 @@ class Test_circular_kernel(IrisTest):
                     [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
                     [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayEqual(result, expected)
 
     def test_single_point_weighted_extra_dims(self):
@@ -137,7 +142,8 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = True
         expected = [[[[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_single_point_unweighted_extra_dims(self):
@@ -148,7 +154,8 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = False
         expected = [[[[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayEqual(result, expected)
 
     def test_range5_weighted_extra_dims(self):
@@ -169,7 +176,8 @@ class Test_circular_kernel(IrisTest):
             [0.,  0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
             [0.,  0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_range5_unweighted_extra_dims(self):
@@ -189,7 +197,8 @@ class Test_circular_kernel(IrisTest):
                       [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
                       [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]]]
         result = (
-            Utilities.circular_kernel(fullranges, ranges, weighted_mode))
+            CircularUtilities.circular_kernel(
+                fullranges, ranges, weighted_mode))
         self.assertArrayEqual(result, expected)
 
 

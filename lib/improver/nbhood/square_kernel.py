@@ -42,6 +42,7 @@ from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
+from improver.nbhood.utilities import Utilities
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -567,6 +568,8 @@ class SquareProbabilities(object):
             Cube containing the smoothed field after the square neighbourhood
             method has been applied.
         """
+        # Check that the cube has an equal area grid.
+        Utilities.check_if_grid_is_equal_area(cube)
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
         original_attributes = cube.attributes
