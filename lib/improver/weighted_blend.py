@@ -36,7 +36,8 @@ import iris
 from iris.analysis import Aggregator
 
 
-class BlendingUtilities(object):
+class PercentileBlendingAggregator(object):
+    # TODO change this class name to percentile blending utilities
     """Class for blending utilities functions"""
 
     def __init__(self):
@@ -47,78 +48,11 @@ class BlendingUtilities(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<BlendingUtilities>')
+        result = ('<PercentileBlendingAggregator>')
         return result
 
     @staticmethod
-    def basic_weighted_average(cube, weights, coord, coord_dim):
-        """Calculate weighted mean across the chosen coord
-
-        Args:
-            cube : iris.cube.Cube
-                   Cube to blend across the coord.
-            weights: list or np.array of weights
-                     or None (equivalent to equal weights)
-            coord : string
-                     The name of a coordinate dimension in the cube.
-            coord_dim : tuple
-                     The index of the coordinate dimension in the cube.
-
-        Returns:
-            result : iris.cube.Cube
-                     containing the weighted mean across the chosen coord
-        """
-        # Supply weights as an array of weights whose shape matches the cube.
-        weights_array = None
-        if weights is not None:
-            weights_array = iris.util.broadcast_to_shape(np.array(weights),
-                                                         cube.shape,
-                                                         coord_dim)
-        # Calculate the weighted average.
-        result = cube.collapsed(coord,
-                                iris.analysis.MEAN, weights=weights_array)
-        return result
-
-    @staticmethod
-    def blend_percentile_cube(cube, weights, coord, coord_dim, perc_coord):
-        """ Blend together percentile cube
-
-        Args:
-            cube : iris.cube.Cube
-                   Cube to blend across the coord.
-            weights: list or np.array of weights
-                     or None (equivalent to equal weights)
-            coord : string
-                     The name of a coordinate dimension in the cube.
-            coord_dim : tuple
-                     The index of the coordinate dimension in the cube.
-            perc_coord : iris.cube.DimCoord
-                     The percentile coordinate
-
-        Returns:
-            result : iris.cube.Cube
-                     containing the weighted percentile blend
-                     across the chosen coord
-        """
-
-        percentiles = np.array(perc_coord.points, dtype=float)
-        num = cube.data.shape[coord_dim[0]]
-        if weights is None:
-            weights = np.ones(num) / float(num)
-        PERCENTILE_BLEND = (Aggregator('percentile_blend',
-                            BlendingUtilities.blend_percentile_aggregate))
-        perc_dim, = cube.coord_dims(perc_coord.name())
-
-        result = cube.collapsed(coord,
-                                PERCENTILE_BLEND,
-                                arr_percent=percentiles,
-                                arr_weights=weights,
-                                perc_dim=perc_dim)
-        return result
-
-    @staticmethod
-    def blend_percentile_aggregate(data, axis,
-                                   arr_percent, arr_weights, perc_dim):
+    def aggregate(data, axis, arr_percent, arr_weights, perc_dim):
         """ Blend percentile aggregate function
 
         Args:
@@ -164,9 +98,8 @@ class BlendingUtilities(object):
             # Loop over the flatten data
             for i in range(data.shape[-1]):
                 result[:, i] = (
-                    BlendingUtilities.blend_percentiles(data[:, :, i],
-                                                        arr_percent,
-                                                        arr_weights))
+                    PercentileBlendingAggregator.blend_percentiles(
+                        data[:, :, i], arr_percent, arr_weights))
         # Reshape the data and put the percentile dimension
         # back in the right place
         if arr_percent.shape > (1,):
@@ -290,17 +223,8 @@ class WeightedBlend(object):
                    'an existing coordinate in the input cube.')
             raise ValueError(msg)
 
-        # Find the coords dimension.
-        # If coord is a scalar_coord try adding it.
-        collapse_dim = cube.coord_dims(self.coord)
-        if not collapse_dim:
-            msg = ('Could not find collapse dimension, '
-                   'will try adding it')
-            warnings.warn(msg)
-            cube = iris.util.new_axis(cube, self.coord)
-            collapse_dim = cube.coord_dims(self.coord)
-
         # Check to see if the data is percentile data
+        # TODO Can remove this in favour of passing in perc_coord.
         perc_coord = None
         perc_dim = None
         perc_found = 0
@@ -330,23 +254,50 @@ class WeightedBlend(object):
                        '{0:s}'.format(cube.coord(self.coord).points.shape))
                 raise ValueError(msg)
 
-        # Blend the cube across the coordinate
-        if perc_coord is not None:
-            result = BlendingUtilities.blend_percentile_cube(cube,
-                                                             weights,
-                                                             self.coord,
-                                                             collapse_dim,
-                                                             perc_coord)
-        else:
-            result = BlendingUtilities.basic_weighted_average(cube,
-                                                              weights,
-                                                              self.coord,
-                                                              collapse_dim)
+        # If coord to blend over is a scalar_coord warn
+        # and return original cube.
+        coord_dim = cube.coord_dims(self.coord)
+        if not coord_dim:
+            msg = ('Trying to blend across a scalar coordinate with only one'
+                   'value. Returning original cube')
+            warnings.warn(msg)
+            result = cube
 
+        # Blend the cube across the coordinate
+        # Use percentile Aggregator if required
+        elif perc_coord is not None:
+            percentiles = np.array(perc_coord.points, dtype=float)
+            perc_dim, = cube.coord_dims(perc_coord.name())
+            # Set equal weights if none are provided
+            if weights is None:
+                num = len(cube.coord(self.coord).points)
+                weights = np.ones(num) / float(num)
+            # Set up aggregator
+            PERCENTILE_BLEND = (Aggregator('percentile_blend',
+                                PercentileBlendingAggregator.aggregate))
+
+            result = cube.collapsed(self.coord,
+                                    PERCENTILE_BLEND,
+                                    arr_percent=percentiles,
+                                    arr_weights=weights,
+                                    perc_dim=perc_dim)
+
+        # Else do a simple weighted average
+        else:
+            # Equal weights are used as default.
+            weights_array = None
+            # Else broadcast the weights to be used by the aggregator.
+            if weights is not None:
+                weights_array = iris.util.broadcast_to_shape(np.array(weights),
+                                                             cube.shape,
+                                                             coord_dim)
+            # Calculate the weighted average.
+            result = cube.collapsed(self.coord,
+                                    iris.analysis.MEAN, weights=weights_array)
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
-                if cube.coord_dims(crd.name()) == collapse_dim:
+                if cube.coord_dims(crd.name()) == coord_dim:
                     pnts = cube.coord(crd.name()).points
                     crd.points = np.array(self.coord_adjust(pnts),
                                           dtype=crd.points.dtype)

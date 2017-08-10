@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.weighted_blend import WeightedBlend
-from improver.tests.weighted_blend.test_blending_utilities import (
+from improver.tests.weighted_blend.test_PercentileBlendingAggreator import (
     percentile_cube, BLENDED_PERCENTILE_DATA1, BLENDED_PERCENTILE_DATA2)
 
 
@@ -179,7 +179,7 @@ class Test_process(IrisTest):
             result = plugin.process(self.cube_with_scalar, weights)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
-            warning_msg = "Could not find collapse dimension"
+            warning_msg = "Trying to blend across a scalar coordinate"
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
             self.assertArrayAlmostEqual(result.data, self.cube.data)
