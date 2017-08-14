@@ -53,7 +53,7 @@ class PercentileBlendingAggregator(object):
            2. We do a weighted blend across all the probability spaces,
               combining all the thresholds in all the points in the coordinate
               we are blending over. This gives us an array of thresholds and an
-              array of blended probailities for each of the thresholds.
+              array of blended probailities for each of the grid points.
            3. We convert back to the original percentile values, again using
               linear interpolation, resulting in blended values at each of the
               original percentiles.
@@ -222,7 +222,10 @@ class WeightedBlend(object):
 
     def process(self, cube, weights=None):
         """Calculate weighted blend across the chosen coord, for either
-           probabilistic or percentile data.
+           probabilistic or percentile data. If there is a percentile
+           coordinate on the cube, it will blend using the
+           PercentileBlendingAggregator but the percentile coordinate must
+           have at least two points.
 
         Args:
             cube : iris.cube.Cube
@@ -269,6 +272,12 @@ class WeightedBlend(object):
             if not perc_dim:
                 msg = ('The percentile coord must be a dimension '
                        'of the cube.')
+                raise ValueError(msg)
+            # Check the percentile coordinate has more than one point,
+            # otherwise raise an error as we won't be able to blend.
+            if len(perc_coord.points) < 2.0:
+                msg = ('Percentile coordinate does not have enough points'
+                       ' in order to blend. Must have at least 2 percentiles.')
                 raise ValueError(msg)
         elif perc_found > 1:
             msg = ('There should only be one percentile coord'

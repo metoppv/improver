@@ -126,85 +126,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class SetUp():
-
-    """Set up test cubes used by all the test classes."""
-
-    def setUp(self):
-        """Create a cube with a single non-zero point."""
-        data = np.zeros((2, 2, 2))
-        data[0][:][:] = 1.0
-        data[1][:][:] = 2.0
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                    units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5, 402193.5],
-                                    "time", units=tunit), 0)
-        self.cube = cube
-        new_scalar_coord = iris.coords.AuxCoord(1,
-                                                long_name='dummy_scalar_coord',
-                                                units='no_unit')
-        cube_with_scalar = cube.copy()
-        cube_with_scalar.add_aux_coord(new_scalar_coord)
-        self.cube_with_scalar = cube_with_scalar
-'''
-# TODO move these into a test_process class in test_weighted_blend
-class Test_basic_weighted_average(IrisTest, SetUp):
-    """Test the basic_weighted_average method"""
-    def test_basic(self):
-        """Test basic_weighted_average works."""
-        coord = "time"
-        weights = [0.8, 0.2]
-        coord_dim = self.cube.coord_dims(coord)
-        result = BlendingUtilities.basic_weighted_average(self.cube,
-                                                          weights,
-                                                          coord,
-                                                          coord_dim)
-        expected_result_array = np.ones((2, 2))*1.2
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-class Test_blend_percentile_cube(IrisTest, SetUp):
-    """Test the blend_percentile method"""
-    def test_blend_percentile_cube1(self):
-        """Test blending percentile cube works with equal weights."""
-        coord = "time"
-        weights = np.array([0.5, 0.5])
-        perc_cube = percentile_cube()
-        coord_dim = perc_cube.coord_dims(coord)
-        perc_coord = perc_cube.coord('percentile_over_realization')
-        result = BlendingUtilities.blend_percentile_cube(perc_cube,
-                                                         weights,
-                                                         coord,
-                                                         coord_dim,
-                                                         perc_coord)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
-                                           (6, 2, 2))
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_blend_percentile_cube2(self):
-        """Test blending percentile cube works with unequal weights."""
-        coord = "time"
-        weights = np.array([0.8, 0.2])
-        perc_cube = percentile_cube()
-        coord_dim = perc_cube.coord_dims(coord)
-        perc_coord = perc_cube.coord('percentile_over_realization')
-        result = BlendingUtilities.blend_percentile_cube(perc_cube,
-                                                         weights,
-                                                         coord,
-                                                         coord_dim,
-                                                         perc_coord)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
-                                           (6, 2, 2))
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-'''
-
-
-class Test_aggreagate(IrisTest, SetUp):
+class Test_aggregate(IrisTest):
     """Test the aggregate method"""
     def test_blend_percentile_aggregate(self):
         """Test blend_percentile_aggregate function works"""
@@ -248,8 +170,54 @@ class Test_aggreagate(IrisTest, SetUp):
         expected_result_array = np.moveaxis(expected_result_array, 0, 1)
         self.assertArrayAlmostEqual(result, expected_result_array)
 
+    def test_2D_simple_case(self):
+        """ Test that for a simple case with only one point in the resulting
+            array the function behaves as expected"""
+        weights = np.array([0.8, 0.2])
+        percentiles = np.array([0, 50, 100])
+        perc_data = np.array([[1.0, 2.0,], [5.0, 5.0], [10.0, 9.0]])
+        result = PercentileBlendingAggregator.aggregate(
+            perc_data, 1,
+            percentiles,
+            weights, 0)
+        expected_result = np.array([1.0, 5.0, 10.0])
+        self.assertArrayAlmostEqual(result, expected_result)
 
-class Test_blend_percentiles(IrisTest, SetUp):
+    def test_3D_simple_case(self):
+        """ Test that for a simple case with only one point and an extra
+            internal dimension behaves as expected"""
+        weights = np.array([0.5, 0.5])
+        percentiles = np.array([0, 50, 100])
+        perc_data = np.array([[[1.0], [2.0],],
+                              [[5.0], [6.0]],
+                              [[10.0], [9.0]]])
+        result = PercentileBlendingAggregator.aggregate(
+            perc_data, 1,
+            percentiles,
+            weights, 0)
+        expected_result = np.array([[1.0], [5.555555], [10.0]])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_3D_simple_case(self):
+        """ Test that for a simple case with only one point and 3D input data
+            it behaves as expected"""
+        weights = np.array([0.5, 0.5])
+        percentiles = np.array([0, 50, 100])
+        perc_data = np.array([1.0, 3.0, 2.0, 
+                              4.0, 5.0, 6.0,])
+        input_shape = (3, 2, 1, 1)
+        perc_data = perc_data.reshape(input_shape)
+        result = PercentileBlendingAggregator.aggregate(
+            perc_data, 1,
+            percentiles,
+            weights, 0)
+        expected_result = np.array([[[1.0]], [[3.5]], [[6.0]]])
+        expected_result_shape = (3, 1, 1)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.shape, expected_result_shape)
+
+
+class Test_blend_percentiles(IrisTest):
     """Test the blend_percentiles method"""
     def test_blend_percentiles(self):
         """Test blend_percentile function works"""
@@ -258,7 +226,6 @@ class Test_blend_percentiles(IrisTest, SetUp):
                                 60., 70., 80., 90., 100.])
         result = PercentileBlendingAggregator.blend_percentiles(
                     PERCENTILE_VALUES, percentiles, weights)
-
         expected_result_array = np.array([12.70237152, 16.65161847,
                                           17.97408712, 18.86356829,
                                           19.84089805, 20.77406153,
@@ -266,6 +233,39 @@ class Test_blend_percentiles(IrisTest, SetUp):
                                           22.22440125, 23.53863876,
                                           24.64542338])
         self.assertArrayAlmostEqual(result, expected_result_array)
+
+    def test_two_percentiles(self):
+        """Test that when two percentiles are provided, the extreme values in
+           the set of thresholds we are blending are returned"""
+        weights = np.array([0.5, 0.5])
+        percentiles = np.array([30., 60.])
+        percentile_values = np.array([[5.0, 8.0], [6.0, 7.0]])
+        result = PercentileBlendingAggregator.blend_percentiles(
+                    percentile_values, percentiles, weights)
+        expected_result = np.array([5.0, 8.0])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_three_percentiles_symmetric_case(self):
+        """Test that when three percentiles are provided the correct values
+           are returned, not a simple average"""
+        weights = np.array([0.5, 0.5])
+        percentiles = np.array([20.0, 50.0, 80.0])
+        percentile_values = np.array([[5.0, 6.0, 7.0], [5.0, 6.5, 7.0]])
+        result = PercentileBlendingAggregator.blend_percentiles(
+                    percentile_values, percentiles, weights)
+        expected_result = np.array([5.0, 6.2, 7.0])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_only_one_point_to_blend(self):
+        """Test case where there is only one point in the coordinate we are
+           blending over."""
+        weights = np.array([1.0])
+        percentiles = np.array([20.0, 50.0, 80.0])
+        percentile_values = np.array([[5.0, 6.0, 7.0]])
+        result = PercentileBlendingAggregator.blend_percentiles(
+                    percentile_values, percentiles, weights)
+        expected_result = np.array([5.0, 6.0, 7.0])
+        self.assertArrayAlmostEqual(result, expected_result)
 
 if __name__ == '__main__':
     unittest.main()

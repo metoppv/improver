@@ -134,6 +134,20 @@ class Test_process(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(new_cube)
 
+    def test_fails_only_one_percentile_value(self):
+        """Test it raises a Value Error if there is only one percentile."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        new_cube = Cube([[0.0]])
+        new_cube.add_dim_coord(DimCoord([10.0],
+                                        long_name="percentile_over_time"), 0)
+        new_cube.add_dim_coord(DimCoord([10.0],
+                                        long_name="time"), 1)
+        msg = ('Percentile coordinate does not have enough points'
+               ' in order to blend. Must have at least 2 percentiles.')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(new_cube)
+
     def test_fails_more_than_one_perc_coord(self):
         """Test it raises a Value Error if more than one percentile coord."""
         coord = "time"
@@ -232,6 +246,43 @@ class Test_process(IrisTest):
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_blend_percentile_cube1(self):
+        """Test blending percentile cube works with equal weights."""
+        coord = "time"
+        weights = np.array([0.5, 0.5])
+        perc_cube = percentile_cube()
+        coord_dim = perc_cube.coord_dims(coord)
+        perc_coord = perc_cube.coord('percentile_over_realization')
+        plugin = WeightedBlend(coord)
+        result = plugin.process(perc_cube, weights)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
+                                           (6, 2, 2))
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_blend_percentile_cube2(self):
+        """Test blending percentile cube works with unequal weights."""
+        coord = "time"
+        weights = np.array([0.8, 0.2])
+        perc_cube = percentile_cube()
+        coord_dim = perc_cube.coord_dims(coord)
+        perc_coord = perc_cube.coord('percentile_over_realization')
+        plugin = WeightedBlend(coord)
+        result =  plugin.process(perc_cube, weights)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
+                                           (6, 2, 2))
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_basic_weighted_average(self):
+        """Test basic_weighted_average works."""
+        coord = "time"
+        weights = [0.8, 0.2]
+        coord_dim = self.cube.coord_dims(coord)
+        plugin = WeightedBlend(coord)
+        result = plugin.process(self.cube, weights)
+        expected_result_array = np.ones((2, 2))*1.2
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
 
 if __name__ == '__main__':
     unittest.main()
