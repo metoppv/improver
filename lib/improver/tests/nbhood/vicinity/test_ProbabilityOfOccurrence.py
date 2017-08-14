@@ -52,7 +52,8 @@ class Test__init__(IrisTest):
         radius = 2000
         msg = "Only a square neighbourhood is accepted"
         with self.assertRaisesRegexp(ValueError, msg):
-            ProbabilityOfOccurrence(distance, "circular", radius)
+            ProbabilityOfOccurrence(
+                distance, "probabilities", "circular", radius)
 
 
 class Test__repr__(IrisTest):
@@ -61,9 +62,11 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(ProbabilityOfOccurrence(2000, "square", 2000))
+        result = str(
+            ProbabilityOfOccurrence(2000, "probabilities", "square", 2000))
         msg = ('<ProbabilityOfOccurrence: distance: 2000; '
-               'neighbourhood_method: square; radii: 2000; '
+               'neighbourhood_method: probabilities; '
+               'neighbourhood_shape: square; radii: 2000; '
                'lead_times: None; unweighted_mode: False; '
                'ens_factor: 1.0>')
         self.assertEqual(result, msg)
@@ -92,11 +95,13 @@ class Test_process(IrisTest):
              [0., 0.22222222, 0.44444444, 0.66666667,  0.66666667],
              [0., 0.11111111, 0.22222222, 0.33333333, 0.33333333]])
         distance = 2000
-        neighbourhood_method = "square"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "square"
         radii = 2000
         result = (
             ProbabilityOfOccurrence(
-                distance, neighbourhood_method, radii).process(self.cube))
+                distance, neighbourhood_method, neighbourhood_shape,
+                radii).process(self.cube))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -111,11 +116,13 @@ class Test_process(IrisTest):
         cube = self.cube[0, :, :, :]
         cube.remove_coord("realization")
         distance = 2000
-        neighbourhood_method = "square"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "square"
         radii = 2000
         result = (
             ProbabilityOfOccurrence(
-                distance, neighbourhood_method, radii).process(self.cube))
+                distance, neighbourhood_method, neighbourhood_shape,
+                radii).process(self.cube))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -141,7 +148,8 @@ class Test_process(IrisTest):
                            x_dimension_values=y_dimension_values,
                            timesteps=np.array([402192.5, 402195.5]))
         distance = 2000
-        neighbourhood_method = "square"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "square"
         radii = [2000, 4000]
         lead_times = [3, 6]
         cube.add_aux_coord(AuxCoord(
@@ -150,8 +158,9 @@ class Test_process(IrisTest):
         ens_factor = 0.9
         result = (
             ProbabilityOfOccurrence(
-                distance, neighbourhood_method, radii, lead_times=lead_times,
-                unweighted_mode=unweighted_mode, ens_factor=ens_factor
+                distance, neighbourhood_method, neighbourhood_shape,
+                radii, lead_times=lead_times, unweighted_mode=unweighted_mode,
+                ens_factor=ens_factor
                 ).process(cube))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)

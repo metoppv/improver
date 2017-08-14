@@ -30,11 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-import copy
 import math
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 import numpy as np
 
 
@@ -143,77 +142,8 @@ class Utilities(object):
         return new_width
 
     @staticmethod
-    def check_cube_coordinates(cube, new_cube):
-        """
-        Find and promote to dimension coordinates any scalar coordinates in
-        new_cube that were originally dimension coordinates in the progenitor
-        cube. If coordinate is in new_cube that is not in the old cube, keep
-        coordinate in its current position.
-
-        Parameters
-        ----------
-        cube : iris.cube.Cube
-            The input cube provided to nbhood.
-        new_cube : iris.cube.Cube
-            The cube produced by the neighbourhooding process that must be
-            checked for demoted dimensional coordinates.
-
-        Returns
-        -------
-        new_cube : iris.cube.Cube
-            Modified neighbourhooded cube with relevant scalar coordinates
-            promoted to dimension coordinates.
-
-        Raises
-        ------
-        iris.exceptions.CoordinateNotFoundError raised if the final dimension
-        coordinates of the returned cube do not match the input cube.
-
-        """
-        # Promote available and relevant scalar coordinates
-        for coord in new_cube.aux_coords[::-1]:
-            if coord in cube.dim_coords:
-                new_cube = iris.util.new_axis(new_cube, coord)
-
-        # Ensure dimension order matches; if lengths are unequal a coordinate
-        # is missing, so raise an appropriate error.
-        cube_dimension_order = {coord.name(): cube.coord_dims(coord.name())[0]
-                                for coord in cube.dim_coords}
-        print "cube = ", cube
-        print "cube_dimension_order = ", cube_dimension_order
-        print "new_cube = ", new_cube
-        correct_order = []
-        for coord in new_cube.dim_coords:
-            if coord in cube.dim_coords:
-                correct_order.append(cube_dimension_order[coord.name()])
-            else:
-                new_coord_dim = new_cube.coord_dims(coord.name())[0]
-                print "new_coord_dim = ", new_coord_dim
-                if len(correct_order)>0:
-                    correct_order[correct_order>new_coord_dim] += 1
-                else:
-                    new_coord_dim = -1
-                correct_order.append(new_coord_dim)
-            print "correct_order = ", correct_order
-
-        #correct_order = [cube_dimension_order[coord.name()]
-                         #for coord in new_cube.dim_coords]
-        print "correct_order = ", correct_order
-        if len(cube_dimension_order) == len(correct_order):
-            new_cube.transpose(correct_order)
-        else:
-            msg = ('Returned cube dimension coordinates do not match input '
-                   'cube dimension coordinates. \n input cube shape {} '
-                   ' returned cube shape {}'.format(
-                    cube.shape, new_cube.shape))
-            raise iris.exceptions.CoordinateNotFoundError(msg)
-
-        return new_cube
-
-    @staticmethod
     def check_if_grid_is_equal_area(cube):
-        """
-        Identify whether the grid is an equal area grid.
+        """Identify whether the grid is an equal area grid.
         If not, raise an error.
 
         Parameters
@@ -228,7 +158,6 @@ class Utilities(object):
                      Therefore the grid is not an equal area grid.
 
         """
-
         try:
             for coord_name in ['projection_x_coordinate',
                                'projection_y_coordinate']:

@@ -31,12 +31,13 @@
 """This module contains methods for circular neighbourhood processing."""
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
 from improver.nbhood.utilities import Utilities
 from improver.percentile import PercentileConverter
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
@@ -290,52 +291,30 @@ class CircularPercentiles(object):
                                      ranges_xy[1]:-ranges_xy[1]]
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
-        result = self.check_coords(result, cube)
+        exception_coordinates = (
+            find_dimension_coordinate_mismatch(
+                cube, result, two_way_mismatch=False))
+        result = (
+            check_cube_coordinates(
+                cube, result, exception_coordinates=exception_coordinates))
+
+        # Arrange cube, so that the coordinate order is:
+        # realization, percentile, other coordinates.
+        required_order = []
+        if result.coords("realization"):
+            required_order.append(result.coord_dims("realization")[0])
+        if result.coords("percentiles_over_neighbourhood"):
+            required_order.append(
+                result.coord_dims("percentiles_over_neighbourhood")[0])
+        other_coords = []
+        for coord in result.dim_coords:
+            if coord.name() not in [
+                   "realization", "percentiles_over_neighbourhood"]:
+                other_coords.append(result.coord_dims(coord.name())[0])
+        required_order.extend(other_coords)
+        result.transpose(required_order)
+
         return result
-
-    @staticmethod
-    def check_coords(cube, cube_orig):
-        """Checks the coordinates of cube match those of cube_orig
-        and promotes any that are not dimensions.
-        This function expects that cube will have an additional
-        "percentiles" dimension.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to ensure compliance in. May be modified if not compliant.
-
-        cube_orig : Iris.cube.Cube
-            Cube to ensure compliance against. Will NOT be modified.
-
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube after ensuring compliance.
-
-        Exceptions
-        -------
-        Raises ValueError if cube cannot be made compliant.
-        """
-
-        # Promote any missing dimension coords from auxilliary coords
-        for coord in cube_orig.coords():
-            if len(cube_orig.coord_dims(coord)) == 0:
-                continue
-            try:
-                cube.coord_dims(coord)[0]
-            except IndexError:
-                cube = iris.util.new_axis(cube, coord)
-        # Now check axis order
-        required_order = list(np.shape(cube.data))
-        for indx, coord in enumerate(cube_orig.coords()):
-            if len(cube_orig.coord_dims(coord)) == 0:
-                continue
-            required_order[indx+1] = cube.coord_dims(coord)[0]
-        required_order[0] = cube.coord_dims(
-            "percentiles_over_neighbourhood")[0]
-        cube.transpose(required_order)
-        return cube
 
     def make_percentile_cube(self, cube):
         """Returns a cube with the same metadata as the sample cube

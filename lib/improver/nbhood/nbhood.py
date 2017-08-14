@@ -38,7 +38,9 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
-from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_checker import (
+    check_for_x_and_y_axes, check_cube_coordinates,
+    find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
 
 from improver.nbhood.circular_kernel import (
@@ -261,6 +263,9 @@ class NeighbourhoodProcessing(object):
             cubelist.append(cube_new)
         merged_cube = cubelist.merge_cube()
         # Promote dimensional coordinates that have been demoted to scalars.
-        merged_cube = Utilities.check_cube_coordinates(cube, merged_cube)
-
+        exception_coordinates = (
+            find_dimension_coordinate_mismatch(
+                cube, merged_cube, two_way_mismatch=False))
+        merged_cube = check_cube_coordinates(
+            cube, merged_cube, exception_coordinates=exception_coordinates)
         return merged_cube

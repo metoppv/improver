@@ -113,14 +113,15 @@ class Test_run(IrisTest):
         """Test behaviour for a single non-zero grid cell."""
         cube = set_up_cube()
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 6:9, 6] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 5:10, 7] = (
+        expected[0, :, 0, 5:10, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 6:9, 8] = (
+        expected[0, :, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
         radius = 4000.
         result = CircularPercentiles().run(cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -132,22 +133,23 @@ class Test_run(IrisTest):
             num_time_points=2
         )
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 10, 8] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 9:12, 9] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 10, 8] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 9:12, 9] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 8:13, 10] = (
+        expected[0, :, 0, 8:13, 10] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 9:12, 11] = (
+        expected[0, :, 0, 9:12, 11] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 10, 12] = PERCENTILES_1_IN_13
-        expected[:, 0, 1, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 1, 6:9, 6] = (
+        expected[0, :, 0, 10, 12] = PERCENTILES_1_IN_13
+        expected[0, :, 1, 7, 5] = PERCENTILES_1_IN_13
+        expected[0, :, 1, 6:9, 6] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 1, 5:10, 7] = (
+        expected[0, :, 1, 5:10, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 1, 6:9, 8] = (
+        expected[0, :, 1, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 1, 7, 9] = PERCENTILES_1_IN_13
+        expected[0, :, 1, 7, 9] = PERCENTILES_1_IN_13
         radius = 4000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -173,14 +175,15 @@ class Test_run(IrisTest):
         mask[0, 0, 7, 7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 6:9, 6] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 5:10, 7] = (
+        expected[0, :, 0, 5:10, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 6:9, 8] = (
+        expected[0, :, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
         radius = 4000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -196,14 +199,15 @@ class Test_run(IrisTest):
         mask[0, 0, 6, 7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 6] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 6:9, 6] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 5:10, 7] = (
+        expected[0, :, 0, 5:10, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 6:9, 8] = (
+        expected[0, :, 0, 6:9, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 7, 9] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
         radius = 4000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -212,10 +216,11 @@ class Test_run(IrisTest):
         """Test behaviour with a non-zero point with unit range."""
         cube = set_up_cube()
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 6] = PERCENTILES_1_IN_5
-        expected[:, 0, 0, 6:9, 7] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 6] = PERCENTILES_1_IN_5
+        expected[0, :, 0, 6:9, 7] = (
             np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1))))
-        expected[:, 0, 0, 7, 8] = PERCENTILES_1_IN_5
+        expected[0, :, 0, 7, 8] = PERCENTILES_1_IN_5
         radius = 2000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -233,20 +238,21 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 4] = PERCENTILES_1_IN_13
-        expected[:, 0, 0, 6:9, 5] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 4] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 6:9, 5] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 5:10, 6] = (
+        expected[0, :, 0, 5:10, 6] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 7, 6] = PERCENTILES_2_IN_13
-        expected[:, 0, 0, 6:9, 7] = (
+        expected[0, :, 0, 7, 6] = PERCENTILES_2_IN_13
+        expected[0, :, 0, 6:9, 7] = (
             np.transpose(np.tile(PERCENTILES_2_IN_13, (3, 1))))
-        expected[:, 0, 0, 5:10, 8] = (
+        expected[0, :, 0, 5:10, 8] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[:, 0, 0, 7, 8] = PERCENTILES_2_IN_13
-        expected[:, 0, 0, 6:9, 9] = (
+        expected[0, :, 0, 7, 8] = PERCENTILES_2_IN_13
+        expected[0, :, 0, 6:9, 9] = (
             np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[:, 0, 0, 7, 10] = PERCENTILES_1_IN_13
+        expected[0, :, 0, 7, 10] = PERCENTILES_1_IN_13
         radius = 4000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -263,20 +269,21 @@ class Test_run(IrisTest):
         border_rows_3 = PERCENTILES_1_IN_25.copy()
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 5] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 4] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 5:10, 4] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[:, 0, 0, 5:10, 3] = (
+        expected[0, :, 0, 5:10, 3] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[:, 0, 0, 4:11, 2] = (
+        expected[0, :, 0, 4:11, 2] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 5:10, 1] = (
+        expected[0, :, 0, 7, 2] = border_rows_1
+        expected[0, :, 0, 5:10, 1] = (
             np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 5:10, 0] = (
+        expected[0, :, 0, 7, 1] = border_rows_2
+        expected[0, :, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[:, 0, 0, 7, 0] = border_rows_3
+        expected[0, :, 0, 7, 0] = border_rows_3
         radius = 6000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -292,20 +299,21 @@ class Test_run(IrisTest):
         border_rows_3 = PERCENTILES_1_IN_25.copy()
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 4] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 3] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 4] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 5:10, 3] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[:, 0, 0, 5:10, 2] = (
+        expected[0, :, 0, 5:10, 2] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 4:11, 1] = (
+        expected[0, :, 0, 7, 2] = border_rows_1
+        expected[0, :, 0, 4:11, 1] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[:, 0, 0, 5:10, 1] = (
+        expected[0, :, 0, 5:10, 1] = (
             np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 5:10, 0] = (
+        expected[0, :, 0, 7, 1] = border_rows_2
+        expected[0, :, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[:, 0, 0, 7, 0] = border_rows_3
+        expected[0, :, 0, 7, 0] = border_rows_3
         radius = 6000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -327,18 +335,19 @@ class Test_run(IrisTest):
         border_rows_3 = PERCENTILES_1_IN_25.copy()
         border_rows_3[1:3] = [2./3., 2./3.]
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 7, 3] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 5:10, 2] = (
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 7, 3] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 5:10, 2] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[:, 0, 0, 7, 2] = border_rows_1
-        expected[:, 0, 0, 5:10, 1] = (
+        expected[0, :, 0, 7, 2] = border_rows_1
+        expected[0, :, 0, 5:10, 1] = (
             np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[:, 0, 0, 7, 1] = border_rows_2
-        expected[:, 0, 0, 4:11, 0] = (
+        expected[0, :, 0, 7, 1] = border_rows_2
+        expected[0, :, 0, 4:11, 0] = (
             np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[:, 0, 0, 5:10, 0] = (
+        expected[0, :, 0, 5:10, 0] = (
             np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[:, 0, 0, 7, 0] = border_rows_3
+        expected[0, :, 0, 7, 0] = border_rows_3
         radius = 6000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -366,59 +375,21 @@ class Test_run(IrisTest):
         border_rows_7 = PERCENTILES_1_IN_25.copy()
         border_rows_7[1:6] = [2./3., 2./3., 2./3., 8./9., 8./9.]
         expected = np.ones([15] + list(np.shape(cube.data)))
-        expected[:, 0, 0, 0, 3] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 2, 2] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 1, 2] = border_rows_1
-        expected[:, 0, 0, 0, 2] = border_rows_3
-        expected[:, 0, 0, 2, 1] = border_rows_1
-        expected[:, 0, 0, 1, 1] = border_rows_4
-        expected[:, 0, 0, 0, 1] = border_rows_5
-        expected[:, 0, 0, 3, 0] = PERCENTILES_1_IN_25
-        expected[:, 0, 0, 2, 0] = border_rows_6
-        expected[:, 0, 0, 1, 0] = border_rows_5
-        expected[:, 0, 0, 0, 0] = border_rows_7
+        expected = np.transpose(expected, [1, 0, 2, 3, 4])
+        expected[0, :, 0, 0, 3] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 2, 2] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 1, 2] = border_rows_1
+        expected[0, :, 0, 0, 2] = border_rows_3
+        expected[0, :, 0, 2, 1] = border_rows_1
+        expected[0, :, 0, 1, 1] = border_rows_4
+        expected[0, :, 0, 0, 1] = border_rows_5
+        expected[0, :, 0, 3, 0] = PERCENTILES_1_IN_25
+        expected[0, :, 0, 2, 0] = border_rows_6
+        expected[0, :, 0, 1, 0] = border_rows_5
+        expected[0, :, 0, 0, 0] = border_rows_7
         radius = 6000.
         result = (CircularPercentiles().run(cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
-
-
-class Test_check_coords(IrisTest):
-
-    """Test Cube comparison method."""
-
-    def test_basic(self):
-        """Test that the method returns an iris.cube.Cube."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
-        cube_with_perc = cube.copy()
-        perc_coord = iris.coords.DimCoord(
-            50., long_name='percentiles_over_neighbourhood', units='%')
-        cube_with_perc.add_aux_coord(perc_coord)
-        cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
-        result = CircularPercentiles().check_coords(cube_with_perc, cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_coord_order(self):
-        """Test that the method returns the coordinates in the right order
-        The new percentiles coordinate will be at position 0.
-        All other coordinate positions will be incremented by 1"""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
-        cube_with_perc = cube.copy()
-        perc_coord = iris.coords.DimCoord(
-            50., long_name='percentiles_over_neighbourhood', units='%')
-        cube_with_perc.add_aux_coord(perc_coord)
-        cube_with_perc = iris.util.new_axis(cube_with_perc, perc_coord)
-        cube_with_perc.transpose([2, 0, 3, 4, 1])
-        result = CircularPercentiles().check_coords(cube_with_perc, cube)
-        self.assertEqual(result.coord_dims(
-            'percentiles_over_neighbourhood')[0], 0)
-        for coord in cube.coords():
-            if len(cube.coord_dims(coord)) > 0:
-                self.assertEqual(result.coord_dims(coord)[0],
-                                 cube.coord_dims(coord)[0]+1)
 
 
 if __name__ == '__main__':

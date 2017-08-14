@@ -319,10 +319,10 @@ class Test__calculate_convective_ratio(IrisTest):
     def test_circular_neighbourhood(self):
         """Test a circular neighbourhood."""
         expected = np.array(
-            [[[0., 0., np.nan, 0.],
-              [0., 0., 0., 0.],
-              [1., np.nan, 1., 1.],
-              [np.nan, 1., 1., 1.]]])
+            [[[[0., 0., np.nan, 0.],
+               [0., 0., 0., 0.],
+               [1., np.nan, 1., 1.],
+               [np.nan, 1., 1., 1.]]]])
         neighbourhood_method = "probabilities"
         neighbourhood_shape = "circular"
         result = DiagnoseConvectivePrecipitation(
@@ -336,10 +336,10 @@ class Test__calculate_convective_ratio(IrisTest):
         """Test a circular neighbourhood with the weighted_mode
         set to False."""
         expected = np.array(
-            [[[0., 0., 0., 0.],
-              [0.2, 0., 0.25, 0.2],
-              [0.666667, 0.75, 0.75, 0.8],
-              [1., 1., 1., 1.]]])
+            [[[[0., 0., 0., 0.],
+               [0.2, 0., 0.25, 0.2],
+               [0.666667, 0.75, 0.75, 0.8],
+               [1., 1., 1., 1.]]]])
         neighbourhood_method = "probabilities"
         neighbourhood_shape = "circular"
         weighted_mode = False
