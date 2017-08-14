@@ -37,8 +37,27 @@ from iris.analysis import Aggregator
 
 
 class PercentileBlendingAggregator(object):
-    # TODO change this class name to percentile blending utilities
-    """Class for blending utilities functions"""
+    """Class for the percentile blending aggregator
+
+       This class implements the method described by Combining Probabilities
+       by Caroline Jones, 2017. This method implements blending in probability
+       space, rather than combining the percentiles directly.
+       
+       The steps are:
+           1. We convert the values at percentiles to probabilities at
+              the thresholds in the input cube, using linear interpolatin
+              if required. This is calculated for each point in the cube. Each
+              point in the coordinate we are blending over represents a new
+              probability space, so for each point the probabilities are
+              calculated in the probability space of all the other points.
+           2. We do a weighted blend across all the probability spaces,
+              combining all the thresholds in all the points in the coordinate
+              we are blending over. This gives us an array of thresholds and an
+              array of blended probailities for each of the thresholds.
+           3. We convert back to the original percentile values, again using
+              linear interpolation, resulting in blended values at each of the
+              original percentiles.
+    """
 
     def __init__(self):
         """
@@ -53,7 +72,8 @@ class PercentileBlendingAggregator(object):
 
     @staticmethod
     def aggregate(data, axis, arr_percent, arr_weights, perc_dim):
-        """ Blend percentile aggregate function
+        """ Blend percentile aggregate function to blend percentile data
+            along a given axis of a cube.
 
         Args:
             data : np.array
@@ -74,32 +94,35 @@ class PercentileBlendingAggregator(object):
 
         Returns:
             result : np.array
-                     containing the weighted percentile blend data
-                     across the chosen coord
+                     containing the weighted percentile blend data across
+                     the chosen coord. The dimension associated with axis
+                     has been collapsed, and the rest of the dimensions remain.
         """
+        # Iris aggregators support indexing from the end of the array.
         if axis < 0:
             axis += data.ndim
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
-
         data = np.moveaxis(data, [perc_dim, axis], [1, 0])
 
         # Determine the rest of the shape
         shape = data.shape[2:]
         result = None
-        if shape:
-            input_shape = [data.shape[0],
-                           data.shape[1],
-                           np.prod(shape)]
-            # Flatten the data that is not percentile or coord data
-            data = data.reshape(input_shape)
-            # Create the resulting data array
-            result = np.zeros(input_shape[1:])
-            # Loop over the flatten data
-            for i in range(data.shape[-1]):
-                result[:, i] = (
-                    PercentileBlendingAggregator.blend_percentiles(
-                        data[:, :, i], arr_percent, arr_weights))
+        input_shape = [data.shape[0],
+                        data.shape[1],
+                        np.prod(shape)]
+        # Flatten the data that is not percentile or coord data
+        data = data.reshape(input_shape)
+        # Create the resulting data array, which is the shape of the original
+        # data without dimension we are collapsing over
+        result = np.zeros(input_shape[1:])
+        # Loop over the flatten data, i.e. acrosss all the data points in each
+        # slice of the coordinate we are collapsing over, finding the blended
+        # percentile values at each point.
+        for i in range(data.shape[-1]):
+            result[:, i] = (
+                PercentileBlendingAggregator.blend_percentiles(
+                    data[:, :, i], arr_percent, arr_weights))
         # Reshape the data and put the percentile dimension
         # back in the right place
         if arr_percent.shape > (1,):
@@ -115,7 +138,8 @@ class PercentileBlendingAggregator(object):
 
     @staticmethod
     def blend_percentiles(perc_values, percentiles, weights):
-        """ Blend percentiles function
+        """ Blend percentiles function, to calculate the weighted blend across
+            a given axis of percentile data for a single grid point.
 
         Args:
             perc_values : np.array
@@ -126,38 +150,46 @@ class PercentileBlendingAggregator(object):
                          [0, 20.0, 50.0, 70.0, 100.0],
                          same size as the percentile dimension of data.
             weights: np.array
-                     Array of weights, same size as the axis dimension of data.
-            perc_dim : integer
-                     The index of the perecentile coordinate
+                     Array of weights, same size as the axis dimension of data,
+                     that we will blend over.
 
         Returns:
             result : np.array
                      containing the weighted percentile blend data
                      across the chosen coord
         """
+        # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
-        recalc_values_in_pdf = np.zeros((num, num, len(percentiles)))
+        # Create an array to store the weighted blending pdf
+        combined_pdf = np.zeros((num, len(percentiles)))
+        # Loop over the axis we are blending over finding the values for the
+        # probability at each threshold, in the pdf for each of the other
+        # points in the axis we are blending over. Use the values from the
+        # percentiles if we are at the same point, otherwise use linear
+        # interpolation.
+        # Then add the probabilities multiplied by the correct weight to the
+        # running total.
         for i in range(0, num):
             for j in range(0, num):
                 if i == j:
-                    recalc_values_in_pdf[i][j] = percentiles
+                    recalc_values_in_pdf = percentiles
                 else:
-                    recalc_values_in_pdf[i][j] = np.interp(perc_values[i],
+                    recalc_values_in_pdf = np.interp(perc_values[i],
                                                            perc_values[j],
                                                            percentiles)
+                # Add the resulting probabilities multiplied by the right
+                # weight to the running total for the combined pdf.
+                combined_pdf[i] += recalc_values_in_pdf*weights[j]
 
-        combined_pdf = np.zeros((num, len(percentiles)))
-        for i in range(0, num):
-            for j in range(0, num):
-                combined_pdf[i] += recalc_values_in_pdf[i][j]*weights[j]
-
-        # Combine and sort model1 and model 2 threshold values.
+        # Combine and sort the threshold values for all the points
+        # we are blending.
         combined_perc_thres_data = np.sort(perc_values.flatten())
 
         # Combine and sort blended probability values.
         combined_perc_values = np.sort(combined_pdf.flatten())
 
-        # Find the percentile values from this combined data.
+        # Find the percentile values from this combined data by interpolating
+        # back from probability values to the original percentiles.
         new_combined_perc = np.interp(percentiles,
                                       combined_perc_values,
                                       combined_perc_thres_data)
@@ -189,7 +221,8 @@ class WeightedBlend(object):
             '<WeightedBlend: coord = {0:s}>').format(self.coord)
 
     def process(self, cube, weights=None):
-        """Calculate weighted blend across the chosen coord
+        """Calculate weighted blend across the chosen coord, for either
+           probabilistic or percentile data.
 
         Args:
             cube : iris.cube.Cube
@@ -224,7 +257,6 @@ class WeightedBlend(object):
             raise ValueError(msg)
 
         # Check to see if the data is percentile data
-        # TODO Can remove this in favour of passing in perc_coord.
         perc_coord = None
         perc_dim = None
         perc_found = 0
@@ -294,6 +326,7 @@ class WeightedBlend(object):
             # Calculate the weighted average.
             result = cube.collapsed(self.coord,
                                     iris.analysis.MEAN, weights=weights_array)
+
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
