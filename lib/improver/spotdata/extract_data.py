@@ -38,6 +38,7 @@ import copy
 from numpy.linalg import lstsq
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
 from improver.constants import (R_DRY_AIR,
@@ -157,27 +158,30 @@ class ExtractData(object):
         raise AttributeError('Unknown method "{}" passed to {}.'.format(
             self.method, self.__class__.__name__))
 
-    def _build_coordinate(self, data, coordinate, coord_type=DimCoord,
+    @staticmethod
+    def _build_coordinate(data, coordinate, coord_type=DimCoord,
                           data_type=float, units='1', bounds=None,
-                          custom_function=None):
+                          coord_system=None, custom_function=None):
         """
         Construct an iris.coord.Dim/Auxcoord using the provided options.
 
         Args:
         -----
-        data : list/np.array
+        data : number/list/np.array
             List or array of values to populate the coordinate points.
         coordinate : str
             Name of the coordinate to be built.
-        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord
+        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
             Selection between Dim and Aux coord.
-        data_type : <type>
+        data_type : <type> (optional)
             The data type of the coordinate points, e.g. int
-        units : str
+        units : str (optional)
             String defining the coordinate units.
-        bounds : np.array
+        bounds : np.array (optional)
             A (len(data), 2) array that defines coordinate bounds.
-        custom_function : function
+        coord_system: iris.coord_systems.<coord_system> (optional)
+            A coordinate system in which the dimension coordinates are defined.
+        custom_function : function (optional)
             A function to apply to the data values before constructing the
             coordinate, e.g. np.nan_to_num.
 
@@ -190,8 +194,10 @@ class ExtractData(object):
         if custom_function is not None:
             data = custom_function(data)
 
-        return coord_type(data, long_name=coordinate, units=units,
-                          bounds=bounds)
+        crd_out = coord_type(data, long_name=coordinate, units=units,
+                             coord_system=coord_system, bounds=bounds)
+        crd_out.rename(coordinate)
+        return crd_out
 
     @staticmethod
     def _aux_coords_to_make():
@@ -227,47 +233,37 @@ class ExtractData(object):
         cube : iris.cube.Cube
         Cube with the statitical coordinate moved to be first.
 
+        Raises:
+        -------
+        Warning if more than one statistical dimension is found. Then promotes
+        the first found to become the leading dimension.
+
         """
-        stat_coordinates = ['realization', 'percentile']
+        stat_coordinates = ['realization', 'percentile_over']
         cube_dimension_order = {
             coord.name(): cube.coord_dims(coord.name())[0]
             for coord in cube.dim_coords}
-            
-        stat_coord = np.intersect1d(stat_coordinates,
-                                    cube_dimension_order.keys())
+
+        stat_coord = []
+        for crd in stat_coordinates:
+            stat_coord += [coord for coord in cube_dimension_order.keys()
+                           if crd in coord]
+
+        if len(stat_coord) > 1:
+            stat_coord = stat_coord[0]
+            msg = ('More than one statistical coordinate found. Promoting the '
+                   'first found, {}, to the leading dimension.'.format(
+                    stat_coord))
+            warnings.warn(msg)
 
         if len(stat_coord) == 1:
-            stat_index = cube_dimension_order[stat_coord.item()]
+            stat_index = cube_dimension_order[stat_coord[0]]
             new_order = range(len(cube_dimension_order))
             new_order.pop(stat_index)
             new_order.insert(0, stat_index)
             cube.transpose(new_order)
 
         return cube
-
-    def _build_aux_coordinates(self, sites):
-        """
-        Wrapper for the creation of aux_coords for spotdata cubes.
-
-        Args:
-        -----
-        sites : OrderedDict
-            A dictionary containing the properties of spotdata sites.
-        
-        Returns:
-        --------
-        Creates iris.DimCoord and iris.AuxCoord objects from the provided data
-        for use in constructing new cubes.
-
-        """
-        crds = self._aux_coords_to_make()
-        cube_crds = []
-        for key, kwargs in zip(crds.keys(), crds.itervalues()):
-            data = np.array([entry[key] for entry in sites.itervalues()])
-            crd = self._build_coordinate(data, key, **kwargs)
-            cube_crds.append(crd)
-
-        return cube_crds
 
     def make_cube(self, cube, data, sites):
         """
@@ -309,14 +305,24 @@ class ExtractData(object):
         dim_coords.append(indices)
 
         # Include the forecast_reference_time from the source cube.
-        forecast_ref_time = cube.coord('forecast_reference_time')
+        try:
+            forecast_ref_time = cube.coord('forecast_reference_time')
+        except CoordinateNotFoundError:
+            raise CoordinateNotFoundError(
+                'No forcast reference time found on source cube.')
+
         forecast_ref_time.convert_units('seconds since 1970-01-01 00:00:00')
         forecast_periods = cube.coord('time').points - forecast_ref_time.points
         forecast_period =  self._build_coordinate(forecast_periods,
             'forecast_period', units='seconds')
 
         # Build the auxiliary coordinates.
-        aux_crds =  self._build_aux_coordinates(sites)
+        crds = self._aux_coords_to_make()
+        aux_crds = []
+        for key, kwargs in zip(crds.keys(), crds.itervalues()):
+            aux_data = np.array([entry[key] for entry in sites.itervalues()])
+            crd = self._build_coordinate(aux_data, key, **kwargs)
+            aux_crds.append(crd)
 
         # Construct zipped lists of coordinates and indices.
         n_dim_coords = len(dim_coords)

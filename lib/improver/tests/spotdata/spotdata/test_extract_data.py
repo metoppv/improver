@@ -46,11 +46,14 @@ from iris.coord_systems import GeogCS
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
+from iris.exceptions import CoordinateNotFoundError
 
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+    set_up_cube)
 from improver.spotdata.extract_data import ExtractData as Plugin
 
 
-class Test_ExtractData(IrisTest):
+class Test_setup(IrisTest):
 
     """Test the extract data plugin."""
 
@@ -87,6 +90,8 @@ class Test_ExtractData(IrisTest):
         time_dt = dt(2017, 2, 17, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+        forecast_ref_time = time[0].copy()
+        forecast_ref_time.rename('forecast_reference_time')
 
         cube = Cube(data,
                     long_name="air_temperature",
@@ -94,6 +99,7 @@ class Test_ExtractData(IrisTest):
                                          (latitude, 1),
                                          (longitude, 2)],
                     units="K")
+        cube.add_aux_coord(forecast_ref_time)
 
         orography = Cube(np.ones((20, 20)),
                          long_name="surface_altitude",
@@ -188,6 +194,9 @@ class Test_ExtractData(IrisTest):
         self.sites = sites
         self.time_extract = time_extract
         self.neighbour_list = neighbour_list
+        self.latitudes = latitudes
+        self.latitude = latitude
+        self.forecast_ref_time = forecast_ref_time
 
     def return_type(self, method, ancillary_data, additional_data, **kwargs):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -213,35 +222,55 @@ class Test_ExtractData(IrisTest):
     def different_projection(self, method, ancillary_data, additional_data,
                              expected, **kwargs):
         """Test that the plugin copes with non-lat/lon grids."""
+        from improver.spotdata.neighbour_finding import PointSelection
 
         trg_crs = None
         src_crs = ccrs.PlateCarree()
-        trg_crs = ccrs.LambertConformal(central_longitude=50,
-                                        central_latitude=10)
-        trg_crs_iris = coord_systems.LambertConformal(
-            central_lon=50, central_lat=10)
-        lons = self.cube.coord('longitude').points
-        lats = self.cube.coord('latitude').points
+        trg_crs = ccrs.TransverseMercator(
+            central_latitude=0, central_longitude=0)
+        trg_crs_iris = coord_systems.TransverseMercator(0, 0, 0, 0, 1.0)
+            
+        lons = [-50, 50]
+        lats = [-25, 25]
         x, y = [], []
         for lon, lat in zip(lons, lats):
             x_trg, y_trg = trg_crs.transform_point(lon, lat, src_crs)
             x.append(x_trg)
             y.append(y_trg)
 
-        new_x = AuxCoord(x, standard_name='projection_x_coordinate',
+        new_x = DimCoord(np.linspace(x[0], x[1], 20),
+                         standard_name='projection_x_coordinate',
                          units='m', coord_system=trg_crs_iris)
-        new_y = AuxCoord(y, standard_name='projection_y_coordinate',
+        new_y = DimCoord(np.linspace(y[0], y[1], 20),
+                         standard_name='projection_y_coordinate',
                          units='m', coord_system=trg_crs_iris)
 
-        cube = Cube(self.cube.data,
-                    long_name="air_temperature",
-                    dim_coords_and_dims=[(self.cube.coord('time'), 0)],
-                    aux_coords_and_dims=[(new_y, 1), (new_x, 2)],
-                    units="K")
+        new_cube = Cube(np.zeros(400).reshape(20, 20),
+                        long_name="air_temperature",
+                        dim_coords_and_dims=[(new_y, 0), (new_x, 1)],
+                        units="K")
+
+        cube = self.cube.copy()
+        cube = cube.regrid(new_cube, iris.analysis.Nearest())
+
+        if ancillary_data is not None:
+            ancillary_data['orography'] = ancillary_data['orography'].regrid(
+                new_cube, iris.analysis.Nearest())
+        if additional_data is not None:
+            for ad in additional_data.keys():
+                additional_data[ad] = additional_data[ad].regrid(
+                    new_cube, iris.analysis.Nearest())
+
+        new_crds = PointSelection().fast_nearest_neighbour(cube, self.sites)
+
+        # Define neighbours on this new projection
+        self.neighbour_list['i'] = 11
+        self.neighbour_list['j'] = 11
 
         plugin = Plugin(method)
         with iris.FUTURE.context(cell_datetime_objects=True):
             cube = cube.extract(self.time_extract)
+
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, **kwargs)
 
@@ -268,9 +297,8 @@ class Test_ExtractData(IrisTest):
                 self.cube, self.sites, self.neighbour_list,
                 ancillary_data, additional_data)
 
-
-class Test_miscellaneous(Test_ExtractData):
-    """Test miscellaneous other features."""
+class Test_ExtractData(Test_setup):
+    """Test the overall class for raise returns etc."""
 
     def test_invalid_method(self):
         """
@@ -285,25 +313,61 @@ class Test_miscellaneous(Test_ExtractData):
             plugin.process(cube, self.sites, self.neighbour_list, {}, None,
                            **self.kwargs)
 
-    def test__build_coordinates(self):
+
+class Test__build_coordinate(Test_setup):
+    """Test the _build_coordinate function."""
+
+    def test_build_latitude_coordinate(self):
         """
-        Test the _build_coordinates private function.
+        Test buiding a latitude coordinate.
 
         """
-        plugin = Plugin()._build_coordinates
-        points = np.array([0, 1, 2])
-        indices, latitude, longitude, altitude, utc_offset, wmo_site = (
-            plugin(points, points, points, points[::-1], points))
-        self.assertArrayEqual(indices.points, points)
-        self.assertArrayEqual(altitude.points, points)
-        self.assertArrayEqual(utc_offset.points, points[::-1])
-        self.assertEqual(latitude.name(), 'latitude')
-        self.assertEqual(longitude.name(), 'longitude')
-        self.assertEqual(wmo_site.name(), 'wmo_site')
-        self.assertIsInstance(indices, DimCoord)
-        self.assertIsInstance(latitude, AuxCoord)
+        plugin = Plugin()._build_coordinate
+        coord_system = iris.coord_systems.GeogCS(6371229.0)
+        result = plugin(self.latitudes, 'latitude', units='degrees',
+                        coord_system=coord_system)
+        self.assertArrayEqual(result.points, self.latitudes)
+        self.assertEqual(result.name(), 'latitude')
+        self.assertIsInstance(result, DimCoord)
+        self.assertEqual(result.units, 'degrees')
 
-    def test_make_cube(self):
+
+class Test_make_stat_coordinate_first(Test_setup):
+    """Test the function to reorder a cube to ensure the statistical coordinate
+    is the first dimension."""
+
+    def test_cube_reorder_realization(self):
+        """Test reordering a cube with a realization coordinate to make it come
+        first."""
+        plugin = Plugin().make_stat_coordinate_first
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+        incorrect_cube = cube.copy()
+        incorrect_cube.transpose([1,2,0,3])
+        result = plugin(incorrect_cube)
+        self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
+
+    def test_cube_reorder_percentile(self):
+        """Test reordering a cube with a percentile coordinate to make it come
+        first."""
+        plugin = Plugin().make_stat_coordinate_first
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+        cube.coords()[0].rename('percentile_over_time')
+        incorrect_cube = cube.copy()
+        incorrect_cube.transpose([1,2,0,3])
+        result = plugin(incorrect_cube)
+        self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
+
+
+class Test_make_cube(Test_setup):
+    """Test the creation of spotdata cubes."""
+
+    def test_make_spotdata_cube(self):
         """
         Test the make_cube function.
 
@@ -315,8 +379,21 @@ class Test_miscellaneous(Test_ExtractData):
         self.assertEqual(result.data, data)
         self.assertEqual(result.name(), 'air_temperature')
 
+    def test_missing_forecast_ref_time_in_source(self):
+        """
+        Ensure an error is raised if a source cube is missing a forecast
+        reference time.
 
-class Test_use_nearest(Test_ExtractData):
+        """
+        plugin = Plugin().make_cube
+        data = np.array([123])
+        self.cube.remove_coord('forecast_reference_time')
+        msg = 'No forcast reference time found on source cube.'
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            plugin(self.cube, data, self.sites)
+
+
+class Test_use_nearest(Test_setup):
     """Test the use_nearest grid point method."""
 
     method = 'use_nearest'
@@ -337,8 +414,12 @@ class Test_use_nearest(Test_ExtractData):
                                   expected)
 
 
-class Test_orography_derived_temperature_lapse_rate(Test_ExtractData):
-    """Test the orography_derived_temperature_lapse_rate method."""
+class Test_orography_derived_temperature_lapse_rate(Test_setup):
+    """Test the orography_derived_temperature_lapse_rate method. Note that the
+    region used to calculate the temperature gradient is bases on cells rather
+    than geographic coordinates. Therefore the size of the region used to
+    determine the orography range will change with grid resolution. This is not
+    desirable, but this method is not currently expected to be used."""
 
     method = 'orography_derived_temperature_lapse_rate'
 
@@ -376,18 +457,20 @@ class Test_orography_derived_temperature_lapse_rate(Test_ExtractData):
         """
         Test that the plugin copes with non-lat/lon grids.
 
-        Cube is transformed into a LambertConformal projection. The usual
+        Cube is transformed Transverse Mercator projection. The usual
         latitude/longitude coordinates are used to query the grid, with iris
         functionality used to convert the query coordinates to the correct
         projection.
 
         The returned cube has latitude/longitude dimensions.
 
-        The expected value should be the same as the PlateCarree() projection
-        case above.
+        The expected value will be different to that above given by the
+        PlateCarree() projection, as the spatial smaller region used to make
+        this projection work gives a different spatial range over which to
+        calculate the temperature gradient.
 
         """
-        expected = 20.5
+        expected = 20. + (1./9.)
         self.different_projection(self.method, self.ancillary_data, None,
                                   expected)
 
@@ -399,7 +482,7 @@ class Test_orography_derived_temperature_lapse_rate(Test_ExtractData):
         self.missing_ancillary_data(self.method, {}, None)
 
 
-class Test_model_level_temperature_lapse_rate(Test_ExtractData):
+class Test_model_level_temperature_lapse_rate(Test_setup):
     """Test the model_level_temperature_lapse_rate method."""
 
     method = 'model_level_temperature_lapse_rate'
