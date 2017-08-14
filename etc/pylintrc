@@ -2,5 +2,5 @@
 extension-pkg-whitelist=numpy,scipy
 
 [TYPECHECK]
-ignored-classes=tuple,WeightedAggregator,MaskedArray,PercentileAggregator,LambertConformal
+ignored-classes=tuple,WeightedAggregator,MaskedArray,PercentileAggregator,LambertConformal,TransverseMercator
 ignored-modules=numpy,scipy,scipy.stats

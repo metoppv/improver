@@ -229,7 +229,7 @@ class Test_setup(IrisTest):
         trg_crs = ccrs.TransverseMercator(
             central_latitude=0, central_longitude=0)
         trg_crs_iris = coord_systems.TransverseMercator(0, 0, 0, 0, 1.0)
-            
+
         lons = [-50, 50]
         lats = [-25, 25]
         x, y = [], []
@@ -297,6 +297,7 @@ class Test_setup(IrisTest):
                 self.cube, self.sites, self.neighbour_list,
                 ancillary_data, additional_data)
 
+
 class Test_ExtractData(Test_setup):
     """Test the overall class for raise returns etc."""
 
@@ -345,7 +346,7 @@ class Test_make_stat_coordinate_first(Test_setup):
                 (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
             num_time_points=2, num_grid_points=5, num_realization_points=2)
         incorrect_cube = cube.copy()
-        incorrect_cube.transpose([1,2,0,3])
+        incorrect_cube.transpose([1, 2, 0, 3])
         result = plugin(incorrect_cube)
         self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
 
@@ -359,7 +360,7 @@ class Test_make_stat_coordinate_first(Test_setup):
             num_time_points=2, num_grid_points=5, num_realization_points=2)
         cube.coords()[0].rename('percentile_over_time')
         incorrect_cube = cube.copy()
-        incorrect_cube.transpose([1,2,0,3])
+        incorrect_cube.transpose([1, 2, 0, 3])
         result = plugin(incorrect_cube)
         self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
 

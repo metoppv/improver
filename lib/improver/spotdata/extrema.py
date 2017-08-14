@@ -234,8 +234,8 @@ def make_local_time_cube(cube):
     # Exclude forecast period as it is somewhat confusing on a local time
     # cube (e.g. may be +2 for a time 8 hours before forecast reference time).
     for coord in cube.aux_coords:
-        if (coord.name() != 'forecast_reference_time' and 
-            coord.name() != 'forecast_period'):
+        if (coord.name() != 'forecast_reference_time' and
+                coord.name() != 'forecast_period'):
             new_cube.add_aux_coord(coord, cube.coord_dims(coord.name()))
 
     return new_cube

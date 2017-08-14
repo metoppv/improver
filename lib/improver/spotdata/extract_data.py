@@ -313,8 +313,8 @@ class ExtractData(object):
 
         forecast_ref_time.convert_units('seconds since 1970-01-01 00:00:00')
         forecast_periods = cube.coord('time').points - forecast_ref_time.points
-        forecast_period =  self._build_coordinate(forecast_periods,
-            'forecast_period', units='seconds')
+        forecast_period = self._build_coordinate(
+            forecast_periods, 'forecast_period', units='seconds')
 
         # Build the auxiliary coordinates.
         crds = self._aux_coords_to_make()
@@ -347,7 +347,7 @@ class ExtractData(object):
 
         # Promote any statistical coordinates to be first.
         result_cube = self.make_stat_coordinate_first(result_cube)
-        return result_cube        
+        return result_cube
 
     def use_nearest(self, cube, sites, neighbours):
         """
