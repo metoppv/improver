@@ -222,7 +222,6 @@ class Test_setup(IrisTest):
     def different_projection(self, method, ancillary_data, additional_data,
                              expected, **kwargs):
         """Test that the plugin copes with non-lat/lon grids."""
-        from improver.spotdata.neighbour_finding import PointSelection
 
         trg_crs = None
         src_crs = ccrs.PlateCarree()
@@ -260,8 +259,6 @@ class Test_setup(IrisTest):
             for ad in additional_data.keys():
                 additional_data[ad] = additional_data[ad].regrid(
                     new_cube, iris.analysis.Nearest())
-
-        new_crds = PointSelection().fast_nearest_neighbour(cube, self.sites)
 
         # Define neighbours on this new projection
         self.neighbour_list['i'] = 11
