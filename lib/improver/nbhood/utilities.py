@@ -32,8 +32,7 @@
 
 import math
 
-import iris
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 

@@ -39,8 +39,7 @@ import numpy as np
 import scipy.ndimage.filters
 
 from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes, check_cube_coordinates,
-    find_dimension_coordinate_mismatch)
+    check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
 
 from improver.nbhood.circular_kernel import (
