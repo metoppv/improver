@@ -490,7 +490,7 @@ class ChooseDefaultWeightsTriangular(object):
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
             Args:
-                point : float 
+                point : float
                     The point in the coordinate from the cube for
                     which we want to calculate a weight for.
                 slope : float
