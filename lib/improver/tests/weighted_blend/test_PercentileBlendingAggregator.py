@@ -34,8 +34,7 @@
 import unittest
 
 from cf_units import Unit
-import iris
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
@@ -175,7 +174,7 @@ class Test_aggregate(IrisTest):
             array the function behaves as expected"""
         weights = np.array([0.8, 0.2])
         percentiles = np.array([0, 50, 100])
-        perc_data = np.array([[1.0, 2.0,], [5.0, 5.0], [10.0, 9.0]])
+        perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
         result = PercentileBlendingAggregator.aggregate(
             perc_data, 1,
             percentiles,
@@ -188,7 +187,7 @@ class Test_aggregate(IrisTest):
             internal dimension behaves as expected"""
         weights = np.array([0.5, 0.5])
         percentiles = np.array([0, 50, 100])
-        perc_data = np.array([[[1.0], [2.0],],
+        perc_data = np.array([[[1.0], [2.0]],
                               [[5.0], [6.0]],
                               [[10.0], [9.0]]])
         result = PercentileBlendingAggregator.aggregate(
@@ -198,13 +197,13 @@ class Test_aggregate(IrisTest):
         expected_result = np.array([[1.0], [5.555555], [10.0]])
         self.assertArrayAlmostEqual(result, expected_result)
 
-    def test_3D_simple_case(self):
-        """ Test that for a simple case with only one point and 3D input data
+    def test_4D_simple_case(self):
+        """ Test that for a simple case with only one point and 4D input data
             it behaves as expected"""
         weights = np.array([0.5, 0.5])
         percentiles = np.array([0, 50, 100])
-        perc_data = np.array([1.0, 3.0, 2.0, 
-                              4.0, 5.0, 6.0,])
+        perc_data = np.array([1.0, 3.0, 2.0,
+                              4.0, 5.0, 6.0])
         input_shape = (3, 2, 1, 1)
         perc_data = perc_data.reshape(input_shape)
         result = PercentileBlendingAggregator.aggregate(

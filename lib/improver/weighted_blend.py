@@ -41,15 +41,16 @@ class PercentileBlendingAggregator(object):
 
        This class implements the method described by Combining Probabilities
        by Caroline Jones, 2017. This method implements blending in probability
-       space, rather than combining the percentiles directly.
-       
+       space.
+
        The steps are:
-           1. We convert the values at percentiles to probabilities at
-              the thresholds in the input cube, using linear interpolatin
-              if required. This is calculated for each point in the cube. Each
-              point in the coordinate we are blending over represents a new
-              probability space, so for each point the probabilities are
-              calculated in the probability space of all the other points.
+           1. At each geographic point in the cube we take the percentile
+              threshold's values across the percentile dimensional coordinate.
+              We recalculate, using linear interpolation, their probabilities
+              in the pdf of the other points across the coordinate we are
+              blending over. Thus at each point we have a set of thresholds
+              and their corresponding probability values in each of the
+              probability spaces across the blending coordinate.
            2. We do a weighted blend across all the probability spaces,
               combining all the thresholds in all the points in the coordinate
               we are blending over. This gives us an array of thresholds and an
@@ -109,8 +110,8 @@ class PercentileBlendingAggregator(object):
         shape = data.shape[2:]
         result = None
         input_shape = [data.shape[0],
-                        data.shape[1],
-                        np.prod(shape)]
+                       data.shape[1],
+                       np.prod(shape)]
         # Flatten the data that is not percentile or coord data
         data = data.reshape(input_shape)
         # Create the resulting data array, which is the shape of the original
@@ -125,15 +126,14 @@ class PercentileBlendingAggregator(object):
                     data[:, :, i], arr_percent, arr_weights))
         # Reshape the data and put the percentile dimension
         # back in the right place
-        if arr_percent.shape > (1,):
-            shape = arr_percent.shape + shape
-            result = result.reshape(shape)
-            if axis < perc_dim:
-                if perc_dim != 1:
-                    result = np.moveaxis(result, 0, perc_dim-1)
-            else:
-                if perc_dim != 0:
-                    result = np.moveaxis(result, 0, perc_dim)
+        shape = arr_percent.shape + shape
+        result = result.reshape(shape)
+        if axis < perc_dim:
+            if perc_dim != 1:
+                result = np.moveaxis(result, 0, perc_dim-1)
+        else:
+            if perc_dim != 0:
+                result = np.moveaxis(result, 0, perc_dim)
         return result
 
     @staticmethod
@@ -175,8 +175,8 @@ class PercentileBlendingAggregator(object):
                     recalc_values_in_pdf = percentiles
                 else:
                     recalc_values_in_pdf = np.interp(perc_values[i],
-                                                           perc_values[j],
-                                                           percentiles)
+                                                     perc_values[j],
+                                                     percentiles)
                 # Add the resulting probabilities multiplied by the right
                 # weight to the running total for the combined pdf.
                 combined_pdf[i] += recalc_values_in_pdf*weights[j]
@@ -280,7 +280,7 @@ class WeightedBlend(object):
                        ' in order to blend. Must have at least 2 percentiles.')
                 raise ValueError(msg)
         elif perc_found > 1:
-            msg = ('There should only be one percentile coord'
+            msg = ('There should only be one percentile coord '
                    'on the cube.')
             raise ValueError(msg)
 

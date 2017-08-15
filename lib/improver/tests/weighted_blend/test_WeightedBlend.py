@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.weighted_blend import WeightedBlend
-from improver.tests.weighted_blend.test_PercentileBlendingAggreator import (
+from improver.tests.weighted_blend.test_PercentileBlendingAggregator import (
     percentile_cube, BLENDED_PERCENTILE_DATA1, BLENDED_PERCENTILE_DATA2)
 
 
@@ -155,7 +155,7 @@ class Test_process(IrisTest):
         new_cube = percentile_cube()
         new_cube.add_aux_coord(AuxCoord([10.0],
                                         long_name="percentile_over_dummy"))
-        msg = ('There should only be one percentile coord'
+        msg = ('There should only be one percentile coord '
                'on the cube.')
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(new_cube)
@@ -252,8 +252,6 @@ class Test_process(IrisTest):
         coord = "time"
         weights = np.array([0.5, 0.5])
         perc_cube = percentile_cube()
-        coord_dim = perc_cube.coord_dims(coord)
-        perc_coord = perc_cube.coord('percentile_over_realization')
         plugin = WeightedBlend(coord)
         result = plugin.process(perc_cube, weights)
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
@@ -265,10 +263,8 @@ class Test_process(IrisTest):
         coord = "time"
         weights = np.array([0.8, 0.2])
         perc_cube = percentile_cube()
-        coord_dim = perc_cube.coord_dims(coord)
-        perc_coord = perc_cube.coord('percentile_over_realization')
         plugin = WeightedBlend(coord)
-        result =  plugin.process(perc_cube, weights)
+        result = plugin.process(perc_cube, weights)
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -277,7 +273,6 @@ class Test_process(IrisTest):
         """Test basic_weighted_average works."""
         coord = "time"
         weights = [0.8, 0.2]
-        coord_dim = self.cube.coord_dims(coord)
         plugin = WeightedBlend(coord)
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.2
