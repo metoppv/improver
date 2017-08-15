@@ -241,7 +241,7 @@ class Test_process(IrisTest):
            given as a list."""
         coord = "time"
         plugin = WeightedBlend(coord)
-        weights =[0.8, 0.2]
+        weights = [0.8, 0.2]
         perc_cube = percentile_cube()
         result = plugin.process(perc_cube, weights)
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
