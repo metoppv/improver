@@ -34,7 +34,7 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import iris
@@ -61,9 +61,9 @@ def set_up_cube():
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    time_coord = AuxCoord([402192.5, 402193.5],
+    time_coord = DimCoord([402192.5, 402193.5],
                           "time", units=tunit)
-    cube.add_aux_coord(time_coord, 0)
+    cube.add_dim_coord(time_coord, 0)
     dummy_scalar_coord = iris.coords.AuxCoord(1,
                                               long_name='scalar_coord',
                                               units='no_unit')
