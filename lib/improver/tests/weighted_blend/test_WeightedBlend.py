@@ -237,45 +237,15 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_percentiles_weights_equal_list(self):
-        """Test it works for percentiles with weights [0.8, 0.2]."""
+        """Test it works for percentiles with weights [0.8, 0.2]
+           given as a list."""
         coord = "time"
         plugin = WeightedBlend(coord)
-        weights = np.array([0.8, 0.2])
+        weights =[0.8, 0.2]
         perc_cube = percentile_cube()
         result = plugin.process(perc_cube, weights)
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
                                            (6, 2, 2))
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_blend_percentile_cube1(self):
-        """Test blending percentile cube works with equal weights."""
-        coord = "time"
-        weights = np.array([0.5, 0.5])
-        perc_cube = percentile_cube()
-        plugin = WeightedBlend(coord)
-        result = plugin.process(perc_cube, weights)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
-                                           (6, 2, 2))
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_blend_percentile_cube2(self):
-        """Test blending percentile cube works with unequal weights."""
-        coord = "time"
-        weights = np.array([0.8, 0.2])
-        perc_cube = percentile_cube()
-        plugin = WeightedBlend(coord)
-        result = plugin.process(perc_cube, weights)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
-                                           (6, 2, 2))
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_basic_weighted_average(self):
-        """Test basic_weighted_average works."""
-        coord = "time"
-        weights = [0.8, 0.2]
-        plugin = WeightedBlend(coord)
-        result = plugin.process(self.cube, weights)
-        expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
 
