@@ -459,10 +459,12 @@ class ChooseDefaultWeightsTriangular(object):
         """Set up for calculating default weights using triangular function.
 
             Args:
-                width : float, the width of the triangular function from the
-                        centre point.
-                midpoint : float, the centre point of the triangular function.
-                units : cf_units.Unit, the cf units of the width and midpoint.
+                width : float
+                    The width of the triangular function from the centre point.
+                midpoint : float
+                    The centre point of the triangular function.
+                units : cf_units.Unit
+                    The cf units of the width and midpoint.
         """
         self.width = width
         self.midpoint = midpoint
@@ -475,12 +477,12 @@ class ChooseDefaultWeightsTriangular(object):
 
             Args:
                 coord_vals : numpy array
-                             An array of coordinate values that we want to
-                             calculate weights for.
+                    An array of coordinate values that we want to calculate
+                    weights for.
 
             Returns:
                 weights : array of weights
-                          Sum of all weights should equal 1.0.
+                    Sum of all weights should equal 1.0.
         """
 
         def calculate_weight(point, slope):
@@ -488,10 +490,12 @@ class ChooseDefaultWeightsTriangular(object):
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
             Args:
-                point : float, the point in the coordinate from the cube for
-                        which we want to calculate a weight for.
-                slope : float, the gradient of the triangle, calculated from
-                        1/(width of triangle).
+                point : float 
+                    The point in the coordinate from the cube for
+                    which we want to calculate a weight for.
+                slope : float
+                    The gradient of the triangle, calculated from
+                    1/(width of triangle).
             """
             if point < self.midpoint:
                 weight = 1-(self.midpoint-point)*slope
@@ -520,12 +524,13 @@ class ChooseDefaultWeightsTriangular(object):
 
             Args:
                 cube : iris.cube.Cube
-                       Cube to blend across the coord.
+                    Cube to blend across the coord.
                 coord_name : string
-                       Name of coordinate in the cube to be blended.
+                    Name of coordinate in the cube to be blended.
 
             Returns:
-                weights : array of weights, sum of all weights = 1.0
+                weights : array of weights
+                    Sum of all weights = 1.0
 
             Raises:
                 ValueError : input is not a cube
