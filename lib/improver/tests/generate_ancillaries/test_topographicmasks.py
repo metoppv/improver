@@ -91,11 +91,14 @@ class Test_gen_orography_masks(IrisTest):
         """test correct cube data is produced for land bands < 0m"""
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.valley_key,
-            self.valley_threshold)[0]
+            self.valley_threshold)
         self.assertEqual(result.attributes['Topographical Type'], 'Land')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
+        self.assertEqual(result.coord('topographic_zone').points,
+                         (self.valley_threshold[1] -
+                          self.valley_threshold[0]) / 2)
+        self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.valley_threshold[0])
-        self.assertEqual(result.coord('topographic_bound_upper').points,
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.valley_threshold[1])
 
     def test_landband_data(self):
@@ -111,9 +114,11 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, self.landmask, self.land_key,
             self.land_threshold)
         self.assertEqual(result.attributes['Topographical Type'], 'Land')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
+        self.assertEqual(result.coord('topographic_zone').points,
+                         (self.land_threshold[1] - self.land_threshold[0]) / 2)
+        self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.land_threshold[0])
-        self.assertEqual(result.coord('topographic_bound_upper').points,
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.land_threshold[1])
 
     def test_maxband_data(self):
@@ -128,11 +133,12 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, self.landmask, self.max_key, self.max_threshold)[0]
         self.assertEqual(result.attributes['Topographical Type'],
                          'Max_Land_Threshold')
-        self.assertEqual(result.coord('topographic_bound_lower').points,
+        self.assertEqual(result.coord('topographic_zone').points,
+                         self.max_threshold[0] / 2)
+        self.assertEqual(result.coord('topographic_zone').bounds[0][0],
+                         None)
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.max_threshold[0])
-        msg = 'Expected to find exactly 1  coordinate, but found none.'
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            result.coord('topographic_bound_upper')
 
     def test_nothreshold(self):
         """test the correct exception is raised for key without threshold"""
@@ -145,7 +151,7 @@ class Test_gen_orography_masks(IrisTest):
 
 class Test_process(IrisTest):
     """
-    Test the process method orography band mask ancillary generation plugin.
+    Test the process method orography zone mask ancillary generation plugin.
     """
 
     def setUp(self):

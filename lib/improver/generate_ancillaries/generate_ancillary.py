@@ -36,7 +36,7 @@ from glob import glob
 
 
 def _make_mask_cube(mask_data, key, coords,
-                    upper_threshold=None, lower_threshold=None):
+                    topographic_bounds=None):
     """
     Makes cube from numpy masked array generated from orography fields.
 
@@ -48,10 +48,8 @@ def _make_mask_cube(mask_data, key, coords,
         Key from THRESHOLD_DICT which describes type of topography band.
     coords : dictionary
         Dictionary of coordinate on the model ancillary file.
-    upper_threshold : float
-        Upper topographic bound defining the mask.
-    lower_threshold : float
-        Lower topographic bound defining the mask.
+    topographic_bounds: list
+        List containing the lower and upper thresholds defining the mask
 
     Returns
     -------
@@ -60,14 +58,21 @@ def _make_mask_cube(mask_data, key, coords,
         and attribute information.
     """
     mask_cube = iris.cube.Cube(mask_data, long_name='Topography mask')
-    if lower_threshold or lower_threshold == 0:
-        coord_name = 'topographic_bound_lower'
-        threshold_coord = iris.coords.AuxCoord(lower_threshold,
+    if topographic_bounds is None:
+        topographic_bounds = [None]
+    if all(topographic_bounds):
+        coord_name = 'topographic_zone'
+
+        central_point = (topographic_bounds[1] - topographic_bounds[0]) / 2
+        threshold_coord = iris.coords.AuxCoord(central_point,
+                                               bounds=topographic_bounds,
                                                long_name=coord_name)
         mask_cube.add_aux_coord(threshold_coord)
-    if upper_threshold or upper_threshold == 0:
-        coord_name = 'topographic_bound_upper'
-        threshold_coord = iris.coords.AuxCoord(upper_threshold,
+    elif any(topographic_bounds):
+        coord_name = 'topographic_zone'
+
+        threshold_coord = iris.coords.AuxCoord(topographic_bounds[1] / 2,
+                                               bounds=topographic_bounds,
                                                long_name=coord_name)
         mask_cube.add_aux_coord(threshold_coord)
     mask_cube.attributes['Topographical Type'] = key.title()
@@ -230,7 +235,8 @@ class GenerateOrographyBandAncils(object):
                 standard_orography.data > thresholds[0]).astype(int)
             mask_data = sea_mask(standard_landmask.data, orog_band)
             mask_cube = _make_mask_cube(mask_data, key, coords,
-                                        lower_threshold=thresholds)
+                                        topographic_bounds=[None,
+                                                            thresholds[0]])
         elif key == 'land':  # regular topographical bands above land
             old_threshold, threshold = thresholds
             orog_band = np.ma.masked_inside(
@@ -238,8 +244,7 @@ class GenerateOrographyBandAncils(object):
                 threshold).mask.astype(int)
             mask_data = sea_mask(standard_landmask.data, orog_band)
             mask_cube = _make_mask_cube(
-                mask_data, key, coords, lower_threshold=old_threshold,
-                upper_threshold=threshold)
+                mask_data, key, coords, topographic_bounds=thresholds)
         else:
             msg = 'Unknown threshold_dict key: {}'
             raise KeyError(msg.format(key))

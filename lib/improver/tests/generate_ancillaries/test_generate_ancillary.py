@@ -46,6 +46,7 @@ from improver.generate_ancillaries.generate_ancillary import (
 
 
 def _make_test_cube(long_name, stash=None):
+    """Make a cube to run tests upon"""
     cs = GeogCS(EARTH_RADIUS)
     data = np.array([[1., 1., 1.],
                      [0., 0., 0.],
@@ -90,19 +91,20 @@ class Test__make_mask_cube(IrisTest):
     def test_upperbound(self):
         """test creating cube with upper threshold only set"""
         result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 upper_threshold=self.upper)
-        self.assertEqual(result.coords('topographic_bound_upper')[0].points,
-                         self.upper)
+                                 topographic_bounds=[None, self.upper])
+        self.assertEqual(result.coords('topographic_zone')[0].points,
+                         (self.upper - self.lower) / 2)
 
     def test_bothbounds(self):
         """test creating cube with both thresholds set"""
         result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 upper_threshold=self.upper,
-                                 lower_threshold=self.lower)
-        self.assertEqual(result.coords('topographic_bound_upper')[0].points,
+                                 topographic_bounds=[self.lower, self.upper])
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.upper)
-        self.assertEqual(result.coords('topographic_bound_lower')[0].points,
+        self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.lower)
+        self.assertEqual(result.coord('topographic_zone').points,
+                         (self.lower+self.upper)/2)
 
 
 class Test_find_standard_ancil(IrisTest):
