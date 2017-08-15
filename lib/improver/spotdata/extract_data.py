@@ -187,7 +187,7 @@ class ExtractData(object):
 
         Returns:
         --------
-        iris coodinate : Dim or Auxcoord as chosen.
+        iris coordinate : Dim or Auxcoord as chosen.
 
         """
         data = np.array(data, data_type)
@@ -231,7 +231,7 @@ class ExtractData(object):
         Returns:
         --------
         cube : iris.cube.Cube
-        Cube with the statitical coordinate moved to be first.
+        Cube with the statistical coordinate moved to be first.
 
         Raises:
         -------
@@ -309,7 +309,7 @@ class ExtractData(object):
             forecast_ref_time = cube.coord('forecast_reference_time')
         except CoordinateNotFoundError:
             raise CoordinateNotFoundError(
-                'No forcast reference time found on source cube.')
+                'No forecast reference time found on source cube.')
 
         forecast_ref_time.convert_units('seconds since 1970-01-01 00:00:00')
         forecast_periods = cube.coord('time').points - forecast_ref_time.points

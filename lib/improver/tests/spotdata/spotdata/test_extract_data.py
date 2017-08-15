@@ -317,7 +317,7 @@ class Test__build_coordinate(Test_setup):
 
     def test_build_latitude_coordinate(self):
         """
-        Test buiding a latitude coordinate.
+        Test building a latitude coordinate.
 
         """
         plugin = Plugin()._build_coordinate
@@ -386,7 +386,7 @@ class Test_make_cube(Test_setup):
         plugin = Plugin().make_cube
         data = np.array([123])
         self.cube.remove_coord('forecast_reference_time')
-        msg = 'No forcast reference time found on source cube.'
+        msg = 'No forecast reference time found on source cube.'
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin(self.cube, data, self.sites)
 
