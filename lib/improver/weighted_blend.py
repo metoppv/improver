@@ -111,7 +111,7 @@ class PercentileBlendingAggregator(object):
         result = None
         input_shape = [data.shape[0],
                        data.shape[1],
-                       np.prod(shape)]
+                       np.prod(shape, dtype=int)]
         # Flatten the data that is not percentile or coord data
         data = data.reshape(input_shape)
         # Create the resulting data array, which is the shape of the original
