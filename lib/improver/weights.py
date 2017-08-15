@@ -476,13 +476,11 @@ class ChooseDefaultWeightsTriangular(object):
             Args:
                 coord_vals : numpy array
                              An array of coordinate values that we want to
-                             caluculate weights for.
+                             calculate weights for.
 
             Returns:
-                weights : array of weights, sum of all weights = 1.0
-
-            Raises:
-                .
+                weights : array of weights
+                          Sum of all weights should equal 1.0.
         """
 
         def calculate_weight(point, slope):

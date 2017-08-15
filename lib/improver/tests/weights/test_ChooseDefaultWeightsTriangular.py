@@ -46,7 +46,7 @@ class Test___repr__(IrisTest):
     """Tests for the __repr__function"""
 
     def test_basic(self):
-        """Test the repr function formats the arguements correctly"""
+        """Test the repr function formats the arguments correctly"""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(3, 5)
         result = str(TriangularWeightsClass)
         expected = "<ChooseDefaultTriangularWeights width= 3.0, midpoint= 5.0>"
