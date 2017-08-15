@@ -90,10 +90,10 @@ class Test__make_mask_cube(IrisTest):
 
     def test_upperbound(self):
         """test creating cube with upper threshold only set"""
-        result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 topographic_bounds=[None, self.upper])
-        self.assertEqual(result.coords('topographic_zone')[0].points,
-                         (self.upper - self.lower) / 2)
+        emsg = "should have both an upper and lower limit"
+        with self.assertRaisesRegexp(TypeError, emsg):
+            _make_mask_cube(self.mask, self.key, self.coords,
+                            topographic_bounds=[None, self.upper])
 
     def test_bothbounds(self):
         """test creating cube with both thresholds set"""

@@ -60,7 +60,7 @@ def _make_mask_cube(mask_data, key, coords,
     mask_cube = iris.cube.Cube(mask_data, long_name='Topography mask')
     if topographic_bounds is None:
         topographic_bounds = [None]
-    if all(topographic_bounds):
+    if all([item is not None for item in topographic_bounds]):
         coord_name = 'topographic_zone'
 
         central_point = (topographic_bounds[1] - topographic_bounds[0]) / 2
@@ -69,12 +69,10 @@ def _make_mask_cube(mask_data, key, coords,
                                                long_name=coord_name)
         mask_cube.add_aux_coord(threshold_coord)
     elif any(topographic_bounds):
-        coord_name = 'topographic_zone'
-
-        threshold_coord = iris.coords.AuxCoord(topographic_bounds[1] / 2,
-                                               bounds=topographic_bounds,
-                                               long_name=coord_name)
-        mask_cube.add_aux_coord(threshold_coord)
+        msg = ("The topographic bounds variable should have both an "
+               "upper and lower limit: "
+               "Your topographic_bounds are {}")
+        raise TypeError(msg.format(topographic_bounds))
     mask_cube.attributes['Topographical Type'] = key.title()
     for coord in coords:
         if coord.name() in ['projection_y_coordinate', 'latitude']:
@@ -235,8 +233,7 @@ class GenerateOrographyBandAncils(object):
                 standard_orography.data > thresholds[0]).astype(int)
             mask_data = sea_mask(standard_landmask.data, orog_band)
             mask_cube = _make_mask_cube(mask_data, key, coords,
-                                        topographic_bounds=[None,
-                                                            thresholds[0]])
+                                        topographic_bounds=thresholds)
         elif key == 'land':  # regular topographical bands above land
             old_threshold, threshold = thresholds
             orog_band = np.ma.masked_inside(

@@ -67,10 +67,10 @@ class Test_gen_orography_masks(IrisTest):
                                       [1., 999999., 999999.],
                                       [0., 0., 1.]])
         self.max_key = 'max_land_threshold'
-        self.max_threshold = [80]
-        self.exp_maxmask = np.array([[0., 999999., 999999.],
-                                     [0., 999999., 999999.],
-                                     [0., 1., 0.]])
+        self.max_threshold = [0, 80]
+        self.exp_maxmask = np.array([[1., 999999., 999999.],
+                                     [1., 999999., 999999.],
+                                     [0., 1., 1.]])
 
     def test_nonsensekey(self):
         """test the correct exception is raised for unknown keys"""
@@ -130,15 +130,15 @@ class Test_gen_orography_masks(IrisTest):
     def test_maxband_cube(self):
         """test correct cube data is produced for land bands > max"""
         result = GenOrogMasks().gen_orography_masks(
-            self.orography, self.landmask, self.max_key, self.max_threshold)[0]
+            self.orography, self.landmask, self.max_key, self.max_threshold)
         self.assertEqual(result.attributes['Topographical Type'],
                          'Max_Land_Threshold')
         self.assertEqual(result.coord('topographic_zone').points,
-                         self.max_threshold[0] / 2)
+                         self.max_threshold[1] / 2)
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],
-                         None)
-        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.max_threshold[0])
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
+                         self.max_threshold[1])
 
     def test_nothreshold(self):
         """test the correct exception is raised for key without threshold"""
@@ -165,7 +165,7 @@ class Test_process(IrisTest):
                               [-10., 100., 40.]])
         self.orography = Cube(orog_data, long_name='test orog')
         self.threshold_dict = {'land': [[-10, 0], [0, 50]],
-                               'max_land_threshold': [[80]]}
+                               'max_land_threshold': [[0, 80]]}
 
     def test_thresholdset(self):
         """test the plugin produces correct number of cubes"""
