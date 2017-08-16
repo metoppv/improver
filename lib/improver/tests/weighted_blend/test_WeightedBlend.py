@@ -107,7 +107,7 @@ class Test_process(IrisTest):
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube."""
         coord = "notset"
-        plugin = WeightedBlend(coord) 
+        plugin = WeightedBlend(coord)
         msg = ('Expected to find exactly 1  coordinate, but found none.')
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
