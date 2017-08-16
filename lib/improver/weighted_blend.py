@@ -132,12 +132,20 @@ class PercentileBlendingAggregator(object):
         # back in the right place
         shape = arr_percent.shape + shape
         result = result.reshape(shape)
+        # Percentile is now the leading dimension in the result. This needs
+        # to move back to where it was in the input data. The result has
+        # one less dimension than the original data as we have collapsed
+        # one dimension.
+        # If we have collapsed a dimension that was before the percentile
+        # dimension in the input data, the percentile dimension moves forwards
+        # one place compared to the original percentile dimension.
         if axis < perc_dim:
-            if perc_dim != 1:
-                result = np.moveaxis(result, 0, perc_dim-1)
+            result = np.moveaxis(result, 0, perc_dim-1)
+        # Else we move the percentile dimension back to where it was in the
+        # input data, as we have collapsed along a dimension that came after
+        # it in the input cube.
         else:
-            if perc_dim != 0:
-                result = np.moveaxis(result, 0, perc_dim)
+            result = np.moveaxis(result, 0, perc_dim)
         return result
 
     @staticmethod
