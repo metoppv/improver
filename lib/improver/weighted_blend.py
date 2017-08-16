@@ -238,25 +238,24 @@ class WeightedBlend(object):
                      containing the weighted blend across the chosen coord.
 
         Raises:
-            ValueError 1 : first argument not a cube.
-            ValueError 2 : The coord is not a coord with the cube.
-            ValueError 3 : If there is a percentile coord it is not a
+            ValueError : If the first argument not a cube.
+            ValueError : If there is a percentile coord and it is not a
                            dimension coord in the cube.
-            ValueError 4 : If there are more than one percentile coords
+            ValueError : If there is a percentile dimension with only one
+                            point, we need at least two points in order to do
+                            the blending.
+            ValueError : If there are more than one percentile coords
                            in the cube.
-            ValueError 5 : weights shape do not match the dimension
-                           of the coord.
-            Warning : coord not a dimension within the cube.
+            ValueError : If the weights shape do not match the dimension
+                           of the coord we are blending over.
+            Warning : If trying to blend across a scalar coordinate with only
+                        one value. Returns the original cube in this case.
 
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
                    ' {0:s}.'.format(type(cube)))
-            raise ValueError(msg)
-        if not cube.coords(self.coord):
-            msg = ('The coord for this plugin must be '
-                   'an existing coordinate in the input cube.')
             raise ValueError(msg)
 
         # Check to see if the data is percentile data

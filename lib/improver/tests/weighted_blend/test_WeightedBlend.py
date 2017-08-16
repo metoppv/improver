@@ -39,6 +39,7 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.weighted_blend import WeightedBlend
@@ -106,10 +107,9 @@ class Test_process(IrisTest):
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube."""
         coord = "notset"
-        plugin = WeightedBlend(coord)
-        msg = ('The coord for this plugin must be ' +
-               'an existing coordinate in the input cube')
-        with self.assertRaisesRegexp(ValueError, msg):
+        plugin = WeightedBlend(coord) 
+        msg = ('Expected to find exactly 1  coordinate, but found none.')
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
