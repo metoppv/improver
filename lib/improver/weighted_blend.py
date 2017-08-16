@@ -58,6 +58,11 @@ class PercentileBlendingAggregator(object):
            3. We convert back to the original percentile values, again using
               linear interpolation, resulting in blended values at each of the
               original percentiles.
+
+       References:
+            Combining Probabilities by Caroline Jones, 2017:
+            https://github.com/metoppv/improver/files/1128018/
+            Combining_Probabilities.pdf
     """
 
     def __init__(self):
@@ -108,7 +113,6 @@ class PercentileBlendingAggregator(object):
 
         # Determine the rest of the shape
         shape = data.shape[2:]
-        result = None
         input_shape = [data.shape[0],
                        data.shape[1],
                        np.prod(shape, dtype=int)]
@@ -117,9 +121,9 @@ class PercentileBlendingAggregator(object):
         # Create the resulting data array, which is the shape of the original
         # data without dimension we are collapsing over
         result = np.zeros(input_shape[1:])
-        # Loop over the flatten data, i.e. acrosss all the data points in each
-        # slice of the coordinate we are collapsing over, finding the blended
-        # percentile values at each point.
+        # Loop over the flattened data, i.e. across all the data points in
+        # each slice of the coordinate we are collapsing over, finding the
+        # blended percentile values at each point.
         for i in range(data.shape[-1]):
             result[:, i] = (
                 PercentileBlendingAggregator.blend_percentiles(
@@ -143,27 +147,27 @@ class PercentileBlendingAggregator(object):
 
         Args:
             perc_values : np.array
-                   Array containing the percentile values to blend, with
-                   shape: (length of coord to blend, num of percentiles)
+                    Array containing the percentile values to blend, with
+                    shape: (length of coord to blend, num of percentiles)
             percentiles: np.array
-                         Array of percentile values e.g
-                         [0, 20.0, 50.0, 70.0, 100.0],
-                         same size as the percentile dimension of data.
+                    Array of percentile values e.g
+                    [0, 20.0, 50.0, 70.0, 100.0],
+                    same size as the percentile dimension of data.
             weights: np.array
-                     Array of weights, same size as the axis dimension of data,
-                     that we will blend over.
+                    Array of weights, same size as the axis dimension of data,
+                    that we will blend over.
 
         Returns:
             result : np.array
-                     containing the weighted percentile blend data
-                     across the chosen coord
+                    containing the weighted percentile blend data
+                    across the chosen coord
         """
         # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
         # Create an array to store the weighted blending pdf
         combined_pdf = np.zeros((num, len(percentiles)))
         # Loop over the axis we are blending over finding the values for the
-        # probability at each threshold, in the pdf for each of the other
+        # probability at each threshold in the pdf, for each of the other
         # points in the axis we are blending over. Use the values from the
         # percentiles if we are at the same point, otherwise use linear
         # interpolation.
@@ -248,6 +252,7 @@ class WeightedBlend(object):
                            in the cube.
             ValueError : If the weights shape do not match the dimension
                            of the coord we are blending over.
+        Warns:
             Warning : If trying to blend across a scalar coordinate with only
                         one value. Returns the original cube in this case.
 
@@ -299,7 +304,7 @@ class WeightedBlend(object):
         coord_dim = cube.coord_dims(self.coord)
         if not coord_dim:
             msg = ('Trying to blend across a scalar coordinate with only one'
-                   'value. Returning original cube')
+                   ' value. Returning original cube')
             warnings.warn(msg)
             result = cube
 
