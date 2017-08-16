@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the weighted_blend.BasicWeightedAverage plugin."""
+"""Unit tests for the weighted_blend.WeightedBlend plugin."""
 
 
 import unittest
@@ -39,9 +39,12 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
-from improver.weighted_blend import BasicWeightedAverage
+from improver.weighted_blend import WeightedBlend
+from improver.tests.weighted_blend.test_PercentileBlendingAggregator import (
+    percentile_cube, BLENDED_PERCENTILE_DATA1, BLENDED_PERCENTILE_DATA2)
 
 
 def example_coord_adjust(pnts):
@@ -53,6 +56,17 @@ def example_coord_adjust(pnts):
             pnts : numpy.ndarray
     """
     return pnts[len(pnts)-1]
+
+
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(WeightedBlend('time'))
+        msg = '<WeightedBlend: coord = time>'
+        self.assertEqual(result, msg)
 
 
 class Test_process(IrisTest):
@@ -73,7 +87,7 @@ class Test_process(IrisTest):
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5, 402193.5],
+        cube.add_dim_coord(DimCoord([402192.5, 402193.5],
                                     "time", units=tunit), 0)
         self.cube = cube
         new_scalar_coord = iris.coords.AuxCoord(1,
@@ -86,34 +100,71 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         result = plugin.process(self.cube)
         self.assertIsInstance(result, Cube)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube."""
         coord = "notset"
-        plugin = BasicWeightedAverage(coord)
-        msg = ('The coord for this plugin must be ' +
-               'an existing coordinate in the input cube')
-        with self.assertRaisesRegexp(ValueError, msg):
+        plugin = WeightedBlend(coord)
+        msg = ('Expected to find exactly 1  coordinate, but found none.')
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Value Error if not supplied with a cube."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         notacube = 0.0
         msg = ('The first argument must be an instance of ' +
                'iris.cube.Cube')
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(notacube)
 
+    def test_fails_perc_coord_not_dim(self):
+        """Test it raises a Value Error if not percentile coord not a dim."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        new_cube = self.cube.copy()
+        new_cube.add_aux_coord(AuxCoord([10.0],
+                                        long_name="percentile_over_time"))
+        msg = ('The percentile coord must be a dimension '
+               'of the cube.')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(new_cube)
+
+    def test_fails_only_one_percentile_value(self):
+        """Test it raises a Value Error if there is only one percentile."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        new_cube = Cube([[0.0]])
+        new_cube.add_dim_coord(DimCoord([10.0],
+                                        long_name="percentile_over_time"), 0)
+        new_cube.add_dim_coord(DimCoord([10.0],
+                                        long_name="time"), 1)
+        msg = ('Percentile coordinate does not have enough points'
+               ' in order to blend. Must have at least 2 percentiles.')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(new_cube)
+
+    def test_fails_more_than_one_perc_coord(self):
+        """Test it raises a Value Error if more than one percentile coord."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        new_cube = percentile_cube()
+        new_cube.add_aux_coord(AuxCoord([10.0],
+                                        long_name="percentile_over_dummy"))
+        msg = ('There should only be one percentile coord '
+               'on the cube.')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(new_cube)
+
     def test_fails_weights_shape(self):
         """Test it raises a Value Error if weights shape does not match
            coord shape."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         weights = [0.1, 0.2, 0.7]
         msg = ('The weights array must match the shape ' +
                'of the coordinate in the input cube')
@@ -124,7 +175,7 @@ class Test_process(IrisTest):
         """Test it works with coord adjust set."""
         coord = "time"
         coord_adjust = example_coord_adjust
-        plugin = BasicWeightedAverage(coord, coord_adjust)
+        plugin = WeightedBlend(coord, coord_adjust)
         result = plugin.process(self.cube)
         self.assertAlmostEquals(result.coord(coord).points, [402193.5])
 
@@ -135,14 +186,14 @@ class Test_process(IrisTest):
            is a scalar coordinate.
         """
         coord = "dummy_scalar_coord"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         weights = np.array([1.0])
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
             result = plugin.process(self.cube_with_scalar, weights)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
-            warning_msg = "Could not find collapse dimension"
+            warning_msg = "Trying to blend across a scalar coordinate"
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
             self.assertArrayAlmostEqual(result.data, self.cube.data)
@@ -150,7 +201,7 @@ class Test_process(IrisTest):
     def test_weights_equal_none(self):
         """Test it works with weights set to None."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         weights = None
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.5
@@ -159,7 +210,7 @@ class Test_process(IrisTest):
     def test_weights_equal_list(self):
         """Test it work with weights set to list [0.2, 0.8]."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         weights = [0.2, 0.8]
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.8
@@ -168,10 +219,33 @@ class Test_process(IrisTest):
     def test_weights_equal_array(self):
         """Test it works with weights set to array (0.8, 0.2)."""
         coord = "time"
-        plugin = BasicWeightedAverage(coord)
+        plugin = WeightedBlend(coord)
         weights = np.array([0.8, 0.2])
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.2
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_percentiles_weights_equal_none(self):
+        """Test it works for percentiles with weights set to None."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        weights = None
+        perc_cube = percentile_cube()
+        result = plugin.process(perc_cube, weights)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
+                                           (6, 2, 2))
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_percentiles_weights_equal_list(self):
+        """Test it works for percentiles with weights [0.8, 0.2]
+           given as a list."""
+        coord = "time"
+        plugin = WeightedBlend(coord)
+        weights = [0.8, 0.2]
+        perc_cube = percentile_cube()
+        result = plugin.process(perc_cube, weights)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
+                                           (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
 
