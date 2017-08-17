@@ -30,6 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for circular neighbourhood processing."""
 
+import iris
+import numpy as np
+import scipy.ndimage.filters
+
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
+
 
 class CircularProbabilities(object):
 
@@ -157,4 +164,4 @@ class CircularProbabilities(object):
         ranges = convert_distance_into_number_of_grid_cells(
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
-return cube
+        return cube
