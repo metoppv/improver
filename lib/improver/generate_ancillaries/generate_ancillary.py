@@ -70,7 +70,7 @@ def _make_mask_cube(mask_data, key, coords, topographic_bounds):
         # Raise Error
     else:
         coord_name = 'topographic_zone'
-        central_point = (topographic_bounds[1] - topographic_bounds[0]) / 2
+        central_point = (topographic_bounds[1] + topographic_bounds[0]) / 2
         threshold_coord = iris.coords.AuxCoord(central_point,
                                                bounds=topographic_bounds,
                                                long_name=coord_name)
