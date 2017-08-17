@@ -83,12 +83,12 @@ class Test__make_mask_cube(IrisTest):
         """test creating cube with neither upper nor lower threshold set"""
         emsg = "should have only an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
-            result = _make_mask_cube(self.mask, self.key, self.coords, [0])
+            _make_mask_cube(self.mask, self.key, self.coords, [0])
         with self.assertRaisesRegexp(TypeError, emsg):
-            result = _make_mask_cube(self.mask,
-                                     self.key,
-                                     self.coords,
-                                     [0, 2, 4])
+            _make_mask_cube(self.mask,
+                            self.key,
+                            self.coords,
+                            [0, 2, 4])
 
     def test_upperbound_fails(self):
         """test creating cube with upper threshold only set"""
