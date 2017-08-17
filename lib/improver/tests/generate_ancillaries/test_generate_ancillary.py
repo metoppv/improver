@@ -90,7 +90,7 @@ class Test__make_mask_cube(IrisTest):
                                      self.coords,
                                      [0, 2, 4])
 
-    def test_upperbound(self):
+    def test_upperbound_fails(self):
         """test creating cube with upper threshold only set"""
         emsg = "should have both an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
@@ -146,9 +146,6 @@ class Test_find_standard_ancil(IrisTest):
         msg = "That file doesn't exist"
         with self.assertRaisesRegexp(IOError, msg):
             find_standard_ancil(self.stage, msg)
-
-if __name__ == "__main__":
-    unittest.main()
 
 if __name__ == "__main__":
     unittest.main()

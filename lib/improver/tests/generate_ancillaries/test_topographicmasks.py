@@ -34,7 +34,6 @@
 import unittest
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.generate_ancillaries.generate_ancillary import (
@@ -58,14 +57,14 @@ class Test_gen_orography_masks(IrisTest):
         self.orography = Cube(orog_data, long_name='test orog')
         self.valley_key = 'land'
         self.valley_threshold = [-10, 10]
-        self.exp_valleymask = np.array([[1., 999999., 999999.],
-                                        [0., 999999., 999999.],
-                                        [1., 0., 0.]])
+        self.exp_valleymask = np.array([[[1., 999999., 999999.],
+                                         [0., 999999., 999999.],
+                                         [1., 0., 0.]]])
         self.land_key = 'land'
         self.land_threshold = [0, 50]
-        self.exp_landmask = np.array([[1., 999999., 999999.],
-                                      [1., 999999., 999999.],
-                                      [0., 0., 1.]])
+        self.exp_landmask = np.array([[[1., 999999., 999999.],
+                                       [1., 999999., 999999.],
+                                       [0., 0., 1.]]])
 
     def test_nonsensekey(self):
         """test the correct exception is raised for unknown keys"""
@@ -89,7 +88,7 @@ class Test_gen_orography_masks(IrisTest):
             self.valley_threshold)
         self.assertEqual(result.attributes['Topographical Type'], 'Land')
         self.assertEqual(result.coord('topographic_zone').points,
-                         (self.valley_threshold[1] -
+                         (self.valley_threshold[1] +
                           self.valley_threshold[0]) / 2)
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.valley_threshold[0])

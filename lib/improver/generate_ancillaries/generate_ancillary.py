@@ -83,6 +83,7 @@ def _make_mask_cube(mask_data, key, coords, topographic_bounds):
             mask_cube.add_dim_coord(coord, 1)
         else:
             mask_cube.add_aux_coord(coord)
+    mask_cube = iris.util.new_axis(mask_cube, scalar_coord=coord_name)
     return mask_cube
 
 
