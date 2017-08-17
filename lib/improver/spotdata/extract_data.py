@@ -204,6 +204,10 @@ class ExtractData(object):
         """
         Define coordinates that need to made for the cube to be produced.
 
+        Returns:
+        --------
+        Dictionary of coordinates that are required for a spotdata cube.
+
         """
         return {'latitude': {'units': 'degrees', 'data_type': float,
                              'coord_type': AuxCoord},
@@ -248,9 +252,8 @@ class ExtractData(object):
         for crd in stat_coordinates:
             stat_coord += [coord for coord in cube_dimension_order.keys()
                            if crd in coord]
-
         if len(stat_coord) > 1:
-            stat_coord = stat_coord[0]
+            stat_coord = [stat_coord[0]]
             msg = ('More than one statistical coordinate found. Promoting the '
                    'first found, {}, to the leading dimension.'.format(
                     stat_coord))
@@ -339,7 +342,7 @@ class ExtractData(object):
                            aux_coords_and_dims=aux_coords,
                            **metadata_dict)
         result_cube.add_aux_coord(forecast_ref_time)
-        result_cube.add_aux_coord(forecast_period, 0)
+        result_cube.add_aux_coord(forecast_period, cube.coord_dims('time'))
 
         # Enables use of long_name above for any name, and then moves it
         # to a standard name if possible.
