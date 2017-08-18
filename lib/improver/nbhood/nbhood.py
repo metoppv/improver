@@ -38,15 +38,15 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
+from improver.nbhood.circular_kernel import CircularProbabilities
+from improver.nbhood.square_kernel import SquareProbabilities
+
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates,
     find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
-
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
 
 
 class Utilities(object):
@@ -213,7 +213,7 @@ class NeighbourhoodProcessing(object):
     """
 
     def __init__(self, neighbourhood_method, radii, lead_times=None,
-                 unweighted_mode=False, ens_factor=1.0):
+                 weighted_mode=True, ens_factor=1.0):
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -233,10 +233,10 @@ class NeighbourhoodProcessing(object):
             List of lead times or forecast periods, at which the radii
             within 'radii' are defined. The lead times are expected
             in hours.
-        unweighted_mode : boolean
-            If True, use a circle with constant weighting.
-            If False, use a circle for neighbourhood kernel with
+        weighted_mode : boolean
+            If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
+            If False, use a circle with constant weighting.
         ens_factor : float
             The factor with which to adjust the neighbourhood size
             for more than one ensemble member.
@@ -247,11 +247,11 @@ class NeighbourhoodProcessing(object):
         """
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
-            "circular": CircularNeighbourhood,
-            "square": SquareNeighbourhood}
+            "circular": CircularProbabilities,
+            "square": SquareProbabilities}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(unweighted_mode)
+            self.neighbourhood_method = method(weighted_mode)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -269,7 +269,7 @@ class NeighbourhoodProcessing(object):
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
-        self.unweighted_mode = bool(unweighted_mode)
+        self.weighted_mode = bool(weighted_mode)
         self.ens_factor = float(ens_factor)
 
     def _find_radii(self, num_ens, cube_lead_times=None):
@@ -309,10 +309,10 @@ class NeighbourhoodProcessing(object):
         """Represent the configured plugin instance as a string."""
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; '
-                  'unweighted_mode: {}; ens_factor: {}>')
+                  'weighted_mode: {}; ens_factor: {}>')
         return result.format(
             self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.unweighted_mode, self.ens_factor)
+            self.weighted_mode, self.ens_factor)
 
     def process(self, cube):
         """

@@ -35,7 +35,11 @@ import numpy as np
 import scipy.ndimage.filters
 
 from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
+
+
+# Maximum radius of the neighbourhood width in grid cells.
+MAX_RADIUS_IN_GRID_CELLS = 500
 
 
 class CircularProbabilities(object):
@@ -47,7 +51,7 @@ class CircularProbabilities(object):
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, weighted_mode=True, percentiles=None):
+    def __init__(self, weighted_mode=True):
         """
         Initialise class.
         Parameters
@@ -56,19 +60,15 @@ class CircularProbabilities(object):
             If False, use a circle with constant weighting.
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
-        percentiles : list (optional)
-            This is included to allow a standard interface for both the
-            percentile and probability neighbourhood plugins.
         """
         self.weighted_mode = weighted_mode
-        self.percentiles = percentiles
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<CircularProbabilities: weighted_mode: {}>')
         return result.format(self.weighted_mode)
 
-    def circular_kernel(fullranges, ranges, weighted_mode):
+    def circular_kernel(self, fullranges, ranges):
         """
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
@@ -80,9 +80,7 @@ class CircularProbabilities(object):
         ranges : Tuple
             Number of grid cells in the x and y direction used to create
             the kernel.
-        weighted_mode : Boolean
-            True when a weighted circular kernel is required.
-            False will return a kernel consisting only of ones and zeroes.
+
         Returns
         -------
         kernel : Numpy.array
@@ -94,7 +92,7 @@ class CircularProbabilities(object):
         kernel = np.ones([int(1 + x * 2) for x in fullranges])
         # Create an open multi-dimensional meshgrid.
         open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if weighted_mode:
+        if self.weighted_mode:
             # Create a kernel, such that the central grid point has the
             # highest weighting, with the weighting decreasing with distance
             # away from the central grid point.
@@ -135,7 +133,7 @@ class CircularProbabilities(object):
 
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        kernel = self.circular_kernel(fullranges, ranges, self.weighted_mode)
+        kernel = self.circular_kernel(fullranges, ranges)
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)

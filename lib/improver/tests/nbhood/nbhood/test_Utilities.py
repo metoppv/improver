@@ -174,58 +174,5 @@ class Test_adjust_nsize_for_ens(IrisTest):
         self.assertAlmostEqual(result, 9.2376043070399998)
 
 
-class Test_check_cube_coordinates(IrisTest):
-
-    """Test check_cube_coordinates successfully promotes scalar coordinates to
-    dimension coordinates in a new cube if they were dimension coordinates in
-    the progenitor cube."""
-
-    def test_basic(self):
-        """Test returns iris.cube.Cube."""
-        cube = set_up_cube()
-        result = Utilities.check_cube_coordinates(cube, cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_coord_promotion(self):
-        """Test that scalar coordinates in new_cube are promoted to dimension
-        coordinates to match the parent cube."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_only_dim_coords_in_parent(self):
-        """Test that only dimension coordinates in the parent cube are matched
-        when promoting the scalar coordinates in new_cube. Here realization is
-        made into a scalar coordinate on the parent, and so should remain a
-        scalar in new_cube as well."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        cube = cube[0]
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_and_reordering(self):
-        """Test case in which a scalar coordinate are promoted but the order
-        must be corrected to match the progenitor cube."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        cube.transpose(new_order=[1, 0, 2, 3])
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_missing_scalar(self):
-        """Test case in which a scalar coordinate has been lost from new_cube,
-        meaning the cube undergoing checking ends up with different dimension
-        coordinates to the progenitor cube. This raises an error."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        new_cube.remove_coord('realization')
-        msg = 'Returned cube dimension coordinates'
-        with self.assertRaisesRegexp(iris.exceptions.CoordinateNotFoundError,
-                                     msg):
-            Utilities.check_cube_coordinates(cube, new_cube)
-
-
 if __name__ == '__main__':
     unittest.main()

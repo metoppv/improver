@@ -51,8 +51,8 @@ def _make_osgb_grid():
     nx, ny = 548, 704
 
     # Grid extents / m
-    north, south = 1223000, -183000
-    east, west = 855000, -239000
+    north, south = 1223000, -185000
+    east, west = 857000, -239000
 
     data = np.zeros([ny, nx])
 

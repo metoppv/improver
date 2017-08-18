@@ -47,7 +47,7 @@ def check_if_grid_is_equal_area(cube):
     Parameters
     ----------
     cube : Iris.cube.Cube
-        Cube with coordinates that will be checked.
+        Cube with coordinates that will be cMAhecked.
     Raises
     ------
     ValueError : Invalid grid: projection_x/y coords required
@@ -56,16 +56,16 @@ def check_if_grid_is_equal_area(cube):
     """
     try:
         for coord_name in ['projection_x_coordinate',
-                            'projection_y_coordinate']:
+                           'projection_y_coordinate']:
             cube.coord(coord_name)
     except CoordinateNotFoundError:
         raise ValueError("Invalid grid: projection_x/y coords required")
     for coord_name in ['projection_x_coordinate',
-                        'projection_y_coordinate']:
+                       'projection_y_coordinate']:
         if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
             msg = ("Intervals between points along the x and y axis vary."
-                    "Therefore the grid is not an equal area grid.")
-    raise ValueError(msg)
+                   "Therefore the grid is not an equal area grid.")
+            raise ValueError(msg)
 
 
 def convert_distance_into_number_of_grid_cells(
