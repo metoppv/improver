@@ -80,7 +80,8 @@ class Test__make_mask_cube(IrisTest):
         self.lower = 0.
 
     def test_wrong_number_of_bounds(self):
-        """test creating cube with neither upper nor lower threshold set"""
+        """test checking that an exception is raised when the _make_mask_cube
+        method is called with an incorrect number of bounds."""
         emsg = "should have only an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask, self.key, self.coords, [0])
@@ -91,7 +92,8 @@ class Test__make_mask_cube(IrisTest):
                             [0, 2, 4])
 
     def test_upperbound_fails(self):
-        """test creating cube with upper threshold only set"""
+        """test checking that an exception is raised when the _make_mask_cube
+        method is called with on."""
         emsg = "should have both an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask, self.key, self.coords,
@@ -106,7 +108,7 @@ class Test__make_mask_cube(IrisTest):
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.lower)
         self.assertEqual(result.coord('topographic_zone').points,
-                         (self.lower+self.upper)/2)
+                         np.mean([self.lower, self.upper]))
 
 
 class Test_find_standard_ancil(IrisTest):

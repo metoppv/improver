@@ -67,10 +67,9 @@ def _make_mask_cube(mask_data, key, coords, topographic_bounds):
                "upper and lower limit: "
                "Your topographic_bounds variable has length {}")
         raise TypeError(msg.format(len(topographic_bounds)))
-        # Raise Error
     else:
         coord_name = 'topographic_zone'
-        central_point = (topographic_bounds[1] + topographic_bounds[0]) / 2
+        central_point = np.mean(topographic_bounds)
         threshold_coord = iris.coords.AuxCoord(central_point,
                                                bounds=topographic_bounds,
                                                long_name=coord_name)
@@ -237,6 +236,8 @@ class GenerateOrographyBandAncils(object):
             orog_band = np.ma.masked_inside(
                 standard_orography.data, old_threshold,
                 threshold).mask.astype(int)
+            if not isinstance(orog_band, np.ndarray):
+                orog_band = np.zeros(standard_orography.data.shape).astype(int)
             mask_data = sea_mask(standard_landmask.data, orog_band)
             mask_cube = _make_mask_cube(
                 mask_data, key, coords, topographic_bounds=thresholds)
