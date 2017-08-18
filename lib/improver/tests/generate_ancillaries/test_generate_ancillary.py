@@ -93,7 +93,7 @@ class Test__make_mask_cube(IrisTest):
 
     def test_upperbound_fails(self):
         """test checking that an exception is raised when the _make_mask_cube
-        method is called with on."""
+        method is called with only an upper bound."""
         emsg = "should have both an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask, self.key, self.coords,

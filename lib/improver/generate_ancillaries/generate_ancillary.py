@@ -141,7 +141,6 @@ class CorrectLandSeaMask(object):
         Parameters
         ----------
         standard_landmask:
-            result = _make_mask_cube(self.mask, self.key, self.coords, [0])
             input landmask on standard grid.
 
         Returns
