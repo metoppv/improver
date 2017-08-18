@@ -36,13 +36,10 @@ import unittest
 from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
-from iris.coord_systems import OSGB
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-
-from improver.grids.osgb import OSGBGRID
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
@@ -105,7 +102,7 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array([
 
 def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
                 num_grid_points=16, num_realization_points=1):
-    """Set up a normal OSGB UK National Grid cube."""
+    """Set up a cube with equal intervals along the x and y axis."""
 
     zero_point_indices = list(zero_point_indices)
     for index, indices in enumerate(zero_point_indices):
@@ -123,8 +120,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
 
     cube = Cube(data, standard_name="precipitation_amount",
                 units="kg m^-2")
-    coord_system = OSGB()
-    scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
+
     cube.add_dim_coord(
         DimCoord(
             range(num_realization_points), standard_name='realization'), 0)
@@ -132,20 +128,23 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 1)
+
+    y_points = np.linspace(0, 100000, num=51)
     cube.add_dim_coord(
         DimCoord(
-            scaled_y_coord.points[:num_grid_points],
+            y_points[:num_grid_points],
             'projection_y_coordinate',
-            units='m', coord_system=coord_system
+            units='m'
         ),
         2
     )
-    scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
+
+    x_points = np.linspace(-50000, 50000, num=51)
     cube.add_dim_coord(
         DimCoord(
-            scaled_x_coord.points[:num_grid_points],
+            x_points[:num_grid_points],
             'projection_x_coordinate',
-            units='m', coord_system=coord_system
+            units='m'
         ),
         3
     )
@@ -156,7 +155,7 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
                                      num_time_points=1,
                                      num_grid_points=16,
                                      source_realizations=None):
-    """Set up a normal OSGB UK National Grid cube."""
+    """Set up a cube with equal intervals along the x and y axis."""
 
     zero_point_indices = list(zero_point_indices)
     for index, indices in enumerate(zero_point_indices):
@@ -185,25 +184,26 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 0)
 
-    coord_system = OSGB()
-    scaled_y_coord = OSGBGRID.coord('projection_y_coordinate')
+    y_points = np.linspace(0, 100000, num=51)
     cube.add_dim_coord(
         DimCoord(
-            scaled_y_coord.points[:num_grid_points],
+            y_points[:num_grid_points],
             'projection_y_coordinate',
-            units='m', coord_system=coord_system
+            units='m'
         ),
         1
     )
-    scaled_x_coord = OSGBGRID.coord('projection_x_coordinate')
+
+    x_points = np.linspace(-50000, 50000, num=51)
     cube.add_dim_coord(
         DimCoord(
-            scaled_x_coord.points[:num_grid_points],
+            x_points[:num_grid_points],
             'projection_x_coordinate',
-            units='m', coord_system=coord_system
+            units='m'
         ),
         2
     )
+
     return cube
 
 
@@ -367,7 +367,7 @@ class Test_process(IrisTest):
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension."""
         cube = set_up_cube(num_realization_points=4)
-        radii = 15000
+        radii = 14400
         neighbourhood_method = "circular"
         ens_factor = 0.8
         result = NBHood(neighbourhood_method, radii,
@@ -389,7 +389,7 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [15000, 15000, 15000]
+        radii = [14400, 14400, 14400]
         lead_times = [2, 3, 4]
         neighbourhood_method = "circular"
         ens_factor = 0.8
@@ -407,7 +407,7 @@ class Test_process(IrisTest):
     def test_no_realizations(self):
         """Test when the array has no realization coord."""
         cube = set_up_cube_with_no_realizations()
-        radii = 6000
+        radii = 5600
         neighbourhood_method = "circular"
         result = NBHood(neighbourhood_method, radii).process(cube)
         self.assertIsInstance(result, Cube)
@@ -423,7 +423,7 @@ class Test_process(IrisTest):
         member_list = [0, 1, 2, 3]
         cube = (
             set_up_cube_with_no_realizations(source_realizations=member_list))
-        radii = 15000
+        radii = 14400
         ens_factor = 0.8
         neighbourhood_method = "circular"
         plugin = NBHood(neighbourhood_method, radii,
@@ -484,7 +484,7 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 8000, 10000]
+        radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
         neighbourhood_method = "circular"
         plugin = NBHood(neighbourhood_method, radii, lead_times)
@@ -539,7 +539,7 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 10000]
+        radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = "circular"
         plugin = NBHood(neighbourhood_method, radii, lead_times)
