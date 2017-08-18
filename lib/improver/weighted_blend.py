@@ -35,6 +35,9 @@ import numpy as np
 import iris
 from iris.analysis import Aggregator
 
+from improver.weights import ChooseDefaultWeightsTriangular
+from improver.utilities.cube_manipulation import concatenate_cubes
+
 
 class PercentileBlendingAggregator(object):
     """Class for the percentile blending aggregator
@@ -208,8 +211,9 @@ class PercentileBlendingAggregator(object):
         return new_combined_perc
 
 
-class WeightedBlend(object):
-    """Apply a Weighted blend to a cube."""
+class WeightedBlendAcrossWholeDimension(object):
+    """Apply a Weighted blend to a cube,
+       collapsing across the whole dimension."""
 
     def __init__(self, coord, coord_adjust=None):
         """Set up for a Weighted Blending plugin
@@ -230,7 +234,8 @@ class WeightedBlend(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<WeightedBlend: coord = {0:s}>').format(self.coord)
+            '<WeightedBlendAcrossWholeDimension:'
+            ' coord = {0:s}>').format(self.coord)
 
     def process(self, cube, weights=None):
         """Calculate weighted blend across the chosen coord, for either
@@ -356,4 +361,115 @@ class WeightedBlend(object):
                     crd.points = np.array(self.coord_adjust(pnts),
                                           dtype=crd.points.dtype)
 
+        return result
+
+
+class TriangularWeightedBlendAcrossAdjacentPoints(object):
+    """
+    Apply a Weighted blend to a coordinate, using triangular weights at each
+    point in the coordinate.
+    Returns a cube with the same coordinates as the input cube, the with each
+    point in the coordinate of interest having been blended with the adjacent
+    points according to a triangular weighting
+    function of a specified width.
+    """
+
+    def __init__(self, coord, width, parameter_units):
+        """Set up for a Weighted Blending plugin
+
+        Args:
+            coord : string
+                The name of a coordinate dimension in the cube that we
+                will blend over.
+            width : float
+                The width of the triangular weighting function we will use
+                to blend.
+            parameter_units : string
+                The units of the width of the triangular weighting function.
+                This does not need to be the same as the units of the
+                coordinate we are blending over, but it should be possible to
+                convert between them.
+
+        """
+        self.coord = coord
+        self.width = width
+        self.parameter_units = parameter_units
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        return (
+            '<TriangularWeightedBlendAcrossAdjacentPoints:'
+            ' coord = {0:s}, width = {1:.2f},'
+            ' parameter_units = {2:s}>').format(self.coord, self.width,
+                                                self.parameter_units)
+
+    @staticmethod
+    def correct_collapsed_coordinates(orig_cube, new_cube, coords_to_correct):
+        """
+        A helper function to replace the points and bounds in coordinates
+        that have been collapsed.
+        For the coordinates specified it replaces points in new_cube's
+        coordinates with the points from the corresponding coordinate in
+        orig_cube. The bounds are also replaced.
+
+        Args:
+            orig_cube: iris.cube.Cube
+                The cube that the original coordinates points will be taken
+                from.
+            new_cube: iris.cube.Cube
+                The new cube who's coordinates will be corrected. This must
+                have the same number of points along the coordinates we are
+                correcting as are in the orig_cube.
+            coords_to_correct: list
+                A list of coordinate names to correct.
+        """
+        for coord in coords_to_correct:
+            new_coord = new_cube.coord(coord)
+            old_coord = orig_cube.coord(coord)
+            new_coord.points = old_coord.points
+            if old_coord.bounds is not None:
+                new_coord.bounds = old_coord.bounds
+
+    def process(self, cube):
+        """
+
+        Args:
+            cube : iris.cube.Cube
+                Cube to blend.
+
+        Returns:
+            cube: iris.cube.Cube
+                The processed cube, with the same coordinates as the input
+                cube. The points in one coordinate will be blended with the
+                adjacent points based on a triagular weighting function of the
+                specified width.
+
+        """
+        # We need to correct all the coordinates associated with the dimension
+        # we are collapsing over, so find the relevant coordinates now.
+        dimension_to_collapse = cube.coord_dims(self.coord)
+        coords_to_correct = cube.coords(dimensions=dimension_to_collapse)
+        coords_to_correct = [coord.name() for coord in coords_to_correct]
+        # We will also need to correct the bounds on these coordinates,
+        # as bounds will be added when the blending happens, so add bounds it
+        # it doesn't have some already.
+        for coord in coords_to_correct:
+            cube.coord(coord).guess_bounds()
+        # Set up a plugin to calculate the triangular weights.
+        WeightsPlugin = ChooseDefaultWeightsTriangular(
+            self.width, units=self.parameter_units)
+        # Set up the blending function.
+        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
+                                                           coord_adjust=None)
+        result = iris.cube.CubeList([])
+        # Loop over each point in the coordinate we are blending over, and
+        # calculate a new weighted average for it.
+        for cube_slice in cube.slices_over(self.coord):
+            point = cube_slice.coord(self.coord).points[0]
+            weights = WeightsPlugin.process(cube, self.coord, point)
+            blended_cube = BlendingPlugin.process(cube, weights)
+            self.correct_collapsed_coordinates(cube_slice, blended_cube,
+                                               coords_to_correct)
+            result.append(blended_cube)
+        result = concatenate_cubes(result)
         return result
