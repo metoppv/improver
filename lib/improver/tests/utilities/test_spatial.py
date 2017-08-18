@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
@@ -116,6 +116,33 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
+
+
+class Test_check_if_grid_is_equal_area(IrisTest):
+
+    """Test that the grid is an equal area grid."""
+
+    def test_wrong_coordinate(self):
+        """Test an exception is raised if the x and y coordinates are not
+        projection_x_coordinate or projection_y_coordinate."""
+        cube = set_up_cube_lat_long()
+        msg = "Invalid grid"
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_if_grid_is_equal_area(cube)
+
+    def non_equal_intervals_along_axis(self):
+        """Test that the cube has equal intervals along the x or y axis."""
+        cube = set_up_cube()
+        msg = "Intervals between points along the "
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_if_grid_is_equal_area(cube)
+
+    def non_equal_area_grid(self):
+        """Test that the cubes have an equal areas grid."""
+        cube = set_up_cube()
+        msg = "The size of the intervals along the x and y axis"
+        with self.assertRaisesRegexp(ValueError, msg):
+            check_if_grid_is_equal_area(cube)
 
 
 if __name__ == '__main__':

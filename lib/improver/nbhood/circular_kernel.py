@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for circular neighbourhood processing."""
 
-import iris
 import numpy as np
 import scipy.ndimage.filters
 

@@ -63,9 +63,17 @@ def check_if_grid_is_equal_area(cube):
     for coord_name in ['projection_x_coordinate',
                        'projection_y_coordinate']:
         if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
-            msg = ("Intervals between points along the x and y axis vary."
-                   "Therefore the grid is not an equal area grid.")
+            msg = ("Intervals between points along the {} axis vary."
+                   "Therefore the grid is not an equal area grid."
+                   ).format(coord_name)
             raise ValueError(msg)
+    x_mean = np.mean(np.diff(cube.coord("projection_x_coordinate").points))
+    y_mean = np.mean(np.diff(cube.coord("projection_y_coordinate").points))
+    if x_mean != y_mean:
+        msg = ("The size of the intervals along the x and y axis "
+               "should equal. x axis interval: {}, y axis interval: {}"
+               ).format(x_mean, y_mean)
+        raise ValueError(msg)
 
 
 def convert_distance_into_number_of_grid_cells(

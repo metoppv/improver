@@ -42,8 +42,7 @@ from improver.nbhood.circular_kernel import CircularProbabilities
 from improver.nbhood.square_kernel import SquareProbabilities
 
 from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes, check_cube_coordinates,
-    find_dimension_coordinate_mismatch)
+    check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
