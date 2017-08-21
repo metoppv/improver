@@ -494,12 +494,10 @@ class ChooseDefaultWeightsTriangular(object):
                     The gradient of the triangle, calculated from
                     1/(width of triangle).
             """
-            if point < midpoint:
-                weight = 1-(midpoint-point)*slope
             if point == midpoint:
                 weight = 1
-            if point > midpoint:
-                weight = 1-(point-midpoint)*slope
+            else:
+                weight = 1-abs(point-midpoint)*slope
             return weight
 
         slope = 1.0/self.width
@@ -554,6 +552,7 @@ class ChooseDefaultWeightsTriangular(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        msg = "<ChooseDefaultTriangularWeights width={:4.1f}>"
-        desc = msg.format(self.width)
+        msg = ("<ChooseDefaultTriangularWeights width={:4.1f},"
+              " parameters_units={:s}>")
+        desc = msg.format(self.width, self.parameters_units)
         return desc

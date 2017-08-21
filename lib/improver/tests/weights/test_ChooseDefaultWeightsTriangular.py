@@ -48,9 +48,11 @@ class Test___repr__(IrisTest):
     def test_basic(self):
         """Test the repr function formats the arguments correctly"""
         width = 3
-        TriangularWeightsClass = ChooseDefaultWeightsTriangular(width)
+        TriangularWeightsClass = ChooseDefaultWeightsTriangular(width,
+                                                                units='hours')
         result = str(TriangularWeightsClass)
-        expected = "<ChooseDefaultTriangularWeights width= 3.0>"
+        expected = ("<ChooseDefaultTriangularWeights width= 3.0,"
+                    " parameters_units=hours>")
         self.assertEqual(result, expected)
 
 

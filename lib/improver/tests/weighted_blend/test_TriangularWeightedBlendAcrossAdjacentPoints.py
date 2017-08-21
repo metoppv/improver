@@ -38,6 +38,7 @@ from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 
 import numpy as np
 
@@ -178,9 +179,18 @@ class Test_correct_collapsed_coordinates(IrisTest):
             self.plugin.correct_collapsed_coordinates(orig_cube, new_cube,
                                                       ['forecast_period'])
 
+    def test_exception_when_coord_not_found(self):
+        """Test that an exception is raised by Iris when we try to correct
+           a coordinate that doesn't exist."""
+        self.new_cube.remove_coord('forecast_period')
+        message = "Expected to find exactly 1  coordinate, but found none."
+        with self.assertRaisesRegexp(CoordinateNotFoundError, message):
+            self.plugin.correct_collapsed_coordinates(self.orig_cube,
+                                                      self.new_cube,
+                                                      ['forecast_period'])
+
 
 class Test_process(IrisTest):
-
     """Test the process method."""
 
     def setUp(self):
