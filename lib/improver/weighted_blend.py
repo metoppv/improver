@@ -432,6 +432,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
 
     def process(self, cube):
         """
+        Apply the weighted blend for each point in the given coordinate.
 
         Args:
             cube : iris.cube.Cube
