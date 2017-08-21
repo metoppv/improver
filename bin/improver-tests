@@ -21,7 +21,8 @@ function echo_ok {
 function get_python_files {
     FILES_TO_TEST=`find $IMPROVER_DIR -type f \( -name '*.py' \
                                               -o -name 'improver-*' \
-                                               ! -name 'improver-tests' \)`
+                                               ! -name 'improver-tests' \
+                                               ! -name '*~' \)`
 }
 
 function improver_test_pep8 {
@@ -78,7 +79,7 @@ function improver_test_cli {
 function print_usage {
     # Output CLI usage information.
     cat <<'__USAGE__'
-improver tests [OPTIONS] [SUBTEST...] 
+improver tests [OPTIONS] [SUBTEST...]
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
