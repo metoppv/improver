@@ -39,15 +39,13 @@ def check_for_x_and_y_axes(cube):
     """
     Check whether the cube has an x and y axis, otherwise raise an error.
 
-    Parameters
-    ----------
-    cube : Iris.cube.Cube
-        Cube to be checked for x and y axes.
+    Args:
+        cube : Iris.cube.Cube
+            Cube to be checked for x and y axes.
 
-    Raises
-    ------
-    ValueError : Raise an error if non-uniform increments exist between
-                  grid points.
+    Raises:
+        ValueError : Raise an error if non-uniform increments exist between
+                      grid points.
     """
     for axis in ["x", "y"]:
         if cube.coords(axis=axis):
@@ -64,31 +62,28 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     cube. If coordinate is in new_cube that is not in the old cube, keep
     coordinate in its current position.
 
-    Parameters
-    ----------
-    cube : iris.cube.Cube
-        The input cube that will be checked to identify the preferred
-        coordinate order for the output cube.
-    new_cube : iris.cube.Cube
-        The cube that must be checked and adjusted using the coordinate order
-        from the original cube.
-    exception_coordinates : List of strings or None
-        The names of the coordinates that are permitted to be within the
-        new_cube but are not available within the original cube.
+    Args:
+        cube : iris.cube.Cube
+            The input cube that will be checked to identify the preferred
+            coordinate order for the output cube.
+        new_cube : iris.cube.Cube
+            The cube that must be checked and adjusted using the coordinate
+            order from the original cube.
+        exception_coordinates : List of strings or None
+            The names of the coordinates that are permitted to be within the
+            new_cube but are not available within the original cube.
 
-    Returns
-    -------
-    new_cube : iris.cube.Cube
-        Modified cube with relevant scalar coordinates promoted to
-        dimension coordinates with the dimension coordinates re-ordered,
-        as best as can be done based on the original cube.
+    Returns:
+        new_cube : iris.cube.Cube
+            Modified cube with relevant scalar coordinates promoted to
+            dimension coordinates with the dimension coordinates re-ordered,
+            as best as can be done based on the original cube.
 
-    Raises
-    ------
-    CoordinateNotFoundError raised if the final dimension
-    coordinates of the returned cube do not match the input cube.
-    InvalidCubeError if the coordinate is not within the original cube and
-    it is not within the list of permitted exceptions.
+    Raises:
+        CoordinateNotFoundError : Raised if the final dimension
+            coordinates of the returned cube do not match the input cube.
+        InvalidCubeError : If the coordinate is not within the original cube
+            and it is not within the list of permitted exceptions.
 
     """
     if exception_coordinates is None:
@@ -150,24 +145,22 @@ def find_dimension_coordinate_mismatch(
     """Determine if there is a mismatch between the dimension coordinates in
     two cubes.
 
-    Parameters
-    ----------
-    first_cube : Iris.cube.Cube
-        First cube to compare.
-    second_cube : Iris.cube.Cube
-        Second cube to compare.
-    two_way_mismatch : Logical
-        If True, a two way mismatch is calculated e.g.
-            second_cube - first_cube AND
-            first_cube - second_cube
-        If False, a one way mismatch is calculated e.g.
-            second_cube - first_cube
+    Args:
+        first_cube : Iris.cube.Cube
+            First cube to compare.
+        second_cube : Iris.cube.Cube
+            Second cube to compare.
+        two_way_mismatch : Logical
+            If True, a two way mismatch is calculated e.g.
+                second_cube - first_cube AND
+                first_cube - second_cube
+            If False, a one way mismatch is calculated e.g.
+                second_cube - first_cube
 
-    Returns
-    ------
-    result : List
-        List of the dimension coordinates that are only present in
-        one out of the two cubes.
+    Returns:
+        result : List
+            List of the dimension coordinates that are only present in
+            one out of the two cubes.
 
     """
     first_dim_names = [coord.name() for coord in first_cube.dim_coords]

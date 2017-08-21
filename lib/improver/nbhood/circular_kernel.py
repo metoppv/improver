@@ -71,8 +71,7 @@ class CircularNeighbourhood(object):
     def circular_kernel(self, fullranges, ranges):
         """
 
-        Method to apply a circular kernel to the data within the input cube in
-        order to smooth the resulting field.
+        Method to create a circular kernel.
 
         Parameters
         ----------
