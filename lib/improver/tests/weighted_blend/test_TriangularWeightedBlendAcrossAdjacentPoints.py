@@ -44,14 +44,36 @@ import numpy as np
 from improver.weighted_blend import TriangularWeightedBlendAcrossAdjacentPoints
 
 
+def set_up_cube():
+    """A helper function to set up input cubes for unit tests.
+       The cube has latitude, longitude and time dimensions"""
+    data = np.zeros((2, 2, 2))
+
+    orig_cube = Cube(data, units="m",
+                        standard_name="lwe_thickness_of_precipitation_amount")
+    orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
+                                        'latitude', units='degrees'), 1)
+    orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
+                                        units='degrees'), 2)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
+                                        "time", units=tunit), 0)
+    orig_cube.add_aux_coord(DimCoord([0, 1],
+                                        "forecast_period", units="hours"), 0)
+    return orig_cube
+
+
 class Test__repr__(IrisTest):
 
     """Test the __repr__ method."""
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(TriangularWeightedBlendAcrossAdjacentPoints('time',
-                                                                 3.0, 'hours'))
+        width = 3.0
+        result = str(TriangularWeightedBlendAcrossAdjacentPoints('time', width,
+                                                                 'hours'))
         msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
                ' coord = time, width = 3.00,'
                ' parameter_units = hours>')
@@ -64,8 +86,9 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        plugin = TriangularWeightedBlendAcrossAdjacentPoints('time',
-                                                             3.0, 'hours')
+        width = 3.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints('time', width,
+                                                             'hours')
         expected_coord = "time"
         expected_width = 3.0
         expected_parameter_units = "hours"
@@ -80,24 +103,8 @@ class Test_correct_collapsed_coordinates(IrisTest):
 
     def setUp(self):
         """Set up a test orig_cube, new_cube and plugin instance."""
-        data = np.zeros((2, 2, 2))
-
-        orig_cube = Cube(data, units="m",
-                         standard_name="lwe_thickness_of_precipitation_amount")
-        orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                         'latitude', units='degrees'), 1)
-        orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                         units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                         "time", units=tunit), 0)
-        orig_cube.add_aux_coord(DimCoord([0, 1],
-                                         "forecast_period", units="hours"), 0)
-        self.orig_cube = orig_cube
-
-        new_cube = orig_cube.copy()
+        self.orig_cube = set_up_cube()
+        new_cube = set_up_cube()
         new_cube.remove_coord('longitude')
         new_cube.add_dim_coord(DimCoord(np.linspace(100, 160, 2), 'longitude',
                                         units='degrees'), 2)
@@ -178,29 +185,18 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
+        self.cube = set_up_cube()
         data = np.zeros((2, 2, 2))
         data[0][:][:] = 1.0
         data[1][:][:] = 2.0
-        cube = Cube(data, units="m",
-                    standard_name="lwe_thickness_of_precipitation_amount")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                    units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                    "time", units=tunit), 0)
-        cube.add_aux_coord(DimCoord([0, 1],
-                                    "forecast_period", units="hours"), 0)
-        self.cube = cube
+        self.cube.data = data
 
     def test_basic_triangle_width_1(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 1. This is equivalent to no blending."""
+        width = 1.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints('forecast_period',
-                                                             1.0, 'hours')
+                                                             width, 'hours')
         result = plugin.process(self.cube)
         self.assertEqual(self.cube.coord('forecast_period'),
                          result.coord('forecast_period'))
@@ -210,8 +206,9 @@ class Test_process(IrisTest):
     def test_basic_triangle_width_2(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 2 and there is some blending."""
+        width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints('forecast_period',
-                                                             2.0, 'hours')
+                                                             width, 'hours')
         result = plugin.process(self.cube)
         expected_data = np.array([[[1.333333, 1.333333],
                                    [1.333333, 1.333333]],
