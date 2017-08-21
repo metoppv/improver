@@ -38,8 +38,8 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
-from improver.nbhood.circular_kernel import CircularProbabilities
-from improver.nbhood.square_kernel import SquareProbabilities
+from improver.nbhood.circular_kernel import CircularNeighbourhood
+from improver.nbhood.square_kernel import SquareNeighbourhood
 
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
@@ -200,7 +200,7 @@ class Utilities(object):
 
 class NeighbourhoodProcessing(object):
     """
-    Apply a neigbourhood processing method to a thresholded cube.
+    Apply a neighbourhood processing method to a thresholded cube.
 
     When applied to a thresholded probabilistic cube, it acts like a
     low-pass filter which reduces noisiness in the probabilities.
@@ -246,8 +246,8 @@ class NeighbourhoodProcessing(object):
         """
         self.neighbourhood_method_key = neighbourhood_method
         methods = {
-            "circular": CircularProbabilities,
-            "square": SquareProbabilities}
+            "circular": CircularNeighbourhood,
+            "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
             self.neighbourhood_method = method(weighted_mode)

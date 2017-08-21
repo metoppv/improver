@@ -59,36 +59,40 @@ def check_for_x_and_y_axes(cube):
 
 
 def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
-    """
-    Find and promote to dimension coordinates any scalar coordinates in
+    """Find and promote to dimension coordinates any scalar coordinates in
     new_cube that were originally dimension coordinates in the progenitor
     cube. If coordinate is in new_cube that is not in the old cube, keep
     coordinate in its current position.
+
     Parameters
     ----------
     cube : iris.cube.Cube
-        The input cube provided to nbhood.
+        The input cube that will be checked to identify the preferred
+        coordinate order for the output cube.
     new_cube : iris.cube.Cube
-        The cube produced by the neighbourhooding process that must be
-        checked for demoted dimensional coordinates.
+        The cube that must be checked and adjusted using the coordinate order
+        from the original cube.
     exception_coordinates : List of strings or None
         The names of the coordinates that are permitted to be within the
         new_cube but are not available within the original cube.
+
     Returns
     -------
     new_cube : iris.cube.Cube
         Modified cube with relevant scalar coordinates promoted to
         dimension coordinates with the dimension coordinates re-ordered,
         as best as can be done based on the original cube.
+
     Raises
     ------
-    InvalidCubeError if the coordinate is not within the original cube and
-    there are no permitted exceptions.
-    InvalidCubeError if the coordinate is not within the original cube and
-    it is not within the list of permitted exceptions.
     CoordinateNotFoundError raised if the final dimension
     coordinates of the returned cube do not match the input cube.
+    InvalidCubeError if the coordinate is not within the original cube and
+    it is not within the list of permitted exceptions.
+
     """
+    if exception_coordinates is None:
+        exception_coordinates = []
 
     # Promote available and relevant scalar coordinates
     for coord in new_cube.aux_coords[::-1]:
@@ -108,16 +112,7 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
         if coord_name in cube_dim_names:
             correct_order.append(cube_dimension_order[coord_name])
         else:
-            if exception_coordinates is None:
-                msg = ("The coordinate: {} is within the new_cube, "
-                       "however, this is not within the original "
-                       "cube. As there are no permitted "
-                       "exceptions, this is not allowed. "
-                       "\nnew_cube: {}"
-                       "\ncube: {}").format(
-                           coord_name, new_cube, cube)
-                raise InvalidCubeError(msg)
-            elif coord_name in exception_coordinates:
+            if coord_name in exception_coordinates:
                 new_coord_dim = new_cube.coord_dims(coord_name)[0]
                 new_cube_only_dims.append(new_coord_dim)
             else:
@@ -136,16 +131,14 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
         correct_order[correct_order >= dim] += 1
         correct_order = np.insert(correct_order, dim, dim)
 
-    if exception_coordinates is None:
-        exception_coordinates = []
-
-    if (len(cube_dimension_order.keys()+exception_coordinates) ==
+    if (len(cube_dimension_order.keys())+len(exception_coordinates) ==
             len(correct_order)):
         new_cube.transpose(correct_order)
     else:
-        msg = ('Returned cube dimension coordinates do not match input '
-               'cube dimension coordinates. \n input cube shape {} '
-               ' returned cube shape {}'.format(
+        msg = ('The number of dimension coordinates within the new cube '
+               'do not match the number of dimension coordinates within the '
+               'original cube plus the number of exception coordinates. '
+               '\n input cube shape {} returned cube shape {}'.format(
                    cube.shape, new_cube.shape))
         raise CoordinateNotFoundError(msg)
 
@@ -156,6 +149,7 @@ def find_dimension_coordinate_mismatch(
         first_cube, second_cube, two_way_mismatch=True):
     """Determine if there is a mismatch between the dimension coordinates in
     two cubes.
+
     Parameters
     ----------
     first_cube : Iris.cube.Cube
@@ -168,11 +162,13 @@ def find_dimension_coordinate_mismatch(
             first_cube - second_cube
         If False, a one way mismatch is calculated e.g.
             second_cube - first_cube
+
     Returns
     ------
     result : List
         List of the dimension coordinates that are only present in
         one out of the two cubes.
+
     """
     first_dim_names = [coord.name() for coord in first_cube.dim_coords]
     second_dim_names = [coord.name() for coord in second_cube.dim_coords]

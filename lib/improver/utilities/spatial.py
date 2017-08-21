@@ -52,7 +52,9 @@ def check_if_grid_is_equal_area(cube):
     ------
     ValueError : Invalid grid: projection_x/y coords required
     ValueError : Intervals between points along the x and y axis vary.
-                  Therefore the grid is not an equal area grid.
+                 Therefore the grid is not an equal area grid.
+    ValueError : The size of the intervals along the x and y axis
+                 should be equal.
     """
     try:
         for coord_name in ['projection_x_coordinate',
@@ -67,12 +69,12 @@ def check_if_grid_is_equal_area(cube):
                    "Therefore the grid is not an equal area grid."
                    ).format(coord_name)
             raise ValueError(msg)
-    x_mean = np.mean(np.diff(cube.coord("projection_x_coordinate").points))
-    y_mean = np.mean(np.diff(cube.coord("projection_y_coordinate").points))
-    if x_mean != y_mean:
+    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
+    y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
+    if x_diff != y_diff:
         msg = ("The size of the intervals along the x and y axis "
-               "should equal. x axis interval: {}, y axis interval: {}"
-               ).format(x_mean, y_mean)
+               "should be equal. x axis interval: {}, y axis interval: {}"
+               ).format(x_diff, y_diff)
         raise ValueError(msg)
 
 

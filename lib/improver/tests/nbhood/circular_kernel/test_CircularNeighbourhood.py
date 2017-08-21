@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.circular_kernel.CircularProbabilities plugin."""
+"""Unit tests for the nbhood.circular_kernel.CircularNeighbourhood plugin."""
 
 
 import unittest
@@ -37,7 +37,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.circular_kernel import CircularProbabilities
+from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
@@ -49,8 +49,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(CircularProbabilities())
-        msg = '<CircularProbabilities: weighted_mode: True>'
+        result = str(CircularNeighbourhood())
+        msg = '<CircularNeighbourhood: weighted_mode: True>'
         self.assertEqual(str(result), msg)
 
 
@@ -64,7 +64,7 @@ class Test_circular_kernel(IrisTest):
         fullranges = (0, 2, 2)
         weighted_mode = False
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertIsInstance(result, np.ndarray)
@@ -76,7 +76,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = True
         expected = [[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayAlmostEqual(result, expected)
@@ -92,7 +92,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = False
         expected = [[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayEqual(result, expected)
@@ -115,7 +115,7 @@ class Test_circular_kernel(IrisTest):
             [0.,   0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
             [0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayAlmostEqual(result, expected)
@@ -137,7 +137,7 @@ class Test_circular_kernel(IrisTest):
                     [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
                     [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayEqual(result, expected)
@@ -150,7 +150,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = True
         expected = [[[[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayAlmostEqual(result, expected)
@@ -163,7 +163,7 @@ class Test_circular_kernel(IrisTest):
         weighted_mode = False
         expected = [[[[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayEqual(result, expected)
@@ -186,7 +186,7 @@ class Test_circular_kernel(IrisTest):
             [0.,  0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
             [0.,  0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayAlmostEqual(result, expected)
@@ -208,7 +208,7 @@ class Test_circular_kernel(IrisTest):
                       [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
                       [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]]]
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=weighted_mode).circular_kernel(
                     fullranges, ranges))
         self.assertArrayEqual(result, expected)
@@ -225,7 +225,7 @@ class Test_apply_circular_kernel(IrisTest):
             num_grid_points=5)
         ranges = (2, 2)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertIsInstance(result, Cube)
 
@@ -237,7 +237,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -255,7 +255,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][5:10] = slice_
         ranges = (2, 2)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -272,7 +272,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][1][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -294,7 +294,7 @@ class Test_apply_circular_kernel(IrisTest):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -314,7 +314,7 @@ class Test_apply_circular_kernel(IrisTest):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -325,7 +325,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected[0][0][7][7] = 0.0
         ranges = (1, 1)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -338,7 +338,7 @@ class Test_apply_circular_kernel(IrisTest):
                 expected[0][time_index][3 + index][3:12] = slice_
         ranges = (5, 5)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -358,7 +358,7 @@ class Test_apply_circular_kernel(IrisTest):
         ])
         ranges = (5, 5)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -378,7 +378,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][4:11] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -392,7 +392,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][0:5] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -405,7 +405,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -431,7 +431,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][5 + index][0:3] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -444,7 +444,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][index][0:5] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -459,7 +459,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][index - 1][0:4] = slice_[1:]
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -483,14 +483,14 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][index][0:3] = slice_
         ranges = (3, 3)
         result = (
-            CircularProbabilities(
+            CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
 
 class Test_run(IrisTest):
 
-    """Test the run method on the CircularProbabilities class."""
+    """Test the run method on the CircularNeighbourhood class."""
 
     RADIUS = 6100
 
@@ -504,7 +504,7 @@ class Test_run(IrisTest):
 
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
-        result = CircularProbabilities().run(cube, self.RADIUS)
+        result = CircularNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 

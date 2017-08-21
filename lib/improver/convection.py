@@ -79,9 +79,9 @@ class DiagnoseConvectivePrecipitation(object):
                 within radii are defined. The lead times are expected
                 in hours.
             weighted_mode : boolean
-                If False, use a circle for neighbourhood kernel with
+                If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
-                If True, use a circle with constant weighting.
+                If False, use a circle with constant weighting.
             ens_factor : float
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.

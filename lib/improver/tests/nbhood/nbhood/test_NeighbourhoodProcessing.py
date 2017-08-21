@@ -129,20 +129,21 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 1)
 
-    y_points = np.linspace(0, 100000, num=51)
+    step_size = 2000
+    y_points = np.arange(0, step_size*num_grid_points, step_size)
     cube.add_dim_coord(
         DimCoord(
-            y_points[:num_grid_points],
+            y_points,
             'projection_y_coordinate',
             units='m'
         ),
         2
     )
 
-    x_points = np.linspace(-50000, 50000, num=51)
+    x_points = np.arange(-50000, (step_size*num_grid_points)-50000, step_size)
     cube.add_dim_coord(
         DimCoord(
-            x_points[:num_grid_points],
+            x_points,
             'projection_x_coordinate',
             units='m'
         ),
@@ -184,20 +185,21 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 0)
 
-    y_points = np.linspace(0, 100000, num=51)
+    step_size = 2000
+    y_points = np.arange(0, step_size*num_grid_points, step_size)
     cube.add_dim_coord(
         DimCoord(
-            y_points[:num_grid_points],
+            y_points,
             'projection_y_coordinate',
             units='m'
         ),
         1
     )
 
-    x_points = np.linspace(-50000, 50000, num=51)
+    x_points = np.arange(-50000, (step_size*num_grid_points)-50000, step_size)
     cube.add_dim_coord(
         DimCoord(
-            x_points[:num_grid_points],
+            x_points,
             'projection_x_coordinate',
             units='m'
         ),

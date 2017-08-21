@@ -38,11 +38,12 @@ from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
+
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-class SquareProbabilities(object):
+class SquareNeighbourhood(object):
 
     """
     Methods for use in application of a square neighbourhood.
@@ -62,7 +63,7 @@ class SquareProbabilities(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SquareProbabilities>')
+        result = ('<SquareNeighbourhood>')
         return result
 
     @staticmethod
@@ -246,10 +247,10 @@ class SquareProbabilities(object):
                 "mean", stat_length=((width_y, width_y), (width_x, width_x)))
             coord_x = cube.coord(axis='x')
             padded_x_coord = (
-                SquareProbabilities.pad_coord(coord_x, width_x, 'add'))
+                SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
             coord_y = cube.coord(axis='y')
             padded_y_coord = (
-                SquareProbabilities.pad_coord(coord_y, width_y, 'add'))
+                SquareNeighbourhood.pad_coord(coord_y, width_y, 'add'))
             cubelist.append(
                 self._create_cube_with_new_data(
                     slice_2d, padded_data, padded_x_coord, padded_y_coord))
@@ -288,10 +289,10 @@ class SquareProbabilities(object):
                                          2*width_x:end_x]
             coord_x = slice_2d.coord(axis='x')
             trimmed_x_coord = (
-                SquareProbabilities.pad_coord(coord_x, width_x, 'remove'))
+                SquareNeighbourhood.pad_coord(coord_x, width_x, 'remove'))
             coord_y = slice_2d.coord(axis='y')
             trimmed_y_coord = (
-                SquareProbabilities.pad_coord(coord_y, width_y, 'remove'))
+                SquareNeighbourhood.pad_coord(coord_y, width_y, 'remove'))
             cubelist.append(
                 self._create_cube_with_new_data(
                     slice_2d, trimmed_data, trimmed_x_coord, trimmed_y_coord))

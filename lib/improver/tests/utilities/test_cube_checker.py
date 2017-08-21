@@ -136,7 +136,7 @@ class Test_check_cube_coordinates(IrisTest):
         cube = set_up_cube()
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
-        msg = 'As there are no permitted exceptions'
+        msg = 'is not within the permitted exceptions'
         with self.assertRaisesRegexp(iris.exceptions.InvalidCubeError, msg):
             check_cube_coordinates(
                 cube, new_cube)
@@ -161,7 +161,7 @@ class Test_check_cube_coordinates(IrisTest):
         cube = set_up_cube()
         new_cube = iris.util.squeeze(cube)
         new_cube.remove_coord('realization')
-        msg = 'Returned cube dimension coordinates'
+        msg = 'The number of dimension coordinates within the new cube'
         with self.assertRaisesRegexp(iris.exceptions.CoordinateNotFoundError,
                                      msg):
             check_cube_coordinates(cube, new_cube)

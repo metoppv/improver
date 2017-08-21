@@ -41,7 +41,7 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-class CircularProbabilities(object):
+class CircularNeighbourhood(object):
 
     """
     Methods for use in the calculation and application of a circular
@@ -53,12 +53,13 @@ class CircularProbabilities(object):
     def __init__(self, weighted_mode=True):
         """
         Initialise class.
+
         Parameters
         ----------
         weighted_mode : boolean (optional)
-            If False, use a circle with constant weighting.
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
+            If False, use a circle with constant weighting.
         """
         self.weighted_mode = weighted_mode
 
@@ -69,8 +70,10 @@ class CircularProbabilities(object):
 
     def circular_kernel(self, fullranges, ranges):
         """
+
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
+
         Parameters
         ----------
         fullranges : Numpy.array
@@ -85,6 +88,7 @@ class CircularProbabilities(object):
         kernel : Numpy.array
             Array containing the circular smoothing kernel.
             This will have the same number of dimensions as fullranges.
+
         """
         # Define the size of the kernel based on the number of grid cells
         # contained within the desired radius.
@@ -107,6 +111,7 @@ class CircularProbabilities(object):
 
     def apply_circular_kernel(self, cube, ranges):
         """
+
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
         Parameters
@@ -117,11 +122,13 @@ class CircularProbabilities(object):
         ranges : Tuple
             Number of grid cells in the x and y direction used to create
             the kernel.
+
         Returns
         -------
         cube : Iris.cube.Cube
             Cube containing the smoothed field after the kernel has been
             applied.
+
         """
         data = cube.data
         fullranges = np.zeros([np.ndim(data)])
@@ -140,8 +147,10 @@ class CircularProbabilities(object):
 
     def run(self, cube, radius):
         """
+
         Call the methods required to calculate and apply a circular
         neighbourhood.
+
         Parameters
         ----------
         cube : Iris.cube.Cube
@@ -150,11 +159,13 @@ class CircularProbabilities(object):
         radius : Float
             Radius in metres for use in specifying the number of
             grid cells used to create a circular neighbourhood.
+
         Returns
         -------
         cube : Iris.cube.Cube
             Cube containing the smoothed field after the kernel has been
             applied.
+
         """
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)

@@ -122,6 +122,12 @@ class Test_check_if_grid_is_equal_area(IrisTest):
 
     """Test that the grid is an equal area grid."""
 
+    def test_equal_area(self):
+        """Test an that no exception is raised if the x and y coordinates
+        are on an equal area grid."""
+        cube = set_up_cube()
+        self.assertEqual(check_if_grid_is_equal_area(cube), None)
+
     def test_wrong_coordinate(self):
         """Test an exception is raised if the x and y coordinates are not
         projection_x_coordinate or projection_y_coordinate."""
