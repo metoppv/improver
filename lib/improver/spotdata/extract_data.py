@@ -252,14 +252,13 @@ class ExtractData(object):
         for crd in stat_coordinates:
             stat_coord += [coord for coord in cube_dimension_order.keys()
                            if crd in coord]
-        if len(stat_coord) > 1:
-            stat_coord = [stat_coord[0]]
-            msg = ('More than one statistical coordinate found. Promoting the '
-                   'first found, {}, to the leading dimension.'.format(
-                    stat_coord))
-            warnings.warn(msg)
+        if len(stat_coord) >= 1:
+            if len(stat_coord) > 1:
+                msg = ('More than one statistical coordinate found. Promoting '
+                       'the first found, {}, to the leading dimension.'.format(
+                        stat_coord))
+                warnings.warn(msg)
 
-        if len(stat_coord) == 1:
             stat_index = cube_dimension_order[stat_coord[0]]
             new_order = range(len(cube_dimension_order))
             new_order.pop(stat_index)
@@ -293,9 +292,17 @@ class ExtractData(object):
         """
 
         # Ensure time is a dimension coordinate and convert to seconds.
-        if 'time' not in cube.dim_coords:
+        cube_coords = [coord.name() for coord in cube.dim_coords]
+        if 'time' not in cube_coords:
             cube = iris.util.new_axis(cube, 'time')
         cube.coord('time').convert_units('seconds since 1970-01-01 00:00:00')
+
+        cube_coords = [coord.name() for coord in cube.coords()]
+        if 'forecast_reference_time' not in cube_coords:
+            raise CoordinateNotFoundError(
+                'No forecast reference time found on source cube.')
+        cube.coord('forecast_reference_time').convert_units(
+            'seconds since 1970-01-01 00:00:00')
 
         # Replicate all non spatial dimension coodinates.
         n_non_spatial_dimcoords = len(cube.dim_coords) - 2
@@ -307,19 +314,19 @@ class ExtractData(object):
                                          data_type=int)
         dim_coords.append(indices)
 
-        # Include the forecast_reference_time from the source cube.
-        try:
-            forecast_ref_time = cube.coord('forecast_reference_time')
-        except CoordinateNotFoundError:
-            raise CoordinateNotFoundError(
-                'No forecast reference time found on source cube.')
+        # Record existing scalar coordinates on source cube. Aux coords
+        # associated with dimensions cannot be preserved as the dimensions will
+        # be reshaped and the auxiliarys no longer compatible.
+        scalar_coordinates = [coord.name() for coord in cube.aux_coords if
+                              cube.coord_dims(coord.name()) == ()]
 
-        forecast_ref_time.convert_units('seconds since 1970-01-01 00:00:00')
-        forecast_periods = cube.coord('time').points - forecast_ref_time.points
+        # Build a forecast_period dimension.
+        forecast_periods = (cube.coord('time').points -
+                            cube.coord('forecast_reference_time').points)
         forecast_period = self._build_coordinate(
             forecast_periods, 'forecast_period', units='seconds')
 
-        # Build the auxiliary coordinates.
+        # Build the new auxiliary coordinates.
         crds = self._aux_coords_to_make()
         aux_crds = []
         for key, kwargs in zip(crds.keys(), crds.itervalues()):
@@ -327,7 +334,8 @@ class ExtractData(object):
             crd = self._build_coordinate(aux_data, key, **kwargs)
             aux_crds.append(crd)
 
-        # Construct zipped lists of coordinates and indices.
+        # Construct zipped lists of coordinates and indices. New aux coords are
+        # associated with the index dimension.
         n_dim_coords = len(dim_coords)
         dim_coords = zip(dim_coords, range(n_dim_coords))
         aux_coords = zip(aux_crds, [n_dim_coords-1]*len(aux_crds))
@@ -335,13 +343,17 @@ class ExtractData(object):
         # Copy other cube metadata.
         metadata_dict = copy.deepcopy(cube.metadata._asdict())
 
-        # Add leading dimension for time.
+        # Add leading dimension for time to the data array.
         data = np.expand_dims(data, axis=0)
         result_cube = Cube(data,
                            dim_coords_and_dims=dim_coords,
                            aux_coords_and_dims=aux_coords,
                            **metadata_dict)
-        result_cube.add_aux_coord(forecast_ref_time)
+
+        # Add back scalar coordinates from the original cube.
+        for coord in scalar_coordinates:
+            result_cube.add_aux_coord(cube.coord(coord))
+
         result_cube.add_aux_coord(forecast_period, cube.coord_dims('time'))
 
         # Enables use of long_name above for any name, and then moves it

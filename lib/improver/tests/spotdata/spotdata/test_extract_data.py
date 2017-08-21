@@ -95,13 +95,17 @@ class Test_setup(IrisTest):
         forecast_ref_time = time[0].copy()
         forecast_ref_time.rename('forecast_reference_time')
 
+        height = AuxCoord([1.5], standard_name='height', units='m')
+
         cube = Cube(data,
-                    long_name="air_temperature",
+                    standard_name="air_temperature",
                     dim_coords_and_dims=[(time, 0),
                                          (latitude, 1),
                                          (longitude, 2)],
                     units="K")
         cube.add_aux_coord(forecast_ref_time)
+        cube.add_aux_coord(height)
+        cube.attributes['institution'] = 'Met Office'
 
         orography = Cube(np.ones((20, 20)),
                          long_name="surface_altitude",
@@ -414,6 +418,16 @@ class Test_make_cube(Test_setup):
         msg = 'No forecast reference time found on source cube.'
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin(self.cube, data, self.sites)
+
+    def test_aux_coord_and_metadata(self):
+        """Test that the plugin returns cubes with expected metadata and
+        coordinates."""
+        plugin = Plugin().make_cube
+        data = np.array([123])
+        result = plugin(self.cube, data, self.sites)
+        self.assertEqual(result.coord('forecast_reference_time'),
+                         self.cube.coord('forecast_reference_time'))
+        self.assertEqual(result.metadata, self.cube.metadata)
 
 
 class Test_use_nearest(Test_setup):
