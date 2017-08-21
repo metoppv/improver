@@ -554,6 +554,6 @@ class ChooseDefaultWeightsTriangular(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        string = "<ChooseDefaultTriangularWeights width={:4.1f}>"
-        desc = string.format(self.width)
+        msg = "<ChooseDefaultTriangularWeights width={:4.1f}>"
+        desc = msg.format(self.width)
         return desc

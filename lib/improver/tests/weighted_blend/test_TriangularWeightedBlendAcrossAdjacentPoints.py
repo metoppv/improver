@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the
-   weighted_blend.WeightedBlendAcrossAdjacentPoints plugin."""
+   weighted_blend.TriangularWeightedBlendAcrossAdjacentPoints plugin."""
 
 import unittest
 
@@ -154,7 +154,7 @@ class Test_correct_collapsed_coordinates(IrisTest):
                          input_orig_cube.coord('forecast_period'))
 
     def test_wrong_size_coords(self):
-        """Test it raises an error when it new_cube and old_cube have
+        """Test it raises an error when new_cube and old_cube have
            different length coordinates"""
         data = np.zeros((2, 2, 2))
         orig_cube = Cube(data, units="m",
@@ -198,7 +198,7 @@ class Test_process(IrisTest):
 
     def test_basic_triangle_width_1(self):
         """Test that the plugin produces sensible results when the width
-           of the triangle is 1. This is the equivalent of no blending."""
+           of the triangle is 1. This is equivalent to no blending."""
         plugin = TriangularWeightedBlendAcrossAdjacentPoints('forecast_period',
                                                              1.0, 'hours')
         result = plugin.process(self.cube)

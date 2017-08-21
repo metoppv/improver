@@ -368,7 +368,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
     """
     Apply a Weighted blend to a coordinate, using triangular weights at each
     point in the coordinate.
-    Returns a cube with the same coordinates as the input cube, the with each
+    Returns a cube with the same coordinates as the input cube, with each
     point in the coordinate of interest having been blended with the adjacent
     points according to a triangular weighting
     function of a specified width.
@@ -441,7 +441,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
             cube: iris.cube.Cube
                 The processed cube, with the same coordinates as the input
                 cube. The points in one coordinate will be blended with the
-                adjacent points based on a triagular weighting function of the
+                adjacent points based on a triangular weighting function of the
                 specified width.
 
         """
@@ -451,7 +451,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         coords_to_correct = cube.coords(dimensions=dimension_to_collapse)
         coords_to_correct = [coord.name() for coord in coords_to_correct]
         # We will also need to correct the bounds on these coordinates,
-        # as bounds will be added when the blending happens, so add bounds it
+        # as bounds will be added when the blending happens, so add bounds if
         # it doesn't have some already.
         for coord in coords_to_correct:
             cube.coord(coord).guess_bounds()
@@ -459,8 +459,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)
         # Set up the blending function.
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
-                                                           coord_adjust=None)
+        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord)
         result = iris.cube.CubeList([])
         # Loop over each point in the coordinate we are blending over, and
         # calculate a new weighted average for it.

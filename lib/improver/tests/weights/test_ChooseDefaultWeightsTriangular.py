@@ -62,7 +62,9 @@ class Test_triangular_weights(IrisTest):
            up to 1.0"""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(3)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 5)
+        midpoint = 5
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         self.assertIsInstance(weights, np.ndarray)
         self.assertEqual(len(weights), len(coord_vals))
         self.assertEqual(weights.sum(), 1.0)
@@ -72,7 +74,9 @@ class Test_triangular_weights(IrisTest):
            simple case"""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(3)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 5)
+        midpoint = 5
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0., 0., 0.,
                                      0.11111111, 0.22222222, 0.33333333,
                                      0.22222222, 0.11111111, 0.,
@@ -86,7 +90,9 @@ class Test_triangular_weights(IrisTest):
            In this case the triangle is cut off at the end of the coordinate"""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(3)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 1)
+        midpoint = 1
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0.25, 0.375, 0.25,
                                      0.125, 0., 0.,
                                      0., 0., 0.,
@@ -101,7 +107,9 @@ class Test_triangular_weights(IrisTest):
            shape of a triangle."""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(10)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 5)
+        midpoint = 5
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0.055556, 0.066667, 0.077778,
                                      0.088889, 0.1, 0.111111,
                                      0.1, 0.088889, 0.077778,
@@ -115,7 +123,9 @@ class Test_triangular_weights(IrisTest):
            In this case we do not sample the peak of the triangle."""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(2)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 3.5)
+        midpoint = 3.5
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0., 0., 0.125,
                                      0.375, 0.375, 0.125,
                                      0., 0., 0.,
@@ -128,7 +138,9 @@ class Test_triangular_weights(IrisTest):
            This only affects the slope of the triangle slightly."""
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(3.5)
         coord_vals = np.arange(15)
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 5)
+        midpoint = 5
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0., 0., 0.04,
                                      0.12, 0.2, 0.28,
                                      0.2, 0.12, 0.04,
@@ -144,7 +156,9 @@ class Test_triangular_weights(IrisTest):
         TriangularWeightsClass = ChooseDefaultWeightsTriangular(5)
         coord_vals = np.arange(10)
         coord_vals = np.append(coord_vals, [12, 15, 18, 21, 24])
-        weights = TriangularWeightsClass.triangular_weights(coord_vals, 8)
+        midpoint = 8
+        weights = TriangularWeightsClass.triangular_weights(coord_vals,
+                                                            midpoint)
         expected_weights = np.array([0., 0., 0.,
                                      0., 0.05, 0.1,
                                      0.15, 0.2, 0.25,
