@@ -181,7 +181,7 @@ class Test___init__(IrisTest):
     def test_cf_unit_input(self):
         """Test the case where an instance of cf_units.Unit is passed in"""
         units = cf_units.Unit("hour")
-        width =  5
+        width = 5
         WeightsClass = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
         expected_unit = units
@@ -191,7 +191,7 @@ class Test___init__(IrisTest):
     def test_string_input(self):
         """Test the case where a string is passed and gets converted to a
            cf_units.Unit instance"""
-        width =  5
+        width = 5
         units = "hour"
         WeightsClass = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
@@ -236,7 +236,7 @@ class Test_process(IrisTest):
         """"Test plugin produces the correct weights when the parameters for
             the triangle cannot be converted to the same units as the
             coordinate"""
-        width =  7200
+        width = 7200
         WeightsClass = ChooseDefaultWeightsTriangular(width, units="m")
         midpoint = 3600
         message = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('hours'\)'"

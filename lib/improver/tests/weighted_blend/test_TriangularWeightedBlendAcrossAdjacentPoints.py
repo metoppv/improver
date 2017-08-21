@@ -50,18 +50,18 @@ def set_up_cube():
     data = np.zeros((2, 2, 2))
 
     orig_cube = Cube(data, units="m",
-                        standard_name="lwe_thickness_of_precipitation_amount")
+                     standard_name="lwe_thickness_of_precipitation_amount")
     orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                        'latitude', units='degrees'), 1)
+                                     'latitude', units='degrees'), 1)
     orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                        units='degrees'), 2)
+                                     units='degrees'), 2)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
     orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                        "time", units=tunit), 0)
+                                     "time", units=tunit), 0)
     orig_cube.add_aux_coord(DimCoord([0, 1],
-                                        "forecast_period", units="hours"), 0)
+                                     "forecast_period", units="hours"), 0)
     return orig_cube
 
 
