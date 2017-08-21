@@ -33,7 +33,7 @@
   run improver tests --silly-option
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...] 
+improver tests [OPTIONS] [SUBTEST...]
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 

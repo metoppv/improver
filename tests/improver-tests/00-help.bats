@@ -33,7 +33,7 @@
   run improver tests -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...] 
+improver tests [OPTIONS] [SUBTEST...]
 
 Run pep8, pylint, documentation, unit and CLI acceptance tests.
 
