@@ -174,7 +174,7 @@ class CircularNeighbourhood(object):
         return cube
 
 
-class CircularPercentiles(object):
+class GeneratingPercentilesFromACircularNeighbourhood(object):
     """
     Methods for use in calculating percentiles from a 2D circular
     neighbourhood.

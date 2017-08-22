@@ -149,7 +149,7 @@ class Utilities(object):
         return new_width
 
 
-class NeighbourhoodProcessing(object):
+class BaseNeighbourhoodProcessing(object):
     """
     Apply a neighbourhood processing method to a thresholded cube.
 
@@ -328,7 +328,7 @@ class NeighbourhoodProcessing(object):
         return merged_cube
 
 
-class PercentilesNeighbourhoodProcessing(NeighbourhoodProcessing):
+class GeneratingPercentilesFromANeighbourhood(NeighbourhoodProcessing):
 
     def __init__(
         self, neighbourhood_method, radii, lead_times=None,
@@ -371,7 +371,7 @@ class PercentilesNeighbourhoodProcessing(NeighbourhoodProcessing):
             "circular": CircularPercentiles}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(weighted_mode)
+            self.neighbourhood_method = method(percentiles=percentiles)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
@@ -407,7 +407,7 @@ class PercentilesNeighbourhoodProcessing(NeighbourhoodProcessing):
         return NeighbourhoodProcessing.process(cube)
 
 
-class ProbabilisticNeighbourhoodProcess(NeighbourhoodProcessing)
+class NeighbourhoodProcessing(BaseNeighbourhoodProcessing)
 
     def __init__(self, neighbourhood_method, radii, lead_times=None,
                  ens_factor=1.0, weighted_mode=True):
