@@ -60,8 +60,7 @@ class Test_setup(IrisTest):
     """Test the extract data plugin."""
 
     def setUp(self):
-        """
-        Create a cube containing a regular lat-lon grid.
+        """Create a cube containing a regular lat-lon grid.
 
         Data is formatted to increase linearly in x/y dimensions,
         e.g.
@@ -69,8 +68,8 @@ class Test_setup(IrisTest):
               1 2 3 4
               2 3 4 5
               3 4 5 6
-
         """
+
         data = np.arange(0, 20, 1)
         for i in range(1, 20):
             data = np.append(data, np.arange(i, 20+i))
@@ -285,6 +284,7 @@ class Test_setup(IrisTest):
 
     def missing_ancillary_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing ancillary data."""
+
         plugin = Plugin(method)
         with self.assertRaises(KeyError):
             plugin.process(
@@ -293,6 +293,7 @@ class Test_setup(IrisTest):
 
     def missing_additional_data(self, method, ancillary_data, additional_data):
         """Test that the plugin copes with missing additional data."""
+
         plugin = Plugin(method)
         with self.assertRaises(KeyError):
             plugin.process(
@@ -304,10 +305,9 @@ class Test_ExtractData(Test_setup):
     """Test the overall class for raise returns etc."""
 
     def test_invalid_method(self):
-        """
-        Test that the plugin can handle an invalid method being passed in.
+        """Test that the plugin can handle an invalid method being passed
+        in."""
 
-        """
         plugin = Plugin('quantum_interpolation')
         msg = 'Unknown method'
         with iris.FUTURE.context(cell_datetime_objects=True):
@@ -321,10 +321,8 @@ class Test__build_coordinate(Test_setup):
     """Test the _build_coordinate function."""
 
     def test_build_latitude_coordinate(self):
-        """
-        Test building a latitude coordinate.
+        """Test building a latitude coordinate."""
 
-        """
         plugin = Plugin()._build_coordinate
         coord_system = iris.coord_systems.GeogCS(6371229.0)
         result = plugin(self.latitudes, 'latitude', units='degrees',
@@ -342,6 +340,7 @@ class Test_make_stat_coordinate_first(Test_setup):
     def test_cube_reorder_realization(self):
         """Test reordering a cube with a realization coordinate to make it come
         first."""
+
         plugin = Plugin().make_stat_coordinate_first
         cube = set_up_cube(
             zero_point_indices=(
@@ -356,6 +355,7 @@ class Test_make_stat_coordinate_first(Test_setup):
     def test_cube_reorder_percentile(self):
         """Test reordering a cube with a percentile coordinate to make it come
         first."""
+
         plugin = Plugin().make_stat_coordinate_first
         cube = set_up_cube(
             zero_point_indices=(
@@ -372,6 +372,7 @@ class Test_make_stat_coordinate_first(Test_setup):
         """Test reordering a cube with a percentile and a realization
         coordinate. Should produce a warning and promote the first statistical
         coordinate that is found."""
+
         plugin = Plugin().make_stat_coordinate_first
         cube = set_up_cube(
             zero_point_indices=(
@@ -395,10 +396,7 @@ class Test_make_cube(Test_setup):
     """Test the creation of spotdata cubes."""
 
     def test_make_spotdata_cube(self):
-        """
-        Test the make_cube function.
-
-        """
+        """Test the make_cube function."""
         plugin = Plugin().make_cube
         data = np.array([123])
         result = plugin(self.cube, data, self.sites)
@@ -407,11 +405,8 @@ class Test_make_cube(Test_setup):
         self.assertEqual(result.name(), 'air_temperature')
 
     def test_missing_forecast_ref_time_in_source(self):
-        """
-        Ensure an error is raised if a source cube is missing a forecast
-        reference time.
-
-        """
+        """Ensure an error is raised if a source cube is missing a forecast
+        reference time."""
         plugin = Plugin().make_cube
         data = np.array([123])
         self.cube.remove_coord('forecast_reference_time')
@@ -465,34 +460,28 @@ class Test_orography_derived_temperature_lapse_rate(Test_setup):
         self.return_type(self.method, self.ancillary_data, None)
 
     def test_extracted_value(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Fit line given data above is: T = 0.15*altitude + 19
-        Site defined with has altitude=10, so T+expected = 20.5.
-
-        """
+        Site defined with has altitude=10, so T+expected = 20.5."""
         expected = 20.5
         self.extracted_value(self.method, self.ancillary_data, None, expected)
 
     def test_extracted_value_larger_field(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
         Use a larger no_neighbours to extend the range of grid points over
         which the lapse rate is calculated.
 
         Fit line given data above over larger field is:
         T = 0.25*altitude + 18.5
-        Site defined with has altitude=10, so T+expected = 21.
+        Site defined with has altitude=10, so T+expected = 21."""
 
-        """
         expected = 21
         self.extracted_value(self.method, self.ancillary_data, None, expected,
                              no_neighbours=25)
 
     def test_different_projection(self):
-        """
-        Test that the plugin copes with non-lat/lon grids.
+        """Test that the plugin copes with non-lat/lon grids.
 
         Cube is transformed Transverse Mercator projection. The usual
         latitude/longitude coordinates are used to query the grid, with iris
@@ -504,9 +493,8 @@ class Test_orography_derived_temperature_lapse_rate(Test_setup):
         The expected value will be different to that above given by the
         PlateCarree() projection, as the spatial smaller region used to make
         this projection work gives a different spatial range over which to
-        calculate the temperature gradient.
+        calculate the temperature gradient."""
 
-        """
         expected = 20. + (1./9.)
         self.different_projection(self.method, self.ancillary_data, None,
                                   expected)
@@ -530,16 +518,14 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                          **self.kwargs)
 
     def test_extracted_value_valley(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Site set to be ~3.65m in altitude, which is a dz of -6.35m from the
         nearest grid point (its neighbour). This should give a temperature of
         22C at the site height.
 
-        This is an extrapolation scenario, an 'unresolved valley'.
+        This is an extrapolation scenario, an 'unresolved valley'."""
 
-        """
         self.sites['100']['altitude'] = 3.6446955
         self.neighbour_list['dz'] = -6.3553045
         expected = 22.
@@ -547,16 +533,14 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                              expected, **self.kwargs)
 
     def test_extracted_value_deep_valley(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Site set to be 100m or 70m below the land surface (90m or 60m below sea
         level). The enforcement of a maximum extrapolation down into valleys
         should result in the two site altitudes returning the same temperature.
 
-        This is an extrapolation scenario, an 'unresolved valley'.
+        This is an extrapolation scenario, an 'unresolved valley'."""
 
-        """
         # Temperatures set up to mimic a cold night with an inversion where
         # valley temperatures may be expected to fall considerably due to
         # katabatic drainage.
@@ -586,17 +570,15 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
         self.assertEqual(result_dz.data, result_70.data)
 
     def test_extracted_value_hill_mixed(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Site set to be 60m in altitude, which is a dz of +50m from the nearest
         grid point (its neighbour). As such it should fall on the 900hPa level
         and get a temperature of 10C.
 
         This is an interpolation scenario, an 'unresolved hill' in a well
-        mixed atmosphere.
+        mixed atmosphere."""
 
-        """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = 10.
@@ -604,8 +586,7 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                              expected, **self.kwargs)
 
     def test_extracted_value_hill_stable_lower_dthetadz(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Push the dthetadz_threshold value to be negative, such that the
         potential temperature gradient is recalculated between surface
@@ -624,9 +605,8 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
         The site altitude and dz are not important here as the atmosphere has
         been setup with a uniform pressure between the surface and lower model
         level, thus the surface temperature should just be replicated at any
-        height (T=20C).
+        height (T=20C)."""
 
-        """
         t_level0 = np.ones((1, 20, 20))*20.
         t_level1 = np.ones((1, 20, 20))*15.
         t_level2 = np.ones((1, 20, 20))*10.
@@ -650,17 +630,15 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                              expected, **self.kwargs)
 
     def test_extracted_value_hill_stable(self):
-        """
-        Test that the plugin returns the correct value.
+        """Test that the plugin returns the correct value.
 
         Site set to be 60m in altitude, which is a dz of +50m from the nearest
         grid point (its neighbour). As such it should fall on the 900hPa level
         and get a temperature of 21C.
 
         This is an interpolation scenario, an 'unresolved hill' in a stable
-        atmosphere.
+        atmosphere."""
 
-        """
         t_level0 = np.ones((1, 20, 20))*20.
         t_level1 = np.ones((1, 20, 20))*21.
         t_level2 = np.ones((1, 20, 20))*22.
@@ -675,8 +653,7 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                              expected, **self.kwargs)
 
     def test_different_projection(self):
-        """
-        Test that the plugin copes with non-lat/lon grids.
+        """Test that the plugin copes with non-lat/lon grids.
 
         Cube is transformed into a LambertConformal projection. The usual
         latitude/longitude coordinates are used to query the grid, with iris
@@ -686,9 +663,8 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
         The returned cube has latitude/longitude dimensions.
 
         The expected value should be the same as the PlateCarree() projection
-        case above.
+        case above."""
 
-        """
         self.sites['100']['altitude'] = 60.
         self.neighbour_list['dz'] = 50.
         expected = 10.
@@ -696,11 +672,9 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
                                   expected, **self.kwargs)
 
     def test_missing_additional_data(self):
-        """
-        Test for appropriate error message when required additional
-        diagnostics are unavailable.
+        """Test for appropriate error message when required additional
+        diagnostics are unavailable."""
 
-        """
         self.missing_additional_data(self.method, self.ancillary_data, {})
 
 
