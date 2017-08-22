@@ -41,10 +41,9 @@ from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 class TriangularWeightedBlendAcrossAdjacentPoints(object):
     """
     Apply a Weighted blend to a coordinate, using triangular weights at each
-    point in the coordinate.
-    Returns a cube with the same coordinates as the input cube, with each
-    point in the coordinate of interest having been blended with the adjacent
-    points according to a triangular weighting
+    point in the coordinate. Returns a cube with the same coordinates as the
+    input cube, with each point in the coordinate of interest having been
+    blended with the adjacent points according to a triangular weighting
     function of a specified width.
     """
 
