@@ -42,7 +42,8 @@ from iris.exceptions import CoordinateNotFoundError
 
 import numpy as np
 
-from improver.weighted_blend import TriangularWeightedBlendAcrossAdjacentPoints
+from improver.blending.blend_across_adjacent_points import \
+    TriangularWeightedBlendAcrossAdjacentPoints
 
 
 def set_up_cube():

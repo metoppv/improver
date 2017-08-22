@@ -37,9 +37,10 @@ from iris.tests import IrisTest
 import iris
 import numpy as np
 
-from improver.weights import ChooseDefaultWeightsNonLinear as NonLinearWeights
-from improver.tests.weights.test_WeightsUtilities import (set_up_cube,
-                                                          add_realizations)
+from improver.blending.weights import ChooseDefaultWeightsNonLinear \
+    as NonLinearWeights
+from improver.tests.blending.weights.test_WeightsUtilities import (
+    set_up_cube, add_realizations)
 
 
 class Test_nonlinear_weights(IrisTest):

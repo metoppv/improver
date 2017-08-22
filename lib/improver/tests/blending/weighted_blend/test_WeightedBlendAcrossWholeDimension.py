@@ -43,9 +43,10 @@ from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
-from improver.weighted_blend import WeightedBlendAcrossWholeDimension
-from improver.tests.weighted_blend.test_PercentileBlendingAggregator import (
-    percentile_cube, BLENDED_PERCENTILE_DATA1, BLENDED_PERCENTILE_DATA2)
+from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
+    import (percentile_cube, BLENDED_PERCENTILE_DATA1,
+            BLENDED_PERCENTILE_DATA2)
 
 
 def example_coord_adjust(pnts):

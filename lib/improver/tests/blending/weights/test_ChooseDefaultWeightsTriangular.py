@@ -38,8 +38,8 @@ from iris.tests import IrisTest
 import numpy as np
 import cf_units
 
-from improver.weights import ChooseDefaultWeightsTriangular
-from improver.tests.weights.test_WeightsUtilities import set_up_cube
+from improver.blending.weights import ChooseDefaultWeightsTriangular
+from improver.tests.blending.weights.test_WeightsUtilities import set_up_cube
 
 
 class Test___repr__(IrisTest):

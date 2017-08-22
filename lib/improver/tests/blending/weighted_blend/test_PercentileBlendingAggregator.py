@@ -39,7 +39,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.weighted_blend import PercentileBlendingAggregator
+from improver.blending.weighted_blend import PercentileBlendingAggregator
 
 PERCENTILE_DATA = np.array([
     15.3077946, 14.65380361, 15.91478244, 15.10887522,

@@ -38,9 +38,10 @@ from iris.tests import IrisTest
 import iris
 import numpy as np
 
-from improver.weights import ChooseDefaultWeightsLinear as LinearWeights
-from improver.tests.weights.test_WeightsUtilities import (set_up_cube,
-                                                          add_realizations)
+from improver.blending.weights import ChooseDefaultWeightsLinear \
+    as LinearWeights
+from improver.tests.blending.weights.test_WeightsUtilities import (
+    set_up_cube, add_realizations)
 
 
 class Test_linear_weights(IrisTest):
