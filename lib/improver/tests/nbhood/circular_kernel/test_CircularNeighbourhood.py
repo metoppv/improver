@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.CircularNeighbourhood plugin."""
+"""Unit tests for the nbhood.circular_kernel.CircularNeighbourhood plugin."""
 
 
 import unittest
@@ -37,7 +37,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.nbhood import CircularNeighbourhood
+from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
@@ -50,13 +50,172 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CircularNeighbourhood())
-        msg = '<CircularNeighbourhood: unweighted_mode: False>'
+        msg = '<CircularNeighbourhood: weighted_mode: True>'
         self.assertEqual(str(result), msg)
+
+
+class Test_circular_kernel(IrisTest):
+
+    """Test neighbourhood processing plugin on the OS National Grid."""
+
+    def test_basic(self):
+        """Test that the plugin returns a Numpy array."""
+        ranges = (2, 2)
+        fullranges = (0, 2, 2)
+        weighted_mode = False
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_single_point_weighted(self):
+        """Test behaviour for a unitary range, with weighting."""
+        ranges = (1, 1)
+        fullranges = (1, 1)
+        weighted_mode = True
+        expected = [[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_single_point_unweighted(self):
+        """Test behaviour for a unitary range without weighting.
+        Note that this gives one more grid cell range than weighted! As the
+        affected area is one grid cell more in each direction, an equivalent
+        range of 2 was chosen for this test."""
+        ranges = (1, 1)
+        fullranges = (1, 1)
+        weighted_mode = False
+        expected = [[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayEqual(result, expected)
+
+    def test_range5_weighted(self):
+        """Test behaviour for a range of 5, with weighting."""
+        ranges = (5, 5)
+        fullranges = (5, 5)
+        weighted_mode = True
+        expected = [
+            [0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.],
+            [0.,   0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
+            [0.,   0.,   0.28, 0.48, 0.6,  0.64, 0.6,  0.48, 0.28, 0.,   0.],
+            [0.,   0.2,  0.48, 0.68, 0.8,  0.84, 0.8,  0.68, 0.48, 0.2,  0.],
+            [0.,   0.32, 0.6,  0.8,  0.92, 0.96, 0.92, 0.8,  0.6,  0.32, 0.],
+            [0.,   0.36, 0.64, 0.84, 0.96, 1.,   0.96, 0.84, 0.64, 0.36, 0.],
+            [0.,   0.32, 0.6,  0.8,  0.92, 0.96, 0.92, 0.8,  0.6,  0.32, 0.],
+            [0.,   0.2,  0.48, 0.68, 0.8,  0.84, 0.8,  0.68, 0.48, 0.2,  0.],
+            [0.,   0.,   0.28, 0.48, 0.6,  0.64, 0.6,  0.48, 0.28, 0.,   0.],
+            [0.,   0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
+            [0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_range5_unweighted(self):
+        """Test behaviour for a range of 5 without weighting."""
+        ranges = (5, 5)
+        fullranges = (5, 5)
+        weighted_mode = False
+        expected = [[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
+                    [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                    [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+                    [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayEqual(result, expected)
+
+    def test_single_point_weighted_extra_dims(self):
+        """Test behaviour for a unitary range, with weighting.
+        And added dimensions."""
+        ranges = (1, 1)
+        fullranges = (0, 0, 1, 1)
+        weighted_mode = True
+        expected = [[[[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_single_point_unweighted_extra_dims(self):
+        """Test behaviour for a unitary range without weighting.
+        And added dimensions."""
+        ranges = (1, 1)
+        fullranges = (0, 0, 1, 1)
+        weighted_mode = False
+        expected = [[[[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayEqual(result, expected)
+
+    def test_range5_weighted_extra_dims(self):
+        """Test behaviour for a range of 5, with weighting."""
+        ranges = (5, 5)
+        fullranges = (0, 0, 5, 5)
+        weighted_mode = True
+        expected = [[[
+            [0.,  0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.],
+            [0.,  0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
+            [0.,  0.,   0.28, 0.48, 0.6,  0.64, 0.6,  0.48, 0.28, 0.,   0.],
+            [0.,  0.2,  0.48, 0.68, 0.8,  0.84, 0.8,  0.68, 0.48, 0.2,  0.],
+            [0.,  0.32, 0.6,  0.8,  0.92, 0.96, 0.92, 0.8,  0.6,  0.32, 0.],
+            [0.,  0.36, 0.64, 0.84, 0.96, 1.,   0.96, 0.84, 0.64, 0.36, 0.],
+            [0.,  0.32, 0.6,  0.8,  0.92, 0.96, 0.92, 0.8,  0.6,  0.32, 0.],
+            [0.,  0.2,  0.48, 0.68, 0.8,  0.84, 0.8,  0.68, 0.48, 0.2,  0.],
+            [0.,  0.,   0.28, 0.48, 0.6,  0.64, 0.6,  0.48, 0.28, 0.,   0.],
+            [0.,  0.,   0.,   0.2,  0.32, 0.36, 0.32, 0.2,  0.,   0.,   0.],
+            [0.,  0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.,   0.]]]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_range5_unweighted_extra_dims(self):
+        """Test behaviour for a range of 5 without weighting."""
+        ranges = (5, 5)
+        fullranges = (0, 0, 5, 5)
+        weighted_mode = False
+        expected = [[[[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
+                      [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
+                      [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+                      [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]]]
+        result = (
+            CircularNeighbourhood(
+                weighted_mode=weighted_mode).circular_kernel(
+                    fullranges, ranges))
+        self.assertArrayEqual(result, expected)
 
 
 class Test_apply_circular_kernel(IrisTest):
 
-    """Test neighbourhood processing plugin on the OS National Grid."""
+    """Test neighbourhood circular probabilities plugin."""
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -66,7 +225,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=True).apply_circular_kernel(cube, ranges))
+                weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -78,17 +237,14 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
         """Test behaviour for a single non-zero grid cell, flat weighting.
-
         Note that this gives one more grid cell range than weighted! As the
         affected area is one grid cell more in each direction, an equivalent
-        range of 2 was chosen for this test.
-
-        """
+        range of 2 was chosen for this test."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
@@ -96,7 +252,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (2, 2)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=True).apply_circular_kernel(cube, ranges))
+                weighted_mode=False).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
@@ -113,26 +269,13 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_single_point_lat_long(self):
-        """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_cube_lat_long()
-        msg = "Invalid grid: projection_x/y coords required"
-        ranges = (3, 3)
-        with self.assertRaisesRegexp(ValueError, msg):
-            CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges)
-
     def test_single_point_masked_to_null(self):
-        """Test behaviour with a masked non-zero point.
-
-        The behaviour here is not right, as the mask is ignored.
-        This comes directly from the scipy.ndimage.correlate base
-        behaviour.
-
-        """
+        """Test behaviour with a masked non-zero point. The behaviour here is
+        not right, as the mask is ignored. This comes directly from the
+        scipy.ndimage.correlate base behaviour."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -144,15 +287,12 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
         """Test behaviour with a non-zero point next to a masked point.
-
-        The behaviour here is not right, as the mask is ignored.
-
-        """
+        The behaviour here is not right, as the mask is ignored."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -164,7 +304,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -175,7 +315,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (1, 1)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -188,15 +328,12 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
         """Test behaviour - non-zero point, small domain, large range.
-
-        This exhibits the undesirable edge reflection behaviour.
-
-        """
+        This exhibits the undesirable edge reflection behaviour."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 1, 1),), num_grid_points=4)
         expected = np.array([
@@ -208,7 +345,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (5, 5)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -228,7 +365,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
@@ -242,7 +379,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
@@ -255,17 +392,14 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge.
-
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-
-        """
+        this in the future."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
         expected = np.ones_like(cube.data)
@@ -281,7 +415,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
@@ -294,7 +428,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
@@ -309,17 +443,14 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner.
-
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-
-        """
+        this in the future."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
         expected = np.ones_like(cube.data)
@@ -333,7 +464,7 @@ class Test_apply_circular_kernel(IrisTest):
         ranges = (3, 3)
         result = (
             CircularNeighbourhood(
-                unweighted_mode=False).apply_circular_kernel(cube, ranges))
+                weighted_mode=True).apply_circular_kernel(cube, ranges))
         self.assertArrayAlmostEqual(result.data, expected)
 
 

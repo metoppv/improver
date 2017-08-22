@@ -41,6 +41,43 @@ import scipy.ndimage
 MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
+def check_if_grid_is_equal_area(cube):
+    """Identify whether the grid is an equal area grid.
+    If not, raise an error.
+    Parameters
+    ----------
+    cube : Iris.cube.Cube
+        Cube with coordinates that will be cMAhecked.
+    Raises
+    ------
+    ValueError : Invalid grid: projection_x/y coords required
+    ValueError : Intervals between points along the x and y axis vary.
+                 Therefore the grid is not an equal area grid.
+    ValueError : The size of the intervals along the x and y axis
+                 should be equal.
+    """
+    try:
+        for coord_name in ['projection_x_coordinate',
+                           'projection_y_coordinate']:
+            cube.coord(coord_name)
+    except CoordinateNotFoundError:
+        raise ValueError("Invalid grid: projection_x/y coords required")
+    for coord_name in ['projection_x_coordinate',
+                       'projection_y_coordinate']:
+        if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
+            msg = ("Intervals between points along the {} axis vary."
+                   "Therefore the grid is not an equal area grid."
+                   ).format(coord_name)
+            raise ValueError(msg)
+    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
+    y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
+    if x_diff != y_diff:
+        msg = ("The size of the intervals along the x and y axis "
+               "should be equal. x axis interval: {}, y axis interval: {}"
+               ).format(x_diff, y_diff)
+        raise ValueError(msg)
+
+
 def convert_distance_into_number_of_grid_cells(
         cube, distance, max_distance_in_grid_cells):
     """
