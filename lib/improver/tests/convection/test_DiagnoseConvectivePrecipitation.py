@@ -110,15 +110,18 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         lower_threshold = 0.001 * mm_hr_to_m_s
         higher_threshold = 5 * mm_hr_to_m_s
-        neighbourhood_method = "square"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "square"
         radii = 2000.0
         result = str(DiagnoseConvectivePrecipitation(
             lower_threshold, higher_threshold,
-            neighbourhood_method, radii))
+            neighbourhood_method, neighbourhood_shape, radii))
         msg = ('<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; '
-               'higher_threshold 1.3889e-06; neighbourhood_method: square; '
+               'higher_threshold 1.3889e-06; '
+               'neighbourhood_method: probabilities; '
+               'neighbourhood_shape: square; '
                'radii: 2000.0; fuzzy_factor None; below_thresh_ok: False; '
-               'lead_times: None; unweighted_mode: False; ens_factor: 1.0; '
+               'lead_times: None; weighted_mode: True; ens_factor: 1.0; '
                'use_adjacent_grid_square_differences: True>')
         self.assertEqual(str(result), msg)
 
@@ -131,7 +134,8 @@ class Test__calculate_convective_ratio(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "probabilities"
+        self.neighbourhood_shape = "square"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
         self.lower_cube = self.cube.copy()
@@ -152,7 +156,7 @@ class Test__calculate_convective_ratio(IrisTest):
                [1., 1., 1., 1.]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             self.radii)._calculate_convective_ratio(
                 self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -174,7 +178,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             self.radii)._calculate_convective_ratio(
                 cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -213,7 +217,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             radii)._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -230,7 +234,7 @@ class Test__calculate_convective_ratio(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
-                self.neighbourhood_method,
+                self.neighbourhood_method, self.neighbourhood_shape,
                 self.radii
                 )._calculate_convective_ratio(cubelist, self.threshold_list)
 
@@ -247,7 +251,7 @@ class Test__calculate_convective_ratio(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
-                self.neighbourhood_method, radii,
+                self.neighbourhood_method, self.neighbourhood_shape, radii,
                 )._calculate_convective_ratio(cubelist, self.threshold_list)
 
     def test_multiple_lead_times_neighbourhooding(self):
@@ -277,7 +281,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             radii, lead_times=lead_times
             )._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -306,7 +310,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.higher_threshold)
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             radii, ens_factor=ens_factor
             )._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -319,28 +323,30 @@ class Test__calculate_convective_ratio(IrisTest):
                [0., 0., 0., 0.],
                [1., np.nan, 1., 1.],
                [np.nan, 1., 1., 1.]]]])
-        neighbourhood_method = "circular"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            neighbourhood_method, self.radii
+            neighbourhood_method, neighbourhood_shape, self.radii
             )._calculate_convective_ratio(self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_circular_neighbourhood_unweighted_mode(self):
-        """Test a circular neighbourhood with the unweighted_mode
-        set to True."""
+    def test_circular_neighbourhood_weighted_mode_false(self):
+        """Test a circular neighbourhood with the weighted_mode
+        set to False."""
         expected = np.array(
             [[[[0., 0., 0., 0.],
                [0.2, 0., 0.25, 0.2],
                [0.666667, 0.75, 0.75, 0.8],
                [1., 1., 1., 1.]]]])
-        neighbourhood_method = "circular"
-        unweighted_mode = True
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        weighted_mode = False
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            neighbourhood_method,
-            self.radii, unweighted_mode=unweighted_mode
+            neighbourhood_method, neighbourhood_shape,
+            self.radii, weighted_mode=weighted_mode
             )._calculate_convective_ratio(self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -354,7 +360,8 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "probabilities"
+        self.neighbourhood_shape = "square"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -372,7 +379,7 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
                [2.222240e-06, 4.444480e-06, 2.222240e-06, 2.222240e-06]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii
             ).absolute_differences_between_adjacent_grid_squares(
                 self.cube, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
@@ -388,7 +395,8 @@ class Test_iterate_over_threshold(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "probabilities"
+        self.neighbourhood_shape = "square"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -402,7 +410,7 @@ class Test_iterate_over_threshold(IrisTest):
         cubelist = iris.cube.CubeList([self.cube, self.cube])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             self.radii).iterate_over_threshold(cubelist, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertArrayAlmostEqual(result[0].data, expected)
@@ -418,7 +426,7 @@ class Test_iterate_over_threshold(IrisTest):
         cubelist = iris.cube.CubeList([self.cube, self.cube])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             self.radii, fuzzy_factor=fuzzy_factor
             ).iterate_over_threshold(cubelist, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
@@ -439,7 +447,7 @@ class Test_iterate_over_threshold(IrisTest):
         cubelist = iris.cube.CubeList([self.cube, self.cube])
         result = DiagnoseConvectivePrecipitation(
             lower_threshold, higher_threshold,
-            self.neighbourhood_method,
+            self.neighbourhood_method, self.neighbourhood_shape,
             self.radii, below_thresh_ok=below_thresh_ok
             ).iterate_over_threshold(cubelist, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
@@ -455,7 +463,8 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "probabilities"
+        self.neighbourhood_shape = "square"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -489,7 +498,7 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
             [threshold_cube_x, threshold_cube_y])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii
             ).sum_differences_between_adjacent_grid_squares(
                 self.cube, thresholded_cube)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -526,7 +535,7 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
             [threshold_cube_x, threshold_cube_y])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii
             ).sum_differences_between_adjacent_grid_squares(
                 cube, thresholded_cube)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -541,7 +550,8 @@ class Test_process(IrisTest):
         """Set up the cube."""
         self.lower_threshold = 0.001 * mm_hr_to_m_s
         self.higher_threshold = 5 * mm_hr_to_m_s
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = "probabilities"
+        self.neighbourhood_shape = "square"
         self.radii = 2000.0
         self.cube = set_up_precipitation_rate_cube()
 
@@ -555,7 +565,8 @@ class Test_process(IrisTest):
                [0.863636, 0.85, 0.823529, 0.769231]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii).process(self.cube)
+            self.neighbourhood_method, self.neighbourhood_shape,
+            self.radii).process(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -570,7 +581,7 @@ class Test_process(IrisTest):
                [1., 1., 1., 1.]]]])
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii,
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii,
             use_adjacent_grid_square_differences=False).process(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)

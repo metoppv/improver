@@ -49,9 +49,9 @@ class DiagnoseConvectivePrecipitation(object):
 
     def __init__(
             self, lower_threshold, higher_threshold, neighbourhood_method,
-            radii, fuzzy_factor=None, below_thresh_ok=False,
-            lead_times=None, unweighted_mode=False, ens_factor=1.0,
-            use_adjacent_grid_square_differences=True):
+            neighbourhood_shape, radii, fuzzy_factor=None,
+            below_thresh_ok=False, lead_times=None, weighted_mode=True,
+            ens_factor=1.0, use_adjacent_grid_square_differences=True):
         """
         Args:
             lower_threshold : float
@@ -61,8 +61,11 @@ class DiagnoseConvectivePrecipitation(object):
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
             neighbourhood_method : str
-                Name of the neighbourhood method to use. Options: 'circular',
-                'square'.
+                Name of the neighbourhood method to use.
+                Options: 'probabilities', 'percentiles'.
+            neighbourhood_shape : str
+                Name of the neighbourhood shape to use.
+                Options: 'circular', 'square'.
             radii : float or List (if defining lead times)
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
@@ -78,10 +81,10 @@ class DiagnoseConvectivePrecipitation(object):
                 List of lead times or forecast periods, at which the radii
                 within radii are defined. The lead times are expected
                 in hours.
-            unweighted_mode : boolean
-                If True, use a circle with constant weighting.
-                If False, use a circle for neighbourhood kernel with
+            weighted_mode : boolean
+                If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
+                If False, use a circle with constant weighting.
             ens_factor : float
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
@@ -98,11 +101,12 @@ class DiagnoseConvectivePrecipitation(object):
         self.lower_threshold = lower_threshold
         self.higher_threshold = higher_threshold
         self.neighbourhood_method = neighbourhood_method
+        self.neighbourhood_shape = neighbourhood_shape
         self.radii = radii
         self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
         self.lead_times = lead_times
-        self.unweighted_mode = unweighted_mode
+        self.weighted_mode = weighted_mode
         self.ens_factor = ens_factor
         self.use_adjacent_grid_square_differences = (
             use_adjacent_grid_square_differences)
@@ -111,15 +115,16 @@ class DiagnoseConvectivePrecipitation(object):
         """Represent the configured plugin instance as a string."""
         result = ('<DiagnoseConvectivePrecipitation: lower_threshold {}; '
                   'higher_threshold {}; neighbourhood_method: {}; '
-                  'radii: {}; fuzzy_factor {}; '
+                  'neighbourhood_shape: {}; radii: {}; fuzzy_factor {}; '
                   'below_thresh_ok: {}; lead_times: {}; '
-                  'unweighted_mode: {}; ens_factor: {}; '
+                  'weighted_mode: {}; ens_factor: {}; '
                   'use_adjacent_grid_square_differences: {}>')
         return result.format(
             self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii, self.fuzzy_factor,
-            self.below_thresh_ok, self.lead_times, self.unweighted_mode,
-            self.ens_factor, self.use_adjacent_grid_square_differences)
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii,
+            self.fuzzy_factor, self.below_thresh_ok, self.lead_times,
+            self.weighted_mode, self.ens_factor,
+            self.use_adjacent_grid_square_differences)
 
     def _calculate_convective_ratio(self, cubelist, threshold_list):
         """
@@ -159,9 +164,9 @@ class DiagnoseConvectivePrecipitation(object):
         neighbourhooded_cube_dict = {}
         for cube, threshold in zip(cubelist, threshold_list):
             neighbourhooded_cube = NeighbourhoodProcessing(
-                self.neighbourhood_method, self.radii,
-                lead_times=self.lead_times,
-                unweighted_mode=self.unweighted_mode,
+                self.neighbourhood_method, self.neighbourhood_shape,
+                self.radii, lead_times=self.lead_times,
+                weighted_mode=self.weighted_mode,
                 ens_factor=self.ens_factor).process(cube)
             neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
 

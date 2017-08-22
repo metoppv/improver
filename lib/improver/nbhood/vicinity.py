@@ -44,8 +44,9 @@ class ProbabilityOfOccurrence(object):
     distance.
     """
 
-    def __init__(self, distance, neighbourhood_method, radii, lead_times=None,
-                 unweighted_mode=False, ens_factor=1.0):
+    def __init__(self, distance, neighbourhood_method, neighbourhood_shape,
+                 radii, lead_times=None, unweighted_mode=False,
+                 ens_factor=1.0):
         """
         Initialise the class.
 
@@ -54,8 +55,11 @@ class ProbabilityOfOccurrence(object):
                 Distance in metres used to define the vicinity within which to
                 search for an occurrence.
             neighbourhood_method : str
-                Name of the neighbourhood method to use. Options: 'circular',
-                'square'.
+                Name of the neighbourhood method to use.
+                Options: 'probabilities', 'percentiles'.
+            neighbourhood_shape : str
+                Name of the neighbourhood shape to use.
+                Options: 'circular', 'square'.
             radii : float or List (if defining lead times)
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
@@ -83,13 +87,14 @@ class ProbabilityOfOccurrence(object):
 
         """
         self.distance = distance
-        if neighbourhood_method in ["square"]:
-            self.neighbourhood_method = neighbourhood_method
+        self.neighbourhood_method = neighbourhood_method
+        if neighbourhood_shape in ["square"]:
+            self.neighbourhood_shape = neighbourhood_shape
         else:
             msg = ("Only a square neighbourhood is accepted for "
                    "probability of occurrence calculations. "
                    "Requested a {} neighbourhood.".format(
-                       neighbourhood_method))
+                       neighbourhood_shape))
             raise ValueError(msg)
         self.radii = radii
         self.lead_times = lead_times
@@ -99,12 +104,12 @@ class ProbabilityOfOccurrence(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ProbabilityOfOccurrence: distance: {}; '
-                  'neighbourhood_method: {}; radii: {}; '
-                  'lead_times: {}; unweighted_mode: {}; '
+                  'neighbourhood_method: {}; neighbourhood_shape: {}; '
+                  'radii: {}; lead_times: {}; unweighted_mode: {}; '
                   'ens_factor: {}>')
         return result.format(
-            self.distance, self.neighbourhood_method, self.radii,
-            self.lead_times, self.unweighted_mode, self.ens_factor)
+            self.distance, self.neighbourhood_method, self.neighbourhood_shape,
+            self.radii, self.lead_times, self.unweighted_mode, self.ens_factor)
 
     def process(self, cube):
         """
@@ -131,6 +136,7 @@ class ProbabilityOfOccurrence(object):
         if cube.coord_dims('realization'):
             cube = cube.collapsed('realization', iris.analysis.MEAN)
         cube = NeighbourhoodProcessing(
-            self.neighbourhood_method, self.radii, self.lead_times,
-            self.unweighted_mode, self.ens_factor).process(cube)
+            self.neighbourhood_method, self.neighbourhood_shape, self.radii,
+            self.lead_times, self.unweighted_mode,
+            self.ens_factor).process(cube)
         return cube

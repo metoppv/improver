@@ -41,11 +41,11 @@ import numpy as np
 
 from cf_units import Unit
 
-from improver.nbhood.nbhood import Utilities
+from improver.nbhood.utilities import Utilities
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
-    set_up_cube)
+    set_up_cube, set_up_cube_lat_long)
 
 
 class Test__repr__(IrisTest):
@@ -174,57 +174,24 @@ class Test_adjust_nsize_for_ens(IrisTest):
         self.assertAlmostEqual(result, 9.2376043070399998)
 
 
-class Test_check_cube_coordinates(IrisTest):
+class Test_check_if_grid_is_equal_area(IrisTest):
 
-    """Test check_cube_coordinates successfully promotes scalar coordinates to
-    dimension coordinates in a new cube if they were dimension coordinates in
-    the progenitor cube."""
+    """Test that the grid is an equal area grid."""
 
-    def test_basic(self):
-        """Test returns iris.cube.Cube."""
+    def test_wrong_coordinate(self):
+        """Test an exception is raised if the x and y coordinates are not
+        projection_x_coordinate or projection_y_coordinate."""
+        cube = set_up_cube_lat_long()
+        msg = "Invalid grid"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().check_if_grid_is_equal_area(cube)
+
+    def non_equal_area_grid(self):
+        """Test that the cubes have an equal areas grid."""
         cube = set_up_cube()
-        result = Utilities.check_cube_coordinates(cube, cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_coord_promotion(self):
-        """Test that scalar coordinates in new_cube are promoted to dimension
-        coordinates to match the parent cube."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_only_dim_coords_in_parent(self):
-        """Test that only dimension coordinates in the parent cube are matched
-        when promoting the scalar coordinates in new_cube. Here realization is
-        made into a scalar coordinate on the parent, and so should remain a
-        scalar in new_cube as well."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        cube = cube[0]
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_and_reordering(self):
-        """Test case in which a scalar coordinate are promoted but the order
-        must be corrected to match the progenitor cube."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        cube.transpose(new_order=[1, 0, 2, 3])
-        result = Utilities.check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
-
-    def test_coord_promotion_missing_scalar(self):
-        """Test case in which a scalar coordinate has been lost from new_cube,
-        meaning the cube undergoing checking ends up with different dimension
-        coordinates to the progenitor cube. This raises an error."""
-        cube = set_up_cube()
-        new_cube = iris.util.squeeze(cube)
-        new_cube.remove_coord('realization')
-        msg = 'Returned cube dimension coordinates'
-        with self.assertRaisesRegexp(iris.exceptions.CoordinateNotFoundError,
-                                     msg):
-            Utilities.check_cube_coordinates(cube, new_cube)
+        msg = "Intervals between points along the x and y axis vary."
+        with self.assertRaisesRegexp(ValueError, msg):
+            Utilities().check_if_grid_is_equal_area(cube)
 
 
 if __name__ == '__main__':

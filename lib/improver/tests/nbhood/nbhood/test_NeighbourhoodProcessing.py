@@ -46,6 +46,7 @@ from improver.grids.osgb import OSGBGRID
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
+from improver.percentile import PercentileConverter
 
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
@@ -249,19 +250,22 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegexp(ValueError, msg):
-            neighbourhood_method = 'circular'
-            NBHood(neighbourhood_method, radii, lead_times=lead_times)
+            neighbourhood_method = "probabilities"
+            neighbourhood_shape = "circular"
+            NBHood(neighbourhood_method, neighbourhood_shape,
+                   radii, lead_times=lead_times)
 
     def test_neighbourhood_method_does_not_exist(self):
         """
         Test that desired error message is raised, if the neighbourhood method
         does not exist.
         """
-        neighbourhood_method = 'nonsense'
+        neighbourhood_method = "nonsense"
+        neighbourhood_shape = "circular"
         radii = 10000
         msg = 'The neighbourhood_method requested: '
         with self.assertRaisesRegexp(KeyError, msg):
-            NBHood(neighbourhood_method, radii)
+            NBHood(neighbourhood_method, neighbourhood_shape, radii)
 
 
 class Test__repr__(IrisTest):
@@ -270,10 +274,16 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(NBHood("circular", 10000))
-        msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        result = str(NBHood(neighbourhood_method, neighbourhood_shape, 10000))
+        msg = ('<NeighbourhoodProcessing: '
+               'neighbourhood_method: probabilities; '
+               'neighbourhood_shape: circular; '
                'radii: 10000.0; lead_times: None; '
-               'unweighted_mode: False; ens_factor: 1.0>')
+               'weighted_mode: True; ens_factor: 1.0; '
+               'percentiles: {}>'.format(
+                   PercentileConverter.DEFAULT_PERCENTILES))
         self.assertEqual(result, msg)
 
 
@@ -283,11 +293,12 @@ class Test__find_radii(IrisTest):
 
     def test_basic_float_cube_lead_times_is_none(self):
         """Test _find_radii returns a float with the correct value."""
-        neighbourhood_method = "circular"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         ens_factor = 0.8
         num_ens = 2.0
         radius = 6300
-        plugin = NBHood(neighbourhood_method,
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
                         radius,
                         ens_factor=ens_factor)
         result = plugin._find_radii(num_ens)
@@ -297,13 +308,14 @@ class Test__find_radii(IrisTest):
 
     def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
-        neighbourhood_method = "circular"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         ens_factor = 0.9
         num_ens = 2.0
         fp_points = np.array([2, 3, 4])
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
-        plugin = NBHood(neighbourhood_method,
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
                         radii,
                         lead_times=lead_times,
                         ens_factor=ens_factor)
@@ -316,13 +328,14 @@ class Test__find_radii(IrisTest):
     def test_interpolation(self):
         """Test that interpolation is working as expected in _find_radii."""
         fp_points = np.array([2, 3, 4])
-        neighbourhood_method = "circular"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         ens_factor = 0.8
         num_ens = 4.0
         fp_points = np.array([2, 3, 4])
         radii = [10000, 30000]
         lead_times = [2, 4]
-        plugin = NBHood(neighbourhood_method,
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
                         radii,
                         lead_times=lead_times,
                         ens_factor=ens_factor)
@@ -341,8 +354,10 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube()
-        neighbourhood_method = "circular"
-        result = NBHood(neighbourhood_method, self.RADIUS).process(cube)
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        result = NBHood(neighbourhood_method,
+                        neighbourhood_shape, self.RADIUS).process(cube)
         self.assertIsInstance(result, Cube)
 
     def test_single_point_nan(self):
@@ -351,8 +366,10 @@ class Test_process(IrisTest):
         cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegexp(ValueError, msg):
-            neighbourhood_method = "circular"
-            NBHood(neighbourhood_method, self.RADIUS).process(cube)
+            neighbourhood_method = "probabilities"
+            neighbourhood_shape = "circular"
+            NBHood(neighbourhood_method, neighbourhood_shape,
+                   self.RADIUS).process(cube)
 
     def test_realizations_and_source_realizations_fails(self):
         """Raises error if realizations and source realizations both set."""
@@ -361,16 +378,19 @@ class Test_process(IrisTest):
         msg = ('Realizations and attribute source_realizations should not'
                ' both be set')
         with self.assertRaisesRegexp(ValueError, msg):
-            neighbourhood_method = "circular"
-            NBHood(neighbourhood_method, self.RADIUS).process(cube)
+            neighbourhood_method = "probabilities"
+            neighbourhood_shape = "circular"
+            NBHood(neighbourhood_method, neighbourhood_shape,
+                   self.RADIUS).process(cube)
 
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension."""
         cube = set_up_cube(num_realization_points=4)
-        radii = 15000
-        neighbourhood_method = "circular"
+        radii = 14400.
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         ens_factor = 0.8
-        result = NBHood(neighbourhood_method, radii,
+        result = NBHood(neighbourhood_method, neighbourhood_shape, radii,
                         ens_factor=ens_factor).process(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([4, 1, 16, 16])
@@ -389,11 +409,12 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [15000, 15000, 15000]
+        radii = [14400, 14400, 14400]
         lead_times = [2, 3, 4]
-        neighbourhood_method = "circular"
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
         ens_factor = 0.8
-        result = NBHood(neighbourhood_method, radii,
+        result = NBHood(neighbourhood_method, neighbourhood_shape, radii,
                         lead_times=lead_times,
                         ens_factor=ens_factor).process(cube)
         self.assertIsInstance(result, Cube)
@@ -407,9 +428,11 @@ class Test_process(IrisTest):
     def test_no_realizations(self):
         """Test when the array has no realization coord."""
         cube = set_up_cube_with_no_realizations()
-        radii = 6000
-        neighbourhood_method = "circular"
-        result = NBHood(neighbourhood_method, radii).process(cube)
+        radii = 5600
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        result = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii).process(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([1, 16, 16])
         expected[0, 6:9, 6:9] = (
@@ -423,10 +446,11 @@ class Test_process(IrisTest):
         member_list = [0, 1, 2, 3]
         cube = (
             set_up_cube_with_no_realizations(source_realizations=member_list))
-        radii = 15000
+        radii = 14400
         ens_factor = 0.8
-        neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, radii,
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape, radii,
                         ens_factor=ens_factor)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
@@ -449,8 +473,10 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
-        neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -484,10 +510,12 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 8000, 10000]
+        radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
-        neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii, lead_times)
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -507,8 +535,10 @@ class Test_process(IrisTest):
             cube, time_point=time_points, fp_point=fp_points)
         radii = [10000, 30000]
         lead_times = [2, 4]
-        neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
 
@@ -539,12 +569,28 @@ class Test_process(IrisTest):
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=time_points, fp_point=fp_points)
-        radii = [6000, 10000]
+        radii = [5600, 9500]
         lead_times = [2, 4]
-        neighbourhood_method = "circular"
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        neighbourhood_method = "probabilities"
+        neighbourhood_shape = "circular"
+        plugin = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii, lead_times)
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_returns_percentiles_coord(self):
+        """Test the expected percentiles coord exists."""
+        cube = set_up_cube_with_no_realizations()
+        radii = 6000
+        neighbourhood_method = "percentiles"
+        neighbourhood_shape = "circular"
+        result = NBHood(neighbourhood_method, neighbourhood_shape,
+                        radii).process(cube)
+        self.assertIsInstance(
+            result.coord('percentiles_over_neighbourhood'), iris.coords.Coord)
+        self.assertArrayEqual(result.coord(
+            'percentiles_over_neighbourhood').points,
+            PercentileConverter.DEFAULT_PERCENTILES)
 
 
 if __name__ == '__main__':
