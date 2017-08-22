@@ -172,3 +172,112 @@ class CircularNeighbourhood(object):
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
+
+
+class CircularPercentiles(object):
+    """
+    Methods for use in calculating percentiles from a 2D circular
+    neighbourhood.
+    A maximum kernel radius of 500 grid cells is imposed in order to
+    avoid computational ineffiency and possible memory errors.
+    """
+    def __init__(
+        self, percentiles=PercentileConverter.DEFAULT_PERCENTILES):
+        """
+        Initialise class.
+
+        Parameters
+        ----------
+        percentiles : list (optional)
+            Percentile values at which to calculate; if not provided uses
+            DEFAULT_PERCENTILES from percentile module.
+
+        """
+        self.percentiles = tuple(percentiles)
+
+    def __repr__(self):
+        """Represent the configured class instance as a string."""
+        result = ('<CircularPercentiles: percentiles: {}>')
+        return result.format(self.percentiles)
+
+    def run(self, cube, radius):
+        """
+        Method to apply a circular kernel to the data within the input cube in
+        order to derive percentiles over the kernel.
+
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube containing array to apply processing to.
+        radius : Float
+            Radius in metres for use in specifying the number of
+            grid cells used to create a circular neighbourhood.
+
+        Returns
+        -------
+        result : Iris.cube.Cube
+            Cube containing the percentile fields.
+            Has percentile as an added dimension.
+
+        """
+        # Check that the cube has an equal area grid.
+        Utilities.check_if_grid_is_equal_area(cube)
+        # Take data array and identify X and Y axes indices
+        ranges_tuple = convert_distance_into_number_of_grid_cells(
+            cube, radius, MAX_RADIUS_IN_GRID_CELLS)
+        ranges_xy = np.array(ranges_tuple)
+        kernel = CircularUtilities.circular_kernel(ranges_xy, ranges_tuple,
+                                                   weighted_mode=False)
+        # Loop over each 2D slice to reduce memory demand and derive
+        # percentiles on the kernel. Will return an extra dimension.
+        pctcubelist = iris.cube.CubeList()
+        for slice_2d in cube.slices(['projection_y_coordinate',
+                                     'projection_x_coordinate']):
+            # Create a 1D data array padded with repeats of the local boundary
+            # mean.
+            padded = np.pad(slice_2d.data, ranges_xy, mode='mean',
+                            stat_length=np.max(ranges_xy))
+            padshape = np.shape(padded)  # Store size to make unflatten easier
+            padded = padded.flatten()
+            # Add 2nd dimension with each point's neighbourhood points along it
+            nbhood_slices = [
+                np.roll(padded, (padshape[1]*j)+i)
+                for i in range(-ranges_xy[1], ranges_xy[1]+1)
+                for j in range(-ranges_xy[0], ranges_xy[0]+1)
+                if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
+            # Collapse this dimension into percentiles (a new 2nd dimension)
+            perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
+            # Return to 3D
+            perc_data = perc_data.reshape(
+                len(self.percentiles), padshape[0], padshape[1])
+            # Create a cube for these data:
+            pctcube = self.make_percentile_cube(slice_2d)
+            # And put in data, removing the padding
+            pctcube.data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
+                                     ranges_xy[1]:-ranges_xy[1]]
+            pctcubelist.append(pctcube)
+        result = pctcubelist.merge_cube()
+        exception_coordinates = (
+            find_dimension_coordinate_mismatch(
+                cube, result, two_way_mismatch=False))
+        result = (
+            check_cube_coordinates(
+                cube, result, exception_coordinates=exception_coordinates))
+
+        # Arrange cube, so that the coordinate order is:
+        # realization, percentile, other coordinates.
+        required_order = []
+        if result.coords("realization"):
+            required_order.append(result.coord_dims("realization")[0])
+        if result.coords("percentiles_over_neighbourhood"):
+            required_order.append(
+                result.coord_dims("percentiles_over_neighbourhood")[0])
+        other_coords = []
+        for coord in result.dim_coords:
+            if coord.name() not in [
+                   "realization", "percentiles_over_neighbourhood"]:
+                other_coords.append(result.coord_dims(coord.name())[0])
+        required_order.extend(other_coords)
+        result.transpose(required_order)
+
+        return result
