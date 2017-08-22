@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 import iris
 import numpy as np
 
-from improver.weights import WeightsUtilities
+from improver.blending.weights import WeightsUtilities
 
 
 def set_up_cube():

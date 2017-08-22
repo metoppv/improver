@@ -36,9 +36,9 @@ import iris
 import numpy as np
 from cf_units import Unit
 
-from improver.weights import (
+from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
-from improver.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.argparser import ArgParser
 
 
