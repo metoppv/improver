@@ -61,6 +61,9 @@ class Test_extrema(IrisTest):
                                    calendar='gregorian')
         time_coord = DimCoord(times, standard_name='time',
                               units=time_units)
+        forecast_ref_time = time_coord[0].copy()
+        forecast_ref_time.rename('forecast_reference_time')
+
         # UTC offset arranged to sequence -12 --> 14.
         utc_offsets = range(-12, 15) * int(n_data/24)
         utc_offset = AuxCoord(utc_offsets, long_name='utc_offset',
@@ -76,6 +79,7 @@ class Test_extrema(IrisTest):
                     dim_coords_and_dims=[(time_coord, 0), (indices, 1)],
                     aux_coords_and_dims=[(utc_offset, 1)],
                     units="K")
+        cube.add_aux_coord(forecast_ref_time)
         self.cube = cube
         self.time_coord = time_coord
         self.n_data = n_data

@@ -74,6 +74,8 @@ class Test_main(IrisTest):
             [1487311200, 1487314800], standard_name='time',
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
+        forecast_ref_time = time[0].copy()
+        forecast_ref_time.rename('forecast_reference_time')
 
         cube = Cube(data,
                     long_name="air_temperature",
@@ -81,6 +83,7 @@ class Test_main(IrisTest):
                                          (latitude, 1),
                                          (longitude, 2)],
                     units="K")
+        cube.add_aux_coord(forecast_ref_time)
 
         # Create the orography ancillary cube.
         orography = Cube(np.ones((20, 20)),
