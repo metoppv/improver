@@ -30,11 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing Blending classes that blend over adjacent points, as
 opposed to collapsing the whole dimension."""
-import warnings
 
-import numpy as np
 import iris
-from iris.analysis import Aggregator
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.utilities.cube_manipulation import concatenate_cubes
