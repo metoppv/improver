@@ -35,6 +35,8 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 from iris import FUTURE
 
+from constants import DEFAULT_PERCENTILES
+
 FUTURE.netcdf_promote = True
 
 
@@ -45,10 +47,6 @@ class PercentileConverter(object):
     Generate percentiles together with min, max, mean, stdev.
 
     """
-
-    # Default percentile boundaries to calculate at.
-    DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
-                           60, 70, 75, 80, 90, 95, 100]
 
     def __init__(self, collapse_coord, percentiles=None):
         """

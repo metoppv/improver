@@ -149,6 +149,102 @@ class Utilities(object):
         return new_width
 
 
+class PercentilesNeighbourhoodProcessing(NeighbourhoodProcessing):
+
+    def __init__(
+        self, neighbourhood_method, radii, lead_times=None,
+        ens_factor=1.0, percentiles=constants.DEFAULT_PERCENTILES):
+        """
+        Create a neighbourhood processing plugin that applies a smoothing
+        to points in a cube.
+
+        Parameters
+        ----------
+
+        neighbourhood_method : str
+            Name of the neighbourhood method to use. Options: 'circular',
+            'square'.
+        radii : float or List (if defining lead times)
+            The radii in metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid
+            points east and north, based on the characteristic spacing
+            at the zero indices of the cube projection-x and y coords.
+        lead_times : None or List
+            List of lead times or forecast periods, at which the radii
+            within 'radii' are defined. The lead times are expected
+            in hours.
+        ens_factor : float
+            The factor with which to adjust the neighbourhood size
+            for more than one ensemble member.
+            If ens_factor = 1.0 this essentially conserves ensemble
+            members if every grid square is considered to be the
+            equivalent of an ensemble member.
+            Optional, defaults to 1.0
+        """
+        NeighbourhoodProcessing.__init__(
+            self, neighbourhood_method, radii, lead_times=None,
+            ens_factor=1.0)
+
+
+
+    def __repr__():
+        """Represent the configured plugin instance as a string."""
+        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'radii: {}; lead_times: {}; '
+                  'weighted_mode: {}; ens_factor: {}>')
+        return result.format(
+            self.neighbourhood_method_key, self.radii, self.lead_times,
+            self.weighted_mode, self.ens_factor)
+
+        methods = {
+            "circular": CircularPercentiles}
+        try:
+            method = methods[neighbourhood_method]
+            self.neighbourhood_method = method(weighted_mode)
+        except KeyError:
+            msg = ("The neighbourhood_method requested: {} is not a "
+                   "supported method. Please choose from: {}".format(
+                       neighbourhood_method, methods.keys()))
+            raise KeyError(msg)
+
+    def process(self, cube):
+        return NeighbourhoodProcessing.process(cube)
+
+
+class ProbabilisticNeighbourhoodProcess(NeighbourhoodProcessing)
+
+    def __init__(self, neighbourhood_method, radii, lead_times=None,
+                 weighted_mode=True, ens_factor=1.0):
+        NeighbourhoodProcessing.__init__(
+            self, neighbourhood_method, radii, lead_times=None,
+            weighted_mode=True, ens_factor=1.0)
+
+        methods = {
+            "circular": CircularNeighbourhood,
+            "square": SquareNeighbourhood}
+        try:
+            method = methods[neighbourhood_method]
+            self.neighbourhood_method = method(weighted_mode)
+        except KeyError:
+            msg = ("The neighbourhood_method requested: {} is not a "
+                   "supported method. Please choose from: {}".format(
+                       neighbourhood_method, methods.keys()))
+            raise KeyError(msg)
+
+
+    def __repr__():
+        """Represent the configured plugin instance as a string."""
+        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'radii: {}; lead_times: {}; '
+                  'weighted_mode: {}; ens_factor: {}>')
+        return result.format(
+            self.neighbourhood_method_key, self.radii, self.lead_times,
+            self.weighted_mode, self.ens_factor)
+
+    def process(self, cube):
+        return NeighbourhoodProcessing.process(cube)
+
+
 class NeighbourhoodProcessing(object):
     """
     Apply a neighbourhood processing method to a thresholded cube.
