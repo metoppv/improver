@@ -85,8 +85,7 @@ class Test_circular_kernel(IrisTest):
         """Test behaviour for a unitary range without weighting.
         Note that this gives one more grid cell range than weighted! As the
         affected area is one grid cell more in each direction, an equivalent
-        range of 2 was chosen for this test.
-        """
+        range of 2 was chosen for this test."""
         ranges = (1, 1)
         fullranges = (1, 1)
         weighted_mode = False
@@ -243,12 +242,9 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_flat(self):
         """Test behaviour for a single non-zero grid cell, flat weighting.
-
         Note that this gives one more grid cell range than weighted! As the
         affected area is one grid cell more in each direction, an equivalent
-        range of 2 was chosen for this test.
-
-        """
+        range of 2 was chosen for this test."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
@@ -277,13 +273,9 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_to_null(self):
-        """Test behaviour with a masked non-zero point.
-
-        The behaviour here is not right, as the mask is ignored.
-        This comes directly from the scipy.ndimage.correlate base
-        behaviour.
-
-        """
+        """Test behaviour with a masked non-zero point. The behaviour here is
+        not right, as the mask is ignored. This comes directly from the
+        scipy.ndimage.correlate base behaviour."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -300,10 +292,7 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_masked_other_point(self):
         """Test behaviour with a non-zero point next to a masked point.
-
-        The behaviour here is not right, as the mask is ignored.
-
-        """
+        The behaviour here is not right, as the mask is ignored."""
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -344,10 +333,7 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_range_5_small_domain(self):
         """Test behaviour - non-zero point, small domain, large range.
-
-        This exhibits the undesirable edge reflection behaviour.
-
-        """
+        This exhibits the undesirable edge reflection behaviour."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 1, 1),), num_grid_points=4)
         expected = np.array([
@@ -411,12 +397,9 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge.
-
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-
-        """
+        this in the future."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
         expected = np.ones_like(cube.data)
@@ -465,12 +448,9 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner.
-
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-
-        """
+        this in the future."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
         expected = np.ones_like(cube.data)
