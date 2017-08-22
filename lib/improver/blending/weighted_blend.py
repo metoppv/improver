@@ -36,8 +36,6 @@ import numpy as np
 import iris
 from iris.analysis import Aggregator
 
-from improver.utilities.cube_manipulation import concatenate_cubes
-
 
 class PercentileBlendingAggregator(object):
     """Class for the percentile blending aggregator
@@ -211,6 +209,60 @@ class PercentileBlendingAggregator(object):
         return new_combined_perc
 
 
+class MaxProbabilityAggregator(object):
+    """Class the Aggregator used to calculate the maximum weighted probability.
+       1. Find the weighted probabilities for each point in the dimension of
+          interest by multiplying each probability by the corresponding weight.
+       2. Find the maximum weighted probability and return the array with one
+          less dimension than the input array.
+    """
+
+    def __init__(self):
+        """
+        Initialise class.
+        """
+        pass
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<MaxProbabilityAggregator>')
+        return result
+
+    @staticmethod
+    def aggregate(data, axis, arr_weights):
+        """ Max probability aggregator method. Used to find the maximum
+            weighted probability along a given axis.
+
+        Args:
+            data : np.array
+                   Array containing the data to blend
+            axis : integer
+                   The index of the coordinate dimension in the cube. This
+                   dimension will be aggregated over.
+            arr_weights: np.array
+                   Array of weights, same size as the axis dimension of data.
+
+
+        Returns:
+            result : np.array
+                     The data collapsed along the axis dimension, containing
+                     the maximum weighted probability.
+        """
+        # Iris aggregators support indexing from the end of the array.
+        if axis < 0:
+            axis += data.ndim
+        # Reshape the weights to match the shape of the data.
+        shape = [1 for dim in data.shape]
+        shape[axis] = arr_weights.shape[0]
+        arr_weights = arr_weights.reshape(tuple(shape))
+        # Calculate the weighted probabilities
+        weighted_probs = data*arr_weights
+        # Find the maximum along the axis of interest
+        result = np.max(weighted_probs, axis=axis)
+
+        return result
+
+
 class WeightedBlendAcrossWholeDimension(object):
     """Apply a Weighted blend to a cube,
        collapsing across the whole dimension."""
@@ -331,8 +383,8 @@ class WeightedBlendAcrossWholeDimension(object):
                 num = len(cube.coord(self.coord).points)
                 weights = np.ones(num) / float(num)
             # Set up aggregator
-            PERCENTILE_BLEND = (Aggregator('percentile_blend',
-                                PercentileBlendingAggregator.aggregate))
+            PERCENTILE_BLEND = (Aggregator(
+                'percentile_blend', PercentileBlendingAggregator.aggregate))
 
             result = cube.collapsed(self.coord,
                                     PERCENTILE_BLEND,
