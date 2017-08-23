@@ -33,7 +33,7 @@
 
 @test "weighted-blending --linear --ynval --cval" {
   # Run blending with non-linear weights calculation but linear args: check it fails.
-  run improver weighted-blending 'nonlinear' 'time' --ynval 1 --y0val 0\
+  run improver weighted-blending 'nonlinear' 'time' 'weighted_mean' --ynval 1 --y0val 0\
       "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
@@ -47,8 +47,8 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
+                                  COORDINATE_TO_AVERAGE_OVER
+                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
 improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, slope, ynval
 __TEXT__
   [[ "$output" =~ "$expected" ]]

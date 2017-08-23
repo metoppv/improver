@@ -33,7 +33,7 @@
 
 @test "weighted-blending --linear --ynval --slope" {
   # Run blending with linear weights calculation but too many args: check it fails.
-  run improver weighted-blending 'linear' 'time' --ynval 1.0 --slope 0.0\
+  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1.0 --slope 0.0\
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
@@ -47,8 +47,8 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
+                                  COORDINATE_TO_AVERAGE_OVER
+                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
 improver-weighted-blending: error: argument --slope: not allowed with argument --ynval
 __TEXT__
   [[ "$output" =~ "$expected" ]]

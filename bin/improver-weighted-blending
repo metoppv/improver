@@ -76,10 +76,19 @@ def main():
                              'hours since 1970-01-01 00:00:00.')
     parser.add_argument('--calendar', metavar='CALENDER',
                         help='Calendar for time coordinate. Default=gregorian')
+    parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
+                        choices=['weighted_mean', 'weighted_maximum'],
+                        help='The method used in the weighted blend. '
+                             '"weighted_mean": calculate a normal weighted'
+                             ' mean across the coordinate. '
+                             '"weighted_maximum": multiplies the values in the'
+                             ' coordinate by the weights, and then takes the'
+                             ' maximum.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+
     linear = parser.add_argument_group('linear weights options',
                                        'Options for the linear weights '
                                        'calculation in '
@@ -161,9 +170,10 @@ def main():
         weights = ChooseDefaultWeightsNonLinear(cval).process(
             cube, args.coordinate, args.coord_exp_val, coord_unit,
             args.wts_redistrib_method)
-    result = (
-        WeightedBlendAcrossWholeDimension(
-            args.coordinate, args.coord_adj).process(cube, weights))
+
+    BlendingPlugin = WeightedBlendAcrossWholeDimension(
+            args.coordinate, args.weighting_mode, args.coord_adj)
+    result = BlendingPlugin.process(cube, weights)
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

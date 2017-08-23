@@ -42,8 +42,9 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
+                                  COORDINATE_TO_AVERAGE_OVER
+                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
+improver-weighted-blending: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
