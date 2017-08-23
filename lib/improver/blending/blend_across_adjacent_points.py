@@ -134,7 +134,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)
         # Set up the blending function.
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord)
+        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
+                                                           'weighted_mean')
         result = iris.cube.CubeList([])
         # Loop over each point in the coordinate we are blending over, and
         # calculate a new weighted average for it.

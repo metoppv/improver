@@ -251,8 +251,11 @@ class MaxProbabilityAggregator(object):
         # Iris aggregators support indexing from the end of the array.
         if axis < 0:
             axis += data.ndim
+        #
+
+        arr_weights = np.array(arr_weights)
         # Reshape the weights to match the shape of the data.
-        shape = [1 for dim in data.shape]
+        shape = [1 for _ in data.shape]
         shape[axis] = arr_weights.shape[0]
         arr_weights = arr_weights.reshape(tuple(shape))
         # Calculate the weighted probabilities
@@ -264,30 +267,45 @@ class MaxProbabilityAggregator(object):
 
 
 class WeightedBlendAcrossWholeDimension(object):
-    """Apply a Weighted blend to a cube,
-       collapsing across the whole dimension."""
+    """Apply a Weighted blend to a cube, collapsing across the whole
+       dimension. Uses one of two methods, either weighted average, or
+       the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, coord_adjust=None):
+    def __init__(self, coord, weighting_mode, coord_adjust=None):
         """Set up for a Weighted Blending plugin
 
         Args:
             coord : string
-                     The name of a coordinate dimension in the cube.
-            coord_adjust : Function to apply to the coordinate after
-                           collapsing the cube to correct the values,
-                           for example for time windowing and
-                           cycle averaging the follow function would
-                           adjust the time coordinates.
-            e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+                The name of a coordinate dimension in the cube.
+            weighting_mode : string
+                One of 'weighted_maximum' or 'weighted_mean':
+                 - Weighted mean: a normal weighted average over the coordinate
+                   of interest.
+                 - Weighted_maximum: the points in the coordinate of interest
+                   are multiplied by the weights and then the maximum is taken.
+            coord_adjust : function
+                Function to apply to the coordinate after collapsing the cube
+                to correct the values, for example for time windowing and
+                cycle averaging the follow function would adjust the time
+                coordinates.
+                    e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+        Raises:
+            ValueError : If an invalid weighting_mode is given.
         """
         self.coord = coord
+        if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
+            msg = ("weighting_mode: {} is not recognised, must be either "
+                   "weighted_maximum or weighted_mean").format(weighting_mode)
+            raise ValueError(msg)
+        self.mode = weighting_mode
         self.coord_adjust = coord_adjust
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return (
-            '<WeightedBlendAcrossWholeDimension:'
-            ' coord = {0:s}>').format(self.coord)
+        description = ('<WeightedBlendAcrossWholeDimension:'
+                       ' coord = {0:s}, weighting_mode = {1:s},'
+                       ' coord_adjust = {2:s}>')
+        return description.format(self.coord, self.mode, self.coord_adjust)
 
     def process(self, cube, weights=None):
         """Calculate weighted blend across the chosen coord, for either
@@ -315,6 +333,8 @@ class WeightedBlendAcrossWholeDimension(object):
                             the blending.
             ValueError : If there are more than one percentile coords
                            in the cube.
+            ValueError : If there is a percentile dimension on the cube and the
+                         mode for blending is 'weighted_maximum'
             ValueError : If the weights shape do not match the dimension
                            of the coord we are blending over.
         Warns:
@@ -353,6 +373,13 @@ class WeightedBlendAcrossWholeDimension(object):
                    'on the cube.')
             raise ValueError(msg)
 
+        # If we have a percentile dimension and the mode is 'max' raise an
+        # exception.
+        if perc_coord and self.mode == 'weighted_maximum':
+            msg = ('The "weighted_maximum" mode cannot be used with'
+                   ' percentile data.')
+            raise ValueError(msg)
+
         # check weights array matches coordinate shape if not None
         if weights is not None:
             if np.array(weights).shape != cube.coord(self.coord).points.shape:
@@ -375,7 +402,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         # Blend the cube across the coordinate
         # Use percentile Aggregator if required
-        elif perc_coord is not None:
+        elif perc_coord and self.mode == "weighted_mean":
             percentiles = np.array(perc_coord.points, dtype=float)
             perc_dim, = cube.coord_dims(perc_coord.name())
             # Set equal weights if none are provided
@@ -393,7 +420,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                     perc_dim=perc_dim)
 
         # Else do a simple weighted average
-        else:
+        elif self.mode == "weighted_mean":
             # Equal weights are used as default.
             weights_array = None
             # Else broadcast the weights to be used by the aggregator.
@@ -404,6 +431,21 @@ class WeightedBlendAcrossWholeDimension(object):
             # Calculate the weighted average.
             result = cube.collapsed(self.coord,
                                     iris.analysis.MEAN, weights=weights_array)
+
+        # Else use the maximum probability aggregator.
+        elif self.mode == "weighted_maximum":
+            # Set equal weights if none are provided
+            if weights is None:
+                num = len(cube.coord(self.coord).points)
+                weights = np.ones(num) / float(num)
+            # Set up aggregator
+            MAX_PROBABILITY = (Aggregator(
+                'weighted_maximum_probability',
+                MaxProbabilityAggregator.aggregate))
+
+            result = cube.collapsed(self.coord,
+                                    MAX_PROBABILITY,
+                                    arr_weights=weights)
 
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
