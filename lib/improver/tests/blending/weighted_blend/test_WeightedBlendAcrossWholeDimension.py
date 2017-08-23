@@ -72,7 +72,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.coord_adjust, None)
 
     def test_raises_expression(self):
-        """Test that the __init__ returns the expected string."""
+        """Test that the __init__ raises an error when appropriate."""
         message = ("weighting_mode: not_a_method is not recognised, "
                    "must be either weighted_maximum or weighted_mean")
         with self.assertRaisesRegexp(ValueError, message):

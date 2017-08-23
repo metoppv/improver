@@ -46,9 +46,14 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
     point in the coordinate of interest having been blended with the adjacent
     points according to a triangular weighting
     function of a specified width.
+    There are two modes of blending:
+        1. Weighted mean across the dimension of interest.
+        2. Weighted maximum across the dimension of interest, where
+           probabilities are mulitplied by the weights and the maximum is
+           taken.
     """
 
-    def __init__(self, coord, width, parameter_units):
+    def __init__(self, coord, width, parameter_units, weighting_mode):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -63,19 +68,31 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
-
+            weighting_mode : string
+                The mode of blending, either weighted_mean or
+                weighted_maximum. Weighted average finds the weighted mean
+                across the dimension of interest. Maximum probability
+                multiplies the values across the dimension of interest by the
+                given weights and returns the maximum value.
+        Raises:
+            ValueError : If an invalid weighting_mode is given
         """
         self.coord = coord
         self.width = width
         self.parameter_units = parameter_units
+        if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
+            msg = ("weighting_mode: {} is not recognised, must be either "
+                   "weighted_maximum or weighted_mean").format(weighting_mode)
+            raise ValueError(msg)
+        self.mode = weighting_mode
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return (
-            '<TriangularWeightedBlendAcrossAdjacentPoints:'
-            ' coord = {0:s}, width = {1:.2f},'
-            ' parameter_units = {2:s}>').format(self.coord, self.width,
-                                                self.parameter_units)
+        msg =  ('<TriangularWeightedBlendAcrossAdjacentPoints:'
+                ' coord = {0:s}, width = {1:.2f},'
+                ' parameter_units = {2:s}, mode = {3:s}>')
+        return msg.format(self.coord, self.width, self.parameter_units,
+                          self.mode)
 
     @staticmethod
     def correct_collapsed_coordinates(orig_cube, new_cube, coords_to_correct):
@@ -133,9 +150,10 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # Set up a plugin to calculate the triangular weights.
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)
-        # Set up the blending function.
+        # Set up the blending function, based on whether weighted blending or
+        # maximum probabilities are needed.
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
-                                                           'weighted_mean')
+                                                           self.mode)
         result = iris.cube.CubeList([])
         # Loop over each point in the coordinate we are blending over, and
         # calculate a new weighted average for it.
