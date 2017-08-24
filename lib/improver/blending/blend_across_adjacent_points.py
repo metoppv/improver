@@ -88,9 +88,9 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        msg =  ('<TriangularWeightedBlendAcrossAdjacentPoints:'
-                ' coord = {0:s}, width = {1:.2f},'
-                ' parameter_units = {2:s}, mode = {3:s}>')
+        msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
+               ' coord = {0:s}, width = {1:.2f},'
+               ' parameter_units = {2:s}, mode = {3:s}>')
         return msg.format(self.coord, self.width, self.parameter_units,
                           self.mode)
 
@@ -146,7 +146,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # as bounds will be added when the blending happens, so add bounds if
         # it doesn't have some already.
         for coord in coords_to_correct:
-            cube.coord(coord).guess_bounds()
+            if not cube.coord(coord).has_bounds():
+                cube.coord(coord).guess_bounds()
         # Set up a plugin to calculate the triangular weights.
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)

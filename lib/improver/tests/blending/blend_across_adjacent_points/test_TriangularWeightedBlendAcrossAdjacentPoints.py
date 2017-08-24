@@ -103,7 +103,7 @@ class Test__init__(IrisTest):
         message = ("weighting_mode: no_mode is not recognised, "
                    "must be either weighted_maximum or weighted_mean")
         with self.assertRaisesRegexp(ValueError, message):
-            plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            TriangularWeightedBlendAcrossAdjacentPoints(
                 'time', 3.0, 'hours', 'no_mode')
 
 
