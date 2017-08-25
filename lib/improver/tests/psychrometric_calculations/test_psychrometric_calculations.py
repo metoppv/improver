@@ -255,11 +255,12 @@ class Test_wet_bulb(IrisTest):
                      {'t': 60., 'rh': 1, 'p': 1200.},
                      {'t': -100., 'rh': 0.0001, 'p': 1200.},
                      {'t': -100., 'rh': 1, 'p': 1200.},
-                    ]
+                     ]
         for scenario in scenarios:
             scenario = {key: np.full((2, 2), value)
                         for key, value in scenario.iteritems()}
-            temperature = _make_test_cube("temperature", "celsius", scenario['t'])
+            temperature = _make_test_cube("temperature", "celsius",
+                                          scenario['t'])
             humidity = _make_test_cube("relative_humidity", 1, scenario['rh'])
             pressure = _make_test_cube("pressure", "hPa", scenario['p'])
             result = wet_bulb(temperature, humidity, pressure)
