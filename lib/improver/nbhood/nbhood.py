@@ -38,9 +38,11 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage.filters
 
-from improver.nbhood.circular_kernel import CircularNeighbourhood
+from improver.nbhood.circular_kernel import (
+    CircularNeighbourhood, GeneratePercentilesFromACircularNeighbourhood)
 from improver.nbhood.square_kernel import SquareNeighbourhood
 
+from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
@@ -193,6 +195,8 @@ class BaseNeighbourhoodProcessing(object):
         """
         self.neighbourhood_method_key = neighbourhood_method
 
+        self.neighbourhood_method = None
+
         if isinstance(radii, list):
             self.radii = [float(x) for x in radii]
         else:
@@ -241,14 +245,13 @@ class BaseNeighbourhoodProcessing(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; '
-                  'weighted_mode: {}; ens_factor: {}>')
+        result = ('NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'radii: {}; lead_times: {}; ens_factor: {}')
         return result.format(
             self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.weighted_mode, self.ens_factor)
+            self.ens_factor)
 
-    def process(self, cube):
+    def run(self, cube):
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.
@@ -328,14 +331,16 @@ class BaseNeighbourhoodProcessing(object):
         return merged_cube
 
 
-class GeneratingPercentilesFromANeighbourhood(NeighbourhoodProcessing):
+class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
+
+    """Class for generating percentiles from a neighbourhood."""
 
     def __init__(
-        self, neighbourhood_method, radii, lead_times=None,
-        ens_factor=1.0, percentiles=constants.DEFAULT_PERCENTILES):
+            self, neighbourhood_method, radii, lead_times=None,
+            ens_factor=1.0, percentiles=DEFAULT_PERCENTILES):
         """
-        Create a neighbourhood processing plugin that applies a smoothing
-        to points in a cube.
+        Create a neighbourhood processing plugin that generates percentiles
+        from a neighbourhood of points.
 
         Parameters
         ----------
@@ -360,33 +365,31 @@ class GeneratingPercentilesFromANeighbourhood(NeighbourhoodProcessing):
             Optional, defaults to 1.0
         percentiles : list (optional)
             Percentile values at which to calculate; if not provided uses
-            DEFAULT_PERCENTILES from percentile module.
-            This value is ignored for probability methods.
+            DEFAULT_PERCENTILES.
         """
-        NeighbourhoodProcessing.__init__(
-            self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0)
+        super(GeneratePercentilesFromANeighbourhood, self).__init__(
+            neighbourhood_method, radii, lead_times=lead_times,
+            ens_factor=ens_factor)
+
+        self.percentiles = percentiles
 
         methods = {
-            "circular": CircularPercentiles}
+            "circular": GeneratePercentilesFromACircularNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(percentiles=percentiles)
+            self.neighbourhood_method = method(percentiles=self.percentiles)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
                        neighbourhood_method, methods.keys()))
             raise KeyError(msg)
 
-
-    def __repr__():
+    def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; ens_factor: {} '
-                  'percentiles: {}>')
+        result = ('<{}; NeighbourhoodProcessing: percentiles: {}>')
         return result.format(
-            self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.ens_factor, self.percentiles)
+            super(GeneratePercentilesFromANeighbourhood, self).__repr__(),
+            self.percentiles)
 
     def process(self, cube):
         """
@@ -404,13 +407,17 @@ class GeneratingPercentilesFromANeighbourhood(NeighbourhoodProcessing):
         Iris.cube.Cube
             Cube after calculating percentile values from a neighbourhood.
         """
-        return NeighbourhoodProcessing.process(cube)
+        return self.run(cube)
 
 
-class NeighbourhoodProcessing(BaseNeighbourhoodProcessing)
+class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
-    def __init__(self, neighbourhood_method, radii, lead_times=None,
-                 ens_factor=1.0, weighted_mode=True):
+    """Class for applying neighbourhood processing to produce a smoothed field
+    within the chosen neighbourhood."""
+
+    def __init__(
+            self, neighbourhood_method, radii, lead_times=None,
+            ens_factor=1.0, weighted_mode=True):
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -442,9 +449,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing)
             If False, use a circle with constant weighting.
 
         """
-        NeighbourhoodProcessing.__init__(
-            self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0)
+        super(NeighbourhoodProcessing, self).__init__(
+            neighbourhood_method, radii, lead_times=lead_times,
+            ens_factor=ens_factor)
 
         methods = {
             "circular": CircularNeighbourhood,
@@ -460,15 +467,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing)
 
         self.weighted_mode = bool(weighted_mode)
 
-
-    def __repr__():
+    def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; '
-                  'weighted_mode: {}; ens_factor: {}>')
+        result = ('<{}; weighted_mode: {}>')
         return result.format(
-            self.neighbourhood_method_key, self.radii, self.lead_times,
-            self.weighted_mode, self.ens_factor)
+            super(NeighbourhoodProcessing, self).__repr__(),
+            self.weighted_mode)
 
     def process(self, cube):
         """
@@ -486,4 +490,4 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing)
             Cube after applying a neighbourhood processing method, so that the
             resulting field is smoothed.
         """
-        return NeighbourhoodProcessing.process(cube)
+        return self.run(cube)

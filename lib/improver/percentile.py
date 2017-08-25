@@ -72,7 +72,7 @@ class PercentileConverter(object):
         if percentiles is not None:
             self.percentiles = [int(value) for value in percentiles]
         else:
-            self.percentiles = self.DEFAULT_PERCENTILES
+            self.percentiles = DEFAULT_PERCENTILES
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such

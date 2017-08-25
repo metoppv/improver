@@ -33,12 +33,58 @@
 import numpy as np
 import scipy.ndimage.filters
 
+import iris
+
+from improver.constants import DEFAULT_PERCENTILES
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
+
+
+def circular_kernel(fullranges, ranges, weighted_mode):
+    """
+
+    Method to create a circular kernel.
+
+    Parameters
+    ----------
+    fullranges : Numpy.array
+        Number of grid cells in all dimensions used to create the kernel.
+        This should have the value 0 for any dimension other than x and y.
+    ranges : Tuple
+        Number of grid cells in the x and y direction used to create
+        the kernel.
+
+    Returns
+    -------
+    kernel : Numpy.array
+        Array containing the circular smoothing kernel.
+        This will have the same number of dimensions as fullranges.
+
+    """
+    # Define the size of the kernel based on the number of grid cells
+    # contained within the desired radius.
+    kernel = np.ones([int(1 + x * 2) for x in fullranges])
+    # Create an open multi-dimensional meshgrid.
+    open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
+    if weighted_mode:
+        # Create a kernel, such that the central grid point has the
+        # highest weighting, with the weighting decreasing with distance
+        # away from the central grid point.
+        open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
+        kernel[:] = (
+            (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
+        mask = kernel < 0.
+    else:
+        mask = np.reshape(
+            np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
+    kernel[mask] = 0.
+    return kernel
 
 
 class CircularNeighbourhood(object):
@@ -67,46 +113,6 @@ class CircularNeighbourhood(object):
         """Represent the configured plugin instance as a string."""
         result = ('<CircularProbabilities: weighted_mode: {}>')
         return result.format(self.weighted_mode)
-
-    def circular_kernel(self, fullranges, ranges):
-        """
-
-        Method to create a circular kernel.
-
-        Parameters
-        ----------
-        fullranges : Numpy.array
-            Number of grid cells in all dimensions used to create the kernel.
-            This should have the value 0 for any dimension other than x and y.
-        ranges : Tuple
-            Number of grid cells in the x and y direction used to create
-            the kernel.
-
-        Returns
-        -------
-        kernel : Numpy.array
-            Array containing the circular smoothing kernel.
-            This will have the same number of dimensions as fullranges.
-
-        """
-        # Define the size of the kernel based on the number of grid cells
-        # contained within the desired radius.
-        kernel = np.ones([int(1 + x * 2) for x in fullranges])
-        # Create an open multi-dimensional meshgrid.
-        open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
-        if self.weighted_mode:
-            # Create a kernel, such that the central grid point has the
-            # highest weighting, with the weighting decreasing with distance
-            # away from the central grid point.
-            open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-            kernel[:] = (
-                (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
-            mask = kernel < 0.
-        else:
-            mask = np.reshape(
-                np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
-        kernel[mask] = 0.
-        return kernel
 
     def apply_circular_kernel(self, cube, ranges):
         """
@@ -138,7 +144,7 @@ class CircularNeighbourhood(object):
 
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        kernel = self.circular_kernel(fullranges, ranges)
+        kernel = circular_kernel(fullranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
         cube.data = scipy.ndimage.filters.correlate(
             data, kernel, mode='nearest') / np.sum(kernel)
@@ -174,15 +180,14 @@ class CircularNeighbourhood(object):
         return cube
 
 
-class GeneratingPercentilesFromACircularNeighbourhood(object):
+class GeneratePercentilesFromACircularNeighbourhood(object):
     """
     Methods for use in calculating percentiles from a 2D circular
     neighbourhood.
     A maximum kernel radius of 500 grid cells is imposed in order to
     avoid computational ineffiency and possible memory errors.
     """
-    def __init__(
-        self, percentiles=PercentileConverter.DEFAULT_PERCENTILES):
+    def __init__(self, percentiles=DEFAULT_PERCENTILES):
         """
         Initialise class.
 
@@ -190,14 +195,15 @@ class GeneratingPercentilesFromACircularNeighbourhood(object):
         ----------
         percentiles : list (optional)
             Percentile values at which to calculate; if not provided uses
-            DEFAULT_PERCENTILES from percentile module.
+            DEFAULT_PERCENTILES.
 
         """
         self.percentiles = tuple(percentiles)
 
     def __repr__(self):
         """Represent the configured class instance as a string."""
-        result = ('<CircularPercentiles: percentiles: {}>')
+        result = ('<GeneratingPercentilesFromACircularNeighbourhood: '
+                  'percentiles: {}>')
         return result.format(self.percentiles)
 
     def run(self, cube, radius):
@@ -221,13 +227,12 @@ class GeneratingPercentilesFromACircularNeighbourhood(object):
 
         """
         # Check that the cube has an equal area grid.
-        Utilities.check_if_grid_is_equal_area(cube)
+        check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
         ranges_tuple = convert_distance_into_number_of_grid_cells(
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         ranges_xy = np.array(ranges_tuple)
-        kernel = CircularUtilities.circular_kernel(ranges_xy, ranges_tuple,
-                                                   weighted_mode=False)
+        kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
@@ -281,3 +286,24 @@ class GeneratingPercentilesFromACircularNeighbourhood(object):
         result.transpose(required_order)
 
         return result
+
+    def make_percentile_cube(self, cube):
+        """Returns a cube with the same metadata as the sample cube
+        but with an added percentile dimension.
+        Parameters
+        ----------
+        cube : Iris.cube.Cube
+            Cube to copy meta data from.
+        Returns
+        -------
+        cube : Iris.cube.Cube
+            Cube like input but with added percentiles coordinate.
+            Each slice along this coordinate is identical.
+        """
+        pctcubelist = iris.cube.CubeList()
+        for pct in self.percentiles:
+            pctcube = cube.copy()
+            pctcube.add_aux_coord(iris.coords.DimCoord(
+                pct, long_name="percentiles_over_neighbourhood", units='%'))
+            pctcubelist.append(pctcube)
+        return pctcubelist.merge_cube()
