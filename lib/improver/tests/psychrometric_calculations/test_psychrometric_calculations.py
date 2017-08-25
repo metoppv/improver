@@ -99,10 +99,13 @@ def _make_test_cube(long_name, units, data=None):
 
 class Test_check_range(IrisTest):
 
-    """Checks that the test_range method fails
-    when out of limits values are given"""
+    """Tests the check_range method
+    """
 
     def test_fail(self):
+        """Test that the check_range method returns an error when out
+        of limit variables are given.
+        """
         data = np.array([[270., 500.],
                          [290., 290.]])
         cube_in = _make_test_cube("temperature", "K", data=data)
@@ -114,8 +117,6 @@ class Test_check_range(IrisTest):
         cube_in = _make_test_cube("temperature", "K", data=data)
         with self.assertRaisesRegexp(TypeError, emsg):
             check_range(cube_in, 10., 300.)
-
-    # check that this works with masked data
 
 
 class Test_calculate_svp_ashrae(IrisTest):
@@ -138,6 +139,9 @@ class Test_calculate_svp_goff_gratch(IrisTest):
     """saturation_vapour_press == svp"""
 
     def test_basic(self):
+        """Check that the calculate_svp_goff_gratch method
+        creates a cube with the expected unit and sensible data
+        """
         temp = _make_test_cube("temperature", "K")
         pressure = _make_test_cube("pressure", "Pa", data="pressure")
         expected_data = np.array([[470.31, 470.31], [1960.14, 1960.14]])
@@ -167,7 +171,9 @@ class Test_calculate_humidity_ratio_fm_rh(IrisTest):
     """Checks on method calculate_humidity_ratio_fm_rh"""
 
     def test_basic(self):
-        """Check basic functionality"""
+        """Check that the calculate_humidity_ratio_fm_wb method
+        creates a cube with the expected unit and sensible data
+        """
         temperature = _make_test_cube("temperature", "K")
         rel_humidity = _make_test_cube(
             "relative humidity", 1, data="relative_humidity")
@@ -184,6 +190,9 @@ class Test_calculate_humidity_ratio_fm_wb(IrisTest):
     """Checks on method calculate_humidity_ratio_fm_wb"""
 
     def test_basic(self):
+        """Check that the calculate_humidity_ratio_fm_wb method
+        creates a cube with the expected unit and sensible data
+        """
         temperature = _make_test_cube("temperature", "K")
         wet_bulb_temp = _make_test_cube(
             "wet_bulb_temperature", "K", data="wet_bulb_temp")
