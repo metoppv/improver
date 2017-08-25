@@ -42,19 +42,37 @@ from cf_units import Unit
 
 from improver.psychrometric_calculations import (
     check_range,
-    #saturation_vapour_pressure_ashrae,
+    saturation_vapour_pressure_ashrae,
     saturation_vapour_pressure_goff_gratch,
     saturation_vapour_pressure_simple,
     humidity_ratio_fm_wb,
     humidity_ratio_fm_rh,
     wet_bulb)
 
-## ADD CHECKS THAT INPUT CUBES ARE !!!___NOT___!!! BEING MODIFIED!
 
 def _make_test_cube(long_name, units, data=None):
     """
-    Make a basic cube to run tests on
+    Make a basic cube to run tests on.
+    Since many of the methods do different things above and
+    below 273 K the values for temperature have been set
+    either side of these values
+
+    Parameters
+    ----------
+    long_name: string
+        The cube will be assigned this name
+    units: string
+        String to be used to set the units for the cube
+    data: None, string, or 2x2 numpy array
+        If an array is supplied this will be used as data
+        for the cube. Otherwise standard values are set.
+
+    Returns
+    -------
+    cube: Cube
+        Cube containing a small sample of data.
     """
+
     cs = GeogCS(EARTH_RADIUS)
     if data is None:
         data = np.array([[270., 270.],
@@ -80,8 +98,10 @@ def _make_test_cube(long_name, units, data=None):
 
 
 class Test_check_range(IrisTest):
+
     """Checks that the test_range method fails
     when out of limits values are given"""
+
     def test_fail(self):
         data = np.array([[270., 500.],
                          [290., 290.]])
@@ -94,111 +114,112 @@ class Test_check_range(IrisTest):
         cube_in = _make_test_cube("temperature", "K", data=data)
         with self.assertRaisesRegexp(TypeError, emsg):
             check_range(cube_in, 10., 300.)
-            
+
     # check that this works with masked data
 
 
 class Test_calculate_svp_ashrae(IrisTest):
+
     """saturation_vapour_press == svp"""
+
     def test_basic(self):
         """test to check that the saturation_vapour_pressure
         method returns a cube with answers calculated to be correct
         """
         temp = _make_test_cube("temperature", "K")
-        expected_data = np.array([[470.015, 470.015], [2259.917,  2259.917]])
-        result = saturation_vapour_pressure_simple(temp)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
+        expected_data = np.array([[470.08, 470.08], [1919.60, 1919.60]])
+        result = saturation_vapour_pressure_ashrae(temp)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=2)
         self.assertEqual(result.units, Unit('Pa'))
 
 
 class Test_calculate_svp_goff_gratch(IrisTest):
-    """saturation_vapour_press == svp"""
-    def test_basic(self):    def test_non_modification(self):
-        temp_data = np.array([[-2, 5], [10, 20]])
-        temp = _make_test_cube("temperature", "celsius", data=temp_data)
-        pressure = _make_test_cube("pressure", "Pa", data="pressure")
-        result = saturation_vapour_pressure_goff_gratch(temp, pressure)
-        self.assertEqual(temp, _make_test_cube("temperature", "celsius", data=temp_data))
-        self.assertEqual(pressure, _make_test_cube("pressure", "Pa", data="pressure"))
-        """test to check that the saturation_vapour_pressure
-        method returns a cube with answers calculated to be correct
-        """
-        temp = _make_test_cube("temperature", "K")
-        pressure = _make_test_cube("pressure", "hPa", data="pressure")
-        expected_data = np.array([[470.314, 470.314], [1960.136,  1960.136]])
-        result = saturation_vapour_pressure_goff_gratch(temp, pressure)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
-        self.assertEqual(result.units, Unit('Pa'))
 
-    def test_non_modification(self):
-        """not sure if I need this."""
-        temp_data = np.array([[-2, 5], [10, 20]])
-        temp = _make_test_cube("temperature", "celsius", data=temp_data)
+    """saturation_vapour_press == svp"""
+
+    def test_basic(self):
+        temp = _make_test_cube("temperature", "K")
         pressure = _make_test_cube("pressure", "Pa", data="pressure")
+        expected_data = np.array([[470.31, 470.31], [1960.14, 1960.14]])
         result = saturation_vapour_pressure_goff_gratch(temp, pressure)
-        self.assertEqual(temp, _make_test_cube("temperature", "celsius", data=temp_data))
-        self.assertEqual(pressure, _make_test_cube("pressure", "Pa", data="pressure"))
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=2)
+        self.assertEqual(
+            pressure, _make_test_cube("pressure", "Pa", data="pressure"))
 
 
 class Test_calculate_svp_simple(IrisTest):
+
     """saturation_vapour_press == svp"""
+
     def test_basic(self):
         """test to check that the saturation_vapour_pressure
         method returns a cube with answers calculated to be correct
         """
         temp = _make_test_cube("temperature", "K")
-        expected_data = np.array([[470.015, 470.015], [2259.917,  2259.917]])
+        expected_data = np.array([[470.02, 470.02], [2259.92, 2259.92]])
         result = saturation_vapour_pressure_simple(temp)
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=2)
         self.assertEqual(result.units, Unit('Pa'))
 
 
 class Test_calculate_humidity_ratio_fm_rh(IrisTest):
+
     """Checks on method calculate_humidity_ratio_fm_rh"""
+
     def test_basic(self):
         """Check basic functionality"""
         temperature = _make_test_cube("temperature", "K")
-        rel_humidity = _make_test_cube("relative humidity", 1, data="relative_humidity")
+        rel_humidity = _make_test_cube(
+            "relative humidity", 1, data="relative_humidity")
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
         result = humidity_ratio_fm_rh(temperature, rel_humidity, pressure)
-        expected_data = np.array([[0.003, 0.003 ],
+        expected_data = np.array([[0.003, 0.003],
                                   [0.012, 0.012]])
         self.assertEqual(result.units, Unit(1))
-        self.assertArrayAlmostEqual(result.data ,expected_data, decimal=3)
-        
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
+
+
 class Test_calculate_humidity_ratio_fm_wb(IrisTest):
+
     """Checks on method calculate_humidity_ratio_fm_wb"""
+
     def test_basic(self):
         temperature = _make_test_cube("temperature", "K")
-        wet_bulb_temp = _make_test_cube("wet_bulb_temperature", "K", data="wet_bulb_temp")
+        wet_bulb_temp = _make_test_cube(
+            "wet_bulb_temperature", "K", data="wet_bulb_temp")
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
-        expected_data = np.array([[ 0.003, 0.003],
-                                  [ 0.006, 0.006]])
+        expected_data = np.array([[0.003, 0.003],
+                                  [0.006, 0.006]])
         result = humidity_ratio_fm_wb(temperature, wet_bulb_temp, pressure)
         self.assertEqual(result.units, Unit(1))
-        self.assertArrayAlmostEqual(result.data ,expected_data, decimal=3)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
 
 
 class Test_wet_bulb(IrisTest):
+    """Tests to check the finished wet bulb temperature calculation.
+    """
+
     def test_basic(self):
         """Given a default value of 100% humidity check that the wet-bulb
         temperature is the same as the dry bulb temperature"""
         temperature = _make_test_cube("temperature", "K")
-        rel_humidity = _make_test_cube("relative humidity", 1, data="relative_humidity")
+        rel_humidity = _make_test_cube(
+            "relative humidity", 1, data="relative_humidity")
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
         result = wet_bulb(temperature, rel_humidity, pressure)
         self.assertEqual(result.units, Unit("K"))
-        self.assertArrayAlmostEqual(result.data ,temperature.data, decimal=3)
-        
+        self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
+
     def test_different_temperatures(self):
         """Check output for known 100% humidity at varying temperatures"""
         temperature_data = np.array([[220, 270], [320, 370]])
         temperature = _make_test_cube("temperature", "K", temperature_data)
-        rel_humidity = _make_test_cube("relative humidity", 1, data="relative_humidity")
+        rel_humidity = _make_test_cube(
+            "relative humidity", 1, data="relative_humidity")
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
         result = wet_bulb(temperature, rel_humidity, pressure)
-        self.assertArrayAlmostEqual(result.data ,temperature.data, decimal=3)
-        
+        self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
+
     def test_different_humidities(self):
         """Check output for different Relative Humidities
         checked for a first guess against
@@ -208,6 +229,29 @@ class Test_wet_bulb(IrisTest):
         rel_humidity = _make_test_cube("relative humidity", 1, data=rh_data)
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
         result = wet_bulb(temperature, rel_humidity, pressure)
-        expected_data = np.array([[269.917, 269.587], [287.017,  284.015]])
-        self.assertArrayAlmostEqual(result.data ,expected_data, decimal=3)
-        
+        expected_data = np.array([[269.917, 269.587], [287.017, 284.015]])
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
+
+    def test_edge_conditions(self):
+        """The wet bulb algorithm is not stable for all possible combinations
+        of values. This test looks at a set of meteorlogical edge case
+        scenarios to check that the method works.
+        Lowest Recorded RH = 0.001
+        Recorded temperature range -95 ~< T ~< 51 Celsius
+        Pressure Max  ~ 1085 hPa
+        """
+        scenarios = [{'t': -100., 'rh': 0.0001, 'p': .1},
+                     {'t': -100., 'rh': 1., 'p': .1},
+                     {'t': 60., 'rh': 0.0001, 'p': 1200.},
+                     {'t': 60., 'rh': 1, 'p': 1200.},
+                     {'t': -100., 'rh': 0.0001, 'p': 1200.},
+                     {'t': -100., 'rh': 1, 'p': 1200.},
+                    ]
+        for scenario in scenarios:
+            scenario = {key: np.full((2, 2), value)
+                        for key, value in scenario.iteritems()}
+            temperature = _make_test_cube("temperature", "celsius", scenario['t'])
+            humidity = _make_test_cube("relative_humidity", 1, scenario['rh'])
+            pressure = _make_test_cube("pressure", "hPa", scenario['p'])
+            result = wet_bulb(temperature, humidity, pressure)
+            self.assertEqual(result.units, Unit("K"))

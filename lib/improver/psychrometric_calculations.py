@@ -36,34 +36,49 @@ import iris.analysis.maths as maths
 import numpy as np
 
 
+def check_range(cube, low, high):
+    """Function to wrap functionality for throwing out temperatures
+    too low or high for a method to use safely.
 
-def check_range(cube, min, max):
-    # does this need to allow for masked data?
-    if cube.data.max() > max or cube.data.min() < min:
+    Parameters
+    ----------
+    cube: Cube
+        cube of temperature.
+    low: int or float
+        Lowest allowable temperature for check
+    high: int or float
+        Highest allowable temperature for check
+
+    Returns
+    -------
+    Nothing"""
+
+    if cube.data.max() > high or cube.data.min() < low:
         emsg = ("This saturation vapour pressure algorithm is"
                 " only valid for temperatures between"
                 " {}K and {}K. Input cube has\n"
                 "Lowest temperature = {}\n"
                 "Highest temperature = {}")
-        raise TypeError(emsg.format(min,
-                                    max,
+        raise TypeError(emsg.format(low,
+                                    high,
                                     cube.data.max(),
                                     cube.data.min()))
 
 
 def saturation_vapour_pressure_ashrae(temperature):
     ''' Function to compute saturation vapour pressure in [kPa]
-        ASHRAE Fundamentals handbook (2005) p 6.2, equation 5 and 6
- 
+        ASHRAE Fundamentals handbook (2005) p 6.2, equation 5 and 6.
+
     Parameters
     ----------
-    temp: cube
-        cube of temperature. Calculation done in Kelvin
+    temp: Cube
+        Cube of temperature which will be converted to Kelvin
+        prior to calculation
         Valid from -100C to 200 C
- 
+
     Returns
     -------
-    saturation : cube
+    saturation : Cube
         Cube containing the saturation vapour pressure of the
         air in Pa
     '''
@@ -107,19 +122,18 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
         Numerical data and functional relationships in science and technology.
         New series. Group V. Volume 4. Meteorology. Subvolume b. Physical and
         chemical properties of the air, P35.
-    And corrected for the atmosphere as per:
+    Corrected for the atmosphere as per:
         Gill, Atmosphere-Ocean Dynamics, Appendix 4 Equation A4.7
 
     Parameters
     ----------
     temp: cube
-        cube of temperature - will be converted to Kelvin
-        prior to attempting calculation
+        Cube of temperature which will be converted to Kelvin
+        prior to calculation
         Valid from -100C to 200 C
     pressure: cube
-        A pressure - can be in any pressure unit as method will use 
-        iris.cube.convert_unit(), but calculations are carried out in
-        hPa
+        Cube of pressure which will be converted to hectoPascals
+        prior to calculation
 
     Returns
     -------
@@ -127,6 +141,7 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
         Cube containing the saturation vapour pressure of the
         air in Pa
     '''
+
     # Constants for vapour pressure over liquid water equation
     constant1 = 10.79574
     constant2 = 5.028
@@ -141,7 +156,7 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
     constant10 = 0.87682
     constant11 = 0.78614
     triple_pt = constant.TRIPLE_PT_WATER
-    
+
     # Copy cubes to avoid modifying those passed to this function
     # Check that units are correct for the calculations
     press = pressure.copy()
@@ -149,7 +164,7 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
     temp = temperature.copy()
     temp.convert_units('K')
     check_range(temp, 173., 373.)
-    
+
     # create output cube
     svp = temp.copy()
     data = svp.data
@@ -173,7 +188,7 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
     correction = 1. + 1E-8 * pressure * (4.5 + 6E-4 * data ** 2)
     svp = temp.copy(data=data)
     svp = svp * correction
-    
+
     # Tidy Up cube
     svp.units = Unit('Pa')
     svp.rename("Saturated vapour pressure")
@@ -186,13 +201,14 @@ def saturation_vapour_pressure_simple(temperature):
         Numerical data and functional relationships in science and technology.
         New series. Group V. Volume 4. Meteorology. Subvolume b. Physical and
         chemical properties of the air, P36.
- 
+
     Parameters
     ----------
     temp: cubedenom
-        cube of temperature - converted to K for calculations
-        Valid from -100C to 200 
- 
+        Cube of temperature which will be converted to Kelvin
+        prior to calculation
+        Valid from -100C to 200
+
     Returns
     -------
     saturation : cube
@@ -222,20 +238,22 @@ def humidity_ratio_fm_rh(temperature, relative_humidity, pressure):
     Parameters
     ----------
     temp: cube
-        cube of (dry bulb) temperature. Calculation carried out in Celsius
+        Cube of temperature which will be converted to Kelvin
+        prior to calculation
         Valid from -100C to 200 C
     rel_humidity: cube
-        cube of relative humidity in %
+        Cube of relative humidity in %
     pressure: cube
-        air pressure in kPa for the purposes of the calculation
+        Cube of pressure which will be converted to kilopPascals
+        prior to calculation
 
     Returns
     -------
     humidity_ratio : cube
         humidity ratio cube with units(1)calculate_
     '''
-    # decouple local variables from variables supplied
-    # ensure that variables are in correct units
+    # Decouple local variables from variables supplied
+    # Ensure that variables are in correct units
     temp = temperature.copy()
     temp.convert_units('celsius')
     rh = relative_humidity.copy()
@@ -244,12 +262,12 @@ def humidity_ratio_fm_rh(temperature, relative_humidity, pressure):
     press.convert_units('kPa')
     svp = saturation_vapour_pressure_goff_gratch(temp, press)
     svp.convert_units('kPa')
-    
-    #calculation
+
+    # Calculation
     result_numer = (0.62198 * rh.data * svp.data)
     result_denom = (press.data - (rh.data * svp.data))
-    hr = temp.copy(data = result_numer / result_denom)
-    
+    hr = temp.copy(data=result_numer / result_denom)
+
     # Tidying up cube
     hr.rename("Humidity ratio")
     hr.units = Unit("1")
@@ -263,21 +281,21 @@ def humidity_ratio_fm_wb(temperature, wet_bulb, pressure):
     Parameters
     ----------
     temp: cube
-        cube of (dry bulb) temperature. Calculation carried out
-        in Celsius.
+        Cube of temperature which will be converted to Kelvin
+        prior to calculation
         Valid from -100C to 200 C
     wet_bulb: cube
-        cube of wet bulb temperature. Calculation carried out
-        in Celsius.
+        Cube of wet_bulb_temperature which will be converted to Celsius
+        prior to calculation
     pressure: cube
-        Air pressure - Calculation carried out
-        in kPa.
+        Cube of pressure which will be converted to kiloPascals
+        prior to calculation
 
     Returns
     -------
     humidity_ratio : cube
         humidity ratio cube with units(1)
-    ''' 
+    '''
     temp = temperature.copy()
     temp.convert_units("celsius")
     press = pressure.copy()
@@ -285,34 +303,44 @@ def humidity_ratio_fm_wb(temperature, wet_bulb, pressure):
     wb = wet_bulb.copy()
     wb.convert_units("celsius")
 
-    #calculation
+    # Calculation
     wb_depression = temp - wb
     svp = saturation_vapour_pressure_goff_gratch(temp, press)
     svp.convert_units('kPa')
     ws = 0.62198 * svp / (press - svp)
-    # this is inefficient because it produces both answers
-    above_zero = ((2501. - 2.326 * wb.data) * ws.data - 1.006 * wb_depression.data) / (2501. + 1.86 * temp.data - 4.186 * wb.data)
-    below_zero = ((2830. - 0.24 * wb.data) * ws.data - 1.006 * wb_depression.data) / (2830. + 1.86 * temp.data - 2.1 * wb.data)
-    result = data=np.where(temp.data>=0, above_zero, below_zero)
+    # This is inefficient because it produces both answers
+    above_zero = (((2501. - 2.326 * wb.data) * ws.data -
+                   1.006 * wb_depression.data) /
+                  (2501. + 1.86 * temp.data - 4.186 * wb.data))
+    below_zero = (((2830. - 0.24 * wb.data) * ws.data -
+                   1.006 * wb_depression.data) /
+                  (2830. + 1.86 * temp.data - 2.1 * wb.data))
+    result = np.where(temp.data >= 0, above_zero, below_zero)
     hr = temp.copy(data=result)
+
     # Tidy up
     hr.units = Unit(1)
     hr.rename("Humidity ratio")
     return hr
 
 
-def wet_bulb(temperature, relative_humidity, pressure, precision=0.001):
+def wet_bulb(temperature, relative_humidity, pressure, precision=0.00001):
     """
     Calculates the Wet Bulb Temperature Using Newton-Raphson iteration
+
     Parameters
     ----------
     temp: cube
-        cube of temperature. Calculation in celsius
+        Cube of temperature which will be converted to Celsius
+        prior to calculation
         Valid from -100C to 200 C
     rel_humidity: cube
-        cube of relative humidity in %
-    pressure: float
-        value for pressure. Calculation in kPa
+        Cube of relative humidity in %
+    pressure: cube
+        Cube of pressure which will be converted to kilopPascals
+        prior to calculation
+    precision: float
+        degree of precision required for this algorithm
 
     Returns
     -------
@@ -327,21 +355,42 @@ def wet_bulb(temperature, relative_humidity, pressure, precision=0.001):
     rh.convert_units(1)
     press = pressure.copy()
     press.convert_units("kPa")
-    
+    # check that lowest pressure and rh values are non-zero
+    if press.data.min() == 0:
+        emsg = ("This Wet Bulb Temperature algorithm is"
+                " only valid for pressures greater than"
+                "Zero. Input cube has\n"
+                "Lowest pressure of:  {}\n"
+                "Highest temperature = {}")
+        raise TypeError(emsg.format(press.data.min()))
+    if rh.data.min == 0:
+        emsg = ("This Wet Bulb Temperature algorithm is"
+                " only valid for relative humidities greater than"
+                "Zero. Input cube has\n"
+                "Lowest rh of:  {}\n"
+                "Highest temperature = {}")
+        raise TypeError(emsg.format(rh.data.min()))
     # create a numpy array of precision and cube of increment
     precision = np.full(temp.data.shape, precision)
     increment = temp.copy(data=np.full(rh.shape, 0.001))
-    wb_normal = humidity_ratio_fm_rh(temp, rh, press)
+    hr_normal = humidity_ratio_fm_rh(temp, rh, press)
     result = temp.copy()
-    wb_new = humidity_ratio_fm_wb(temp, result, press)
-    while ((maths.abs((wb_new - wb_normal) / wb_normal)).data > precision).any():
-        wb_new2 = humidity_ratio_fm_wb(temp, (result - increment), press)
-        dw_dtwb = (wb_new - wb_new2) / increment
-        dw_dtwb.convert_units('celsius^-1')
+    hr_new = humidity_ratio_fm_wb(temp, result, press)
+    while ((maths.abs((hr_new - hr_normal) / hr_normal)).data >
+           precision).any():
+        hr_new2 = humidity_ratio_fm_wb(temp, (result - increment), press)
+        dw_dthr = (hr_new - hr_new2) / increment
+        dw_dthr.convert_units('celsius^-1')
         result.units = Unit(1)
-        dw_dtwb.units = Unit(1)
-        result = result - (wb_new - wb_normal) / dw_dtwb
+        dw_dthr.units = Unit(1)
+        result2 = result - (hr_new - hr_normal) / dw_dthr
+        result2.units = Unit('celsius')
+        data = np.where((maths.abs((hr_new - hr_normal) /
+                                   hr_normal)).data > precision,
+                        result2.data,
+                        result.data)
+        result = result.copy(data=data)
         result.units = Unit('celsius')
-        wb_new = humidity_ratio_fm_wb(temp, result, press)
+        hr_new = humidity_ratio_fm_wb(temp, result, press)
     result.convert_units('K')
     return result
