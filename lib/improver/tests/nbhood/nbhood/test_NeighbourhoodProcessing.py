@@ -136,3 +136,7 @@ class Test_process(IrisTest):
         result = NBHood(neighbourhood_method, radii).process(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()

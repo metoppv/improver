@@ -42,7 +42,6 @@ import numpy as np
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
-from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 

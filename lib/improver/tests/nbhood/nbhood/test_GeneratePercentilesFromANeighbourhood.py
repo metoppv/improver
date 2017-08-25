@@ -33,19 +33,14 @@
 
 import unittest
 
-from cf_units import Unit
-import iris
-from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood as NBHood)
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
+
 
 class Test__init__(IrisTest):
 
@@ -115,3 +110,7 @@ class Test_process(IrisTest):
         result = NBHood(neighbourhood_method, radii,
                         percentiles=percentiles).process(self.cube)
         self.assertIsInstance(result, Cube)
+
+
+if __name__ == '__main__':
+    unittest.main()
