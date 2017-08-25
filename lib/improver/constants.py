@@ -42,6 +42,6 @@ R_DRY_AIR = 287.0
 # Specific heat capacity of dry air (J K-1 kg-1)
 CP_DRY_AIR = 1005.0
 
-# Default percentile boundaries to calculate at.
-DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
-                       60, 70, 75, 80, 90, 95, 100]
+# Default percentile boundaries to calculate at for IMPROVER.
+DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50,
+                       60, 70, 75, 80, 90, 95, 100)

@@ -32,14 +32,10 @@
 
 import unittest
 
-from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood.circular_kernel import circular_kernel
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
-    SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
-    SINGLE_POINT_RANGE_5_CENTROID, set_up_cube, set_up_cube_lat_long)
 
 
 class Test_circular_kernel(IrisTest):
@@ -181,3 +177,7 @@ class Test_circular_kernel(IrisTest):
         result = (
             circular_kernel(fullranges, ranges, weighted_mode))
         self.assertArrayEqual(result, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()

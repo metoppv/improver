@@ -43,7 +43,7 @@ import numpy as np
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
     GeneratePercentilesFromACircularNeighbourhood)
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 
 

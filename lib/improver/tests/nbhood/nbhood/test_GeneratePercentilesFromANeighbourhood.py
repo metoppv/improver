@@ -40,29 +40,34 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
+from improver.nbhood.nbhood import (
+    GeneratePercentilesFromANeighbourhood as NBHood)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 
-
 class Test__init__(IrisTest):
 
-    """Test the __init__ method of NeighbourhoodProcessing."""
+    """Test the __init__ method of NeighbourhoodProcessing"""
 
     def test_neighbourhood_method_exists(self):
-        """Test that no exception is raised if the requested neighbourhood
-         method exists."""
+        """
+        Test that no exception is raised if the requested neighbourhood method
+        exists.
+        """
         neighbourhood_method = 'circular'
         radii = 10000
         result = NBHood(neighbourhood_method, radii)
-        msg = '<CircularNeighbourhood: weighted_mode: True>'
+        msg = ('<GeneratePercentilesFromACircularNeighbourhood: percentiles: '
+               '(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>')
         self.assertEqual(str(result.neighbourhood_method), msg)
 
     def test_neighbourhood_method_does_not_exist(self):
-        """Test that desired error message is raised, if the neighbourhood
-        method does not exist."""
+        """
+        Test that desired error message is raised, if the neighbourhood method
+        does not exist.
+        """
         neighbourhood_method = 'nonsense'
         radii = 10000
         msg = 'The neighbourhood_method requested: '
@@ -79,7 +84,8 @@ class Test__repr__(IrisTest):
         result = str(NBHood("circular", 10000))
         msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
                'radii: 10000.0; lead_times: None; '
-               'ens_factor: 1.0; weighted_mode: True>')
+               'ens_factor: 1.0; percentiles: (0, 5, 10, 20, 25, 30, 40, 50, '
+               '60, 70, 75, 80, 90, 95, 100)>')
         self.assertEqual(result, msg)
 
 
@@ -92,47 +98,20 @@ class Test_process(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
-    def test_weighted_mode_is_true(self):
+    def test_default_percentiles(self):
         """Test that the circular neighbourhood processing is successful, if the
-        weighted mode is True."""
-        expected = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 0.91666667, 0.875, 0.91666667, 1.],
-               [1., 0.875, 0.83333333, 0.875, 1.],
-               [1., 0.91666667, 0.875, 0.91666667, 1.],
-               [1., 1., 1., 1., 1.]]]])
+        default percentiles are used."""
         neighbourhood_method = 'circular'
         radii = 4000
         result = NBHood(neighbourhood_method, radii).process(self.cube)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_weighted_mode_is_false(self):
+    def test_define_percentiles(self):
         """Test that the circular neighbourhood processing is successful, if the
-        weighted mode is False."""
-        expected = np.array(
-            [[[[1., 1., 0.92307692, 1., 1.],
-               [1.,  0.92307692, 0.92307692, 0.92307692, 1.],
-               [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
-               [1., 0.92307692, 0.92307692, 0.92307692, 1.],
-               [1., 1., 0.92307692, 1., 1.]]]])
+        percentiles are passed in as a keyword argument."""
         neighbourhood_method = 'circular'
         radii = 4000
+        percentiles = (0, 25, 50, 75, 100)
         result = NBHood(neighbourhood_method, radii,
-                        weighted_mode=False).process(self.cube)
+                        percentiles=percentiles).process(self.cube)
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_square_neighbourhood(self):
-        """Test that the square neighbourhood processing is successful."""
-        expected = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 1., 1., 1., 1.]]]])
-        neighbourhood_method = 'square'
-        radii = 2000
-        result = NBHood(neighbourhood_method, radii).process(self.cube)
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected)

@@ -111,7 +111,7 @@ class CircularNeighbourhood(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<CircularProbabilities: weighted_mode: {}>')
+        result = ('<CircularNeighbourhood: weighted_mode: {}>')
         return result.format(self.weighted_mode)
 
     def apply_circular_kernel(self, cube, ranges):
@@ -202,7 +202,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
 
     def __repr__(self):
         """Represent the configured class instance as a string."""
-        result = ('<GeneratingPercentilesFromACircularNeighbourhood: '
+        result = ('<GeneratePercentilesFromACircularNeighbourhood: '
                   'percentiles: {}>')
         return result.format(self.percentiles)
 
@@ -273,6 +273,8 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         # realization, percentile, other coordinates.
         required_order = []
         if result.coords("realization"):
+            if result.coords("realization", dimensions=[]):
+                result = iris.util.new_axis(result, "realization")
             required_order.append(result.coord_dims("realization")[0])
         if result.coords("percentiles_over_neighbourhood"):
             required_order.append(

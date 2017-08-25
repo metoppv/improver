@@ -251,7 +251,7 @@ class BaseNeighbourhoodProcessing(object):
             self.neighbourhood_method_key, self.radii, self.lead_times,
             self.ens_factor)
 
-    def run(self, cube):
+    def process(self, cube):
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.
@@ -386,28 +386,10 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<{}; NeighbourhoodProcessing: percentiles: {}>')
+        result = ('<{}; percentiles: {}>')
         return result.format(
             super(GeneratePercentilesFromANeighbourhood, self).__repr__(),
             self.percentiles)
-
-    def process(self, cube):
-        """
-        Apply percentile neighbourhood processing. This generates a set of
-        percentiles by using a neighbourhood of points around a central point.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to apply a neighbourhood processing method to, in order to
-            calculate percentile values from a neighbourhood.
-
-        Returns
-        -------
-        Iris.cube.Cube
-            Cube after calculating percentile values from a neighbourhood.
-        """
-        return self.run(cube)
 
 
 class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
@@ -473,21 +455,3 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         return result.format(
             super(NeighbourhoodProcessing, self).__repr__(),
             self.weighted_mode)
-
-    def process(self, cube):
-        """
-        Apply probabilistic neighbourhood processing.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to apply a neighbourhood processing method to, in order to
-            generate a smoother field.
-
-        Returns
-        -------
-        Iris.cube.Cube
-            Cube after applying a neighbourhood processing method, so that the
-            resulting field is smoothed.
-        """
-        return self.run(cube)

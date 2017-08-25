@@ -57,7 +57,7 @@ class PercentileConverter(object):
         collapse_coord : str (or list of str)
             The name of the coordinate(s) to collapse over.
 
-        percentiles : list (optional)
+        percentiles : tuple or None (optional)
             Percentile values at which to calculate; if not provided uses
             DEFAULT_PERCENTILES.
 
