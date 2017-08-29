@@ -324,7 +324,8 @@ def humidity_ratio_fm_wb(temperature, wet_bulb, pressure):
     return hr
 
 
-def wet_bulb(temperature, relative_humidity, pressure, precision=0.00001):
+def wet_bulb(temperature, relative_humidity, pressure,
+             p_units="hPa", precision=0.00001):
     """
     Calculates the Wet Bulb Temperature Using Newton-Raphson iteration
 
@@ -336,7 +337,7 @@ def wet_bulb(temperature, relative_humidity, pressure, precision=0.00001):
         Valid from -100C to 200 C
     rel_humidity: cube
         Cube of relative humidity in %
-    pressure: cube
+    pressure: cube or float
         Cube of pressure which will be converted to kilopPascals
         prior to calculation
     precision: float
@@ -353,7 +354,11 @@ def wet_bulb(temperature, relative_humidity, pressure, precision=0.00001):
     temp.convert_units('celsius')
     rh = relative_humidity.copy()
     rh.convert_units(1)
-    press = pressure.copy()
+    if isinstance(pressure, float):
+        press = temperature.copy(data=np.full(temperature.shape, pressure))
+        press.units = Unit(p_units)
+    else:
+        press = pressure.copy()
     press.convert_units("kPa")
     # check that lowest pressure and rh values are non-zero
     if press.data.min() == 0:
@@ -393,4 +398,5 @@ def wet_bulb(temperature, relative_humidity, pressure, precision=0.00001):
         result.units = Unit('celsius')
         hr_new = humidity_ratio_fm_wb(temp, result, press)
     result.convert_units('K')
+    result.rename("wet_bulb_temperature")
     return result

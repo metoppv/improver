@@ -40,7 +40,7 @@ import numpy as np
 from cf_units import Unit
 
 
-from improver.psychrometric_calculations import (
+from improver.psychrometric_calculations.psychrometric_calculations import (
     check_range,
     saturation_vapour_pressure_ashrae,
     saturation_vapour_pressure_goff_gratch,
@@ -218,6 +218,19 @@ class Test_wet_bulb(IrisTest):
         result = wet_bulb(temperature, rel_humidity, pressure)
         self.assertEqual(result.units, Unit("K"))
         self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
+        self.assertEqual(result.name(), "wet_bulb_temperature")
+        
+    def test_basic_float_pressure(self):
+        """Given a default value of 100% humidity check that the wet-bulb
+        temperature is the same as the dry bulb temperature"""
+        temperature = _make_test_cube("temperature", "K")
+        rel_humidity = _make_test_cube(
+            "relative humidity", "%", data="relative_humidity")
+        rel_humidity.data = rel_humidity.data * 100
+        pressure = 1000.
+        result = wet_bulb(temperature, rel_humidity, pressure)
+        self.assertEqual(result.units, Unit("K"))
+        self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
 
     def test_different_temperatures(self):
         """Check output for known 100% humidity at varying temperatures"""
@@ -255,7 +268,7 @@ class Test_wet_bulb(IrisTest):
                      {'t': 60., 'rh': 1, 'p': 1200.},
                      {'t': -100., 'rh': 0.0001, 'p': 1200.},
                      {'t': -100., 'rh': 1, 'p': 1200.},
-                     ]
+                    ]
         for scenario in scenarios:
             scenario = {key: np.full((2, 2), value)
                         for key, value in scenario.iteritems()}
