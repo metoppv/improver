@@ -65,8 +65,8 @@ optional arguments:
   --parameter_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00.
-  --calendar CALENDAR   Calendar for parameter_unit if
-                        required.Default=gregorian
+  --calendar CALENDAR   Calendar for parameter_unit if required.
+                        Default=gregorian
 __HELP__
   [[ "$output" == "$expected" ]]
 }

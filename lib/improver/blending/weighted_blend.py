@@ -255,7 +255,8 @@ class MaxProbabilityAggregator(object):
 
         arr_weights = np.array(arr_weights)
         # Reshape the weights to match the shape of the data.
-        shape = [len(arr_weights) if i==axis else 1 for i in range(data.ndim)]
+        shape = [len(arr_weights) if i == axis else 1
+                 for i in range(data.ndim)]
         arr_weights = arr_weights.reshape(tuple(shape))
         # Calculate the weighted probabilities
         weighted_probs = data*arr_weights

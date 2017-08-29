@@ -88,7 +88,7 @@ class Test_aggregate(IrisTest):
         self.assertEqual(result.shape, (2, 2))
         self.assertArrayEqual(result, expected_data)
 
-    def test_negative_axis_(self):
+    def test_negative_axis(self):
         """Test a case where a negative axis is provided, using the same 3D
            test data as test_3D_data"""
         data = np.array([[[2, 2, 2, 2, 2],
