@@ -34,7 +34,7 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-blend-adjacent-points [-h] [--parameter_unit UNIT_STRING]
-                                      [--calendar CALENDER]
+                                      [--calendar CALENDAR]
                                       COORDINATE_TO_BLEND_OVER
                                       WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
                                       INPUT_FILE OUTPUT_FILE

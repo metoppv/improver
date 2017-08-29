@@ -34,15 +34,15 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-blend-adjacent-points [-h] [--parameter_unit UNIT_STRING]
-                                      [--calendar CALENDER]
+                                      [--calendar CALENDAR]
                                       COORDINATE_TO_BLEND_OVER
                                       WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
                                       INPUT_FILE OUTPUT_FILE
 
-Use the TriangularWeightedBlendAcrossAdjacentPoints toblend across a
-particular coordinate. It does notcollapse the coordinate, but instead blends
-acrossadjacent points and puts the blending values back in theoriginal
-coordiante. Two different types of blending arepossible, weighted_mean and
+Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
+particular coordinate. It does not collapse the coordinate, but instead blends
+across adjacent points and puts the blending values back in the original
+coordinate. Two different types of blending are possible, weighted_mean and
 weighted_maximum
 
 positional arguments:
@@ -54,8 +54,9 @@ positional arguments:
                         across the coordinate. "weighted_maximum": multiplies
                         the values in the coordinate by the weights, and then
                         takes the maximum.
-  TRIANGLE_WIDTH        Width of the triangular weighting function usedin the
-                        blending, in the units of theparameter_unit passed in.
+  TRIANGLE_WIDTH        Width of the triangular weighting function used in the
+                        blending, in the units of the parameter_unit passed
+                        in.
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
@@ -64,7 +65,7 @@ optional arguments:
   --parameter_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00.
-  --calendar CALENDER   Calendar for parameter_unit if
+  --calendar CALENDAR   Calendar for parameter_unit if
                         required.Default=gregorian
 __HELP__
   [[ "$output" == "$expected" ]]

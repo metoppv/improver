@@ -35,7 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDER]
+                                  [--calendar CALENDAR]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
@@ -76,7 +76,7 @@ optional arguments:
   --coordinate_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00.
-  --calendar CALENDER   Calendar for time coordinate. Default=gregorian
+  --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
                         has been applied.

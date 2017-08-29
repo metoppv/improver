@@ -210,7 +210,8 @@ class PercentileBlendingAggregator(object):
 
 
 class MaxProbabilityAggregator(object):
-    """Class the Aggregator used to calculate the maximum weighted probability.
+    """Class for the Aggregator used to calculate the maximum weighted
+       probability.
        1. Find the weighted probabilities for each point in the dimension of
           interest by multiplying each probability by the corresponding weight.
        2. Find the maximum weighted probability and return the array with one
@@ -251,12 +252,11 @@ class MaxProbabilityAggregator(object):
         # Iris aggregators support indexing from the end of the array.
         if axis < 0:
             axis += data.ndim
-        #
 
         arr_weights = np.array(arr_weights)
         # Reshape the weights to match the shape of the data.
-        shape = [1 for _ in data.shape]
-        shape[axis] = arr_weights.shape[0]
+        shape = np.ones(len(data.shape))
+        shape[axis] = len(arr_weights)
         arr_weights = arr_weights.reshape(tuple(shape))
         # Calculate the weighted probabilities
         weighted_probs = data*arr_weights

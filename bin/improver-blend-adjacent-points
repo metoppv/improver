@@ -45,11 +45,11 @@ def main():
     """Load in arguments and ensure they are set correctly.
        Then run Triangular weighted blending across the given coordinate."""
     parser = ArgParser(
-        description='Use the TriangularWeightedBlendAcrossAdjacentPoints to'
-                    'blend across a particular coordinate. It does not'
-                    'collapse the coordinate, but instead blends across'
-                    'adjacent points and puts the blending values back in the'
-                    'original coordiante. Two different types of blending are'
+        description='Use the TriangularWeightedBlendAcrossAdjacentPoints to '
+                    'blend across a particular coordinate. It does not '
+                    'collapse the coordinate, but instead blends across '
+                    'adjacent points and puts the blending values back in the '
+                    'original coordinate. Two different types of blending are '
                     'possible, weighted_mean and weighted_maximum')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_BLEND_OVER',
@@ -59,7 +59,7 @@ def main():
                         default='hours since 1970-01-01 00:00:00',
                         help='Units for time coordinate. Default= '
                              'hours since 1970-01-01 00:00:00.')
-    parser.add_argument('--calendar', metavar='CALENDER',
+    parser.add_argument('--calendar', metavar='CALENDAR',
                         help='Calendar for parameter_unit if required.'
                              'Default=gregorian')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
@@ -71,8 +71,8 @@ def main():
                              ' coordinate by the weights, and then takes the'
                              ' maximum.')
     parser.add_argument('width', metavar='TRIANGLE_WIDTH',
-                        help='Width of the triangular weighting function used'
-                             'in the blending, in the units of the'
+                        help='Width of the triangular weighting function used '
+                             'in the blending, in the units of the '
                              'parameter_unit passed in.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')

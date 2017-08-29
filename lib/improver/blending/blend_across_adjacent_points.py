@@ -49,7 +49,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
     There are two modes of blending:
         1. Weighted mean across the dimension of interest.
         2. Weighted maximum across the dimension of interest, where
-           probabilities are mulitplied by the weights and the maximum is
+           probabilities are multiplied by the weights and the maximum is
            taken.
     """
 
