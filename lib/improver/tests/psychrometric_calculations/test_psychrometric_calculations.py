@@ -219,7 +219,7 @@ class Test_wet_bulb(IrisTest):
         self.assertEqual(result.units, Unit("K"))
         self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
         self.assertEqual(result.name(), "wet_bulb_temperature")
-        
+
     def test_basic_float_pressure(self):
         """Given a default value of 100% humidity check that the wet-bulb
         temperature is the same as the dry bulb temperature"""
@@ -268,7 +268,7 @@ class Test_wet_bulb(IrisTest):
                      {'t': 60., 'rh': 1, 'p': 1200.},
                      {'t': -100., 'rh': 0.0001, 'p': 1200.},
                      {'t': -100., 'rh': 1, 'p': 1200.},
-                    ]
+                     ]
         for scenario in scenarios:
             scenario = {key: np.full((2, 2), value)
                         for key, value in scenario.iteritems()}

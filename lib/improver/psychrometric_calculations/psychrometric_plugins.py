@@ -52,7 +52,7 @@ class WetBulb(object):
         return result
 
     @staticmethod
-    def process(temperature, rel_humidity, pressure=None):
+    def process(temperature, rel_humidity, pressure):
         """Calculate the Wet Bulb Temperature
 
         Parameters
@@ -62,13 +62,10 @@ class WetBulb(object):
             prior to calculation
             Valid from -100C to 200 C
         rel_humidity: cube
-            Cube of relative humidity in %
-        pressure: cube or None
+            Cube of relative humidity
+        pressure: cube
             Cube of pressure which will be converted to kilopPascals
             prior to calculation
-            In many cases the user may wish to use cubes temperature and
-            relative humidity on 
-
 
         Returns
         -------
@@ -77,7 +74,6 @@ class WetBulb(object):
             air in Pa
 
         """
-        
         # Check that inputs are of correct type
         if not isinstance(temperature, iris.cube.Cube):
             emsg = "Temperature cube is not a cube, but {}"
@@ -85,55 +81,20 @@ class WetBulb(object):
         if not isinstance(rel_humidity, iris.cube.Cube):
             emsg = "Temperature cube is not a cube, but {}"
             raise ValueError(emsg.format(type(rel_humidity)))
-#         if not isinstance(pressure, (cube, float)):
-#             emsg = "Pressure is not a cube or a float, but {}"
-#             raise ValueError(emsg.format(type(pressure)))
+        if not isinstance(pressure, iris.cube.Cube):
+            emsg = "Pressure is not a cube or a float, but {}"
+            raise ValueError(emsg.format(type(pressure)))
 
-        two_d_coords = [temperature.coord(axis=ax).name() for ax in ('x', 'y')]
-        match = list(set([coord.name() for coord in temperature.coords()]) - set(two_d_coords))
-        
-        if pressure is None:
-            ls = []
-        # Use case: I have cubes of rh and temperature on pressure levels
-            for t in temperature.slices(two_d_coords):
-                for rh in rel_humidity.slices(two_d_coords):
-                    if rh.coords() == t.coords():
-                        wb = wet_bulb(t, rh, t.coord('pressure').points[0])
-                        ls.append(wb)
-            ls = iris.cube.CubeList(ls)
-            return ls.merge_cube()
+        # Check that cubes are all the same shape
+        if not temperature.shape == pressure.shape == rel_humidity.shape:
+            emsg = ("input cubes must have the same shapes. Your"
+                    " input cubes have the following shapes:\n"
+                    "Temperature: {}\n"
+                    "Relative Humidity: {}\n"
+                    "Pressure: {} \n")
+            raise TypeError(emsg.format(temperature.shape,
+                                        rel_humidity.shape,
+                                        pressure.shape))
 
-        elif isinstance(pressure, iris.cube.Cube):
-        # Use case: I have cubes of "surface" pressure, rh and temperature
-            if not isinstance(pressure, iris.cube.Cube):
-                emsg = "Pressure is not a cube, but {}"
-                raise ValueError(emsg.format(type(pressure)))
-            
-            # Check that each input cube is flat in the z dim
-            for cube in temperature, rel_humidity, pressure:
-                # replace this with isinstance?
-                try:
-                    if  len(cube.coord(axis='z').points) != 1:
-                        emsg = ("In cases where pressure is given "
-                                "all cubes should have either no z dimension"
-                                " or a scalar value.\n"
-                                "Your cube of {} has dimension {}"
-                                " with length {}")
-                        emsg.format(cube.name, cube.coord(axis='z'),
-                                    len(cube.coord(axis='z').points))
-                        raise TypeError(emsg)
-                except:
-                    pass
-            ls = []
-            for t in temperature.slices(two_d_coords):
-                for rh in rel_humidity.slices(two_d_coords):
-                    for p in p.slices(two_d_coords):
-                        if rh.coords() == t.coords():
-                            wb =(wet_bulb(t,
-                                          rh,
-                                          p))
-                            ls.append(wb)
-            ls = iris.cube.CubeList(ls)
-            return ls.merge_cube()
-    
-    
+        # Wrap the wetbulb function and return it.
+        return wet_bulb(temperature, rel_humidity, pressure)
