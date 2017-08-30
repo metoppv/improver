@@ -77,12 +77,12 @@ class Test_aggregate(IrisTest):
            so removing this axis from the result"""
         data = np.array([[[2, 2, 2, 2, 2],
                           [1, 2, 3, 4, 5]],
-                         [[3, 3, 3, 3, 3],
+                         [[5, 5, 5, 5, 5],
                           [1, 4, 3, 8, 10]]])
         axis = 2
         weights = np.array([0, 0.25, 0.5, 0.25, 0])
         expected_data = np.array([[1, 1.5],
-                                  [1.5, 2]])
+                                  [2.5, 2]])
         plugin = MaxProbabilityAggregator
         result = plugin.aggregate(data, axis, weights)
         self.assertEqual(result.shape, (2, 2))
@@ -93,12 +93,12 @@ class Test_aggregate(IrisTest):
            test data as test_3D_data"""
         data = np.array([[[2, 2, 2, 2, 2],
                           [1, 2, 3, 4, 5]],
-                         [[3, 3, 3, 3, 3],
+                         [[5, 5, 5, 5, 5],
                           [1, 4, 3, 8, 10]]])
         axis = -1
         weights = np.array([0, 0.25, 0.5, 0.25, 0])
         expected_data = np.array([[1, 1.5],
-                                  [1.5, 2]])
+                                  [2.5, 2]])
         plugin = MaxProbabilityAggregator
         result = plugin.aggregate(data, axis, weights)
         self.assertEqual(result.shape, (2, 2))
