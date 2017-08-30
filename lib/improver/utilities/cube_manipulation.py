@@ -30,7 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for cube manipulation."""
 
+import warnings
+import numpy as np
+
 import iris
+from iris.coords import AuxCoord, DimCoord
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -68,14 +72,11 @@ def _associate_any_coordinate_with_master_coordinate(
             if cube.coords(master_coord):
                 temp_coord = cube.coord(coord)
                 cube.remove_coord(coord)
-                temp_aux_coord = iris.coords.AuxCoord(
-                    temp_coord.points,
-                    standard_name=temp_coord.standard_name,
-                    long_name=temp_coord.long_name,
-                    var_name=temp_coord.var_name, units=temp_coord.units,
-                    bounds=temp_coord.bounds,
-                    attributes=temp_coord.attributes,
-                    coord_system=temp_coord.coord_system)
+                temp_aux_coord = (
+                    build_coordinate(temp_coord.points,
+                                     bounds=temp_coord.bounds,
+                                     coord_type=AuxCoord,
+                                     template_coord=temp_coord))
                 coord_names = [
                     coord.standard_name for coord in cube.dim_coords]
                 cube.add_aux_coord(
@@ -91,7 +92,7 @@ def _associate_any_coordinate_with_master_coordinate(
     return cube
 
 
-def _slice_over_coordinate(cubes, coord_to_slice_over, remove_history=True):
+def _slice_over_coordinate(cubes, coord_to_slice_over):
     """
     Function slice over the requested coordinate,
     promote the sliced coordinate into a dimension coordinate and
@@ -103,9 +104,6 @@ def _slice_over_coordinate(cubes, coord_to_slice_over, remove_history=True):
         Cubes to be concatenated.
     coords_to_slice_over : List
         Coordinates to be sliced over.
-    remove_history : Logical
-        Option to remove the history attribute to help make concatenation
-        more likely. remove_history is set to True as default.
 
     Returns
     -------
@@ -116,18 +114,149 @@ def _slice_over_coordinate(cubes, coord_to_slice_over, remove_history=True):
     sliced_by_coord_cubelist = iris.cube.CubeList([])
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
+
     for cube in cubes:
         if cube.coords(coord_to_slice_over):
             for coord_slice in cube.slices_over(coord_to_slice_over):
                 coord_slice = iris.util.new_axis(
                     coord_slice, coord_to_slice_over)
-                if (remove_history and
-                        "history" in coord_slice.attributes.keys()):
-                    coord_slice.attributes.pop("history")
                 sliced_by_coord_cubelist.append(coord_slice)
         else:
             sliced_by_coord_cubelist.append(cube)
+
     return sliced_by_coord_cubelist
+
+
+def equalise_cube_attributes(cubes):
+    """
+    Function to equalise attributes that do not match.
+
+    Args:
+        cubes : Iris cubelist
+            List of cubes to check the attributes and revise.
+
+    Warn:
+        Warning: If it does not know what to do with an unmatching
+                 attribute. Default is to delete it.
+    """
+    common_keys, unmatching_attributes = compare_attributes(cubes)
+    if len(unmatching_attributes) > 0:
+        for i, cube in enumerate(cubes):
+            # Remove history.
+            if "history" in unmatching_attributes[i]:
+                cube.attributes.pop("history")
+                unmatching_attributes[i].pop("history")
+            # Normalise grid_id to ukx_standard_1
+            if "grid_id" in unmatching_attributes[i]:
+                if cube.attributes['grid_id'] in ['enukx_standard_v1',
+                                                  'ukvx_standard_v1']:
+                    cube.attributes['grid_id'] = 'ukx_standard_v1'
+                    unmatching_attributes[i].pop("grid_id")
+            # Add model_id if titles do not match.
+            if "title" in unmatching_attributes[i]:
+                    model_title = cube.attributes.pop('title')
+                    new_model_id_coord = build_coordinate([100*i],
+                                                          long_name='model_id',
+                                                          data_type=np.int)
+                    new_model_coord = build_coordinate([model_title],
+                                                       long_name='model',
+                                                       coord_type=AuxCoord,
+                                                       data_type=np.str)
+                    cube.add_aux_coord(new_model_id_coord)
+                    cube.add_aux_coord(new_model_coord)
+                    unmatching_attributes[i].pop("title")
+            # Remove any other mismatching attributes but raise warning.
+            if len(unmatching_attributes[i]) != 0:
+                for key in unmatching_attributes[i]:
+                    msg = ('Do not know what to do with ' + key +
+                           ' will delete it')
+                    warnings.warn(msg)
+                    cube.attributes.pop(key)
+
+
+def equalise_cube_coords(cubes):
+    """
+    Function to equalise attributes that do not match.
+
+    Args:
+        cubes : Iris cubelist
+            List of cubes to check the coords and revise.
+
+    Returns:
+        cubelist : Iris cubelist
+            List of cubes with revised coords.
+    Raises:
+        If Percentile coordinates do not match
+        If Threshold coordinates do not match
+        If model_id has more than one point.
+    """
+    common_coords, unmatching_coords = compare_coords(cubes)
+    cubelist = iris.cube.CubeList([])
+    if len(unmatching_coords) > 0:
+        for i, cube in enumerate(cubes):
+            slice_over_keys = []
+            for key in unmatching_coords[i]:
+                if key.find('percentile_over') > 0:
+                    msg = (
+                           "Percentile coordinates "
+                           "must match to merge")
+                    raise ValueError(msg)
+                if key == 'threshold':
+                    msg = (
+                           "Threshold coordinates "
+                           "must match to merge")
+                    raise ValueError(msg)
+                if key == 'model_id':
+                    realization_found = False
+                    for j, check in enumerate(unmatching_coords):
+                        if 'realization' in check:
+                            realization_found = True
+                            realization_coord = cubes[j].coord('realization')
+                            print 'Relization coord found ', realization_coord
+                            break
+                    if realization_found:
+                        print cube.coord('model_id')
+                        if len(cube.coord('model_id').points) != 1:
+                            msg = (
+                               "Threshold coordinates "
+                               "must match to merge")
+                            raise ValueError(msg)
+                        else:
+                            model_id_val = cube.coord('model_id').points[0]
+                        if cube.coords('realization'):
+                            if unmatching_coords[i]['realization'][0] >= 0:
+                                data_dims = (
+                                    unmatching_coords[i]['realization'][0])
+                            else:
+                                data_dims = None
+                            new_model_real_coord = (
+                                build_coordinate(
+                                    cube.coord('realization').points +
+                                    model_id_val,
+                                    long_name='model_realization'))
+                            cube.add_aux_coord(new_model_real_coord,
+                                               data_dims=data_dims)
+                        else:
+                            new_model_real_coord = (
+                                build_coordinate(
+                                    [model_id_val],
+                                    long_name='model_realization'))
+                            cube.add_aux_coord(new_model_real_coord)
+                            new_realization_coord = (
+                                build_coordinate(
+                                    [0],
+                                    template_coord=realization_coord))
+                            cube.add_aux_coord(new_realization_coord)
+                if unmatching_coords[i][key][0] >= 0:
+                    slice_over_keys.append(key)
+            if len(slice_over_keys) > 0:
+                for slice_cube in cube.slices_over(slice_over_keys):
+                    cubelist.append(slice_cube)
+            else:
+                cubelist.append(cube)
+    else:
+        cubelist = cubes
+    return cubelist
 
 
 def _strip_var_names(cubes):
@@ -179,7 +308,7 @@ def concatenate_cubes(
     Returns
     -------
     Iris cube
-        Concatenated cube.
+        Concatenated / merge cube.
 
     """
     if coords_to_slice_over is None:
@@ -193,7 +322,8 @@ def concatenate_cubes(
     for coord_to_slice_over in coords_to_slice_over:
         cubes = _slice_over_coordinate(cubes, coord_to_slice_over)
 
-    cubes = _strip_var_names(cubes)
+    equalise_cube_attributes(cubes)
+    _strip_var_names(cubes)
 
     associated_with_time_cubelist = iris.cube.CubeList([])
     for cube in cubes:
@@ -201,4 +331,205 @@ def concatenate_cubes(
             _associate_any_coordinate_with_master_coordinate(
                 cube, master_coord=master_coord,
                 coordinates=coordinates_for_association))
-    return associated_with_time_cubelist.concatenate_cube()
+
+    result = associated_with_time_cubelist.concatenate_cube()
+    return result
+
+
+def merge_cubes(cubes):
+    """
+    Function to merge cubes, accounting for differences in the
+    attributes, and coords
+
+    Parameters
+    ----------
+    cubes : Iris cubelist or Iris cube
+        Cubes to be merged.
+
+    Returns
+    -------
+    Iris cube
+        Merged cube.
+
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    equalise_cube_attributes(cubes)
+    cubelist = equalise_cube_coords(cubes)
+
+    result = cubelist.merge_cube()
+    return result
+
+
+def compare_attributes(cubes):
+    """
+    Function to compare attributes of cubes
+
+    Args:
+        cubes : Iris cubelist
+            List of cubes to compare (must be more than 1)
+
+    Returns:
+        common_keys : List
+            List of common attribute keys (str)
+        unmatching_attribues : List
+            List of dictionaries of unmatching attributes
+
+    Warns:
+        Warning: If only a single cube is supplied
+    """
+    common_keys = list(cubes[0].attributes.keys())
+    unmatching_attributes = []
+    if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
+        msg = ('Only a single cube so no differences will be found ')
+        warnings.warn(msg)
+    else:
+        for cube in cubes[1:]:
+            cube_keys = list(cube.attributes.keys())
+            common_keys = [
+                key for key in common_keys
+                if (key in cube_keys and
+                    np.all(cube.attributes[key] == cubes[0].attributes[key]))]
+
+        for i, cube in enumerate(cubes):
+            unmatching_attributes.append(dict())
+            for key in list(cube.attributes.keys()):
+                if key not in common_keys:
+                    unmatching_attributes[i].update({key:
+                                                     cube.attributes[key]})
+    return common_keys, unmatching_attributes
+
+
+def compare_coords(cubes):
+    """
+    Function to compare attributes of cubes
+
+    Args:
+        cubes : Iris cubelist
+            List of cubes to compare (must be more than 1)
+
+    Returns:
+        common_coords : List
+            List of common coordinates (iris.Coord)
+        unmatching_coords : List
+            List of dictionaries of unmatching coordinates
+
+    Warns:
+        Warning: If only a single cube is supplied
+    """
+    common_coords = list(cubes[0].coords())
+    unmatching_coords = []
+    if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
+        msg = ('Only a single cube so no differences will be found ')
+        warnings.warn(msg)
+    else:
+        for cube in cubes[1:]:
+            cube_coords = list(cube.coords())
+            common_coords = [
+                coord for coord in common_coords
+                if (coord in cube_coords and
+                    np.all(cube.coords(coord) == cubes[0].coords(coord)))]
+
+        for i, cube in enumerate(cubes):
+            unmatching_coords.append(dict())
+            for coord in list(cube.coords()):
+                if coord not in common_coords:
+                    dim_coords = cube.dim_coords
+                    if coord in dim_coords:
+                        dim_val = dim_coords.index(coord)
+                    else:
+                        dim_val = -1
+                    unmatching_coords[i].update({coord.name():
+                                                 [dim_val, coord]})
+
+    return common_coords, unmatching_coords
+
+
+def build_coordinate(data, long_name=None,
+                     standard_name=None,
+                     var_name=None,
+                     coord_type=DimCoord,
+                     data_type=None, units='1',
+                     bounds=None,
+                     attributes=dict(),
+                     coord_system=None,
+                     template_coord=None,
+                     custom_function=None):
+    """
+    Construct an iris.coord.Dim/Auxcoord using the provided options.
+
+    Args:
+    -----
+    data : number/list/np.array
+        List or array of values to populate the coordinate points.
+    long_name : str (optional)
+        Name of the coordinate to be built.
+    standard_name : str (optional)
+        CF Name of the coordinate to be built.
+    var_name : str (optional)
+        Variable name
+    coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
+        Selection between Dim and Aux coord.
+    data_type : <type> (optional)
+        The data type of the coordinate points, e.g. int
+    units : str (optional)
+        String defining the coordinate units.
+    bounds : np.array (optional)
+        A (len(data), 2) array that defines coordinate bounds.
+    coord_system: iris.coord_systems.<coord_system> (optional)
+        A coordinate system in which the dimension coordinates are defined.
+    custom_function : function (optional)
+        A function to apply to the data values before constructing the
+        coordinate, e.g. np.nan_to_num.
+
+    Returns:
+    --------
+    iris coordinate : Dim or Auxcoord as chosen.
+
+    """
+    long_name_out = long_name
+    std_name_out = standard_name
+    var_name_out = var_name
+    coord_type_out = coord_type
+    data_type_out = data_type
+    units_out = units
+    bounds_out = bounds
+    attributes_out = attributes
+    coord_system_out = coord_system
+
+    if template_coord is not None:
+        if long_name is None:
+            long_name_out = template_coord.long_name
+        if standard_name is None:
+            std_name_out = template_coord.standard_name
+        if var_name is None:
+            var_name_out = template_coord.var_name
+        if isinstance(coord_type, DimCoord):
+            coord_type_out = type(template_coord)
+            print coord_type_out
+        if data_type is None:
+            data_type_out = type(template_coord.points[0])
+        if units == '1':
+            units_out = template_coord.units
+        if len(attributes) == 0:
+            attributes_out = template_coord.attributes
+        if coord_system is None:
+            coord_system_out = template_coord.coord_system
+
+    if data_type_out is None:
+        data_type_out = float
+
+    data = np.array(data, data_type_out)
+    if custom_function is not None:
+        data = custom_function(data)
+
+    crd_out = coord_type(data, long_name=long_name_out,
+                         standard_name=std_name_out,
+                         var_name=var_name_out,
+                         units=units_out,
+                         attributes=attributes_out,
+                         coord_system=coord_system_out,
+                         bounds=bounds_out)
+    # crd_out.rename(long_name)
+    return crd_out

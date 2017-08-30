@@ -33,6 +33,7 @@ Unit tests for the utilities within the "cube_manipulation" module.
 
 """
 import unittest
+import warnings
 
 from cf_units import Unit
 import iris
@@ -43,8 +44,10 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.utilities.cube_manipulation import (
-    concatenate_cubes, _strip_var_names, _slice_over_coordinate,
-    _associate_any_coordinate_with_master_coordinate)
+    concatenate_cubes, equalise_cube_attributes,
+    _strip_var_names, _slice_over_coordinate,
+    _associate_any_coordinate_with_master_coordinate,
+    compare_attributes, build_coordinate)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 
@@ -269,6 +272,15 @@ class Test__slice_over_coordinate(IrisTest):
         result = _slice_over_coordinate(cubelist, "forecast_period")
         self.assertEqual(len(result), 2)
 
+
+class Test_equalise_cube_attributes(IrisTest):
+
+    """Test the equalise_cube_attributes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
     def test_cubelist_history_removal(self):
         """
         Test that the utility returns an iris.cube.Cube without a
@@ -283,9 +295,9 @@ class Test__slice_over_coordinate(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = _slice_over_coordinate(cubelist, "time")
-        self.assertNotIn("history", result[0].attributes.keys())
-        self.assertNotIn("history", result[1].attributes.keys())
+        equalise_cube_attributes(cubelist)
+        self.assertNotIn("history", cubelist[0].attributes.keys())
+        self.assertNotIn("history", cubelist[1].attributes.keys())
 
     def test_cubelist_no_history_removal(self):
         """
@@ -301,10 +313,10 @@ class Test__slice_over_coordinate(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = _slice_over_coordinate(
-            cubelist, "time", remove_history=False)
-        self.assertIn("history", result[0].attributes.keys())
-        self.assertIn("history", result[1].attributes.keys())
+        equalise_cube_attributes(cubelist)
+
+        self.assertIn("history", cubelist[0].attributes.keys())
+        self.assertIn("history", cubelist[1].attributes.keys())
 
 
 class Test__strip_var_names(IrisTest):
@@ -440,7 +452,6 @@ class Test_concatenate_cubes(IrisTest):
         cube3 = cube3.merge_cube()
 
         cubelist = iris.cube.CubeList([cube2, cube3])
-
         msg = "failed to concatenate into a single cube"
         with self.assertRaisesRegexp(ConcatenateError, msg):
             concatenate_cubes(cubelist, coords_to_slice_over=["time"])
@@ -525,6 +536,76 @@ class Test_concatenate_cubes(IrisTest):
 
         result = concatenate_cubes(cubelist)
         self.assertIsInstance(result, Cube)
+
+
+class Test_compare_attributes(IrisTest):
+    """Test the compare_attributes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the utility returns two lists."""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        result1, result2 = compare_attributes(cubelist)
+        self.assertIsInstance(result1, list)
+        self.assertIsInstance(result2, list)
+
+    def test_warning(self):
+        """Test that the utility returns warning if only one cube supplied."""
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result1, result2 = compare_attributes(self.cube)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "Only a single cube so no differences will be found "
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertAlmostEquals(result1, [])
+            self.assertAlmostEquals(result2, [])
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result1, result2 = (
+                compare_attributes(iris.cube.CubeList([self.cube])))
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "Only a single cube so no differences will be found "
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertAlmostEquals(result1, [])
+            self.assertAlmostEquals(result2, [])
+
+    def test_history_attribute(self):
+        """Test that the utility returns diff when history do not match"""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
+        cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
+        print cube1.attributes
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        result1, result2 = compare_attributes(cubelist)
+        self.assertAlmostEquals(result1, [])
+        self.assertAlmostEquals(result2,
+                                [{'history':
+                                  '2017-01-18T08:59:53: StaGE Decoupler'},
+                                 {'history':
+                                  '2017-01-19T08:59:53: StaGE Decoupler'}])
+
+
+class Test_build_coordinate(IrisTest):
+    """Test the compare_attributes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the utility returns a coord."""
+        result = build_coordinate([1.0], long_name='testing')
+        self.assertIsInstance(result, iris.coords.DimCoord)
 
 
 if __name__ == '__main__':
