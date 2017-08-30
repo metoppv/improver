@@ -40,18 +40,19 @@ def check_range(cube, low, high):
     """Function to wrap functionality for throwing out temperatures
     too low or high for a method to use safely.
 
-    Parameters
-    ----------
-    cube: Cube
-        cube of temperature.
-    low: int or float
-        Lowest allowable temperature for check
-    high: int or float
-        Highest allowable temperature for check
+    Args:
+        cube: iris.cube.Cube
+            A cube of temperature.
+        low: int or float
+            Lowest allowable temperature for check
+        high: int or float
+            Highest allowable temperature for check
 
-    Returns
-    -------
-    Nothing"""
+    Raises:
+        ValueError: If any of the values in cube.data are outside the bounds
+            set by the low and high variables.
+    
+    """
 
     if cube.data.max() > high or cube.data.min() < low:
         emsg = ("This saturation vapour pressure algorithm is"
@@ -59,10 +60,10 @@ def check_range(cube, low, high):
                 " {}K and {}K. Input cube has\n"
                 "Lowest temperature = {}\n"
                 "Highest temperature = {}")
-        raise TypeError(emsg.format(low,
+        raise ValueError(emsg.format(low,
                                     high,
-                                    cube.data.max(),
-                                    cube.data.min()))
+                                    cube.data.min(),
+                                    cube.data.max()))
 
 
 def saturation_vapour_pressure_ashrae(temperature):
