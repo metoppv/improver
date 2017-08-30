@@ -54,24 +54,21 @@ class WetBulb(object):
     def process(temperature, rel_humidity, pressure):
         """Calculate the Wet Bulb Temperature
 
-        Parameters
-        ----------
-        temp: cube
-            Cube of temperature which will be converted to Celsius
-            prior to calculation
-            Valid from -100C to 200 C
-        rel_humidity: cube
-            Cube of relative humidity
-        pressure: cube
-            Cube of pressure which will be converted to kilopPascals
-            prior to calculation
+        Args:
+            temperature : iris.cube.Cube
+                Cube of temperature
+            rel_humidity : iris.cube.Cube
+                Cube of relative humidity
+            pressure : iris.cube.Cube
+                Cube of pressure
 
-        Returns
-        -------
-        saturation : cube
-            Cube containing the saturation vapour pressure of the
-            air in Pa
+        Returns:
+            wet_bulb : iris.cube.Cube
+                Cube containing the wet bulb temperature
 
+        Raises:
+            TypeError: If any of the inputs are not cubes.
+            ValueError: If any of the input cubes are not the same shape.
         """
         # Check that inputs are of correct type
         if not isinstance(temperature, iris.cube.Cube):
@@ -91,9 +88,9 @@ class WetBulb(object):
                     "Temperature: {}\n"
                     "Relative Humidity: {}\n"
                     "Pressure: {} \n")
-            raise TypeError(emsg.format(temperature.shape,
-                                        rel_humidity.shape,
-                                        pressure.shape))
+            raise ValueError(emsg.format(temperature.shape,
+                                         rel_humidity.shape,
+                                         pressure.shape))
 
         # Wrap the wetbulb function and return it.
         return wet_bulb(temperature, rel_humidity, pressure)

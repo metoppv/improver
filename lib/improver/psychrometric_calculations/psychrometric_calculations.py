@@ -41,17 +41,18 @@ def check_range(cube, low, high):
     too low or high for a method to use safely.
 
     Args:
-        cube: iris.cube.Cube
+        cube : iris.cube.Cube
             A cube of temperature.
-        low: int or float
+
+        low : int or float
             Lowest allowable temperature for check
-        high: int or float
+
+        high : int or float
             Highest allowable temperature for check
 
     Raises:
-        ValueError: If any of the values in cube.data are outside the bounds
+        ValueError : If any of the values in cube.data are outside the bounds
             set by the low and high variables.
-    
     """
 
     if cube.data.max() > high or cube.data.min() < low:
@@ -61,27 +62,29 @@ def check_range(cube, low, high):
                 "Lowest temperature = {}\n"
                 "Highest temperature = {}")
         raise ValueError(emsg.format(low,
-                                    high,
-                                    cube.data.min(),
-                                    cube.data.max()))
+                                     high,
+                                     cube.data.min(),
+                                     cube.data.max()))
 
 
 def saturation_vapour_pressure_ashrae(temperature):
-    ''' Function to compute saturation vapour pressure in [kPa]
-        ASHRAE Fundamentals handbook (2005) p 6.2, equation 5 and 6.
+    ''' Compute Saturation vapour pressure from temperature, using ASHRAE
+    (American Society of Heating, Refrigerating and Air-Conditioning
+    Engineers) method.
 
-    Parameters
-    ----------
-    temp: Cube
-        Cube of temperature which will be converted to Kelvin
-        prior to calculation
-        Valid from -100C to 200 C
+    Args:
+        temp : iris.cube.Cube
+            Cube of temperature which will be converted to Kelvin
+            prior to calculation
+            Valid from -100C to 200 C
 
-    Returns
-    -------
-    saturation : Cube
-        Cube containing the saturation vapour pressure of the
-        air in Pa
+    Returns:
+        result : iris.cube.Cube
+            Cube containing the saturation vapour pressure of the
+            air in Pa.
+
+    References:
+        ASHRAE Fundamentals handbook (2005) p 6.2, equation 5 and 6
     '''
     constant_1 = -5674.5359
     constant_2 = 6.3925247
@@ -113,34 +116,36 @@ def saturation_vapour_pressure_ashrae(temperature):
     result = temp.copy(data=data)
     result.units = Unit('kPa')
     result.convert_units('Pa')
+    result.rename("saturated_vapour_pressure")
     return result
 
 
 def saturation_vapour_pressure_goff_gratch(temperature, pressure):
     '''
-    Saturation Vapour pressure calculated based on the
-    Goff-Gratch Equation (WMO standard method) as outlined in:
+    Saturation Vapour pressure calculation based on the
+    Goff-Gratch Equation (WMO standard method) and corrected for pressure.
+
+    Args:
+        temp : iris.cube.Cube
+            Cube of temperature which will be converted to Kelvin
+            prior to calculation
+            Valid from -100C to 200 C
+
+        pressure : iris.cube.Cube
+            Cube of pressure which will be converted to hectoPascals
+            prior to calculation
+
+    Returns:
+        svp : iris.cube.Cube
+            Cube containing the saturation vapour pressure of the
+            air in Pa
+
+    References:
         Numerical data and functional relationships in science and technology.
         New series. Group V. Volume 4. Meteorology. Subvolume b. Physical and
         chemical properties of the air, P35.
-    Corrected for the atmosphere as per:
+
         Gill, Atmosphere-Ocean Dynamics, Appendix 4 Equation A4.7
-
-    Parameters
-    ----------
-    temp: cube
-        Cube of temperature which will be converted to Kelvin
-        prior to calculation
-        Valid from -100C to 200 C
-    pressure: cube
-        Cube of pressure which will be converted to hectoPascals
-        prior to calculation
-
-    Returns
-    -------
-    saturation : cube
-        Cube containing the saturation vapour pressure of the
-        air in Pa
     '''
 
     # Constants for vapour pressure over liquid water equation
@@ -192,29 +197,30 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
 
     # Tidy Up cube
     svp.units = Unit('Pa')
-    svp.rename("Saturated vapour pressure")
+    svp.rename("saturated_vapour_pressure")
     return svp
 
 
 def saturation_vapour_pressure_simple(temperature):
     """
-    Saturation pressure based on simple equation from
+    A simple saturation vapour pressure equation, considered to be within
+    1% of correct value for the given range.
+
+    Args:
+        temperature : iris.cube.Cube
+            Cube of temperature which will be converted to Kelvin
+            prior to calculation
+            Valid from -100C to 200
+
+    Returns:
+        results : iris.cube.Cube
+        Cube containing the saturation vapour pressure of the
+        air in Pa
+
+    References:
         Numerical data and functional relationships in science and technology.
         New series. Group V. Volume 4. Meteorology. Subvolume b. Physical and
         chemical properties of the air, P36.
-
-    Parameters
-    ----------
-    temp: cubedenom
-        Cube of temperature which will be converted to Kelvin
-        prior to calculation
-        Valid from -100C to 200
-
-    Returns
-    -------
-    saturation : cube
-        Cube containing the saturation vapour pressure of the
-        air in Pa
     """
     temp = temperature.copy()
     temp.convert_units('K')
@@ -228,30 +234,30 @@ def saturation_vapour_pressure_simple(temperature):
     result = temp.copy(data=data)
     result.units = Unit('hPa')
     result.convert_units('Pa')
-    result.rename("Saturation vapour pressure")
+    result.rename("saturated_vapour_pressure")
     return result
 
 
 def humidity_ratio_fm_rh(temperature, relative_humidity, pressure):
-    ''' Function to compute humidity ratio
-    ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
+    ''' Function to compute humidity ratio given temperature pressure and
+    relative humidity.
 
-    Parameters
-    ----------
-    temp: cube
-        Cube of temperature which will be converted to Kelvin
-        prior to calculation
-        Valid from -100C to 200 C
-    rel_humidity: cube
-        Cube of relative humidity in %
-    pressure: cube
-        Cube of pressure which will be converted to kilopPascals
-        prior to calculation
+    Args:
+        temperature : iris.cube.Cube
+            Cube of temperature which will be converted to celsius
+            prior to calculation.
+        rel_humidity : iris.cube.Cube
+            Cube of relative humidity.
+        pressure : iris.cube.Cube
+            Cube of pressure which will be converted to kilopPascals
+            prior to calculation.
 
     Returns
-    -------
-    humidity_ratio : cube
-        humidity ratio cube with units(1)calculate_
+        hr : iris.cube.Cube
+            humidity ratio cube with units (1).
+
+    References:
+        ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     '''
     # Decouple local variables from variables supplied
     # Ensure that variables are in correct units
@@ -276,26 +282,28 @@ def humidity_ratio_fm_rh(temperature, relative_humidity, pressure):
 
 
 def humidity_ratio_fm_wb(temperature, wet_bulb, pressure):
-    ''' Function to compute humidity ratio
-    ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
+    ''' Function to compute humidity ratio given a temperature pressure and
+    wet bulb temperature.
 
-    Parameters
-    ----------
-    temp: cube
-        Cube of temperature which will be converted to Kelvin
-        prior to calculation
-        Valid from -100C to 200 C
-    wet_bulb: cube
-        Cube of wet_bulb_temperature which will be converted to Celsius
-        prior to calculation
-    pressure: cube
-        Cube of pressure which will be converted to kiloPascals
-        prior to calculation
+    Args:
+        temp: iris.cube.Cube
+            Cube of temperature which will be converted to Celsius
+            prior to calculation
 
-    Returns
-    -------
-    humidity_ratio : cube
-        humidity ratio cube with units(1)
+        wet_bulb: iris.cube.Cube
+            Cube of wet_bulb_temperature which will be converted to Celsius
+            prior to calculation
+
+        pressure: iris.cube.Cube
+            Cube of pressure which will be converted to kiloPascals
+            prior to calculation
+
+    Returns:
+        humidity_ratio : iris.cube.Cube
+            humidity ratio cube with units(1)
+
+    References:
+        ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     '''
     temp = temperature.copy()
     temp.convert_units("celsius")
@@ -330,25 +338,27 @@ def wet_bulb(temperature, relative_humidity, pressure,
     """
     Calculates the Wet Bulb Temperature Using Newton-Raphson iteration
 
-    Parameters
-    ----------
-    temp: cube
-        Cube of temperature which will be converted to Celsius
-        prior to calculation
-        Valid from -100C to 200 C
-    rel_humidity: cube
-        Cube of relative humidity in %
-    pressure: cube or float
-        Cube of pressure which will be converted to kilopPascals
-        prior to calculation
-    precision: float
-        degree of precision required for this algorithm
+    Args:
+        temperature : iris.cube.Cube
+            Cube of temperature which will be converted to Celsius
+            prior to calculation
+        rel_humidity : iris.cube.Cube
+            Cube of relative humidity
+        pressure : iris.cube.Cube or float
+            Cube of pressure which will be converted to kilopPascals
+            prior to calculation
+        precision : float
+            degree of precision the user requires for this algorithm
 
-    Returns
-    -------
-    saturation : cube
-        Cube containing the saturation vapour pressure of the
-        air in Pa
+    Returns:
+        result : iris.cube.Cube
+            Cube containing the wet bulb temperature of the air in Kelvin
+
+    Raises:
+        ValueError: If any pressure is 0, as this otherwise causes a divide
+        by zero error later.
+        ValueError: If any relative humidity is 0, as this otherwise causes
+        a divide by zero error later.
     """
     # Decouple local data to avoid modifying input cubes
     temp = temperature.copy()
@@ -365,17 +375,15 @@ def wet_bulb(temperature, relative_humidity, pressure,
     if press.data.min() == 0:
         emsg = ("This Wet Bulb Temperature algorithm is"
                 " only valid for pressures greater than"
-                "Zero. Input cube has\n"
-                "Lowest pressure of:  {}\n"
-                "Highest temperature = {}")
-        raise TypeError(emsg.format(press.data.min()))
-    if rh.data.min == 0:
+                " Zero. Input cube has\n"
+                "Lowest pressure of:  {}\n")
+        raise ValueError(emsg.format(press.data.min()))
+    if rh.data.min() == 0:
         emsg = ("This Wet Bulb Temperature algorithm is"
                 " only valid for relative humidities greater than"
-                "Zero. Input cube has\n"
-                "Lowest rh of:  {}\n"
-                "Highest temperature = {}")
-        raise TypeError(emsg.format(rh.data.min()))
+                " Zero. Input cube has\n"
+                "Lowest rh of:  {}\n")
+        raise ValueError(emsg.format(rh.data.min()))
     # create a numpy array of precision and cube of increment
     precision = np.full(temp.data.shape, precision)
     increment = temp.copy(data=np.full(rh.shape, 0.001))

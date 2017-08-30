@@ -98,10 +98,8 @@ def _make_test_cube(long_name, units, data=None):
 
 
 class Test_check_range(IrisTest):
-
-    """Tests the check_range method
-    """
-
+    """Tests the check_range method to ensure that it succeeds and
+    fails in the expected manner"""
     def test_fail(self):
         """Test that the check_range method returns an error when out
         of limit variables are given.
@@ -128,9 +126,8 @@ class Test_check_range(IrisTest):
 
 
 class Test_calculate_svp_ashrae(IrisTest):
-
-    """saturation_vapour_press == svp"""
-
+    """Test to check the calculation of Saturated Vapour
+    pressure using the ASHRAE function"""
     def test_basic(self):
         """test to check that the saturation_vapour_pressure
         method returns a cube with answers calculated to be correct
@@ -143,9 +140,8 @@ class Test_calculate_svp_ashrae(IrisTest):
 
 
 class Test_calculate_svp_goff_gratch(IrisTest):
-
-    """saturation_vapour_press == svp"""
-
+    """Test to check the calculation of Saturated Vapour
+    pressure using the Goff-Gratch function"""
     def test_basic(self):
         """Check that the calculate_svp_goff_gratch method
         creates a cube with the expected unit and sensible data
@@ -160,9 +156,8 @@ class Test_calculate_svp_goff_gratch(IrisTest):
 
 
 class Test_calculate_svp_simple(IrisTest):
-
-    """saturation_vapour_press == svp"""
-
+    """Test to check the calculation of Saturated Vapour
+    pressure using the simple function"""
     def test_basic(self):
         """test to check that the saturation_vapour_pressure
         method returns a cube with answers calculated to be correct
@@ -175,9 +170,7 @@ class Test_calculate_svp_simple(IrisTest):
 
 
 class Test_calculate_humidity_ratio_fm_rh(IrisTest):
-
     """Checks on method calculate_humidity_ratio_fm_rh"""
-
     def test_basic(self):
         """Check that the calculate_humidity_ratio_fm_wb method
         creates a cube with the expected unit and sensible data
@@ -194,9 +187,7 @@ class Test_calculate_humidity_ratio_fm_rh(IrisTest):
 
 
 class Test_calculate_humidity_ratio_fm_wb(IrisTest):
-
     """Checks on method calculate_humidity_ratio_fm_wb"""
-
     def test_basic(self):
         """Check that the calculate_humidity_ratio_fm_wb method
         creates a cube with the expected unit and sensible data
@@ -215,7 +206,6 @@ class Test_calculate_humidity_ratio_fm_wb(IrisTest):
 class Test_wet_bulb(IrisTest):
     """Tests to check the finished wet bulb temperature calculation.
     """
-
     def test_basic(self):
         """Given a default value of 100% humidity check that the wet-bulb
         temperature is the same as the dry bulb temperature"""
@@ -239,6 +229,30 @@ class Test_wet_bulb(IrisTest):
         result = wet_bulb(temperature, rel_humidity, pressure)
         self.assertEqual(result.units, Unit("K"))
         self.assertArrayAlmostEqual(result.data, temperature.data, decimal=3)
+
+    def test_fail_with_zero_pressure(self):
+        """Ensure that the expected failure message is returned when the wet
+        bulb method is given an input pressure array with a zero in it."""
+        temperature = _make_test_cube("temperature", "K")
+        rel_humidity = _make_test_cube(
+            "relative humidity", 1, data="relative_humidity")
+        pdata = np.full((2, 2), 0.)
+        pressure = _make_test_cube("pressure", "hPa", data=pdata)
+        emsg = " only valid for pressures greater than"
+        with self.assertRaisesRegexp(ValueError, emsg):
+            wet_bulb(temperature, rel_humidity, pressure)
+
+    def test_fail_with_zero_rh(self):
+        """Ensure that the expected failure message is returned when the wet
+        bulb method is given an input pressure array with a zero in it."""
+        temperature = _make_test_cube("temperature", "K")
+        rhdata = np.full((2, 2), 0.)
+        rel_humidity = _make_test_cube(
+            "relative humidity", 1, data=rhdata)
+        pressure = _make_test_cube("pressure", "hPa", data="pressure")
+        emsg = " only valid for relative humidities greater than"
+        with self.assertRaisesRegexp(ValueError, emsg):
+            wet_bulb(temperature, rel_humidity, pressure)
 
     def test_different_temperatures(self):
         """Check output for known 100% humidity at varying temperatures"""

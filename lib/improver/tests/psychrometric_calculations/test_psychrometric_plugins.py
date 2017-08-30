@@ -48,7 +48,7 @@ def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
                 y_dimension_values=np.array([0., 2000., 4000.]),
                 x_dimension_values=np.array([0., 2000., 4000.]),
                 z_dimension_values=np.array([0., 2000., 4000.])):
-    """Create a cube containing the required realizations, timesteps,
+    """Create a cube containing the required realizations, timesteps, heights
     y-dimension values and x-dimension values."""
     cube = Cube(data, standard_name=phenomenon_standard_name,
                 units=phenomenon_units)
@@ -118,5 +118,5 @@ class Test_wet_bulb_plugin(IrisTest):
         pressure = set_up_cube(pdata, "air_pressure", "hPa")
         rel_h = set_up_cube(rhdata, "relative_humidity", "%")
         emsg = "input cubes must have the same shapes"
-        with self.assertRaisesRegexp(TypeError, emsg):
+        with self.assertRaisesRegexp(ValueError, emsg):
             WetBulb.process(temperature, rel_h, pressure)
