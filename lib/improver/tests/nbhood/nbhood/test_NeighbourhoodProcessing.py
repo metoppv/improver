@@ -77,9 +77,9 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10000))
-        msg = ('<NeighbourhoodProcessing: neighbourhood_method: circular; '
-               'radii: 10000.0; lead_times: None; '
-               'ens_factor: 1.0; weighted_mode: True>')
+        msg = ('<NeighbourhoodProcessing: neighbourhood_method: '
+               '<CircularNeighbourhood: weighted_mode: True>; '
+               'radii: 10000.0; lead_times: None; ens_factor: 1.0>')
         self.assertEqual(result, msg)
 
 

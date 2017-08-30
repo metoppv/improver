@@ -172,10 +172,9 @@ class BaseNeighbourhoodProcessing(object):
 
         Parameters
         ----------
-
-        neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular',
-            'square'.
+        neighbourhood_method : Class object
+            Instance of the class containing the method that will be used for
+            the neighbourhood processing.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
@@ -193,9 +192,7 @@ class BaseNeighbourhoodProcessing(object):
             equivalent of an ensemble member.
             Optional, defaults to 1.0
         """
-        self.neighbourhood_method_key = neighbourhood_method
-
-        self.neighbourhood_method = None
+        self.neighbourhood_method = neighbourhood_method
 
         if isinstance(radii, list):
             self.radii = [float(x) for x in radii]
@@ -245,10 +242,15 @@ class BaseNeighbourhoodProcessing(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('NeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; ens_factor: {}')
+        if callable(self.neighbourhood_method):
+            neighbourhood_method = self.neighbourhood_method()
+        else:
+            neighbourhood_method = self.neighbourhood_method
+
+        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+                  'radii: {}; lead_times: {}; ens_factor: {}>')
         return result.format(
-            self.neighbourhood_method_key, self.radii, self.lead_times,
+            neighbourhood_method, self.radii, self.lead_times,
             self.ens_factor)
 
     def process(self, cube):
@@ -371,25 +373,16 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
             neighbourhood_method, radii, lead_times=lead_times,
             ens_factor=ens_factor)
 
-        self.percentiles = percentiles
-
         methods = {
             "circular": GeneratePercentilesFromACircularNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(percentiles=self.percentiles)
+            self.neighbourhood_method = method(percentiles=percentiles)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
                        neighbourhood_method, methods.keys()))
             raise KeyError(msg)
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<{}; percentiles: {}>')
-        return result.format(
-            super(GeneratePercentilesFromANeighbourhood, self).__repr__(),
-            self.percentiles)
 
 
 class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
@@ -446,12 +439,3 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                    "supported method. Please choose from: {}".format(
                        neighbourhood_method, methods.keys()))
             raise KeyError(msg)
-
-        self.weighted_mode = bool(weighted_mode)
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<{}; weighted_mode: {}>')
-        return result.format(
-            super(NeighbourhoodProcessing, self).__repr__(),
-            self.weighted_mode)

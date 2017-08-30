@@ -84,10 +84,8 @@ class Test_make_percentile_cube(IrisTest):
        GeneratePercentilesFromACircularNeighbourhood."""
 
     def test_basic(self):
-        """
-        Test that the plugin returns an iris.cube.Cube and that percentile
-        coord is added.
-        """
+        """Test that the plugin returns an iris.cube.Cube and that percentile
+        coord is added."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -101,15 +99,86 @@ class Test_make_percentile_cube(IrisTest):
             'percentiles_over_neighbourhood').points, DEFAULT_PERCENTILES)
 
 
+class Test_pad_and_unpad_cube(IrisTest):
+
+    """Test the padding and unpadding of the data within a cube."""
+
+    def setUp(self):
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+
+    def test_2d_slice(self):
+        """Test a 2d slice."""
+        expected = np.array(
+            [[[1., 1., 1., 1., 1.],
+              [1., 1., 0.4, 1., 1.],
+              [1., 0.4, 0.4, 0.4, 1.],
+              [1., 1., 0.4, 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]]])
+        kernel = np.array(
+            [[0., 1., 0.],
+             [1., 1., 1.],
+             [0., 1., 0.]])
+        cube = self.cube[0, 0, :, :]
+        plugin = GeneratePercentilesFromACircularNeighbourhood()
+        plugin.percentiles = np.array([10, 50, 90])
+        result = plugin.pad_and_unpad_cube(cube, kernel)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_irregular_kernel(self):
+        """Test a 2d slice."""
+        expected = np.array(
+            [[[1., 1., 1., 1., 1.],
+              [1., 1., 0.3, 1., 1.],
+              [1., 0.3, 1., 1, 1.],
+              [1., 1., 0.3, 0.3, 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]]])
+        kernel = np.array(
+            [[0., 1., 0.],
+             [1., 0., 1.],
+             [0., 0., 1.]])
+        ranges_xy = np.array([1, 1])
+        cube = self.cube[0, 0, :, :]
+        plugin = GeneratePercentilesFromACircularNeighbourhood()
+        plugin.percentiles = np.array([10, 50, 90])
+        result = plugin.pad_and_unpad_cube(cube, kernel)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
 class Test_run(IrisTest):
 
-    """Test neighbourhood circular percentile plugin."""
+    """Test the run method within the plugin to calculate percentile values
+    from a neighbourhood."""
+
+    def setUp(self):
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+        cube = self.cube
         radius = 4000.
         result = (
             GeneratePercentilesFromACircularNeighbourhood().run(
@@ -118,51 +187,72 @@ class Test_run(IrisTest):
 
     def test_single_point(self):
         """Test behaviour for a single non-zero grid cell."""
-        cube = set_up_cube()
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[0, :, 0, 6:9, 6] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 5:10, 7] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 6:9, 8] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
-        radius = 4000.
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 0.4, 0.4, 0.4, 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    self.cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
         """Test behaviour for points over multiple times."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 10, 10), (0, 1, 7, 7)],
-            num_time_points=2
-        )
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 10, 8] = PERCENTILES_1_IN_13
-        expected[0, :, 0, 9:12, 9] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 8:13, 10] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 9:12, 11] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 10, 12] = PERCENTILES_1_IN_13
-        expected[0, :, 1, 7, 5] = PERCENTILES_1_IN_13
-        expected[0, :, 1, 6:9, 6] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 1, 5:10, 7] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 1, 6:9, 8] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 1, 7, 9] = PERCENTILES_1_IN_13
-        radius = 4000.
+            zero_point_indices=((0, 0, 2, 2), (0, 1, 2, 1)), num_time_points=2,
+            num_grid_points=5)
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 0.4, 0.4, 0.4, 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 1., 1., 1., 1.]],
+               [[1., 1., 1., 1., 1.],
+                [1., 0.4, 1., 1., 1.],
+                [0.4, 0.4, 0.4, 1., 1.],
+                [1., 0.4, 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]],
+               [[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]],
+               [[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
@@ -177,70 +267,98 @@ class Test_run(IrisTest):
         """Test behaviour with a masked non-zero point.
         The behaviour here is not right, as the mask is ignored.
         This comes directly from the numpy.percentile base
-        behaviour.
-        """
-        cube = set_up_cube()
+        behaviour."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 0.4, 0.4, 0.4, 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        cube = self.cube
         mask = np.zeros_like(cube.data)
-        mask[0, 0, 7, 7] = 1
+        mask[0, 0, 2, 2] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[0, :, 0, 6:9, 6] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 5:10, 7] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 6:9, 8] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
-        radius = 4000.
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
                 cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
         """Test behaviour with a non-zero point next to a masked point.
-        The behaviour here is not right, as the mask is ignored.
-        """
-        cube = set_up_cube()
+        The behaviour here is not right, as the mask is ignored."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 0.4, 0.4, 0.4, 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        cube = self.cube
         mask = np.zeros_like(cube.data)
-        mask[0, 0, 6, 7] = 1
+        mask[0, 0, 2, 3] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_13
-        expected[0, :, 0, 6:9, 6] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 5:10, 7] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 6:9, 8] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 7, 9] = PERCENTILES_1_IN_13
-        radius = 4000.
-        result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_range_1(self):
-        """Test behaviour with a non-zero point with unit range."""
-        cube = set_up_cube()
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 6] = PERCENTILES_1_IN_5
-        expected[0, :, 0, 6:9, 7] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_5, (3, 1))))
-        expected[0, :, 0, 7, 8] = PERCENTILES_1_IN_5
+        percentiles = np.array([10, 50, 90])
         radius = 2000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_single_point_low_percentiles(self):
+        """Test behaviour with low percentiles."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 0.2, 1., 1.],
+                [1., 0.2, 0.2, 0.2, 1.],
+                [1., 1., 0.2, 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 0.4, 0.4, 0.4, 1.],
+                [1., 1., 0.4, 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 0.8, 1., 1.],
+                [1., 0.8, 0.8, 0.8, 1.],
+                [1., 1., 0.8, 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        percentiles = np.array([5, 10, 20])
+        radius = 2000.
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_0(self):
         """Test behaviour with zero range."""
-        cube = set_up_cube()
+        cube = self.cube
         radius = 0.
         msg = "Distance of {0}m gives zero cell extent".format(radius)
         with self.assertRaisesRegexp(ValueError, msg):
@@ -248,167 +366,297 @@ class Test_run(IrisTest):
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 0., 0., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 4] = PERCENTILES_1_IN_13
-        expected[0, :, 0, 6:9, 5] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 5:10, 6] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 7, 6] = PERCENTILES_2_IN_13
-        expected[0, :, 0, 6:9, 7] = (
-            np.transpose(np.tile(PERCENTILES_2_IN_13, (3, 1))))
-        expected[0, :, 0, 5:10, 8] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (5, 1))))
-        expected[0, :, 0, 7, 8] = PERCENTILES_2_IN_13
-        expected[0, :, 0, 6:9, 9] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_13, (3, 1))))
-        expected[0, :, 0, 7, 10] = PERCENTILES_1_IN_13
-        radius = 4000.
+            zero_point_indices=((0, 0, 2, 2), (0, 0, 2, 1)), num_grid_points=5)
+        percentiles = np.array([25, 50, 75])
+        radius = 2000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
         cube = set_up_cube(
             zero_point_indices=[
-                (0, 0, 7, 2)])  # Just within range of the edge.
-        border_rows_1 = PERCENTILES_1_IN_25.copy()
-        border_rows_1[1] = 0.8
-        border_rows_2 = PERCENTILES_1_IN_25.copy()
-        border_rows_2[1:3] = [2./3., 14./15.]
-        border_rows_3 = PERCENTILES_1_IN_25.copy()
-        border_rows_3[1:3] = [2./3., 2./3.]
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 5] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 5:10, 4] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[0, :, 0, 5:10, 3] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[0, :, 0, 4:11, 2] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[0, :, 0, 7, 2] = border_rows_1
-        expected[0, :, 0, 5:10, 1] = (
-            np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[0, :, 0, 7, 1] = border_rows_2
-        expected[0, :, 0, 5:10, 0] = (
-            np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[0, :, 0, 7, 0] = border_rows_3
+                (0, 0, 2, 2)],
+            num_grid_points=5)  # Just within range of the edge.
+        expected = np.array(
+            [[[[[0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667],
+                [0.66666667, 0.84444444, 0.93333333, 0.84444444, 0.66666667],
+                [0.66666667, 0.93333333, 0.66666667, 0.93333333, 0.66666667],
+                [0.66666667, 0.84444444, 0.93333333, 0.84444444, 0.66666667],
+                [0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        percentiles = np.array([10, 50, 90])
         radius = 6000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 1)])  # Range 3 goes over the edge.
-        border_rows_1 = PERCENTILES_1_IN_25.copy()
-        border_rows_1[1] = 0.8
-        border_rows_2 = PERCENTILES_1_IN_25.copy()
-        border_rows_2[1:3] = [2./3., 14./15.]
-        border_rows_3 = PERCENTILES_1_IN_25.copy()
-        border_rows_3[1:3] = [2./3., 2./3.]
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 4] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 5:10, 3] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[0, :, 0, 5:10, 2] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[0, :, 0, 7, 2] = border_rows_1
-        expected[0, :, 0, 4:11, 1] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[0, :, 0, 5:10, 1] = (
-            np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[0, :, 0, 7, 1] = border_rows_2
-        expected[0, :, 0, 5:10, 0] = (
-            np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[0, :, 0, 7, 0] = border_rows_3
+            zero_point_indices=[(0, 0, 2, 1)],
+            num_grid_points=5)  # Range 3 goes over the edge.
+        expected = np.array(
+            [[[[[0.66666667, 0.66666667, 0.93333333, 0.93333333, 1.],
+                [0.66666667, 0.66666667, 1., 1., 1.],
+                [0.66666667, 0.66666667, 1., 1., 1.],
+                [0.66666667, 0.66666667, 1., 1., 1.],
+                [0.66666667, 0.66666667, 0.93333333, 0.93333333, 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
+        percentiles = np.array([10, 50, 90])
         radius = 6000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge.
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-        """
+        this in the future."""
+        expected = np.array(
+            [[[[[0.66666667, 0.66666667, 0.93333333, 1., 1.],
+                [0.66666667, 0.84444444, 1., 1., 1.],
+                [0.66666667, 0.93333333, 1., 1., 1.],
+                [0.66666667, 0.84444444, 1., 1., 1.],
+                [0.66666667, 0.66666667, 0.93333333, 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
-        border_rows_1 = PERCENTILES_1_IN_25.copy()
-        border_rows_1[1] = 0.8
-        border_rows_2 = PERCENTILES_1_IN_25.copy()
-        border_rows_2[1:3] = [2./3., 14./15.]
-        border_rows_3 = PERCENTILES_1_IN_25.copy()
-        border_rows_3[1:3] = [2./3., 2./3.]
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 7, 3] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 5:10, 2] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (5, 1))))
-        expected[0, :, 0, 7, 2] = border_rows_1
-        expected[0, :, 0, 5:10, 1] = (
-            np.transpose(np.tile(border_rows_1, (5, 1))))
-        expected[0, :, 0, 7, 1] = border_rows_2
-        expected[0, :, 0, 4:11, 0] = (
-            np.transpose(np.tile(PERCENTILES_1_IN_25, (7, 1))))
-        expected[0, :, 0, 5:10, 0] = (
-            np.transpose(np.tile(border_rows_2, (5, 1))))
-        expected[0, :, 0, 7, 0] = border_rows_3
+            zero_point_indices=[(0, 0, 2, 0)],
+            num_grid_points=5)
+        percentiles = np.array([10, 50, 90])
         radius = 6000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner.
         Note that this behaviour is 'wrong' and is a result of
         scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future.
-        """
+        this in the future."""
+        expected = np.array(
+            [[[[[0.66666667, 0.66666667, 0.66666667, 1., 1.],
+                [0.66666667, 0.84444444, 1., 1., 1.],
+                [0.66666667, 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1.]]]]])
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
-        border_rows_1 = PERCENTILES_1_IN_25.copy()
-        border_rows_1[1] = 0.8
-        border_rows_3 = PERCENTILES_1_IN_25.copy()
-        border_rows_3[1:3] = [2./3., 2./3.]
-        border_rows_4 = PERCENTILES_1_IN_25.copy()
-        border_rows_4[1:3] = [2./3., 38./45.]
-        border_rows_5 = PERCENTILES_1_IN_25.copy()
-        border_rows_5[1:4] = [2./3., 2./3., 8./9.]
-        border_rows_6 = PERCENTILES_1_IN_25.copy()
-        border_rows_6[1:3] = [2./3., 2./3.]
-        border_rows_7 = PERCENTILES_1_IN_25.copy()
-        border_rows_7[1:6] = [2./3., 2./3., 2./3., 8./9., 8./9.]
-        expected = np.ones([15] + list(np.shape(cube.data)))
-        expected = np.transpose(expected, [1, 0, 2, 3, 4])
-        expected[0, :, 0, 0, 3] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 2, 2] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 1, 2] = border_rows_1
-        expected[0, :, 0, 0, 2] = border_rows_3
-        expected[0, :, 0, 2, 1] = border_rows_1
-        expected[0, :, 0, 1, 1] = border_rows_4
-        expected[0, :, 0, 0, 1] = border_rows_5
-        expected[0, :, 0, 3, 0] = PERCENTILES_1_IN_25
-        expected[0, :, 0, 2, 0] = border_rows_6
-        expected[0, :, 0, 1, 0] = border_rows_5
-        expected[0, :, 0, 0, 0] = border_rows_7
+            zero_point_indices=[(0, 0, 0, 0)],
+            num_grid_points=5)  # Point is right on the corner.
+        percentiles = np.array([10, 50, 90])
         radius = 6000.
         result = (
-            GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius))
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_number_of_percentiles_equals_number_of_points(self):
+        """Test when the number of percentiles is equal to the number of points
+        used to construct the percentiles."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.2, 1., 1., 1.],
+                [1., 1., 0.2, 0.2, 0.2, 1., 1.],
+                [1., 1., 1., 0.2, 1.,  1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.4, 1., 1., 1.],
+                [1., 1., 0.4, 0.4, 0.4, 1., 1.],
+                [1., 1., 1., 0.4, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.6, 1., 1., 1.],
+                [1., 1., 0.6, 0.6, 0.6, 1., 1.],
+                [1., 1., 1., 0.6, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.8, 1., 1., 1.],
+                [1., 1., 0.8, 0.8, 0.8, 1., 1.],
+                [1., 1., 1., 0.8, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]]]])
+        cube = set_up_cube(
+            zero_point_indices=[(0, 0, 3, 3)],
+            num_grid_points=7)
+        percentiles = np.array([5, 10, 15, 20, 25])
+        radius = 2000.
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_number_of_points_half_of_number_of_percentiles(self):
+        """Test when the number of points is half the number of percentiles."""
+        expected = np.array(
+            [[[[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.1, 1., 1., 1.],
+                [1., 1., 0.1, 0.1, 0.1, 1., 1.],
+                [1., 1., 1., 0.1, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.2, 1., 1., 1.],
+                [1., 1., 0.2, 0.2, 0.2, 1., 1.],
+                [1., 1., 1., 0.2, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.3, 1., 1., 1.],
+                [1., 1., 0.3, 0.3, 0.3, 1., 1.],
+                [1., 1., 1., 0.3, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.4, 1., 1., 1.],
+                [1., 1., 0.4, 0.4, 0.4, 1., 1.],
+                [1., 1., 1., 0.4, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.5, 1., 1., 1.],
+                [1., 1., 0.5, 0.5, 0.5, 1., 1.],
+                [1., 1., 1., 0.5, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.6, 1., 1., 1.],
+                [1., 1., 0.6, 0.6, 0.6, 1., 1.],
+                [1., 1., 1., 0.6, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.7, 1., 1., 1.],
+                [1., 1., 0.7, 0.7, 0.7, 1., 1.],
+                [1., 1., 1., 0.7, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.8, 1., 1., 1.],
+                [1., 1., 0.8, 0.8, 0.8, 1., 1.],
+                [1., 1., 1., 0.8, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 0.9, 1., 1., 1.],
+                [1., 1., 0.9, 0.9, 0.9, 1., .1],
+                [1., 1., 1., 0.9, 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]],
+              [[[1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.],
+                [1., 1., 1., 1., 1., 1., 1.]]]]])
+        cube = set_up_cube(
+            zero_point_indices=[(0, 0, 3, 3)],
+            num_grid_points=7)
+        percentiles = np.array(
+            [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25])
+        radius = 2000.
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).run(
+                    cube, radius))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_circle_bigger_than_domain(self):
+        cube = self.cube
+        radius = 50000.0
+        msg = ("Distance of {}m exceeds max domain distance of "
+               "11313.708499m").format(radius)
+        with self.assertRaisesRegexp(ValueError, msg):
+            GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
 
 if __name__ == '__main__':

@@ -206,6 +206,46 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                   'percentiles: {}>')
         return result.format(self.percentiles)
 
+    def pad_and_unpad_cube(self, slice_2d, kernel):
+        """
+        Method to pad and unpad a two dimensional cube. Percentiles are
+        calculated using the padded array after identifying that the
+        neighbourhood to be used for calculating the percentiles.
+
+        Parameters
+        ----------
+        slice_2d : Iris.cube.Cube
+            2d cube to be padded with a halo.
+        kernel : Numpy array
+            Kernel used to specify the neighbourhood to consider when
+            calculating the percentiles within a neighbourhood.
+
+        """
+        ranges_xy = np.empty(2, dtype=int)
+        ranges_xy[0] = int(np.floor(kernel.shape[0] / 2.0))
+        ranges_xy[1] = int(np.floor(kernel.shape[1] / 2.0))
+        padded = np.pad(slice_2d.data, ranges_xy, mode='mean',
+                        stat_length=np.max(ranges_xy))
+        padshape = np.shape(padded)  # Store size to make unflatten easier
+        padded = padded.flatten()
+        # Add 2nd dimension with each point's neighbourhood points along it
+        nbhood_slices = [
+            np.roll(padded, (padshape[1]*j)+i)
+            for i in range(-ranges_xy[1], ranges_xy[1]+1)
+            for j in range(-ranges_xy[0], ranges_xy[0]+1)
+            if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
+        # Collapse this dimension into percentiles (a new 2nd dimension)
+        perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
+        # Return to 3D
+        perc_data = perc_data.reshape(
+            len(self.percentiles), padshape[0], padshape[1])
+        # Create a cube for these data:
+        pctcube = self.make_percentile_cube(slice_2d)
+        # And put in data, removing the padding
+        pctcube.data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
+                                 ranges_xy[1]:-ranges_xy[1]]
+        return pctcube
+
     def run(self, cube, radius):
         """
         Method to apply a circular kernel to the data within the input cube in
@@ -233,34 +273,14 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         ranges_xy = np.array(ranges_tuple)
         kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
+
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
         for slice_2d in cube.slices(['projection_y_coordinate',
                                      'projection_x_coordinate']):
-            # Create a 1D data array padded with repeats of the local boundary
-            # mean.
-            padded = np.pad(slice_2d.data, ranges_xy, mode='mean',
-                            stat_length=np.max(ranges_xy))
-            padshape = np.shape(padded)  # Store size to make unflatten easier
-            padded = padded.flatten()
-            # Add 2nd dimension with each point's neighbourhood points along it
-            nbhood_slices = [
-                np.roll(padded, (padshape[1]*j)+i)
-                for i in range(-ranges_xy[1], ranges_xy[1]+1)
-                for j in range(-ranges_xy[0], ranges_xy[0]+1)
-                if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
-            # Collapse this dimension into percentiles (a new 2nd dimension)
-            perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
-            # Return to 3D
-            perc_data = perc_data.reshape(
-                len(self.percentiles), padshape[0], padshape[1])
-            # Create a cube for these data:
-            pctcube = self.make_percentile_cube(slice_2d)
-            # And put in data, removing the padding
-            pctcube.data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
-                                     ranges_xy[1]:-ranges_xy[1]]
-            pctcubelist.append(pctcube)
+            pctcubelist.append(
+                self.pad_and_unpad_cube(slice_2d, kernel))
         result = pctcubelist.merge_cube()
         exception_coordinates = (
             find_dimension_coordinate_mismatch(
