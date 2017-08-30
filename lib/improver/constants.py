@@ -42,5 +42,5 @@ R_DRY_AIR = 287.0
 # Specific heat capacity of dry air (J K-1 kg-1)
 CP_DRY_AIR = 1005.0
 
-# Triple Point of Water
+# Triple Point of Water (K)
 TRIPLE_PT_WATER = 273.16

@@ -118,6 +118,20 @@ class Test_check_range(IrisTest):
         with self.assertRaisesRegexp(TypeError, emsg):
             check_range(cube_in, 10., 300.)
 
+    def test_succeeds(self):
+        """Test that when the check_range method is given a value within
+        limits that is does not return an error"""
+        data = np.array([[270., 500.],
+                         [290., 290.]])
+        cube_in = _make_test_cube("temperature", "K", data=data)
+        emsg = "only valid for temperatures between"
+        with self.assertRaisesRegexp(TypeError, emsg):
+            check_range(cube_in, 10., 300.)
+        data = np.array([[20., 290.],
+                         [290., 290.]])
+        cube_in = _make_test_cube("temperature", "K", data=data)
+        check_range(cube_in, 10., 300.)
+
 
 class Test_calculate_svp_ashrae(IrisTest):
 
