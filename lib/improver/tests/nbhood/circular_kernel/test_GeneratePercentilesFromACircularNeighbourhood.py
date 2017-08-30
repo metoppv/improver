@@ -47,25 +47,6 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 
 
-# Standard percentile answers for radius 2 grid points
-# (==> circle of 13 points)
-# Array name indicates how many of the 13 grid points were ones;
-# remaining points are zeroes.
-PERCENTILES_1_IN_13 = np.ones(15)
-PERCENTILES_1_IN_13[:2] = [0., 0.6]
-PERCENTILES_2_IN_13 = np.ones(15)
-PERCENTILES_2_IN_13[:3] = [0., 0., 0.2]
-
-# For 1 zero in group of 5 (other 4 are ones):
-PERCENTILES_1_IN_5 = np.ones(15)
-PERCENTILES_1_IN_5[:4] = [0., 0.2, 0.4, 0.8]
-
-# Standard percentile answers for radius 3 grid points
-# (==> circle of 25 points)
-PERCENTILES_1_IN_25 = np.ones(15)
-PERCENTILES_1_IN_25[:1] = [0.]
-
-
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -104,6 +85,7 @@ class Test_pad_and_unpad_cube(IrisTest):
     """Test the padding and unpadding of the data within a cube."""
 
     def setUp(self):
+        """Set up a cube."""
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
@@ -158,7 +140,6 @@ class Test_pad_and_unpad_cube(IrisTest):
             [[0., 1., 0.],
              [1., 0., 1.],
              [0., 0., 1.]])
-        ranges_xy = np.array([1, 1])
         cube = self.cube[0, 0, :, :]
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
@@ -173,6 +154,7 @@ class Test_run(IrisTest):
     from a neighbourhood."""
 
     def setUp(self):
+        """Set up a cube."""
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
@@ -651,6 +633,8 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_circle_bigger_than_domain(self):
+        """Test that an exception is raised is the circle requested is bigger
+        than the size of the domain."""
         cube = self.cube
         radius = 50000.0
         msg = ("Distance of {}m exceeds max domain distance of "
