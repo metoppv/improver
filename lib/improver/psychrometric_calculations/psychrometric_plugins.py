@@ -30,9 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain plugins for use with psychrometric calculations"""
 
-# import numpy as np
 import iris
-# import cf_units
+
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     wet_bulb)
@@ -76,14 +75,14 @@ class WetBulb(object):
         """
         # Check that inputs are of correct type
         if not isinstance(temperature, iris.cube.Cube):
-            emsg = "Temperature cube is not a cube, but {}"
-            raise ValueError(emsg.format(type(temperature)))
+            emsg = "Temperature is not a cube, but {}"
+            raise TypeError(emsg.format(type(temperature)))
         if not isinstance(rel_humidity, iris.cube.Cube):
-            emsg = "Temperature cube is not a cube, but {}"
-            raise ValueError(emsg.format(type(rel_humidity)))
+            emsg = "Temperature is not a cube, but {}"
+            raise TypeError(emsg.format(type(rel_humidity)))
         if not isinstance(pressure, iris.cube.Cube):
-            emsg = "Pressure is not a cube or a float, but {}"
-            raise ValueError(emsg.format(type(pressure)))
+            emsg = "Pressure is not a cube, but {}"
+            raise TypeError(emsg.format(type(pressure)))
 
         # Check that cubes are all the same shape
         if not temperature.shape == pressure.shape == rel_humidity.shape:
