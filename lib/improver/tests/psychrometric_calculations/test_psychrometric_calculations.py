@@ -122,7 +122,7 @@ class Test_check_range(IrisTest):
         data = np.array([[290., 290.],
                          [290., 290.]])
         cube_in = _make_test_cube("temperature", "K", data=data)
-        check_range(cube_in, 10., 300.)
+        self.assertEqual(check_range(cube_in, 10., 300.), None)
 
 
 class Test_calculate_svp_ashrae(IrisTest):
