@@ -36,6 +36,8 @@ import numpy as np
 import iris
 from iris.analysis import Aggregator
 
+from improver.utilities.cube_manipulation import add_renamed_cell_method
+
 
 class PercentileBlendingAggregator(object):
     """Class for the percentile blending aggregator
@@ -411,7 +413,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 weights = np.ones(num) / float(num)
             # Set up aggregator
             PERCENTILE_BLEND = (Aggregator(
-                'percentile_blend', PercentileBlendingAggregator.aggregate))
+                'weighted_mean', PercentileBlendingAggregator.aggregate))
 
             result = cube.collapsed(self.coord,
                                     PERCENTILE_BLEND,
@@ -428,9 +430,15 @@ class WeightedBlendAcrossWholeDimension(object):
                 weights_array = iris.util.broadcast_to_shape(np.array(weights),
                                                              cube.shape,
                                                              coord_dim)
+            orig_cell_methods = cube.cell_methods
             # Calculate the weighted average.
             result = cube.collapsed(self.coord,
                                     iris.analysis.MEAN, weights=weights_array)
+            # Update the name of the cell_method created by Iris to
+            # 'weighted_mean' to be consistent.
+            new_cell_methods = result.cell_methods
+            extra_cm = (set(new_cell_methods) - set(orig_cell_methods)).pop()
+            add_renamed_cell_method(result, extra_cm, 'weighted_mean')
 
         # Else use the maximum probability aggregator.
         elif self.mode == "weighted_maximum":
@@ -440,7 +448,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 weights = np.ones(num) / float(num)
             # Set up aggregator
             MAX_PROBABILITY = (Aggregator(
-                'weighted_maximum_probability',
+                'weighted_maximum',
                 MaxProbabilityAggregator.aggregate))
 
             result = cube.collapsed(self.coord,
