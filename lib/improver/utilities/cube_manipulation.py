@@ -227,7 +227,6 @@ def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
         coords=orig_cell_method.coord_names,
         intervals=orig_cell_method.intervals,
         comments=orig_cell_method.comments)
-    orig_cell_methods = cube.cell_methods
-    final_cms = [cm for cm in orig_cell_methods if cm != orig_cell_method]
+    final_cms = [cm for cm in cube.cell_methods if cm != orig_cell_method]
     final_cms = tuple(final_cms + [renamed_cell_method])
     cube.cell_methods = final_cms

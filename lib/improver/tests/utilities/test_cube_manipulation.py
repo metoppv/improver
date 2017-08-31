@@ -531,7 +531,7 @@ class Test_add_renamed_cell_method(IrisTest):
     """Class to test the add_renamed_cell_method function"""
 
     def setUp(self):
-        '''Set up input cube for tests'''
+        """Set up input cube for tests"""
         self.cube = set_up_temperature_cube()
         self.cell_method = iris.coords.CellMethod(method='mean', coords='time')
         self.cube.add_cell_method(self.cell_method)
@@ -545,7 +545,7 @@ class Test_add_renamed_cell_method(IrisTest):
 
     def test_only_difference_is_name(self):
         """Testing that the input cell method and the new cell method only
-           differ by name"""
+        differ by name"""
         add_renamed_cell_method(self.cube, self.cell_method, 'weighted_mean')
         expected_cell_method = iris.coords.CellMethod(method='weighted_mean',
                                                       coords='time')
@@ -558,7 +558,7 @@ class Test_add_renamed_cell_method(IrisTest):
 
     def test_no_cell_method_in_input_cube(self):
         """Testing that when there are no cell methods on the input cube then
-           the new cell method still gets added as expected."""
+        the new cell method still gets added as expected."""
         self.cube.cell_methods = ()
         add_renamed_cell_method(self.cube, self.cell_method, 'weighted_mean')
         expected_cell_method = iris.coords.CellMethod(method='weighted_mean',
