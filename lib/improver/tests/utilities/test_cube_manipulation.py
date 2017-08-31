@@ -39,17 +39,26 @@ from cf_units import Unit
 import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.exceptions import ConcatenateError
+from iris.exceptions import ConcatenateError, DuplicateDataError
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.utilities.cube_manipulation import (
-    concatenate_cubes, equalise_cube_attributes,
-    _strip_var_names, _slice_over_coordinate,
     _associate_any_coordinate_with_master_coordinate,
-    compare_attributes, build_coordinate)
+    _slice_over_coordinate,
+    _strip_var_names,
+    concatenate_cubes,
+    merge_cubes,
+    equalise_cubes,
+    equalise_cube_attributes,
+    equalise_cube_coords,
+    compare_attributes,
+    compare_coords,
+    build_coordinate)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube
+    helper_functions import (
+        set_up_temperature_cube,
+        set_up_probability_above_threshold_temperature_cube)
 
 
 def _check_coord_type(cube, coord):
@@ -70,6 +79,28 @@ def _check_coord_type(cube, coord):
         coord_scalar = False
         coord_aux = True
     return coord_scalar, coord_aux
+
+
+def add_forecast_reference_time_and_forecast_period(
+        cube, time_point=402295.0, fp_point=4.0):
+    """
+    Function to add forecast_reference_time and forecast_period coordinates
+    to the input cube.
+    """
+    cube.coord("time").points = time_point
+    coord_position = cube.coord_dims("time")
+    if not isinstance(fp_point, list):
+        fp_point = [fp_point]
+    fp_points = fp_point
+    frt_points = cube.coord("time").points[0] - fp_points[0]
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.add_aux_coord(
+        DimCoord([frt_points], "forecast_reference_time", units=tunit))
+    cube.add_aux_coord(
+        DimCoord(fp_points, "forecast_period", units="hours"))
+    return cube
 
 
 class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
@@ -271,52 +302,6 @@ class Test__slice_over_coordinate(IrisTest):
 
         result = _slice_over_coordinate(cubelist, "forecast_period")
         self.assertEqual(len(result), 2)
-
-
-class Test_equalise_cube_attributes(IrisTest):
-
-    """Test the equalise_cube_attributes utility."""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-
-    def test_cubelist_history_removal(self):
-        """
-        Test that the utility returns an iris.cube.Cube without a
-        history attribute, given that the utility will try to remove the
-        history attribute, if it exists.
-        """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-        cube2.coord("time").points = 402195.0
-        cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
-        cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        equalise_cube_attributes(cubelist)
-        self.assertNotIn("history", cubelist[0].attributes.keys())
-        self.assertNotIn("history", cubelist[1].attributes.keys())
-
-    def test_cubelist_no_history_removal(self):
-        """
-        Test that the utility returns an iris.cube.Cube with a
-        history attribute and with the remove_history keyword argument
-        set to True.
-        """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-        cube2.coord("time").points = 402195.0
-        cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
-        cube2.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        equalise_cube_attributes(cubelist)
-
-        self.assertIn("history", cubelist[0].attributes.keys())
-        self.assertIn("history", cubelist[1].attributes.keys())
 
 
 class Test__strip_var_names(IrisTest):
@@ -538,6 +523,153 @@ class Test_concatenate_cubes(IrisTest):
         self.assertIsInstance(result, Cube)
 
 
+class Test_merge_cubes(IrisTest):
+
+    """Test the merge_cubes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+        self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
+        self.cube_ukv.remove_coord('realization')
+        self.cube_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
+        self.cube_ukv.attributes.update({'title':
+                                         'Operational UKV Model Forecast'})
+        self.cube_ukv_T1 = self.cube_ukv.copy()
+        self.cube_ukv_T2 = self.cube_ukv.copy()
+        add_forecast_reference_time_and_forecast_period(self.cube_ukv,
+                                                        fp_point=4.0)
+        add_forecast_reference_time_and_forecast_period(self.cube_ukv_T1,
+                                                        fp_point=5.0)
+        add_forecast_reference_time_and_forecast_period(self.cube_ukv_T2,
+                                                        fp_point=6.0)
+        add_forecast_reference_time_and_forecast_period(self.cube,
+                                                        fp_point=7.0)
+        self.cube.attributes.update({'grid_id': 'enukx_standard_v1'})
+        self.cube.attributes.update({'title':
+                                     'Operational Mogreps UK Model Forecast'})
+        self.prob_ukv = set_up_probability_above_threshold_temperature_cube()
+        self.prob_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
+        self.prob_ukv.attributes.update({'title':
+                                         'Operational UKV Model Forecast'})
+        self.prob_enuk = set_up_probability_above_threshold_temperature_cube()
+        self.prob_enuk.attributes.update({'grid_id': 'enukx_standard_v1'})
+        self.prob_enuk.attributes.update(
+            {'title':
+             'Operational Mogreps UK Model Forecast'})
+
+    def test_basic(self):
+        """Test that the utility returns an iris.cube.Cube."""
+        result = merge_cubes(self.cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_identical_cubes(self):
+        """Test that merging identical cubes fails."""
+        cubes = iris.cube.CubeList([self.cube, self.cube])
+        msg = "failed to merge into a single cube"
+        with self.assertRaisesRegexp(DuplicateDataError, msg):
+            merge_cubes(cubes)
+
+    def test_lagged_ukv(self):
+        """Test Lagged ukv merge OK"""
+        cubes = iris.cube.CubeList([self.cube_ukv,
+                                    self.cube_ukv_T1,
+                                    self.cube_ukv_T2])
+        result = merge_cubes(cubes)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, [6.0, 5.0, 4.0])
+
+    def test_multi_model(self):
+        """Test Multi models merge OK"""
+        cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
+        result = merge_cubes(cubes)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("model_realization").points, [0., 1., 2., 100.])
+
+    def test_threshold_data(self):
+        """Test threshould data merges OK"""
+        cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
+        result = merge_cubes(cubes)
+        self.assertArrayAlmostEqual(
+            result.coord("model_id").points, [0, 100])
+
+
+class Test_equalise_cubes(IrisTest):
+
+    """Test the_equalise_cubes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the utility returns an iris.cube.Cube."""
+        result = equalise_cubes(self.cube)
+        self.assertIsInstance(result, Cube)
+
+
+class Test_equalise_cube_attributes(IrisTest):
+
+    """Test the equalise_cube_attributes utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_cubelist_history_removal(self):
+        """
+        Test that the utility returns an iris.cube.Cube without a
+        history attribute, given that the utility will try to remove the
+        history attribute, if it exists.
+        """
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cube2.coord("time").points = 402195.0
+        cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
+        cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
+
+        equalise_cube_attributes(cubelist)
+        self.assertNotIn("history", cubelist[0].attributes.keys())
+        self.assertNotIn("history", cubelist[1].attributes.keys())
+
+    def test_cubelist_no_history_removal(self):
+        """
+        Test that the utility returns an iris.cube.Cube with a
+        history attribute and with the remove_history keyword argument
+        set to True.
+        """
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cube2.coord("time").points = 402195.0
+        cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
+        cube2.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
+
+        equalise_cube_attributes(cubelist)
+
+        self.assertIn("history", cubelist[0].attributes.keys())
+        self.assertIn("history", cubelist[1].attributes.keys())
+
+
+class Test_equalise_cube_coords(IrisTest):
+
+    """Test the_equalise_cube_coords utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the utility returns an iris.cube.Cube."""
+        result = equalise_cube_coords(self.cube)
+        self.assertIsInstance(result, Cube)
+
+
 class Test_compare_attributes(IrisTest):
     """Test the compare_attributes utility."""
 
@@ -584,7 +716,6 @@ class Test_compare_attributes(IrisTest):
         cube2 = self.cube.copy()
         cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
         cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
-        print cube1.attributes
         cubelist = iris.cube.CubeList([cube1, cube2])
         result1, result2 = compare_attributes(cubelist)
         self.assertAlmostEquals(result1, [])
@@ -595,8 +726,25 @@ class Test_compare_attributes(IrisTest):
                                   '2017-01-19T08:59:53: StaGE Decoupler'}])
 
 
+class Test_compare_coords(IrisTest):
+    """Test the compare_coords utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the utility returns two lists."""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        result1, result2 = compare_attributes(cubelist)
+        self.assertIsInstance(result1, list)
+        self.assertIsInstance(result2, list)
+
+
 class Test_build_coordinate(IrisTest):
-    """Test the compare_attributes utility."""
+    """Test the build_coordinate utility."""
 
     def setUp(self):
         """Use temperature cube to test with."""

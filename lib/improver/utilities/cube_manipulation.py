@@ -127,6 +127,131 @@ def _slice_over_coordinate(cubes, coord_to_slice_over):
     return sliced_by_coord_cubelist
 
 
+def _strip_var_names(cubes):
+    """
+    Strips var_name from the cube and from all coordinates
+    to help concatenation.
+
+    Parameters
+    ----------
+    cubes : Iris cubelist or Iris cube
+        Cubes to be concatenated.
+
+    Returns
+    -------
+    Iris CubeList
+        CubeList containing original cubes without a var_name on the cube,
+        or on the coordinates.
+
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+    for cube in cubes:
+        cube.var_name = None
+        for coord in cube.coords():
+            coord.var_name = None
+    return cubes
+
+
+def concatenate_cubes(
+        cubes, coords_to_slice_over=None, master_coord="time",
+        coordinates_for_association=None):
+    """
+    Function to concatenate cubes, accounting for differences in the
+    history attribute, and allow promotion of forecast_reference_time
+    and forecast_period coordinates from scalar coordinates to auxiliary
+    coordinates to allow concatenation.
+
+    Args:
+    cubes : Iris cubelist or Iris cube
+        Cubes to be concatenated.
+    coords_to_slice_over : List
+        Coordinates to be sliced over.
+    master_coord : String
+        Coordinate that the other coordinates will be associated with.
+    coordinates_for_association : List
+        List of coordinates to be associated with the master_coord.
+
+    Returns:
+    result: Iris cube
+        Concatenated / merge cube.
+
+    """
+    if coords_to_slice_over is None:
+        coords_to_slice_over = ["realization", "time"]
+    if coordinates_for_association is None:
+        coordinates_for_association = ["forecast_reference_time",
+                                       "forecast_period"]
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    for coord_to_slice_over in coords_to_slice_over:
+        cubes = _slice_over_coordinate(cubes, coord_to_slice_over)
+
+    cubes = equalise_cubes(cubes, merging=False)
+
+    associated_with_time_cubelist = iris.cube.CubeList([])
+    for cube in cubes:
+        associated_with_time_cubelist.append(
+            _associate_any_coordinate_with_master_coordinate(
+                cube, master_coord=master_coord,
+                coordinates=coordinates_for_association))
+
+    result = associated_with_time_cubelist.concatenate_cube()
+    return result
+
+
+def merge_cubes(cubes):
+    """
+    Function to merge cubes, accounting for differences in the
+    attributes, and coords.
+
+    Args:
+    cubes : Iris cubelist or Iris cube
+        Cubes to be merged.
+
+    Returns:
+    result : Iris cube
+        Merged cube.
+
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    cubelist = equalise_cubes(cubes)
+
+    result = cubelist.merge_cube()
+    return result
+
+
+def equalise_cubes(cubes, merging=True):
+    """
+    Function to equalise attributes that do not match.
+
+    Args:
+        cubes : Iris cubelist
+            List of cubes to check and equalise.
+        merging : boolean
+            Flag for whether the equalising is for merging
+            as slightly different processing is required.
+    Returns:
+        cubelist : Iris cubelist
+            List of cubes with revised cubes.
+    """
+    # Additional processing to deal with differences
+    # between cubes e.g. different cell_methods
+    # will probably need to be added but this function is
+    # mainly here to provide the structure for where
+    # these changes can be added.
+    equalise_cube_attributes(cubes)
+    _strip_var_names(cubes)
+    if merging:
+        cubelist = equalise_cube_coords(cubes)
+    else:
+        cubelist = cubes
+    return cubelist
+
+
 def equalise_cube_attributes(cubes):
     """
     Function to equalise attributes that do not match.
@@ -134,7 +259,6 @@ def equalise_cube_attributes(cubes):
     Args:
         cubes : Iris cubelist
             List of cubes to check the attributes and revise.
-
     Warn:
         Warning: If it does not know what to do with an unmatching
                  attribute. Default is to delete it.
@@ -176,18 +300,17 @@ def equalise_cube_attributes(cubes):
 
 def equalise_cube_coords(cubes):
     """
-    Function to equalise attributes that do not match.
+    Function to equalise coordinates that do not match.
 
     Args:
         cubes : Iris cubelist
             List of cubes to check the coords and revise.
-
     Returns:
         cubelist : Iris cubelist
             List of cubes with revised coords.
     Raises:
-        If Percentile coordinates do not match
-        If Threshold coordinates do not match
+        If Percentile coordinates do not match.
+        If Threshold coordinates do not match.
         If model_id has more than one point.
     """
     common_coords, unmatching_coords = compare_coords(cubes)
@@ -196,37 +319,39 @@ def equalise_cube_coords(cubes):
         for i, cube in enumerate(cubes):
             slice_over_keys = []
             for key in unmatching_coords[i]:
+                # mismatching percentiles - raise error.
                 if key.find('percentile_over') > 0:
-                    msg = (
-                           "Percentile coordinates "
+                    msg = ("Percentile coordinates "
                            "must match to merge")
                     raise ValueError(msg)
+                # mismatching thresholds - raise error.
                 if key == 'threshold':
-                    msg = (
-                           "Threshold coordinates "
+                    msg = ("Threshold coordinates "
                            "must match to merge")
                     raise ValueError(msg)
+                # mismatching model id
                 if key == 'model_id':
                     realization_found = False
+                    # Check to see if there is a mismatch realization coord.
                     for j, check in enumerate(unmatching_coords):
                         if 'realization' in check:
                             realization_found = True
                             realization_coord = cubes[j].coord('realization')
-                            print 'Relization coord found ', realization_coord
                             break
+                    # If there is add model_realization coord
+                    # and realization coord if necessary.
                     if realization_found:
-                        print cube.coord('model_id')
                         if len(cube.coord('model_id').points) != 1:
-                            msg = (
-                               "Threshold coordinates "
-                               "must match to merge")
+                            msg = ("Threshold coordinates "
+                                   "must match to merge")
                             raise ValueError(msg)
                         else:
                             model_id_val = cube.coord('model_id').points[0]
                         if cube.coords('realization'):
-                            if unmatching_coords[i]['realization'][0] >= 0:
+                            unmatch = unmatching_coords[i]['realization']
+                            if unmatch['data_dims'] >= 0:
                                 data_dims = (
-                                    unmatching_coords[i]['realization'][0])
+                                    unmatch['data_dims'])
                             else:
                                 data_dims = None
                             new_model_real_coord = (
@@ -247,8 +372,11 @@ def equalise_cube_coords(cubes):
                                     [0],
                                     template_coord=realization_coord))
                             cube.add_aux_coord(new_realization_coord)
-                if unmatching_coords[i][key][0] >= 0:
+                # if mismatching is a dimension coord add to list to
+                # slice over.
+                if unmatching_coords[i][key]['data_dims'] >= 0:
                     slice_over_keys.append(key)
+
             if len(slice_over_keys) > 0:
                 for slice_cube in cube.slices_over(slice_over_keys):
                     cubelist.append(slice_cube)
@@ -257,109 +385,6 @@ def equalise_cube_coords(cubes):
     else:
         cubelist = cubes
     return cubelist
-
-
-def _strip_var_names(cubes):
-    """
-    Strips var_name from the cube and from all coordinates
-    to help concatenation.
-
-    Parameters
-    ----------
-    cubes : Iris cubelist or Iris cube
-        Cubes to be concatenated.
-
-    Returns
-    -------
-    Iris CubeList
-        CubeList containing original cubes without a var_name on the cube,
-        or on the coordinates.
-
-    """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-    for cube in cubes:
-        cube.var_name = None
-        for coord in cube.coords():
-            coord.var_name = None
-    return cubes
-
-
-def concatenate_cubes(
-        cubes, coords_to_slice_over=None, master_coord="time",
-        coordinates_for_association=None):
-    """
-    Function to concatenate cubes, accounting for differences in the
-    history attribute, and allow promotion of forecast_reference_time
-    and forecast_period coordinates from scalar coordinates to auxiliary
-    coordinates to allow concatenation.
-
-    Parameters
-    ----------
-    cubes : Iris cubelist or Iris cube
-        Cubes to be concatenated.
-    coords_to_slice_over : List
-        Coordinates to be sliced over.
-    master_coord : String
-        Coordinate that the other coordinates will be associated with.
-    coordinates_for_association : List
-        List of coordinates to be associated with the master_coord.
-
-    Returns
-    -------
-    Iris cube
-        Concatenated / merge cube.
-
-    """
-    if coords_to_slice_over is None:
-        coords_to_slice_over = ["realization", "time"]
-    if coordinates_for_association is None:
-        coordinates_for_association = ["forecast_reference_time",
-                                       "forecast_period"]
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
-    for coord_to_slice_over in coords_to_slice_over:
-        cubes = _slice_over_coordinate(cubes, coord_to_slice_over)
-
-    equalise_cube_attributes(cubes)
-    _strip_var_names(cubes)
-
-    associated_with_time_cubelist = iris.cube.CubeList([])
-    for cube in cubes:
-        associated_with_time_cubelist.append(
-            _associate_any_coordinate_with_master_coordinate(
-                cube, master_coord=master_coord,
-                coordinates=coordinates_for_association))
-
-    result = associated_with_time_cubelist.concatenate_cube()
-    return result
-
-
-def merge_cubes(cubes):
-    """
-    Function to merge cubes, accounting for differences in the
-    attributes, and coords
-
-    Parameters
-    ----------
-    cubes : Iris cubelist or Iris cube
-        Cubes to be merged.
-
-    Returns
-    -------
-    Iris cube
-        Merged cube.
-
-    """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
-    equalise_cube_attributes(cubes)
-    cubelist = equalise_cube_coords(cubes)
-
-    result = cubelist.merge_cube()
-    return result
 
 
 def compare_attributes(cubes):
@@ -441,7 +466,8 @@ def compare_coords(cubes):
                     else:
                         dim_val = -1
                     unmatching_coords[i].update({coord.name():
-                                                 [dim_val, coord]})
+                                                 {'data_dims': dim_val,
+                                                  'coord': coord}})
 
     return common_coords, unmatching_coords
 
@@ -450,7 +476,8 @@ def build_coordinate(data, long_name=None,
                      standard_name=None,
                      var_name=None,
                      coord_type=DimCoord,
-                     data_type=None, units='1',
+                     data_type=None,
+                     units='1',
                      bounds=None,
                      attributes=dict(),
                      coord_system=None,
@@ -477,15 +504,20 @@ def build_coordinate(data, long_name=None,
         String defining the coordinate units.
     bounds : np.array (optional)
         A (len(data), 2) array that defines coordinate bounds.
+    attributes : dictionary
+        Dictionary of attributes.
     coord_system: iris.coord_systems.<coord_system> (optional)
         A coordinate system in which the dimension coordinates are defined.
+    template_coord : iris.coord
+        A coordinate to copy.
     custom_function : function (optional)
         A function to apply to the data values before constructing the
         coordinate, e.g. np.nan_to_num.
 
     Returns:
     --------
-    iris coordinate : Dim or Auxcoord as chosen.
+    crd_out: iris coordinate
+        Dim or Auxcoord as chosen.
 
     """
     long_name_out = long_name
@@ -531,5 +563,5 @@ def build_coordinate(data, long_name=None,
                          attributes=attributes_out,
                          coord_system=coord_system_out,
                          bounds=bounds_out)
-    # crd_out.rename(long_name)
+
     return crd_out
