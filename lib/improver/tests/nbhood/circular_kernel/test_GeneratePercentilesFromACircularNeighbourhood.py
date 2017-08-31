@@ -434,10 +434,7 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
-        """Test behaviour for a non-zero grid cell on the edge.
-        Note that this behaviour is 'wrong' and is a result of
-        scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future."""
+        """Test behaviour for a non-zero grid cell on the edge."""
         expected = np.array(
             [[[[[0.66666667, 0.66666667, 0.93333333, 1., 1.],
                 [0.66666667, 0.84444444, 1., 1., 1.],
@@ -466,10 +463,7 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
-        """Test behaviour for a single non-zero grid cell on the corner.
-        Note that this behaviour is 'wrong' and is a result of
-        scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future."""
+        """Test behaviour for a single non-zero grid cell on the corner."""
         expected = np.array(
             [[[[[0.66666667, 0.66666667, 0.66666667, 1., 1.],
                 [0.66666667, 0.84444444, 1., 1., 1.],
@@ -489,12 +483,14 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 0, 0)],
             num_grid_points=5)  # Point is right on the corner.
+        print "cube.data = ", cube.data
         percentiles = np.array([10, 50, 90])
         radius = 6000.
         result = (
             GeneratePercentilesFromACircularNeighbourhood(
                 percentiles=percentiles).run(
                     cube, radius))
+        print "result = ", result.data
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_number_of_percentiles_equals_number_of_points(self):

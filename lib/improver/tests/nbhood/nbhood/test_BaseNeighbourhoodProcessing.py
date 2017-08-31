@@ -496,13 +496,11 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_radii_varying_with_lead_time_with_interpolation(self):
-        """
-        Test that a cube is returned for the following conditions:
+        """Test that a cube is returned for the following conditions:
         1. The radius varies with lead time.
         2. Linear interpolation is required to create values for the radii
         which are required but were not specified within the 'radii'
-        argument.
-        """
+        argument."""
         cube = set_up_cube(num_time_points=3)
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
@@ -517,7 +515,12 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_radii_varying_with_lead_time_with_interpolation_check_data(self):
-        """Test behaviour when the radius varies with lead time."""
+        """Test that a cube with the correct data is returned for the
+        following conditions:
+        1. The radius varies with lead time.
+        2. Linear interpolation is required to create values for the radii
+        which are required but were not specified within the 'radii'
+        argument."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
             num_time_points=3)

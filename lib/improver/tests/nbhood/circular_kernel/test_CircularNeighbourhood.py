@@ -237,10 +237,7 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
-        """Test behaviour for a non-zero grid cell on the edge.
-        Note that this behaviour is 'wrong' and is a result of
-        scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future."""
+        """Test behaviour for a non-zero grid cell on the edge."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
         expected = np.ones_like(cube.data)
@@ -288,10 +285,7 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
-        """Test behaviour for a single non-zero grid cell on the corner.
-        Note that this behaviour is 'wrong' and is a result of
-        scipy.ndimage.correlate 'nearest' mode. We need to fix
-        this in the future."""
+        """Test behaviour for a single non-zero grid cell on the corner."""
         cube = set_up_cube(
             zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
         expected = np.ones_like(cube.data)

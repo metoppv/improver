@@ -341,14 +341,13 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
             self, neighbourhood_method, radii, lead_times=None,
             ens_factor=1.0, percentiles=DEFAULT_PERCENTILES):
         """
-        Create a neighbourhood processing plugin that generates percentiles
+        Create a neighbourhood processing subclass that generates percentiles
         from a neighbourhood of points.
 
         Parameters
         ----------
         neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular',
-            'square'.
+            Name of the neighbourhood method to use. Options: 'circular'.
         radii : float or List (if defining lead times)
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid
@@ -394,7 +393,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             self, neighbourhood_method, radii, lead_times=None,
             ens_factor=1.0, weighted_mode=True):
         """
-        Create a neighbourhood processing plugin that applies a smoothing
+        Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
 
         Parameters

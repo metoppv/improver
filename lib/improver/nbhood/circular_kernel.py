@@ -71,7 +71,7 @@ def circular_kernel(fullranges, ranges, weighted_mode):
     # contained within the desired radius.
     kernel = np.ones([int(1 + x * 2) for x in fullranges])
     # Create an open multi-dimensional meshgrid.
-    open_grid = np.array(np.ogrid[tuple([slice(-x, x+1) for x in ranges])])
+    open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in ranges]])
     if weighted_mode:
         # Create a kernel, such that the central grid point has the
         # highest weighting, with the weighting decreasing with distance
@@ -208,9 +208,10 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
 
     def pad_and_unpad_cube(self, slice_2d, kernel):
         """
-        Method to pad and unpad a two dimensional cube. Percentiles are
-        calculated using the padded array after identifying that the
-        neighbourhood to be used for calculating the percentiles.
+        Method to pad and unpad a two dimensional cube. The input array is
+        padded and percentiles are calculated using a neighbourhood around
+        each point. The resultingpercentile data are unpadded and put into a
+        cube.
 
         Parameters
         ----------
@@ -234,6 +235,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             for i in range(-ranges_xy[1], ranges_xy[1]+1)
             for j in range(-ranges_xy[0], ranges_xy[0]+1)
             if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
+
         # Collapse this dimension into percentiles (a new 2nd dimension)
         perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
         # Return to 3D

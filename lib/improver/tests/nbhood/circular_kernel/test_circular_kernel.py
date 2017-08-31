@@ -40,7 +40,7 @@ from improver.nbhood.circular_kernel import circular_kernel
 
 class Test_circular_kernel(IrisTest):
 
-    """Test neighbourhood processing plugin on the OS National Grid."""
+    """Test neighbourhood processing plugin."""
 
     def test_basic(self):
         """Test that the plugin returns a Numpy array."""
