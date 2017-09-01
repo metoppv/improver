@@ -88,7 +88,6 @@ def add_forecast_reference_time_and_forecast_period(
     to the input cube.
     """
     cube.coord("time").points = time_point
-    coord_position = cube.coord_dims("time")
     if not isinstance(fp_point, list):
         fp_point = [fp_point]
     fp_points = fp_point
@@ -678,37 +677,34 @@ class Test_compare_attributes(IrisTest):
         self.cube = set_up_temperature_cube()
 
     def test_basic(self):
-        """Test that the utility returns two lists."""
+        """Test that the utility returns a list."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
         cubelist = iris.cube.CubeList([cube1, cube2])
-        result1, result2 = compare_attributes(cubelist)
+        result1 = compare_attributes(cubelist)
         self.assertIsInstance(result1, list)
-        self.assertIsInstance(result2, list)
 
     def test_warning(self):
         """Test that the utility returns warning if only one cube supplied."""
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result1, result2 = compare_attributes(self.cube)
+            result = compare_attributes(self.cube)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
             warning_msg = "Only a single cube so no differences will be found "
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
-            self.assertAlmostEquals(result1, [])
-            self.assertAlmostEquals(result2, [])
+            self.assertAlmostEquals(result, [])
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result1, result2 = (
+            result = (
                 compare_attributes(iris.cube.CubeList([self.cube])))
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
             warning_msg = "Only a single cube so no differences will be found "
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
-            self.assertAlmostEquals(result1, [])
-            self.assertAlmostEquals(result2, [])
+            self.assertAlmostEquals(result, [])
 
     def test_history_attribute(self):
         """Test that the utility returns diff when history do not match"""
@@ -717,9 +713,8 @@ class Test_compare_attributes(IrisTest):
         cube1.attributes["history"] = "2017-01-18T08:59:53: StaGE Decoupler"
         cube2.attributes["history"] = "2017-01-19T08:59:53: StaGE Decoupler"
         cubelist = iris.cube.CubeList([cube1, cube2])
-        result1, result2 = compare_attributes(cubelist)
-        self.assertAlmostEquals(result1, [])
-        self.assertAlmostEquals(result2,
+        result = compare_attributes(cubelist)
+        self.assertAlmostEquals(result,
                                 [{'history':
                                   '2017-01-18T08:59:53: StaGE Decoupler'},
                                  {'history':
@@ -734,13 +729,12 @@ class Test_compare_coords(IrisTest):
         self.cube = set_up_temperature_cube()
 
     def test_basic(self):
-        """Test that the utility returns two lists."""
+        """Test that the utility returns a list."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
         cubelist = iris.cube.CubeList([cube1, cube2])
-        result1, result2 = compare_attributes(cubelist)
-        self.assertIsInstance(result1, list)
-        self.assertIsInstance(result2, list)
+        result = compare_attributes(cubelist)
+        self.assertIsInstance(result, list)
 
 
 class Test_build_coordinate(IrisTest):

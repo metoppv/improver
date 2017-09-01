@@ -263,7 +263,7 @@ def equalise_cube_attributes(cubes):
         Warning: If it does not know what to do with an unmatching
                  attribute. Default is to delete it.
     """
-    common_keys, unmatching_attributes = compare_attributes(cubes)
+    unmatching_attributes = compare_attributes(cubes)
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
             # Remove history.
@@ -313,7 +313,7 @@ def equalise_cube_coords(cubes):
         If Threshold coordinates do not match.
         If model_id has more than one point.
     """
-    common_coords, unmatching_coords = compare_coords(cubes)
+    unmatching_coords = compare_coords(cubes)
     cubelist = iris.cube.CubeList([])
     if len(unmatching_coords) > 0:
         for i, cube in enumerate(cubes):
@@ -396,8 +396,6 @@ def compare_attributes(cubes):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        common_keys : List
-            List of common attribute keys (str)
         unmatching_attribues : List
             List of dictionaries of unmatching attributes
 
@@ -423,7 +421,7 @@ def compare_attributes(cubes):
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
                                                      cube.attributes[key]})
-    return common_keys, unmatching_attributes
+    return unmatching_attributes
 
 
 def compare_coords(cubes):
@@ -435,8 +433,6 @@ def compare_coords(cubes):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        common_coords : List
-            List of common coordinates (iris.Coord)
         unmatching_coords : List
             List of dictionaries of unmatching coordinates
 
@@ -469,7 +465,7 @@ def compare_coords(cubes):
                                                  {'data_dims': dim_val,
                                                   'coord': coord}})
 
-    return common_coords, unmatching_coords
+    return unmatching_coords
 
 
 def build_coordinate(data, long_name=None,
@@ -479,7 +475,7 @@ def build_coordinate(data, long_name=None,
                      data_type=None,
                      units='1',
                      bounds=None,
-                     attributes=dict(),
+                     attributes={},
                      coord_system=None,
                      template_coord=None,
                      custom_function=None):
