@@ -41,7 +41,7 @@ from cf_units import Unit
 
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    check_range,
+    _check_range,
     saturation_vapour_pressure_ashrae,
     saturation_vapour_pressure_goff_gratch,
     saturation_vapour_pressure_simple,
@@ -109,12 +109,12 @@ class Test_check_range(IrisTest):
         cube_in = _make_test_cube("temperature", "K", data=data)
         emsg = "only valid for temperatures between"
         with self.assertRaisesRegexp(ValueError, emsg):
-            check_range(cube_in, 10., 300.)
+            _check_range(cube_in, 10., 300.)
         data = np.array([[5., 290.],
                          [290., 290.]])
         cube_in = _make_test_cube("temperature", "K", data=data)
         with self.assertRaisesRegexp(ValueError, emsg):
-            check_range(cube_in, 10., 300.)
+            _check_range(cube_in, 10., 300.)
 
     def test_succeeds(self):
         """Test that when the check_range method is given a value within
@@ -122,7 +122,7 @@ class Test_check_range(IrisTest):
         data = np.array([[290., 290.],
                          [290., 290.]])
         cube_in = _make_test_cube("temperature", "K", data=data)
-        self.assertEqual(check_range(cube_in, 10., 300.), None)
+        self.assertEqual(_check_range(cube_in, 10., 300.), None)
 
 
 class Test_calculate_svp_ashrae(IrisTest):
@@ -148,7 +148,7 @@ class Test_calculate_svp_goff_gratch(IrisTest):
         """
         temp = _make_test_cube("temperature", "K")
         pressure = _make_test_cube("pressure", "Pa", data="pressure")
-        expected_data = np.array([[470.31, 470.31], [1960.14, 1960.14]])
+        expected_data = np.array([[469.8, 469.8], [1948.94, 1948.94]])
         result = saturation_vapour_pressure_goff_gratch(temp, pressure)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=2)
         self.assertEqual(
@@ -163,7 +163,7 @@ class Test_calculate_svp_simple(IrisTest):
         method returns a cube with answers calculated to be correct
         """
         temp = _make_test_cube("temperature", "K")
-        expected_data = np.array([[470.02, 470.02], [2259.92, 2259.92]])
+        expected_data = np.array([[470.02, 470.02], [1916.44, 1916.44]])
         result = saturation_vapour_pressure_simple(temp)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=2)
         self.assertEqual(result.units, Unit('Pa'))
@@ -273,7 +273,7 @@ class Test_wet_bulb(IrisTest):
         rel_humidity = _make_test_cube("relative humidity", 1, data=rh_data)
         pressure = _make_test_cube("pressure", "hPa", data="pressure")
         result = wet_bulb(temperature, rel_humidity, pressure)
-        expected_data = np.array([[269.917, 269.587], [287.017, 284.015]])
+        expected_data = np.array([[269.917, 269.587], [287.018, 284.018]])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=3)
 
     def test_edge_conditions(self):
