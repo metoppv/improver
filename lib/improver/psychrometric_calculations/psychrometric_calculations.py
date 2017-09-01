@@ -34,7 +34,6 @@ from cf_units import Unit
 import improver.constants as constant
 import iris.analysis.maths as maths
 import numpy as np
-import scipy.optimize
 
 
 def _check_range(cube, low, high):
