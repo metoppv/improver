@@ -475,7 +475,6 @@ def build_coordinate(data, long_name=None,
                      data_type=None,
                      units='1',
                      bounds=None,
-                     attributes={},
                      coord_system=None,
                      template_coord=None,
                      custom_function=None):
@@ -500,8 +499,6 @@ def build_coordinate(data, long_name=None,
         String defining the coordinate units.
     bounds : np.array (optional)
         A (len(data), 2) array that defines coordinate bounds.
-    attributes : dictionary
-        Dictionary of attributes.
     coord_system: iris.coord_systems.<coord_system> (optional)
         A coordinate system in which the dimension coordinates are defined.
     template_coord : iris.coord
@@ -523,7 +520,6 @@ def build_coordinate(data, long_name=None,
     data_type_out = data_type
     units_out = units
     bounds_out = bounds
-    attributes_out = attributes
     coord_system_out = coord_system
 
     if template_coord is not None:
@@ -540,8 +536,6 @@ def build_coordinate(data, long_name=None,
             data_type_out = type(template_coord.points[0])
         if units == '1':
             units_out = template_coord.units
-        if len(attributes) == 0:
-            attributes_out = template_coord.attributes
         if coord_system is None:
             coord_system_out = template_coord.coord_system
 
@@ -556,7 +550,6 @@ def build_coordinate(data, long_name=None,
                          standard_name=std_name_out,
                          var_name=var_name_out,
                          units=units_out,
-                         attributes=attributes_out,
                          coord_system=coord_system_out,
                          bounds=bounds_out)
 
