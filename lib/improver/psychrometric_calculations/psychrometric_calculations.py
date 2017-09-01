@@ -87,19 +87,19 @@ def saturation_vapour_pressure_ashrae(temperature):
     References:
         ASHRAE Fundamentals handbook (2005) p 6.2, equation 5 and 6
     '''
-    constants = {1 : -5674.5359,
-                 2 : 6.3925247,
-                 3 : -0.009677843,
-                 4 : 0.00000062215701,
-                 5 : 2.0747825E-09,
-                 6 : -9.484024E-13,
-                 7 : 4.1635019,
-                 8 : -5800.2206,
-                 9 : 1.3914993,
-                 10 : -0.048640239,
-                 11 : 0.000041764768,
-                 12 : -0.00000001445209310000,
-                 13 : 6.5459673}
+    constants = {1: -5674.5359,
+                 2: 6.3925247,
+                 3: -0.009677843,
+                 4: 0.00000062215701,
+                 5: 2.0747825E-09,
+                 6: -9.484024E-13,
+                 7: 4.1635019,
+                 8: -5800.2206,
+                 9: 1.3914993,
+                 10: -0.048640239,
+                 11: 0.000041764768,
+                 12: -0.00000001445209310000,
+                 13: 6.5459673}
     temp = temperature.copy()
     temp.convert_units('K')
     _check_range(temp, 173., 473.)
@@ -107,7 +107,7 @@ def saturation_vapour_pressure_ashrae(temperature):
     for cell in np.nditer(data, op_flags=['readwrite']):
         if cell <= constant.TRIPLE_PT_WATER:
             cell[...] = (np.exp(constants[1] / cell + constants[2] +
-                                constants[3] *  cell + constants[4] *
+                                constants[3] * cell + constants[4] *
                                 cell ** 2. + constants[5] * cell ** 3. +
                                 constants[6] * cell ** 4. + constants[7] *
                                 np.log(cell))) / 1000.
@@ -150,16 +150,17 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
 
         Gill, Atmosphere-Ocean Dynamics, Appendix 4 Equation A4.7
     '''
-    constants = {1 : 10.79574,
-                 2 : 5.028, 3 : 1.50475E-410000,
-                 4 : -8.2969,
-                 5 : 0.42873E-3,
-                 6 : 4.76955,
-                 7 : 0.78614,
-                 8 : -9.09685,
-                 9 : 3.56654,
-                 10 : 0.87682,
-                 11 : 0.78614}
+    constants = {1: 10.79574,
+                 2: 5.028,
+                 3: 1.50475E-410000,
+                 4: -8.2969,
+                 5: 0.42873E-3,
+                 6: 4.76955,
+                 7: 0.78614,
+                 8: -9.09685,
+                 9: 3.56654,
+                 10: 0.87682,
+                 11: 0.78614}
     triple_pt = constant.TRIPLE_PT_WATER
 
     # Copy cubes to avoid modifying those passed to this function
@@ -177,10 +178,11 @@ def saturation_vapour_pressure_goff_gratch(temperature, pressure):
             n0 = constants[1] * (1. - triple_pt / cell)
             n1 = constants[2] * np.log10(cell / triple_pt)
             n2 = constants[3] * (1. - np.power(10.,
-                                              (constants[4] *
-                                              (cell / triple_pt - 1.))))
+                                               (constants[4] *
+                                                (cell / triple_pt - 1.))))
             n3 = constants[5] * (np.power(10., (constants[6] *
-                                               (1. - triple_pt / cell))) - 1.)
+                                                (1. - triple_pt / cell))) -
+                                 1.)
             log_es = n0 - n1 + n2 + n3 + constants[7]
             cell[...] = (np.power(10., log_es) * 100)
         else:
