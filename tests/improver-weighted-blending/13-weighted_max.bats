@@ -31,25 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --slope" {
-  # Run blending with linear weights calculation but too many args: check it fails.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1.0 --slope 0.0\
+@test "weighted-blending linear coordinate weighted_maximum input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run weighted blending with linear weights and weighted_maximum method
+  # and check it passes.
+  run improver weighted-blending 'linear' 'time' 'weighted_maximum' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
-                                  WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
-improver-weighted-blending: error: argument --slope: not allowed with argument --ynval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_weighted_max/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

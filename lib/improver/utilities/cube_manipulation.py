@@ -202,3 +202,31 @@ def concatenate_cubes(
                 cube, master_coord=master_coord,
                 coordinates=coordinates_for_association))
     return associated_with_time_cubelist.concatenate_cube()
+
+
+def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
+    """A function that modifies the input cube by adding a new cell method,
+       which is a renamed version of the input cell_method.
+
+        Args:
+            cube : iris.cube.Cube
+                   The cube which we need to add the cell_method to.
+            orig_cell_method: iris.coord.CellMethod
+                   The original cell method we want to rename and add to the
+                   cube.
+            new_cell_method_name : string
+                   The name of the new cell_method we want to rename the
+                   original cell_method to.
+        """
+    if not isinstance(orig_cell_method, iris.coords.CellMethod):
+        message = ('Input Cell_method is not an instance of '
+                   'iris.coord.CellMethod')
+        raise ValueError(message)
+    renamed_cell_method = iris.coords.CellMethod(
+        method=new_cell_method_name,
+        coords=orig_cell_method.coord_names,
+        intervals=orig_cell_method.intervals,
+        comments=orig_cell_method.comments)
+    final_cms = [cm for cm in cube.cell_methods if cm != orig_cell_method]
+    final_cms = tuple(final_cms + [renamed_cell_method])
+    cube.cell_methods = final_cms

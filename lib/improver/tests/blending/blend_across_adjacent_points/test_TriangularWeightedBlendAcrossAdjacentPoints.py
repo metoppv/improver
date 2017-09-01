@@ -74,11 +74,11 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         width = 3.0
-        result = str(TriangularWeightedBlendAcrossAdjacentPoints('time', width,
-                                                                 'hours'))
+        result = str(TriangularWeightedBlendAcrossAdjacentPoints(
+            'time', width, 'hours', 'weighted_mean'))
         msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
                ' coord = time, width = 3.00,'
-               ' parameter_units = hours>')
+               ' parameter_units = hours, mode = weighted_mean>')
         self.assertEqual(result, msg)
 
 
@@ -89,14 +89,22 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         width = 3.0
-        plugin = TriangularWeightedBlendAcrossAdjacentPoints('time', width,
-                                                             'hours')
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'time', width, 'hours', 'weighted_mean')
         expected_coord = "time"
         expected_width = 3.0
         expected_parameter_units = "hours"
         self.assertEqual(plugin.coord, expected_coord)
         self.assertEqual(plugin.width, expected_width)
         self.assertEqual(plugin.parameter_units, expected_parameter_units)
+
+    def test_raises_expression(self):
+        """Test that the __init__ raises the right error"""
+        message = ("weighting_mode: no_mode is not recognised, "
+                   "must be either weighted_maximum or weighted_mean")
+        with self.assertRaisesRegexp(ValueError, message):
+            TriangularWeightedBlendAcrossAdjacentPoints(
+                'time', 3.0, 'hours', 'no_mode')
 
 
 class Test_correct_collapsed_coordinates(IrisTest):
@@ -114,8 +122,8 @@ class Test_correct_collapsed_coordinates(IrisTest):
         new_cube.add_aux_coord(DimCoord([5, 6],
                                         "forecast_period", units="hours"), 0)
         self.new_cube = new_cube
-        self.plugin = TriangularWeightedBlendAcrossAdjacentPoints('time',
-                                                                  1.0, 'hours')
+        self.plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'time', 1.0, 'hours', 'weighted_mean')
 
     def test_no_change_to_new_cube(self):
         """Test it does nothing when nothing to correct"""
@@ -206,8 +214,8 @@ class Test_process(IrisTest):
         """Test that the plugin produces sensible results when the width
            of the triangle is 1. This is equivalent to no blending."""
         width = 1.0
-        plugin = TriangularWeightedBlendAcrossAdjacentPoints('forecast_period',
-                                                             width, 'hours')
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', width, 'hours', 'weighted_mean')
         result = plugin.process(self.cube)
         self.assertEqual(self.cube.coord('forecast_period'),
                          result.coord('forecast_period'))
@@ -218,13 +226,43 @@ class Test_process(IrisTest):
         """Test that the plugin produces sensible results when the width
            of the triangle is 2 and there is some blending."""
         width = 2.0
-        plugin = TriangularWeightedBlendAcrossAdjacentPoints('forecast_period',
-                                                             width, 'hours')
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', width, 'hours', 'weighted_mean')
         result = plugin.process(self.cube)
         expected_data = np.array([[[1.333333, 1.333333],
                                    [1.333333, 1.333333]],
                                   [[1.666666, 1.666666],
                                    [1.666666, 1.666666]]])
+        self.assertEqual(self.cube.coord('forecast_period'),
+                         result.coord('forecast_period'))
+        self.assertEqual(self.cube.coord('time'), result.coord('time'))
+        self.assertArrayAlmostEqual(expected_data, result.data)
+
+    def test_basic_triangle_width_1_max_mode(self):
+        """Test that the plugin produces sensible results when the width
+           of the triangle is 1. This is equivalent to no blending. This time
+           use the weighted_maximum mode"""
+        width = 1.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', width, 'hours', 'weighted_maximum')
+        result = plugin.process(self.cube)
+        self.assertEqual(self.cube.coord('forecast_period'),
+                         result.coord('forecast_period'))
+        self.assertEqual(self.cube.coord('time'), result.coord('time'))
+        self.assertArrayEqual(self.cube.data, result.data)
+
+    def test_basic_triangle_width_2_max_mode(self):
+        """Test that the plugin produces sensible results when the width
+           of the triangle is 2 and there is some blending. This time
+           use the weighted_maximum mode"""
+        width = 2.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', width, 'hours', 'weighted_maximum')
+        result = plugin.process(self.cube)
+        expected_data = np.array([[[0.6666666, 0.6666666],
+                                   [0.6666666, 0.6666666]],
+                                  [[1.3333333, 1.3333333],
+                                   [1.3333333, 1.3333333]]])
         self.assertEqual(self.cube.coord('forecast_period'),
                          result.coord('forecast_period'))
         self.assertEqual(self.cube.coord('time'), result.coord('time'))

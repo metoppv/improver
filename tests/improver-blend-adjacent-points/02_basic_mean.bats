@@ -31,25 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --slope" {
-  # Run blending with linear weights calculation but too many args: check it fails.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1.0 --slope 0.0\
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
-                                  WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
-improver-weighted-blending: error: argument --slope: not allowed with argument --ynval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+@test "weighted-blending coordinate weighted_mean input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run weighted blending with weighted_mean mode and check it passes.
+  run improver blend-adjacent-points 'forecast_period' 'weighted_mean' 3.0 \
+      --parameter_unit 'hours' \
+      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/multiple_probabilities_rain_*H.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

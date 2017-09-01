@@ -35,15 +35,16 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDER]
+                                  [--calendar CALENDAR]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
+                                  COORDINATE_TO_AVERAGE_OVER
+                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
+improver-weighted-blending: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
