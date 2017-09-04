@@ -100,11 +100,11 @@ class BasicThreshold(object):
                 Cube after a threshold has been applied. The data within this
                 cube will contain values between 0 and 1 to indicate whether
                 a given threshold has been exceeded or not.
-                The cube attributes will contain:
-                  input_cube name prepended with "probability_of_"
-                  threshold dimension coordinate with same units as input_cube
-                  threshold attribute (above or below threshold)
-                  cube units set to (1).
+                The cube meta-data will contain:
+                 * input_cube name prepended with "probability_of_"
+                 * threshold dimension coordinate with same units as input_cube
+                 * threshold attribute (above or below threshold)
+                 * cube units set to (1).
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
