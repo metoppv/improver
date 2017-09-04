@@ -751,7 +751,7 @@ class Test_build_coordinate(IrisTest):
         result = build_coordinate([1.0], long_name='testing')
         self.assertIsInstance(result, iris.coords.DimCoord)
 
-        
+
 class Test_add_renamed_cell_method(IrisTest):
     """Class to test the add_renamed_cell_method function"""
 
@@ -810,6 +810,6 @@ class Test_add_renamed_cell_method(IrisTest):
         self.assertEqual(self.cube.cell_methods,
                          (extra_cell_method, expected_cell_method,))
 
-        
+
 if __name__ == '__main__':
     unittest.main()

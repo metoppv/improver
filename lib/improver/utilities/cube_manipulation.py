@@ -555,7 +555,7 @@ def build_coordinate(data, long_name=None,
 
     return crd_out
 
-  
+
 def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
     """A function that modifies the input cube by adding a new cell method,
        which is a renamed version of the input cell_method.
