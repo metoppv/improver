@@ -549,7 +549,7 @@ def build_coordinate(data, long_name=None,
     if custom_function is not None:
         data = custom_function(data)
 
-    crd_out = coord_type(data, long_name=long_name_out,
+    crd_out = coord_type_out(data, long_name=long_name_out,
                          standard_name=std_name_out,
                          var_name=var_name_out,
                          units=units_out,
