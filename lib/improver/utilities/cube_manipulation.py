@@ -163,18 +163,18 @@ def concatenate_cubes(
     coordinates to allow concatenation.
 
     Args:
-    cubes : Iris cubelist or Iris cube
-        Cubes to be concatenated.
-    coords_to_slice_over : List
-        Coordinates to be sliced over.
-    master_coord : String
-        Coordinate that the other coordinates will be associated with.
-    coordinates_for_association : List
-        List of coordinates to be associated with the master_coord.
+        cubes : Iris cubelist or Iris cube
+            Cubes to be concatenated.
+        coords_to_slice_over : List
+            Coordinates to be sliced over.
+        master_coord : String
+            Coordinate that the other coordinates will be associated with.
+        coordinates_for_association : List
+            List of coordinates to be associated with the master_coord.
 
     Returns:
-    result: Iris cube
-        Concatenated / merge cube.
+        result: Iris cube
+            Concatenated / merge cube.
 
     """
     if coords_to_slice_over is None:
@@ -207,12 +207,12 @@ def merge_cubes(cubes):
     attributes, and coords.
 
     Args:
-    cubes : Iris cubelist or Iris cube
-        Cubes to be merged.
+        cubes : Iris cubelist or Iris cube
+            Cubes to be merged.
 
     Returns:
-    result : Iris cube
-        Merged cube.
+        result : Iris cube
+            Merged cube.
 
     """
     if isinstance(cubes, iris.cube.Cube):
@@ -226,7 +226,7 @@ def merge_cubes(cubes):
 
 def equalise_cubes(cubes, merging=True):
     """
-    Function to equalise attributes that do not match.
+    Function to equalise cubes where they do not match.
 
     Args:
         cubes : Iris cubelist
@@ -259,7 +259,7 @@ def equalise_cube_attributes(cubes):
     Args:
         cubes : Iris cubelist
             List of cubes to check the attributes and revise.
-    Warn:
+    Warns:
         Warning: If it does not know what to do with an unmatching
                  attribute. Default is to delete it.
     """
@@ -278,17 +278,17 @@ def equalise_cube_attributes(cubes):
                     unmatching_attributes[i].pop("grid_id")
             # Add model_id if titles do not match.
             if "title" in unmatching_attributes[i]:
-                    model_title = cube.attributes.pop('title')
-                    new_model_id_coord = build_coordinate([100*i],
-                                                          long_name='model_id',
-                                                          data_type=np.int)
-                    new_model_coord = build_coordinate([model_title],
-                                                       long_name='model',
-                                                       coord_type=AuxCoord,
-                                                       data_type=np.str)
-                    cube.add_aux_coord(new_model_id_coord)
-                    cube.add_aux_coord(new_model_coord)
-                    unmatching_attributes[i].pop("title")
+                model_title = cube.attributes.pop('title')
+                new_model_id_coord = build_coordinate([100*i],
+                                                      long_name='model_id',
+                                                      data_type=np.int)
+                new_model_coord = build_coordinate([model_title],
+                                                   long_name='model',
+                                                   coord_type=AuxCoord,
+                                                   data_type=np.str)
+                cube.add_aux_coord(new_model_id_coord)
+                cube.add_aux_coord(new_model_coord)
+                unmatching_attributes[i].pop("title")
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
@@ -309,13 +309,15 @@ def equalise_cube_coords(cubes):
         cubelist : Iris cubelist
             List of cubes with revised coords.
     Raises:
-        If Percentile coordinates do not match.
-        If Threshold coordinates do not match.
-        If model_id has more than one point.
+        ValueError: If Percentile coordinates do not match.
+        ValueError: If Threshold coordinates do not match.
+        ValueError: If model_id has more than one point.
     """
     unmatching_coords = compare_coords(cubes)
-    cubelist = iris.cube.CubeList([])
-    if len(unmatching_coords) > 0:
+    if len(unmatching_coords) == 0:
+        cubelist = cubes
+    else:
+        cubelist = iris.cube.CubeList([])
         for i, cube in enumerate(cubes):
             slice_over_keys = []
             for key in unmatching_coords[i]:
@@ -342,8 +344,7 @@ def equalise_cube_coords(cubes):
                     # and realization coord if necessary.
                     if realization_found:
                         if len(cube.coord('model_id').points) != 1:
-                            msg = ("Threshold coordinates "
-                                   "must match to merge")
+                            msg = ("Model_id has more than one point")
                             raise ValueError(msg)
                         else:
                             model_id_val = cube.coord('model_id').points[0]
@@ -374,7 +375,9 @@ def equalise_cube_coords(cubes):
                             cube.add_aux_coord(new_realization_coord)
                 # if mismatching is a dimension coord add to list to
                 # slice over.
-                if unmatching_coords[i][key]['data_dims'] >= 0:
+                if unmatching_coords[i][key]['data_dims'] is not None:
+                    slice_over_keys.append(key)
+                if unmatching_coords[i][key]['aux_dims'] is not None:
                     slice_over_keys.append(key)
 
             if len(slice_over_keys) > 0:
@@ -382,8 +385,7 @@ def equalise_cube_coords(cubes):
                     cubelist.append(slice_cube)
             else:
                 cubelist.append(cube)
-    else:
-        cubelist = cubes
+
     return cubelist
 
 
@@ -396,20 +398,20 @@ def compare_attributes(cubes):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        unmatching_attribues : List
+        unmatching_attributes : List
             List of dictionaries of unmatching attributes
 
     Warns:
         Warning: If only a single cube is supplied
     """
-    common_keys = list(cubes[0].attributes.keys())
     unmatching_attributes = []
     if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
+        common_keys = cubes[0].attributes.keys()
         for cube in cubes[1:]:
-            cube_keys = list(cube.attributes.keys())
+            cube_keys = cube.attributes.keys()
             common_keys = [
                 key for key in common_keys
                 if (key in cube_keys and
@@ -417,7 +419,7 @@ def compare_attributes(cubes):
 
         for i, cube in enumerate(cubes):
             unmatching_attributes.append(dict())
-            for key in list(cube.attributes.keys()):
+            for key in cube.attributes.keys():
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
                                                      cube.attributes[key]})
@@ -426,7 +428,7 @@ def compare_attributes(cubes):
 
 def compare_coords(cubes):
     """
-    Function to compare attributes of cubes
+    Function to compare the coordinates of the cubes
 
     Args:
         cubes : Iris cubelist
@@ -439,14 +441,14 @@ def compare_coords(cubes):
     Warns:
         Warning: If only a single cube is supplied
     """
-    common_coords = list(cubes[0].coords())
     unmatching_coords = []
     if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
+        common_coords = cubes[0].coords()
         for cube in cubes[1:]:
-            cube_coords = list(cube.coords())
+            cube_coords = cube.coords()
             common_coords = [
                 coord for coord in common_coords
                 if (coord in cube_coords and
@@ -454,15 +456,19 @@ def compare_coords(cubes):
 
         for i, cube in enumerate(cubes):
             unmatching_coords.append(dict())
-            for coord in list(cube.coords()):
+            for coord in cube.coords():
                 if coord not in common_coords:
                     dim_coords = cube.dim_coords
                     if coord in dim_coords:
                         dim_val = dim_coords.index(coord)
                     else:
-                        dim_val = -1
+                        dim_val = None
+                    aux_val = None
+                    if dim_val is None and len(cube.coord_dims(coord)) > 0:
+                        aux_val = cube.coord_dims(coord)[0]
                     unmatching_coords[i].update({coord.name():
                                                  {'data_dims': dim_val,
+                                                  'aux_dims': aux_val,
                                                   'coord': coord}})
 
     return unmatching_coords
@@ -482,35 +488,33 @@ def build_coordinate(data, long_name=None,
     Construct an iris.coord.Dim/Auxcoord using the provided options.
 
     Args:
-    -----
-    data : number/list/np.array
-        List or array of values to populate the coordinate points.
-    long_name : str (optional)
-        Name of the coordinate to be built.
-    standard_name : str (optional)
-        CF Name of the coordinate to be built.
-    var_name : str (optional)
-        Variable name
-    coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
-        Selection between Dim and Aux coord.
-    data_type : <type> (optional)
-        The data type of the coordinate points, e.g. int
-    units : str (optional)
-        String defining the coordinate units.
-    bounds : np.array (optional)
-        A (len(data), 2) array that defines coordinate bounds.
-    coord_system: iris.coord_systems.<coord_system> (optional)
-        A coordinate system in which the dimension coordinates are defined.
-    template_coord : iris.coord
-        A coordinate to copy.
-    custom_function : function (optional)
-        A function to apply to the data values before constructing the
-        coordinate, e.g. np.nan_to_num.
+        data : number/list/np.array
+            List or array of values to populate the coordinate points.
+        long_name : str (optional)
+            Name of the coordinate to be built.
+        standard_name : str (optional)
+            CF Name of the coordinate to be built.
+        var_name : str (optional)
+            Variable name
+        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
+            Selection between Dim and Aux coord.
+        data_type : <type> (optional)
+            The data type of the coordinate points, e.g. int
+        units : str (optional)
+            String defining the coordinate units.
+        bounds : np.array (optional)
+            A (len(data), 2) array that defines coordinate bounds.
+        coord_system: iris.coord_systems.<coord_system> (optional)
+            A coordinate system in which the dimension coordinates are defined.
+        template_coord : iris.coord
+            A coordinate to copy.
+        custom_function : function (optional)
+            A function to apply to the data values before constructing the
+            coordinate, e.g. np.nan_to_num.
 
     Returns:
-    --------
-    crd_out: iris coordinate
-        Dim or Auxcoord as chosen.
+        crd_out: iris coordinate
+            Dim or Auxcoord as chosen.
 
     """
     long_name_out = long_name
@@ -531,7 +535,6 @@ def build_coordinate(data, long_name=None,
             var_name_out = template_coord.var_name
         if isinstance(coord_type, DimCoord):
             coord_type_out = type(template_coord)
-            print coord_type_out
         if data_type is None:
             data_type_out = type(template_coord.points[0])
         if units == '1':

@@ -60,7 +60,8 @@ from improver.utilities.cube_manipulation import (
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
         set_up_temperature_cube,
-        set_up_probability_above_threshold_temperature_cube)
+        set_up_probability_above_threshold_temperature_cube,
+        add_forecast_reference_time_and_forecast_period)
 
 
 def _check_coord_type(cube, coord):
@@ -81,27 +82,6 @@ def _check_coord_type(cube, coord):
         coord_scalar = False
         coord_aux = True
     return coord_scalar, coord_aux
-
-
-def add_forecast_reference_time_and_forecast_period(
-        cube, time_point=402295.0, fp_point=4.0):
-    """
-    Function to add forecast_reference_time and forecast_period coordinates
-    to the input cube.
-    """
-    cube.coord("time").points = time_point
-    if not isinstance(fp_point, list):
-        fp_point = [fp_point]
-    fp_points = fp_point
-    frt_points = cube.coord("time").points[0] - fp_points[0]
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_aux_coord(
-        DimCoord([frt_points], "forecast_reference_time", units=tunit))
-    cube.add_aux_coord(
-        DimCoord(fp_points, "forecast_period", units="hours"))
-    return cube
 
 
 class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
@@ -679,12 +659,13 @@ class Test_compare_attributes(IrisTest):
         self.cube = set_up_temperature_cube()
 
     def test_basic(self):
-        """Test that the utility returns a list."""
+        """Test that the utility returns a list and have no differences."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
         cubelist = iris.cube.CubeList([cube1, cube2])
         result1 = compare_attributes(cubelist)
         self.assertIsInstance(result1, list)
+        self.assertAlmostEquals(result1, [{}, {}])
 
     def test_warning(self):
         """Test that the utility returns warning if only one cube supplied."""
