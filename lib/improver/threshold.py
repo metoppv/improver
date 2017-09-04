@@ -126,7 +126,7 @@ class BasicThreshold(object):
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
         cube.rename("probability_of_{}".format(cube.name()))
-        coord = iris.coords.AuxCoord(self.threshold,
+        coord = iris.coords.DimCoord(self.threshold,
                                      long_name="threshold",
                                      units=cube.units)
         cube.add_aux_coord(coord)

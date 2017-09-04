@@ -83,7 +83,7 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
         expected_units = 1
-        expected_coord = AuxCoord(0.1,
+        expected_coord = DimCoord(0.1,
                                   long_name='threshold',
                                   units=self.cube.units)
         self.assertEqual(result.name(), expected_name)
