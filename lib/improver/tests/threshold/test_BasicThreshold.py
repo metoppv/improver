@@ -72,6 +72,27 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
         self.assertIsInstance(result, Cube)
 
+    def test_metadata_changes(self):
+        """Test the metadata altering functionality"""
+        # Copy the cube as the cube.data is used as the basis for comparison.
+        cube = self.cube.copy()
+        plugin = Threshold(0.1)
+        result = plugin.process(cube)
+        # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
+        name = "probability_of_{}"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "above"
+        expected_units = 1
+        expected_coord = AuxCoord(0.1,
+                                  long_name='threshold',
+                                  units=self.cube.units)
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(result.attributes['relative_to_threshold'],
+                         expected_attribute)
+        self.assertEqual(result.units, expected_units)
+        self.assertEqual(result.coord('threshold'),
+                         expected_coord)
+
     def test_threshold(self):
         """Test the basic threshold functionality."""
         # Copy the cube as the cube.data is used as the basis for comparison.

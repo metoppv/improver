@@ -32,6 +32,8 @@
 
 
 import numpy as np
+import iris
+from cf_units import Unit
 
 
 class BasicThreshold(object):
@@ -117,4 +119,16 @@ class BasicThreshold(object):
         if self.below_thresh_ok:
             truth_value = 1. - truth_value
         cube.data = truth_value
+
+        # Force the metadata to temporary conventions
+        if self.below_thresh_ok:
+            cube.attributes.update({'relative_to_threshold': 'below'})
+        else:
+            cube.attributes.update({'relative_to_threshold': 'above'})
+        cube.rename("probability_of_{}".format(cube.name()))
+        coord = iris.coords.AuxCoord(self.threshold,
+                                     long_name="threshold",
+                                     units=cube.units)
+        cube.add_aux_coord(coord)
+        cube.units = Unit(1)
         return cube
