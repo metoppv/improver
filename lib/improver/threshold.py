@@ -86,13 +86,13 @@ class BasicThreshold(object):
             'below_thresh_ok: {}>'
         ).format(self.threshold, self.fuzzy_factor, self.below_thresh_ok)
 
-    def process(self, cube):
+    def process(self, input_cube):
         """Convert each point to a truth value based on threshold. The truth
         value may or may not be fuzzy depending upon if a fuzzy_factor is
         supplied.
 
         Args:
-            cube : iris.cube.Cube
+            input_cube : iris.cube.Cube
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
@@ -105,6 +105,7 @@ class BasicThreshold(object):
             ValueError: if a np.nan value is detected within the input cube.
 
         """
+        cube = input_cube.copy()
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
         if self.fuzzy_factor is None:
