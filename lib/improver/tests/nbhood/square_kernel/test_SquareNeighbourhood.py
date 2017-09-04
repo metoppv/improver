@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.SquareNeighbourhood plugin."""
+"""Unit tests for the nbhood.square_kernel.SquareNeighbourhood plugin."""
 
 
 import unittest
@@ -41,7 +41,7 @@ from iris.tests import IrisTest
 
 import numpy as np
 
-from improver.nbhood.nbhood import SquareNeighbourhood
+from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 
@@ -53,7 +53,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(SquareNeighbourhood())
-        msg = '<SquareNeighbourhood: unweighted_mode: False>'
+        msg = '<SquareNeighbourhood>'
         self.assertEqual(result, msg)
 
 

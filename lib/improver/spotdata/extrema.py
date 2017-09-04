@@ -31,6 +31,7 @@
 """Calculate extrema values for diagnostics."""
 
 import numpy as np
+import copy
 import datetime
 from datetime import datetime as dt
 import iris
@@ -219,14 +220,24 @@ def make_local_time_cube(cube):
     # Mask invalid/unset data points.
     new_data = np.ma.masked_invalid(new_data)
 
-#    # Return cube on local time.
+    # Return cube on local time.
+    metadata_dict = copy.deepcopy(cube.metadata._asdict())
     new_cube = Cube(new_data,
-                    long_name=cube.name(),
                     dim_coords_and_dims=[(local_time_coord, 0),
                                          (cube.coord('index'), 1)],
-                    units=cube.units)
+                    **metadata_dict)
+
+    forecast_ref_time = cube.coord('forecast_reference_time')
+    forecast_ref_time.points = forecast_ref_time.points[0]*len(local_times)
+    new_cube.add_aux_coord(forecast_ref_time,
+                           cube.coord_dims('forecast_reference_time'))
+
+    # Exclude forecast period as it is somewhat confusing on a local time
+    # cube (e.g. may be +2 for a time 8 hours before forecast reference time).
     for coord in cube.aux_coords:
-        new_cube.add_aux_coord(coord, 1)
+        if (coord.name() != 'forecast_reference_time' and
+                coord.name() != 'forecast_period'):
+            new_cube.add_aux_coord(coord, cube.coord_dims(coord.name()))
 
     return new_cube
 

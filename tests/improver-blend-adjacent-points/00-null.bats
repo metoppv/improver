@@ -29,29 +29,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "tests bad option" {
-  run improver tests --silly-option
+@test "blend-adjacent-points no arguments" {
+  run improver blend-adjacent-points
   [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...]
-
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
-
-Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
-    --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help      Show this message and exit
-
-Arguments:
-    SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
-    SUBCLI          Name(s) of cli subtests to run without running the rest.
-                    Valid names are tasks which appear in /improver/tests/
-                    without the "improver-" prefix. The default is to run all
-                    cli tests in the /improver/tests/ directory.
-                    e.g. 'improver tests cli nbhood' will run neighbourhood
-                    processing cli tests only.
-__HELP__
-  [[ "$output" == "$expected" ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-blend-adjacent-points [-h] [--parameter_unit UNIT_STRING]
+                                      [--calendar CALENDAR]
+                                      COORDINATE_TO_BLEND_OVER
+                                      WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
+                                      INPUT_FILE OUTPUT_FILE
+improver-blend-adjacent-points: error: too few arguments
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

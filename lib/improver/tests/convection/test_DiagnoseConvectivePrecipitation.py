@@ -118,7 +118,7 @@ class Test__repr__(IrisTest):
         msg = ('<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; '
                'higher_threshold 1.3889e-06; neighbourhood_method: square; '
                'radii: 2000.0; fuzzy_factor None; below_thresh_ok: False; '
-               'lead_times: None; unweighted_mode: False; ens_factor: 1.0; '
+               'lead_times: None; weighted_mode: True; ens_factor: 1.0; '
                'use_adjacent_grid_square_differences: True>')
         self.assertEqual(str(result), msg)
 
@@ -327,8 +327,8 @@ class Test__calculate_convective_ratio(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_circular_neighbourhood_unweighted_mode(self):
-        """Test a circular neighbourhood with the unweighted_mode
+    def test_circular_neighbourhood_weighted_mode(self):
+        """Test a circular neighbourhood with the weighted_mode
         set to True."""
         expected = np.array(
             [[[[0., 0., 0., 0.],
@@ -336,11 +336,11 @@ class Test__calculate_convective_ratio(IrisTest):
                [0.666667, 0.75, 0.75, 0.8],
                [1., 1., 1., 1.]]]])
         neighbourhood_method = "circular"
-        unweighted_mode = True
+        weighted_mode = False
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold, self.higher_threshold,
             neighbourhood_method,
-            self.radii, unweighted_mode=unweighted_mode
+            self.radii, weighted_mode=weighted_mode
             )._calculate_convective_ratio(self.cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)

@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+"""Script to run weighted blending across adjacent points"""
+
+import iris
+import numpy as np
+from cf_units import Unit
+
+from improver.blending.blend_across_adjacent_points import \
+    TriangularWeightedBlendAcrossAdjacentPoints
+from improver.argparser import ArgParser
+
+
+def main():
+    """Load in arguments and ensure they are set correctly.
+       Then run Triangular weighted blending across the given coordinate."""
+    parser = ArgParser(
+        description='Use the TriangularWeightedBlendAcrossAdjacentPoints to '
+                    'blend across a particular coordinate. It does not '
+                    'collapse the coordinate, but instead blends across '
+                    'adjacent points and puts the blending values back in the '
+                    'original coordinate. Two different types of blending are '
+                    'possible, weighted_mean and weighted_maximum')
+    parser.add_argument('coordinate', type=str,
+                        metavar='COORDINATE_TO_BLEND_OVER',
+                        help='The coordinate over which the blending '
+                             'will be applied.')
+    parser.add_argument('--parameter_unit', metavar='UNIT_STRING',
+                        default='hours since 1970-01-01 00:00:00',
+                        help='Units for time coordinate. Default= '
+                             'hours since 1970-01-01 00:00:00.')
+    parser.add_argument('--calendar', metavar='CALENDAR',
+                        help='Calendar for parameter_unit if required. '
+                             'Default=gregorian')
+    parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
+                        choices=['weighted_mean', 'weighted_maximum'],
+                        help='The method used in the weighted blend. '
+                             '"weighted_mean": calculate a normal weighted'
+                             ' mean across the coordinate. '
+                             '"weighted_maximum": multiplies the values in the'
+                             ' coordinate by the weights, and then takes the'
+                             ' maximum.')
+    parser.add_argument('width', metavar='TRIANGLE_WIDTH',
+                        help='Width of the triangular weighting function used '
+                             'in the blending, in the units of the '
+                             'parameter_unit passed in.')
+    parser.add_argument('input_filepath', metavar='INPUT_FILE',
+                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF.')
+
+    args = parser.parse_args()
+
+    if args.coordinate == 'time':
+        parameter_unit = Unit(args.parameter_unit, args.calendar)
+    elif args.parameter_unit != 'hours since 1970-01-01 00:00:00.':
+        parameter_unit = args.parameter_unit
+    else:
+        parameter_unit = 'no_unit'
+
+    width = float(args.width)
+
+    cube = iris.load_cube(args.input_filepath)
+
+    BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            args.coordinate, width, parameter_unit, args.weighting_mode)
+    result = BlendingPlugin.process(cube)
+    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+
+
+if __name__ == "__main__":
+    main()

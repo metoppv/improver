@@ -35,15 +35,15 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDER]
+                                  [--calendar CALENDAR]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILE
-                                  OUTPUT_FILE
+                                  COORDINATE_TO_AVERAGE_OVER
+                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
 
 Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
@@ -60,6 +60,11 @@ positional arguments:
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.
+  WEIGHTED_BLEND_MODE   The method used in the weighted blend.
+                        "weighted_mean": calculate a normal weighted mean
+                        across the coordinate. "weighted_maximum": multiplies
+                        the values in the coordinate by the weights, and then
+                        takes the maximum.
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
@@ -71,7 +76,7 @@ optional arguments:
   --coordinate_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00.
-  --calendar CALENDER   Calendar for time coordinate. Default=gregorian
+  --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
                         has been applied.

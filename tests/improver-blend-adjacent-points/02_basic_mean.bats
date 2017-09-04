@@ -29,29 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "tests bad option" {
-  run improver tests --silly-option
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...]
+. $IMPROVER_DIR/tests/lib/utils
 
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
+@test "weighted-blending coordinate weighted_mean input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
 
-Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
-    --debug         Run in verbose mode (may take longer for CLI)
-    -h, --help      Show this message and exit
+  # Run weighted blending with weighted_mean mode and check it passes.
+  run improver blend-adjacent-points 'forecast_period' 'weighted_mean' 3.0 \
+      --parameter_unit 'hours' \
+      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/multiple_probabilities_rain_*H.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-Arguments:
-    SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
-    SUBCLI          Name(s) of cli subtests to run without running the rest.
-                    Valid names are tasks which appear in /improver/tests/
-                    without the "improver-" prefix. The default is to run all
-                    cli tests in the /improver/tests/ directory.
-                    e.g. 'improver tests cli nbhood' will run neighbourhood
-                    processing cli tests only.
-__HELP__
-  [[ "$output" == "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

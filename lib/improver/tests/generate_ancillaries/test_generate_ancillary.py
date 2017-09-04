@@ -46,6 +46,7 @@ from improver.generate_ancillaries.generate_ancillary import (
 
 
 def _make_test_cube(long_name, stash=None):
+    """Make a cube to run tests upon"""
     cs = GeogCS(EARTH_RADIUS)
     data = np.array([[1., 1., 1.],
                      [0., 0., 0.],
@@ -78,31 +79,36 @@ class Test__make_mask_cube(IrisTest):
         self.upper = 100.
         self.lower = 0.
 
-    def test_nobounds(self):
-        """test creating cube with neither upper nor lower threshold set"""
-        result = _make_mask_cube(self.mask, self.key, self.coords)
-        self.assertEqual(result.coord('longitude'), self.x_coord)
-        self.assertEqual(result.coord('latitude'), self.y_coord)
-        self.assertArrayEqual(result.data, self.mask)
-        self.assertEqual(result.attributes['Topographical Type'],
-                         self.key.title())
+    def test_wrong_number_of_bounds(self):
+        """test checking that an exception is raised when the _make_mask_cube
+        method is called with an incorrect number of bounds."""
+        emsg = "should have only an upper and lower limit"
+        with self.assertRaisesRegexp(TypeError, emsg):
+            _make_mask_cube(self.mask, self.key, self.coords, [0])
+        with self.assertRaisesRegexp(TypeError, emsg):
+            _make_mask_cube(self.mask,
+                            self.key,
+                            self.coords,
+                            [0, 2, 4])
 
-    def test_upperbound(self):
-        """test creating cube with upper threshold only set"""
-        result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 upper_threshold=self.upper)
-        self.assertEqual(result.coords('topographic_bound_upper')[0].points,
-                         self.upper)
+    def test_upperbound_fails(self):
+        """test checking that an exception is raised when the _make_mask_cube
+        method is called with only an upper bound."""
+        emsg = "should have both an upper and lower limit"
+        with self.assertRaisesRegexp(TypeError, emsg):
+            _make_mask_cube(self.mask, self.key, self.coords,
+                            topographic_bounds=[None, self.upper])
 
     def test_bothbounds(self):
         """test creating cube with both thresholds set"""
         result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 upper_threshold=self.upper,
-                                 lower_threshold=self.lower)
-        self.assertEqual(result.coords('topographic_bound_upper')[0].points,
+                                 topographic_bounds=[self.lower, self.upper])
+        self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.upper)
-        self.assertEqual(result.coords('topographic_bound_lower')[0].points,
+        self.assertEqual(result.coord('topographic_zone').bounds[0][0],
                          self.lower)
+        self.assertEqual(result.coord('topographic_zone').points,
+                         np.mean([self.lower, self.upper]))
 
 
 class Test_find_standard_ancil(IrisTest):
@@ -142,9 +148,6 @@ class Test_find_standard_ancil(IrisTest):
         msg = "That file doesn't exist"
         with self.assertRaisesRegexp(IOError, msg):
             find_standard_ancil(self.stage, msg)
-
-if __name__ == "__main__":
-    unittest.main()
 
 if __name__ == "__main__":
     unittest.main()
