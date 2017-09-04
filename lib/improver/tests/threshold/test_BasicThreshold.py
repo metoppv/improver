@@ -39,7 +39,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.threshold import BasicThreshold as Threshold
+from improver.threshold import BasicThreshold as Threshold
 
 
 class Test_process(IrisTest):
