@@ -550,11 +550,11 @@ def build_coordinate(data, long_name=None,
         data = custom_function(data)
 
     crd_out = coord_type_out(data, long_name=long_name_out,
-                         standard_name=std_name_out,
-                         var_name=var_name_out,
-                         units=units_out,
-                         coord_system=coord_system_out,
-                         bounds=bounds_out)
+                             standard_name=std_name_out,
+                             var_name=var_name_out,
+                             units=units_out,
+                             coord_system=coord_system_out,
+                             bounds=bounds_out)
 
     return crd_out
 
