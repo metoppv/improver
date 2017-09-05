@@ -34,7 +34,7 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
@@ -60,7 +60,7 @@ class Test_process(IrisTest):
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5],
+        cube.add_dim_coord(DimCoord([402192.5],
                                     "time", units=tunit), 0)
         self.cube = cube
 
