@@ -34,10 +34,12 @@
 import argparse
 
 import iris
+import cf_units
 
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.spotdata.extract_data import ExtractData
+
 
 def main():
     """Load in arguments and get going."""
@@ -75,7 +77,6 @@ def main():
                         "threshold value may return a fractional truth value "
                         "if they fall within this fuzzy factor region.")
 
-
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
 
@@ -84,6 +85,7 @@ def main():
         threshold_unit = cf_units.Unit(args.threshold_units)
         args.threshold_values = [threshold_unit.convert(threshold, cube.units)
                                  for threshold in args.threshold_values]
+        print args.threshold_values
 
     thresholded_cubes = iris.cube.CubeList()
     for threshold in args.threshold_values:
