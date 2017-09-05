@@ -121,7 +121,7 @@ class BasicThreshold(object):
                 (cube.data - lower_threshold) /
                 ((self.threshold * (2. - self.fuzzy_factor)) - lower_threshold)
             )
-        truth_value = np.clip(truth_value, 0., 1.)
+        truth_value = np.clip(truth_value, 0., 1.).astype(np.float64)
         if self.below_thresh_ok:
             truth_value = 1. - truth_value
         cube.data = truth_value
