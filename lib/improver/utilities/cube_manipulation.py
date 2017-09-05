@@ -273,9 +273,10 @@ def equalise_cube_attributes(cubes):
             # Normalise grid_id to ukx_standard_1
             if "grid_id" in unmatching_attributes[i]:
                 if cube.attributes['grid_id'] in ['enukx_standard_v1',
-                                                  'ukvx_standard_v1']:
+                                                  'ukvx_standard_v1',
+                                                  'ukx_standard_v1']:
                     cube.attributes['grid_id'] = 'ukx_standard_v1'
-                    unmatching_attributes[i].pop("grid_id")
+                unmatching_attributes[i].pop("grid_id")
             # Add model_id if titles do not match.
             if "title" in unmatching_attributes[i]:
                 model_title = cube.attributes.pop('title')
@@ -293,7 +294,8 @@ def equalise_cube_attributes(cubes):
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
                     msg = ('Do not know what to do with ' + key +
-                           ' will delete it')
+                           ' will delete it'
+                           ' - value is {}'.format(cube.attributes[key]))
                     warnings.warn(msg)
                     cube.attributes.pop(key)
 
@@ -322,7 +324,7 @@ def equalise_cube_coords(cubes):
             slice_over_keys = []
             for key in unmatching_coords[i]:
                 # mismatching percentiles - raise error.
-                if key.find('percentile_over') > 0:
+                if 'percentile_over' in key:
                     msg = ("Percentile coordinates "
                            "must match to merge")
                     raise ValueError(msg)
