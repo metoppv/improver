@@ -31,21 +31,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run neighbourhood processing."""
 
-import argparse
-
 import iris
 
-from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.argparser import ArgParser
+from improver.constants import DEFAULT_PERCENTILES
+from improver.nbhood.nbhood import (
+    GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description='Apply the requested neighbourhood method via '
                     'the NeighbourhoodProcessing plugin '
                     'to a file with one cube.')
-    parser.add_argument('neighbourhood_method', metavar='NEIGHBOURHOOD_METHOD',
-                        help='The neighbourhood method to apply in '
+    parser.add_argument('neighbourhood_output', metavar='NEIGHBOURHOOD_OUTPUT',
+                        help='The form of the results generated using '
+                             'neighbourhood processing. Options: '
+                             '"probabilities", "percentiles".')
+    parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
+                        help='The shape of the neighbourhood to apply in '
                              'neighbourhood processing. Options: "circular", '
                              '"square".')
     group = parser.add_mutually_exclusive_group()
@@ -73,11 +78,36 @@ def main():
                         'every grid square is considered to be the '
                         'equivalent of an ensemble member.'
                         'Optional, defaults to 1.0.')
+    parser.add_argument('--weighted_mode', metavar='WEIGHTED_MODE',
+                        action='store_true',
+                        help='For neighbourhood processing using a circular'
+                             'kernel, weighted_mode = True indicates the '
+                             'weighting decreases with radius.'
+                             'weighted_mode = False indicates a constant '
+                             'weighting.')
+    parser.add_argument('--percentiles', metavar='PERCENTILES',
+                        default=DEFAULT_PERCENTILES, nargs='+',
+                        help='Calculate values at the specified percentiles '
+                             'from the neighbourhood surrounding each grid '
+                             'point.')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     args = parser.parse_args()
+
+    if (args.neighbourhood_output == "percentiles" and
+            args.neighbourhood_shape == "square"):
+        parser.wrong_args_error('square', 'neighbourhood_shape')
+
+    if (args.neighbourhood_output == "percentiles" and args.weighted_mode):
+        parser.wrong_args_error(
+            'weighted_mode', 'neighbourhood_shape=percentiles')
+
+    if (args.neighbourhood_output == "probabilities" and args.percentiles):
+        parser.wrong_args_error(
+            'percentiles', 'neighbourhood_shape=probabilities')
+
     cube = iris.load_cube(args.input_filepath)
     if args.radius:
         radius_or_radii = args.radius
@@ -85,10 +115,21 @@ def main():
     elif args.radii_by_lead_time:
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
-    result = (
-        NeighbourhoodProcessing(
-            args.neighbourhood_method, radius_or_radii,
-            lead_times=lead_times, ens_factor=args.ens_factor).process(cube))
+
+    if args.neighbourhood_output in ["probabilities"]:
+        result = (
+            NeighbourhoodProcessing(
+                args.neighbourhood_shape, radius_or_radii,
+                lead_times=lead_times, ens_factor=args.ens_factor,
+                weighted_mode=args.weighted_mode
+                ).process(cube))
+    elif args.neighbourhood_output in ["percentiles"]:
+        result = (
+            GeneratePercentilesFromANeighbourhood(
+                args.neighbourhood_shape, radius_or_radii,
+                lead_times=lead_times, ens_factor=args.ens_factor,
+                percentiles=args.percentiles
+                ).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
