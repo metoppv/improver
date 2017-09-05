@@ -37,7 +37,6 @@ import iris
 import cf_units
 
 from improver.threshold import BasicThreshold
-from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.spotdata.extract_data import ExtractData
 
 
@@ -45,7 +44,9 @@ def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
         description="Calculate the threshold truth value of cube data "
-        "relative to the provided threshold value. A fuzzy factor may be "
+        "relative to the provided threshold value. By default data are "
+        "tested to be above the thresholds, though the --below_threshold "
+        "flag enables testing below thresholds. A fuzzy factor may be "
         "provided to capture data that is within this factor of the "
         "threshold.")
     parser.add_argument("input_filepath", metavar="INPUT_FILE",
@@ -56,19 +57,19 @@ def main():
                         nargs="+", type=float,
                         help="Threshold value or values about which to "
                         "calculate the truth values; e.g. 270 300")
-    parser.add_argument("--threshold_units", metavar="THRESHOLD_UNTIS",
+    parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
                         default=None, type=str,
                         help="Units of the threshold values. If not provided "
                         "the units are assumed to be the same as those of the "
                         "input cube. Specifying the units here will allow a "
                         "suitable conversion to match the cube units if "
                         "possible.")
-    parser.add_argument("--below_threshold", metavar="BELOW_THRESHOLD",
-                        default=False, type=bool,
+    parser.add_argument("--below_threshold", default=False,
+                        action='store_true',
                         help="By default truth values of 1 are returned for "
-                        "data ABOVE the threshold value(s). Setting this "
-                        "to TRUE changes this behaviour to return 1 for data "
-                        "below the threshold values.")
+                        "data ABOVE the threshold value(s). Using this flag "
+                        "changes this behaviour to return 1 for data below "
+                        "the threshold values.")
     parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
                         default=None, type=float,
                         help="A decimal fraction defining the factor about "
@@ -85,7 +86,6 @@ def main():
         threshold_unit = cf_units.Unit(args.threshold_units)
         args.threshold_values = [threshold_unit.convert(threshold, cube.units)
                                  for threshold in args.threshold_values]
-        print args.threshold_values
 
     thresholded_cubes = iris.cube.CubeList()
     for threshold in args.threshold_values:
@@ -95,7 +95,7 @@ def main():
         result = iris.util.new_axis(result, 'threshold')
         thresholded_cubes.append(result)
 
-    result = concatenate_cubes(thresholded_cubes)
+    result, = thresholded_cubes.concatenate()
     result = ExtractData.make_stat_coordinate_first(result)
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
