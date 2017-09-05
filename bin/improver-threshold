@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to apply thresholding to a cube."""
+
+import argparse
+
+import iris
+import cf_units
+
+from improver.threshold import BasicThreshold
+from improver.spotdata.extract_data import ExtractData
+
+
+def main():
+    """Load in arguments and get going."""
+    parser = argparse.ArgumentParser(
+        description="Calculate the threshold truth value of cube data "
+        "relative to the provided threshold value. By default data are "
+        "tested to be above the thresholds, though the --below_threshold "
+        "flag enables testing below thresholds. A fuzzy factor may be "
+        "provided to capture data that is within this factor of the "
+        "threshold.")
+    parser.add_argument("input_filepath", metavar="INPUT_FILE",
+                        help="A path to an input NetCDF file to be processed")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
+                        help="The output path for the processed NetCDF")
+    parser.add_argument("threshold_values", metavar="THRESHOLD_VALUES",
+                        nargs="+", type=float,
+                        help="Threshold value or values about which to "
+                        "calculate the truth values; e.g. 270 300")
+    parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
+                        default=None, type=str,
+                        help="Units of the threshold values. If not provided "
+                        "the units are assumed to be the same as those of the "
+                        "input cube. Specifying the units here will allow a "
+                        "suitable conversion to match the cube units if "
+                        "possible.")
+    parser.add_argument("--below_threshold", default=False,
+                        action='store_true',
+                        help="By default truth values of 1 are returned for "
+                        "data ABOVE the threshold value(s). Using this flag "
+                        "changes this behaviour to return 1 for data below "
+                        "the threshold values.")
+    parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
+                        default=None, type=float,
+                        help="A decimal fraction defining the factor about "
+                        "the threshold value(s) which should be treated as "
+                        "fuzzy. Data which fail a test against the hard "
+                        "threshold value may return a fractional truth value "
+                        "if they fall within this fuzzy factor region.")
+
+    args = parser.parse_args()
+    cube = iris.load_cube(args.input_filepath)
+
+    # Allow for threshold value unit conversion.
+    if args.threshold_units is not None:
+        threshold_unit = cf_units.Unit(args.threshold_units)
+        args.threshold_values = [threshold_unit.convert(threshold, cube.units)
+                                 for threshold in args.threshold_values]
+
+    thresholded_cubes = iris.cube.CubeList()
+    for threshold in args.threshold_values:
+        result = BasicThreshold(
+            threshold, fuzzy_factor=args.fuzzy_factor,
+            below_thresh_ok=args.below_threshold).process(cube)
+        result = iris.util.new_axis(result, 'threshold')
+        thresholded_cubes.append(result)
+
+    result, = thresholded_cubes.concatenate()
+    result = ExtractData.make_stat_coordinate_first(result)
+
+    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+
+
+if __name__ == "__main__":
+    main()
