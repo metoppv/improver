@@ -34,12 +34,12 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.threshold import BasicThreshold as Threshold
+from improver.threshold import BasicThreshold as Threshold
 
 
 class Test_process(IrisTest):
@@ -60,7 +60,7 @@ class Test_process(IrisTest):
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
-        cube.add_aux_coord(AuxCoord([402192.5],
+        cube.add_dim_coord(DimCoord([402192.5],
                                     "time", units=tunit), 0)
         self.cube = cube
 
@@ -71,6 +71,27 @@ class Test_process(IrisTest):
         plugin = Threshold(threshold, fuzzy_factor=fuzzy_factor)
         result = plugin.process(self.cube)
         self.assertIsInstance(result, Cube)
+
+    def test_metadata_changes(self):
+        """Test the metadata altering functionality"""
+        # Copy the cube as the cube.data is used as the basis for comparison.
+        cube = self.cube.copy()
+        plugin = Threshold(0.1)
+        result = plugin.process(cube)
+        # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
+        name = "probability_of_{}"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "above"
+        expected_units = 1
+        expected_coord = DimCoord(0.1,
+                                  long_name='threshold',
+                                  units=self.cube.units)
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(result.attributes['relative_to_threshold'],
+                         expected_attribute)
+        self.assertEqual(result.units, expected_units)
+        self.assertEqual(result.coord('threshold'),
+                         expected_coord)
 
     def test_threshold(self):
         """Test the basic threshold functionality."""

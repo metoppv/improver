@@ -32,6 +32,8 @@
 
 
 import numpy as np
+import iris
+from cf_units import Unit
 
 
 class BasicThreshold(object):
@@ -84,13 +86,13 @@ class BasicThreshold(object):
             'below_thresh_ok: {}>'
         ).format(self.threshold, self.fuzzy_factor, self.below_thresh_ok)
 
-    def process(self, cube):
+    def process(self, input_cube):
         """Convert each point to a truth value based on threshold. The truth
         value may or may not be fuzzy depending upon if a fuzzy_factor is
         supplied.
 
         Args:
-            cube : iris.cube.Cube
+            input_cube : iris.cube.Cube
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
@@ -98,11 +100,17 @@ class BasicThreshold(object):
                 Cube after a threshold has been applied. The data within this
                 cube will contain values between 0 and 1 to indicate whether
                 a given threshold has been exceeded or not.
+                The cube meta-data will contain:
+                 * input_cube name prepended with "probability_of_"
+                 * threshold dimension coordinate with same units as input_cube
+                 * threshold attribute (above or below threshold)
+                 * cube units set to (1).
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
 
         """
+        cube = input_cube.copy()
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
         if self.fuzzy_factor is None:
@@ -117,4 +125,17 @@ class BasicThreshold(object):
         if self.below_thresh_ok:
             truth_value = 1. - truth_value
         cube.data = truth_value
+
+        # TODO: Correct when formal cf-standards exists
+        # Force the metadata to temporary conventions
+        if self.below_thresh_ok:
+            cube.attributes.update({'relative_to_threshold': 'below'})
+        else:
+            cube.attributes.update({'relative_to_threshold': 'above'})
+        cube.rename("probability_of_{}".format(cube.name()))
+        coord = iris.coords.DimCoord(self.threshold,
+                                     long_name="threshold",
+                                     units=cube.units)
+        cube.add_aux_coord(coord)
+        cube.units = Unit(1)
         return cube
