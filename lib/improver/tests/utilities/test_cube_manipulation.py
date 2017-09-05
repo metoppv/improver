@@ -666,8 +666,9 @@ class Test_equalise_cube_attributes(IrisTest):
         self.assertAlmostEquals(cubelist[0].attributes["grid_id"],
                                 'ukx_standard_v1')
 
-    def test_cubelist_grid_id_in_list(self):
-        """Test that the utility updates grid_id if in list and not matching"""
+    def test_cubelist_grid_id_in_list2(self):
+        """Test that the utility updates grid_id if in list and not matching
+        where grid_id has already been updated to ukv_standard_v1"""
 
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
@@ -698,11 +699,11 @@ class Test_equalise_cube_attributes(IrisTest):
         equalise_cube_attributes(cubelist)
 
         self.assertIn("grid_id", cubelist[0].attributes.keys())
-        self.assertAlmostEquals(cubelist[0].attributes["grid_id"],
-                                'ukx_standard_v1')
+        self.assertEqual(cubelist[0].attributes["grid_id"],
+                         'ukx_standard_v1')
         self.assertIn("grid_id", cubelist[1].attributes.keys())
-        self.assertAlmostEquals(cubelist[1].attributes["grid_id"],
-                                'unknown_grid')
+        self.assertEqual(cubelist[1].attributes["grid_id"],
+                         'unknown_grid')
 
     def test_cubelist_title_identical(self):
         """Test that the utility does nothing to title if they match"""
@@ -738,13 +739,12 @@ class Test_equalise_cube_attributes(IrisTest):
 
         self.assertArrayAlmostEqual(cubelist[0].coord("model_id").points,
                                     np.array([0]))
-        self.assertAlmostEquals(cubelist[0].coord("model").points[0],
-                                'Operational UKV Model Forecast')
+        self.assertEqual(cubelist[0].coord("model").points[0],
+                         'Operational UKV Model Forecast')
         self.assertArrayAlmostEqual(cubelist[1].coord("model_id").points,
                                     np.array([100]))
-        self.assertAlmostEquals(
-            cubelist[1].coord("model").points[0],
-            'Operational Mogreps UK Model Forecast')
+        self.assertEqual(cubelist[1].coord("model").points[0],
+                         'Operational Mogreps UK Model Forecast')
         self.assertNotIn("title", cubelist[0].attributes.keys())
         self.assertNotIn("title", cubelist[1].attributes.keys())
 
@@ -944,9 +944,12 @@ class Test_compare_coords(IrisTest):
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 1)
         self.assertEqual(len(result[1]), 0)
-        self.assertEqual(result[0]["forecast_period"]["coord"].points, np.array([3.0]))
-        self.assertEqual(result[0]["forecast_period"]["coord"].standard_name, "forecast_period")
-        self.assertEqual(result[0]["forecast_period"]["coord"].units, Unit("hours"))
+        self.assertEqual(result[0]["forecast_period"]["coord"].points,
+                         np.array([3.0]))
+        self.assertEqual(result[0]["forecast_period"]["coord"].standard_name,
+                         "forecast_period")
+        self.assertEqual(result[0]["forecast_period"]["coord"].units,
+                         Unit("hours"))
         self.assertEqual(result[0]["forecast_period"]["data_dims"], None)
         self.assertEqual(result[0]["forecast_period"]["aux_dims"], 1)
 
@@ -963,9 +966,12 @@ class Test_compare_coords(IrisTest):
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 0)
         self.assertEqual(len(result[1]), 1)
-        self.assertEqual(result[1]["forecast_period"]["coord"].points, np.array([3.0]))
-        self.assertEqual(result[1]["forecast_period"]["coord"].standard_name, "forecast_period")
-        self.assertEqual(result[1]["forecast_period"]["coord"].units, Unit("hours"))
+        self.assertEqual(result[1]["forecast_period"]["coord"].points,
+                         np.array([3.0]))
+        self.assertEqual(result[1]["forecast_period"]["coord"].standard_name,
+                         "forecast_period")
+        self.assertEqual(result[1]["forecast_period"]["coord"].units,
+                         Unit("hours"))
         self.assertEqual(result[1]["forecast_period"]["data_dims"], None)
         self.assertEqual(result[1]["forecast_period"]["aux_dims"], 1)
 
@@ -1020,6 +1026,7 @@ class Test_build_coordinate(IrisTest):
     def test_custom_function(self):
         """Test that a coordinate can be built when using a custom function."""
         def divide_data(data):
+            """Basic custom function for testing in build_coordinate"""
             return data/2
         result = build_coordinate(
             [1.0], long_name="realization", custom_function=divide_data)
