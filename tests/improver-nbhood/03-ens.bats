@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes for an ensemble.
-  run improver nbhood 'circular' --radius=20000 --ens_factor=2.0 \
+  run improver nbhood 'probabilities' 'circular' --radius=20000 --ens_factor=2.0 --weighted_mode\
       "$IMPROVER_ACC_TEST_DIR/nbhood/ens/input.nc" "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

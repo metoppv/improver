@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run square neighbourhood processing and check it passes.
-  run improver nbhood 'square' --radius=20000 \
+  run improver nbhood 'probabilities' 'square' --radius=20000 --weighted_mode\
       "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_square.nc" \
       "$TEST_DIR/output_square.nc"
   [[ "$status" -eq 0 ]]

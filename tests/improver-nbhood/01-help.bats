@@ -35,15 +35,20 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--ens_factor ENS_FACTOR]
-                       NEIGHBOURHOOD_METHOD INPUT_FILE OUTPUT_FILE
+                       [--ens_factor ENS_FACTOR] [--weighted_mode]
+                       [--percentiles PERCENTILES [PERCENTILES ...]]
+                       NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
+                       OUTPUT_FILE
 
 Apply the requested neighbourhood method via the NeighbourhoodProcessing
 plugin to a file with one cube.
 
 positional arguments:
-  NEIGHBOURHOOD_METHOD  The neighbourhood method to apply in neighbourhood
-                        processing. Options: "circular", "square".
+  NEIGHBOURHOOD_OUTPUT  The form of the results generated using neighbourhood
+                        processing. Options: "probabilities", "percentiles".
+  NEIGHBOURHOOD_SHAPE   The shape of the neighbourhood to apply in
+                        neighbourhood processing. Options: "circular",
+                        "square".
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
@@ -67,6 +72,13 @@ optional arguments:
                         this essentially conserves ensemble members if every
                         grid square is considered to be the equivalent of an
                         ensemble member.Optional, defaults to 1.0.
+  --weighted_mode       For neighbourhood processing using a circularkernel,
+                        setting the weighted_mode indicates the weighting
+                        decreases with radius. If weighted_mode is not set, a
+                        constant weighting is assumed.
+  --percentiles PERCENTILES [PERCENTILES ...]
+                        Calculate values at the specified percentiles from the
+                        neighbourhood surrounding each grid point.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

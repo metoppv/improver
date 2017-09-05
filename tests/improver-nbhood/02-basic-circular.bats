@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run circular neighbourhood processing and check it passes.
-  run improver nbhood 'circular' --radius=20000 \
+  run improver nbhood 'probabilities' 'circular' --radius=20000 --weighted_mode\
       "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_circular.nc" "$TEST_DIR/output_circular.nc"
   [[ "$status" -eq 0 ]]
 

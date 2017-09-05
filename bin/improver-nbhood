@@ -78,13 +78,12 @@ def main():
                         'every grid square is considered to be the '
                         'equivalent of an ensemble member.'
                         'Optional, defaults to 1.0.')
-    parser.add_argument('--weighted_mode', metavar='WEIGHTED_MODE',
-                        action='store_true',
+    parser.add_argument('--weighted_mode', action='store_true', default=False,
                         help='For neighbourhood processing using a circular'
-                             'kernel, weighted_mode = True indicates the '
-                             'weighting decreases with radius.'
-                             'weighted_mode = False indicates a constant '
-                             'weighting.')
+                             'kernel, setting the weighted_mode indicates the '
+                             'weighting decreases with radius. '
+                             'If weighted_mode is not set, a constant '
+                             'weighting is assumed.')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+',
                         help='Calculate values at the specified percentiles '
@@ -104,7 +103,8 @@ def main():
         parser.wrong_args_error(
             'weighted_mode', 'neighbourhood_shape=percentiles')
 
-    if (args.neighbourhood_output == "probabilities" and args.percentiles):
+    if (args.neighbourhood_output == "probabilities" and
+            args.percentiles != DEFAULT_PERCENTILES):
         parser.wrong_args_error(
             'percentiles', 'neighbourhood_shape=probabilities')
 
