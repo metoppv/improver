@@ -237,6 +237,12 @@ def equalise_cubes(cubes, merging=True):
     Returns:
         cubelist : Iris cubelist
             List of cubes with revised cubes.
+            If merging the number of cubes in cubelist
+            may be greater than the original number
+            of cubes as the original cubes will be sliced
+            so that that they can be merged together.
+            Merging can only create new coords not add
+            to existing mismatching coords.
     """
     # Additional processing to deal with differences
     # between cubes e.g. different cell_methods
@@ -310,6 +316,12 @@ def equalise_cube_coords(cubes):
     Returns:
         cubelist : Iris cubelist
             List of cubes with revised coords.
+            The number of cubes in cubelist
+            may be greater than the original number
+            of cubes as the original cubes will be sliced
+            so that that they can be merged together.
+            Merging can only create new coords not add
+            to existing mismatching coords.
     Raises:
         ValueError: If Percentile coordinates do not match.
         ValueError: If Threshold coordinates do not match.

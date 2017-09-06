@@ -668,22 +668,22 @@ class Test_equalise_cubes(IrisTest):
         """Test that the utility equalises the attributes as expected"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
         result = equalise_cubes(cubelist)
-        self.assertArrayAlmostEqual(cubelist[0].coord("model_id").points,
+        self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([0]))
-        self.assertEqual(cubelist[0].coord("model").points[0],
+        self.assertEqual(result[0].coord("model").points[0],
                          'Operational UKV Model Forecast')
-        self.assertArrayAlmostEqual(cubelist[1].coord("model_id").points,
+        self.assertArrayAlmostEqual(result[1].coord("model_id").points,
                                     np.array([100]))
-        self.assertEqual(cubelist[1].coord("model").points[0],
+        self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", cubelist[0].attributes.keys())
-        self.assertNotIn("title", cubelist[1].attributes.keys())
-        self.assertAlmostEquals(cubelist[0].attributes["grid_id"],
-                                cubelist[1].attributes["grid_id"])
-        self.assertEqual(cubelist[0].attributes["grid_id"],
+        self.assertNotIn("title", result[0].attributes.keys())
+        self.assertNotIn("title", result[1].attributes.keys())
+        self.assertAlmostEquals(result[0].attributes["grid_id"],
+                                result[1].attributes["grid_id"])
+        self.assertEqual(result[0].attributes["grid_id"],
                          'ukx_standard_v1')
-        self.assertNotIn("history", cubelist[0].attributes.keys())
-        self.assertNotIn("history", cubelist[1].attributes.keys())
+        self.assertNotIn("history", result[0].attributes.keys())
+        self.assertNotIn("history", result[1].attributes.keys())
 
     def test_strip_var_names(self):
         """Test that the utility removes var names"""
@@ -950,7 +950,12 @@ class Test_equalise_cube_coords(IrisTest):
         cube1.add_aux_coord(model_id_coord)
         cube1 = iris.util.new_axis(cube1)
         cubes = iris.cube.CubeList([cube1, cube2])
-        cubelist = equalise_cube_coords(cubes)
+        result = equalise_cube_coords(cubes)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 2)
+        self.assertFalse(result[0].coords("realization"))
+        self.assertFalse(result[1].coords("realization"))
+        self.assertTrue(result[0].coords("model_id"))
 
     def test_model_id_with_realization_exception(self):
         """Test that an exception is raised if a cube has multiple model_id
@@ -982,7 +987,12 @@ class Test_equalise_cube_coords(IrisTest):
         cube1.add_aux_coord(model_id_coord)
         cube1 = iris.util.new_axis(cube1, "model_id")
         cubes = iris.cube.CubeList([cube1, cube2])
-        cubelist = equalise_cube_coords(cubes)
+        result = equalise_cube_coords(cubes)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 4)
+        self.assertTrue(result[0].coords("realization"))
+        self.assertFalse(result[3].coords("realization"))
+        self.assertTrue(result[0].coords("model_id"))
 
     def test_model_id_with_realization_not_in_cube(self):
         """Test if model_id is an unmatched coordinate, a cube has a
@@ -990,12 +1000,18 @@ class Test_equalise_cube_coords(IrisTest):
         realization coordinate."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
+        cube1.remove_coord("realization")
         model_id_coord = DimCoord(
             np.array([100*1], np.int), long_name='model_id')
         cube2.add_aux_coord(model_id_coord)
         cube2 = iris.util.new_axis(cube2, "model_id")
         cubes = iris.cube.CubeList([cube1, cube2])
-        cubelist = equalise_cube_coords(cubes)
+        result = equalise_cube_coords(cubes)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 4)
+        self.assertFalse(result[0].coords("realization"))
+        self.assertTrue(result[1].coords("realization"))
+        self.assertTrue(result[1].coords("model_id"))
 
 
 class Test_compare_attributes(IrisTest):
