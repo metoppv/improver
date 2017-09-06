@@ -693,8 +693,8 @@ class Test_equalise_cubes(IrisTest):
         cube2.coord("time").var_name = "time_1"
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = equalise_cubes(cubelist)
-        self.assertIsNone(cube1.coord("time").var_name)
-        self.assertIsNone(cube2.coord("time").var_name)
+        self.assertIsNone(result[0].coord("time").var_name)
+        self.assertIsNone(result[1].coord("time").var_name)
 
     def test_coords_not_equalised_if_not_merging(self):
         """Test that the coords are not equalised if not merging"""
