@@ -407,7 +407,7 @@ def compare_attributes(cubes):
         Warning: If only a single cube is supplied
     """
     unmatching_attributes = []
-    if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
+    if len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
@@ -444,7 +444,7 @@ def compare_coords(cubes):
         Warning: If only a single cube is supplied
     """
     unmatching_coords = []
-    if isinstance(cubes, iris.cube.Cube) or len(cubes) == 1:
+    if len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:

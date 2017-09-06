@@ -65,6 +65,46 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         add_forecast_reference_time_and_forecast_period)
 
 
+def set_up_percentile_cube(data, phenomenon_standard_name, phenomenon_units,
+                           percentiles=np.array([10, 50, 90]), timesteps=1,
+                           y_dimension_length=3, x_dimension_length=3):
+    """
+    Create a cube containing multiple percentile values
+    for the coordinate.
+    """
+    cube = Cube(data, standard_name=phenomenon_standard_name,
+                units=phenomenon_units)
+    coord_long_name = "percentile_over_realization"
+    cube.add_dim_coord(
+       DimCoord(percentiles, long_name=coord_long_name,
+                units='%'), 0)
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
+                       "time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+                       "latitude", units="degrees"), 2)
+    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
+                       "longitude", units="degrees"), 3)
+    return cube
+
+
+def set_up_percentile_temperature_cube():
+    """ Create a cube with metadata and values suitable for air temperature."""
+    data = np.array([[[[0.1, 0.1, 0.1],
+                      [0.2, 0.2, 0.2],
+                      [0.5, 0.5, 0.5]]],
+                     [[[1.0, 1.0, 1.0],
+                      [0.5, 0.5, 0.5],
+                      [0.5, 0.5, 0.5]]],
+                     [[[2.0, 3.0, 4.0],
+                      [0.8, 1.2, 1.6],
+                      [1.5, 2.0, 3.0]]]])
+    return (
+        set_up_percentile_cube(data, "air_temperature", "K"))
+
+
 def _check_coord_type(cube, coord):
     '''Function to test whether coord is classified
        as scalar or auxiliary coordinate.
@@ -542,8 +582,15 @@ class Test_merge_cubes(IrisTest):
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
-        result = merge_cubes(self.cube)
-        self.assertIsInstance(result, Cube)
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = merge_cubes(self.cube)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "Only a single cube "
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertIsInstance(result, Cube)
 
     def test_identical_cubes(self):
         """Test that merging identical cubes fails."""
@@ -585,11 +632,84 @@ class Test_equalise_cubes(IrisTest):
     def setUp(self):
         """Use temperature cube to test with."""
         self.cube = set_up_temperature_cube()
+        self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
+        self.cube_ukv.remove_coord('realization')
+        self.cube_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
+        self.cube_ukv.attributes.update({'title':
+                                         'Operational UKV Model Forecast'})
+        add_forecast_reference_time_and_forecast_period(self.cube_ukv,
+                                                        fp_point=4.0)
+        add_forecast_reference_time_and_forecast_period(self.cube,
+                                                        fp_point=7.0)
+        self.cube.attributes.update({'grid_id': 'enukx_standard_v1'})
+        self.cube.attributes.update({'title':
+                                     'Operational Mogreps UK Model Forecast'})
+        self.cube.attributes["history"] = (
+            "2017-01-18T08:59:53: StaGE Decoupler")
+        self.cube_ukv.attributes["history"] = (
+            "2017-01-19T08:59:53: StaGE Decoupler")
 
     def test_basic(self):
-        """Test that the utility returns an iris.cube.Cube."""
-        result = equalise_cubes(self.cube)
-        self.assertIsInstance(result, Cube)
+        """Test that the utility returns an iris.cube.CubeList."""
+        cubes = self.cube
+        if isinstance(cubes, iris.cube.Cube):
+            cubes = iris.cube.CubeList([cubes])
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = equalise_cubes(cubes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "Only a single cube "
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertIsInstance(result, iris.cube.CubeList)
+
+    def test_equalise_attributes(self):
+        """Test that the utility equalises the attributes as expected"""
+        cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
+        result = equalise_cubes(cubelist)
+        self.assertArrayAlmostEqual(cubelist[0].coord("model_id").points,
+                                    np.array([0]))
+        self.assertEqual(cubelist[0].coord("model").points[0],
+                         'Operational UKV Model Forecast')
+        self.assertArrayAlmostEqual(cubelist[1].coord("model_id").points,
+                                    np.array([100]))
+        self.assertEqual(cubelist[1].coord("model").points[0],
+                         'Operational Mogreps UK Model Forecast')
+        self.assertNotIn("title", cubelist[0].attributes.keys())
+        self.assertNotIn("title", cubelist[1].attributes.keys())
+        self.assertAlmostEquals(cubelist[0].attributes["grid_id"],
+                                cubelist[1].attributes["grid_id"])
+        self.assertEqual(cubelist[0].attributes["grid_id"],
+                         'ukx_standard_v1')
+        self.assertNotIn("history", cubelist[0].attributes.keys())
+        self.assertNotIn("history", cubelist[1].attributes.keys())
+
+    def test_strip_var_names(self):
+        """Test that the utility removes var names"""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cube1.coord("time").var_name = "time_0"
+        cube2.coord("time").var_name = "time_1"
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        result = equalise_cubes(cubelist)
+        self.assertIsNone(cube1.coord("time").var_name)
+        self.assertIsNone(cube2.coord("time").var_name)
+
+    def test_coords_not_equalised_if_not_merging(self):
+        """Test that the coords are not equalised if not merging"""
+        cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
+        result = equalise_cubes(cubelist, merging=False)
+        self.assertEqual(len(result),
+                         len(cubelist))
+
+    def test_coords_are_equalised_if_merging(self):
+        """Test that the coords are equalised if merging"""
+        cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
+        result = equalise_cubes(cubelist)
+        self.assertEqual(len(result), 4)
+        self.assertAlmostEquals(result[3].coord('model_realization').points,
+                                102.0)
 
 
 class Test_equalise_cube_attributes(IrisTest):
@@ -784,8 +904,98 @@ class Test_equalise_cube_coords(IrisTest):
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
-        result = equalise_cube_coords(self.cube)
-        self.assertIsInstance(result, Cube)
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = equalise_cube_coords(iris.cube.CubeList([self.cube]))
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "Only a single cube so no differences will be found "
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertIsInstance(result, iris.cube.CubeList)
+
+    def test_percentile_over_exception(self):
+        """Test that an exception is raised if a 'percentile_over' coordinate
+        is unmatched."""
+        cube = set_up_percentile_temperature_cube()
+        cube1 = cube.copy()
+        cube2 = cube.copy()
+        cube2.remove_coord("percentile_over_realization")
+        cubes = iris.cube.CubeList([cube1, cube2])
+        msg = "Percentile coordinates must match to merge"
+        with self.assertRaisesRegexp(ValueError, msg):
+            equalise_cube_coords(cubes)
+
+    def test_threshold_exception(self):
+        """Test that an exception is raised if a threshold coordinate is
+        unmatched."""
+        cube = set_up_probability_above_threshold_temperature_cube()
+        cube1 = cube.copy()
+        cube2 = cube.copy()
+        cube2.remove_coord("threshold")
+        cubes = iris.cube.CubeList([cube1, cube2])
+        msg = "Threshold coordinates must match to merge"
+        with self.assertRaisesRegexp(ValueError, msg):
+            equalise_cube_coords(cubes)
+
+    def test_model_id_without_realization(self):
+        """Test that if model_id is an unmatched coordinate, and the cubes
+        do not have a realization coordinate."""
+        cube1 = self.cube.copy()[0]
+        cube2 = self.cube.copy()[0]
+        cube1.remove_coord("realization")
+        cube2.remove_coord("realization")
+        model_id_coord = DimCoord(
+            np.array([100*1], np.int), long_name='model_id')
+        cube1.add_aux_coord(model_id_coord)
+        cube1 = iris.util.new_axis(cube1)
+        cubes = iris.cube.CubeList([cube1, cube2])
+        cubelist = equalise_cube_coords(cubes)
+
+    def test_model_id_with_realization_exception(self):
+        """Test that an exception is raised if a cube has multiple model_id
+        points."""
+        cube1 = self.cube.copy()
+        model_id_coord = DimCoord(
+            np.array([100], np.int), long_name='model_id')
+        cube1.add_aux_coord(model_id_coord)
+        cube1 = iris.util.new_axis(cube1, "model_id")
+        cube2 = cube1.copy()
+        cube2.coord("model_id").points = 200
+        cube1 = iris.cube.CubeList([cube1, cube2]).concatenate_cube()
+        cube2 = self.cube.copy()[0]
+        cube2.remove_coord("realization")
+        cubes = iris.cube.CubeList([cube1, cube2])
+        msg = "Model_id has more than one point"
+        with self.assertRaisesRegexp(ValueError, msg):
+            equalise_cube_coords(cubes)
+
+    def test_model_id_with_realization_in_cube(self):
+        """Test if model_id is an unmatched coordinate, a cube has a
+        realization coordinate and the cube being inspected has a realization
+        coordinate."""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()[0]
+        cube2.remove_coord("realization")
+        model_id_coord = DimCoord(
+            np.array([100*1], np.int), long_name='model_id')
+        cube1.add_aux_coord(model_id_coord)
+        cube1 = iris.util.new_axis(cube1, "model_id")
+        cubes = iris.cube.CubeList([cube1, cube2])
+        cubelist = equalise_cube_coords(cubes)
+
+    def test_model_id_with_realization_not_in_cube(self):
+        """Test if model_id is an unmatched coordinate, a cube has a
+        realization coordinate and the cube being inspected does not have a
+        realization coordinate."""
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        model_id_coord = DimCoord(
+            np.array([100*1], np.int), long_name='model_id')
+        cube2.add_aux_coord(model_id_coord)
+        cube2 = iris.util.new_axis(cube2, "model_id")
+        cubes = iris.cube.CubeList([cube1, cube2])
+        cubelist = equalise_cube_coords(cubes)
 
 
 class Test_compare_attributes(IrisTest):
@@ -814,15 +1024,6 @@ class Test_compare_attributes(IrisTest):
 
     def test_warning(self):
         """Test that the utility returns warning if only one cube supplied."""
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = compare_attributes(self.cube)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube so no differences will be found "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertAlmostEquals(result, [])
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
             result = (
@@ -880,12 +1081,11 @@ class Test_compare_coords(IrisTest):
         self.assertIsInstance(result, list)
 
     def test_catch_warning(self):
-        """Test that a warning is raised if the input is a cube, or a cubelist
-        of length 1."""
+        """Test warning is raised if the input is cubelist of length 1."""
         cube = self.cube.copy()
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = compare_coords(cube)
+            result = compare_coords(iris.cube.CubeList([cube]))
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
             warning_msg = "Only a single cube so no differences will be found "
