@@ -615,14 +615,14 @@ class Test_merge_cubes(IrisTest):
         result = merge_cubes(cubes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [0., 1., 2., 100.])
+            result.coord("model_realization").points, [0., 1., 2., 1000.])
 
     def test_threshold_data(self):
         """Test threshold data merges OK"""
         cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
         result = merge_cubes(cubes)
         self.assertArrayAlmostEqual(
-            result.coord("model_id").points, [0, 100])
+            result.coord("model_id").points, [0, 1000])
 
 
 class Test_equalise_cubes(IrisTest):
@@ -673,7 +673,7 @@ class Test_equalise_cubes(IrisTest):
         self.assertEqual(result[0].coord("model").points[0],
                          'Operational UKV Model Forecast')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([100]))
+                                    np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
         self.assertNotIn("title", result[0].attributes.keys())
@@ -709,7 +709,7 @@ class Test_equalise_cubes(IrisTest):
         result = equalise_cubes(cubelist)
         self.assertEqual(len(result), 4)
         self.assertAlmostEquals(result[3].coord('model_realization').points,
-                                102.0)
+                                1002.0)
 
 
 class Test__equalise_cube_attributes(IrisTest):
@@ -862,7 +862,7 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertEqual(result[0].coord("model").points[0],
                          'Operational UKV Model Forecast')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([100]))
+                                    np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
         self.assertNotIn("title", result[0].attributes.keys())
@@ -947,7 +947,7 @@ class Test__equalise_cube_coords(IrisTest):
         cube1.remove_coord("realization")
         cube2.remove_coord("realization")
         model_id_coord = DimCoord(
-            np.array([100*1], np.int), long_name='model_id')
+            np.array([1000*1], np.int), long_name='model_id')
         cube1.add_aux_coord(model_id_coord)
         cube1 = iris.util.new_axis(cube1)
         cubes = iris.cube.CubeList([cube1, cube2])
@@ -963,7 +963,7 @@ class Test__equalise_cube_coords(IrisTest):
         points."""
         cube1 = self.cube.copy()
         model_id_coord = DimCoord(
-            np.array([100], np.int), long_name='model_id')
+            np.array([1000], np.int), long_name='model_id')
         cube1.add_aux_coord(model_id_coord)
         cube1 = iris.util.new_axis(cube1, "model_id")
         cube2 = cube1.copy()
@@ -984,7 +984,7 @@ class Test__equalise_cube_coords(IrisTest):
         cube2 = self.cube.copy()[0]
         cube2.remove_coord("realization")
         model_id_coord = DimCoord(
-            np.array([100*1], np.int), long_name='model_id')
+            np.array([1000*1], np.int), long_name='model_id')
         cube1.add_aux_coord(model_id_coord)
         cube1 = iris.util.new_axis(cube1, "model_id")
         cubes = iris.cube.CubeList([cube1, cube2])
@@ -1003,7 +1003,7 @@ class Test__equalise_cube_coords(IrisTest):
         cube2 = self.cube.copy()
         cube1.remove_coord("realization")
         model_id_coord = DimCoord(
-            np.array([100*1], np.int), long_name='model_id')
+            np.array([1000*1], np.int), long_name='model_id')
         cube2.add_aux_coord(model_id_coord)
         cube2 = iris.util.new_axis(cube2, "model_id")
         cubes = iris.cube.CubeList([cube1, cube2])

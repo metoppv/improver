@@ -294,7 +294,7 @@ def _equalise_cube_attributes(cubes):
             # Add model_id if titles do not match.
             if "title" in unmatching_attributes[i]:
                 model_title = cube.attributes.pop('title')
-                new_model_id_coord = build_coordinate([100*i],
+                new_model_id_coord = build_coordinate([1000*i],
                                                       long_name='model_id',
                                                       data_type=np.int)
                 new_model_coord = build_coordinate([model_title],
