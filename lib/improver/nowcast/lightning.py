@@ -35,7 +35,6 @@ import iris
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
 
-
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
 
