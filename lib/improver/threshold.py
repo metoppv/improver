@@ -138,7 +138,6 @@ class BasicThreshold(object):
                 truth_value = 1. - truth_value
             cube.data = truth_value
 
-            cube.rename("probability_of_{}".format(cube.name()))
             coord = iris.coords.DimCoord(threshold,
                                          long_name="threshold",
                                          units=cube.units)
@@ -154,6 +153,7 @@ class BasicThreshold(object):
             cube.attributes.update({'relative_to_threshold': 'below'})
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
+        cube.rename("probability_of_{}".format(cube.name()))
         cube.units = Unit(1)
 
         cube = ExtractData.make_stat_coordinate_first(cube)
