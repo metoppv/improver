@@ -241,6 +241,10 @@ class DiagnoseConvectivePrecipitation(object):
                     threshold, fuzzy_factor=self.fuzzy_factor,
                     below_thresh_ok=self.below_thresh_ok
                     ).process(cube.copy()))
+            # Will only ever contain one slice on threshold
+            for cube_slice in threshold_cube.slices_over('threshold'):
+                threshold_cube = cube_slice
+
             cubes.append(threshold_cube)
         return cubes
 
