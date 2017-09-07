@@ -32,8 +32,9 @@
 import numpy as np
 from scipy.ndimage import correlate
 from math import ceil
-from improver.nbhood.circular_kernel import CircularNeighbourhood
 import iris
+from improver.nbhood.circular_kernel import CircularNeighbourhood
+from improver.utilities.cube_checker import check_cube_coordinates
 
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
@@ -123,15 +124,14 @@ class NowcastLightning(object):
             new_cube : iris.cube.Cube
                 Output cube containing Nowcast lightning probability.
         """
-        new_cube = cube.copy()
+        new_cube_list = iris.cube.CubeList([])
         timeunit = cube.coord('time').units
-        for thistime in cube.coord('time').points:
+        for this_out in cube.slices_over('time'):
+            thistime = this_out.coord('time').points
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
             this_precip = precip_cube.extract(iris.Constraint(time=thistime))
-            this_out = new_cube.extract(iris.Constraint(time=thistime))
             fg_time = fg_cube.coord('time').points[fg_cube.coord('time').nearest_neighbour_index(thistime)]
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
-            print fg_cube.coord('time').nearest_neighbour_index(thistime)
             assert isinstance(this_ltng, iris.cube.Cube), "No matching lightning cube for {}".format(thistime)
             assert isinstance(this_precip, iris.cube.Cube), "No matching precip cube for {}".format(thistime)
             assert isinstance(this_out, iris.cube.Cube), "No matching output cube for {}".format(thistime)
@@ -152,15 +152,19 @@ class NowcastLightning(object):
             preciplimit = np.where(this_precip.data < 0.05,
                                    rescale(this_precip.data,
                                            datamin=0.00, datamax=0.05,
-                                           scalemax=0.2, scalemin=0.0067,
+                                           scalemin=0.0067, scalemax=0.2,
                                            clip=True, debug=self.debug),
                                    rescale(this_precip.data,
                                            datamin=0.05, datamax=0.10,
-                                           scalemax=1.0, scalemin=0.2000,
+                                           scalemin=0.2, scalemax=1.0,
                                            clip=True, debug=self.debug))
             # Reduce to LR2 prob when Prob(rain > 0) is low and LR3 when very low:
             this_out.data = np.minimum(this_out.data, preciplimit)
-        return new_cube
+            new_cube_list.append(this_out)
+        merged_cube = new_cube_list.merge_cube()
+        merged_cube = check_cube_coordinates(
+            cube, merged_cube)
+        return merged_cube
 
     def process(self, cubelist):
         """
@@ -178,12 +182,13 @@ class NowcastLightning(object):
                 Output cube containing Nowcast lightning probability.
                 This cube will have the same dimensions as the input Nowcast precipitation probability.
         """
-        precip_cube = cubelist.extract(long_name="precipitation_rate_probability", threshold="0.")[0]
-        fg_cube = cubelist.extract(long_name="lightning_probability")[0]
-        ltng_cube = cubelist.extract(long_name="lightning_rate")[0]
-        new_cube = _update_meta(precip_cube)
-        new_cube = _modify_first_guess(new_cube, fg_cube, ltng_cube, precip_cube)
-        new_cube = _process_haloes(new_cube)
+        fg_cube, = cubelist.extract("probability_of_lightning")
+        ltng_cube, = cubelist.extract("rate_of_lightning")
+        precip_cube, = cubelist.extract("probability_of_precipitation")
+        precip_cube = precip_cube.extract(iris.Constraint(threshold=0.))
+        new_cube = self._update_meta(precip_cube)
+        new_cube = self._modify_first_guess(new_cube, fg_cube, ltng_cube, precip_cube)
+        new_cube = self._process_haloes(new_cube)
         return new_cube
 
 

@@ -35,12 +35,13 @@ import unittest
 
 from cf_units import Unit
 from iris.coords import DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.nowcast.lightning import NowcastLightning as Plugin
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import set_up_cube
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+    set_up_cube, set_up_cube_with_no_realizations)
 
 
 class Test__repr__(IrisTest):
@@ -119,10 +120,10 @@ class Test__modify_first_guess(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-        self.cube = set_up_cube()
-        self.fg_cube = set_up_cube()
-        self.ltng_cube = set_up_cube()
-        self.precip_cube = set_up_cube()
+        self.cube = set_up_cube_with_no_realizations()
+        self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.ltng_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.precip_cube = set_up_cube_with_no_realizations()
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -146,43 +147,112 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
         self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
 
+    def test_precip_zero(self):
+        """Test that zero precip probs reduce lightning risk"""
+        # Set lightning data to zero so it has a Null impact
+        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0,7,7] = 0.0067
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
 
-#class Test_process(IrisTest):
+    def test_precip_small(self):
+        """Test that small precip probs reduce lightning risk"""
+        # Set precip data to 0.075, in the middle of the upper low range.
+        self.precip_cube.data[0,7,7] = 0.075
+        # Set lightning data to zero so it has a Null impact
+        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0,7,7] = 0.6
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
 
-    #"""Test the thresholding plugin."""
+    def test_null(self):
+        """Test that large precip probs and -1 lrates have no impact"""
+        # Set precip data to 0.1, at the top of the upper low range.
+        self.precip_cube.data[0,7,7] = 0.1
+        # Set lightning data to -1 so it has a Null impact
+        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations(zero_point_indices=[])
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
 
-    #def setUp(self):
-        #"""Create a cube with a single non-zero point."""
-        #self.cube = def_cube()
+    def test_lrate_large(self):
+        """Test that large lightning rates increase lightning risk"""
+        # Set precip data to 1. so it has a Null impact
+        self.precip_cube.data[0,7,7] = 1.
+        # Set first-guess data zero point to be increased
+        self.fg_cube = set_up_cube_with_no_realizations()
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0,7,7] = 1.
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
 
-    #def test_basic(self):
-        #"""Test that the plugin returns an iris.cube.Cube."""
-        #fuzzy_factor = 0.95
-        #threshold = 0.1
-        #plugin = Plugin()
-        #result = plugin.process(self.cube)
-        #self.assertIsInstance(result, Cube)
+    def test_lrate_halo(self):
+        """Test that zero lightning rates increase lightning risk"""
+        # Set precip data to 1. so it has a Null impact
+        self.precip_cube.data[0,7,7] = 1.
+        # Set lightning data to zero to represent the data halo
+        self.ltng_cube.data[0,7,7] = 0.
+        # Set first-guess data zero point to be increased
+        self.fg_cube = set_up_cube_with_no_realizations()
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0,7,7] = 0.25
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
 
-    #def test_metadata_changes(self):
-        #"""Test the metadata altering functionality"""
-        ## Copy the cube as the cube.data is used as the basis for comparison.
-        #cube = self.cube.copy()
-        #plugin = Plugin()
-        #result = plugin.process(cube)
-        ## The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
-        #name = "probability_of_{}"
-        #expected_name = name.format(self.cube.name())
-        #expected_attribute = "above"
-        #expected_units = 1
-        #expected_coord = DimCoord(0.1,
-                                  #long_name='threshold',
-                                  #units=self.cube.units)
-        #self.assertEqual(result.name(), expected_name)
-        #self.assertEqual(result.attributes['relative_to_threshold'],
-                         #expected_attribute)
-        #self.assertEqual(result.units, expected_units)
-        #self.assertEqual(result.coord('threshold'),
-                         #expected_coord)
+
+class Test_process(IrisTest):
+
+    """Test the nowcast lightning plugin."""
+
+    def setUp(self):
+        """Create a cube with a single non-zero point."""
+        self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.fg_cube.rename("probability_of_lightning")
+        self.ltng_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.ltng_cube.rename("rate_of_lightning")
+        self.precip_cube = set_up_cube_with_no_realizations()
+        self.precip_cube.rename("probability_of_precipitation")
+        self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
+        coord = DimCoord(0.,
+                                     long_name="threshold",
+                                     units='mm hr^-1')
+        self.precip_cube.add_aux_coord(coord)
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        plugin = Plugin()
+        result = plugin.process(CubeList([
+            self.fg_cube,
+            self.ltng_cube,
+            self.precip_cube]))
+        self.assertIsInstance(result, Cube)
 
 if __name__ == '__main__':
     unittest.main()
