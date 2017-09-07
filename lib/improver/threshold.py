@@ -42,7 +42,8 @@ class BasicThreshold(object):
     """Apply a threshold truth criterion to a cube.
 
     Calculate the threshold truth values based on a linear membership function
-    around the threshold values provided.
+    around the threshold values provided. A cube will be returned with a new
+    threshold dimension coordinate.
 
     Can operate on multiple time sequences within a cube.
 
@@ -63,6 +64,8 @@ class BasicThreshold(object):
                 False to count points as significant if *above* the threshold.
 
         Raises:
+            ValueError: If a threshold of 0.0 is requested when using a fuzzy
+                        factor.
             ValueError: If the fuzzy_factor is not greater than 0 and less
                         than 1.
 
@@ -77,6 +80,11 @@ class BasicThreshold(object):
                 raise ValueError(
                     "Invalid fuzzy_factor: must be >0 and <1: {}".format(
                         fuzzy_factor))
+            if any(threshold == 0 for threshold in self.thresholds):
+                raise ValueError(
+                    "Invalid threshold with fuzzy factor: cannot use a "
+                    "multiplicative fuzzy factor with threshold == 0")
+
         self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
 
