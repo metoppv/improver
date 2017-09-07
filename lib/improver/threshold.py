@@ -80,7 +80,7 @@ class BasicThreshold(object):
                 raise ValueError(
                     "Invalid fuzzy_factor: must be >0 and <1: {}".format(
                         fuzzy_factor))
-            if any(threshold == 0 for threshold in self.thresholds):
+            if 0 in self.thresholds:
                 raise ValueError(
                     "Invalid threshold with fuzzy factor: cannot use a "
                     "multiplicative fuzzy factor with threshold == 0")
@@ -88,10 +88,10 @@ class BasicThreshold(object):
         self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
 
-    def __str__(self):
+    def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<BasicThreshold: thresholds {}, fuzzy factor {}' +
+            '<BasicThreshold: thresholds {}, fuzzy factor {}, ' +
             'below_thresh_ok: {}>'
         ).format(self.thresholds, self.fuzzy_factor, self.below_thresh_ok)
 
@@ -138,12 +138,6 @@ class BasicThreshold(object):
                 truth_value = 1. - truth_value
             cube.data = truth_value
 
-            # TODO: Correct when formal cf-standards exists
-            # Force the metadata to temporary conventions
-            if self.below_thresh_ok:
-                cube.attributes.update({'relative_to_threshold': 'below'})
-            else:
-                cube.attributes.update({'relative_to_threshold': 'above'})
             cube.rename("probability_of_{}".format(cube.name()))
             coord = iris.coords.DimCoord(threshold,
                                          long_name="threshold",
@@ -154,6 +148,14 @@ class BasicThreshold(object):
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
+
+        # TODO: Correct when formal cf-standards exists
+        # Force the metadata to temporary conventions
+        if self.below_thresh_ok:
+            cube.attributes.update({'relative_to_threshold': 'below'})
+        else:
+            cube.attributes.update({'relative_to_threshold': 'above'})
+
         cube = ExtractData.make_stat_coordinate_first(cube)
 
         return cube

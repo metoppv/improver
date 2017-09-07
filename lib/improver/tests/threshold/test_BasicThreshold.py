@@ -42,6 +42,44 @@ from iris.tests import IrisTest
 from improver.threshold import BasicThreshold as Threshold
 
 
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_single_threshold(self):
+        """Test that the __repr__ returns the expected string."""
+        threshold = [0.6]
+        fuzzy_factor = None
+        below_thresh_ok = False
+        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+               'below_thresh_ok: {}>'.format(
+                threshold, fuzzy_factor, below_thresh_ok))
+        self.assertEqual(result, msg)
+
+    def test_multiple_thresholds(self):
+        """Test that the __repr__ returns the expected string."""
+        threshold = [0.6, 0.8]
+        fuzzy_factor = None
+        below_thresh_ok = False
+        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+               'below_thresh_ok: {}>'.format(
+                threshold, fuzzy_factor, below_thresh_ok))
+        self.assertEqual(result, msg)
+
+    def test_below_fuzzy_threshold(self):
+        """Test that the __repr__ returns the expected string."""
+        threshold = [0.6]
+        fuzzy_factor = 0.2
+        below_thresh_ok = True
+        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+               'below_thresh_ok: {}>'.format(
+                threshold, fuzzy_factor, below_thresh_ok))
+        self.assertEqual(result, msg)
+
+
 class Test_process(IrisTest):
 
     """Test the thresholding plugin."""
