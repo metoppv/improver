@@ -144,7 +144,6 @@ class BasicThreshold(object):
                                          units=cube.units)
             cube.add_aux_coord(coord)
             cube = iris.util.new_axis(cube, 'threshold')
-            cube.units = Unit(1)
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
@@ -155,6 +154,7 @@ class BasicThreshold(object):
             cube.attributes.update({'relative_to_threshold': 'below'})
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
+        cube.units = Unit(1)
 
         cube = ExtractData.make_stat_coordinate_first(cube)
 
