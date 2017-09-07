@@ -37,7 +37,6 @@ import iris
 import cf_units
 
 from improver.threshold import BasicThreshold
-from improver.spotdata.extract_data import ExtractData
 
 
 def main():
@@ -87,16 +86,9 @@ def main():
         args.threshold_values = [threshold_unit.convert(threshold, cube.units)
                                  for threshold in args.threshold_values]
 
-    thresholded_cubes = iris.cube.CubeList()
-    for threshold in args.threshold_values:
-        result = BasicThreshold(
-            threshold, fuzzy_factor=args.fuzzy_factor,
-            below_thresh_ok=args.below_threshold).process(cube)
-        result = iris.util.new_axis(result, 'threshold')
-        thresholded_cubes.append(result)
-
-    result, = thresholded_cubes.concatenate()
-    result = ExtractData.make_stat_coordinate_first(result)
+    result = BasicThreshold(
+        args.threshold_values, fuzzy_factor=args.fuzzy_factor,
+        below_thresh_ok=args.below_threshold).process(cube)
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

@@ -34,26 +34,27 @@
 import numpy as np
 import iris
 from cf_units import Unit
+from improver.spotdata.extract_data import ExtractData
 
 
 class BasicThreshold(object):
 
     """Apply a threshold truth criterion to a cube.
 
-    Calculate the threshold truth value based on a linear membership function
-    around the threshold.
+    Calculate the threshold truth values based on a linear membership function
+    around the threshold values provided.
 
     Can operate on multiple time sequences within a cube.
 
     """
 
-    def __init__(self, threshold, fuzzy_factor=None,
+    def __init__(self, thresholds, fuzzy_factor=None,
                  below_thresh_ok=False):
         """Set up for processing an in-or-out of threshold binary field.
 
         Args:
-            threshold : float
-                The threshold point for 'significant' datapoints.
+            thresholds : list of floats or float
+                The threshold points for 'significant' datapoints.
             fuzzy_factor : float
                 Percentage above or below threshold for fuzzy membership value.
                 If None, no fuzzy_factor is applied.
@@ -62,15 +63,15 @@ class BasicThreshold(object):
                 False to count points as significant if *above* the threshold.
 
         Raises:
-            ValueError: If a threshold of 0.0 is requested.
             ValueError: If the fuzzy_factor is not greater than 0 and less
                         than 1.
 
         """
-        if threshold == 0.0:
-            raise ValueError(
-                "Invalid threshold: zero not allowed")
-        self.threshold = threshold
+        # Ensure iterable threshold list provided, even if it's a single value.
+        self.thresholds = thresholds
+        if np.isscalar(thresholds):
+            self.thresholds = [thresholds]
+
         if fuzzy_factor is not None:
             if not 0 < fuzzy_factor < 1:
                 raise ValueError(
@@ -82,14 +83,14 @@ class BasicThreshold(object):
     def __str__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<BasicThreshold: threshold {}, fuzzy factor {}' +
+            '<BasicThreshold: thresholds {}, fuzzy factor {}' +
             'below_thresh_ok: {}>'
-        ).format(self.threshold, self.fuzzy_factor, self.below_thresh_ok)
+        ).format(self.thresholds, self.fuzzy_factor, self.below_thresh_ok)
 
     def process(self, input_cube):
-        """Convert each point to a truth value based on threshold. The truth
-        value may or may not be fuzzy depending upon if a fuzzy_factor is
-        supplied.
+        """Convert each point to a truth value based on provided threshold
+        values. The truth value may or may not be fuzzy depending upon if a
+        fuzzy_factor is supplied.
 
         Args:
             input_cube : iris.cube.Cube
@@ -110,32 +111,41 @@ class BasicThreshold(object):
             ValueError: if a np.nan value is detected within the input cube.
 
         """
-        cube = input_cube.copy()
-        if np.isnan(cube.data).any():
+        thresholded_cubes = iris.cube.CubeList()
+        if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
-        if self.fuzzy_factor is None:
-            truth_value = cube.data > self.threshold
-        else:
-            lower_threshold = self.threshold * self.fuzzy_factor
-            truth_value = (
-                (cube.data - lower_threshold) /
-                ((self.threshold * (2. - self.fuzzy_factor)) - lower_threshold)
-            )
-        truth_value = np.clip(truth_value, 0., 1.).astype(np.float64)
-        if self.below_thresh_ok:
-            truth_value = 1. - truth_value
-        cube.data = truth_value
 
-        # TODO: Correct when formal cf-standards exists
-        # Force the metadata to temporary conventions
-        if self.below_thresh_ok:
-            cube.attributes.update({'relative_to_threshold': 'below'})
-        else:
-            cube.attributes.update({'relative_to_threshold': 'above'})
-        cube.rename("probability_of_{}".format(cube.name()))
-        coord = iris.coords.DimCoord(self.threshold,
-                                     long_name="threshold",
-                                     units=cube.units)
-        cube.add_aux_coord(coord)
-        cube.units = Unit(1)
+        for threshold in self.thresholds:
+            cube = input_cube.copy()
+            if self.fuzzy_factor is None:
+                truth_value = cube.data > threshold
+            else:
+                lower_threshold = threshold * self.fuzzy_factor
+                truth_value = (
+                    (cube.data - lower_threshold) /
+                    ((threshold * (2. - self.fuzzy_factor)) - lower_threshold)
+                )
+            truth_value = np.clip(truth_value, 0., 1.).astype(np.float64)
+            if self.below_thresh_ok:
+                truth_value = 1. - truth_value
+            cube.data = truth_value
+
+            # TODO: Correct when formal cf-standards exists
+            # Force the metadata to temporary conventions
+            if self.below_thresh_ok:
+                cube.attributes.update({'relative_to_threshold': 'below'})
+            else:
+                cube.attributes.update({'relative_to_threshold': 'above'})
+            cube.rename("probability_of_{}".format(cube.name()))
+            coord = iris.coords.DimCoord(threshold,
+                                         long_name="threshold",
+                                         units=cube.units)
+            cube.add_aux_coord(coord)
+            cube = iris.util.new_axis(cube, 'threshold')
+            cube.units = Unit(1)
+            thresholded_cubes.append(cube)
+
+        cube, = thresholded_cubes.concatenate()
+        cube = ExtractData.make_stat_coordinate_first(cube)
+
         return cube
