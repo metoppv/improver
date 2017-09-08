@@ -337,6 +337,9 @@ def _equalise_cube_coords(cubes):
         ValueError: If model_id has more than one point.
     """
     unmatching_coords = compare_coords(cubes)
+    # If len = 0 then cubes is a cube,
+    # otherwise there will be a dict (possible empty) for
+    # each cube in cubes.
     if len(unmatching_coords) == 0:
         cubelist = cubes
     else:
@@ -373,11 +376,7 @@ def _equalise_cube_coords(cubes):
                             model_id_val = cube.coord('model_id').points[0]
                         if cube.coords('realization'):
                             unmatch = unmatching_coords[i]['realization']
-                            if unmatch['data_dims'] >= 0:
-                                data_dims = (
-                                    unmatch['data_dims'])
-                            else:
-                                data_dims = None
+                            data_dims = unmatch['data_dims']
                             new_model_real_coord = (
                                 build_coordinate(
                                     cube.coord('realization').points +
@@ -461,6 +460,9 @@ def compare_coords(cubes):
     Returns:
         unmatching_coords : List
             List of dictionaries of unmatching coordinates
+            Number of dictionaries equals number of cubes
+            unless cubes is a single cube in which case
+            unmatching_coords returns an empty list.
 
     Warns:
         Warning: If only a single cube is supplied
