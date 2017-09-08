@@ -194,7 +194,30 @@ class NowcastLightning(object):
 
 def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1., clip=False, debug=False):
     """Rescale data array so that datamin => scalemin and datamax => scale max.
-       All adjustments are linear"""
+       All adjustments are linear
+
+        Args:
+            data : numpy array
+                Source values
+            datamin : float (optional)
+                Lowest source value to rescale. Defaults to min(data)
+            datamax : float (optional)
+                Highest source value to rescale. Defaults to max(data)
+            scalemin : float (optional)
+                Lowest value after rescaling. Defaults to 0.
+            scalemax : float (optional)
+                Highest value after rescaling. Defaults to 1.)
+            clip : boolean (optional)
+                If True, points where data were outside the scaling range
+                will be set to the scale min or max appropriately.
+                Default is False which continues the scaling beyond min and max.
+            debug : boolean (optional)
+                Causes a printout of the min and max values.
+
+        Returns:
+            result : numpy array
+                Output array of scaled data. Has same shape as data.
+        """
     datamin = np.min(data) if datamin is None else datamin
     datamax = np.max(data) if datamax is None else datamax
     if debug:

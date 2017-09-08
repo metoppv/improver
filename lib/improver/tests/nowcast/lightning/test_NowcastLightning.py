@@ -38,8 +38,11 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
+import StringIO
+import sys
 
 from improver.nowcast.lightning import NowcastLightning as Plugin
+from improver.nowcast.lightning import rescale
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 
@@ -119,7 +122,7 @@ class Test__modify_first_guess(IrisTest):
     """Test the _modify_first_guess method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create cubes with a single zero prob(precip) point."""
         self.cube = set_up_cube_with_no_realizations()
         self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
         self.ltng_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
@@ -253,6 +256,68 @@ class Test_process(IrisTest):
             self.ltng_cube,
             self.precip_cube]))
         self.assertIsInstance(result, Cube)
+
+
+class Test_rescale(IrisTest):
+
+    """Test the nowcast rescale function."""
+
+    def setUp(self):
+        """
+        Create a cube with a single non-zero point.
+        Trap standard output
+        """
+        self.cube = set_up_cube()
+        self.stdout = StringIO.StringIO()
+        sys.stdout = self.stdout  # Redirect standard out.
+
+    def tearDown(self):
+        """Reset standard out stream."""
+        sys.stdout = sys.__stdout__  # Reset standard out.
+
+    def test_basic(self):
+        """Test that the method returns the expected array type"""
+        result = rescale(self.cube.data)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_debug(self):
+        """
+        Test that the method returns the expected array type in debug mode
+        """
+        expected = "Rescaling data so that 0.0 -> 0.0 and 1.0 -> 1.0\n"
+        result = rescale(self.cube.data, debug=True)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(self.stdout.getvalue(), expected)
+
+    def test_rescaling_inrange(self):
+        """
+        Test that the method returns the expected values when in range
+        """
+        expected = self.cube.data.copy()
+        expected[...] = 110.
+        expected[0,0,7,7] = 100.
+        result = rescale(self.cube.data, datamin=0., datamax=1., scalemin=100., scalemax=110.)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_rescaling_outrange(self):
+        """
+        Test that the method returns the expected values when out of range
+        """
+        expected = self.cube.data.copy()
+        expected[...] = 108.
+        expected[0,0,7,7] = 98.
+        result = rescale(self.cube.data, datamin=0.2, datamax=1.2, scalemin=100., scalemax=110.)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_clip(self):
+        """
+        Test that the method clips values when out of range
+        """
+        expected = self.cube.data.copy()
+        expected[...] = 108.
+        expected[0,0,7,7] = 100.
+        result = rescale(self.cube.data, datamin=0.2, datamax=1.2, scalemin=100., scalemax=110., clip=True)
+        self.assertArrayAlmostEqual(result, expected)
 
 if __name__ == '__main__':
     unittest.main()
