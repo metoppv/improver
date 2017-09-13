@@ -29,9 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Module for NowcastLightning class and associated functions."""
 import numpy as np
-from scipy.ndimage import correlate
-from math import ceil
 import iris
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -53,7 +52,7 @@ class NowcastLightning(object):
         """
         self.debug = debug
         self.radius = radius
-        self.Neighbourhood = CircularNeighbourhood()
+        self.neighbourhood = CircularNeighbourhood()
 
     def __repr__(self):
         """
@@ -75,7 +74,7 @@ class NowcastLightning(object):
             new_data : Numpy array of same shape as data
                 Output data with haloes applied
         """
-        new_data = self.Neighbourhood.run(cube.copy(), self.radius)
+        new_data = self.neighbourhood.run(cube.copy(), self.radius)
         return new_data
 
     def _update_meta(self, cube):
@@ -125,17 +124,22 @@ class NowcastLightning(object):
                 Output cube containing Nowcast lightning probability.
         """
         new_cube_list = iris.cube.CubeList([])
-        timeunit = cube.coord('time').units
         for this_out in cube.slices_over('time'):
             thistime = this_out.coord('time').points
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
             this_precip = precip_cube.extract(iris.Constraint(time=thistime))
-            fg_time = fg_cube.coord('time').points[fg_cube.coord('time').nearest_neighbour_index(thistime)]
+            fg_time = fg_cube.coord('time').points[
+                fg_cube.coord('time').nearest_neighbour_index(thistime)]
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
-            assert isinstance(this_ltng, iris.cube.Cube), "No matching lightning cube for {}".format(thistime)
-            assert isinstance(this_precip, iris.cube.Cube), "No matching precip cube for {}".format(thistime)
-            assert isinstance(this_out, iris.cube.Cube), "No matching output cube for {}".format(thistime)
-            assert isinstance(this_fg, iris.cube.Cube), "No matching first-guess cube for {}".format(thistime)
+            err_string = "No matching {} cube for {}"
+            assert isinstance(this_ltng,
+                              iris.cube.Cube), err_string.format("lightning", thistime)
+            assert isinstance(this_precip,
+                              iris.cube.Cube), err_string.format("precip", thistime)
+            assert isinstance(this_out,
+                              iris.cube.Cube), err_string.format("output", thistime)
+            assert isinstance(this_fg,
+                              iris.cube.Cube), err_string.format("first-guess", thistime)
             this_out.data = this_fg.data
             this_out.coord('forecast_period').convert_units('minutes')
             fcmins = this_out.coord('forecast_period').points[0]
@@ -180,7 +184,8 @@ class NowcastLightning(object):
         Returns:
             new_cube : iris.cube.Cube
                 Output cube containing Nowcast lightning probability.
-                This cube will have the same dimensions as the input Nowcast precipitation probability.
+                This cube will have the same dimensions as the input
+                Nowcast precipitation probability.
         """
         fg_cube, = cubelist.extract("probability_of_lightning")
         ltng_cube, = cubelist.extract("rate_of_lightning")
