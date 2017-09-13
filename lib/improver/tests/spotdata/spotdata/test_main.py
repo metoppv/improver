@@ -31,11 +31,10 @@
 """Unit tests for the spotdata.main"""
 
 
+import datetime
 import unittest
 import json
-import shutil
 import cf_units
-from tempfile import mkdtemp
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
@@ -111,53 +110,29 @@ class Test_main(IrisTest):
                 }
             }
 
-        # Save cubes to temporary location for reading.
-        self.data_directory = mkdtemp()
-        self.output_directory = mkdtemp()
-
-        self.data_path = (self.data_directory +
-                          '/temperature_at_screen_level.nc')
-        self.orography_path = self.data_directory + '/orography.nc'
-        iris.save(cube, self.data_path)
-        iris.save(orography, self.orography_path)
-
-        self.config_path = self.data_directory + '/spotdata_constants.json'
-        ff = open(self.config_path, 'w')
-        json.dump(diagnostic_recipe, ff, sort_keys=True, indent=4,
-                  separators=(',', ': ',))
-        ff.close()
-
-        self.cube = cube
+        diagnostic_recipe["temperature"]["data"] = iris.cube.CubeList([cube])
+        diagnostic_recipe["temperature"]["additional_data"] = None
         self.diagnostic_recipe = diagnostic_recipe
 
         self.sites = OrderedDict()
         self.sites['100'] = {'latitude': 50,
                              'longitude': 0,
                              'altitude': 10,
-                             'utc_offset': 0
+                             'utc_offset': 0,
+                             'wmo_site': 0
                              }
 
-        site_properties = [self.sites['100']]
+        self.config_constants = {}
 
-        self.args = (self.config_path, self.data_directory,
-                     self.data_directory)
+        self.args = (self.diagnostic_recipe, self.ancillary_data,
+                     self.sites, self.config_constants)
 
         self.kwargs = {
-            'diagnostic_list': ['temperature'],
-            'site_path': None,
-            'constants_file_path': None,
-            'site_properties': site_properties,
             'forecast_date': '20170217',
             'forecast_time': 6,
             'forecast_length': 2,
-            'output_path': self.output_directory,
             'use_multiprocessing': False
             }
-
-    def tearDown(self):
-        """Remove temporary directories created for testing."""
-        shutil.rmtree(self.data_directory, ignore_errors=True)
-        shutil.rmtree(self.output_directory, ignore_errors=True)
 
 
 class Test_run_spotdata(Test_main):
@@ -166,45 +141,36 @@ class Test_run_spotdata(Test_main):
     def test_nominal_run(self):
         """Test a typical run of the routine completes successfully."""
         result = Function(*self.args, **self.kwargs)
-        output = iris.load_cube(self.output_directory + '/air_temperature.nc')
-        self.assertIsInstance(output, Cube)
-        self.assertEqual(output.name(), 'air_temperature')
-        self.assertEqual(result, 0)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0][0][0], Cube)
+        self.assertIsInstance(result[0][0][1], Cube)
+        self.assertEqual(result[0][0][0].name(), 'air_temperature')
 
-    def test_no_site_data(self):
-        """Test framework raises an error when no SpotData site information is
-        provided."""
-
-        self.kwargs.pop('site_properties', None)
-        msg = 'No SpotData site information has been provided'
-        with self.assertRaisesRegexp(ValueError, msg):
-            Function(*self.args, **self.kwargs)
-
-    def test_no_valid_times(self):
-        """Test framework raises an error when no diagnostics data is available
-        for any of the desired forecast times."""
-
-        self.kwargs['forecast_date'] = '20150217'
-        msg = 'No data available at given forecast times.'
-
-        with self.assertRaisesRegexp(Exception, msg):
-            Function(*self.args, **self.kwargs)
+    def test_nominal_run_no_kwargs(self):
+        """Test a typical run of the routine completes successfully."""
+        result = Function(*self.args)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result[0][0]), 0)
+        self.assertEqual(result[1][0], None)
 
 
 class Test_process_diagnostic(Test_main):
     """Test the process_diagnostic function."""
 
-    def test_no_data_files(self):
-        """Test framework raises an error when data files are not found at the
-        given data path."""
-
-        neighbours = ['not_used']
-        forecast_times = ['not_used']
-        data_path = ''  # Testing this data path not containing data.
-        msg = 'No relevant data files found'
-        with self.assertRaisesRegexp(IOError, msg):
-            process_diagnostic(self.cube.name(), neighbours, self.sites,
-                               forecast_times, data_path, self.ancillary_data)
+    def test_nominal_run(self):
+        """Test a typical run of process_diagnostics."""
+        neighbours = {
+            'fast_nearest_neighbour-None-False':
+                np.array([(15, 10, 9.0, False)],
+                         dtype=[('i', '<i8'), ('j', '<i8'),
+                                ('dz', '<f8'), ('edgepoint', '?')])}
+        forecast_times = [
+            datetime.datetime(2017, 2, 17, 6, 0),
+            datetime.datetime(2017, 2, 17, 7, 0)]
+        result = process_diagnostic(
+            self.diagnostic_recipe, neighbours, self.sites,
+            forecast_times, self.ancillary_data,
+            "temperature")
 
 
 if __name__ == '__main__':
