@@ -33,7 +33,6 @@
 from functools import partial
 import json
 import multiprocessing as mp
-import os
 
 from iris.cube import CubeList
 
