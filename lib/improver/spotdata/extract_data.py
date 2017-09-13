@@ -318,7 +318,8 @@ class ExtractData(object):
         # associated with dimensions cannot be preserved as the dimensions will
         # be reshaped and the auxiliarys no longer compatible.
         scalar_coordinates = [coord.name() for coord in
-                              cube.coords(dimensions=[])]
+                              cube.coords(dimensions=[])
+                              if coord.name() != 'forecast_period']
 
         # Build a forecast_period dimension.
         forecast_periods = (cube.coord('time').points -

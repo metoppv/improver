@@ -31,8 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
 import argparse
+import glob
 import json
-import os
 
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
@@ -208,7 +208,15 @@ def main():
 
     # Read in extraction recipes for all diagnostics.
     with open(args.config_file_path, 'r') as input_file:
-        diagnostics = json.load(input_file)
+        diagnostics_from_file = json.load(input_file)
+
+    # Extract only the requested keys from all the available diagnostics
+    # that could be processed, as stored within the JSON file.
+    if args.diagnostics:
+        diagnostics = (
+            {key: diagnostics_from_file[key] for key in args.diagnostics})
+    else:
+        diagnostics = diagnostics_from_file
 
     # Load ancillary data files; fields that don't vary in time.
     ancillary_data = get_ancillary_data(diagnostics, args.ancillary_path)
@@ -222,12 +230,13 @@ def main():
     diagnostic_names = [diagnostics[diagnostic]["filepath"]
                         for diagnostic in diagnostics.keys()]
 
+    # Create a list of files that will need to be read.
+    all_available_files = glob.glob(args.data_path+"/*")
     files_to_read = []
-    for dirpath, _, files in os.walk(args.data_path):
-        for filename in files:
-            for diagnostic_name in diagnostic_names:
-                if diagnostic_name in filename:
-                    files_to_read.append(os.path.join(dirpath, filename))
+    for filename in all_available_files:
+        if any(diagnostic_name in filename
+               for diagnostic_name in diagnostic_names):
+            files_to_read.append(filename)
 
     if not files_to_read:
         raise IOError('No relevant data files found in {}.'.format(
