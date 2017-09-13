@@ -33,7 +33,6 @@
 
 import unittest
 
-from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
@@ -76,16 +75,19 @@ class Test__process_haloes(IrisTest):
         """Test that the method does not modify the input cube."""
         plugin = Plugin()
         incube = self.cube.copy()
-        result = plugin._process_haloes(incube)
+        plugin._process_haloes(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
 
     def test_data(self):
         """Test that the method returns the expected data"""
         plugin = Plugin(4000.)
         expected = self.cube.data.copy()
-        expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1., 1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 7, :] = [1., 1., 1., 1., 1., 1., 0.875, 5./6., 0.875, 1., 1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 8, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1., 1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1.,
+                                1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 7, :] = [1., 1., 1., 1., 1., 1., 0.875, 5./6., 0.875, 1.,
+                                1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 8, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1.,
+                                1., 1., 1., 1., 1., 1.]
         result = plugin._process_haloes(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -113,7 +115,7 @@ class Test__update_meta(IrisTest):
         """Test that the method does not modify the input cube."""
         plugin = Plugin()
         incube = self.cube.copy()
-        result = plugin._update_meta(incube)
+        plugin._update_meta(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
 
 
@@ -144,7 +146,7 @@ class Test__modify_first_guess(IrisTest):
         cube_b = self.fg_cube.copy()
         cube_c = self.ltng_cube.copy()
         cube_d = self.precip_cube.copy()
-        result = plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d)
+        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d)
         self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
@@ -157,7 +159,7 @@ class Test__modify_first_guess(IrisTest):
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
-        expected.data[0,7,7] = 0.0067
+        expected.data[0, 7, 7] = 0.0067
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -167,13 +169,13 @@ class Test__modify_first_guess(IrisTest):
     def test_precip_small(self):
         """Test that small precip probs reduce lightning risk"""
         # Set precip data to 0.075, in the middle of the upper low range.
-        self.precip_cube.data[0,7,7] = 0.075
+        self.precip_cube.data[0, 7, 7] = 0.075
         # Set lightning data to zero so it has a Null impact
         self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
-        expected.data[0,7,7] = 0.6
+        expected.data[0, 7, 7] = 0.6
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -183,7 +185,7 @@ class Test__modify_first_guess(IrisTest):
     def test_null(self):
         """Test that large precip probs and -1 lrates have no impact"""
         # Set precip data to 0.1, at the top of the upper low range.
-        self.precip_cube.data[0,7,7] = 0.1
+        self.precip_cube.data[0, 7, 7] = 0.1
         # Set lightning data to -1 so it has a Null impact
         self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
         # No halo - we're only testing this method.
@@ -198,13 +200,13 @@ class Test__modify_first_guess(IrisTest):
     def test_lrate_large(self):
         """Test that large lightning rates increase lightning risk"""
         # Set precip data to 1. so it has a Null impact
-        self.precip_cube.data[0,7,7] = 1.
+        self.precip_cube.data[0, 7, 7] = 1.
         # Set first-guess data zero point to be increased
         self.fg_cube = set_up_cube_with_no_realizations()
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
-        expected.data[0,7,7] = 1.
+        expected.data[0, 7, 7] = 1.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -214,15 +216,15 @@ class Test__modify_first_guess(IrisTest):
     def test_lrate_halo(self):
         """Test that zero lightning rates increase lightning risk"""
         # Set precip data to 1. so it has a Null impact
-        self.precip_cube.data[0,7,7] = 1.
+        self.precip_cube.data[0, 7, 7] = 1.
         # Set lightning data to zero to represent the data halo
-        self.ltng_cube.data[0,7,7] = 0.
+        self.ltng_cube.data[0, 7, 7] = 0.
         # Set first-guess data zero point to be increased
         self.fg_cube = set_up_cube_with_no_realizations()
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
-        expected.data[0,7,7] = 0.25
+        expected.data[0, 7, 7] = 0.25
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -243,9 +245,7 @@ class Test_process(IrisTest):
         self.precip_cube = set_up_cube_with_no_realizations()
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
-        coord = DimCoord(0.,
-                                     long_name="threshold",
-                                     units='mm hr^-1')
+        coord = DimCoord(0., long_name="threshold", units='mm hr^-1')
         self.precip_cube.add_aux_coord(coord)
 
     def test_basic(self):
@@ -295,7 +295,7 @@ class Test_rescale(IrisTest):
         """
         expected = self.cube.data.copy()
         expected[...] = 110.
-        expected[0,0,7,7] = 100.
+        expected[0, 0, 7, 7] = 100.
         result = rescale(self.cube.data, datamin=0., datamax=1., scalemin=100., scalemax=110.)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -305,7 +305,7 @@ class Test_rescale(IrisTest):
         """
         expected = self.cube.data.copy()
         expected[...] = 108.
-        expected[0,0,7,7] = 98.
+        expected[0, 0, 7, 7] = 98.
         result = rescale(self.cube.data, datamin=0.2, datamax=1.2, scalemin=100., scalemax=110.)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -315,8 +315,9 @@ class Test_rescale(IrisTest):
         """
         expected = self.cube.data.copy()
         expected[...] = 108.
-        expected[0,0,7,7] = 100.
-        result = rescale(self.cube.data, datamin=0.2, datamax=1.2, scalemin=100., scalemax=110., clip=True)
+        expected[0, 0, 7, 7] = 100.
+        result = rescale(self.cube.data, datamin=0.2, datamax=1.2,
+                         scalemin=100., scalemax=110., clip=True)
         self.assertArrayAlmostEqual(result, expected)
 
 if __name__ == '__main__':
