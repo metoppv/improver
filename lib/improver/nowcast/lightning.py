@@ -60,12 +60,13 @@ class NowcastLightning(object):
         Docstring to describe the repr, which should return a
         printable representation of the object.
         """
-        return "<NowcastLightning: radius={radius}, debug={debug}>".format(radius=self.radius,
-                                                                           debug=self.debug)
+        return "<NowcastLightning: radius={radius}, debug={debug}>".format(
+            radius=self.radius, debug=self.debug)
 
     def _process_haloes(self, cube):
         """
-        Adjust data so that lightning probability does not decrease too rapidly with distance
+        Adjust data so that lightning probability does not decrease too rapidly
+        with distance.
 
         Args:
             cube : iris.cube.Cube
@@ -80,7 +81,8 @@ class NowcastLightning(object):
 
     def _update_meta(self, cube):
         """
-        Modify the meta data of input cube to resemble a Nowcast of lightning probability
+        Modify the meta data of input cube to resemble a Nowcast of lightning
+        probability
 
         Args:
             cube : iris.cube.Cube
@@ -105,7 +107,8 @@ class NowcastLightning(object):
 
         Args:
             cube : iris.cube.Cube
-                Provides the meta-data for the Nowcast lightning probability output cube
+                Provides the meta-data for the Nowcast lightning probability
+                output cube
 
             ltng_cube : iris.cube.Cube
                 Nowcast lightning rate
@@ -134,26 +137,34 @@ class NowcastLightning(object):
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
             err_string = "No matching {} cube for {}"
             assert isinstance(this_ltng,
-                              iris.cube.Cube), err_string.format("lightning", thistime)
+                              iris.cube.Cube), err_string.format("lightning",
+                                                                 thistime)
             assert isinstance(this_precip,
-                              iris.cube.Cube), err_string.format("precip", thistime)
+                              iris.cube.Cube), err_string.format("precip",
+                                                                 thistime)
             assert isinstance(this_out,
-                              iris.cube.Cube), err_string.format("output", thistime)
+                              iris.cube.Cube), err_string.format("output",
+                                                                 thistime)
             assert isinstance(this_fg,
-                              iris.cube.Cube), err_string.format("first-guess", thistime)
+                              iris.cube.Cube), err_string.format("first-guess",
+                                                                 thistime)
             this_out.data = this_fg.data
             this_out.coord('forecast_period').convert_units('minutes')
             fcmins = this_out.coord('forecast_period').points[0]
 
             lratethresh = 0.
             # Increase to LR2 prob when within lightning halo:
-            this_out.data = np.where(np.logical_and(this_ltng.data >= lratethresh,
-                                                    this_out.data < 0.25), 0.25, this_out.data)
+            this_out.data = np.where(
+                np.logical_and(this_ltng.data >= lratethresh,
+                               this_out.data < 0.25),
+                0.25, this_out.data)
             lratethresh = 0.5 + fcmins * 2. / 360.
             if self.debug:
-                print 'LRate threshold is {} strikes per minute'.format(lratethresh)
+                print 'LRate threshold is {} strikes per minute'.format(
+                    lratethresh)
             # Increase to LR1 when within thunderstorm:
-            this_out.data = np.where(this_ltng.data >= lratethresh, 1., this_out.data)
+            this_out.data = np.where(
+                this_ltng.data >= lratethresh, 1., this_out.data)
             preciplimit = np.where(this_precip.data < 0.05,
                                    rescale(this_precip.data,
                                            datamin=0.00, datamax=0.05,
@@ -163,7 +174,8 @@ class NowcastLightning(object):
                                            datamin=0.05, datamax=0.10,
                                            scalemin=0.2, scalemax=1.0,
                                            clip=True, debug=self.debug))
-            # Reduce to LR2 prob when Prob(rain > 0) is low and LR3 when very low:
+            # Reduce to LR2 prob when Prob(rain > 0) is low
+            # and LR3 when very low:
             this_out.data = np.minimum(this_out.data, preciplimit)
             new_cube_list.append(this_out)
         merged_cube = new_cube_list.merge_cube()
@@ -193,12 +205,14 @@ class NowcastLightning(object):
         precip_cube, = cubelist.extract("probability_of_precipitation")
         precip_cube = precip_cube.extract(iris.Constraint(threshold=0.))
         new_cube = self._update_meta(precip_cube)
-        new_cube = self._modify_first_guess(new_cube, fg_cube, ltng_cube, precip_cube)
+        new_cube = self._modify_first_guess(
+            new_cube, fg_cube, ltng_cube, precip_cube)
         new_cube = self._process_haloes(new_cube)
         return new_cube
 
 
-def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1., clip=False, debug=False):
+def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1.,
+            clip=False, debug=False):
     """Rescale data array so that datamin => scalemin and datamax => scale max.
        All adjustments are linear
 
@@ -216,7 +230,8 @@ def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1., clip=Fal
             clip : boolean (optional)
                 If True, points where data were outside the scaling range
                 will be set to the scale min or max appropriately.
-                Default is False which continues the scaling beyond min and max.
+                Default is False which continues the scaling beyond min and
+                max.
             debug : boolean (optional)
                 Causes a printout of the min and max values.
 
@@ -231,7 +246,8 @@ def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1., clip=Fal
                                                                     scalemin,
                                                                     datamax,
                                                                     scalemax)
-    result = ((data - datamin) * (scalemax - scalemin) / (datamax - datamin)) + scalemin
+    result = ((data - datamin) * (scalemax - scalemin) /
+              (datamax - datamin)) + scalemin
     if clip:
         result = np.clip(result, scalemin, scalemax)
     return result

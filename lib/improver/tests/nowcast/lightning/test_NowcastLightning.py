@@ -82,12 +82,12 @@ class Test__process_haloes(IrisTest):
         """Test that the method returns the expected data"""
         plugin = Plugin(4000.)
         expected = self.cube.data.copy()
-        expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1.,
-                                1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 7, :] = [1., 1., 1., 1., 1., 1., 0.875, 5./6., 0.875, 1.,
-                                1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 8, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875, 11./12., 1.,
-                                1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875,
+                                11./12., 1., 1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 7, :] = [1., 1., 1., 1., 1., 1., 0.875, 5./6., 0.875,
+                                1., 1., 1., 1., 1., 1., 1.]
+        expected[0, 0, 8, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875,
+                                11./12., 1., 1., 1., 1., 1., 1., 1.]
         result = plugin._process_haloes(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -127,7 +127,8 @@ class Test__modify_first_guess(IrisTest):
         """Create cubes with a single zero prob(precip) point."""
         self.cube = set_up_cube_with_no_realizations()
         self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
-        self.ltng_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.ltng_cube = set_up_cube_with_no_realizations(
+            zero_point_indices=[])
         self.precip_cube = set_up_cube_with_no_realizations()
 
     def test_basic(self):
@@ -240,7 +241,8 @@ class Test_process(IrisTest):
         """Create a cube with a single non-zero point."""
         self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
         self.fg_cube.rename("probability_of_lightning")
-        self.ltng_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.ltng_cube = set_up_cube_with_no_realizations(
+            zero_point_indices=[])
         self.ltng_cube.rename("rate_of_lightning")
         self.precip_cube = set_up_cube_with_no_realizations()
         self.precip_cube.rename("probability_of_precipitation")
@@ -296,7 +298,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 110.
         expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datamin=0., datamax=1., scalemin=100., scalemax=110.)
+        result = rescale(self.cube.data, datamin=0., datamax=1.,
+                         scalemin=100., scalemax=110.)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_rescaling_outrange(self):
@@ -306,7 +309,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 98.
-        result = rescale(self.cube.data, datamin=0.2, datamax=1.2, scalemin=100., scalemax=110.)
+        result = rescale(self.cube.data, datamin=0.2, datamax=1.2,
+                         scalemin=100., scalemax=110.)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_clip(self):
