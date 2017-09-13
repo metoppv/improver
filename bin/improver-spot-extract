@@ -232,17 +232,19 @@ def main():
 
     # Create a list of files that will need to be read.
     all_available_files = glob.glob(args.data_path+"/*")
-    files_to_read = []
-    for filename in all_available_files:
-        if any(diagnostic_name in filename
-               for diagnostic_name in diagnostic_names):
-            files_to_read.append(filename)
 
-    if not files_to_read:
-        raise IOError('No relevant data files found in {}.'.format(
+    if not all_available_files:
+        raise IOError('No data files found in {}.'.format(
             args.data_path))
 
     for diagnostic_key in diagnostics.keys():
+        diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
+        files_to_read = (
+            [filename for filename in all_available_files
+             if diagnostic_filepath in filename])
+        if not files_to_read:
+            raise IOError('No relevant data files found in {} for {}.'.format(
+                args.data_path, diagnostic_filepath))
         diagnostic_name = diagnostics[diagnostic_key]["diagnostic_name"]
         # Load cubes into an iris.cube.CubeList.
         diagnostics[diagnostic_key]["data"] = Load('multi_file').process(
