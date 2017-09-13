@@ -69,7 +69,7 @@ def get_ancillary_data(diagnostics, ancillary_path):
 
     try:
         orography = Load('single_file').process(
-            ancillary_path + '/orography.nc', 'surface_altitude')
+            ancillary_path + '/highres_orog.nc', 'surface_altitude')
     except:
         raise IOError('Orography file not found.')
 

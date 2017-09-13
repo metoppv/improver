@@ -166,6 +166,8 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
         for dirpath, _, files in os.walk(diagnostic_data_path)
         for filename in files if diagnostic_name in filename]
 
+    print "files_to_read = ", files_to_read
+
     if not files_to_read:
         raise IOError('No relevant data files found in {}.'.format(
             diagnostic_data_path))

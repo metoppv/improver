@@ -148,11 +148,6 @@ def main():
                         help='Path to diagnostic data files.')
     parser.add_argument('ancillary_path', type=str,
                         help='Path to ancillary (time invariant) data files.')
-    parser.add_argument('--diagnostics', type=str, nargs='+', default=None,
-                        help='A list of diagnostics that are to be processed. '
-                             'If unset, all diagnostics defined in the '
-                             'config_file will be produced; e.g. '
-                             'temperature wind_speed')
 
     # File based site definitions.
     parser.add_argument('--site_path', type=str,
@@ -173,15 +168,7 @@ def main():
                         help='List of altitudes of sites of interest.')
 
     # Forecast date/time information.
-    parser.add_argument('--forecast_date', type=str,
-                        help='Start date of forecast in format YYYYMMDD '
-                             '(e.g. 20170327 = 27th March 2017).')
-    parser.add_argument('--forecast_time', type=int,
-                        help='Starting hour of forecast in 24hr clock. '
-                             '(e.g. 3 = 03Z, 14 = 14Z).')
-    parser.add_argument('--forecast_length', type=int,
-                        help='Length of forecast in hours.')
-    parser.add_argument('--output_path', type=str,
+    parser.add_argument('output_path', type=str,
                         help='Path to which output files should be written.')
     parser.add_argument('--multiprocess', action="store_true",
                         help='Process diagnostics using multiprocessing.')
@@ -230,12 +217,13 @@ def main():
     diagnostic_names = [diagnostics[diagnostic]["filepath"]
                         for diagnostic in diagnostics.keys()]
 
+    print "diagnostic_names = ", diagnostic_names
+
     # Create a list of files that will need to be read.
     all_available_files = glob.glob(args.data_path+"/*")
 
     if not all_available_files:
         raise IOError('No data files found in {}.'.format(
-            args.data_path))
 
     for diagnostic_key in diagnostics.keys():
         diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
@@ -259,8 +247,6 @@ def main():
     resulting_cubes, extrema_cubes = (
         run_spotdata(
             diagnostics, ancillary_data, sites, config_constants,
-            forecast_date=args.forecast_date, forecast_time=args.forecast_time,
-            forecast_length=args.forecast_length,
             use_multiprocessing=args.multiprocess))
 
     for resulting_cube in resulting_cubes:

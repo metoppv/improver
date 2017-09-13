@@ -44,7 +44,6 @@ from improver.spotdata.write_output import WriteOutput
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.extrema import ExtractExtrema
 from improver.spotdata.site_data import ImportSiteData
-from improver.spotdata.times import get_forecast_times
 from improver.spotdata.common_functions import (construct_neighbour_hash,
                                                 datetime_constraint,
                                                 extract_cube_at_time,
@@ -52,7 +51,6 @@ from improver.spotdata.common_functions import (construct_neighbour_hash,
 
 
 def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
-                 forecast_date=None, forecast_time=None, forecast_length=168,
                  use_multiprocessing=False):
     """
     A routine that calls the components of the spotdata code. This includes
@@ -116,19 +114,6 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             interpolation of temperatures using a temperature lapse rate
             method.
 
-        forecast_date : string (YYYYMMDD)
-            A string of format YYYYMMDD defining the start date for which
-            forecasts are required.
-
-        forecast_time : integer
-            An integer giving the hour on the forecast_date at which to start
-            the forecast output; 24hr clock such that 17 = 17Z for example.
-
-        forecast_length : integer
-            An integer giving the desired length of the forecast output in
-            hours (e.g. 48 for a two day forecast period).
-            Defaults to 168 (7 days).
-
         use_multiprocessing : boolean
             A switch determining whether to use multiprocessing in the data
             extraction step.
@@ -142,12 +127,6 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             is requested.
 
     """
-    # Establish forecast time list based upon input specifications, or if not
-    # provided, use defaults.
-    forecast_times = get_forecast_times(forecast_length,
-                                        forecast_date=forecast_date,
-                                        forecast_time=forecast_time)
-
     # Read in constants to use; if not available, defaults will be used.
     neighbour_kwargs = {}
     if config_constants is not None:
@@ -202,7 +181,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             diagnostic_pool.map_async(
                 partial(
                     process_diagnostic, diagnostics, neighbours, sites,
-                    forecast_times, ancillary_data), diagnostic_keys))
+                    ancillary_data), diagnostic_keys))
         diagnostic_pool.close()
         diagnostic_pool.join()
         resulting_cubes = []
@@ -217,7 +196,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         for key in diagnostics.keys():
             resulting_cube, extrema_cubelist = (
                 process_diagnostic(
-                    diagnostics, neighbours, sites, forecast_times,
+                    diagnostics, neighbours, sites,
                     ancillary_data, key))
             resulting_cubes.append(resulting_cube)
             extrema_cubes.append(extrema_cubelist)
@@ -225,7 +204,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
     return resulting_cubes, extrema_cubes
 
 
-def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
+def process_diagnostic(diagnostics, neighbours, sites,
                        ancillary_data, diagnostic_name):
     """
     Extract data and write output for a given diagnostic.
@@ -257,10 +236,6 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
 
         sites : dict
             A dictionary containing the properties of spotdata sites.
-
-        forecast_times : list[datetime.datetime objects]
-            A list of datetimes representing forecast times for which data is
-            required.
 
         ancillary_data : dict
             A dictionary containing additional model data that is needed.
@@ -301,6 +276,10 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
             constant = ancillary_data.get('config_constants').get(optional)
             if constant is not None:
                 kwargs[optional] = constant
+
+    # Create a list of datetimes to loop through.
+    time = diagnostic_dict["data"].coord("time")
+    forecast_times = time.units.num2date(time.points)
 
     # Loop over forecast times.
     for a_time in forecast_times:
