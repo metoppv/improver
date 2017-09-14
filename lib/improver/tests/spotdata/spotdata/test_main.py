@@ -38,7 +38,7 @@ import cf_units
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from collections import OrderedDict
 import numpy as np
@@ -175,14 +175,13 @@ class Test_process_diagnostic(Test_main):
                 np.array([(15, 10, 9.0, False)],
                          dtype=[('i', '<i8'), ('j', '<i8'),
                                 ('dz', '<f8'), ('edgepoint', '?')])}
-        forecast_times = [
-            datetime.datetime(2017, 2, 17, 6, 0),
-            datetime.datetime(2017, 2, 17, 7, 0)]
         result = process_diagnostic(
             self.diagnostic_recipe, neighbours, self.sites,
-            forecast_times, self.ancillary_data, "temperature")
+            self.ancillary_data, "temperature")
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], Cube)
+        self.assertIsInstance(result[0], CubeList)
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertIsInstance(result[0][1], Cube)
         self.assertEqual(result[1], None)
 
 
