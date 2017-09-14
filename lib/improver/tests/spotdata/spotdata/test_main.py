@@ -31,7 +31,6 @@
 """Unit tests for the spotdata.main"""
 
 
-import datetime
 import unittest
 import json
 import cf_units
