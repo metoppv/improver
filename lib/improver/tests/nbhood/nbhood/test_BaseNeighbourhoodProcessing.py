@@ -131,10 +131,6 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 1)
-    cube.add_aux_coord(AuxCoord(402192.5,
-                                standard_name="forecast_reference_time", units=tunit))
-    cube.add_aux_coord(AuxCoord([ x - 402192.5 for x in time_points],
-                                standard_name="forecast_period", units='hours'), 1)
 
     step_size = 2000
     y_points = np.arange(0., step_size*num_grid_points, step_size)
@@ -193,10 +189,6 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 0)
-    cube.add_aux_coord(AuxCoord(402192.5,
-                                standard_name="forecast_reference_time", units=tunit))
-    cube.add_aux_coord(AuxCoord([ x - 402192.5 for x in time_points],
-                                standard_name="forecast_period", units='hours'), 0)
 
     step_size = 2000
     y_points = np.arange(0, step_size*num_grid_points, step_size)
