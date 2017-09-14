@@ -187,7 +187,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         resulting_cubes = []
         extrema_cubes = []
         for result in result.get():
-            resulting_cubes.append(result[0])
+            resulting_cubes.extend(result[0])
             extrema_cubes.extend(result[1:])
     else:
         # Process diagnostics serially on one thread.
@@ -200,7 +200,6 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
                     ancillary_data, key))
             resulting_cubes.append(resulting_cube)
             extrema_cubes.append(extrema_cubelist)
-
     return resulting_cubes, extrema_cubes
 
 
@@ -278,8 +277,10 @@ def process_diagnostic(diagnostics, neighbours, sites,
                 kwargs[optional] = constant
 
     # Create a list of datetimes to loop through.
-    time = diagnostic_dict["data"].coord("time")
-    forecast_times = time.units.num2date(time.points)
+    forecast_times = []
+    for cube in diagnostic_dict["data"]:
+        time = cube.coord("time")
+        forecast_times.extend(time.units.num2date(time.points))
 
     # Loop over forecast times.
     for a_time in forecast_times:

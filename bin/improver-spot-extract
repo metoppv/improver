@@ -33,6 +33,9 @@
 import argparse
 import glob
 import json
+import os
+
+import iris
 
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
@@ -148,6 +151,11 @@ def main():
                         help='Path to diagnostic data files.')
     parser.add_argument('ancillary_path', type=str,
                         help='Path to ancillary (time invariant) data files.')
+    parser.add_argument('--diagnostics', type=str, nargs='+', default=None,
+                        help='A list of diagnostics that are to be processed. '
+                             'If unset, all diagnostics defined in the '
+                             'config_file will be produced; e.g. '
+                             'temperature wind_speed')
 
     # File based site definitions.
     parser.add_argument('--site_path', type=str,
@@ -213,18 +221,14 @@ def main():
         with open(args.constants_path, 'r') as input_file:
             config_constants = json.load(input_file)
 
-    # Search directory structure for all files relevant to current diagnostic.
-    diagnostic_names = [diagnostics[diagnostic]["filepath"]
-                        for diagnostic in diagnostics.keys()]
-
-    print "diagnostic_names = ", diagnostic_names
-
     # Create a list of files that will need to be read.
-    all_available_files = glob.glob(args.data_path+"/*")
+    all_available_files = glob.glob(args.data_path)
 
     if not all_available_files:
-        raise IOError('No data files found in {}.'.format(
+        raise IOError('No data files found in {}.'.format(args.data_path))
 
+    # Loop through the requested diagnostics and load data the essential data
+    # and any additional data that is required.
     for diagnostic_key in diagnostics.keys():
         diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
         files_to_read = (
@@ -235,32 +239,38 @@ def main():
                 args.data_path, diagnostic_filepath))
         diagnostic_name = diagnostics[diagnostic_key]["diagnostic_name"]
         # Load cubes into an iris.cube.CubeList.
-        diagnostics[diagnostic_key]["data"] = Load('multi_file').process(
-            files_to_read, diagnostic_name)
+        diagnostics[diagnostic_key]["data"] = (
+            Load('multi_file').process(files_to_read))
         # Check if additional diagnostics are needed (e.g. multi-level data).
         # If required, load into the additional_diagnostics dictionary.
         diagnostics[diagnostic_key]["additional_data"] = (
             get_method_prerequisites(
                 diagnostics[diagnostic_key]["interpolation_method"],
-                args.data_path))
+                os.path.dirname(args.data_path)))
 
     resulting_cubes, extrema_cubes = (
         run_spotdata(
             diagnostics, ancillary_data, sites, config_constants,
             use_multiprocessing=args.multiprocess))
 
-    for resulting_cube in resulting_cubes:
+    for resulting_cube, filename in zip(resulting_cubes, all_available_files):
         if resulting_cube:
+            filename = os.path.splitext(os.path.basename(filename))[0]
             WriteOutput(
-                'as_netcdf', dir_path=args.output_path).process(resulting_cube)
+                'as_netcdf', dir_path=args.output_path,
+                filename=filename).process(resulting_cube)
 
     # If set in the configuration, extract the diagnostic maxima and minima
     # values.
-    for extrema_cubelist in extrema_cubes:
-        if extrema_cubelist:
-            for extrema_cube in extrema_cubelist:
-                WriteOutput('as_netcdf', dir_path=args.output_path).process(
-                    extrema_cube)
+    filepath = all_available_files[0]
+    base_filename = os.path.splitext(os.path.basename(filepath))[0]
+    for extrema_cube in extrema_cubes:
+        if extrema_cube:
+            filename = "{}_{}".format(base_filename, extrema_cube.name())
+            print "filename = ", filename
+            WriteOutput(
+                'as_netcdf', dir_path=args.output_path,
+                filename=filename).process(extrema_cube)
 
 
 if __name__ == "__main__":

@@ -74,7 +74,7 @@ class Test_get_ancillary_data(IrisTest):
         self.orography = orography
         self.land = land
         self.directory = mkdtemp()
-        self.orography_path = self.directory + '/orography.nc'
+        self.orography_path = self.directory + '/highres_orog.nc'
         self.land_path = self.directory + '/land_mask.nc'
         iris.save(orography, self.orography_path)
         iris.save(land, self.land_path)

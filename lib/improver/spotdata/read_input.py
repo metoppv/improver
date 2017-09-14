@@ -63,7 +63,7 @@ class Load(object):
         result = ('<Load: method: {}>')
         return result.format(self.method)
 
-    def process(self, filepath, diagnostic):
+    def process(self, filepath, diagnostic=None):
         """
         Simple wrapper for using iris load on a supplied netCDF file.
 
@@ -90,14 +90,22 @@ class Load(object):
         return function(filepath, diagnostic)
 
     @staticmethod
-    def single_file(filepath, diagnostic):
+    def single_file(filepath, diagnostic=None):
         """ Load and return a single iris.cube.Cube """
-        return load_cube(filepath, diagnostic)
+        if diagnostic:
+            cube = load_cube(filepath, diagnostic)
+        else:
+            cube = load_cube(filepath)
+        return cube
 
     @staticmethod
-    def multi_file(filepath, diagnostic):
+    def multi_file(filepath, diagnostic=None):
         """ Load multiple cubes and return a iris.cube.CubeList """
-        return load(filepath, diagnostic)
+        if diagnostic:
+            cubes = load(filepath, diagnostic)
+        else:
+            cubes = load(filepath)
+        return cubes
 
 
 def get_method_prerequisites(method, diagnostic_data_path):
@@ -166,11 +174,11 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
         for dirpath, _, files in os.walk(diagnostic_data_path)
         for filename in files if diagnostic_name in filename]
 
-    print "files_to_read = ", files_to_read
-
     if not files_to_read:
-        raise IOError('No relevant data files found in {}.'.format(
-            diagnostic_data_path))
+        raise IOError('The relevant data files for {}, which is required '
+                      'as an additional diagnostic is not available '
+                      'in {}.'.format(
+                          diagnostic_name, diagnostic_data_path))
     cubes = Load('multi_file').process(files_to_read, None)
 
     if time_extract is not None:

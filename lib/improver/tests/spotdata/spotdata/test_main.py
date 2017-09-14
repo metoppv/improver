@@ -128,9 +128,6 @@ class Test_main(IrisTest):
                      self.sites, self.config_constants)
 
         self.kwargs = {
-            'forecast_date': '20170217',
-            'forecast_time': 6,
-            'forecast_length': 2,
             'use_multiprocessing': False
             }
 
@@ -138,23 +135,34 @@ class Test_main(IrisTest):
 class Test_run_spotdata(Test_main):
     """Test the run_framework interface with various options."""
 
-    def test_nominal_run(self):
+    def test_nominal_run_with_kwargs(self):
         """Test a typical run of the routine completes successfully."""
         result = Function(*self.args, **self.kwargs)
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0][0][0], Cube)
-        self.assertIsInstance(result[0][0][1], Cube)
-        self.assertEqual(result[0][0][0].name(), 'air_temperature')
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertIsInstance(result[0][1], Cube)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
 
-    def test_nominal_run_no_kwargs(self):
+    def test_nominal_run_with_kwargs_for_multiprocessing(self):
+        """Test a typical run of the routine completes successfully
+        when multiprocessing is enabled."""
+        kwargs = {
+            'use_multiprocessing': False
+            }
+        result = Function(*self.args, **kwargs)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertIsInstance(result[0][1], Cube)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
+
+    def test_nominal_run_without_kwargs(self):
         """Test a typical run of the routine completes as intended.
         If there are no keyword arguments then the current time will be used
         and this will not match any of the times within the input cubes."""
         result = Function(*self.args)
         self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0]), 1)
-        self.assertEqual(result[0][0], None)
-        self.assertEqual(result[1][0], None)
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertIsInstance(result[0][1], Cube)
 
 
 class Test_process_diagnostic(Test_main):
