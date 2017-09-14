@@ -167,12 +167,12 @@ class NowcastLightning(object):
                 this_ltng.data >= lratethresh, 1., this_out.data)
             preciplimit = np.where(this_precip.data < 0.05,
                                    rescale(this_precip.data,
-                                           datamin=0.00, datamax=0.05,
-                                           scalemin=0.0067, scalemax=0.2,
+                                           datarange=(0.00, 0.05),
+                                           scalerange=(0.0067, 0.2),
                                            clip=True, debug=self.debug),
                                    rescale(this_precip.data,
-                                           datamin=0.05, datamax=0.10,
-                                           scalemin=0.2, scalemax=1.0,
+                                           datarange=(0.05, 0.10),
+                                           scalerange=(0.2, 1.0),
                                            clip=True, debug=self.debug))
             # Reduce to LR2 prob when Prob(rain > 0) is low
             # and LR3 when very low:
@@ -211,7 +211,7 @@ class NowcastLightning(object):
         return new_cube
 
 
-def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1.,
+def rescale(data, datarange=None, scalerange=(0., 1.),
             clip=False, debug=False):
     """Rescale data array so that datamin => scalemin and datamax => scale max.
        All adjustments are linear
@@ -219,14 +219,12 @@ def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1.,
         Args:
             data : numpy array
                 Source values
-            datamin : float (optional)
-                Lowest source value to rescale. Defaults to min(data)
-            datamax : float (optional)
-                Highest source value to rescale. Defaults to max(data)
-            scalemin : float (optional)
-                Lowest value after rescaling. Defaults to 0.
-            scalemax : float (optional)
-                Highest value after rescaling. Defaults to 1.)
+            datarange : list of two floats (optional)
+                Lowest and highest source value to rescale.
+                Defaults to [min(data), max(data)]
+            scalerange : List of two floats (optional)
+                Lowest and highest value after rescaling.
+                Defaults to (0., 1.)
             clip : boolean (optional)
                 If True, points where data were outside the scaling range
                 will be set to the scale min or max appropriately.
@@ -239,8 +237,10 @@ def rescale(data, datamin=None, datamax=None, scalemin=0., scalemax=1.,
             result : numpy array
                 Output array of scaled data. Has same shape as data.
         """
-    datamin = np.min(data) if datamin is None else datamin
-    datamax = np.max(data) if datamax is None else datamax
+    datamin = np.min(data) if datarange is None else datarange[0]
+    datamax = np.max(data) if datarange is None else datarange[1]
+    scalemin = scalerange[0]
+    scalemax = scalerange[1]
     if debug:
         print "Rescaling data so that {} -> {} and {} -> {}".format(datamin,
                                                                     scalemin,

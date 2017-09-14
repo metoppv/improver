@@ -298,8 +298,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 110.
         expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datamin=0., datamax=1.,
-                         scalemin=100., scalemax=110.)
+        result = rescale(self.cube.data, datarange=(0., 1.),
+                         scalerange=(100., 110.))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_rescaling_outrange(self):
@@ -309,8 +309,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 98.
-        result = rescale(self.cube.data, datamin=0.2, datamax=1.2,
-                         scalemin=100., scalemax=110.)
+        result = rescale(self.cube.data, datarange=(0.2, 1.2),
+                         scalerange=(100., 110.))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_clip(self):
@@ -320,8 +320,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datamin=0.2, datamax=1.2,
-                         scalemin=100., scalemax=110., clip=True)
+        result = rescale(self.cube.data, datarange=(0.2, 1.2),
+                         scalerange=(100., 110.), clip=True)
         self.assertArrayAlmostEqual(result, expected)
 
 if __name__ == '__main__':
