@@ -184,15 +184,15 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
                     ancillary_data), diagnostic_keys))
         diagnostic_pool.close()
         diagnostic_pool.join()
-        resulting_cubes = []
-        extrema_cubes = []
+        resulting_cubes = CubeList()
+        extrema_cubes = CubeList()
         for result in result.get():
             resulting_cubes.extend(result[0])
             extrema_cubes.extend(result[1:])
     else:
         # Process diagnostics serially on one thread.
-        resulting_cubes = []
-        extrema_cubes = []
+        resulting_cubes = CubeList()
+        extrema_cubes = CubeList()
         for key in diagnostics.keys():
             resulting_cube, extrema_cubelist = (
                 process_diagnostic(

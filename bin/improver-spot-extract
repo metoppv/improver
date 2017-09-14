@@ -253,12 +253,15 @@ def main():
             diagnostics, ancillary_data, sites, config_constants,
             use_multiprocessing=args.multiprocess))
 
-    for resulting_cube, filename in zip(resulting_cubes, all_available_files):
-        if resulting_cube:
-            filename = os.path.splitext(os.path.basename(filename))[0]
-            WriteOutput(
-                'as_netcdf', dir_path=args.output_path,
-                filename=filename).process(resulting_cube)
+    filename = os.path.splitext(os.path.basename(all_available_files[0]))[0]
+
+    if resulting_cubes:
+        # Concatenate CubeList into Cube, creating a time DimCoord,
+        # and write out.
+        cube_out, = resulting_cubes.concatenate()
+        WriteOutput(
+            'as_netcdf', dir_path=args.output_path,
+            filename=filename).process(cube_out)
 
     # If set in the configuration, extract the diagnostic maxima and minima
     # values.
