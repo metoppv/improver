@@ -44,6 +44,8 @@ from improver.nowcast.lightning import NowcastLightning as Plugin
 from improver.nowcast.lightning import rescale
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
+from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
+    import add_forecast_reference_time_and_forecast_period
 
 
 class Test__repr__(IrisTest):
@@ -63,7 +65,8 @@ class Test__process_haloes(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-        self.cube = set_up_cube()
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube())
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -98,7 +101,8 @@ class Test__update_meta(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-        self.cube = set_up_cube()
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube())
 
     def test_basic(self):
         """Test that the method returns the expected cube type
@@ -125,11 +129,15 @@ class Test__modify_first_guess(IrisTest):
 
     def setUp(self):
         """Create cubes with a single zero prob(precip) point."""
-        self.cube = set_up_cube_with_no_realizations()
-        self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
-        self.ltng_cube = set_up_cube_with_no_realizations(
-            zero_point_indices=[])
-        self.precip_cube = set_up_cube_with_no_realizations()
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(), fp_point=0.0)
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]))
+        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(
+            zero_point_indices=[]), fp_point=0.0)
+        self.precip_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(), fp_point=0.0)
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -203,10 +211,12 @@ class Test__modify_first_guess(IrisTest):
         # Set precip data to 1. so it has a Null impact
         self.precip_cube.data[0, 7, 7] = 1.
         # Set first-guess data zero point to be increased
-        self.fg_cube = set_up_cube_with_no_realizations()
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations())
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
+        expected = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations())
         expected.data[0, 7, 7] = 1.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
@@ -221,7 +231,8 @@ class Test__modify_first_guess(IrisTest):
         # Set lightning data to zero to represent the data halo
         self.ltng_cube.data[0, 7, 7] = 0.
         # Set first-guess data zero point to be increased
-        self.fg_cube = set_up_cube_with_no_realizations()
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations())
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
@@ -239,12 +250,14 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-        self.fg_cube = set_up_cube_with_no_realizations(zero_point_indices=[])
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.fg_cube.rename("probability_of_lightning")
-        self.ltng_cube = set_up_cube_with_no_realizations(
-            zero_point_indices=[])
+        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.ltng_cube.rename("rate_of_lightning")
-        self.precip_cube = set_up_cube_with_no_realizations()
+        self.precip_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations())
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         coord = DimCoord(0., long_name="threshold", units='mm hr^-1')
@@ -269,7 +282,8 @@ class Test_rescale(IrisTest):
         Create a cube with a single non-zero point.
         Trap standard output
         """
-        self.cube = set_up_cube()
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube())
         self.stdout = StringIO.StringIO()
         sys.stdout = self.stdout  # Redirect standard out.
 
