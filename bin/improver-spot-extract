@@ -267,7 +267,6 @@ def main():
     for extrema_cube in extrema_cubes:
         if extrema_cube:
             filename = "{}_{}".format(base_filename, extrema_cube.name())
-            print "filename = ", filename
             WriteOutput(
                 'as_netcdf', dir_path=args.output_path,
                 filename=filename).process(extrema_cube)
