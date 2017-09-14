@@ -171,7 +171,7 @@ class CircularNeighbourhood(object):
                                       self.weighted_mode)
         # Smooth the data by applying the kernel.
         if self.sum_or_fraction is "fraction":
-            total_area = np.sum(kernel)
+            total_area = np.sum(self.kernel)
         elif self.sum_or_fraction is "sum":
             total_area = 1.0
 

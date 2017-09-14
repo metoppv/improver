@@ -41,8 +41,7 @@ import StringIO
 import sys
 
 from improver.nowcast.lightning import NowcastLightning as Plugin
-from improver.nowcast.lightning import rescale
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
@@ -271,88 +270,6 @@ class Test_process(IrisTest):
             self.ltng_cube,
             self.precip_cube]))
         self.assertIsInstance(result, Cube)
-
-
-class Test_rescale(IrisTest):
-
-    """Test the nowcast rescale function."""
-
-    def setUp(self):
-        """
-        Create a cube with a single non-zero point.
-        Trap standard output
-        """
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube())
-        self.stdout = StringIO.StringIO()
-        sys.stdout = self.stdout  # Redirect standard out.
-
-    def tearDown(self):
-        """Reset standard out stream."""
-        sys.stdout = sys.__stdout__  # Reset standard out.
-
-    def test_basic(self):
-        """Test that the method returns the expected array type"""
-        result = rescale(self.cube.data)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_debug(self):
-        """
-        Test that the method returns the expected array type in debug mode
-        """
-        expected = "Rescaling data so that 0.0 -> 0.0 and 1.0 -> 1.0\n"
-        result = rescale(self.cube.data, debug=True)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(self.stdout.getvalue(), expected)
-
-    def test_zerorange_input(self):
-        """
-        Test that the method returns the expected error
-        """
-        msg = "Cannot rescale a zero input range"
-        with self.assertRaisesRegexp(ValueError, msg):
-            rescale(self.cube.data, datarange=[0, 0])
-
-    def test_zerorange_output(self):
-        """
-        Test that the method returns the expected error
-        """
-        msg = "Cannot rescale a zero output range"
-        with self.assertRaisesRegexp(ValueError, msg):
-            rescale(self.cube.data, scalerange=[4, 4])
-
-    def test_rescaling_inrange(self):
-        """
-        Test that the method returns the expected values when in range
-        """
-        expected = self.cube.data.copy()
-        expected[...] = 110.
-        expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datarange=(0., 1.),
-                         scalerange=(100., 110.))
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_rescaling_outrange(self):
-        """
-        Test that the method returns the expected values when out of range
-        """
-        expected = self.cube.data.copy()
-        expected[...] = 108.
-        expected[0, 0, 7, 7] = 98.
-        result = rescale(self.cube.data, datarange=(0.2, 1.2),
-                         scalerange=(100., 110.))
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_clip(self):
-        """
-        Test that the method clips values when out of range
-        """
-        expected = self.cube.data.copy()
-        expected[...] = 108.
-        expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datarange=(0.2, 1.2),
-                         scalerange=(100., 110.), clip=True)
-        self.assertArrayAlmostEqual(result, expected)
 
 if __name__ == '__main__':
     unittest.main()

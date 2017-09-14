@@ -34,6 +34,7 @@ import numpy as np
 import iris
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.rescale import rescale
 
 
 class NowcastLightning(object):
@@ -167,13 +168,13 @@ class NowcastLightning(object):
                 this_ltng.data >= lratethresh, 1., this_out.data)
             preciplimit = np.where(this_precip.data < 0.05,
                                    rescale(this_precip.data,
-                                           datarange=(0.00, 0.05),
-                                           scalerange=(0.0067, 0.2),
-                                           clip=True, debug=self.debug),
+                                           data_range=(0.00, 0.05),
+                                           scale_range=(0.0067, 0.2),
+                                           clip=True),
                                    rescale(this_precip.data,
-                                           datarange=(0.05, 0.10),
-                                           scalerange=(0.2, 1.0),
-                                           clip=True, debug=self.debug))
+                                           data_range=(0.05, 0.10),
+                                           scale_range=(0.2, 1.0),
+                                           clip=True))
             # Reduce to LR2 prob when Prob(rain > 0) is low
             # and LR3 when very low:
             this_out.data = np.minimum(this_out.data, preciplimit)
@@ -209,54 +210,3 @@ class NowcastLightning(object):
             new_cube, fg_cube, ltng_cube, precip_cube)
         new_cube = self._process_haloes(new_cube)
         return new_cube
-
-
-def rescale(data, datarange=None, scalerange=(0., 1.),
-            clip=False, debug=False):
-    """Rescale data array so that datamin => scalemin and datamax => scale max.
-       All adjustments are linear
-
-        Args:
-            data : numpy array
-                Source values
-            datarange : list of two floats (optional)
-                Lowest and highest source value to rescale.
-                Defaults to [min(data), max(data)]
-            scalerange : List of two floats (optional)
-                Lowest and highest value after rescaling.
-                Defaults to (0., 1.)
-            clip : boolean (optional)
-                If True, points where data were outside the scaling range
-                will be set to the scale min or max appropriately.
-                Default is False which continues the scaling beyond min and
-                max.
-            debug : boolean (optional)
-                Causes a printout of the min and max values.
-
-        Returns:
-            result : numpy array
-                Output array of scaled data. Has same shape as data.
-        """
-    datamin = np.min(data) if datarange is None else datarange[0]
-    datamax = np.max(data) if datarange is None else datarange[1]
-    scalemin = scalerange[0]
-    scalemax = scalerange[1]
-    if debug:
-        print "Rescaling data so that {} -> {} and {} -> {}".format(datamin,
-                                                                    scalemin,
-                                                                    datamax,
-                                                                    scalemax)
-    # Range check
-    if datamin == datamax:
-        raise ValueError("Cannot rescale a zero input range " +
-                         "({} -> {})".format(datamin, datamax))
-
-    if scalemin == scalemax:
-        raise ValueError("Cannot rescale a zero output range " +
-                         "({} -> {})".format(scalemin, scalemax))
-
-    result = ((data - datamin) * (scalemax - scalemin) /
-              (datamax - datamin)) + scalemin
-    if clip:
-        result = np.clip(result, scalemin, scalemax)
-    return result
