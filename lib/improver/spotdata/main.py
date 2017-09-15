@@ -198,8 +198,8 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
                 process_diagnostic(
                     diagnostics, neighbours, sites,
                     ancillary_data, key))
-            resulting_cubes.append(resulting_cube)
-            extrema_cubes.append(extrema_cubelist)
+            resulting_cubes.extend(resulting_cubelist)
+            extrema_cubes.extend(extrema_cubelist)
     return resulting_cubes, extrema_cubes
 
 
@@ -318,6 +318,6 @@ def process_diagnostic(diagnostics, neighbours, sites,
             ExtractExtrema(24, start_hour=9).process(resulting_cube.copy()))
         extrema_cubes = extrema_cubes.merge()
     else:
-        extrema_cubes = None
+        extrema_cubes = CubeList()
 
     return resulting_cube, extrema_cubes

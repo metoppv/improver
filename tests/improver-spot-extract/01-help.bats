@@ -52,7 +52,8 @@ positional arguments:
   config_file_path      Path to a json file defining the recipes for
                         extracting diagnostics at SpotData sites from gridded
                         data.
-  data_path             Path to diagnostic data files.
+  data_path             Path to a file containing the diagnosticto be
+                        processed.
   ancillary_path        Path to ancillary (time invariant) data files.
   output_path           Path to which output files should be written.
 

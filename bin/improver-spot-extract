@@ -148,7 +148,8 @@ def main():
                         'extracting diagnostics at SpotData sites from '
                         'gridded data.')
     parser.add_argument('data_path', type=str,
-                        help='Path to diagnostic data files.')
+                        help='Path to a file containing the diagnostic'
+                             'to be processed.')
     parser.add_argument('ancillary_path', type=str,
                         help='Path to ancillary (time invariant) data files.')
     parser.add_argument('--diagnostics', type=str, nargs='+', default=None,

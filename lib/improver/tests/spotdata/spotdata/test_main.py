@@ -162,6 +162,8 @@ class Test_run_spotdata(Test_main):
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0][0], Cube)
         self.assertIsInstance(result[0][1], Cube)
+        self.assertIsInstance(result[1], CubeList)
+        self.assertEqual(len(result[1]), 0)
 
 
 class Test_process_diagnostic(Test_main):
@@ -181,7 +183,8 @@ class Test_process_diagnostic(Test_main):
         self.assertIsInstance(result[0], CubeList)
         self.assertIsInstance(result[0][0], Cube)
         self.assertIsInstance(result[0][1], Cube)
-        self.assertEqual(result[1], None)
+        self.assertIsInstance(result[1], CubeList)
+        self.assertEqual(len(result[1]), 0)
 
 
 if __name__ == '__main__':
