@@ -265,11 +265,8 @@ def main():
 
     for resulting_cube in resulting_cubes:
         if resulting_cube:
-            # Concatenate CubeList into Cube, creating a time DimCoord,
-            # and write out.
-            cube_out, = resulting_cube.concatenate()
             WriteOutput(
-                'as_netcdf', dir_path=args.output_path).process(cube_out)
+                'as_netcdf', dir_path=args.output_path).process(resulting_cube)
 
     # If set in the configuration, extract the diagnostic maxima and minima
     # values.

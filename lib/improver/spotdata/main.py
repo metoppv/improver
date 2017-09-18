@@ -93,20 +93,20 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             Contains:
 
             latitudes : list of ints/floats or None
-                A list of latitudes for running on the fly for a custom set of
+                A list of latitudes for running for a custom set of
                 sites. The order should correspond to the subsequent latitudes
                 and altitudes variables to construct each site.
 
             longitudes : list of ints/floats or None
-                A list of longitudes for running on the fly for a custom set of
+                A list of longitudes for running for a custom set of
                 sites.
 
             altitudes : list of ints/floats or None
-                A list of altitudes for running on the fly for a custom set of
+                A list of altitudes for running for a custom set of
                 sites.
 
             site_ids : list of ints or None
-                A list of site_ids to associate with the above on the fly
+                A list of site_ids to associate with the above
                 constructed sites. This must be ordered the same as the
                 latitudes/longitudes/altitudes lists.
 
@@ -215,11 +215,11 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         resulting_cubes = []
         extrema_cubes = []
         for key in diagnostics.keys():
-            resulting_cubelist, extrema_cubelist = (
+            resulting_cube, extrema_cubelist = (
                 process_diagnostic(
                     diagnostics, neighbours, sites, forecast_times,
                     ancillary_data, key))
-            resulting_cubes.append(resulting_cubelist)
+            resulting_cubes.append(resulting_cube)
             extrema_cubes.append(extrema_cubelist)
 
     return resulting_cubes, extrema_cubes
@@ -326,11 +326,18 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
                 diagnostic_dict['interpolation_method']).process(
                     *args, **kwargs))
 
+    if resulting_cubes:
+        # Concatenate CubeList into Cube for cubes with different
+        # forecast times.
+        resulting_cube, = resulting_cubes.concatenate()
+    else:
+        resulting_cube = None
+
     if diagnostic_dict['extrema']:
-        cube_out, = resulting_cubes.concatenate()
-        extrema_cubes = ExtractExtrema(24, start_hour=9).process(cube_out)
+        extrema_cubes = (
+            ExtractExtrema(24, start_hour=9).process(resulting_cube.copy()))
         extrema_cubes = extrema_cubes.merge()
     else:
         extrema_cubes = None
 
-    return resulting_cubes, extrema_cubes
+    return resulting_cube, extrema_cubes

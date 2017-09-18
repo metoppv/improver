@@ -317,6 +317,8 @@ class ExtractData(object):
         # Record existing scalar coordinates on source cube. Aux coords
         # associated with dimensions cannot be preserved as the dimensions will
         # be reshaped and the auxiliarys no longer compatible.
+        # Forecast period is ignored for the case where the input data has
+        # an existing forecast_period scalar coordinate.
         scalar_coordinates = [coord.name() for coord in
                               cube.coords(dimensions=[])
                               if coord.name() != 'forecast_period']

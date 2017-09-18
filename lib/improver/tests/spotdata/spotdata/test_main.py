@@ -147,10 +147,13 @@ class Test_run_spotdata(Test_main):
         self.assertEqual(result[0][0][0].name(), 'air_temperature')
 
     def test_nominal_run_no_kwargs(self):
-        """Test a typical run of the routine completes successfully."""
+        """Test a typical run of the routine completes as intended.
+        If there are no keyword arguments then the current time will be used
+        and this will not match any of the times within the input cubes."""
         result = Function(*self.args)
         self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0][0]), 0)
+        self.assertEqual(len(result[0]), 1)
+        self.assertEqual(result[0][0], None)
         self.assertEqual(result[1][0], None)
 
 
@@ -169,8 +172,10 @@ class Test_process_diagnostic(Test_main):
             datetime.datetime(2017, 2, 17, 7, 0)]
         result = process_diagnostic(
             self.diagnostic_recipe, neighbours, self.sites,
-            forecast_times, self.ancillary_data,
-            "temperature")
+            forecast_times, self.ancillary_data, "temperature")
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], Cube)
+        self.assertEqual(result[1], None)
 
 
 if __name__ == '__main__':
