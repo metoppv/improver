@@ -35,8 +35,6 @@ import glob
 import json
 import os
 
-import iris
-
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
 from improver.spotdata.read_input import get_method_prerequisites, Load
@@ -238,7 +236,6 @@ def main():
         if not files_to_read:
             raise IOError('No relevant data files found in {} for {}.'.format(
                 args.data_path, diagnostic_filepath))
-        diagnostic_name = diagnostics[diagnostic_key]["diagnostic_name"]
         # Load cubes into an iris.cube.CubeList.
         diagnostics[diagnostic_key]["data"] = (
             Load('multi_file').process(files_to_read))

@@ -30,17 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the spotdata.main"""
 
-
+from collections import OrderedDict
+import numpy as np
 import unittest
-import json
+
 import cf_units
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
-from iris.cube import Cube, CubeList
-
-from collections import OrderedDict
-import numpy as np
+from iris.cube import Cube
 
 from improver.spotdata.main import run_spotdata as Function
 from improver.spotdata.main import process_diagnostic

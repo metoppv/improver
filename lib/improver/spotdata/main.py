@@ -31,19 +31,13 @@
 """The main routine for site specific post-processing."""
 
 from functools import partial
-import json
 import multiprocessing as mp
 
 from iris.cube import CubeList
 
-from improver.spotdata.read_input import (Load,
-                                          get_method_prerequisites)
 from improver.spotdata.neighbour_finding import PointSelection
 from improver.spotdata.extract_data import ExtractData
-from improver.spotdata.write_output import WriteOutput
-from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.extrema import ExtractExtrema
-from improver.spotdata.site_data import ImportSiteData
 from improver.spotdata.common_functions import (construct_neighbour_hash,
                                                 datetime_constraint,
                                                 extract_cube_at_time,
