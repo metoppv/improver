@@ -43,8 +43,7 @@ usage: improver-spot-extract [-h]
                              [--forecast_date FORECAST_DATE]
                              [--forecast_time FORECAST_TIME]
                              [--forecast_length FORECAST_LENGTH]
-                             [--output_path OUTPUT_PATH]
-                             [--multiprocess MULTIPROCESS]
+                             [--output_path OUTPUT_PATH] [--multiprocess]
                              config_file_path data_path ancillary_path
 __TEXT__
   [[ "$output" =~ "$expected" ]]

@@ -43,8 +43,7 @@ usage: improver-spot-extract [-h]
                              [--forecast_date FORECAST_DATE]
                              [--forecast_time FORECAST_TIME]
                              [--forecast_length FORECAST_LENGTH]
-                             [--output_path OUTPUT_PATH]
-                             [--multiprocess MULTIPROCESS]
+                             [--output_path OUTPUT_PATH] [--multiprocess]
                              config_file_path data_path ancillary_path
 
 SpotData : A configurable tool to extract spot-data from gridded diagnostics.
@@ -86,8 +85,7 @@ optional arguments:
                         Length of forecast in hours.
   --output_path OUTPUT_PATH
                         Path to which output files should be written.
-  --multiprocess MULTIPROCESS
-                        Process diagnostics using multiprocessing.
+  --multiprocess        Process diagnostics using multiprocessing.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

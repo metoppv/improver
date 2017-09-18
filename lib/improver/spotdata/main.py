@@ -30,9 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """The main routine for site specific post-processing."""
 
-import os
+from functools import partial
 import json
 import multiprocessing as mp
+
 from iris.cube import CubeList
 
 from improver.spotdata.read_input import (Load,
@@ -50,12 +51,9 @@ from improver.spotdata.common_functions import (construct_neighbour_hash,
                                                 extract_ad_at_time)
 
 
-def run_spotdata(config_file_path, data_path, ancillary_path,
-                 diagnostic_list=None,
-                 site_path=None, constants_file_path=None,
-                 site_properties=None, forecast_date=None,
-                 forecast_time=None, forecast_length=168,
-                 output_path=None, use_multiprocessing=False):
+def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
+                 forecast_date=None, forecast_time=None, forecast_length=168,
+                 use_multiprocessing=False):
     """
     A routine that calls the components of the spotdata code. This includes
     building site data into a suitable format, finding grid neighbours to
@@ -64,82 +62,84 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
     gridded iris.cube.Cubes.
 
     Args:
-    -----
-    config_file_path : string
-        Path to a json file defining the recipes for extracting diagnostics at
-        SpotData sites from gridded data.
+        diagnostics : dict
+            Dictionary containing the information regarding the methods that
+            will be applied for a specific diagnostic, as well as the data
+            following loading in a cube, and any additional data required to
+            be able to compute the methods requested.
 
-    data_path : string
-        Path to diagnostic data files.
+            For example:
+            {
+                "temperature": {
+                    "diagnostic_name": "air_temperature",
+                    "extrema": True,
+                    "filepath": "temperature_at_screen_level",
+                    "interpolation_method": "use_nearest",
+                    "neighbour_finding": {
+                        "land_constraint": False,
+                        "method": "fast_nearest_neighbour",
+                        "vertical_bias": None
+                    "data": iris.cube.CubeList
+                    "additional_data" : iris.cube.CubeList
+                    }
+                }
+            }
 
-    ancillary_path : string
-        Path to ancillary data files.
+        ancillary_data : dict
+            Dictionary containing named ancillary data; the key gives the name
+            and the item is the iris.cube.Cube of data.
 
-    diagnostic_list : list of strings
-        List of diagnostic names that match those defined in the config_file
-        to select which diagnostics to process.
+        sites : dict
+            Contains:
 
-    site_path : string
-        Path to site data file if in use. If no lats/lons are specified at the
-        command line, this file path is needed.
+            latitudes : list of ints/floats or None
+                A list of latitudes for running for a custom set of
+                sites. The order should correspond to the subsequent latitudes
+                and altitudes variables to construct each site.
 
-    constants_file_path : string
-        Path to a json file defining constants to be used in methods that have
-        tolerances that may be set. e.g. maxiumum vertical extrapolation/
-        interpolation of temperatures using a temperature lapse rate method.
+            longitudes : list of ints/floats or None
+                A list of longitudes for running for a custom set of
+                sites.
 
-    site_properties : dict
-        Contains:
+            altitudes : list of ints/floats or None
+                A list of altitudes for running for a custom set of
+                sites.
 
-        latitudes : list of ints/floats or None
-            A list of latitudes for running on the fly for a custom set of
-            sites. The order should correspond to the subsequent latitudes and
-            altitudes variables to construct each site.
+            site_ids : list of ints or None
+                A list of site_ids to associate with the above
+                constructed sites. This must be ordered the same as the
+                latitudes/longitudes/altitudes lists.
 
-        longitudes : list of ints/floats or None
-            A list of longitudes for running on the fly for a custom set of
-            sites.
+        config_constants : dict
+            Dictionary defining constants to be used in methods that have
+            tolerances that may be set. e.g. maximum vertical extrapolation/
+            interpolation of temperatures using a temperature lapse rate
+            method.
 
-        altitudes : list of ints/floats or None
-            A list of altitudes for running on the fly for a custom set of
-            sites.
+        forecast_date : string (YYYYMMDD)
+            A string of format YYYYMMDD defining the start date for which
+            forecasts are required.
 
-        site_ids : list of ints or None
-            A list of site_ids to associate with the above on the fly
-            constructed sites. This must be ordered the same as the latitudes/
-            longitudes/altitudes lists.
+        forecast_time : integer
+            An integer giving the hour on the forecast_date at which to start
+            the forecast output; 24hr clock such that 17 = 17Z for example.
 
-    forecast_date : string (YYYYMMDD)
-        A string of format YYYYMMDD defining the start date for which forecasts
-        are required.
+        forecast_length : integer
+            An integer giving the desired length of the forecast output in
+            hours (e.g. 48 for a two day forecast period).
+            Defaults to 168 (7 days).
 
-    forecast_time : integer
-        An integer giving the hour on the forecast_date at which to start the
-        forecast output; 24hr clock such that 17 = 17Z for example.
-
-    forecast_length : integer
-        An integer giving the desired length of the forecast output in hours
-        (e.g. 48 for a two day forecast period). Defaults to 168 (7 days).
-
-    output_path : string
-        Path to which output file containing processed diagnostic should be
-        written.
-
-    use_multiprocessing : boolean
-        A switch determining whether to use multiprocessing in the data
-        extraction step.
+        use_multiprocessing : boolean
+            A switch determining whether to use multiprocessing in the data
+            extraction step.
 
     Returns:
-    --------
-    Writes out cubes of the requested diagnostics, with data extracted to the
-    sites read from a file or defined at run time.
-
-    0 upon successful completion.
-
-    Raises:
-    -------
-    ValueError : raised if no site specifications are provided.
-    IOError : if required data files are not found at given data_path.
+        resulting_cubes : iris.cube.CubeList
+            CubeList after extracting the diagnostic requested using the
+            desired extraction method.
+        extrema_cubes : iris.cube.CubeList
+            CubeList containing extrema values, if the 'extrema' diagnostic
+            is requested.
 
     """
     # Establish forecast time list based upon input specifications, or if not
@@ -148,42 +148,12 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
                                         forecast_date=forecast_date,
                                         forecast_time=forecast_time)
 
-    # Check site data has been provided.
-    if site_path is None and not site_properties:
-        raise ValueError("No SpotData site information has been provided "
-                         "from a file or defined at runtime.")
-
-    # If using locations set at command line, set optional information such
-    # as site altitude and site_id. If a site definition file is provided it
-    # will take precedence.
-    if site_path is None:
-        sites = ImportSiteData('runtime_list').process(site_properties)
-    else:
-        sites = ImportSiteData('from_file').process(site_path)
-
-    # Read in extraction recipes for all diagnostics.
-    with open(config_file_path, 'r') as input_file:
-        all_diagnostics = json.load(input_file)
-
     # Read in constants to use; if not available, defaults will be used.
-    config_constants = None
     neighbour_kwargs = {}
-    if constants_file_path is not None:
-        with open(constants_file_path, 'r') as input_file:
-            config_constants = json.load(input_file)
+    if config_constants is not None:
         no_neighbours = config_constants.get('no_neighbours')
         if no_neighbours is not None:
             neighbour_kwargs['no_neighbours'] = no_neighbours
-
-    # Use the diagnostic_list to establish which diagnostics are to be
-    # processed; if unset, use all.
-    diagnostics = all_diagnostics
-    if diagnostic_list is not None:
-        diagnostics = dict((diagnostic, all_diagnostics[diagnostic])
-                           for diagnostic in diagnostic_list)
-
-    # Load ancillary data files; fields that don't vary in time.
-    ancillary_data = get_ancillary_data(diagnostics, ancillary_path)
 
     # Add configuration constants to ancillaries (may be None if unset).
     ancillary_data['config_constants'] = config_constants
@@ -225,92 +195,99 @@ def run_spotdata(config_file_path, data_path, ancillary_path,
         # own thread.
         diagnostic_pool = mp.Pool(processes=n_diagnostic_threads)
 
-        for key in diagnostics.keys():
-            diagnostic = diagnostics[key]
-            diagnostic_pool.apply_async(
-                process_diagnostic,
-                args=(
-                    diagnostic, neighbours, sites, forecast_times,
-                    ancillary_data, output_path))
+        diagnostic_keys = [
+            diagnostic_name for diagnostic_name in diagnostics.keys()]
 
+        result = (
+            diagnostic_pool.map_async(
+                partial(
+                    process_diagnostic, diagnostics, neighbours, sites,
+                    forecast_times, ancillary_data), diagnostic_keys))
         diagnostic_pool.close()
         diagnostic_pool.join()
-
+        resulting_cubes = []
+        extrema_cubes = []
+        for result in result.get():
+            resulting_cubes.append(result[0])
+            extrema_cubes.extend(result[1:])
     else:
         # Process diagnostics serially on one thread.
+        resulting_cubes = []
+        extrema_cubes = []
         for key in diagnostics.keys():
-            diagnostic = diagnostics[key]
-            process_diagnostic(diagnostic, neighbours, sites, forecast_times,
-                               data_path, ancillary_data,
-                               output_path=output_path)
+            resulting_cube, extrema_cubelist = (
+                process_diagnostic(
+                    diagnostics, neighbours, sites, forecast_times,
+                    ancillary_data, key))
+            resulting_cubes.append(resulting_cube)
+            extrema_cubes.append(extrema_cubelist)
 
-    return 0
+    return resulting_cubes, extrema_cubes
 
 
-def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
-                       data_path, ancillary_data, output_path=None):
+def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
+                       ancillary_data, diagnostic_name):
     """
     Extract data and write output for a given diagnostic.
 
     Args:
-    -----
-    diagnostic : string
-        String naming the diagnostic to be processed.
+        diagnostics : dict
+            Dictionary containing information regarding how the diagnostics
+            are to be processed.
 
-    neighbours : numpy.array
-        Array of neigbouring grid points that are associated with sites
-        in the SortedDictionary of sites.
+            For example:
+            {
+                "temperature": {
+                    "diagnostic_name": "air_temperature",
+                    "extrema": true,
+                    "filepath": "temperature_at_screen_level",
+                    "interpolation_method":
+                        "model_level_temperature_lapse_rate",
+                    "neighbour_finding": {
+                        "land_constraint": false,
+                        "method": "fast_nearest_neighbour",
+                        "vertical_bias": null
+                    }
+                }
+            }
 
-    sites : dict
-        A dictionary containing the properties of spotdata sites.
+        neighbours : numpy.array
+            Array of neigbouring grid points that are associated with sites
+            in the SortedDictionary of sites.
 
-    forecast_times : list[datetime.datetime objects]
-        A list of datetimes representing forecast times for which data is
-        required.
+        sites : dict
+            A dictionary containing the properties of spotdata sites.
 
-    data_path : string
-        Path to diagnostic data files.
+        forecast_times : list[datetime.datetime objects]
+            A list of datetimes representing forecast times for which data is
+            required.
 
-    ancillary_data : dict
-        A dictionary containing additional model data that is needed.
-        e.g. {'orography': <cube of orography>}
+        ancillary_data : dict
+            A dictionary containing additional model data that is needed.
+            e.g. {'orography': <cube of orography>}
 
-    output_path : str
-        Path to which output file containing processed diagnostic should be
-        written.
+        diagnostic_name : string
+            A string matching the keys in the diagnostics dictionary that
+            will be used to access information regarding how the diagnostic
+            is to be processed.
 
     Returns:
-    --------
-    None
+        resulting_cubes : iris.cube.CubeList
+            CubeList after extracting the diagnostic requested using the
+            desired extraction method.
+        extrema_cubes : iris.cube.CubeList
+            CubeList containing extrema values, if the 'extrema' diagnostic
+            is requested.
 
-    Raises:
-    -------
-    IOError : If no relevant data cubes are found at given path.
-    Exception : No spotdata returned.
 
     """
-    # Search directory structure for all files relevant to current diagnostic.
-    files_to_read = [
-        os.path.join(dirpath, filename)
-        for dirpath, _, files in os.walk(data_path)
-        for filename in files if diagnostic['filepath'] in filename]
-    if not files_to_read:
-        raise IOError('No relevant data files found in {}.'.format(
-            data_path))
-
-    # Load cubes into an iris.cube.CubeList.
-    cubes = Load('multi_file').process(files_to_read,
-                                       diagnostic['diagnostic_name'])
+    diagnostic_dict = diagnostics[diagnostic_name]
 
     # Grab the relevant set of grid point neighbours for the neighbour finding
     # method being used by this diagnostic.
-    neighbour_hash = construct_neighbour_hash(diagnostic['neighbour_finding'])
+    neighbour_hash = (
+        construct_neighbour_hash(diagnostic_dict['neighbour_finding']))
     neighbour_list = neighbours[neighbour_hash]
-
-    # Check if additional diagnostics are needed (e.g. multi-level data).
-    # If required, load into the additional_diagnostics dictionary.
-    additional_diagnostics = get_method_prerequisites(
-        diagnostic['interpolation_method'], data_path)
 
     # Create empty iris.cube.CubeList to hold extracted data cubes.
     resulting_cubes = CubeList()
@@ -329,15 +306,16 @@ def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
     for a_time in forecast_times:
         # Extract Cube from CubeList at current time.
         time_extract = datetime_constraint(a_time)
-        cube = extract_cube_at_time(cubes, a_time, time_extract)
+        cube = extract_cube_at_time(
+            diagnostic_dict["data"], a_time, time_extract)
         if cube is None:
             # If no cube is available at given time, try the next time.
             continue
 
         ad = {}
-        if additional_diagnostics is not None:
-            # Extract additional diagnostcs at current time.
-            ad = extract_ad_at_time(additional_diagnostics, a_time,
+        if diagnostic_dict["additional_data"] is not None:
+            # Extract additional diagnostics at current time.
+            ad = extract_ad_at_time(diagnostic_dict["additional_data"], a_time,
                                     time_extract)
 
         args = (cube, sites, neighbour_list, ancillary_data, ad)
@@ -345,21 +323,21 @@ def process_diagnostic(diagnostic, neighbours, sites, forecast_times,
         # Extract diagnostic data using defined method.
         resulting_cubes.append(
             ExtractData(
-                diagnostic['interpolation_method']).process(*args, **kwargs)
-            )
+                diagnostic_dict['interpolation_method']).process(
+                    *args, **kwargs))
 
-    # Concatenate CubeList into Cube, creating a time DimCoord, and write out.
     if resulting_cubes:
-        cube_out, = resulting_cubes.concatenate()
-        WriteOutput('as_netcdf', dir_path=output_path).process(cube_out)
+        # Concatenate CubeList into Cube for cubes with different
+        # forecast times.
+        resulting_cube, = resulting_cubes.concatenate()
     else:
-        raise Exception('No data available at given forecast times.')
+        resulting_cube = None
 
-    # If set in the configuration, extract the diagnostic maxima and minima
-    # values.
-    if diagnostic['extrema']:
-        extrema_cubes = ExtractExtrema(24, start_hour=9).process(cube_out)
+    if diagnostic_dict['extrema']:
+        extrema_cubes = (
+            ExtractExtrema(24, start_hour=9).process(resulting_cube.copy()))
         extrema_cubes = extrema_cubes.merge()
-        for extrema_cube in extrema_cubes:
-            WriteOutput('as_netcdf', dir_path=output_path).process(
-                extrema_cube)
+    else:
+        extrema_cubes = None
+
+    return resulting_cube, extrema_cubes

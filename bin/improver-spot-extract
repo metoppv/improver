@@ -31,8 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
 import argparse
+import glob
+import json
 
+from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
+from improver.spotdata.read_input import get_method_prerequisites, Load
+from improver.spotdata.site_data import ImportSiteData
+from improver.spotdata.write_output import WriteOutput
 
 
 def valid_latitude(value):
@@ -177,7 +183,7 @@ def main():
                         help='Length of forecast in hours.')
     parser.add_argument('--output_path', type=str,
                         help='Path to which output files should be written.')
-    parser.add_argument('--multiprocess', type=bool,
+    parser.add_argument('--multiprocess', action="store_true",
                         help='Process diagnostics using multiprocessing.')
 
     args = parser.parse_args()
@@ -187,15 +193,89 @@ def main():
         site_properties = site_dictionary(args.latitudes, args.longitudes,
                                           args.altitudes)
 
-    run_spotdata(args.config_file_path, args.data_path, args.ancillary_path,
-                 diagnostic_list=args.diagnostics, site_path=args.site_path,
-                 constants_file_path=args.constants_path,
-                 site_properties=site_properties,
-                 forecast_date=args.forecast_date,
-                 forecast_time=args.forecast_time,
-                 forecast_length=args.forecast_length,
-                 output_path=args.output_path,
-                 use_multiprocessing=args.multiprocess)
+    # Check site data has been provided.
+    if args.site_path is None and not site_properties:
+        raise ValueError("No SpotData site information has been provided "
+                         "from a file or defined at runtime.")
+
+    # If using locations set at command line, set optional information such
+    # as site altitude and site_id. If a site definition file is provided it
+    # will take precedence.
+    if args.site_path is None:
+        sites = ImportSiteData('runtime_list').process(site_properties)
+    else:
+        sites = ImportSiteData('from_file').process(args.site_path)
+
+    # Read in extraction recipes for all diagnostics.
+    with open(args.config_file_path, 'r') as input_file:
+        diagnostics_from_file = json.load(input_file)
+
+    # Extract only the requested keys from all the available diagnostics
+    # that could be processed, as stored within the JSON file.
+    if args.diagnostics:
+        diagnostics = (
+            {key: diagnostics_from_file[key] for key in args.diagnostics})
+    else:
+        diagnostics = diagnostics_from_file
+
+    # Load ancillary data files; fields that don't vary in time.
+    ancillary_data = get_ancillary_data(diagnostics, args.ancillary_path)
+
+    config_constants = None
+    if args.constants_path is not None:
+        with open(args.constants_path, 'r') as input_file:
+            config_constants = json.load(input_file)
+
+    # Search directory structure for all files relevant to current diagnostic.
+    diagnostic_names = [diagnostics[diagnostic]["filepath"]
+                        for diagnostic in diagnostics.keys()]
+
+    # Create a list of files that will need to be read.
+    all_available_files = glob.glob(args.data_path+"/*")
+
+    if not all_available_files:
+        raise IOError('No data files found in {}.'.format(
+            args.data_path))
+
+    for diagnostic_key in diagnostics.keys():
+        diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
+        files_to_read = (
+            [filename for filename in all_available_files
+             if diagnostic_filepath in filename])
+        if not files_to_read:
+            raise IOError('No relevant data files found in {} for {}.'.format(
+                args.data_path, diagnostic_filepath))
+        diagnostic_name = diagnostics[diagnostic_key]["diagnostic_name"]
+        # Load cubes into an iris.cube.CubeList.
+        diagnostics[diagnostic_key]["data"] = Load('multi_file').process(
+            files_to_read, diagnostic_name)
+        # Check if additional diagnostics are needed (e.g. multi-level data).
+        # If required, load into the additional_diagnostics dictionary.
+        diagnostics[diagnostic_key]["additional_data"] = (
+            get_method_prerequisites(
+                diagnostics[diagnostic_key]["interpolation_method"],
+                args.data_path))
+
+    resulting_cubes, extrema_cubes = (
+        run_spotdata(
+            diagnostics, ancillary_data, sites, config_constants,
+            forecast_date=args.forecast_date, forecast_time=args.forecast_time,
+            forecast_length=args.forecast_length,
+            use_multiprocessing=args.multiprocess))
+
+    for resulting_cube in resulting_cubes:
+        if resulting_cube:
+            WriteOutput(
+                'as_netcdf', dir_path=args.output_path).process(resulting_cube)
+
+    # If set in the configuration, extract the diagnostic maxima and minima
+    # values.
+    for extrema_cubelist in extrema_cubes:
+        if extrema_cubelist:
+            for extrema_cube in extrema_cubelist:
+                WriteOutput('as_netcdf', dir_path=args.output_path).process(
+                    extrema_cube)
+
 
 if __name__ == "__main__":
     main()
