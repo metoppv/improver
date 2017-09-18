@@ -139,8 +139,8 @@ class Test_run_spotdata(Test_main):
         result = Function(*self.args, **self.kwargs)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0][0], Cube)
-        self.assertIsInstance(result[0][1], Cube)
         self.assertEqual(result[0][0].name(), 'air_temperature')
+        self.assertEqual(result[1][0], None)
 
     def test_nominal_run_with_kwargs_for_multiprocessing(self):
         """Test a typical run of the routine completes successfully
@@ -151,8 +151,8 @@ class Test_run_spotdata(Test_main):
         result = Function(*self.args, **kwargs)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0][0], Cube)
-        self.assertIsInstance(result[0][1], Cube)
         self.assertEqual(result[0][0].name(), 'air_temperature')
+        self.assertEqual(result[1][0], None)
 
     def test_nominal_run_without_kwargs(self):
         """Test a typical run of the routine completes as intended.
@@ -161,9 +161,8 @@ class Test_run_spotdata(Test_main):
         result = Function(*self.args)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0][0], Cube)
-        self.assertIsInstance(result[0][1], Cube)
-        self.assertIsInstance(result[1], CubeList)
-        self.assertEqual(len(result[1]), 0)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
+        self.assertEqual(result[1][0], None)
 
 
 class Test_process_diagnostic(Test_main):
@@ -180,11 +179,8 @@ class Test_process_diagnostic(Test_main):
             self.diagnostic_recipe, neighbours, self.sites,
             self.ancillary_data, "temperature")
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], CubeList)
-        self.assertIsInstance(result[0][0], Cube)
-        self.assertIsInstance(result[0][1], Cube)
-        self.assertIsInstance(result[1], CubeList)
-        self.assertEqual(len(result[1]), 0)
+        self.assertIsInstance(result[0], Cube)
+        self.assertEqual(result[1], None)
 
 
 if __name__ == '__main__':

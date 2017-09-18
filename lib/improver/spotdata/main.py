@@ -187,8 +187,8 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         resulting_cubes = CubeList()
         extrema_cubes = CubeList()
         for result in result.get():
-            resulting_cubes.extend(result[0])
-            extrema_cubes.extend(result[1:])
+            resulting_cubes.append(result[0])
+            extrema_cubes.append(result[1:])
     else:
         # Process diagnostics serially on one thread.
         resulting_cubes = CubeList()
@@ -198,8 +198,8 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
                 process_diagnostic(
                     diagnostics, neighbours, sites,
                     ancillary_data, key))
-            resulting_cubes.extend(resulting_cubelist)
-            extrema_cubes.extend(extrema_cubelist)
+            resulting_cubes.append(resulting_cube)
+            extrema_cubes.append(extrema_cubelist)
     return resulting_cubes, extrema_cubes
 
 
@@ -246,13 +246,16 @@ def process_diagnostic(diagnostics, neighbours, sites,
             is to be processed.
 
     Returns:
-        resulting_cubes : iris.cube.CubeList
-            CubeList after extracting the diagnostic requested using the
+        resulting_cube : iris.cube.Cube or None
+            Cube after extracting the diagnostic requested using the
             desired extraction method.
-        extrema_cubes : iris.cube.CubeList
+            None is returned if the "resulting_cubes" is an empty CubeList
+            after processing.
+        extrema_cubes : iris.cube.CubeList or None
             CubeList containing extrema values, if the 'extrema' diagnostic
             is requested.
-
+            None is returned if the value for diagnostic_dict["extrema"]
+            is False, so that the extrema calculation is not required.
 
     """
     diagnostic_dict = diagnostics[diagnostic_name]
@@ -262,9 +265,6 @@ def process_diagnostic(diagnostics, neighbours, sites,
     neighbour_hash = (
         construct_neighbour_hash(diagnostic_dict['neighbour_finding']))
     neighbour_list = neighbours[neighbour_hash]
-
-    # Create empty iris.cube.CubeList to hold extracted data cubes.
-    resulting_cubes = CubeList()
 
     # Get optional kwargs that may be set to override defaults.
     optionals = ['upper_level', 'lower_level', 'no_neighbours',
@@ -281,6 +281,9 @@ def process_diagnostic(diagnostics, neighbours, sites,
     for cube in diagnostic_dict["data"]:
         time = cube.coord("time")
         forecast_times.extend(time.units.num2date(time.points))
+
+    # Create empty iris.cube.CubeList to hold extracted data cubes.
+    resulting_cubes = CubeList()
 
     # Loop over forecast times.
     for a_time in forecast_times:
@@ -318,6 +321,6 @@ def process_diagnostic(diagnostics, neighbours, sites,
             ExtractExtrema(24, start_hour=9).process(resulting_cube.copy()))
         extrema_cubes = extrema_cubes.merge()
     else:
-        extrema_cubes = CubeList()
+        extrema_cubes = None
 
     return resulting_cube, extrema_cubes
