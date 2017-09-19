@@ -39,13 +39,13 @@
   # for extracting data.
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/nearest_diagnostics.json" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/temperature_at_screen_level.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
+      $TEST_DIR \
       --diagnostics temperature \
       --latitudes 10 20 30 40 50 60 \
       --longitudes 0 0 0 0 0 0 \
       --altitudes 0 1 2 3 4 5 \
-      --output_path $TEST_DIR
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

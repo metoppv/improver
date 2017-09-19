@@ -265,12 +265,13 @@ def main():
     # values.
     filepath = all_available_files[0]
     base_filename = os.path.splitext(os.path.basename(filepath))[0]
-    for extrema_cube in extrema_cubes:
-        if extrema_cube:
-            filename = "{}_{}".format(base_filename, extrema_cube.name())
-            WriteOutput(
-                'as_netcdf', dir_path=args.output_path,
-                filename=filename).process(extrema_cube)
+    for extrema_cubelist in extrema_cubes:
+        if extrema_cubelist:
+            for extrema_cube in extrema_cubelist:
+                filename = "{}_{}".format(base_filename, extrema_cube.name())
+                WriteOutput(
+                    'as_netcdf', dir_path=args.output_path,
+                    filename=filename).process(extrema_cube)
 
 
 if __name__ == "__main__":
