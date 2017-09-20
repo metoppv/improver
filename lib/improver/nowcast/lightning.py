@@ -246,6 +246,15 @@ def rescale(data, datarange=None, scalerange=(0., 1.),
                                                                     scalemin,
                                                                     datamax,
                                                                     scalemax)
+    #range check
+    if datamin == datamax:
+        raise ValueError, "Cannot rescale a zero input range " + \
+            "({} -> {})".format(datamin, datamax)
+
+    if scalemin == scalemax:
+        raise ValueError, "Cannot rescale a zero output range " + \
+            "({} -> {})".format(scalemin, scalemax)
+
     result = ((data - datamin) * (scalemax - scalemin) /
               (datamax - datamin)) + scalemin
     if clip:

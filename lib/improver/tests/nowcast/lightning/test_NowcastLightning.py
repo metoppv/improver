@@ -305,6 +305,22 @@ class Test_rescale(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(self.stdout.getvalue(), expected)
 
+    def test_zerorange_input(self):
+        """
+        Test that the method returns the expected error
+        """
+        msg = "Cannot rescale a zero input range"
+        with self.assertRaisesRegexp(ValueError, msg):
+            rescale(self.cube.data, datarange=[0, 0])
+
+    def test_zerorange_output(self):
+        """
+        Test that the method returns the expected error
+        """
+        msg = "Cannot rescale a zero output range"
+        with self.assertRaisesRegexp(ValueError, msg):
+            rescale(self.cube.data, scalerange=[4, 4])
+
     def test_rescaling_inrange(self):
         """
         Test that the method returns the expected values when in range
