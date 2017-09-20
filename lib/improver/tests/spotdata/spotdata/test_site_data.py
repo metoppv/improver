@@ -53,7 +53,7 @@ class Test_ImportSiteData(IrisTest):
         """Create components required for testing site_data."""
 
         self.data_directory = mkdtemp()
-        self.site_data = [
+        self.site_data = {"sites": [
             {'latitude': -51.6927, 'wmo_id': None, 'altitude': 0,
              'gmtoffset': -3.0, 'longitude': -57.8557},
             {'latitude': -47.24417, 'wmo_id': 15, 'altitude': 205,
@@ -64,11 +64,12 @@ class Test_ImportSiteData(IrisTest):
              'gmtoffset': 2.0, 'longitude': 18.37},
             {'latitude': -27.45, 'wmo_id': 18, 'altitude': 38,
              'gmtoffset': 10.0, 'longitude': 153.03}
-            ]
+            ]}
 
-        self.latitudes = [site['latitude'] for site in self.site_data]
-        self.longitudes = [site['longitude'] for site in self.site_data]
-        self.altitudes = [site['altitude'] for site in self.site_data]
+        self.latitudes = [site['latitude'] for site in self.site_data["sites"]]
+        self.longitudes = (
+            [site['longitude'] for site in self.site_data["sites"]])
+        self.altitudes = [site['altitude'] for site in self.site_data["sites"]]
         self.wmo_sites = [0, 15, 10, 17, 18]
         self.variables = ['latitude', 'longitude', 'altitude', 'utc_offset']
 
@@ -109,7 +110,7 @@ class Test_from_file(Test_ImportSiteData):
         File formatted to represent current BestData input.
 
         """
-        expected = self.site_data
+        expected = self.site_data["sites"]
         self.save_json(self.site_data)
 
         self.change_key(expected, 'gmtoffset', 'utc_offset')
@@ -130,7 +131,7 @@ class Test_from_file(Test_ImportSiteData):
         but missing compulsary latitude data.
 
         """
-        for site in self.site_data:
+        for site in self.site_data["sites"]:
             site.pop('latitude')
         self.save_json(self.site_data)
 
@@ -144,7 +145,7 @@ class Test_from_file(Test_ImportSiteData):
         but missing compulsary longitude data.
 
         """
-        for site in self.site_data:
+        for site in self.site_data["sites"]:
             site.pop('longitude')
         self.save_json(self.site_data)
 
@@ -158,7 +159,7 @@ class Test_from_file(Test_ImportSiteData):
         but missing compulsary longitude data for some sites.
 
         """
-        self.site_data[0].pop('longitude')
+        self.site_data["sites"][0].pop('longitude')
         self.save_json(self.site_data)
         msg = 'Unequal no. of latitudes (.*) and longitudes'
         with self.assertRaisesRegexp(ValueError, msg):
@@ -171,7 +172,7 @@ class Test_from_file(Test_ImportSiteData):
         calculated from longitude.
 
         """
-        for site in self.site_data:
+        for site in self.site_data["sites"]:
             site.pop('wmo_id')
             site.pop('altitude')
             site.pop('gmtoffset')
@@ -202,13 +203,14 @@ class Test_runtime_list(Test_ImportSiteData):
         are provided.
 
         """
+        site_data = self.site_data["sites"]
         # These are not currently a CLI option, so remove them.
-        for site in self.site_data:
+        for site in site_data:
             site.pop('gmtoffset')
             site.pop('wmo_id')
 
         result = Plugin(self.method).process(
-            site_properties=self.site_data)
+            site_properties=site_data)
         # set from longitude.
         expected_utc_offsets = [-4, -5, -1, 1, 10]
         # unset, so none can be flagged as wmo_sites
@@ -236,12 +238,13 @@ class Test_runtime_list(Test_ImportSiteData):
         provided.
 
         """
-        for site in self.site_data:
+        site_data = self.site_data["sites"]
+        for site in site_data:
             site.pop('gmtoffset')
             site.pop('wmo_id')
             site.pop('altitude')
 
-        result = Plugin(self.method).process(self.site_data)
+        result = Plugin(self.method).process(site_data)
         expected_altitudes = [np.nan] * 5
         expected_utc_offsets = [-4, -5, -1, 1, 10]
         # unset, so none can be flagged as wmo_sites

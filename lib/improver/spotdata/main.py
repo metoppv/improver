@@ -306,7 +306,7 @@ def process_diagnostic(diagnostics, neighbours, sites,
     if resulting_cubes:
         # Concatenate CubeList into Cube for cubes with different
         # forecast times.
-        resulting_cube, = resulting_cubes.concatenate()
+        resulting_cube = resulting_cubes.concatenate_cube()
     else:
         resulting_cube = None
 

@@ -141,15 +141,20 @@ def main():
                     'and adjusting the resulting data can be set by defining '
                     'suitable diagnostics configurations.')
 
+    # Input and output files required.
     parser.add_argument('config_file_path',
                         help='Path to a json file defining the recipes for '
                         'extracting diagnostics at SpotData sites from '
                         'gridded data.')
     parser.add_argument('data_path', type=str,
-                        help='Path to a file containing the diagnostic'
+                        help='Path to a file containing the diagnostic '
                              'to be processed.')
     parser.add_argument('ancillary_path', type=str,
                         help='Path to ancillary (time invariant) data files.')
+    parser.add_argument('output_path', type=str,
+                        help='Path to which output files should be written.')
+
+    # The diagnostic to be processed.
     parser.add_argument('--diagnostics', type=str, nargs='+', default=None,
                         help='A list of diagnostics that are to be processed. '
                              'If unset, all diagnostics defined in the '
@@ -174,9 +179,7 @@ def main():
     parser.add_argument('--altitudes', type=float, nargs='+',
                         help='List of altitudes of sites of interest.')
 
-    # Forecast date/time information.
-    parser.add_argument('output_path', type=str,
-                        help='Path to which output files should be written.')
+    # Options for speeding up processing.
     parser.add_argument('--multiprocess', action="store_true",
                         help='Process diagnostics using multiprocessing.')
 
@@ -229,13 +232,14 @@ def main():
     # Loop through the requested diagnostics and load data the essential data
     # and any additional data that is required.
     for diagnostic_key in diagnostics.keys():
-        diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
+        diagnostic_name_in_filename = (
+            diagnostics[diagnostic_key]["name_in_filename"])
         files_to_read = (
             [filename for filename in all_available_files
-             if diagnostic_filepath in filename])
+             if diagnostic_name_in_filename in filename])
         if not files_to_read:
             raise IOError('No relevant data files found in {} for {}.'.format(
-                args.data_path, diagnostic_filepath))
+                args.data_path, diagnostic_name_in_filename))
         # Load cubes into an iris.cube.CubeList.
         diagnostics[diagnostic_key]["data"] = (
             Load('multi_file').process(files_to_read))
@@ -256,7 +260,7 @@ def main():
     if resulting_cubes:
         # Concatenate CubeList into Cube, creating a time DimCoord,
         # and write out.
-        cube_out, = resulting_cubes.concatenate()
+        cube_out = resulting_cubes.concatenate_cube()
         WriteOutput(
             'as_netcdf', dir_path=args.output_path,
             filename=filename).process(cube_out)

@@ -91,4 +91,5 @@ class WriteOutput(object):
         """
         if self.filename is None:
             self.filename = cube.name()
-        iris.save(cube, '{}/{}.nc'.format(self.dir_path, self.filename))
+        iris.save(
+            cube, '{}.nc'.format(os.path.join(self.dir_path, self.filename)))
