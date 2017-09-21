@@ -35,8 +35,6 @@ import numpy as np
 
 import iris
 from iris.coords import AuxCoord, DimCoord
-from improver.utilities.cube_checker import (coord_exists_in_cube,
-                                             coord_is_dimension)
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -196,14 +194,6 @@ def concatenate_cubes(
 
     associated_master_cubelist = iris.cube.CubeList([])
     for cube in cubes:
-
-        # We could include this to promote the necessary coordinate to a
-        # dimension if it exists and there are other coordinates to be
-        # associated with it.
-        #        if (coord_exists_in_cube(cube, master_coord) and not
-        #                coord_is_dimension(cube, master_coord):
-        #            cube = iris.util.new_axis(cube, master_coord)
-
         associated_master_cubelist.append(
             _associate_any_coordinate_with_master_coordinate(
                 cube, master_coord=master_coord,
