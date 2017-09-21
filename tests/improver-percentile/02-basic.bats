@@ -31,14 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentile input output--percentiles 25 50 75" {
+@test "percentile input output --coordinates realization --percentiles 25 50 75" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run percentile processing and check it passes.
   run improver percentile \
       "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" "$TEST_DIR/output.nc" \
-      realization --percentiles 25 50 75
+      --coordinates realization --percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
