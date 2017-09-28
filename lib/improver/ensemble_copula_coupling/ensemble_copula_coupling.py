@@ -386,9 +386,9 @@ class GeneratePercentilesFromProbabilities(object):
         elif relation == 'below':
             probabilities_for_cdf = prob_slices
         else:
-            msg =("Probabilities to percentiles only implemented for thresholds"
-                  "above or below a given value."
-                  "The relation to threshold is given as {}".format(relation))
+            msg = ("Probabilities to percentiles only implemented for"
+                   "thresholds above or below a given value."
+                   "The relation to threshold is given as {}".format(relation))
             raise NotImplementedError(msg)
 
         threshold_points, probabilities_for_cdf = (
