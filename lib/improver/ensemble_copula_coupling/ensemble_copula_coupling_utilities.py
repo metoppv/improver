@@ -165,9 +165,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
         template cube.
 
     """
-    percentile_coord_name = custom_name
-    if percentile_coord_name is None:
-        percentile_coord_name = "percentile_over_realization"
+    percentile_coord_name = custom_name or 'percentile_over_realization'
 
     percentile_coord = iris.coords.DimCoord(
         np.float32(percentiles), long_name=percentile_coord_name,

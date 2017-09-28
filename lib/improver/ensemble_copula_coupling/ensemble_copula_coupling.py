@@ -48,8 +48,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.cube_checker import coord_is_dimension
-
 
 class RebadgePercentilesAsMembers(object):
     """
@@ -382,11 +380,16 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities, coord=threshold_coord.name())
 
         # Invert probabilities for data thresholded above thresholds.
-        if (forecast_probabilities.attributes['relative_to_threshold'] ==
-                'above'):
+        relation = forecast_probabilities.attributes['relative_to_threshold']
+        if relation == 'above':
             probabilities_for_cdf = 1 - prob_slices
-        else:
+        elif relation == 'below':
             probabilities_for_cdf = prob_slices
+        else:
+            msg =("Probabilities to percentiles only implemented for thresholds"
+                  "above or below a given value."
+                  "The relation to threshold is given as {}".format(relation))
+            raise NotImplementedError(msg)
 
         threshold_points, probabilities_for_cdf = (
             self._add_bounds_to_thresholds_and_probabilities(
@@ -448,13 +451,13 @@ class GeneratePercentilesFromProbabilities(object):
         forecast_probabilities : Iris CubeList or Iris Cube
             Cube or CubeList expected to contain a threshold coordinate.
         no_of_percentiles : Integer or None
-            Number of percentiles
-            If None, the number of thresholds within the input
-            forecast_probabilities cube is used as the number of percentiles.
+            Number of percentiles. If None and percentiles is not set,
+            the number of thresholds within the input forecast_probabilities
+            cube is used as the number of percentiles.
             This argument is mutually exclusive with percentiles.
         percentiles : list of floats
-            The desired percentile values. This argument is mutually exclusive
-            with no_of_percentiles.
+            The desired percentile values in the interval [0, 100].
+            This argument is mutually exclusive with no_of_percentiles.
         sampling : String
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -504,10 +507,10 @@ class GeneratePercentilesFromProbabilities(object):
 
         # If a cube still has multiple realizations, slice over these to reduce
         # the memory requirements into manageable chunks.
-        if coord_is_dimension(forecast_probabilities, 'realization'):
+        try:
             slices_over_realization = forecast_probabilities.slices_over(
                 "realization")
-        else:
+        except CoordinateNotFoundError:
             slices_over_realization = [forecast_probabilities]
 
         cubelist = iris.cube.CubeList([])

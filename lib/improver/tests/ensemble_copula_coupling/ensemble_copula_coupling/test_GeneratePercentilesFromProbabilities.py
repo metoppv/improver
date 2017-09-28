@@ -499,6 +499,22 @@ class Test_process(IrisTest):
             cube, no_of_percentiles=no_of_percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    def test_check_data_specifying_single_percentile(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for a specific set of percentiles.
+        """
+        data = np.array([[[[21.5, 8.75, 11.],
+                           [8.33333333, 8.75, -16.],
+                           [-16., -25., -28.]]]])
+
+        cube = self.current_temperature_forecast_cube
+        percentiles = [25]
+        plugin = Plugin()
+        result = plugin.process(
+            cube, percentiles=percentiles)
+        self.assertArrayAlmostEqual(result.data, data)
+
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

@@ -54,7 +54,7 @@ def main():
                         help="A path to an input NetCDF file to be processed")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--coordinates", metavar="COLLAPSING_COORDINATES",
+    parser.add_argument("--coordinates", metavar="COORDINATES_TO_COLLAPSE",
                         nargs="+",
                         help="Coordinate or coordinates over which to collapse"
                         " data and calculate percentiles; e.g. "
@@ -73,10 +73,11 @@ def main():
 
     args = parser.parse_args()
     cube = iris.load_cube(args.input_filepath)
+    # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
         if args.coordinates:
             warnings.warn("Converting probabilities to percentiles. The "
-                          "provided COLLAPSING_COORDINATES variable will "
+                          "provided COORDINATES_TO_COLLAPSE variable will "
                           "not be used.")
 
         result = GeneratePercentilesFromProbabilities().process(
