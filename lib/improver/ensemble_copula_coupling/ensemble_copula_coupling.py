@@ -49,6 +49,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import concatenate_cubes
 
+
 class RebadgePercentilesAsMembers(object):
     """
     Class to rebadge percentiles as ensemble realizations.
@@ -369,6 +370,7 @@ class GeneratePercentilesFromProbabilities(object):
 
         """
         threshold_coord = forecast_probabilities.coord("threshold")
+        threshold_unit = forecast_probabilities.coord("threshold").units
         threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
@@ -386,7 +388,7 @@ class GeneratePercentilesFromProbabilities(object):
         elif relation == 'below':
             probabilities_for_cdf = prob_slices
         else:
-            msg = ("Probabilities to percentiles only implemented for"
+            msg = ("Probabilities to percentiles only implemented for "
                    "thresholds above or below a given value."
                    "The relation to threshold is given as {}".format(relation))
             raise NotImplementedError(msg)
@@ -432,7 +434,7 @@ class GeneratePercentilesFromProbabilities(object):
             break
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_cube, forecast_at_percentiles,
-            custom_name='percentile')
+            custom_name='percentile', cube_unit=threshold_unit)
         return percentile_cube
 
     def process(self, forecast_probabilities, no_of_percentiles=None,
@@ -516,7 +518,7 @@ class GeneratePercentilesFromProbabilities(object):
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
             cubelist.append(self._probabilities_to_percentiles(
-                    cube_realization, percentiles, bounds_pairing))
+                cube_realization, percentiles, bounds_pairing))
 
         forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles

@@ -34,7 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-percentile [-h]
-                           [--coordinates COLLAPSING_COORDINATES [COLLAPSING_COORDINATES ...]]
+                           [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
                            [--percentiles PERCENTILES [PERCENTILES ...]]
                            INPUT_FILE OUTPUT_FILE
 
@@ -50,7 +50,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --coordinates COLLAPSING_COORDINATES [COLLAPSING_COORDINATES ...]
+  --coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]
                         Coordinate or coordinates over which to collapse data
                         and calculate percentiles; e.g. realization or
                         latitude longitude. This argument must be provided
