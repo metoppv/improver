@@ -132,7 +132,8 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     return [item*100 for item in percentiles]
 
 
-def create_cube_with_percentiles(percentiles, template_cube, cube_data):
+def create_cube_with_percentiles(percentiles, template_cube, cube_data,
+                                 custom_name=None, cube_unit=None):
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
@@ -164,12 +165,16 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data):
         template cube.
 
     """
+    percentile_coord_name = custom_name or 'percentile_over_realization'
+
     percentile_coord = iris.coords.DimCoord(
-        np.float32(percentiles), long_name="percentile_over_realization",
-        units=unit.Unit("1"), var_name="percentile_over_realization")
+        np.float32(percentiles), long_name=percentile_coord_name,
+        units=unit.Unit("%"), var_name=percentile_coord_name)
 
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
     result = iris.cube.Cube(cube_data, **metadata_dict)
+    if cube_unit is not None:
+        result.units = cube_unit
     result.add_dim_coord(percentile_coord, 0)
 
     # For the dimension coordinates, the dimensions are incremented by one,

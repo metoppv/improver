@@ -29,12 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "percentile no arguments" {
-  run improver percentile
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-percentile [-h]
-                           [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
-                           [--percentiles PERCENTILES [PERCENTILES ...]]
-                           INPUT_FILE OUTPUT_FILE"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "percentile input output--percentiles 25 50 75" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run percentile processing and check it passes.
+  run improver percentile \
+      "$IMPROVER_ACC_TEST_DIR/percentile/probability_convert/multi_realization.nc" "$TEST_DIR/output.nc" \
+      --coordinates realization --percentiles 25 50 75
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/percentile/probability_convert/multi_realization_kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

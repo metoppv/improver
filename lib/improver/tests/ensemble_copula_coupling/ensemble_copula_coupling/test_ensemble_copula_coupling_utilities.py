@@ -188,6 +188,24 @@ class Test_create_cube_with_percentiles(IrisTest):
             percentiles, cube, cube_data)
         self.assertIsInstance(result, Cube)
 
+    def test_resulting_cube_units(self):
+        """Test that the plugin returns a cube of suitable units."""
+        cube = self.current_temperature_forecast_cube
+        cube_data = self.cube_data + 2
+        percentiles = [10, 50, 90]
+        result = create_cube_with_percentiles(
+            percentiles, cube, cube_data)
+        self.assertEqual(result.units, cube.units)
+
+    def test_changed_cube_units(self):
+        """Test that the plugin returns a cube with chosen units."""
+        cube = self.current_temperature_forecast_cube
+        cube_data = self.cube_data + 2
+        percentiles = [10, 50, 90]
+        result = create_cube_with_percentiles(
+            percentiles, cube, cube_data, cube_unit='1')
+        self.assertEqual(result.units, Unit('1'))
+
     def test_many_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with many

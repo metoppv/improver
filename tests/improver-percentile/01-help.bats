@@ -33,24 +33,30 @@
   run improver percentile -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-percentile [-h] [--percentiles PERCENTILES [PERCENTILES ...]]
-                           INPUT_FILE OUTPUT_FILE COLLAPSING_COORDINATES
-                           [COLLAPSING_COORDINATES ...]
+usage: improver-percentile [-h]
+                           [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
+                           [--percentiles PERCENTILES [PERCENTILES ...]]
+                           INPUT_FILE OUTPUT_FILE
 
 Calculate percentiled data over a cube coordinate by collapsing that
 coordinate. Typically used to convert realization (member) data into
 percentiled data, but may calculate over any dimension coordinate.
+Alternatively, calling this CLI with a cube containing probabilities will
+convert those to percentiles using the ensemble copula coupling plugin.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed
   OUTPUT_FILE           The output path for the processed NetCDF
-  COLLAPSING_COORDINATES
-                        Coordinate or coordinates over which to collapse data
-                        and calculate percentiles; e.g. realization or
-                        latitude longitude
 
 optional arguments:
   -h, --help            show this help message and exit
+  --coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]
+                        Coordinate or coordinates over which to collapse data
+                        and calculate percentiles; e.g. 'realization' or
+                        'latitude longitude'. This argument must be provided
+                        when collapsing a coordinate or coordinates to create
+                        percentiles, but is redundant when converting
+                        probabilities to percentiles and may be omitted.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
                         calculate data, otherwise default values are used,

@@ -90,6 +90,8 @@ class RebadgePercentilesAsMembers(object):
         cube.coord("percentile_over_realization").points = (
             ensemble_member_numbers)
         cube.coord("percentile_over_realization").rename("realization")
+        cube.coord("realization").units = "1"
+
         return cube
 
 
@@ -368,6 +370,7 @@ class GeneratePercentilesFromProbabilities(object):
 
         """
         threshold_coord = forecast_probabilities.coord("threshold")
+        threshold_unit = forecast_probabilities.coord("threshold").units
         threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
@@ -378,8 +381,17 @@ class GeneratePercentilesFromProbabilities(object):
         prob_slices = convert_cube_data_to_2d(
             forecast_probabilities, coord=threshold_coord.name())
 
-        # Invert probabilities
-        probabilities_for_cdf = 1 - prob_slices
+        # Invert probabilities for data thresholded above thresholds.
+        relation = forecast_probabilities.attributes['relative_to_threshold']
+        if relation == 'above':
+            probabilities_for_cdf = 1 - prob_slices
+        elif relation == 'below':
+            probabilities_for_cdf = prob_slices
+        else:
+            msg = ("Probabilities to percentiles only implemented for "
+                   "thresholds above or below a given value."
+                   "The relation to threshold is given as {}".format(relation))
+            raise NotImplementedError(msg)
 
         threshold_points, probabilities_for_cdf = (
             self._add_bounds_to_thresholds_and_probabilities(
@@ -415,14 +427,18 @@ class GeneratePercentilesFromProbabilities(object):
 
         for template_cube in forecast_probabilities.slices_over(
                 threshold_coord.name()):
+            template_cube.rename(
+                template_cube.name().replace("probability_of_", ""))
             template_cube.remove_coord(threshold_coord.name())
+            template_cube.attributes.pop('relative_to_threshold')
             break
         percentile_cube = create_cube_with_percentiles(
-            percentiles, template_cube, forecast_at_percentiles)
+            percentiles, template_cube, forecast_at_percentiles,
+            custom_name='percentile', cube_unit=threshold_unit)
         return percentile_cube
 
     def process(self, forecast_probabilities, no_of_percentiles=None,
-                sampling="quantile"):
+                percentiles=None, sampling="quantile"):
         """
         1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
@@ -437,9 +453,13 @@ class GeneratePercentilesFromProbabilities(object):
         forecast_probabilities : Iris CubeList or Iris Cube
             Cube or CubeList expected to contain a threshold coordinate.
         no_of_percentiles : Integer or None
-            Number of percentiles
-            If None, the number of thresholds within the input
-            forecast_probabilities cube is used as the number of percentiles.
+            Number of percentiles. If None and percentiles is not set,
+            the number of thresholds within the input forecast_probabilities
+            cube is used as the number of percentiles.
+            This argument is mutually exclusive with percentiles.
+        percentiles : list of floats
+            The desired percentile values in the interval [0, 100].
+            This argument is mutually exclusive with no_of_percentiles.
         sampling : String
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -456,7 +476,16 @@ class GeneratePercentilesFromProbabilities(object):
             The threshold coordinate is always the zeroth dimension.
 
         """
-        forecast_probabilities = concatenate_cubes(forecast_probabilities)
+        if no_of_percentiles is not None and percentiles is not None:
+            raise ValueError(
+                "Cannot specify both no_of_percentiles and percentiles to "
+                "GeneratePercentilesFromProbabilities")
+
+        forecast_probabilities = concatenate_cubes(
+            forecast_probabilities,
+            coords_to_slice_over="threshold",
+            coordinates_for_association=[])
+
         threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
             forecast_probabilities.name().replace("probability_of_", ""))
@@ -466,8 +495,11 @@ class GeneratePercentilesFromProbabilities(object):
                 len(forecast_probabilities.coord(
                     threshold_coord.name()).points))
 
-        percentiles = choose_set_of_percentiles(
-            no_of_percentiles, sampling=sampling)
+        if percentiles is None:
+            percentiles = choose_set_of_percentiles(
+                no_of_percentiles, sampling=sampling)
+        elif not isinstance(percentiles, (tuple, list)):
+            percentiles = [percentiles]
 
         cube_units = (
             forecast_probabilities.coord(threshold_coord.name()).units)
@@ -475,8 +507,20 @@ class GeneratePercentilesFromProbabilities(object):
             get_bounds_of_distribution(
                 phenom_name, cube_units))
 
-        forecast_at_percentiles = self._probabilities_to_percentiles(
-            forecast_probabilities, percentiles, bounds_pairing)
+        # If a cube still has multiple realizations, slice over these to reduce
+        # the memory requirements into manageable chunks.
+        try:
+            slices_over_realization = forecast_probabilities.slices_over(
+                "realization")
+        except CoordinateNotFoundError:
+            slices_over_realization = [forecast_probabilities]
+
+        cubelist = iris.cube.CubeList([])
+        for cube_realization in slices_over_realization:
+            cubelist.append(self._probabilities_to_percentiles(
+                cube_realization, percentiles, bounds_pairing))
+
+        forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles
 
 
