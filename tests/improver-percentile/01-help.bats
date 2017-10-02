@@ -52,8 +52,8 @@ optional arguments:
   -h, --help            show this help message and exit
   --coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]
                         Coordinate or coordinates over which to collapse data
-                        and calculate percentiles; e.g. realization or
-                        latitude longitude. This argument must be provided
+                        and calculate percentiles; e.g. 'realization' or
+                        'latitude longitude'. This argument must be provided
                         when collapsing a coordinate or coordinates to create
                         percentiles, but is redundant when converting
                         probabilities to percentiles and may be omitted.
