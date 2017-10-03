@@ -103,7 +103,7 @@ class ImportSiteData(object):
         """
         if file_path.endswith('.json'):
             data_file = open(file_path, 'r')
-            site_data = json.load(data_file)["sites"]
+            site_data = json.load(data_file)
             data_file.close()
         else:
             raise IOError('Unknown file type for site definitions.')
