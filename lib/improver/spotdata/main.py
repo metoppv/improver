@@ -31,20 +31,13 @@
 """The main routine for site specific post-processing."""
 
 from functools import partial
-import json
 import multiprocessing as mp
 
 from iris.cube import CubeList
 
-from improver.spotdata.read_input import (Load,
-                                          get_method_prerequisites)
 from improver.spotdata.neighbour_finding import PointSelection
 from improver.spotdata.extract_data import ExtractData
-from improver.spotdata.write_output import WriteOutput
-from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.extrema import ExtractExtrema
-from improver.spotdata.site_data import ImportSiteData
-from improver.spotdata.times import get_forecast_times
 from improver.spotdata.common_functions import (construct_neighbour_hash,
                                                 datetime_constraint,
                                                 extract_cube_at_time,
@@ -52,7 +45,6 @@ from improver.spotdata.common_functions import (construct_neighbour_hash,
 
 
 def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
-                 forecast_date=None, forecast_time=None, forecast_length=168,
                  use_multiprocessing=False):
     """
     A routine that calls the components of the spotdata code. This includes
@@ -116,19 +108,6 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             interpolation of temperatures using a temperature lapse rate
             method.
 
-        forecast_date : string (YYYYMMDD)
-            A string of format YYYYMMDD defining the start date for which
-            forecasts are required.
-
-        forecast_time : integer
-            An integer giving the hour on the forecast_date at which to start
-            the forecast output; 24hr clock such that 17 = 17Z for example.
-
-        forecast_length : integer
-            An integer giving the desired length of the forecast output in
-            hours (e.g. 48 for a two day forecast period).
-            Defaults to 168 (7 days).
-
         use_multiprocessing : boolean
             A switch determining whether to use multiprocessing in the data
             extraction step.
@@ -142,12 +121,6 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             is requested.
 
     """
-    # Establish forecast time list based upon input specifications, or if not
-    # provided, use defaults.
-    forecast_times = get_forecast_times(forecast_length,
-                                        forecast_date=forecast_date,
-                                        forecast_time=forecast_time)
-
     # Read in constants to use; if not available, defaults will be used.
     neighbour_kwargs = {}
     if config_constants is not None:
@@ -202,30 +175,29 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             diagnostic_pool.map_async(
                 partial(
                     process_diagnostic, diagnostics, neighbours, sites,
-                    forecast_times, ancillary_data), diagnostic_keys))
+                    ancillary_data), diagnostic_keys))
         diagnostic_pool.close()
         diagnostic_pool.join()
-        resulting_cubes = []
-        extrema_cubes = []
+        resulting_cubes = CubeList()
+        extrema_cubes = CubeList()
         for result in result.get():
             resulting_cubes.append(result[0])
-            extrema_cubes.extend(result[1:])
+            extrema_cubes.append(result[1:])
     else:
         # Process diagnostics serially on one thread.
-        resulting_cubes = []
-        extrema_cubes = []
+        resulting_cubes = CubeList()
+        extrema_cubes = CubeList()
         for key in diagnostics.keys():
             resulting_cube, extrema_cubelist = (
                 process_diagnostic(
-                    diagnostics, neighbours, sites, forecast_times,
+                    diagnostics, neighbours, sites,
                     ancillary_data, key))
             resulting_cubes.append(resulting_cube)
             extrema_cubes.append(extrema_cubelist)
-
     return resulting_cubes, extrema_cubes
 
 
-def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
+def process_diagnostic(diagnostics, neighbours, sites,
                        ancillary_data, diagnostic_name):
     """
     Extract data and write output for a given diagnostic.
@@ -258,10 +230,6 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
         sites : dict
             A dictionary containing the properties of spotdata sites.
 
-        forecast_times : list[datetime.datetime objects]
-            A list of datetimes representing forecast times for which data is
-            required.
-
         ancillary_data : dict
             A dictionary containing additional model data that is needed.
             e.g. {'orography': <cube of orography>}
@@ -272,13 +240,16 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
             is to be processed.
 
     Returns:
-        resulting_cubes : iris.cube.CubeList
-            CubeList after extracting the diagnostic requested using the
+        resulting_cube : iris.cube.Cube or None
+            Cube after extracting the diagnostic requested using the
             desired extraction method.
-        extrema_cubes : iris.cube.CubeList
+            None is returned if the "resulting_cubes" is an empty CubeList
+            after processing.
+        extrema_cubes : iris.cube.CubeList or None
             CubeList containing extrema values, if the 'extrema' diagnostic
             is requested.
-
+            None is returned if the value for diagnostic_dict["extrema"]
+            is False, so that the extrema calculation is not required.
 
     """
     diagnostic_dict = diagnostics[diagnostic_name]
@@ -289,9 +260,6 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
         construct_neighbour_hash(diagnostic_dict['neighbour_finding']))
     neighbour_list = neighbours[neighbour_hash]
 
-    # Create empty iris.cube.CubeList to hold extracted data cubes.
-    resulting_cubes = CubeList()
-
     # Get optional kwargs that may be set to override defaults.
     optionals = ['upper_level', 'lower_level', 'no_neighbours',
                  'dz_tolerance', 'dthetadz_threshold', 'dz_max_adjustment']
@@ -301,6 +269,15 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
             constant = ancillary_data.get('config_constants').get(optional)
             if constant is not None:
                 kwargs[optional] = constant
+
+    # Create a list of datetimes to loop through.
+    forecast_times = []
+    for cube in diagnostic_dict["data"]:
+        time = cube.coord("time")
+        forecast_times.extend(time.units.num2date(time.points))
+
+    # Create empty iris.cube.CubeList to hold extracted data cubes.
+    resulting_cubes = CubeList()
 
     # Loop over forecast times.
     for a_time in forecast_times:
@@ -329,7 +306,7 @@ def process_diagnostic(diagnostics, neighbours, sites, forecast_times,
     if resulting_cubes:
         # Concatenate CubeList into Cube for cubes with different
         # forecast times.
-        resulting_cube, = resulting_cubes.concatenate()
+        resulting_cube = resulting_cubes.concatenate_cube()
     else:
         resulting_cube = None
 

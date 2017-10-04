@@ -40,11 +40,9 @@ usage: improver-spot-extract [-h]
                              [--latitudes -90,90) [(-90,90) ...]]
                              [--longitudes (-180,180) [(-180,180 ...]]
                              [--altitudes ALTITUDES [ALTITUDES ...]]
-                             [--forecast_date FORECAST_DATE]
-                             [--forecast_time FORECAST_TIME]
-                             [--forecast_length FORECAST_LENGTH]
-                             [--output_path OUTPUT_PATH] [--multiprocess]
+                             [--multiprocess]
                              config_file_path data_path ancillary_path
+                             output_path
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

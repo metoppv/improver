@@ -39,27 +39,24 @@
   # temperature lapse rate.
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_diagnostics.json" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/temperature_at_screen_level.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
+      $TEST_DIR \
       --diagnostics temperature \
       --latitudes 10 20 30 40 50 60 \
       --longitudes 0 0 0 0 0 0 \
-      --altitudes 0 1 2 3 4 5 \
-      --forecast_date 20170217 \
-      --forecast_time 6 \
-      --forecast_length 2 \
-      --output_path $TEST_DIR
+      --altitudes 0 1 2 3 4 5
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/air_temperature.nc" \
+  improver_compare_output "$TEST_DIR/temperature_at_screen_level.nc" \
                           "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_kgo.nc"
-  improver_compare_output "$TEST_DIR/air_temperature_max.nc" \
+  improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc" \
                           "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_max_kgo.nc"
-  improver_compare_output "$TEST_DIR/air_temperature_min.nc" \
+  improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
                           "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_min_kgo.nc"
-  rm "$TEST_DIR/air_temperature.nc"
-  rm "$TEST_DIR/air_temperature_max.nc"
-  rm "$TEST_DIR/air_temperature_min.nc"
+  rm "$TEST_DIR/temperature_at_screen_level.nc"
+  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc"
+  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc"
   rmdir "$TEST_DIR"
 }

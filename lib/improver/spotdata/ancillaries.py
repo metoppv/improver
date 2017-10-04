@@ -69,7 +69,7 @@ def get_ancillary_data(diagnostics, ancillary_path):
 
     try:
         orography = Load('single_file').process(
-            ancillary_path + '/orography.nc', 'surface_altitude')
+            ancillary_path + '/highres_orog.nc', diagnostic='surface_altitude')
     except:
         raise IOError('Orography file not found.')
 
@@ -80,7 +80,8 @@ def get_ancillary_data(diagnostics, ancillary_path):
             for key in diagnostics.keys()]):
         try:
             land = Load('single_file').process(
-                ancillary_path + '/land_mask.nc', 'land_binary_mask')
+                ancillary_path + '/land_mask.nc',
+                diagnostic='land_binary_mask')
         except:
             raise IOError('Land mask file not found.')
 

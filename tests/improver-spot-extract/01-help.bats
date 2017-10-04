@@ -40,11 +40,9 @@ usage: improver-spot-extract [-h]
                              [--latitudes -90,90) [(-90,90) ...]]
                              [--longitudes (-180,180) [(-180,180 ...]]
                              [--altitudes ALTITUDES [ALTITUDES ...]]
-                             [--forecast_date FORECAST_DATE]
-                             [--forecast_time FORECAST_TIME]
-                             [--forecast_length FORECAST_LENGTH]
-                             [--output_path OUTPUT_PATH] [--multiprocess]
+                             [--multiprocess]
                              config_file_path data_path ancillary_path
+                             output_path
 
 SpotData : A configurable tool to extract spot-data from gridded diagnostics.
 The method of interpolating and adjusting the resulting data can be set by
@@ -54,8 +52,10 @@ positional arguments:
   config_file_path      Path to a json file defining the recipes for
                         extracting diagnostics at SpotData sites from gridded
                         data.
-  data_path             Path to diagnostic data files.
+  data_path             Path to a file containing the diagnostic to be
+                        processed.
   ancillary_path        Path to ancillary (time invariant) data files.
+  output_path           Path to which output files should be written.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -75,16 +75,6 @@ optional arguments:
                         List of longitudes of sites of interest.
   --altitudes ALTITUDES [ALTITUDES ...]
                         List of altitudes of sites of interest.
-  --forecast_date FORECAST_DATE
-                        Start date of forecast in format YYYYMMDD (e.g.
-                        20170327 = 27th March 2017).
-  --forecast_time FORECAST_TIME
-                        Starting hour of forecast in 24hr clock. (e.g. 3 =
-                        03Z, 14 = 14Z).
-  --forecast_length FORECAST_LENGTH
-                        Length of forecast in hours.
-  --output_path OUTPUT_PATH
-                        Path to which output files should be written.
   --multiprocess        Process diagnostics using multiprocessing.
 __HELP__
   [[ "$output" == "$expected" ]]

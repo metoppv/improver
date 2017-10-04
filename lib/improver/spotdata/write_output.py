@@ -40,7 +40,7 @@ FUTURE.netcdf_no_unlimited = True
 class WriteOutput(object):
     """ Writes diagnostic cube data in a format determined by the method."""
 
-    def __init__(self, method, dir_path=None):
+    def __init__(self, method, dir_path=None, filename=None):
         """
         Select the method (format) for writing out the data cubes.
 
@@ -59,6 +59,7 @@ class WriteOutput(object):
         self.dir_path = dir_path
         if dir_path is None:
             self.dir_path = os.getcwd()
+        self.filename = filename
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -88,4 +89,7 @@ class WriteOutput(object):
         Nil. Writes out file to filepath or working directory.
 
         """
-        iris.save(cube, '{}/{}.nc'.format(self.dir_path, cube.name()))
+        if self.filename is None:
+            self.filename = cube.name()
+        iris.save(
+            cube, '{}.nc'.format(os.path.join(self.dir_path, self.filename)))

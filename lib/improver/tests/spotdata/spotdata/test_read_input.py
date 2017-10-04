@@ -272,7 +272,7 @@ class Test_get_additional_diagnostics(Test_read_input):
         """Test with missing files."""
 
         diagnostic_name = 'temperature_on_height_levels'
-        msg = 'No relevant data files found in .*'
+        msg = 'The relevant data files for'
         with self.assertRaisesRegexp(IOError, msg):
             get_additional_diagnostics(diagnostic_name, 'not_a_valid_path')
 

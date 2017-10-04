@@ -67,7 +67,8 @@ class Test_ImportSiteData(IrisTest):
             ]
 
         self.latitudes = [site['latitude'] for site in self.site_data]
-        self.longitudes = [site['longitude'] for site in self.site_data]
+        self.longitudes = (
+            [site['longitude'] for site in self.site_data])
         self.altitudes = [site['altitude'] for site in self.site_data]
         self.wmo_sites = [0, 15, 10, 17, 18]
         self.variables = ['latitude', 'longitude', 'altitude', 'utc_offset']
@@ -202,13 +203,14 @@ class Test_runtime_list(Test_ImportSiteData):
         are provided.
 
         """
+        site_data = self.site_data
         # These are not currently a CLI option, so remove them.
-        for site in self.site_data:
+        for site in site_data:
             site.pop('gmtoffset')
             site.pop('wmo_id')
 
         result = Plugin(self.method).process(
-            site_properties=self.site_data)
+            site_properties=site_data)
         # set from longitude.
         expected_utc_offsets = [-4, -5, -1, 1, 10]
         # unset, so none can be flagged as wmo_sites
@@ -236,12 +238,13 @@ class Test_runtime_list(Test_ImportSiteData):
         provided.
 
         """
-        for site in self.site_data:
+        site_data = self.site_data
+        for site in site_data:
             site.pop('gmtoffset')
             site.pop('wmo_id')
             site.pop('altitude')
 
-        result = Plugin(self.method).process(self.site_data)
+        result = Plugin(self.method).process(site_data)
         expected_altitudes = [np.nan] * 5
         expected_utc_offsets = [-4, -5, -1, 1, 10]
         # unset, so none can be flagged as wmo_sites

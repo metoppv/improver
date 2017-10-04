@@ -33,6 +33,7 @@
 import argparse
 import glob
 import json
+import os
 
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
@@ -140,14 +141,20 @@ def main():
                     'and adjusting the resulting data can be set by defining '
                     'suitable diagnostics configurations.')
 
+    # Input and output files required.
     parser.add_argument('config_file_path',
                         help='Path to a json file defining the recipes for '
                         'extracting diagnostics at SpotData sites from '
                         'gridded data.')
     parser.add_argument('data_path', type=str,
-                        help='Path to diagnostic data files.')
+                        help='Path to a file containing the diagnostic '
+                             'to be processed.')
     parser.add_argument('ancillary_path', type=str,
                         help='Path to ancillary (time invariant) data files.')
+    parser.add_argument('output_path', type=str,
+                        help='Path to which output files should be written.')
+
+    # The diagnostic to be processed.
     parser.add_argument('--diagnostics', type=str, nargs='+', default=None,
                         help='A list of diagnostics that are to be processed. '
                              'If unset, all diagnostics defined in the '
@@ -172,17 +179,7 @@ def main():
     parser.add_argument('--altitudes', type=float, nargs='+',
                         help='List of altitudes of sites of interest.')
 
-    # Forecast date/time information.
-    parser.add_argument('--forecast_date', type=str,
-                        help='Start date of forecast in format YYYYMMDD '
-                             '(e.g. 20170327 = 27th March 2017).')
-    parser.add_argument('--forecast_time', type=int,
-                        help='Starting hour of forecast in 24hr clock. '
-                             '(e.g. 3 = 03Z, 14 = 14Z).')
-    parser.add_argument('--forecast_length', type=int,
-                        help='Length of forecast in hours.')
-    parser.add_argument('--output_path', type=str,
-                        help='Path to which output files should be written.')
+    # Options for speeding up processing.
     parser.add_argument('--multiprocess', action="store_true",
                         help='Process diagnostics using multiprocessing.')
 
@@ -226,55 +223,59 @@ def main():
         with open(args.constants_path, 'r') as input_file:
             config_constants = json.load(input_file)
 
-    # Search directory structure for all files relevant to current diagnostic.
-    diagnostic_names = [diagnostics[diagnostic]["filepath"]
-                        for diagnostic in diagnostics.keys()]
-
     # Create a list of files that will need to be read.
-    all_available_files = glob.glob(args.data_path+"/*")
+    all_available_files = glob.glob(args.data_path)
 
     if not all_available_files:
-        raise IOError('No data files found in {}.'.format(
-            args.data_path))
+        raise IOError('No data files found in {}.'.format(args.data_path))
 
+    # Loop through the requested diagnostics and load data the essential data
+    # and any additional data that is required.
     for diagnostic_key in diagnostics.keys():
-        diagnostic_filepath = diagnostics[diagnostic_key]["filepath"]
+        diagnostic_name_in_filename = (
+            diagnostics[diagnostic_key]["name_in_filename"])
         files_to_read = (
             [filename for filename in all_available_files
-             if diagnostic_filepath in filename])
+             if diagnostic_name_in_filename in filename])
         if not files_to_read:
             raise IOError('No relevant data files found in {} for {}.'.format(
-                args.data_path, diagnostic_filepath))
-        diagnostic_name = diagnostics[diagnostic_key]["diagnostic_name"]
+                args.data_path, diagnostic_name_in_filename))
         # Load cubes into an iris.cube.CubeList.
-        diagnostics[diagnostic_key]["data"] = Load('multi_file').process(
-            files_to_read, diagnostic_name)
+        diagnostics[diagnostic_key]["data"] = (
+            Load('multi_file').process(files_to_read))
         # Check if additional diagnostics are needed (e.g. multi-level data).
         # If required, load into the additional_diagnostics dictionary.
         diagnostics[diagnostic_key]["additional_data"] = (
             get_method_prerequisites(
                 diagnostics[diagnostic_key]["interpolation_method"],
-                args.data_path))
+                os.path.dirname(args.data_path)))
 
     resulting_cubes, extrema_cubes = (
         run_spotdata(
             diagnostics, ancillary_data, sites, config_constants,
-            forecast_date=args.forecast_date, forecast_time=args.forecast_time,
-            forecast_length=args.forecast_length,
             use_multiprocessing=args.multiprocess))
 
-    for resulting_cube in resulting_cubes:
-        if resulting_cube:
-            WriteOutput(
-                'as_netcdf', dir_path=args.output_path).process(resulting_cube)
+    filename = os.path.splitext(os.path.basename(all_available_files[0]))[0]
+
+    if resulting_cubes:
+        # Concatenate CubeList into Cube, creating a time DimCoord,
+        # and write out.
+        cube_out = resulting_cubes.concatenate_cube()
+        WriteOutput(
+            'as_netcdf', dir_path=args.output_path,
+            filename=filename).process(cube_out)
 
     # If set in the configuration, extract the diagnostic maxima and minima
     # values.
+    filepath = all_available_files[0]
+    base_filename = os.path.splitext(os.path.basename(filepath))[0]
     for extrema_cubelist in extrema_cubes:
         if extrema_cubelist:
             for extrema_cube in extrema_cubelist:
-                WriteOutput('as_netcdf', dir_path=args.output_path).process(
-                    extrema_cube)
+                filename = "{}_{}".format(base_filename, extrema_cube.name())
+                WriteOutput(
+                    'as_netcdf', dir_path=args.output_path,
+                    filename=filename).process(extrema_cube)
 
 
 if __name__ == "__main__":

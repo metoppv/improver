@@ -30,18 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the spotdata.main"""
 
-
-import datetime
+from collections import OrderedDict
+import numpy as np
 import unittest
-import json
+
 import cf_units
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 from iris.cube import Cube
-
-from collections import OrderedDict
-import numpy as np
 
 from improver.spotdata.main import run_spotdata as Function
 from improver.spotdata.main import process_diagnostic
@@ -128,9 +125,6 @@ class Test_main(IrisTest):
                      self.sites, self.config_constants)
 
         self.kwargs = {
-            'forecast_date': '20170217',
-            'forecast_time': 6,
-            'forecast_length': 2,
             'use_multiprocessing': False
             }
 
@@ -138,22 +132,34 @@ class Test_main(IrisTest):
 class Test_run_spotdata(Test_main):
     """Test the run_framework interface with various options."""
 
-    def test_nominal_run(self):
+    def test_nominal_run_with_kwargs(self):
         """Test a typical run of the routine completes successfully."""
         result = Function(*self.args, **self.kwargs)
         self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0][0][0], Cube)
-        self.assertIsInstance(result[0][0][1], Cube)
-        self.assertEqual(result[0][0][0].name(), 'air_temperature')
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
+        self.assertEqual(result[1][0], None)
 
-    def test_nominal_run_no_kwargs(self):
+    def test_nominal_run_with_kwargs_for_multiprocessing(self):
+        """Test a typical run of the routine completes successfully
+        when multiprocessing is enabled."""
+        kwargs = {
+            'use_multiprocessing': False
+            }
+        result = Function(*self.args, **kwargs)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
+        self.assertEqual(result[1][0], None)
+
+    def test_nominal_run_without_kwargs(self):
         """Test a typical run of the routine completes as intended.
         If there are no keyword arguments then the current time will be used
         and this will not match any of the times within the input cubes."""
         result = Function(*self.args)
         self.assertEqual(len(result), 2)
-        self.assertEqual(len(result[0]), 1)
-        self.assertEqual(result[0][0], None)
+        self.assertIsInstance(result[0][0], Cube)
+        self.assertEqual(result[0][0].name(), 'air_temperature')
         self.assertEqual(result[1][0], None)
 
 
@@ -167,12 +173,9 @@ class Test_process_diagnostic(Test_main):
                 np.array([(15, 10, 9.0, False)],
                          dtype=[('i', '<i8'), ('j', '<i8'),
                                 ('dz', '<f8'), ('edgepoint', '?')])}
-        forecast_times = [
-            datetime.datetime(2017, 2, 17, 6, 0),
-            datetime.datetime(2017, 2, 17, 7, 0)]
         result = process_diagnostic(
             self.diagnostic_recipe, neighbours, self.sites,
-            forecast_times, self.ancillary_data, "temperature")
+            self.ancillary_data, "temperature")
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], Cube)
         self.assertEqual(result[1], None)
