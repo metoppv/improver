@@ -54,7 +54,7 @@ class Test_linear_weights(IrisTest):
 
     def test_fails_y0val_set_wrong(self):
         """Test it fails if y0val not set properly """
-        msg = ('y0val must be a float > 0.0')
+        msg = ('y0val must be a float >= 0.0')
         with self.assertRaisesRegexp(ValueError, msg):
             LinearWeights(y0val=-0.1).linear_weights(3)
         with self.assertRaisesRegexp(ValueError, msg):
@@ -132,7 +132,7 @@ class Test_process(IrisTest):
     def test_fails_y0val_lessthan_zero(self):
         """Test it raises a Value Error if y0val less than zero. """
         plugin = LinearWeights(y0val=-10.0)
-        msg = ('y0val must be a float > 0.0')
+        msg = ('y0val must be a float >= 0.0')
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(self.cube, self.coord_name, self.coord_vals)
 
