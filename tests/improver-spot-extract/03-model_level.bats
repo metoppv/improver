@@ -55,8 +55,8 @@
                           "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_max_kgo.nc"
   improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
                           "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_min_kgo.nc"
-  rm "$TEST_DIR/air_temperature.nc"
-  rm "$TEST_DIR/air_temperature_max.nc"
-  rm "$TEST_DIR/air_temperature_min.nc"
+  rm "$TEST_DIR/temperature_at_screen_level.nc"
+  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc"
+  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc"
   rmdir "$TEST_DIR"
 }
