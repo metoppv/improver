@@ -106,7 +106,7 @@ def main():
     linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
                         help='The relative value of the weighting start '
                              'point for choosing default linear weights. '
-                             'This must be a positive float. If not set, '
+                             'This must be a positive float or 0. If not set, '
                              'default values of y0val=20.0 and ynval=2.0 '
                              'are set.')
     nonlinear = parser.add_argument_group('nonlinear weights options',

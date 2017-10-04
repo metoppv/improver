@@ -292,8 +292,8 @@ class ChooseDefaultWeightsLinear(object):
         if num_of_weights == 1:
             weights = np.array([1.0])
             return weights
-        if not isinstance(self.y0val, float) or self.y0val <= 0.0:
-            msg = ('y0val must be a float > 0.0, '
+        if not isinstance(self.y0val, float) or self.y0val < 0.0:
+            msg = ('y0val must be a float >= 0.0, '
                    'y0val = {0:s}'.format(str(self.y0val)))
             raise ValueError(msg)
         if self.ynval is not None:
