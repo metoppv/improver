@@ -101,6 +101,12 @@ class Test_linear_weights(IrisTest):
         expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_returns_correct_values_y0val_is_0_ynval_is_0(self):
+        """Test it raises an error when y0val=0 and ynval=0."""
+        msg = "Sum of weights must be > 0.0"
+        with self.assertRaisesRegexp(ValueError, msg):
+            LinearWeights(y0val=0.0, slope=0.0).linear_weights(5)
+
     def test_returns_correct_values_y0val_is_0_slope_is_0(self):
         """Test it raises an error when y0val=0 and slope=0."""
         msg = "Sum of weights must be > 0.0"
