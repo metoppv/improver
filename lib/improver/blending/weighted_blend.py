@@ -403,7 +403,7 @@ class WeightedBlendAcrossWholeDimension(object):
             result = cube
         else:
             try:
-                thres_coord = cube.coord('threshold')
+                cube.coord('threshold')
             except iris.exceptions.CoordinateNotFoundError:
                 slices_over_threshold = [cube]
             else:
