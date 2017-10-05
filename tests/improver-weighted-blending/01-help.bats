@@ -99,7 +99,7 @@ linear weights options:
   --y0val LINEAR_STARTING_POINT
                         The relative value of the weighting start point for
                         choosing default linear weights. This must be a
-                        positive float. If not set, default values of
+                        positive float or 0. If not set, default values of
                         y0val=20.0 and ynval=2.0 are set.
 
 nonlinear weights options:
