@@ -89,6 +89,24 @@ class Test_linear_weights(IrisTest):
                                     0.13333333, 0.11111111])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_returns_correct_values_y0val_is_0_ynval_set(self):
+        """Test it returns the correct values when y0val=0 and ynval set"""
+        result = LinearWeights(y0val=0.0, ynval=5.0).linear_weights(5)
+        expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_returns_correct_values_y0val_is_0_slope_set(self):
+        """Test it returns the correct values when y0val=0 and slope set."""
+        result = LinearWeights(y0val=0.0, slope=1.0).linear_weights(5)
+        expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_returns_correct_values_y0val_is_0_slope_is_0(self):
+        """Test it raises an error when y0val=0 and slope=0."""
+        msg = "Sum of weights must be > 0.0"
+        with self.assertRaisesRegexp(ValueError, msg):
+            LinearWeights(y0val=0.0, slope=0.0).linear_weights(5)
+
 
 class Test_process(IrisTest):
     """Test the Default Linear Weights plugin. """
