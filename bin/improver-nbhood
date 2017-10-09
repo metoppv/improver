@@ -45,14 +45,21 @@ def main():
         description='Apply the requested neighbourhood method via '
                     'the NeighbourhoodProcessing plugin '
                     'to a file with one cube.')
-    parser.add_argument('neighbourhood_output', metavar='NEIGHBOURHOOD_OUTPUT',
-                        help='The form of the results generated using '
-                             'neighbourhood processing. Options: '
-                             '"probabilities", "percentiles".')
+    parser.add_argument(
+        'neighbourhood_output', metavar='NEIGHBOURHOOD_OUTPUT',
+        help='The form of the results generated using neighbourhood '
+             'processing. If "probabilities" is selected, the mean '
+             'probability within a neighbourhood is calculated. If '
+             '"percentiles" is selected, then the percentiles are calculated '
+             'within a neighbourhood. Calculating percentiles from a '
+             'neighbourhood is only supported for a circular neighbourhood.'
+             'Options: "probabilities", "percentiles".')
     parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
                         help='The shape of the neighbourhood to apply in '
-                             'neighbourhood processing. Options: "circular", '
-                             '"square".')
+                             'neighbourhood processing. Only a "circular" '
+                             'neighbourhood shape is applicable for '
+                             'calculating "percentiles" output.'
+                             'Options: "circular", "square".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius', metavar='RADIUS', type=float,
                        help='The radius (in m) for neighbourhood processing.')
@@ -79,11 +86,13 @@ def main():
                         'equivalent of an ensemble member.'
                         'Optional, defaults to 1.0.')
     parser.add_argument('--weighted_mode', action='store_true', default=False,
-                        help='For neighbourhood processing using a circular'
+                        help='For neighbourhood processing using a circular '
                              'kernel, setting the weighted_mode indicates the '
                              'weighting decreases with radius. '
                              'If weighted_mode is not set, a constant '
-                             'weighting is assumed.')
+                             'weighting is assumed. weighted_mode is only '
+                             'applicable for calculating "probability" '
+                             'neighbourhood output.')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+',
                         help='Calculate values at the specified percentiles '
@@ -116,14 +125,14 @@ def main():
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
 
-    if args.neighbourhood_output in ["probabilities"]:
+    if args.neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
                 weighted_mode=args.weighted_mode
                 ).process(cube))
-    elif args.neighbourhood_output in ["percentiles"]:
+    elif args.neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(
                 args.neighbourhood_shape, radius_or_radii,

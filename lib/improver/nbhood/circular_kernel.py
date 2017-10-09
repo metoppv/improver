@@ -59,6 +59,10 @@ def circular_kernel(fullranges, ranges, weighted_mode):
     ranges : Tuple
         Number of grid cells in the x and y direction used to create
         the kernel.
+    weighted_mode : boolean (optional)
+        If True, use a circle for neighbourhood kernel with
+        weighting decreasing with radius.
+        If False, use a circle with constant weighting.
 
     Returns
     -------

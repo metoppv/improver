@@ -45,10 +45,17 @@ plugin to a file with one cube.
 
 positional arguments:
   NEIGHBOURHOOD_OUTPUT  The form of the results generated using neighbourhood
-                        processing. Options: "probabilities", "percentiles".
+                        processing. If "probabilities" is selected, the mean
+                        probability within a neighbourhood is calculated. If
+                        "percentiles" is selected, then the percentiles are
+                        calculated within a neighbourhood. Calculating
+                        percentiles from a neighbourhood is only supported for
+                        a circular neighbourhood.Options: "probabilities",
+                        "percentiles".
   NEIGHBOURHOOD_SHAPE   The shape of the neighbourhood to apply in
-                        neighbourhood processing. Options: "circular",
-                        "square".
+                        neighbourhood processing. Only a "circular"
+                        neighbourhood shape is applicable for calculating
+                        "percentiles" output.Options: "circular", "square".
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
@@ -72,10 +79,12 @@ optional arguments:
                         this essentially conserves ensemble members if every
                         grid square is considered to be the equivalent of an
                         ensemble member.Optional, defaults to 1.0.
-  --weighted_mode       For neighbourhood processing using a circularkernel,
+  --weighted_mode       For neighbourhood processing using a circular kernel,
                         setting the weighted_mode indicates the weighting
                         decreases with radius. If weighted_mode is not set, a
-                        constant weighting is assumed.
+                        constant weighting is assumed. weighted_mode is only
+                        applicable for calculating "probability" neighbourhood
+                        output.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.
