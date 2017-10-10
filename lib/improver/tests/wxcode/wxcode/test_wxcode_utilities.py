@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for weather code utilities."""
 
-import unittest
-
 from iris.cube import Cube
 from iris.tests import IrisTest
 from cf_units import Unit
