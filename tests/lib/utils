@@ -47,7 +47,7 @@ function improver_compare_output {
   #    -N ignore NaN comparisons
   #    -s report 'Files X and Y are identical' if they really are.
 
-  run nccmp -dmNs --Attribute=_FillValue "$1" "$2"
+  run nccmp -dmNs "$1" "$2"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
 }

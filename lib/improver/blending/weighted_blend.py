@@ -439,11 +439,12 @@ class WeightedBlendAcrossWholeDimension(object):
                     # Equal weights are used as default.
                     weights_array = None
                     # Else broadcast the weights to be used by the aggregator.
+                    coord_dim_thres = cube_thres.coord_dims(self.coord)
                     if weights is not None:
                         weights_array = (
                             iris.util.broadcast_to_shape(np.array(weights),
                                                          cube_thres.shape,
-                                                         coord_dim))
+                                                         coord_dim_thres))
                     orig_cell_methods = cube_thres.cell_methods
                     # Calculate the weighted average.
                     cube_new = cube_thres.collapsed(self.coord,
@@ -474,6 +475,8 @@ class WeightedBlendAcrossWholeDimension(object):
                                                     arr_weights=weights)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
+            if type(cubelist[0].data) == np.ma.core.MaskedArray:
+                result.data = np.ma.array(result.data)
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
