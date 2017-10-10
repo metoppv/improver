@@ -321,16 +321,17 @@ class BaseNeighbourhoodProcessing(object):
                     cubes.append(cube_slice)
                 cube_new = concatenate_cubes(cubes,
                                              coords_to_slice_over=["time"])
-
+            if cube_new.coords("realization", dim_coords=False):
+                cube_new = iris.util.new_axis(cube_new, "realization")
             cubelist.append(cube_new)
-        merged_cube = cubelist.merge_cube()
+        combined_cube = cubelist.concatenate_cube()
         # Promote dimensional coordinates that have been demoted to scalars.
         exception_coordinates = (
             find_dimension_coordinate_mismatch(
-                cube, merged_cube, two_way_mismatch=False))
-        merged_cube = check_cube_coordinates(
-            cube, merged_cube, exception_coordinates=exception_coordinates)
-        return merged_cube
+                cube, combined_cube, two_way_mismatch=False))
+        combined_cube = check_cube_coordinates(
+            cube, combined_cube, exception_coordinates=exception_coordinates)
+        return combined_cube
 
 
 class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):

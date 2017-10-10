@@ -78,6 +78,9 @@ class Test_make_percentile_cube(IrisTest):
             'percentiles_over_neighbourhood'), iris.coords.Coord)
         self.assertArrayEqual(result.coord(
             'percentiles_over_neighbourhood').points, DEFAULT_PERCENTILES)
+        self.assertArrayEqual(result[0].data, cube.data)
+        self.assertDictEqual(
+            cube.metadata._asdict(), result.metadata._asdict())
 
 
 class Test_pad_and_unpad_cube(IrisTest):
@@ -605,7 +608,7 @@ class Test_run(IrisTest):
               [[[1., 1., 1., 1., 1., 1., 1.],
                 [1., 1., 1., 1., 1., 1., 1.],
                 [1., 1., 1., 0.9, 1., 1., 1.],
-                [1., 1., 0.9, 0.9, 0.9, 1., .1],
+                [1., 1., 0.9, 0.9, 0.9, 1., 1.],
                 [1., 1., 1., 0.9, 1., 1., 1.],
                 [1., 1., 1., 1., 1., 1., 1.],
                 [1., 1., 1., 1., 1., 1., 1.]]],
