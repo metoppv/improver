@@ -475,7 +475,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                                     arr_weights=weights)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
-            if type(cubelist[0].data) == np.ma.core.MaskedArray:
+            if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
                 result.data = np.ma.array(result.data)
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
