@@ -276,6 +276,17 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2, 2))*0.56
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def tests_threshold_splicing_works_with_threshold(self):
+        """Test splicing works when the blending is over threshold."""
+        coord = "threshold"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = np.array([0.8, 0.2])
+        self.cube_threshold.data[0, :, :, :] = 0.5
+        self.cube_threshold.data[1, :, :, :] = 0.8
+        result = plugin.process(self.cube_threshold, weights)
+        expected_result_array = np.ones((2, 2, 2))*0.56
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
     def test_percentiles_weights_none(self):
         """Test it works for percentiles with weights set to None."""
         coord = "time"
