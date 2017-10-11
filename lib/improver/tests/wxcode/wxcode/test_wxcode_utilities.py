@@ -91,9 +91,8 @@ class Test_add_wxcode_metadata(IrisTest):
         """Set up cube """
         data = np.array([0, 1, 5, 11, 20, 5, 9, 10, 4,
                          2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
-        cube = set_up_cube(data, 'air_temperature', 'K',
-                           realizations=np.array([0, 1]))
-        self.cube = cube
+        self.cube = set_up_cube(data, 'air_temperature', 'K',
+                                realizations=np.array([0, 1]))
 
     def test_basic(self):
         """Test that the function returns a cube."""

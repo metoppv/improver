@@ -78,7 +78,6 @@ def add_wxcode_metadata(cube):
     cube.standard_name = None
     cube.var_name = None
     cube.units = "1"
-    if 'weather_code' not in cube.attributes:
-        cube.attributes.update({'weather_code': WXCODE})
-        cube.attributes.update({'weather_code_meaning': WXMEANING})
+    cube.attributes.update({'weather_code': WXCODE})
+    cube.attributes.update({'weather_code_meaning': WXMEANING})
     return cube
