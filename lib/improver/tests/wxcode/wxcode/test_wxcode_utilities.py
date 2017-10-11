@@ -35,10 +35,10 @@ from iris.tests import IrisTest
 from cf_units import Unit
 import numpy as np
 
-from improver.wxcode.wxcode_utilities import WXCODE, WXMEANING, \
-    add_wxcode_metadata
+from improver.wxcode.wxcode_utilities import (WXCODE, WXMEANING,
+                                              add_wxcode_metadata)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import (set_up_cube)
+    helper_functions import set_up_cube
 
 
 class Test_wxcode(IrisTest):
