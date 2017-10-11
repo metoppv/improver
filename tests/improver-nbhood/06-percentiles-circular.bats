@@ -41,8 +41,8 @@
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output_circular.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_circular.nc"
+  improver_compare_output "$TEST_DIR/output_circular_percentile.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/percentile/kgo_circular_percentile.nc"
   rm "$TEST_DIR/output_circular.nc"
   rmdir "$TEST_DIR"
 }

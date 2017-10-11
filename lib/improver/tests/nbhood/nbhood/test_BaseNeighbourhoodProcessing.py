@@ -260,12 +260,19 @@ class Test__repr__(IrisTest):
 
     """Test the repr method."""
 
-    def test_basic(self):
+    def test_callable(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood(CircularNeighbourhood(), 10000))
-        msg = ('<NeighbourhoodProcessing: neighbourhood_method: '
+        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
                '<CircularNeighbourhood: weighted_mode: True>; '
                'radii: 10000.0; lead_times: None; ens_factor: 1.0>')
+        self.assertEqual(result, msg)
+
+    def test_not_callable(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(NBHood("circular", 10000))
+        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
+               'circular; radii: 10000.0; lead_times: None; ens_factor: 1.0>')
         self.assertEqual(result, msg)
 
 
@@ -347,8 +354,8 @@ class Test_process(IrisTest):
         """
         neighbourhood_method = 'nonsense'
         radii = 10000
-        msg = "'str' object has no attribute 'run'"
-        with self.assertRaisesRegexp(AttributeError, msg):
+        msg = "is not valid as a neighbourhood_method"
+        with self.assertRaisesRegexp(ValueError, msg):
             NBHood(neighbourhood_method, radii).process(self.cube)
 
     def test_single_point_nan(self):

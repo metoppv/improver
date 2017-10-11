@@ -33,16 +33,11 @@
 
 import unittest
 
-from cf_units import Unit
-import iris
-from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 
@@ -77,7 +72,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10000))
-        msg = ('<NeighbourhoodProcessing: neighbourhood_method: '
+        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
                '<CircularNeighbourhood: weighted_mode: True>; '
                'radii: 10000.0; lead_times: None; ens_factor: 1.0>')
         self.assertEqual(result, msg)
@@ -112,7 +107,7 @@ class Test_process(IrisTest):
         weighted mode is False."""
         expected = np.array(
             [[[[1., 1., 0.92307692, 1., 1.],
-               [1.,  0.92307692, 0.92307692, 0.92307692, 1.],
+               [1., 0.92307692, 0.92307692, 0.92307692, 1.],
                [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
                [1., 0.92307692, 0.92307692, 0.92307692, 1.],
                [1., 1., 0.92307692, 1., 1.]]]])

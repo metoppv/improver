@@ -407,7 +407,7 @@ class Test_run(IrisTest):
         result = (
             GeneratePercentilesFromACircularNeighbourhood(
                 percentiles=percentiles).run(
-                cube, radius))
+                    cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -514,7 +514,7 @@ class Test_run(IrisTest):
                 [1., 1., 1., 1., 1., 1., 1.],
                 [1., 1., 1., 0.2, 1., 1., 1.],
                 [1., 1., 0.2, 0.2, 0.2, 1., 1.],
-                [1., 1., 1., 0.2, 1.,  1., 1.],
+                [1., 1., 1., 0.2, 1., 1., 1.],
                 [1., 1., 1., 1., 1., 1., 1.],
                 [1., 1., 1., 1., 1., 1., 1.]]],
               [[[1., 1., 1., 1., 1., 1., 1.],

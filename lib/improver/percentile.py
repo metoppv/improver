@@ -35,7 +35,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 from iris import FUTURE
 
-from constants import DEFAULT_PERCENTILES
+from improver.constants import DEFAULT_PERCENTILES
 
 FUTURE.netcdf_promote = True
 

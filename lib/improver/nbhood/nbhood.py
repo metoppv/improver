@@ -30,13 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-import copy
 import math
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
-import scipy.ndimage.filters
 
 from improver.nbhood.circular_kernel import (
     CircularNeighbourhood, GeneratePercentilesFromACircularNeighbourhood)
@@ -46,8 +44,6 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
 
 
 class Utilities(object):
@@ -153,7 +149,9 @@ class Utilities(object):
 
 class BaseNeighbourhoodProcessing(object):
     """
-    Apply a neighbourhood processing method to a thresholded cube.
+    Apply a neighbourhood processing method to a thresholded cube. This is a
+    base class for usage with a subclass that will inherit the functionality
+    within this base class.
 
     When applied to a thresholded probabilistic cube, it acts like a
     low-pass filter which reduces noisiness in the probabilities.
@@ -242,7 +240,11 @@ class BaseNeighbourhoodProcessing(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
+        if callable(self.neighbourhood_method):
+            neighbourhood_method = self.neighbourhood_method()
+        else:
+            neighbourhood_method = self.neighbourhood_method
+        result = ('<BaseNeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; ens_factor: {}>')
         return result.format(
             self.neighbourhood_method, self.radii, self.lead_times,
@@ -266,6 +268,14 @@ class BaseNeighbourhoodProcessing(object):
             resulting field is smoothed.
 
         """
+        if (not getattr(self.neighbourhood_method, "run", None) or
+                not callable(self.neighbourhood_method.run)):
+            msg = ("{} is not valid as a neighbourhood_method. "
+                   "Please choose a valid neighbourhood_method with a "
+                   "run method.".format(
+                       self.neighbourhood_method))
+            raise ValueError(msg)
+
         # Check if the realization coordinate exists. If there are multiple
         # values for the realization, then an exception is raised. Otherwise,
         # the cube is sliced, so that the realization becomes a scalar
