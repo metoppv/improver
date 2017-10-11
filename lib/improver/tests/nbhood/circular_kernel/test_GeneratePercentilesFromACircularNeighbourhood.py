@@ -150,6 +150,135 @@ class Test_pad_and_unpad_cube(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_single_point_almost_edge(self):
+        """Test behaviour for a non-zero grid cell quite near the edge."""
+        cube = set_up_cube(
+            zero_point_indices=[
+                (0, 0, 1, 1)],
+            num_grid_points=3)  # Just within range of the edge.
+        slice_2d = cube[0, 0, :, :]
+        expected = np.array(
+            [[[0.5, 0.5, 0.5],
+              [0.5, 0.5, 0.5],
+              [0.5, 0.5, 0.5]],
+             [[1., 1., 1.],
+              [1., 1., 1.],
+              [1., 1., 1.]],
+             [[1., 1., 1.],
+              [1., 1., 1.],
+              [1., 1., 1.]]])
+        percentiles = np.array([10, 50, 90])
+        kernel = np.array(
+            [[0., 0., 1., 0., 0.],
+             [0., 1., 1., 1., 0.],
+             [1., 1., 1., 1., 1.],
+             [0., 1., 1., 1., 0.],
+             [0., 0., 1., 0., 0.]])
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).pad_and_unpad_cube(
+                    slice_2d, kernel))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_single_point_adjacent_edge(self):
+        """Test behaviour for a single non-zero grid cell near the edge."""
+        cube = set_up_cube(
+            zero_point_indices=[(0, 0, 2, 1)],
+            num_grid_points=5)  # Range 3 goes over the edge.
+        slice_2d = cube[0, 0, :, :]
+        expected = np.array(
+            [[[1., 1., 1., 1., 1.],
+              [1., 0.4, 1., 1., 1.],
+              [0.4, 0.4, 0.4, 1., 1.],
+              [1., 0.4, 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]]])
+        percentiles = np.array([10, 50, 90])
+        kernel = np.array(
+            [[0., 1., 0.],
+             [1., 1., 1.],
+             [0., 1., 0.]])
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).pad_and_unpad_cube(
+                    slice_2d, kernel))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_single_point_on_edge(self):
+        """Test behaviour for a non-zero grid cell on the edge."""
+        expected = np.array(
+            [[[1., 1., 1., 1., 1.],
+              [0.4, 1, 1., 1., 1.],
+              [0., 0.4, 1., 1., 1.],
+              [0.4, 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]]])
+        cube = set_up_cube(
+            zero_point_indices=[(0, 0, 2, 0)],
+            num_grid_points=5)
+        slice_2d = cube[0, 0, :, :]
+        percentiles = np.array([10, 50, 90])
+        kernel = np.array(
+            [[0., 1., 0.],
+             [1., 1., 1.],
+             [0., 1., 0.]])
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).pad_and_unpad_cube(
+                    slice_2d, kernel))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_single_point_on_corner(self):
+        """Test behaviour for a single non-zero grid cell on the corner."""
+        expected = np.array(
+            [[[0., 0.4, 1., 1., 1.],
+              [0.4, 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[0., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]],
+             [[1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.],
+              [1., 1., 1., 1., 1.]]])
+        cube = set_up_cube(
+            zero_point_indices=[(0, 0, 0, 0)],
+            num_grid_points=5)  # Point is right on the corner.
+        slice_2d = cube[0, 0, :, :]
+        percentiles = np.array([10, 50, 90])
+        kernel = np.array(
+            [[0., 1., 0.],
+             [1., 1., 1.],
+             [0., 1., 0.]])
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+                percentiles=percentiles).pad_and_unpad_cube(
+                    slice_2d, kernel))
+        self.assertArrayAlmostEqual(result.data, expected)
+
 
 class Test_run(IrisTest):
 
@@ -375,125 +504,6 @@ class Test_run(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood(
                 percentiles=percentiles).run(
                     cube, radius))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_almost_edge(self):
-        """Test behaviour for a non-zero grid cell quite near the edge."""
-        cube = set_up_cube(
-            zero_point_indices=[
-                (0, 0, 2, 2)],
-            num_grid_points=5)  # Just within range of the edge.
-        expected = np.array(
-            [[[[[0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667],
-                [0.66666667, 0.84444444, 0.93333333, 0.84444444, 0.66666667],
-                [0.66666667, 0.93333333, 0.66666667, 0.93333333, 0.66666667],
-                [0.66666667, 0.84444444, 0.93333333, 0.84444444, 0.66666667],
-                [0.66666667, 0.66666667, 0.66666667, 0.66666667, 0.66666667]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]]]])
-        percentiles = np.array([10, 50, 90])
-        radius = 6000.
-        result = (
-            GeneratePercentilesFromACircularNeighbourhood(
-                percentiles=percentiles).run(
-                    cube, radius))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_adjacent_edge(self):
-        """Test behaviour for a single non-zero grid cell near the edge."""
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 2, 1)],
-            num_grid_points=5)  # Range 3 goes over the edge.
-        expected = np.array(
-            [[[[[0.66666667, 0.66666667, 0.93333333, 0.93333333, 1.],
-                [0.66666667, 0.66666667, 1., 1., 1.],
-                [0.66666667, 0.66666667, 1., 1., 1.],
-                [0.66666667, 0.66666667, 1., 1., 1.],
-                [0.66666667, 0.66666667, 0.93333333, 0.93333333, 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]]]])
-        percentiles = np.array([10, 50, 90])
-        radius = 6000.
-        result = (
-            GeneratePercentilesFromACircularNeighbourhood(
-                percentiles=percentiles).run(
-                    cube, radius))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_on_edge(self):
-        """Test behaviour for a non-zero grid cell on the edge."""
-        expected = np.array(
-            [[[[[0.66666667, 0.66666667, 0.93333333, 1., 1.],
-                [0.66666667, 0.84444444, 1., 1., 1.],
-                [0.66666667, 0.93333333, 1., 1., 1.],
-                [0.66666667, 0.84444444, 1., 1., 1.],
-                [0.66666667, 0.66666667, 0.93333333, 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]]]])
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 2, 0)],
-            num_grid_points=5)
-        percentiles = np.array([10, 50, 90])
-        radius = 6000.
-        result = (
-            GeneratePercentilesFromACircularNeighbourhood(
-                percentiles=percentiles).run(
-                    cube, radius))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_on_corner(self):
-        """Test behaviour for a single non-zero grid cell on the corner."""
-        expected = np.array(
-            [[[[[0.66666667, 0.66666667, 0.66666667, 1., 1.],
-                [0.66666667, 0.84444444, 1., 1., 1.],
-                [0.66666667, 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]],
-              [[[1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.],
-                [1., 1., 1., 1., 1.]]]]])
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 0, 0)],
-            num_grid_points=5)  # Point is right on the corner.
-        print "cube.data = ", cube.data
-        percentiles = np.array([10, 50, 90])
-        radius = 6000.
-        result = (
-            GeneratePercentilesFromACircularNeighbourhood(
-                percentiles=percentiles).run(
-                    cube, radius))
-        print "result = ", result.data
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_number_of_percentiles_equals_number_of_points(self):

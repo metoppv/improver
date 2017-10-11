@@ -52,13 +52,13 @@ def main():
              'probability within a neighbourhood is calculated. If '
              '"percentiles" is selected, then the percentiles are calculated '
              'within a neighbourhood. Calculating percentiles from a '
-             'neighbourhood is only supported for a circular neighbourhood.'
+             'neighbourhood is only supported for a circular neighbourhood. '
              'Options: "probabilities", "percentiles".')
     parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
                         help='The shape of the neighbourhood to apply in '
                              'neighbourhood processing. Only a "circular" '
                              'neighbourhood shape is applicable for '
-                             'calculating "percentiles" output.'
+                             'calculating "percentiles" output. '
                              'Options: "circular", "square".')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--radius', metavar='RADIUS', type=float,

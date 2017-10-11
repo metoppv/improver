@@ -51,24 +51,22 @@ def circular_kernel(fullranges, ranges, weighted_mode):
 
     Method to create a circular kernel.
 
-    Parameters
-    ----------
-    fullranges : Numpy.array
-        Number of grid cells in all dimensions used to create the kernel.
-        This should have the value 0 for any dimension other than x and y.
-    ranges : Tuple
-        Number of grid cells in the x and y direction used to create
-        the kernel.
-    weighted_mode : boolean (optional)
-        If True, use a circle for neighbourhood kernel with
-        weighting decreasing with radius.
-        If False, use a circle with constant weighting.
+    Parameters:
+        fullranges : Numpy.array
+            Number of grid cells in all dimensions used to create the kernel.
+            This should have the value 0 for any dimension other than x and y.
+        ranges : Tuple
+            Number of grid cells in the x and y direction used to create
+            the kernel.
+        weighted_mode : boolean (optional)
+            If True, use a circle for neighbourhood kernel with
+            weighting decreasing with radius.
+            If False, use a circle with constant weighting.
 
-    Returns
-    -------
-    kernel : Numpy.array
-        Array containing the circular smoothing kernel.
-        This will have the same number of dimensions as fullranges.
+    Returns:
+        kernel : Numpy.array
+            Array containing the circular smoothing kernel.
+            This will have the same number of dimensions as fullranges.
 
     """
     # Define the size of the kernel based on the number of grid cells
@@ -104,12 +102,11 @@ class CircularNeighbourhood(object):
         """
         Initialise class.
 
-        Parameters
-        ----------
-        weighted_mode : boolean (optional)
-            If True, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
-            If False, use a circle with constant weighting.
+        Args:
+            weighted_mode : boolean (optional)
+                If True, use a circle for neighbourhood kernel with
+                weighting decreasing with radius.
+                If False, use a circle with constant weighting.
         """
         self.weighted_mode = weighted_mode
 
@@ -123,20 +120,18 @@ class CircularNeighbourhood(object):
 
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing to array to apply CircularNeighbourhood processing
-            to.
-        ranges : Tuple
-            Number of grid cells in the x and y direction used to create
-            the kernel.
+        Args:
+            cube : Iris.cube.Cube
+                Cube containing to array to apply CircularNeighbourhood
+                processing to.
+            ranges : Tuple
+                Number of grid cells in the x and y direction used to create
+                the kernel.
 
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube containing the smoothed field after the kernel has been
-            applied.
+        Returns:
+            cube : Iris.cube.Cube
+                Cube containing the smoothed field after the kernel has been
+                applied.
 
         """
         data = cube.data
@@ -160,20 +155,18 @@ class CircularNeighbourhood(object):
         Call the methods required to calculate and apply a circular
         neighbourhood.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing to array to apply CircularNeighbourhood processing
-            to.
-        radius : Float
-            Radius in metres for use in specifying the number of
-            grid cells used to create a circular neighbourhood.
+        Args:
+            cube : Iris.cube.Cube
+                Cube containing to array to apply CircularNeighbourhood
+                processing to.
+            radius : Float
+                Radius in metres for use in specifying the number of
+                grid cells used to create a circular neighbourhood.
 
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube containing the smoothed field after the kernel has been
-            applied.
+        Returns:
+            cube : Iris.cube.Cube
+                Cube containing the smoothed field after the kernel has been
+                applied.
 
         """
         # Check that the cube has an equal area grid.
@@ -195,11 +188,10 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         """
         Initialise class.
 
-        Parameters
-        ----------
-        percentiles : list (optional)
-            Percentile values at which to calculate; if not provided uses
-            DEFAULT_PERCENTILES.
+        Args:
+            percentiles : list (optional)
+                Percentile values at which to calculate; if not provided uses
+                DEFAULT_PERCENTILES.
 
         """
         self.percentiles = tuple(percentiles)
@@ -217,13 +209,90 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         each point. The resultingpercentile data are unpadded and put into a
         cube.
 
-        Parameters
-        ----------
-        slice_2d : Iris.cube.Cube
-            2d cube to be padded with a halo.
-        kernel : Numpy array
-            Kernel used to specify the neighbourhood to consider when
-            calculating the percentiles within a neighbourhood.
+        Args:
+            slice_2d : Iris.cube.Cube
+                2d cube to be padded with a halo.
+            kernel : Numpy array
+                Kernel used to specify the neighbourhood to consider when
+                calculating the percentiles within a neighbourhood.
+
+        Examples:
+            1. Take the input slice_2d cube with the data, where 1 is an
+               occurrence and 0 is an non-occurrence:
+                [[1., 1., 1.,],
+                 [1., 0., 1.],
+                 [1., 1., 1.]]
+            2. Define a kernel. This kernel is effectively placed over each
+               point within the input data. Note that the input data is padded
+               prior to placing the kernel over each point, so that the kernel
+               does not exceed the bounds of the padded data.
+                [[ 0.,  0.,  1.,  0.,  0.],
+                 [ 0.,  1.,  1.,  1.,  0.],
+                 [ 1.,  1.,  1.,  1.,  1.],
+                 [ 0.,  1.,  1.,  1.,  0.],
+                 [ 0.,  0.,  1.,  0.,  0.]]
+            3. Pad the input data. The extent of the padding is given by the
+               shape of the kernel. The number of values included within the
+               calculation of the mean is determined by the size of the kernel.
+                [[ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
+                 [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
+                 [ 1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ],
+                 [ 0.5 ,  0.5 ,  1.  ,  0.  ,  1.  ,  0.5 ,  0.5 ],
+                 [ 1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ],
+                 [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
+                 [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75]]
+            4. Calculate the values at the percentiles: [10].
+               For the point in the upper right corner within the original
+               input data e.g.
+                [[->1.<-, 1., 1.,],
+                 [1., 0., 1.],
+                 [1., 1., 1.]]
+               When the kernel is placed over this point within the padded
+               data, then the following points are included:
+                [[ 0.75,  0.75,  ->1.<-  ,  0.5 ,  1.  ,  0.75,  0.75],
+                 [ 0.75,  ->0.75,  1.  ,  0.5<-,  1.  ,  0.75,  0.75],
+                 [ ->1.  ,  1.  ,  1.  ,  1.  ,  1.<-,  1.  ,  1.  ],
+                 [ 0.5 ,  ->0.5 ,  1.  ,  0.<-,  1.  ,  0.5 ,  0.5 ],
+                 [ 1.  ,  1.  ,  ->1.<-  ,  1.  ,  1.  ,  1.  ,  1.  ],
+                 [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
+                 [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75]]
+               This gives:
+               [0, 0.5, 0.5, 0.75, 1., 1., 1., 1., 1., 1., 1., 1., 1.].
+               As there are 13 points within the kernel, this gives the
+               following relationship between percentiles and values.
+                  ======  ==========
+                  Values  Percentile
+                  ======  ==========
+                  0.      0
+                  0.5     8.33
+                  0.5     16.67
+                  0.75    25.0
+                  1.      33.33
+                  1.      41.67
+                  1.      50.0
+                  1.      58.33
+                  1.      66.67
+                  1.      75.0
+                  1.      83.33
+                  1.      91.66
+                  1.      100.
+                  ======  ==========
+               Therefore, for the 10th percentile at the value returned for
+               the point in the upper right corner of the original input data
+               is 0.5.
+               When this process is applied to every point within the original
+               input data, the result is:
+                [[[ 0.75,  0.75,  0.5 ,  0.5 ,  0.5 ,  0.75,  0.75],
+                  [ 0.75,  0.55,  0.55,  0.5 ,  0.55,  0.55,  0.55],
+                  [ 0.55,  0.55,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ],
+                  [ 0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ],
+                  [ 0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.55,  0.55],
+                  [ 0.55,  0.55,  0.55,  0.5 ,  0.55,  0.55,  0.75],
+                  [ 0.75,  0.75,  0.5 ,  0.5 ,  0.5 ,  0.75,  0.75]]],
+              5. The padding is then removed to give:
+                  [[[ 0.5,  0.5,  0.5],
+                    [ 0.5,  0.5,  0.5],
+                    [ 0.5,  0.5,  0.5]]]
 
         """
         ranges_xy = np.empty(2, dtype=int)
@@ -233,7 +302,10 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                         stat_length=np.max(ranges_xy))
         padshape = np.shape(padded)  # Store size to make unflatten easier
         padded = padded.flatten()
-        # Add 2nd dimension with each point's neighbourhood points along it
+        # Add 2nd dimension with each point's neighbourhood points along it.
+        # nbhood_slices is a list of numpy arrays where each array contains the
+        # total number of points within the padded array. The number of arrays
+        # is equal to the number of points within the kernel.
         nbhood_slices = [
             np.roll(padded, (padshape[1]*j)+i)
             for i in range(-ranges_xy[1], ranges_xy[1]+1)
@@ -257,19 +329,17 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing array to apply processing to.
-        radius : Float
-            Radius in metres for use in specifying the number of
-            grid cells used to create a circular neighbourhood.
+        Args:
+            cube : Iris.cube.Cube
+                Cube containing array to apply processing to.
+            radius : Float
+                Radius in metres for use in specifying the number of
+                grid cells used to create a circular neighbourhood.
 
-        Returns
-        -------
-        result : Iris.cube.Cube
-            Cube containing the percentile fields.
-            Has percentile as an added dimension.
+        Returns:
+            result : Iris.cube.Cube
+                Cube containing the percentile fields.
+                Has percentile as an added dimension.
 
         """
         # Check that the cube has an equal area grid.
@@ -279,7 +349,6 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             cube, radius, MAX_RADIUS_IN_GRID_CELLS)
         ranges_xy = np.array(ranges_tuple)
         kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
-
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
@@ -318,15 +387,14 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
     def make_percentile_cube(self, cube):
         """Returns a cube with the same metadata as the sample cube
         but with an added percentile dimension.
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to copy meta data from.
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube like input but with added percentiles coordinate.
-            Each slice along this coordinate is identical.
+
+        Args:
+            cube : Iris.cube.Cube
+                Cube to copy meta data from.
+        Returns:
+            cube : Iris.cube.Cube
+                Cube like input but with added percentiles coordinate.
+                Each slice along this coordinate is identical.
         """
         pctcubelist = iris.cube.CubeList()
         for pct in self.percentiles:

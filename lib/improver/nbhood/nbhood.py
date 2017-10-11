@@ -242,15 +242,10 @@ class BaseNeighbourhoodProcessing(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        if callable(self.neighbourhood_method):
-            neighbourhood_method = self.neighbourhood_method()
-        else:
-            neighbourhood_method = self.neighbourhood_method
-
         result = ('<NeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; ens_factor: {}>')
         return result.format(
-            neighbourhood_method, self.radii, self.lead_times,
+            self.neighbourhood_method, self.radii, self.lead_times,
             self.ens_factor)
 
     def process(self, cube):

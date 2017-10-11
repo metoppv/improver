@@ -50,12 +50,12 @@ positional arguments:
                         "percentiles" is selected, then the percentiles are
                         calculated within a neighbourhood. Calculating
                         percentiles from a neighbourhood is only supported for
-                        a circular neighbourhood.Options: "probabilities",
+                        a circular neighbourhood. Options: "probabilities",
                         "percentiles".
   NEIGHBOURHOOD_SHAPE   The shape of the neighbourhood to apply in
                         neighbourhood processing. Only a "circular"
                         neighbourhood shape is applicable for calculating
-                        "percentiles" output.Options: "circular", "square".
+                        "percentiles" output. Options: "circular", "square".
   INPUT_FILE            A path to an input NetCDF file to be processed.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
