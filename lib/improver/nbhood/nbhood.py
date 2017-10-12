@@ -33,7 +33,6 @@
 import math
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.nbhood.circular_kernel import (
@@ -44,107 +43,7 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
-
-
-class Utilities(object):
-
-    """
-    Utilities for neighbourhood processing.
-    """
-
-    def __init__(self):
-        """
-        Initialise class.
-        """
-        pass
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<Utilities>')
-        return result
-
-    @staticmethod
-    def find_required_lead_times(cube):
-        """
-        Determine the lead times within a cube, either by reading the
-        forecast_period coordinate, or by calculating the difference between
-        the time and the forecast_reference_time. If the forecast_period
-        coordinate is present, the points are assumed to represent the
-        desired lead times with the bounds not being considered. The units of
-        the forecast_period, time and forecast_reference_time coordinates are
-        converted, if required.
-
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube from which the lead times will be determined.
-
-        Returns
-        -------
-        required_lead_times : Numpy array
-            Array containing the lead times, at which the radii need to be
-            calculated.
-
-        """
-        if cube.coords("forecast_period"):
-            try:
-                cube.coord("forecast_period").convert_units("hours")
-            except ValueError as err:
-                msg = "For forecast_period: {}".format(err)
-                raise ValueError(msg)
-            required_lead_times = cube.coord("forecast_period").points
-        else:
-            if cube.coords("time") and cube.coords("forecast_reference_time"):
-                try:
-                    cube.coord("time").convert_units(
-                        "hours since 1970-01-01 00:00:00")
-                    cube.coord("forecast_reference_time").convert_units(
-                        "hours since 1970-01-01 00:00:00")
-                except ValueError as err:
-                    msg = "For time/forecast_reference_time: {}".format(err)
-                    raise ValueError(msg)
-                required_lead_times = (
-                    cube.coord("time").points -
-                    cube.coord("forecast_reference_time").points)
-            else:
-                msg = ("The forecast period coordinate is not available "
-                       "within {}."
-                       "The time coordinate and forecast_reference_time "
-                       "coordinate were also not available for calculating "
-                       "the forecast_period.".format(cube))
-                raise CoordinateNotFoundError(msg)
-        return required_lead_times
-
-    @staticmethod
-    def adjust_nsize_for_ens(ens_factor, num_ens, width):
-        """
-        Adjust neighbourhood size according to ensemble size.
-
-        Parameters
-        ----------
-        ens_factor : float
-            The factor with which to adjust the neighbourhood size
-            for more than one ensemble member.
-            If ens_factor = 1.0 this essentially conserves ensemble
-            members if every grid square is considered to be the
-            equivalent of an ensemble member.
-        num_ens : float
-            Number of realizations or ensemble members.
-        width : float
-            radius or width appropriate for a single forecast in m.
-
-        Returns
-        -------
-        new_width : float
-            new neighbourhood radius (m).
-
-        """
-        if num_ens <= 1.0:
-            new_width = width
-        else:
-            new_width = (ens_factor *
-                         math.sqrt((width**2.0)/num_ens))
-        return new_width
+from improver.utilities.temporal import find_required_lead_times
 
 
 class BaseNeighbourhoodProcessing(object):
@@ -205,6 +104,30 @@ class BaseNeighbourhoodProcessing(object):
                 raise ValueError(msg)
         self.ens_factor = float(ens_factor)
 
+    def adjust_nsize_for_ens(self, num_ens, width):
+        """
+        Adjust neighbourhood size according to ensemble size.
+
+        Parameters
+        ----------
+        num_ens : float
+            Number of realizations or ensemble members.
+        width : float
+            radius or width appropriate for a single forecast in m.
+
+        Returns
+        -------
+        new_width : float
+            new neighbourhood radius (m).
+
+        """
+        if num_ens <= 1.0:
+            new_width = width
+        else:
+            new_width = (self.ens_factor *
+                         math.sqrt((width**2.0)/num_ens))
+        return new_width
+
     def _find_radii(self, num_ens, cube_lead_times=None):
         """Revise radius or radii for found lead times and ensemble members
 
@@ -226,16 +149,14 @@ class BaseNeighbourhoodProcessing(object):
             Required neighbourhood sizes.
         """
         if cube_lead_times is None:
-            radii = Utilities.adjust_nsize_for_ens(self.ens_factor,
-                                                   num_ens, self.radii)
+            radii = self.adjust_nsize_for_ens(num_ens, self.radii)
         else:
             # Interpolate to find the radius at each required lead time.
             radii = (
                 np.interp(
                     cube_lead_times, self.lead_times, self.radii))
             for i, val in enumerate(radii):
-                radii[i] = Utilities.adjust_nsize_for_ens(self.ens_factor,
-                                                          num_ens, val)
+                radii[i] = self.adjust_nsize_for_ens(num_ens, val)
         return radii
 
     def __repr__(self):
@@ -247,7 +168,7 @@ class BaseNeighbourhoodProcessing(object):
         result = ('<BaseNeighbourhoodProcessing: neighbourhood_method: {}; '
                   'radii: {}; lead_times: {}; ens_factor: {}>')
         return result.format(
-            self.neighbourhood_method, self.radii, self.lead_times,
+            neighbourhood_method, self.radii, self.lead_times,
             self.ens_factor)
 
     def process(self, cube):
@@ -307,7 +228,7 @@ class BaseNeighbourhoodProcessing(object):
                                                          radius)
             else:
                 cube_lead_times = (
-                    Utilities.find_required_lead_times(cube_realization))
+                    find_required_lead_times(cube_realization))
                 # Interpolate to find the radius at each required lead time.
                 required_radii = (
                     self._find_radii(num_ens,

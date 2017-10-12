@@ -276,6 +276,49 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
+class Test_adjust_nsize_for_ens(IrisTest):
+
+    """Test adjusting neighbourhood size according to ensemble size."""
+
+    def test_basic_returns_float(self):
+        """Test returns float."""
+        neighbourhood_method = CircularNeighbourhood()
+        radii = 20.0
+        ens_factor = 1.0
+        num_ens = 3.0
+        width = 20.0
+        result = NBHood(
+            neighbourhood_method, radii,
+            ens_factor=ens_factor).adjust_nsize_for_ens(num_ens, width)
+        self.assertIsInstance(result, float)
+
+    def test_returns_unchanged_for_ens1(self):
+        """Test returns unchanged value when num_ens = 1.0."""
+        expected = 20.0
+        neighbourhood_method = CircularNeighbourhood()
+        radii = 20.0
+        ens_factor = 0.8
+        num_ens = 1.0
+        width = 20.0
+        result = NBHood(
+            neighbourhood_method, radii,
+            ens_factor=ens_factor).adjust_nsize_for_ens(num_ens, width)
+        self.assertAlmostEqual(result, expected)
+
+    def test_returns_adjusted_values(self):
+        """Test returns the correct values."""
+        expected = 9.2376043070399998
+        neighbourhood_method = CircularNeighbourhood()
+        radii = 20.0
+        ens_factor = 0.8
+        num_ens = 3.0
+        width = 20.0
+        result = NBHood(
+            neighbourhood_method, radii,
+            ens_factor=ens_factor).adjust_nsize_for_ens(num_ens, width)
+        self.assertAlmostEqual(result, expected)
+
+
 class Test__find_radii(IrisTest):
 
     """Test the internal _find_radii function is working correctly."""
