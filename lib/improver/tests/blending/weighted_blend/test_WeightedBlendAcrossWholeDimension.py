@@ -119,6 +119,24 @@ class Test_process(IrisTest):
         cube_with_scalar = cube.copy()
         cube_with_scalar.add_aux_coord(new_scalar_coord)
         self.cube_with_scalar = cube_with_scalar
+        data_threshold = np.zeros((2, 2, 2, 2))
+        data_threshold[:, 0, :, :] = 0.5
+        data_threshold[:, 1, :, :] = 0.8
+        cube_threshold = Cube(data_threshold,
+                              long_name="probability_of_precipitation_amount")
+        cube_threshold.add_dim_coord(DimCoord([0.4, 1.0],
+                                     long_name="threshold",
+                                     units="kg m^-2 s^-1"), 0)
+        cube_threshold.add_dim_coord(DimCoord([402192.5, 402193.5],
+                                     "time", units=tunit), 1)
+        cube_threshold.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
+                                              'latitude',
+                                              units='degrees'), 2)
+        cube_threshold.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
+                                              'longitude',
+                                              units='degrees'), 3)
+        cube_threshold.attributes.update({'relative_to_threshold': 'below'})
+        self.cube_threshold = cube_threshold
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -249,6 +267,26 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def tests_threshold_splicing_works_weighted_mean(self):
+        """Test weighted_mean works with a threshold dimension."""
+        coord = "time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = np.array([0.8, 0.2])
+        result = plugin.process(self.cube_threshold, weights)
+        expected_result_array = np.ones((2, 2, 2))*0.56
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def tests_threshold_splicing_works_with_threshold(self):
+        """Test splicing works when the blending is over threshold."""
+        coord = "threshold"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = np.array([0.8, 0.2])
+        self.cube_threshold.data[0, :, :, :] = 0.5
+        self.cube_threshold.data[1, :, :, :] = 0.8
+        result = plugin.process(self.cube_threshold, weights)
+        expected_result_array = np.ones((2, 2, 2))*0.56
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
     def test_percentiles_weights_none(self):
         """Test it works for percentiles with weights set to None."""
         coord = "time"
@@ -282,7 +320,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_weighted_max_non_equal_weights_list(self):
-        """Test it works for weighted_max with weights [0.8, 0.2]
+        """Test it works for weighted_max with weights [0.2, 0.8]
            given as a list."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
@@ -291,8 +329,17 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.6
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def tests_threshold_splicing_works_weighted_max(self):
+        """Test weighted_max works with a threshold dimension."""
+        coord = "time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
+        weights = np.array([0.8, 0.2])
+        result = plugin.process(self.cube_threshold, weights)
+        expected_result_array = np.ones((2, 2, 2))*0.4
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
     def test_weighted_max_non_equal_weights_arrray(self):
-        """Test it works for weighted_max with weights [0.8, 0.2]
+        """Test it works for weighted_max with weights [0.2, 0.8]
            given as a array."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
