@@ -35,6 +35,8 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 from iris import FUTURE
 
+from improver.constants import DEFAULT_PERCENTILES
+
 FUTURE.netcdf_promote = True
 
 
@@ -46,10 +48,6 @@ class PercentileConverter(object):
 
     """
 
-    # Default percentile boundaries to calculate at.
-    DEFAULT_PERCENTILES = [0, 5, 10, 20, 25, 30, 40, 50,
-                           60, 70, 75, 80, 90, 95, 100]
-
     def __init__(self, collapse_coord, percentiles=None):
         """
         Create a PDF plugin with a given source plugin.
@@ -59,7 +57,7 @@ class PercentileConverter(object):
         collapse_coord : str (or list of str)
             The name of the coordinate(s) to collapse over.
 
-        percentiles : list (optional)
+        percentiles : Iterable or None (optional)
             Percentile values at which to calculate; if not provided uses
             DEFAULT_PERCENTILES.
 
@@ -74,7 +72,7 @@ class PercentileConverter(object):
         if percentiles is not None:
             self.percentiles = [int(value) for value in percentiles]
         else:
-            self.percentiles = self.DEFAULT_PERCENTILES
+            self.percentiles = DEFAULT_PERCENTILES
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such

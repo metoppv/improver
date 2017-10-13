@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run square neighbourhood processing with masked data and check it passes.
-  run improver nbhood 'square' --radius=20000 \
+  run improver nbhood 'probabilities' 'square' --radius=20000 --weighted_mode\
       "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input_masked.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

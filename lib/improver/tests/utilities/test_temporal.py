@@ -28,8 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the nbhood.Utilities plugin."""
-
+"""Unit tests for temporal utilities."""
 
 import unittest
 
@@ -41,22 +40,11 @@ import numpy as np
 
 from cf_units import Unit
 
-from improver.nbhood.nbhood import Utilities
+from improver.utilities.temporal import find_required_lead_times
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(Utilities())
-        msg = '<Utilities>'
-        self.assertEqual(result, msg)
 
 
 class Test_find_required_lead_times(IrisTest):
@@ -66,7 +54,7 @@ class Test_find_required_lead_times(IrisTest):
     def test_basic(self):
         """Test that a numpy array is returned."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        result = Utilities.find_required_lead_times(cube)
+        result = find_required_lead_times(cube)
         self.assertIsInstance(result, np.ndarray)
 
     def test_check_coordinate(self):
@@ -76,7 +64,7 @@ class Test_find_required_lead_times(IrisTest):
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points
-        result = Utilities.find_required_lead_times(cube)
+        result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_coordinate_without_forecast_period(self):
@@ -90,7 +78,7 @@ class Test_find_required_lead_times(IrisTest):
         expected_result = (
             cube.coord("time").points -
             cube.coord("forecast_reference_time").points)
-        result = Utilities.find_required_lead_times(cube)
+        result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_forecast_period_unit_conversion(self):
@@ -102,7 +90,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("forecast_period").convert_units("seconds")
-        result = Utilities.find_required_lead_times(cube)
+        result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_time_unit_conversion(self):
@@ -114,7 +102,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         expected_result = cube.coord("forecast_period").points.copy()
         cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
-        result = Utilities.find_required_lead_times(cube)
+        result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_check_forecast_period_unit_conversion_exception(self):
@@ -127,7 +115,7 @@ class Test_find_required_lead_times(IrisTest):
         cube.coord("forecast_period").units = Unit("Celsius")
         msg = "For forecast_period"
         with self.assertRaisesRegexp(ValueError, msg):
-            Utilities.find_required_lead_times(cube)
+            find_required_lead_times(cube)
 
     def test_check_forecast_reference_time_unit_conversion_exception(self):
         """
@@ -140,7 +128,7 @@ class Test_find_required_lead_times(IrisTest):
         cube.coord("forecast_reference_time").units = Unit("Celsius")
         msg = "For time/forecast_reference_time"
         with self.assertRaisesRegexp(ValueError, msg):
-            Utilities.find_required_lead_times(cube)
+            find_required_lead_times(cube)
 
     def test_exception_raised(self):
         """
@@ -151,27 +139,7 @@ class Test_find_required_lead_times(IrisTest):
         cube = set_up_cube()
         msg = "The forecast period coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            Utilities.find_required_lead_times(cube)
-
-
-class Test_adjust_nsize_for_ens(IrisTest):
-
-    """Test adjusting neighbourhood size according to ensemble size."""
-
-    def test_basic_returns_float(self):
-        """Test returns float."""
-        result = Utilities().adjust_nsize_for_ens(1.0, 3.0, 20.0)
-        self.assertIsInstance(result, float)
-
-    def test_returns_unchanged_for_ens1(self):
-        """Test returns unchanged value when num_ens = 1.0."""
-        result = Utilities().adjust_nsize_for_ens(0.8, 1.0, 20.0)
-        self.assertAlmostEqual(result, 20.0)
-
-    def test_returns_adjusted_values(self):
-        """Test returns the correct values."""
-        result = Utilities().adjust_nsize_for_ens(0.8, 3.0, 20.0)
-        self.assertAlmostEqual(result, 9.2376043070399998)
+            find_required_lead_times(cube)
 
 
 if __name__ == '__main__':
