@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin for WindGustDiagnositic."""
 
+import warnings
+
 import iris
-from iris.exceptions import CoordinateNotFoundError
 from iris import FUTURE
+
 
 FUTURE.netcdf_promote = True
 
@@ -103,6 +105,76 @@ class WindGustDiagnostic(object):
 
         return result
 
+    def update_metadata_after_max(self, cube, perc_coord):
+        """Update metadata after.MAX found through merged_cube.collapsed
+
+        Args:
+            cube: iris.cube.Cube instance
+                Cube containing the wind-gust diagnostic data.
+        Returns:
+            result : iris.cube.Cube instance
+                Cube containing the wind-gust diagnostic data with
+                corrected Metadata.
+
+        """
+        result = cube
+        result.remove_coord(perc_coord)
+        return result
+
+    @staticmethod
+    def extract_percentile_data(cube, req_percentile, standard_name):
+        """
+        Extract percentile data from cube.
+
+        Args:
+            cube : iris.cube.Cube instance
+                Cube contain one or more percentiles of wind_gust data.
+            req_percentile: float
+                Required percentile value
+            standard_name: str
+                Standard name of the data.
+
+        Returns:
+            result : iris.cube.Cube instance
+                Cube containing the required percentile data
+            perc_coord : iris.coords.Coord
+                Percentile coordinate..
+
+        """
+        if not isinstance(cube, iris.cube.Cube):
+            msg = ('Expecting {0:s} data to be an instance of '
+                   'iris.cube.Cube but is'
+                   ' {1:s}.'.format(standard_name, type(cube)))
+            raise ValueError(msg)
+        perc_coord = None
+        perc_found = 0
+        for coord in cube.coords():
+            if coord.name().find('percentile') >= 0:
+                perc_found += 1
+                perc_coord = coord
+        if perc_found != 1:
+            if perc_found == 0:
+                msg = ('No percentile coord found on '
+                       '{0:s} data'.format(standard_name))
+                raise ValueError(msg)
+            else:
+                msg = ('Too many percentile coords found on '
+                       '{0:s} data'.format(standard_name))
+                raise ValueError(msg)
+        if cube.standard_name != standard_name:
+            msg = ('Warning mismatching name for data expecting'
+                   ' {0:s} but found {1:s}'.format(standard_name,
+                                                   cube.standard_name))
+            warnings.warn(msg)
+        constraint = (
+            iris.Constraint(coord_values={perc_coord.name(): req_percentile}))
+        result = cube.extract(constraint)
+        if result is None:
+            msg = ('Could not find required percentile '
+                   '{0:3.1f} in cube'.format(req_percentile))
+            raise ValueError(msg)
+        return result, perc_coord
+
     def process(self, cube_gust, cube_ws):
         """
         Create a cube containing the wind_gust diagnostic.
@@ -120,14 +192,26 @@ class WindGustDiagnostic(object):
         """
 
         # Extract wind-gust data
-        # raise CoordinateNotFoundError(
-        #    "Coordinate '{}' not found in cube passed to {}.".format(
-        #        self.collapse_coord, self.__class__.__name__))
-
+        (req_cube_gust,
+         perc_coord_gust) = self.extract_percentile_data(cube_gust,
+                                                         self.percentile_gust,
+                                                         "wind_speed_of_gust")
         # Extract wind-speed data
-
+        (req_cube_ws,
+         perc_coord_ws) = (
+             self.extract_percentile_data(cube_ws,
+                                          self.percentile_windspeed,
+                                          "wind_speed"))
+        # Add metadata to both cubes
+        req_cube_gust = self.add_metadata(req_cube_gust)
+        req_cube_ws = self.add_metadata(req_cube_ws)
+        # Merge cubes
+        merged_cube = iris.cube.CubeList([req_cube_gust,
+                                          req_cube_ws]).merge_cube()
         # Calculate wind-gust diagnostic
-        # result = cube.collapsed(perc_coord, iris.analysis.MAX)
+        cube_max = merged_cube.collapsed(perc_coord_gust, iris.analysis.MAX)
+
         # Update metadata
-        result = self.add_metadata(cube_gust)
+        result = self.update_metadata_after_max(cube_max, perc_coord_gust)
+
         return result
