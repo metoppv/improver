@@ -453,7 +453,9 @@ class SquareNeighbourhood(object):
                 mask_cube = cube.copy()
                 mask_cube.data = np.logical_not(cube.data.mask.astype(int))
             mask_cube.rename('mask_data')
-            cube.data = cube.data.data * mask_cube.data
+            if np.ma.is_masked(cube.data):
+                cube.data = cube.data.data
+            cube.data = cube.data * mask_cube.data
             cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
         else:
             cubes_to_sum = iris.cube.CubeList([cube])
@@ -550,10 +552,9 @@ class SquareNeighbourhood(object):
                 divided_data[~np.isfinite(divided_data)] = 0
                 neighbourhood_averaged_cube.data = divided_data
             original_mask_cube, = pre_neighbourhood_cubes.extract('mask_data')
-            print "neighbourhood_averaged_cube = ", neighbourhood_averaged_cube
-            print "original_mask_cube = ", original_mask_cube
             neighbourhood_averaged_cube.data = (
-                neighbourhood_averaged_cube.data * original_mask_cube.data)
+                neighbourhood_averaged_cube.data *
+                original_mask_cube.data.squeeze())
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):
