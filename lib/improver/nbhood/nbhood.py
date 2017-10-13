@@ -318,7 +318,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
     def __init__(
             self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0, weighted_mode=True):
+            ens_factor=1.0, weighted_mode=True, sum_or_fraction="fraction"):
         """
         Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
@@ -348,6 +348,11 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             If True, use a circle for neighbourhood kernel with
             weighting decreasing with radius.
             If False, use a circle with constant weighting.
+        sum_or_fraction : string
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding. The sum represents the sum of the neighbourhood.
+            The fraction represents the sum of the neighbourhood divided by
+            the neighbourhood area. "fraction" is the default.
 
         """
         super(NeighbourhoodProcessing, self).__init__(
@@ -359,7 +364,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(weighted_mode)
+            self.neighbourhood_method = method(weighted_mode, sum_or_fraction)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(

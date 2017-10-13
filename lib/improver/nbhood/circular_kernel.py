@@ -98,7 +98,7 @@ class CircularNeighbourhood(object):
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, weighted_mode=True):
+    def __init__(self, weighted_mode=True, sum_or_fraction="fraction"):
         """
         Initialise class.
 
@@ -107,13 +107,27 @@ class CircularNeighbourhood(object):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
+            sum_or_fraction : string
+                Identifier for whether sum or fraction should be returned from
+                neighbourhooding. The sum represents the sum of the
+                neighbourhood. The fraction represents the sum of the
+                neighbourhood divided by the neighbourhood area.
         """
         self.weighted_mode = weighted_mode
+        if sum_or_fraction not in ["sum", "fraction"]:
+            msg = ("The neighbourhood output can either be in the form of a "
+                   "sum of all the points in the neighbourhood or a fraction "
+                   "of the sum of the neighbourhood divided by the "
+                   "neighbourhood area. The {} option is invalid. "
+                   "Valid options are 'sum' or 'fraction'.")
+            raise ValueError(msg)
+        self.sum_or_fraction = sum_or_fraction
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<CircularNeighbourhood: weighted_mode: {}>')
-        return result.format(self.weighted_mode)
+        result = ('<CircularNeighbourhood: weighted_mode: {}, '
+                  'sum_or_fraction: {}>')
+        return result.format(self.weighted_mode, self.sum_or_fraction)
 
     def apply_circular_kernel(self, cube, ranges):
         """
@@ -145,8 +159,13 @@ class CircularNeighbourhood(object):
             fullranges[axis] = ranges[axis_index]
         kernel = circular_kernel(fullranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
+        if self.sum_or_fraction is "fraction":
+            total_area = np.sum(kernel)
+        elif self.sum_or_fraction is "sum":
+            total_area = 1.0
+
         cube.data = scipy.ndimage.filters.correlate(
-            data, kernel, mode='nearest') / np.sum(kernel)
+            data, kernel, mode='nearest') / total_area
         return cube
 
     def run(self, cube, radius):

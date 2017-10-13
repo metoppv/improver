@@ -93,6 +93,12 @@ def main():
                              'weighting is assumed. weighted_mode is only '
                              'applicable for calculating "probability" '
                              'neighbourhood output.')
+    parser.add_argument('--sum_or_fraction', default="fraction",
+                        help='The neighbourhood output can either be in the '
+                             'form of a sum of the neighbourhood, or a '
+                             'fraction calculated by dividing the sum of the '
+                             'neighbourhood by the neighbourhood area. '
+                             '"fraction" is the default option.')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+', type=float,
                         help='Calculate values at the specified percentiles '
@@ -130,7 +136,8 @@ def main():
             NeighbourhoodProcessing(
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
-                weighted_mode=args.weighted_mode
+                weighted_mode=args.weighted_mode,
+                sum_or_fraction=args.sum_or_fraction
                 ).process(cube))
     elif args.neighbourhood_output == "percentiles":
         result = (

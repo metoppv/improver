@@ -43,6 +43,19 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube)
 
 
+class Test__init__(IrisTest):
+
+    """Test the init method."""
+
+    def test_sum_or_fraction(self):
+        """Test that a ValueError is raised if an invalid option is passed
+        in for sum_or_fraction."""
+        sum_or_fraction = "nonsense"
+        msg = "option is invalid"
+        with self.assertRaisesRegexp(ValueError, msg):
+            CircularNeighbourhood(sum_or_fraction=sum_or_fraction)
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -50,7 +63,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CircularNeighbourhood())
-        msg = '<CircularNeighbourhood: weighted_mode: True>'
+        msg = ('<CircularNeighbourhood: weighted_mode: True, '
+               'sum_or_fraction: fraction>')
         self.assertEqual(str(result), msg)
 
 

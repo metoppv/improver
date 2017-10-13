@@ -49,7 +49,7 @@ class SquareNeighbourhood(object):
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self, weighted_mode=True):
+    def __init__(self, weighted_mode=True, sum_or_fraction="fraction"):
         """
         Initialise class.
 
@@ -58,13 +58,27 @@ class SquareNeighbourhood(object):
         weighted_mode : boolean
             This is included to allow a standard interface for both the
             square and circular neighbourhood plugins.
+        sum_or_fraction : string
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding. The sum represents the sum of the neighbourhood.
+            The fraction represents the sum of the neighbourhood divided by
+            the neighbourhood area.
         """
         self.weighted_mode = weighted_mode
+        if sum_or_fraction not in ["sum", "fraction"]:
+            msg = ("The neighbourhood output can either be in the form of a "
+                   "sum of all the points in the neighbourhood or a fraction "
+                   "of the sum of the neighbourhood divided by the "
+                   "neighbourhood area. The {} option is invalid. "
+                   "Valid options are 'sum' or 'fraction'.")
+            raise ValueError(msg)
+        self.sum_or_fraction = sum_or_fraction
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SquareNeighbourhood>')
-        return result
+        result = ('<SquareNeighbourhood: weighted_mode: {}, '
+                  'sum_or_fraction: {}>')
+        return result.format(self.weighted_mode, self.sum_or_fraction)
 
     @staticmethod
     def cumulate_array(cube):
@@ -298,8 +312,7 @@ class SquareNeighbourhood(object):
                     slice_2d, trimmed_data, trimmed_x_coord, trimmed_y_coord))
         return cubelist.merge_cube()
 
-    @staticmethod
-    def mean_over_neighbourhood(cube, cells_x, cells_y, nan_masks):
+    def mean_over_neighbourhood(self, cube, cells_x, cells_y, nan_masks):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
@@ -401,15 +414,20 @@ class SquareNeighbourhood(object):
             # Initialise and calculate the neighbourhood area.
             neighbourhood_area = np.zeros(neighbourhood_total.shape)
             neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
-            with np.errstate(invalid='ignore', divide='ignore'):
-                slice_2d.data = (neighbourhood_total.astype(float) /
-                                 neighbourhood_area.astype(float))
+
+            if self.sum_or_fraction is "fraction":
+                with np.errstate(invalid='ignore', divide='ignore'):
+                    slice_2d.data = (neighbourhood_total.astype(float) /
+                                     neighbourhood_area.astype(float))
+            elif self.sum_or_fraction is "sum":
+                slice_2d.data = neighbourhood_total.astype(float)
+
             slice_2d.data[nan_mask.astype(bool)] = np.NaN
             cubelist.append(slice_2d)
         return cubelist.merge_cube()
 
     @staticmethod
-    def _set_up_cubes_to_be_neighbourhooded(cube):
+    def _set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
         """
         Set up a cubelist containing either the input cube, or the input cube
         and a mask cube.
@@ -418,6 +436,8 @@ class SquareNeighbourhood(object):
         ----------
         cube : Iris.cube.Cube
             Cube that will be checked for whether the data is masked.
+        mask_cube : Iris.cube.Cube
+            Cube containing the array to be used as a mask.
 
         Returns
         -------
@@ -428,10 +448,11 @@ class SquareNeighbourhood(object):
         # If there is a mask, fill the data array of the mask_cube with a
         # logical array, logically inverted compared to the integer version of
         # the mask within the original data array.
-        if isinstance(cube.data, np.ma.MaskedArray):
-            mask_cube = cube.copy()
+        if isinstance(cube.data, np.ma.MaskedArray) or mask_cube:
+            if not mask_cube:
+                mask_cube = cube.copy()
+                mask_cube.data = np.logical_not(cube.data.mask.astype(int))
             mask_cube.rename('mask_data')
-            mask_cube.data = np.logical_not(cube.data.mask.astype(int))
             cube.data = cube.data.data * mask_cube.data
             cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
         else:
@@ -524,18 +545,18 @@ class SquareNeighbourhood(object):
             mask_cube = self.remove_halo_from_cube(
                 mask_cube, grid_cells_x, grid_cells_y)
             with np.errstate(invalid='ignore', divide='ignore'):
-                neighbourhood_averaged_cube.data = (
-                    neighbourhood_averaged_cube.data / mask_cube.data)
+                divided_data = np.true_divide(
+                    neighbourhood_averaged_cube.data, mask_cube.data)
+                divided_data[~np.isfinite(divided_data)] = 0
+                neighbourhood_averaged_cube.data = divided_data
             original_mask_cube, = pre_neighbourhood_cubes.extract('mask_data')
+            print "neighbourhood_averaged_cube = ", neighbourhood_averaged_cube
+            print "original_mask_cube = ", original_mask_cube
             neighbourhood_averaged_cube.data = (
-                np.ma.masked_where(
-                    np.logical_not(original_mask_cube.data.squeeze()),
-                    neighbourhood_averaged_cube.data))
-            # Insert a fill value of NaN.
-            np.ma.set_fill_value(neighbourhood_averaged_cube.data, np.nan)
+                neighbourhood_averaged_cube.data * original_mask_cube.data)
         return neighbourhood_averaged_cube
 
-    def run(self, cube, radius):
+    def run(self, cube, radius, mask_cube=None):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -555,6 +576,8 @@ class SquareNeighbourhood(object):
         radius : Float
             Radius in metres for use in specifying the number of
             grid cells used to create a square neighbourhood.
+        mask_cube : Iris.cube.Cube
+            Cube containing the array to be used as a mask.
 
         Returns
         -------
@@ -570,7 +593,7 @@ class SquareNeighbourhood(object):
             convert_distance_into_number_of_grid_cells(
                 cube, radius, MAX_RADIUS_IN_GRID_CELLS))
         cubes_to_sum = (
-            self._set_up_cubes_to_be_neighbourhooded(cube))
+            self._set_up_cubes_to_be_neighbourhooded(cube, mask_cube))
         neighbourhood_averaged_cubes = (
             self._pad_and_calculate_neighbourhood(
                 cubes_to_sum, grid_cells_x, grid_cells_y))

@@ -46,6 +46,19 @@ from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 
 
+class Test__init__(IrisTest):
+
+    """Test the init method."""
+
+    def test_sum_or_fraction(self):
+        """Test that a ValueError is raised if an invalid option is passed
+        in for sum_or_fraction."""
+        sum_or_fraction = "nonsense"
+        msg = "option is invalid"
+        with self.assertRaisesRegexp(ValueError, msg):
+            SquareNeighbourhood(sum_or_fraction=sum_or_fraction)
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -53,7 +66,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(SquareNeighbourhood())
-        msg = '<SquareNeighbourhood>'
+        msg = ('<SquareNeighbourhood: weighted_mode: {}, '
+               'sum_or_fraction: {}>'.format(True, "fraction"))
         self.assertEqual(result, msg)
 
 
@@ -589,7 +603,7 @@ class Test_mean_over_neighbourhood(IrisTest):
              [1., 0.88888889, 0.88888889, 0.88888889, 1.],
              [1., 1., 1., 1., 1.]])
 
-    def test_basic(self):
+    def test_basic_fraction(self):
         """Test cube with correct data is produced when mean over
            neighbourhood is calculated."""
         nan_masks = [np.zeros(self.cube.data.shape, dtype=int)]
@@ -597,6 +611,22 @@ class Test_mean_over_neighbourhood(IrisTest):
             self.cube, self.width, self.width, nan_masks)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, self.result)
+
+    def test_basic_sum(self):
+        """Test cube with correct data is produced when mean over
+           neighbourhood is calculated."""
+        nan_masks = [np.zeros(self.cube.data.shape, dtype=int)]
+        expected = np.array(
+            [[3., 4., -5., -5., 3.],
+             [3., 3., -6., -6., 9.],
+             [14., 18., 8., 8., -5.],
+             [-5., -6., 8., 8., -10.],
+             [-15., -19., -5., -5., 3.]])
+        result = SquareNeighbourhood(
+            sum_or_fraction="sum").mean_over_neighbourhood(
+                self.cube, self.width, self.width, nan_masks)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def test_basic_padded(self):
         """Test cube with correct data is produced when mean over
@@ -675,6 +705,25 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         self.assertEqual(len(cubes), 2)
         self.assertArrayAlmostEqual(cubes[0].data, data)
         self.assertArrayAlmostEqual(cubes[1].data, mask)
+
+    def test_with_separate_mask_cube(self):
+        """Test setting up cubes to be neighbourhooded for an input cube and
+        an additional mask cube."""
+        cube = self.cube
+        data = cube.data
+        cube.data[0, 0, 1, 3] = 0.5
+        cube.data[0, 0, 3, 3] = 0.5
+        mask_cube = cube.copy()
+        mask_cube.data[mask_cube.data == 0.5] = 0.0
+        mask_cube.data = mask_cube.data.astype(int)
+        expected_data = cube.data * mask_cube.data
+        cubes = (
+            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                cube.copy()))
+        self.assertIsInstance(cubes, CubeList)
+        self.assertEqual(len(cubes), 1)
+        self.assertArrayAlmostEqual(cubes[0].data, expected_data)
+        self.assertArrayAlmostEqual(cubes[1].data, mask_cube.data)
 
 
 class Test__pad_and_calculate_neighbourhood(IrisTest):
