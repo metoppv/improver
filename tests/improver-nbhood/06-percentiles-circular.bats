@@ -36,8 +36,9 @@
   improver_check_skip_acceptance
 
   # Run circular neighbourhood processing and check it passes.
-  run improver nbhood 'percentiles' 'circular' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/percentile/input_circular_percentile.nc" "$TEST_DIR/output_circular_percentile.nc"
+  run improver nbhood 'percentiles' 'circular'\
+      "$IMPROVER_ACC_TEST_DIR/nbhood/percentile/input_circular_percentile.nc" "$TEST_DIR/output_circular_percentile.nc"\
+      --radius=20000 --percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

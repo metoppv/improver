@@ -94,7 +94,7 @@ def main():
                              'applicable for calculating "probability" '
                              'neighbourhood output.')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
-                        default=DEFAULT_PERCENTILES, nargs='+',
+                        default=DEFAULT_PERCENTILES, nargs='+', type=float,
                         help='Calculate values at the specified percentiles '
                              'from the neighbourhood surrounding each grid '
                              'point.')
