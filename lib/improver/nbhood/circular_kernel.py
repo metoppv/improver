@@ -206,7 +206,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         """
         Method to pad and unpad a two dimensional cube. The input array is
         padded and percentiles are calculated using a neighbourhood around
-        each point. The resultingpercentile data are unpadded and put into a
+        each point. The resulting percentile data are unpadded and put into a
         cube.
 
         Args:
@@ -378,8 +378,8 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 result.coord_dims("percentiles_over_neighbourhood")[0])
         other_coords = []
         for coord in result.dim_coords:
-            if coord.name() not in [
-                   "realization", "percentiles_over_neighbourhood"]:
+            if coord.name() not in ["realization",
+                                    "percentiles_over_neighbourhood"]:
                 other_coords.append(result.coord_dims(coord.name())[0])
         required_order.extend(other_coords)
         result.transpose(required_order)
