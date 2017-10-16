@@ -108,6 +108,9 @@ def main():
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+    parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
+                        help='A path to an input mask NetCDF file to be '
+                             'used to mask the input file.')
     args = parser.parse_args()
 
     if (args.neighbourhood_output == "percentiles" and
@@ -131,6 +134,9 @@ def main():
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
 
+    if args.input_mask_filepath:
+        mask_cube = iris.load_cube(args.input_mask_filepath)
+
     if args.neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
@@ -138,14 +144,14 @@ def main():
                 lead_times=lead_times, ens_factor=args.ens_factor,
                 weighted_mode=args.weighted_mode,
                 sum_or_fraction=args.sum_or_fraction
-                ).process(cube))
+                ).process(cube, mask_cube=mask_cube))
     elif args.neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
                 percentiles=args.percentiles
-                ).process(cube))
+                ).process(cube, mask_cube=mask_cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

@@ -42,6 +42,7 @@ import numpy as np
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
+from improver.nbhood.nbhood import SquareNeighbourhood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
@@ -602,6 +603,78 @@ class Test_process(IrisTest):
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
         result = plugin.process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_use_mask_cube_occurrences_not_masked(self):
+        """Test that the plugin returns an iris.cube.Cube."""
+        expected = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),),
+            num_grid_points=5, num_time_points=1)
+        mask_cube = cube.copy()
+        mask_cube.data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.]]]])
+        radius = 2000
+        neighbourhood_method = SquareNeighbourhood()
+        result = NBHood(neighbourhood_method, radius).process(
+            cube, mask_cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_use_mask_cube_occurrences_masked(self):
+        """Test that the plugin returns an iris.cube.Cube."""
+        expected = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 0., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),),
+            num_grid_points=5, num_time_points=1)
+        mask_cube = cube.copy()
+        mask_cube.data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 0., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 1., 1., 1., 1.]]]])
+        radius = 2000
+        neighbourhood_method = SquareNeighbourhood()
+        result = NBHood(neighbourhood_method, radius).process(
+            cube, mask_cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_use_mask_cube_occurrences_not_masked_irregular(self):
+        """Test that the plugin returns an iris.cube.Cube."""
+        expected = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0., 0.83333333, 0., 1.],
+               [1., 0., 0.83333333, 0.875, 1.],
+               [1., 0.85714286, 0.83333333, 0.85714286, 1.],
+               [1., 0., 1., 0., 0.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),),
+            num_grid_points=5, num_time_points=1)
+        mask_cube = cube.copy()
+        mask_cube.data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0., 1., 0., 1.],
+               [1., 0., 1., 1., 1.],
+               [1., 1., 1., 1., 1.],
+               [1., 0., 1., 0., 0.]]]])
+        radius = 2000
+        neighbourhood_method = SquareNeighbourhood()
+        result = NBHood(neighbourhood_method, radius).process(
+            cube, mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 

@@ -168,7 +168,7 @@ class CircularNeighbourhood(object):
             data, kernel, mode='nearest') / total_area
         return cube
 
-    def run(self, cube, radius):
+    def run(self, cube, radius, mask_cube=None):
         """
 
         Call the methods required to calculate and apply a circular
@@ -181,6 +181,8 @@ class CircularNeighbourhood(object):
             radius : Float
                 Radius in metres for use in specifying the number of
                 grid cells used to create a circular neighbourhood.
+            mask_cube : Iris.cube.Cube
+                Cube containing the array to be used as a mask.
 
         Returns:
             cube : Iris.cube.Cube
@@ -188,6 +190,11 @@ class CircularNeighbourhood(object):
                 applied.
 
         """
+        if mask_cube is not None:
+            msg = ("The use of a mask cube with a circular kernel is not "
+                   "yet implemented.")
+            raise NotImplementedError(msg)
+
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         ranges = convert_distance_into_number_of_grid_cells(
@@ -345,7 +352,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                                  ranges_xy[1]:-ranges_xy[1]]
         return pctcube
 
-    def run(self, cube, radius):
+    def run(self, cube, radius, mask_cube=None):
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -356,6 +363,8 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             radius : Float
                 Radius in metres for use in specifying the number of
                 grid cells used to create a circular neighbourhood.
+            mask_cube : Iris.cube.Cube
+                Cube containing the array to be used as a mask.
 
         Returns:
             result : Iris.cube.Cube
@@ -363,6 +372,11 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 Has percentile as an added dimension.
 
         """
+        if mask_cube is not None:
+            msg = ("The use of a mask cube with a circular kernel is not "
+                   "yet implemented.")
+            raise NotImplementedError(msg)
+
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices

@@ -337,6 +337,15 @@ class Test_run(IrisTest):
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    def test_mask_cube(self):
+        """Test that a cube with correct data is produced by the run method"""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        msg = ("The use of a mask cube with a circular kernel is "
+               "not yet implemented.")
+        with self.assertRaisesRegexp(NotImplementedError, msg):
+            CircularNeighbourhood().run(cube, self.RADIUS, mask_cube=cube)
+
 
 if __name__ == '__main__':
     unittest.main()

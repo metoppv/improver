@@ -651,6 +651,17 @@ class Test_run(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
+    def test_mask_cube(self):
+        """Test that a cube with correct data is produced by the run method"""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        radius = 4000.
+        msg = ("The use of a mask cube with a circular kernel is "
+               "not yet implemented.")
+        with self.assertRaisesRegexp(NotImplementedError, msg):
+            GeneratePercentilesFromACircularNeighbourhood().run(
+                cube, radius, mask_cube=cube)
+
 
 if __name__ == '__main__':
     unittest.main()

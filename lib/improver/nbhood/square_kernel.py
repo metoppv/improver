@@ -34,7 +34,8 @@ import copy
 import iris
 import numpy as np
 
-from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_checker import (
+    check_for_x_and_y_axes, check_cube_coordinates)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
@@ -455,7 +456,8 @@ class SquareNeighbourhood(object):
             mask_cube.rename('mask_data')
             if np.ma.is_masked(cube.data):
                 cube.data = cube.data.data
-            cube.data = cube.data * mask_cube.data
+            cube = iris.util.squeeze(cube)
+            cube.data = cube.data * mask_cube.data.squeeze()
             cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
         else:
             cubes_to_sum = iris.cube.CubeList([cube])
@@ -606,4 +608,6 @@ class SquareNeighbourhood(object):
         neighbourhood_averaged_cube.cell_methods = original_methods
         neighbourhood_averaged_cube.attributes = original_attributes
 
+        neighbourhood_averaged_cube = check_cube_coordinates(
+            cube, neighbourhood_averaged_cube)
         return neighbourhood_averaged_cube

@@ -171,7 +171,7 @@ class BaseNeighbourhoodProcessing(object):
             neighbourhood_method, self.radii, self.lead_times,
             self.ens_factor)
 
-    def process(self, cube):
+    def process(self, cube, mask_cube=None):
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.
@@ -181,6 +181,8 @@ class BaseNeighbourhoodProcessing(object):
         cube : Iris.cube.Cube
             Cube to apply a neighbourhood processing method to, in order to
             generate a smoother field.
+        mask_cube : Iris.cube.Cube
+            Cube containing the array to be used as a mask.
 
         Returns
         -------
@@ -224,8 +226,8 @@ class BaseNeighbourhoodProcessing(object):
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
                 radius = self._find_radii(num_ens)
-                cube_new = self.neighbourhood_method.run(cube_realization,
-                                                         radius)
+                cube_new = self.neighbourhood_method.run(
+                    cube_realization, radius, mask_cube=mask_cube)
             else:
                 cube_lead_times = (
                     find_required_lead_times(cube_realization))
@@ -242,7 +244,7 @@ class BaseNeighbourhoodProcessing(object):
                         zip(cube_realization.slices_over("time"),
                             required_radii)):
                     cube_slice = self.neighbourhood_method.run(
-                        cube_slice, radius)
+                        cube_slice, radius, mask_cube=mask_cube)
                     cube_slice = iris.util.new_axis(cube_slice, "time")
                     cubes.append(cube_slice)
                 cube_new = concatenate_cubes(cubes,
