@@ -35,6 +35,7 @@ import warnings
 import iris
 from iris import FUTURE
 
+from improver.utilities.cube_manipulation import merge_cubes
 
 FUTURE.netcdf_promote = True
 
@@ -206,12 +207,14 @@ class WindGustDiagnostic(object):
         req_cube_gust = self.add_metadata(req_cube_gust)
         req_cube_ws = self.add_metadata(req_cube_ws)
         # Merge cubes
-        merged_cube = iris.cube.CubeList([req_cube_gust,
-                                          req_cube_ws]).merge_cube()
+        merged_cube = merge_cubes(iris.cube.CubeList([req_cube_gust,
+                                                      req_cube_ws]))
         # Calculate wind-gust diagnostic
-        cube_max = merged_cube.collapsed(perc_coord_gust, iris.analysis.MAX)
+        cube_max = merged_cube.collapsed(perc_coord_gust.name(),
+                                         iris.analysis.MAX)
 
         # Update metadata
-        result = self.update_metadata_after_max(cube_max, perc_coord_gust)
+        result = self.update_metadata_after_max(cube_max,
+                                                perc_coord_gust.name())
 
         return result

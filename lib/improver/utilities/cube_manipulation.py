@@ -344,7 +344,7 @@ def _equalise_cube_coords(cubes):
         cubelist = cubes
     else:
         # Check unmatching not in error_keys.
-        error_keys = ['percentile_over', 'threshold']
+        error_keys = ['threshold']
         for error_key in error_keys:
             for key in ([keyval for cube_dict in unmatching_coords
                          for keyval in cube_dict]):

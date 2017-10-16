@@ -62,8 +62,10 @@ def main():
     args = parser.parse_args()
     cube_wg = iris.load_cube(args.input_filegust)
     cube_ws = iris.load_cube(args.input_filews)
-    result = WindGustDiagnostic(args.percentile_gust,
-                                args.percentile_ws).process(cube_wg, cube_ws)
+    result = (
+        WindGustDiagnostic(float(args.percentile_gust),
+                           float(args.percentile_ws)).process(cube_wg,
+                                                              cube_ws))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
