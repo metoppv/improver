@@ -66,8 +66,8 @@ OPER=$1
 shift
 
 # Apply site-specific setup if necessary.
-if [[ -f "$IMPROVER_DIR/etc/site-init" ]]; then
-    . "$IMPROVER_DIR/etc/site-init"
+if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
+    . "$IMPROVER_SITE_INIT"
 fi
 
 # Put our library and scripts in the paths.
