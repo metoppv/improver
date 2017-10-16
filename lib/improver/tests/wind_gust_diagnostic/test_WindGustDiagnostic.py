@@ -119,14 +119,14 @@ class Test_add_metadata(IrisTest):
                'wind-speed perc=80.0>')
         self.assertEqual(result.attributes['wind_gust_diagnostic'], msg)
 
-    def test_diagnostic_txt(self):
+    def test_diagnostic_typical_txt(self):
         """Test that the attribute is set as expected for typical gusts"""
         plugin = WindGustDiagnostic(50.0, 95.0)
         result = plugin.add_metadata(self.cube_wg)
         msg = 'Typical gusts'
         self.assertEqual(result.attributes['wind_gust_diagnostic'], msg)
 
-    def test_diagnostic_txt(self):
+    def test_diagnostic_extreme_txt(self):
         """Test that the attribute is set as expected for extreme gusts"""
         plugin = WindGustDiagnostic(95.0, 100.0)
         result = plugin.add_metadata(self.cube_wg)
