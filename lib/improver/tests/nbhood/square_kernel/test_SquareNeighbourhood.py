@@ -712,7 +712,6 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         """Test setting up cubes to be neighbourhooded for an input cube and
         an additional mask cube."""
         cube = iris.util.squeeze(self.cube)
-        data = cube.data
         cube.data[1, 3] = 0.5
         cube.data[3, 3] = 0.5
         mask_cube = iris.util.squeeze(cube).copy()

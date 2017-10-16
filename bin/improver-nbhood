@@ -136,6 +136,8 @@ def main():
 
     if args.input_mask_filepath:
         mask_cube = iris.load_cube(args.input_mask_filepath)
+    else:
+        mask_cube = None
 
     if args.neighbourhood_output == "probabilities":
         result = (

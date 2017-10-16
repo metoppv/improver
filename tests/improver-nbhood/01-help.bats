@@ -38,6 +38,7 @@ usage: improver-nbhood [-h]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
                        [--sum_or_fraction SUM_OR_FRACTION]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
+                       [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
                        OUTPUT_FILE
 
@@ -94,6 +95,9 @@ optional arguments:
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.
+  --input_mask_filepath INPUT_MASK_FILE
+                        A path to an input mask NetCDF file to be used to mask
+                        the input file.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

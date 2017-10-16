@@ -38,6 +38,7 @@ usage: improver-nbhood [-h]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
                        [--sum_or_fraction SUM_OR_FRACTION]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
+                       [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
                        OUTPUT_FILE
 __TEXT__
