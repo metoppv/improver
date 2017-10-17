@@ -112,6 +112,7 @@ class CircularNeighbourhood(object):
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
+                Valid options are "sum" or "fraction".
         """
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:

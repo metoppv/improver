@@ -355,6 +355,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area. "fraction" is the default.
+            Valid options are "sum" or "fraction".
 
         """
         super(NeighbourhoodProcessing, self).__init__(

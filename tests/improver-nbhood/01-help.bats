@@ -36,7 +36,7 @@
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
-                       [--sum_or_fraction SUM_OR_FRACTION]
+                       [--sum_or_fraction {sum,fraction}]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
@@ -87,7 +87,7 @@ optional arguments:
                         constant weighting is assumed. weighted_mode is only
                         applicable for calculating "probability" neighbourhood
                         output.
-  --sum_or_fraction SUM_OR_FRACTION
+  --sum_or_fraction {sum,fraction}
                         The neighbourhood output can either be in the form of
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the

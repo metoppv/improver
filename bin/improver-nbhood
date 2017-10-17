@@ -55,6 +55,7 @@ def main():
              'neighbourhood is only supported for a circular neighbourhood. '
              'Options: "probabilities", "percentiles".')
     parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
+                        choices=["circular", "square"],
                         help='The shape of the neighbourhood to apply in '
                              'neighbourhood processing. Only a "circular" '
                              'neighbourhood shape is applicable for '
@@ -94,6 +95,7 @@ def main():
                              'applicable for calculating "probability" '
                              'neighbourhood output.')
     parser.add_argument('--sum_or_fraction', default="fraction",
+                        choices=["sum", "fraction"],
                         help='The neighbourhood output can either be in the '
                              'form of a sum of the neighbourhood, or a '
                              'fraction calculated by dividing the sum of the '

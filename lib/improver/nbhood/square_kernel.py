@@ -63,7 +63,7 @@ class SquareNeighbourhood(object):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
-            the neighbourhood area.
+            the neighbourhood area. Valid options are "sum" or "fraction".
         """
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:
