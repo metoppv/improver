@@ -30,39 +30,42 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module defines the utilities required for wxcode plugin """
 
+from collections import OrderedDict
 import numpy as np
 
-WX_DICT = {0: 'Clear_Night',
-           1: 'Sunny_Day',
-           2: 'Partly_Cloudy_Night',
-           3: 'Partly_Cloudy_Day',
-           4: 'Dust',
-           5: 'Mist',
-           6: 'Fog',
-           7: 'Cloudy',
-           8: 'Overcast',
-           9: 'Light_Shower_Night',
-           10: 'Light_Shower_Day',
-           11: 'Drizzle',
-           12: 'Light_Rain',
-           13: 'Heavy_Shower_Night',
-           14: 'Heavy_Shower_Day',
-           15: 'Heavy_Rain',
-           16: 'Sleet_Shower_Night',
-           17: 'Sleet_Shower_Day',
-           18: 'Sleet',
-           19: 'Hail_Shower_Night',
-           20: 'Hail_Shower_Day',
-           21: 'Hail',
-           22: 'Light_Snow_Shower_Night',
-           23: 'Light_Snow_Shower_Day',
-           24: 'Light_Snow',
-           25: 'Heavy_Snow_Shower_Night',
-           26: 'Heavy_Snow_Shower_Day',
-           27: 'Heavy_Snow',
-           28: 'Thunder_Shower_Night',
-           29: 'Thunder_Shower_Day',
-           30: 'Thunder'}
+_WX_DICT_IN = {0: 'Clear_Night',
+               1: 'Sunny_Day',
+               2: 'Partly_Cloudy_Night',
+               3: 'Partly_Cloudy_Day',
+               4: 'Dust',
+               5: 'Mist',
+               6: 'Fog',
+               7: 'Cloudy',
+               8: 'Overcast',
+               9: 'Light_Shower_Night',
+               10: 'Light_Shower_Day',
+               11: 'Drizzle',
+               12: 'Light_Rain',
+               13: 'Heavy_Shower_Night',
+               14: 'Heavy_Shower_Day',
+               15: 'Heavy_Rain',
+               16: 'Sleet_Shower_Night',
+               17: 'Sleet_Shower_Day',
+               18: 'Sleet',
+               19: 'Hail_Shower_Night',
+               20: 'Hail_Shower_Day',
+               21: 'Hail',
+               22: 'Light_Snow_Shower_Night',
+               23: 'Light_Snow_Shower_Day',
+               24: 'Light_Snow',
+               25: 'Heavy_Snow_Shower_Night',
+               26: 'Heavy_Snow_Shower_Day',
+               27: 'Heavy_Snow',
+               28: 'Thunder_Shower_Night',
+               29: 'Thunder_Shower_Day',
+               30: 'Thunder'}
+
+WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 
 
 def add_wxcode_metadata(cube):
@@ -78,13 +81,8 @@ def add_wxcode_metadata(cube):
     cube.standard_name = None
     cube.var_name = None
     cube.units = "1"
-    wx_keys = np.array(sorted(WX_DICT.keys()))
+    wx_keys = np.array(WX_DICT.keys())
     cube.attributes.update({'weather_code': wx_keys})
-    wxstring = ''
-    for i, val in enumerate(wx_keys):
-        if i == len(wx_keys)-1:
-            wxstring += WX_DICT[val]
-        else:
-            wxstring += WX_DICT[val] + ' '
+    wxstring = " ".join(WX_DICT.values())
     cube.attributes.update({'weather_code_meaning': wxstring})
     return cube

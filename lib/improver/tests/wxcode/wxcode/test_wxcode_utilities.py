@@ -33,6 +33,7 @@
 import unittest
 from subprocess import call as Call
 from tempfile import mkdtemp
+
 import numpy as np
 
 
@@ -96,13 +97,8 @@ class Test_add_wxcode_metadata(IrisTest):
                          2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
         self.cube = set_up_cube(data, 'air_temperature', 'K',
                                 realizations=np.array([0, 1]))
-        self.wxcode = np.array(sorted(WX_DICT.keys()))
-        self.wxmeaning = ''
-        for i, val in enumerate(self.wxcode):
-            if i == len(self.wxcode)-1:
-                self.wxmeaning += WX_DICT[val]
-            else:
-                self.wxmeaning += WX_DICT[val] + ' '
+        self.wxcode = np.array(WX_DICT.keys())
+        self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()
         self.nc_file = self.data_directory + '/wxcode.nc'
         Call(['touch', self.nc_file])
