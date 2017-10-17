@@ -203,10 +203,9 @@ class Test_extract_percentile_data(IrisTest):
                'iris.cube.Cube but is'
                ' {0:s}.'.format(type(self.wg_perc)))
         with self.assertRaisesRegexp(ValueError, msg):
-            result, perc_coord = (
-                plugin.extract_percentile_data(self.wg_perc,
-                                               self.wg_perc,
-                                               "wind_speed_of_gust"))
+            plugin.extract_percentile_data(self.wg_perc,
+                                           self.wg_perc,
+                                           "wind_speed_of_gust")
 
     def test_fails_if_no_perc_coord(self):
         """Test it raises a Value Error if there is no percentile coord."""
@@ -319,7 +318,7 @@ class Test_process(IrisTest):
         msg = ('Percentile coord of wind-gust data'
                'does not match coord of wind-speed data')
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin.process(cube_wg, self.cube_ws)
+            plugin.process(cube_wg, self.cube_ws)
 
     def test_returns_wind_gust_diagnostic(self):
         """Test that the plugin returns a Cube. """
