@@ -214,10 +214,9 @@ class Test_extract_percentile_data(IrisTest):
         cube = self.cube_wg
         cube.remove_coord("percentile_over_nbhood")
         with self.assertRaisesRegexp(ValueError, msg):
-            result, perc_coord = (
-                plugin.extract_percentile_data(cube,
-                                               self.wg_perc,
-                                               "wind_speed_of_gust"))
+            plugin.extract_percentile_data(cube,
+                                           self.wg_perc,
+                                           "wind_speed_of_gust")
 
     def test_fails_if_too_many_perc_coord(self):
         """Test it raises a Value Error if there are too many perc coords."""
@@ -257,10 +256,9 @@ class Test_extract_percentile_data(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not find required percentile')
         with self.assertRaisesRegexp(ValueError, msg):
-            result, perc_coord = (
-                plugin.extract_percentile_data(self.cube_wg,
-                                               20.0,
-                                               "wind_speed_of_gust"))
+            plugin.extract_percentile_data(self.cube_wg,
+                                           20.0,
+                                           "wind_speed_of_gust")
 
     def test_returns_correct_cube_and_coord(self):
         """Test it returns the correct Cube and Coord."""
