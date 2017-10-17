@@ -37,8 +37,9 @@ import iris
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
     def __init__(
-            self, coord_for_masking, neighbourhood_method, radii, lead_times,
-            unweighted_mode, ens_factor):
+            self, coord_for_masking, neighbourhood_method, radii,
+            lead_times=None, ens_factor=1.0, weighted_mode=True,
+            sum_or_fraction="fraction"):
         """
         Initialise the class.
 
@@ -46,7 +47,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
             coord_for_masking : string
                 String matching the name of the coordinate that will be used
                 for masking.
-            neighbourhood_method : str
+            neighbourhood_method : string
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
             radii : float or List (if defining lead times)
@@ -54,34 +55,58 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            lead_times : None or List
+            lead_times : None or List (optional)
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            unweighted_mode : boolean
-                If True, use a circle with constant weighting.
-                If False, use a circle for neighbourhood kernel with
-                weighting decreasing with radius.
-            ens_factor : float
+            ens_factor : float (optional)
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
                 If ens_factor = 1.0 this essentially conserves ensemble
                 members if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
+            weighted_mode : boolean (optional)
+                If True, use a circle for neighbourhood kernel with
+                weighting decreasing with radius.
+                If False, use a circle with constant weighting.
+            sum_or_fraction : string
+                Identifier for whether sum or fraction should be returned from
+                neighbourhooding. The sum represents the sum of the neighbourhood.
+                The fraction represents the sum of the neighbourhood divided by
+                the neighbourhood area. "fraction" is the default.
+                Valid options are "sum" or "fraction".
         """
         self.coord_for_masking = coord_for_masking
         self.neighbourhood_method = neighbourhood_method
         self.radii = radii
         self.lead_times = lead_times
-        self.unweighted_mode = unweighted_mode
         self.ens_factor = ens_factor
+        self.weighted_mode = weighted_mode
+        self.sum_or_fraction = sum_or_fraction
 
     def __repr__(self):
-        pass
+        """Represent the configured plugin instance as a string."""
+        result = ('<ApplyNeighbourhoodProcessingWithAMask: '
+                  'coord_for_masking: {}, neighbourhood_method: {}'
+                  'radii: {}, lead_times: {}, ens_factor: {}, '
+                  'weighted_mode: {}, sum_or_fraction: {}>')
+        return result.format(
+            self.coord_for_masking, self.neighbourhood_method, self.radii,
+            self.lead_times, self.ens_factor, self.weighted_mode,
+            self.sum_or_fraction)
 
     def process(self, cube, mask_cube):
-
+        """
+        1. Iterate over the chosen coordinate within the mask_cube and apply
+           the mask at each iteration to the cube that is to be neighbourhood
+           processed.
+        2. Concatenate the cubes from each iteration together to create a
+           single cube.
+        3. Produce a single cube with the coordinate used for masking reduced
+           to a single point by finding the maximum. The maximum probability
+           across all points along the coordinate is therefore the result.
+        """
         cube_slices = iris.cube.CubeList([])
         for cube_slice in mask_cube.slices_over(coord_for_masking):
             cube_slice = NeighbourhoodProcessing(
@@ -91,5 +116,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
             cube_slices.append(cube_slice)
         concatenated_cube = cube_slices.concatenate_cube()
 
-        single_cube = concatenated_cube.collapsed(coord_for_masking, iris.analysis.MAX)
-        return single_cube
+        max_cube = (
+            concatenated_cube.collapsed(coord_for_masking, iris.analysis.MAX))
+        return max_cube
