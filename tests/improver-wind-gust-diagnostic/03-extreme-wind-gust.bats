@@ -32,8 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wind-gust-diagnostic --percentile_gust=95.0 --percentile_ws=100.0" {
-  # TEST_DIR=$(mktemp -d)
-  TEST_DIR=/data/nwp1/fpcw/testit
+  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run wind-gust-diagnostic processing and check it passes.
@@ -46,6 +45,6 @@
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output_extreme.nc" \
       "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/kgo_extreme_wind_gust.nc"
-  # rm "$TEST_DIR/output_extreme.nc"
-  # rmdir "$TEST_DIR"
+  rm "$TEST_DIR/output_extreme.nc"
+  rmdir "$TEST_DIR"
 }
