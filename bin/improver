@@ -15,6 +15,9 @@
 #    Launch particular operations for post-processing or verification of
 #    meteorological data. This script is a central launcher for all
 #    IMPROVER subcommands (improver-xxxx) and central help.
+#
+# ENVIRONMENT
+#    IMPROVER_SITE_INIT     # override default location for etc/site-init file
 #------------------------------------------------------------------------------
 
 set -eu
