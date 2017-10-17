@@ -45,9 +45,12 @@ from improver.wind_gust_diagnostic import WindGustDiagnostic
 
 def create_cube_with_percentile_coord(data=None,
                                       standard_name=None,
-                                      perc_values=[50.0],
+                                      perc_values=None,
+                                      perc_name='percentile_over_nbhood',
                                       units=None):
     """Create a cube with percentile coord."""
+    if perc_values is None:
+        perc_values = [50.0]
     if data is None:
         data = np.zeros((len(perc_values), 2, 2, 2))
         data[:, 0, :, :] = 1.0
@@ -56,6 +59,7 @@ def create_cube_with_percentile_coord(data=None,
         standard_name = "wind_speed"
     if units is None:
         units = "m s^-1"
+
     cube = Cube(data, standard_name=standard_name, units=units)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
                                 units='degrees'), 2)
@@ -67,7 +71,7 @@ def create_cube_with_percentile_coord(data=None,
     cube.add_dim_coord(DimCoord([402192.5, 402193.5],
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(perc_values,
-                                long_name="percentile_over_nbhood",
+                                long_name=perc_name,
                                 units="%"), 0)
     return cube
 
@@ -299,6 +303,23 @@ class Test_process(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         result = plugin.process(self.cube_wg, self.cube_ws)
         self.assertIsInstance(result, Cube)
+
+    def test_raises_error_for_mismatching_perc_coords(self):
+        """Test raises an error for mismatching perc coords. """
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        data_wg = np.zeros((1, 2, 2, 2))
+        data_wg[0, 0, :, :] = 3.0
+        data_wg[0, 1, :, :] = 1.5
+        gust = "wind_speed_of_gust"
+        cube_wg = (
+            create_cube_with_percentile_coord(data=data_wg,
+                                              perc_values=[self.wg_perc],
+                                              standard_name=gust,
+                                              perc_name='percentile_dummy'))
+        msg = ('Percentile coord of wind-gust data'
+               'does not match coord of wind-speed data')
+        with self.assertRaisesRegexp(ValueError, msg):
+            result = plugin.process(cube_wg, self.cube_ws)
 
     def test_returns_wind_gust_diagnostic(self):
         """Test that the plugin returns a Cube. """

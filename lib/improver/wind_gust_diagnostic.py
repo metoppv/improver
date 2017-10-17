@@ -106,7 +106,8 @@ class WindGustDiagnostic(object):
 
         return result
 
-    def update_metadata_after_max(self, cube, perc_coord):
+    @staticmethod
+    def update_metadata_after_max(cube, perc_coord):
         """Update metadata after.MAX found through merged_cube.collapsed
 
         Args:
@@ -203,6 +204,12 @@ class WindGustDiagnostic(object):
              self.extract_percentile_data(cube_ws,
                                           self.percentile_windspeed,
                                           "wind_speed"))
+        if perc_coord_gust.name() != perc_coord_ws.name():
+            msg = ('Percentile coord of wind-gust data'
+                   'does not match coord of wind-speed data'
+                   ' {0:s} {1:s}.'.format(perc_coord_gust.name(),
+                                          perc_coord_ws.name()))
+            raise ValueError(msg)
         # Add metadata to both cubes
         req_cube_gust = self.add_metadata(req_cube_gust)
         req_cube_ws = self.add_metadata(req_cube_ws)
