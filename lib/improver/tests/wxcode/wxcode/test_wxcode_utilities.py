@@ -30,58 +30,62 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for weather code utilities."""
 
+import unittest
+from subprocess import call as Call
+from tempfile import mkdtemp
+
+import numpy as np
+
+
+import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
 from cf_units import Unit
-import numpy as np
 
-from improver.wxcode.wxcode_utilities import (WXCODE, WXMEANING,
+from improver.wxcode.wxcode_utilities import (WX_DICT,
                                               add_wxcode_metadata)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 
+iris.FUTURE.netcdf_promote = True
 
-class Test_wxcode(IrisTest):
-    """ Test WXCODE set correctly """
 
-    def test_basic(self):
-        """Check number of WXCODE is equal to number of WXMEANINGS."""
-        self.assertEqual(len(WXCODE), len(WXMEANING))
+class Test_wx_dict(IrisTest):
+    """ Test WX_DICT set correctly """
 
     def test_wxcode_values(self):
         """Check wxcode values are set correctly."""
-        wx_dict = dict(zip(WXCODE, WXMEANING))
-        self.assertEqual(wx_dict[0], 'Clear Night')
-        self.assertEqual(wx_dict[1], 'Sunny Day')
-        self.assertEqual(wx_dict[2], 'Partly Cloudy Night')
-        self.assertEqual(wx_dict[3], 'Partly Cloudy Day')
-        self.assertEqual(wx_dict[4], 'Dust')
-        self.assertEqual(wx_dict[5], 'Mist')
-        self.assertEqual(wx_dict[6], 'Fog')
-        self.assertEqual(wx_dict[7], 'Cloudy')
-        self.assertEqual(wx_dict[8], 'Overcast')
-        self.assertEqual(wx_dict[9], 'Light Shower Night')
-        self.assertEqual(wx_dict[10], 'Light Shower Day')
-        self.assertEqual(wx_dict[11], 'Drizzle')
-        self.assertEqual(wx_dict[12], 'Light Rain')
-        self.assertEqual(wx_dict[13], 'Heavy Shower Night')
-        self.assertEqual(wx_dict[14], 'Heavy Shower Day')
-        self.assertEqual(wx_dict[15], 'Heavy Rain')
-        self.assertEqual(wx_dict[16], 'Sleet Shower Night')
-        self.assertEqual(wx_dict[17], 'Sleet Shower Day')
-        self.assertEqual(wx_dict[18], 'Sleet')
-        self.assertEqual(wx_dict[19], 'Hail Shower Night')
-        self.assertEqual(wx_dict[20], 'Hail Shower Day')
-        self.assertEqual(wx_dict[21], 'Hail')
-        self.assertEqual(wx_dict[22], 'Light Snow Shower Night')
-        self.assertEqual(wx_dict[23], 'Light Snow Shower Day')
-        self.assertEqual(wx_dict[24], 'Light Snow')
-        self.assertEqual(wx_dict[25], 'Heavy Snow Shower Night')
-        self.assertEqual(wx_dict[26], 'Heavy Snow Shower Day')
-        self.assertEqual(wx_dict[27], 'Heavy Snow')
-        self.assertEqual(wx_dict[28], 'Thunder Shower Night')
-        self.assertEqual(wx_dict[29], 'Thunder Shower Day')
-        self.assertEqual(wx_dict[30], 'Thunder')
+        self.assertEqual(WX_DICT[0], 'Clear_Night')
+        self.assertEqual(WX_DICT[1], 'Sunny_Day')
+        self.assertEqual(WX_DICT[2], 'Partly_Cloudy_Night')
+        self.assertEqual(WX_DICT[3], 'Partly_Cloudy_Day')
+        self.assertEqual(WX_DICT[4], 'Dust')
+        self.assertEqual(WX_DICT[5], 'Mist')
+        self.assertEqual(WX_DICT[6], 'Fog')
+        self.assertEqual(WX_DICT[7], 'Cloudy')
+        self.assertEqual(WX_DICT[8], 'Overcast')
+        self.assertEqual(WX_DICT[9], 'Light_Shower_Night')
+        self.assertEqual(WX_DICT[10], 'Light_Shower_Day')
+        self.assertEqual(WX_DICT[11], 'Drizzle')
+        self.assertEqual(WX_DICT[12], 'Light_Rain')
+        self.assertEqual(WX_DICT[13], 'Heavy_Shower_Night')
+        self.assertEqual(WX_DICT[14], 'Heavy_Shower_Day')
+        self.assertEqual(WX_DICT[15], 'Heavy_Rain')
+        self.assertEqual(WX_DICT[16], 'Sleet_Shower_Night')
+        self.assertEqual(WX_DICT[17], 'Sleet_Shower_Day')
+        self.assertEqual(WX_DICT[18], 'Sleet')
+        self.assertEqual(WX_DICT[19], 'Hail_Shower_Night')
+        self.assertEqual(WX_DICT[20], 'Hail_Shower_Day')
+        self.assertEqual(WX_DICT[21], 'Hail')
+        self.assertEqual(WX_DICT[22], 'Light_Snow_Shower_Night')
+        self.assertEqual(WX_DICT[23], 'Light_Snow_Shower_Day')
+        self.assertEqual(WX_DICT[24], 'Light_Snow')
+        self.assertEqual(WX_DICT[25], 'Heavy_Snow_Shower_Night')
+        self.assertEqual(WX_DICT[26], 'Heavy_Snow_Shower_Day')
+        self.assertEqual(WX_DICT[27], 'Heavy_Snow')
+        self.assertEqual(WX_DICT[28], 'Thunder_Shower_Night')
+        self.assertEqual(WX_DICT[29], 'Thunder_Shower_Day')
+        self.assertEqual(WX_DICT[30], 'Thunder')
 
 
 class Test_add_wxcode_metadata(IrisTest):
@@ -93,6 +97,16 @@ class Test_add_wxcode_metadata(IrisTest):
                          2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
         self.cube = set_up_cube(data, 'air_temperature', 'K',
                                 realizations=np.array([0, 1]))
+        self.wxcode = np.array(WX_DICT.keys())
+        self.wxmeaning = " ".join(WX_DICT.values())
+        self.data_directory = mkdtemp()
+        self.nc_file = self.data_directory + '/wxcode.nc'
+        Call(['touch', self.nc_file])
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        Call(['rm', self.nc_file])
+        Call(['rmdir', self.data_directory])
 
     def test_basic(self):
         """Test that the function returns a cube."""
@@ -104,5 +118,20 @@ class Test_add_wxcode_metadata(IrisTest):
         result = add_wxcode_metadata(self.cube)
         self.assertEqual(result.name(), 'weather_code')
         self.assertEqual(result.units, Unit("1"))
-        self.assertEqual(result.attributes['weather_code'], WXCODE)
-        self.assertEqual(result.attributes['weather_code_meaning'], WXMEANING)
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+
+    def test_metadata_saves(self):
+        """Test that the metadata saves as NetCDF correctly."""
+        cube = add_wxcode_metadata(self.cube)
+        iris.save(cube, self.nc_file, unlimited_dimensions=[])
+        result = iris.load_cube(self.nc_file)
+        self.assertEqual(result.name(), 'weather_code')
+        self.assertEqual(result.units, Unit("1"))
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+
+if __name__ == '__main__':
+    unittest.main()
