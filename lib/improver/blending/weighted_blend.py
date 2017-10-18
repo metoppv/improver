@@ -327,7 +327,7 @@ class WeightedBlendAcrossWholeDimension(object):
                      containing the weighted blend across the chosen coord.
 
         Raises:
-            ValueError : If the first argument not a cube.
+            TypeError : If the first argument not a cube.
             ValueError : If there is a percentile coord and it is not a
                            dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
@@ -348,7 +348,7 @@ class WeightedBlendAcrossWholeDimension(object):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
                    ' {0:s}.'.format(type(cube)))
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         # Check to see if the data is percentile data
         perc_coord = None
