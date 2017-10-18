@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wind-gust-diagnostic --percentile_gust=50.0 --percentile_ws=95.0" {
+@test "wind-gust-diagnostic" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run wind-gust-diagnostic processing and check it passes.
-  run improver wind-gust-diagnostic --percentile_gust=50.0 --percentile_ws=95.0 \
+  run improver wind-gust-diagnostic \
       "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/wind_gust_perc.nc" \
       "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/wind_speed_perc.nc" \
        "$TEST_DIR/output_average.nc"

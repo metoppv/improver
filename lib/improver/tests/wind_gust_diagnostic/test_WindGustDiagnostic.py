@@ -187,7 +187,7 @@ class Test_extract_percentile_data(IrisTest):
                                               standard_name=gust))
 
     def test_basic(self):
-        """Test that the function returns a Cube.and Coord"""
+        """Test that the function returns a Cube and Coord."""
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         result, perc_coord = (
             plugin.extract_percentile_data(self.cube_wg,
@@ -202,7 +202,7 @@ class Test_extract_percentile_data(IrisTest):
         msg = ('Expecting wind_speed_of_gust data to be an instance of '
                'iris.cube.Cube but is'
                ' {0:s}.'.format(type(self.wg_perc)))
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(TypeError, msg):
             plugin.extract_percentile_data(self.wg_perc,
                                            self.wg_perc,
                                            "wind_speed_of_gust")
@@ -213,7 +213,7 @@ class Test_extract_percentile_data(IrisTest):
         msg = ('No percentile coord found on')
         cube = self.cube_wg
         cube.remove_coord("percentile_over_nbhood")
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin.extract_percentile_data(cube,
                                            self.wg_perc,
                                            "wind_speed_of_gust")
@@ -229,10 +229,9 @@ class Test_extract_percentile_data(IrisTest):
                                  units='no_unit'))
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegexp(ValueError, msg):
-            result, perc_coord = (
-                plugin.extract_percentile_data(cube,
-                                               self.wg_perc,
-                                               "wind_speed_of_gust"))
+            plugin.extract_percentile_data(cube,
+                                           self.wg_perc,
+                                           "wind_speed_of_gust")
 
     def test_warning_if_standard_names_do_not_match(self):
         """Test it raises a warning if standard names do not match."""

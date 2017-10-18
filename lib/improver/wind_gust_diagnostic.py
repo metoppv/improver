@@ -34,6 +34,7 @@ import warnings
 
 import iris
 from iris import FUTURE
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import merge_cubes
 
@@ -47,16 +48,20 @@ class WindGustDiagnostic(object):
     In the model a shear-driven turbulence parameterization is used to
     estimate wind gusts but in convective situations this can over-estimate the
     convective gust.
-    This diagnostic takes the Maximum of the values at eachgrid point of
-        a chosen percentile of the wind-gust forecast and
-        a chosen percentile of the wind-speed forecast
+    This diagnostic takes the Maximum of the values at each grid point of
+    * a chosen percentile of the wind-gust forecast and
+    * a chosen percentile of the wind-speed forecast
     to produce a better estimate of wind-gust.
     For example a typical wind-gust could be MAX(gust(50%),windspeed(95%))
     an extreme wind-gust forecast could be MAX(gust(95%), windspeed(100%))
 
+    Scientific Reference: *Roberts N., Mylne K.*
+    Poster - European Meteorological Society Conference 2017.
+
     See
     https://github.com/metoppv/improver/files/1244828/WindGustChallenge_v2.pdf
     for a discussion of the problem and proposed solutions.
+
     """
 
     def __init__(self, percentile_gust, percentile_windspeed):
@@ -64,9 +69,9 @@ class WindGustDiagnostic(object):
         Create a WindGustDiagnostic plugin for a given set of percentiles.
 
         Args:
-            percentile_gust: float
+            percentile_gust (float):
                 Percentile value required from wind-gust cube.
-            percentile_windspeed: float
+            percentile_windspeed (float):
                 Percentile value required from wind-speed cube.
 
         """
@@ -84,10 +89,10 @@ class WindGustDiagnostic(object):
         """Add metadata to cube for windgust diagnostic.
 
         Args:
-            cube: iris.cube.Cube instance
+            cube (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data.
         Returns:
-            result : iris.cube.Cube instance
+            result (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data with
                 corrected Metadata.
 
@@ -108,13 +113,13 @@ class WindGustDiagnostic(object):
 
     @staticmethod
     def update_metadata_after_max(cube, perc_coord):
-        """Update metadata after.MAX found through merged_cube.collapsed
+        """Update metadata after MAX found through merged_cube.collapsed
 
         Args:
-            cube: iris.cube.Cube instance
+            cube (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data.
         Returns:
-            result : iris.cube.Cube instance
+            result (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data with
                 corrected Metadata.
 
@@ -125,29 +130,29 @@ class WindGustDiagnostic(object):
 
     @staticmethod
     def extract_percentile_data(cube, req_percentile, standard_name):
-        """
-        Extract percentile data from cube.
+        """Extract percentile data from cube.
 
         Args:
-            cube : iris.cube.Cube instance
+            cube (iris.cube.Cube):
                 Cube contain one or more percentiles of wind_gust data.
-            req_percentile: float
+            req_percentile (float):
                 Required percentile value
-            standard_name: str
+            standard_name (str):
                 Standard name of the data.
 
         Returns:
-            result : iris.cube.Cube instance
-                Cube containing the required percentile data
-            perc_coord : iris.coords.Coord
-                Percentile coordinate..
+            (tuple) : tuple containing:
+                **result** (iris.cube.Cube):
+                    Cube containing the required percentile data
+                **perc_coord** (iris.coords.Coord):
+                    Percentile coordinate.
 
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('Expecting {0:s} data to be an instance of '
                    'iris.cube.Cube but is'
                    ' {1:s}.'.format(standard_name, type(cube)))
-            raise ValueError(msg)
+            raise TypeError(msg)
         perc_coord = None
         perc_found = 0
         for coord in cube.coords():
@@ -158,7 +163,7 @@ class WindGustDiagnostic(object):
             if perc_found == 0:
                 msg = ('No percentile coord found on '
                        '{0:s} data'.format(standard_name))
-                raise ValueError(msg)
+                raise CoordinateNotFoundError(msg)
             else:
                 msg = ('Too many percentile coords found on '
                        '{0:s} data'.format(standard_name))
@@ -182,13 +187,13 @@ class WindGustDiagnostic(object):
         Create a cube containing the wind_gust diagnostic.
 
         Args:
-            cube_gust : iris.cube.Cube instance
+            cube_gust (iris.cube.Cube):
                 Cube contain one or more percentiles of wind_gust data.
-            cube_ws : iris.cube.Cube instance
+            cube_ws (iris.cube.Cube):
                 Cube contain one or more percentiles of wind_speed data.
 
         Returns:
-            result : iris.cube.Cube instance
+            result (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data.
 
         """

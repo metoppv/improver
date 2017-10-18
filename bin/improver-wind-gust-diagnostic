@@ -40,11 +40,22 @@ from improver.wind_gust_diagnostic import WindGustDiagnostic
 
 
 def main():
-    """Load in arguments and get going."""
+    """Load in arguments for wind-gust diagnostic.
+    Wind-gust and Wind-speed data should be supplied along with the required
+    percentile value. The wind-gust diagnostic will be the Max of the specified
+    percentile data.
+    Currently
+        * Typical gusts is
+          MAX(wind-gust(50th percentile),wind-speed(95th percentile))
+        * Extreme gust is
+          MAX(wind-gust(95th percentile),wind-speed(100th percentile))
+    If no percentile values are supplied the code defaults
+    to values for Typical gusts.
+    """
     parser = argparse.ArgumentParser(
         description="Calculate revised wind-gust data using a specified "
         "percentile of wind-gust data and a specified percentile "
-        "of wind-speed data.through the WindGustDiagnostic plugin.")
+        "of wind-speed data through the WindGustDiagnostic plugin.")
     parser.add_argument("input_filegust", metavar="INPUT_FILE_GUST",
                         help="A path to an input Wind Gust Percentile"
                         " NetCDF file")
@@ -54,10 +65,14 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("--percentile_gust", metavar="PERCENTILE_GUST",
-                        help="Percentile of wind-gust required.")
+                        default="50.0",
+                        help="Percentile of wind-gust required."
+                        " Default=50.0")
     parser.add_argument("--percentile_ws",
                         metavar="PERCENTILE_WIND_SPEED",
-                        help="Percentile of wind-speed required.")
+                        default="95.0",
+                        help="Percentile of wind-speed required."
+                        " Default=95.0")
 
     args = parser.parse_args()
     cube_wg = iris.load_cube(args.input_filegust)

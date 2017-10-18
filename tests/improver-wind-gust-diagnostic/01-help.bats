@@ -39,7 +39,7 @@ usage: improver-wind-gust-diagnostic [-h] [--percentile_gust PERCENTILE_GUST]
                                      OUTPUT_FILE
 
 Calculate revised wind-gust data using a specified percentile of wind-gust
-data and a specified percentile of wind-speed data.through the
+data and a specified percentile of wind-speed data through the
 WindGustDiagnostic plugin.
 
 positional arguments:
@@ -50,9 +50,9 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --percentile_gust PERCENTILE_GUST
-                        Percentile of wind-gust required.
+                        Percentile of wind-gust required. Default=50.0
   --percentile_ws PERCENTILE_WIND_SPEED
-                        Percentile of wind-speed required.
+                        Percentile of wind-speed required. Default=95.0
 __HELP__
   [[ "$output" == "$expected" ]]
 }
