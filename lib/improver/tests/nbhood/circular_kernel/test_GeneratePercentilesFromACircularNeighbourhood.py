@@ -652,7 +652,9 @@ class Test_run(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
     def test_mask_cube(self):
-        """Test that a cube with correct data is produced by the run method"""
+        """Test that a NotImplementedError is raised, if a mask cube is passed
+        in when generating percentiles from a circular neighbourhood, as this
+        option is not supported."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
         radius = 4000.

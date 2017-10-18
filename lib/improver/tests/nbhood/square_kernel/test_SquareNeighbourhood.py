@@ -606,7 +606,8 @@ class Test_mean_over_neighbourhood(IrisTest):
 
     def test_basic_fraction(self):
         """Test cube with correct data is produced when mean over
-           neighbourhood is calculated."""
+           neighbourhood is calculated where the sum_or_fraction option is
+           set to "fraction"."""
         nan_masks = [np.zeros(self.cube.data.shape, dtype=int)]
         result = SquareNeighbourhood().mean_over_neighbourhood(
             self.cube, self.width, self.width, nan_masks)
@@ -615,7 +616,8 @@ class Test_mean_over_neighbourhood(IrisTest):
 
     def test_basic_sum(self):
         """Test cube with correct data is produced when mean over
-           neighbourhood is calculated."""
+           neighbourhood is calculated where the sum_or_fraction option is
+           set to "sum"."""
         nan_masks = [np.zeros(self.cube.data.shape, dtype=int)]
         expected = np.array(
             [[3., 4., -5., -5., 3.],
