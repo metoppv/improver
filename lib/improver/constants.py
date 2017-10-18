@@ -30,10 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
 from iris.coords import AuxCoord
-from cf_units import Unit
 
 
 def make_constant_with_units(constant, units):
+    """Make an iris.AuxCoord containing a constant with units."""
     return AuxCoord(constant, units=units)
 
 # Real Missing Data Indicator
