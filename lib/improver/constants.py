@@ -39,6 +39,10 @@ def make_constant_with_units(constant, units):
 # Real Missing Data Indicator
 RMDI = -32767.0
 
+# Default percentile boundaries to calculate at for IMPROVER.
+DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50,
+                       60, 70, 75, 80, 90, 95, 100)
+
 # 0 Kelvin in degrees C
 ABSOLUTE_ZERO = -273.15
 U_ABSOLUTE_ZERO = make_constant_with_units(ABSOLUTE_ZERO, "celsius")
