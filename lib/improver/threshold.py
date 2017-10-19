@@ -54,12 +54,12 @@ class BasicThreshold(object):
         """Set up for processing an in-or-out of threshold binary field.
 
         Args:
-            thresholds : list of floats or float
+            thresholds (list of floats or float):
                 The threshold points for 'significant' datapoints.
-            fuzzy_factor : float
+            fuzzy_factor (float):
                 Percentage above or below threshold for fuzzy membership value.
                 If None, no fuzzy_factor is applied.
-            below_thresh_ok : boolean
+            below_thresh_ok (boolean):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
 
@@ -101,11 +101,11 @@ class BasicThreshold(object):
         fuzzy_factor is supplied.
 
         Args:
-            input_cube : iris.cube.Cube
+            input_cube (iris.cube.Cube):
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 Cube after a threshold has been applied. The data within this
                 cube will contain values between 0 and 1 to indicate whether
                 a given threshold has been exceeded or not.

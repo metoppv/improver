@@ -87,24 +87,24 @@ class PercentileBlendingAggregator(object):
             along a given axis of a cube.
 
         Args:
-            data : np.array
+            data (np.array):
                    Array containing the data to blend
-            axis : integer
+            axis (integer):
                    The index of the coordinate dimension in the cube. This
                    dimension will be aggregated over.
-            arr_percent: np.array
+            arr_percent(np.array):
                      Array of percentile values e.g
                      [0, 20.0, 50.0, 70.0, 100.0],
                      same size as the percentile dimension of data.
-            arr_weights: np.array
+            arr_weights(np.array):
                      Array of weights, same size as the axis dimension of data.
-            perc_dim : integer
+            perc_dim (integer):
                      The index of the percentile coordinate
             (Note percent and weights have special meaning in Aggregator
              hence the rename.)
 
         Returns:
-            result : np.array
+            result (np.array):
                      containing the weighted percentile blend data across
                      the chosen coord. The dimension associated with axis
                      has been collapsed, and the rest of the dimensions remain.
@@ -159,19 +159,19 @@ class PercentileBlendingAggregator(object):
             a given axis of percentile data for a single grid point.
 
         Args:
-            perc_values : np.array
+            perc_values (np.array):
                     Array containing the percentile values to blend, with
                     shape: (length of coord to blend, num of percentiles)
-            percentiles: np.array
+            percentiles (np.array):
                     Array of percentile values e.g
                     [0, 20.0, 50.0, 70.0, 100.0],
                     same size as the percentile dimension of data.
-            weights: np.array
+            weights (np.array):
                     Array of weights, same size as the axis dimension of data,
                     that we will blend over.
 
         Returns:
-            result : np.array
+            result (np.array):
                     containing the weighted percentile blend data
                     across the chosen coord
         """
@@ -239,17 +239,17 @@ class MaxProbabilityAggregator(object):
             weighted probability along a given axis.
 
         Args:
-            data : np.array
+            data (np.array):
                    Array containing the data to blend
-            axis : integer
+            axis (integer):
                    The index of the coordinate dimension in the cube. This
                    dimension will be aggregated over.
-            arr_weights: np.array
+            arr_weights (np.array):
                    Array of weights, same size as the axis dimension of data.
 
 
         Returns:
-            result : np.array
+            result (np.array):
                      The data collapsed along the axis dimension, containing
                      the maximum weighted probability.
         """
@@ -279,15 +279,15 @@ class WeightedBlendAcrossWholeDimension(object):
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord : string
+            coord (string):
                 The name of a coordinate dimension in the cube.
-            weighting_mode : string
+            weighting_mode (string):
                 One of 'weighted_maximum' or 'weighted_mean':
                  - Weighted mean: a normal weighted average over the coordinate
                    of interest.
                  - Weighted_maximum: the points in the coordinate of interest
                    are multiplied by the weights and then the maximum is taken.
-            coord_adjust : function
+            coord_adjust (function):
                 Function to apply to the coordinate after collapsing the cube
                 to correct the values, for example for time windowing and
                 cycle averaging the follow function would adjust the time
@@ -319,13 +319,13 @@ class WeightedBlendAcrossWholeDimension(object):
            have at least two points.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                    Cube to blend across the coord.
-            weights: Optional list or np.array of weights
+            weights (Optional list or np.array of weights):
                      or None (equivalent to equal weights).
 
         Returns:
-            result : iris.cube.Cube
+            result (iris.cube.Cube):
                      containing the weighted blend across the chosen coord.
 
         Raises:

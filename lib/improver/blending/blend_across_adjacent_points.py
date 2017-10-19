@@ -56,18 +56,18 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord : string
+            coord (string):
                 The name of a coordinate dimension in the cube that we
                 will blend over.
-            width : float
+            width (float):
                 The width of the triangular weighting function we will use
                 to blend.
-            parameter_units : string
+            parameter_units (string):
                 The units of the width of the triangular weighting function.
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
-            weighting_mode : string
+            weighting_mode (string):
                 The mode of blending, either weighted_mean or
                 weighted_maximum. Weighted average finds the weighted mean
                 across the dimension of interest. Maximum probability
@@ -103,14 +103,14 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         orig_cube. The bounds are also replaced.
 
         Args:
-            orig_cube: iris.cube.Cube
+            orig_cube(iris.cube.Cube):
                 The cube that the original coordinates points will be taken
                 from.
-            new_cube: iris.cube.Cube
+            new_cube(iris.cube.Cube):
                 The new cube who's coordinates will be corrected. This must
                 have the same number of points along the coordinates we are
                 correcting as are in the orig_cube.
-            coords_to_correct: list
+            coords_to_correct(list):
                 A list of coordinate names to correct.
         """
         for coord in coords_to_correct:
@@ -125,11 +125,11 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         Apply the weighted blend for each point in the given coordinate.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 Cube to blend.
 
         Returns:
-            cube: iris.cube.Cube
+            cube (iris.cube.Cube):
                 The processed cube, with the same coordinates as the input
                 cube. The points in one coordinate will be blended with the
                 adjacent points based on a triangular weighting function of the

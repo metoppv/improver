@@ -56,9 +56,8 @@ class ConditionalListExtract(object):
         Get selected method of comparison.
 
         Args:
-        -----
-        method : string
-            Which comparison to make, e.g. not_equal_to.
+            method (string):
+                Which comparison to make, e.g. not_equal_to.
 
         """
         self.method = method
@@ -68,21 +67,19 @@ class ConditionalListExtract(object):
         Call the data comparison method passed in.
 
         Args:
-        -----
-        data : numpy.array
-            Array of values to be filtered.
+            data (numpy.array):
+                Array of values to be filtered.
 
-        indices_list : list
-            Indices in the data array that should be considered.
+            indices_list (list):
+                Indices in the data array that should be considered.
 
-        comparison_value: float
-            Value against which numbers in data are to be compared.
+            comparison_value(float):
+                Value against which numbers in data are to be compared.
 
         Returns:
-        --------
-        array_of_indices.tolist(): list
-            A list of the the indices of data values that fulfill the
-            comparison condition.
+            array_of_indices (list):
+                A list of the the indices of data values that fulfill the
+                comparison condition.
 
         """
 
@@ -149,19 +146,19 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
     the list was constructed.
 
     Args:
-    -----
-    i, j : ints
-        Central coordinate about which to find neighbours.
+        i, j (ints):
+            Central coordinate about which to find neighbours.
 
-    no_neighbours : int
-        No. of neighbours to return (9, 25, 49, etc).
+        no_neighbours (int):
+            No. of neighbours to return (9, 25, 49, etc).
 
-    exclude_self : boolean
-        If True, the central coordinate (i,j) is excluded from returned list.
+        exclude_self (boolean):
+            If True, the central coordinate (i,j) is excluded from returned
+            list.
 
     Returns:
-    --------
-    Array of neighbouring indices : numpy.array
+        numpy.array:
+            Array of neighbouring indices:
 
     """
     # Check n is a valid no. for neighbour finding.
@@ -192,20 +189,19 @@ def node_edge_check(node_list, cube):
     wrapped boundaries, the neighbouring points addresses are appropriately
     modified. Otherwise the points are discarded.
 
-    Args
-    ----
-    node_list : list
-        List of indices with a structure [[i],[j]].
-    cube : iris.cube.Cube
-        A cube containing the grid from which the i,j coordinates have been
-        selected, and which will be used to determine if these points fall
-        on the edge of the domain.
+    Args:
+        node_list (list):
+            List of indices with a structure [[i],[j]].
 
-    Returns
-    -------
-    node_list : list
-        Modified node_list with points beyond the cube boundary either changed
-        or discarded as appropriate.
+        cube (iris.cube.Cube):
+            A cube containing the grid from which the i,j coordinates have been
+            selected, and which will be used to determine if these points fall
+            on the edge of the domain.
+
+    Returns:
+        node_list (list):
+            Modified node_list with points beyond the cube boundary either
+            changed or discarded as appropriate.
 
     """
 
@@ -232,20 +228,18 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
     points to a given latitude-longitude position.
 
     Args:
-    -----
-    cube : iris.cube.Cube
-        Cube containing a representative grid.
+        cube (iris.cube.Cube):
+            Cube containing a representative grid.
 
-    latitude/longitude : floats
-        Latitude/longitude coordinates of spot data site of interest.
+        latitude/longitude (floats):
+            Latitude/longitude coordinates of spot data site of interest.
 
-    iname/jname : strings
-        Strings giving the names of the y/x coordinates to be searched.
+        iname/jname (strings):
+            Strings giving the names of the y/x coordinates to be searched.
 
     Returns:
-    -------
-    i_latitude/j_latitude : ints
-        Grid coordinates of the nearest grid point to the spot data site.
+        i_latitude/j_latitude (int):
+            Grid coordinates of the nearest grid point to the spot data site.
 
     """
     i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
@@ -258,17 +252,16 @@ def index_of_minimum_difference(whole_list, subset_list=None):
     Returns the index of the minimum value in a list.
 
     Args:
-    -----
-    whole_list : numpy.array
-        Array to be searched for a minimum value.
+        whole_list (numpy.array):
+            Array to be searched for a minimum value.
 
-    subset_list : numpy.array/None
-        Array of indices to include in the search. If None the entirity of
-        whole_list is searched.
+        subset_list (numpy.array/None):
+            Array of indices to include in the search. If None the entirity of
+            whole_list is searched.
 
     Returns:
-    --------
-    Index of the minimum value in whole_list.
+        int:
+            Index of the minimum value in whole_list.
 
     """
     whole_list = np.array(whole_list)
@@ -287,6 +280,14 @@ def list_entry_from_index(list_in, index_in):
          index_in = 1
          Returns [1,6,9]
 
+    Args:
+        list_in (list):
+            The input list.
+        index_in (int):
+            Chosen index.
+    Returns:
+        list:
+            The extracted value returned as a list.
     """
     return list(zip(*list_in)[index_in])
 
@@ -296,16 +297,16 @@ def datetime_constraint(time_in, time_max=None):
     Constructs an iris equivalence constraint from a python datetime object.
 
     Args:
-    -----
-    time_in : datetime.datetime object
-        The time to be used to build an iris constraint.
-    time_max : datetime.datetime object
-        Optional max time, which if provided leads to a range constraint
-        being returned up to < time_max.
+        time_in (datetime.datetime object):
+            The time to be used to build an iris constraint.
+        time_max (datetime.datetime object):
+            Optional max time, which if provided leads to a range constraint
+            being returned up to < time_max.
 
-    Returns: iris.Constraint
-        An iris constraint to be used in extracting data at the given time from
-        a cube.
+    Returns:
+        iris.Constraint:
+            An iris constraint to be used in extracting data at the given time
+            from a cube.
 
     """
     time_start = PartialDateTime(
@@ -326,16 +327,14 @@ def construct_neighbour_hash(neighbour_finding):
     to avoid repeating the same neighbour search more than once.
 
     Args:
-    -----
-    neighbour_finding : dict
-        A dictionary containing the method, vertical_bias, and land_constraint
-        options for neighbour finding.
+        neighbour_finding (dict):
+            A dictionary containing the method, vertical_bias, and
+            land_constraint options for neighbour finding.
 
     Returns:
-    --------
-    <string>
-        A concatenated string of the options
-        e.g. 'fast_nearest_neighbour-None-False'
+        string:
+            A concatenated string of the options
+            e.g. 'fast_nearest_neighbour-None-False'
 
     """
     return '{}-{}-{}'.format(neighbour_finding['method'],
@@ -350,20 +349,18 @@ def apply_bias(vertical_bias, dzs):
     not None.
 
     Args:
-    -----
-    vertical_bias : string/None
-        Sets the preferred vertical displacement of the grid point
-        relative to the site; above/below/None.
+        vertical_bias (string/None):
+            Sets the preferred vertical displacement of the grid point
+            relative to the site; above/below/None.
 
-    dzs : numpy.array
-        1D array of vertical displacements calculated as the subtraction of
-        grid orography altitudes from spot site altitudes.
+        dzs (numpy.array):
+            1D array of vertical displacements calculated as the subtraction of
+            grid orography altitudes from spot site altitudes.
 
     Returns:
-    --------
-    dz_subset : numpy.array
-        Indices of grid points that satisfy bias condition if any are
-        available, otherwise it returns the whole set.
+        dz_subset (numpy.array):
+            Indices of grid points that satisfy bias condition if any are
+            available, otherwise it returns the whole set.
 
     """
     if vertical_bias == 'above':
@@ -383,15 +380,14 @@ def xy_determine(cube):
     alternative projection.
 
     Args:
-    -----
-    cube : iris.cube.Cube
-        A diagnostic cube to examine for coordinate system.
+        cube (iris.cube.Cube):
+            A diagnostic cube to examine for coordinate system.
 
     Returns:
-    --------
-    trg_crs : cartopy.crs/None
-        Coordinate system of the diagnostic cube in a cartopy format unless it
-        is already a latitude/longitude grid, in which case None is returned.
+        trg_crs (cartopy.crs/None):
+            Coordinate system of the diagnostic cube in a cartopy format unless
+            it is already a latitude/longitude grid, in which case None is
+            returned.
 
     """
     trg_crs = None
@@ -407,20 +403,19 @@ def xy_transform(trg_crs, latitude, longitude):
     grid into an alternative projection defined by trg_crs.
 
     Args:
-    -----
-    trg_crs : cartopy.crs/None
-        Target coordinate system in cartopy format or None.
+        trg_crs (cartopy.crs/None):
+            Target coordinate system in cartopy format or None.
 
-    latitude : float
-        Latitude coordinate.
+        latitude (float):
+            Latitude coordinate.
 
-    longitude : float
-        Longitude coordinate.
+        longitude (float):
+            Longitude coordinate.
 
     Returns:
-    --------
-    x, y : floats
-        Longitude and latitude transformed into the target coordinate system.
+        x, y (floats):
+            Longitude and latitude transformed into the target coordinate
+            system.
 
     """
     if trg_crs is None:
@@ -435,24 +430,21 @@ def extract_cube_at_time(cubes, time, time_extract):
     Extract a single cube at a given time from a cubelist.
 
     Args:
-    -----
-    cubes : iris.cube.CubeList
-        CubeList of a given diagnostic over several times.
+        cubes (iris.cube.CubeList):
+            CubeList of a given diagnostic over several times.
 
-    time : datetime.datetime object
-        Time at which forecast data is needed.
+        time (datetime.datetime object):
+            Time at which forecast data is needed.
 
-    time_extract : iris.Constraint
-        Iris constraint for the desired time.
+        time_extract (iris.Constraint):
+            Iris constraint for the desired time.
 
     Returns:
-    --------
-    cube : iris.cube.Cube
-        Cube of data at the desired time.
+        cube (iris.cube.Cube):
+            Cube of data at the desired time.
 
     Raises:
-    -------
-    ValueError if the desired time is not available within the cubelist.
+        ValueError if the desired time is not available within the cubelist.
 
     """
     try:
@@ -471,22 +463,20 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
     Extracts additional diagnostics at the required time.
 
     Args:
-    -----
-    additional_diagnostics : dict
-        Dictionary of additional time varying diagnostics needed
-        for the extraction method in use.
+        additional_diagnostics (dict):
+            Dictionary of additional time varying diagnostics needed
+            for the extraction method in use.
 
-    time : datetime.datetime object
-        Time at which forecast data is needed.
+        time (datetime.datetime object):
+            Time at which forecast data is needed.
 
-    time_extract : iris.Constraint
-        Iris constraint for the desired time.
+        time_extract (iris.Constraint):
+            Iris constraint for the desired time.
 
     Returns:
-    --------
-    ad_extracted : dict
-        Dictionary of the additional diagnostics but only data
-        at the desired time.
+        ad_extracted (dict):
+            Dictionary of the additional diagnostics but only data
+            at the desired time.
 
     """
     ad_extracted = {}
@@ -501,14 +491,12 @@ def iris_time_to_datetime(time):
     Convert iris time to python datetime object. Working in UTC.
 
     Args:
-    -----
-    time : iris.coord.Coord
-        Iris time coordinate element(s).
+        time (iris.coord.Coord):
+            Iris time coordinate element(s).
 
     Returns:
-    --------
-    list of datetime.datetime objects
-        The time element(s) recast as a python datetime object.
+        list of datetime.datetime objects
+            The time element(s) recast as a python datetime object.
 
     """
     time.convert_units('seconds since 1970-01-01 00:00:00')
@@ -520,12 +508,11 @@ def dt_to_utc_hours(dt_in):
     Convert python datetime.datetime into hours since 1970-01-01 00Z.
 
     Args:
-    -----
-    dt_in : datetime.datetime object
-
+        dt_in (datetime.datetime object):
+            Time to be converted.
     Returns:
-    --------
-    hours since epoch : float
+        float:
+            hours since epoch
 
     """
     utc_seconds = mktime(dt_in.utctimetuple())

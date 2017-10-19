@@ -108,12 +108,12 @@ def set_up_percentile_temperature_cube():
 def _check_coord_type(cube, coord):
     '''Function to test whether coord is classified
        as scalar or auxiliary coordinate.
-       Parameters
-       ----------
-       cube: cube
-           Iris cube containing coordinates to be checked
-       coord: coordinate
-           Cube coordinate to check
+
+       Args:
+           cube: cube
+               Iris cube containing coordinates to be checked
+           coord: coordinate
+               Cube coordinate to check
     '''
     coord_scalar = False
     coord_aux = False

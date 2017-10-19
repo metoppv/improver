@@ -123,20 +123,19 @@ class TestMultiPoint(object):
                  modelorog=None):
         """Set up multi-point tests.
 
-        Parameters
-        ----------
-        nx_ny: a scalar or an np.array([x,y])
-            Sets dimension for tests.
-        AoS: float or 1D or 2D array
-            Silhouette roughness field
-        Sigma: float or 1D or 2D array
-            Standard deviation field of height in grid cell
-        z_0: float or 1D or 2D array
-            Vegetative roughness field
-        pporog: float or 1D or 2D array
-            Unsmoothed orography field on post-processing grid
-        modelorog: float or 1D or 2D array
-            Model orography field on post-processing grid
+        Args:
+            nx_ny: a scalar or an np.array([x,y])
+                Sets dimension for tests.
+            AoS: float or 1D or 2D array
+                Silhouette roughness field
+            Sigma: float or 1D or 2D array
+                Standard deviation field of height in grid cell
+            z_0: float or 1D or 2D array
+                Vegetative roughness field
+            pporog: float or 1D or 2D array
+                Unsmoothed orography field on post-processing grid
+            modelorog: float or 1D or 2D array
+                Model orography field on post-processing grid
 
         """
         if isinstance(nx_ny, int):
@@ -188,16 +187,15 @@ class TestMultiPoint(object):
         agree with the first (zeroth) dimension of the supplied wind
         array.
 
-        Parameters
-        ----------
-        wind: 2 or 3D array
-            Multi-level wind target data
-        dtime: integer, default 1
-            Number of time dimension values
-        height: float, default None
-            Value for height in metres for zeroth slice of wind
-        aslist: boolean, default False
-            Make wind cube into a CubeList of height slices or not.
+        Args:
+            wind: 2 or 3D array
+                Multi-level wind target data
+            dtime: integer, default 1
+                Number of time dimension values
+            height: float, default None
+                Value for height in metres for zeroth slice of wind
+            aslist: boolean, default False
+                Make wind cube into a CubeList of height slices or not.
 
         """
         if aslist:
@@ -255,20 +253,19 @@ class TestSinglePoint(object):
                                                         133., 333., 1133.])):
         """Set up the single point test for RoughnessCorrection.
 
-        Parameters
-        ----------
-        AoS: float
-            Silhouette roughness field
-        Sigma: float
-            Standard deviation field of height in grid cell
-        z_0: float
-            Vegetative roughness field
-        pporog: float
-            Unsmoothed orography on post-processing grid
-        modelorog: float
-            Model orography on post-processing grid
-        heightlevels: 1D np.array
-            Height level array
+        Args:
+            AoS: float
+                Silhouette roughness field
+            Sigma: float
+                Standard deviation field of height in grid cell
+            z_0: float
+                Vegetative roughness field
+            pporog: float
+                Unsmoothed orography on post-processing grid
+            modelorog: float
+                Model orography on post-processing grid
+            heightlevels: 1D np.array
+                Height level array
 
         """
         self.w_cube = None

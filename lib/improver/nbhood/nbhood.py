@@ -144,7 +144,7 @@ class BaseNeighbourhoodProcessing(object):
                 Array of forecast times found in cube.
 
         Returns:
-            radii : float or np.array of float
+            radii (float or np.array of float):
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:
@@ -366,7 +366,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 mask is not applied. Therefore, the neighbourhood processing
                 may result in values being present in areas that were
                 originally masked.
-
         """
         super(NeighbourhoodProcessing, self).__init__(
             neighbourhood_method, radii, lead_times=lead_times,

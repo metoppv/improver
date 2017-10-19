@@ -106,12 +106,13 @@ class SquareNeighbourhood(object):
                 direction will be applied.
 
         Returns:
-            cube (Iris.cube.Cube):
-                Cube to which the cumulative summing along the y and x
-                direction has been applied.
-            nan_masks (list):
-                List of numpy arrays to be used to set the values within the
-                data of the output cube to be NaN.
+            (tuple) : tuple containing:
+                **cube** (Iris.cube.Cube):
+                    Cube to which the cumulative summing along the y and x
+                    direction has been applied.
+                **nan_masks** (list):
+                    List of numpy arrays to be used to set the values within
+                    the data of the output cube to be NaN.
         """
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()

@@ -44,17 +44,15 @@ MAX_DISTANCE_IN_GRID_CELLS = 500
 def check_if_grid_is_equal_area(cube):
     """Identify whether the grid is an equal area grid.
     If not, raise an error.
-    Parameters
-    ----------
-    cube : Iris.cube.Cube
-        Cube with coordinates that will be cMAhecked.
-    Raises
-    ------
-    ValueError : Invalid grid: projection_x/y coords required
-    ValueError : Intervals between points along the x and y axis vary.
-                 Therefore the grid is not an equal area grid.
-    ValueError : The size of the intervals along the x and y axis
-                 should be equal.
+    Args:
+        cube (Iris.cube.Cube):
+            Cube with coordinates that will be cMAhecked.
+    Raises:
+        ValueError : Invalid grid: projection_x/y coords required
+        ValueError : Intervals between points along the x and y axis vary.
+                     Therefore the grid is not an equal area grid.
+        ValueError : The size of the intervals along the x and y axis
+                     should be equal.
     """
     try:
         for coord_name in ['projection_x_coordinate',
@@ -84,25 +82,24 @@ def convert_distance_into_number_of_grid_cells(
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.
 
-    Parameters
-    ----------
-    cube : Iris.cube.Cube
-        Cube containing the x and y coordinates, which will be used for
-        calculating the number of grid cells in the x and y direction,
-        which equates to the requested distance in the x and y direction.
-    distance : Float
-        Distance in metres.
-    max_distance_in_grid_cells : integer
-        Maximum distance in grid cells.
+    Args:
+        cube (Iris.cube.Cube):
+            Cube containing the x and y coordinates, which will be used for
+            calculating the number of grid cells in the x and y direction,
+            which equates to the requested distance in the x and y direction.
+        distance (Float):
+            Distance in metres.
+        max_distance_in_grid_cells (integer):
+            Maximum distance in grid cells.
 
-    Returns
-    -------
-    grid_cells_x : Integer
-        Number of grid cells in the x direction based on the requested
-        distance in metres.
-    grid_cells_y : Integer
-        Number of grid cells in the y direction based on the requested
-        distance in metres.
+    Returns:
+        (tuple) : tuple containing:
+            **grid_cells_x** (Integer):
+                Number of grid cells in the x direction based on the requested
+                distance in metres.
+            **grid_cells_y** (Integer):
+                Number of grid cells in the y direction based on the requested
+                distance in metres.
 
     """
     try:
@@ -159,21 +156,19 @@ class DifferenceBetweenAdjacentGridSquares(object):
         Put the difference array into a cube with the appropriate
         metadata.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube from which the differences have been calculated.
-        coord_name : String
-            The name of the coordinate over which the difference
-            have been calculated.
-        diff_along_axis : numpy array
-            Array containing the differences.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube from which the differences have been calculated.
+            coord_name (String):
+                The name of the coordinate over which the difference
+                have been calculated.
+            diff_along_axis (numpy array):
+                Array containing the differences.
 
-        Returns
-        -------
-        diff_cube : Iris.cube.Cube
-            Cube containing the differences calculated along the
-            specified axis.
+        Returns:
+            diff_cube (Iris.cube.Cube):
+                Cube containing the differences calculated along the
+                specified axis.
         """
         points = cube.coord(coord_name).points
         mean_points = (points[1:] + points[:-1]) / 2
@@ -212,19 +207,17 @@ class DifferenceBetweenAdjacentGridSquares(object):
         Calculate the difference along the axis specified by the
         coordinate.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube from which the differences will be calculated.
-        coord_axis : String
-            Short-hand reference for the x or y coordinate, as allowed by
-            iris.util.guess_coord_axis.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube from which the differences will be calculated.
+            coord_axis (String):
+                Short-hand reference for the x or y coordinate, as allowed by
+                iris.util.guess_coord_axis.
 
-        Returns
-        -------
-        diff_cube : Iris.cube.Cube
-            Cube after the differences have been calculated along the
-            specified axis.
+        Returns:
+            diff_cube (Iris.cube.Cube):
+                Cube after the differences have been calculated along the
+                specified axis.
         """
         coord_name = cube.coord(axis=coord_axis).name()
         diff_axis = cube.coord_dims(coord_name)[0]
@@ -239,19 +232,18 @@ class DifferenceBetweenAdjacentGridSquares(object):
         the result in separate cubes. The difference along each axis is
          calculated using numpy.diff.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube from which the differences will be calculated.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube from which the differences will be calculated.
 
-        Returns
-        -------
-        diff_along_y_cube : Iris.cube.Cube
-            Cube after the differences have been calculated along the
-            y axis.
-        diff_along_x_cube : Iris.cube.Cube
-            Cube after the differences have been calculated along the
-            x axis.
+        Returns:
+            (tuple) : tuple containing:
+                **diff_along_y_cube** (Iris.cube.Cube):
+                    Cube after the differences have been calculated along the
+                    y axis.
+                **diff_along_x_cube** (Iris.cube.Cube):
+                    Cube after the differences have been calculated along the
+                    x axis.
 
         """
         diff_along_y_cube = self.calculate_difference(cube, "y")
@@ -268,7 +260,7 @@ class OccurrenceWithinVicinity(object):
         Initialise the class.
 
         Args:
-            distance : float
+            distance (float):
                 Distance in metres used to define the vicinity within which to
                 search for an occurrence.
 
@@ -287,13 +279,13 @@ class OccurrenceWithinVicinity(object):
         not a dimension coordinate then still return an iterable.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 Cube to be sliced.
-            coord_name : String
+            coord_name (String):
                 Name of the coordinate to be used for slicing.
 
         Returns:
-            slices_over_coord : iris.cube._SliceIterator or iris.cube.CubeList
+            slices_over_coord (iris.cube._SliceIterator or iris.cube.CubeList):
                 Iterable returned to slice over the requested coordinate, or
                 a CubeList.
         """
@@ -313,11 +305,11 @@ class OccurrenceWithinVicinity(object):
         the maximum value within the vicinity is chosen.
 
         Args:
-            cube : Iris.cube.Cube
+            cube (Iris.cube.Cube):
                 Thresholded cube.
 
         Returns:
-            cube : Iris.cube.Cube
+            cube (Iris.cube.Cube):
                 Cube where the occurrences have been spatially spread, so that
                 they're equally likely to have occurred anywhere within the
                 vicinity defined using the specified distance.
@@ -346,7 +338,7 @@ class OccurrenceWithinVicinity(object):
         2d and subsequently merged back together.
 
         Args:
-            cube : Iris.cube.Cube
+            cube (Iris.cube.Cube):
                 Thresholded cube.
 
         Returns:

@@ -40,7 +40,7 @@ def check_for_x_and_y_axes(cube):
     Check whether the cube has an x and y axis, otherwise raise an error.
 
     Args:
-        cube : Iris.cube.Cube
+        cube (Iris.cube.Cube):
             Cube to be checked for x and y axes.
 
     Raises:
@@ -63,18 +63,18 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     coordinate in its current position.
 
     Args:
-        cube : iris.cube.Cube
+        cube (iris.cube.Cube):
             The input cube that will be checked to identify the preferred
             coordinate order for the output cube.
-        new_cube : iris.cube.Cube
+        new_cube (iris.cube.Cube):
             The cube that must be checked and adjusted using the coordinate
             order from the original cube.
-        exception_coordinates : List of strings or None
+        exception_coordinates (List of strings or None):
             The names of the coordinates that are permitted to be within the
             new_cube but are not available within the original cube.
 
     Returns:
-        new_cube : iris.cube.Cube
+        new_cube (iris.cube.Cube):
             Modified cube with relevant scalar coordinates promoted to
             dimension coordinates with the dimension coordinates re-ordered,
             as best as can be done based on the original cube.
@@ -146,11 +146,11 @@ def find_dimension_coordinate_mismatch(
     two cubes.
 
     Args:
-        first_cube : Iris.cube.Cube
+        first_cube (Iris.cube.Cube):
             First cube to compare.
-        second_cube : Iris.cube.Cube
+        second_cube (Iris.cube.Cube):
             Second cube to compare.
-        two_way_mismatch : Logical
+        two_way_mismatch (Logical):
             If True, a two way mismatch is calculated e.g.
                 second_cube - first_cube AND
                 first_cube - second_cube
@@ -158,7 +158,7 @@ def find_dimension_coordinate_mismatch(
                 second_cube - first_cube
 
     Returns:
-        result : List
+        result (List):
             List of the dimension coordinates that are only present in
             one out of the two cubes.
 

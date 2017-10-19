@@ -63,19 +63,18 @@ class PointSelection(object):
         the grid points closest to sites of interest.
 
         Args:
-        -----
-        method : string
-            Name of the method of neighbour finding to be used.
+            method : string
+                Name of the method of neighbour finding to be used.
 
-        vertical_bias : string/None
-            Sets the preferred vertical displacement bias of the grid point
-            relative to the site; above/below/None. If this criteria cannot be
-            met (e.g. bias below, but all grid points above site) the smallest
-            vertical displacment neighbour will be returned.
+            vertical_bias : string/None
+                Sets the preferred vertical displacement bias of the grid point
+                relative to the site; above/below/None. If this criteria cannot
+                be met (e.g. bias below, but all grid points above site) the
+                smallest vertical displacment neighbour will be returned.
 
-        land_constraint : boolean
-            If True spot data sites on land should only select neighbouring
-            grid points also over land.
+            land_constraint : boolean
+                If True spot data sites on land should only select neighbouring
+                grid points also over land.
 
         """
         self.method = method
@@ -89,31 +88,34 @@ class PointSelection(object):
         after preparing the necessary diagnostics to be passed in.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-            Cube of gridded data of a diagnostic; the diagnostic is unimportant
-            as long as the grid is structured in the same way as those from
-            which data will be extracted using the neighbour list.
+            cube (iris.cube.Cube):
+                Cube of gridded data of a diagnostic; the diagnostic is
+                unimportant as long as the grid is structured in the same way
+                as those from which data will be extracted using the neighbour
+                list.
 
-        sites : OrderedDict
-            Site data, including latitude/longitude and altitude information.
-            e.g. {<site_id>: {'latitude': 50, 'longitude': 0, 'altitude': 10}}
+            sites (OrderedDict):
+                Site data, including latitude/longitude and altitude
+                information.
+                e.g. {<site_id>: {'latitude': 50, 'longitude': 0,
+                                  'altitude': 10}}
 
-        ancillary_data : dict
-            Dictionary of ancillary (time invariant) model data that is needed.
-            e.g. {'orography': <cube of orography>}
+            ancillary_data (dict):
+                Dictionary of ancillary (time invariant) model data that is
+                needed.
+                e.g. {'orography': <cube of orography>}
 
-        default_neighbours/no_neighbours : see minimum_height_error_neighbour()
-                                           below.
+            default_neighbours/no_neighbours :
+                see minimum_height_error_neighbour() below.
 
         Returns:
-        --------
-        neighbours : numpy.dtype (fields: i, j, dz, edgepoint)
-            Array of grid i,j coordinates that are nearest to each site
-            coordinate given. Includes vertical displacement between site and
-            returned grid point if orography is provided. Edgepoint is a
-            boolean that indicates if the chosen grid point neighbour is on the
-            edge of the domain for a circular (e.g. global cylindrical) grid.
+            neighbours (numpy.dtype):
+                Array of grid i,j coordinates that are nearest to each site
+                coordinate given. Includes vertical displacement between site
+                and returned grid point if orography is provided. Edgepoint is
+                a boolean that indicates if the chosen grid point neighbour is
+                on the edge of the domain for a circular (e.g. global
+                cylindrical) grid; (fields: i, j, dz, edgepoint).
 
         """
         if self.method == 'fast_nearest_neighbour':
@@ -152,17 +154,16 @@ class PointSelection(object):
 
 
         Args:
-        -----
-        cube/sites : See process() above.
+            cube/sites : See process() above.
 
-        orography : numpy.array
-            Array of orography data extracted from an iris.cube.Cube that
-            corresponds to the grids on which all other input diagnostics
-            will be provided (iris.cube.Cube.data).
+            orography (numpy.array):
+                Array of orography data extracted from an iris.cube.Cube that
+                corresponds to the grids on which all other input diagnostics
+                will be provided (iris.cube.Cube.data).
 
         Returns:
-        --------
-        neighbours: See process() above.
+            neighbours (numpy.array):
+                See process() above.
 
         """
         neighbours = np.empty(len(sites), dtype=[('i', 'i8'),
@@ -227,32 +228,31 @@ class PointSelection(object):
         other sea points.
 
         Args:
-        -----
-        cube/sites : See process() above.
+            cube/sites : See process() above.
 
-        default_neighbours : numpy.array
-            An existing list of neighbours from which variations are made using
-            specified options (e.g. land_constraint). If unset the
-            fast_nearest_neighbour method will be used to build this list.
+            default_neighbours (numpy.array):
+                An existing list of neighbours from which variations are made
+                using specified options (e.g. land_constraint). If unset the
+                fast_nearest_neighbour method will be used to build this list.
 
-        orography : numpy.array
-            Array of orography data extracted from an iris.cube.Cube that
-            corresponds to the grids on which all other input diagnostics
-            will be provided.
+            orography (numpy.array):
+                Array of orography data extracted from an iris.cube.Cube that
+                corresponds to the grids on which all other input diagnostics
+                will be provided.
 
-        land_mask : numpy.array
-            Array of land_mask data extracted from an iris.cube.Cube that
-            corresponds to the grids on which all other input diagnostics
-            will be provided.
+            land_mask (numpy.array):
+                Array of land_mask data extracted from an iris.cube.Cube that
+                corresponds to the grids on which all other input diagnostics
+                will be provided.
 
-        no_neighbours : int
-            Number of grid points about the site to consider when relaxing the
-            nearest neighbour condition. If unset this defaults to 9.
-            e.g. consider a 5x5 grid of points -> no_neighbours = 25.
+            no_neighbours (int):
+                Number of grid points about the site to consider when relaxing
+                the nearest neighbour condition. If unset this defaults to 9.
+                e.g. consider a 5x5 grid of points -> no_neighbours = 25.
 
         Returns:
-        --------
-        neighbours: See process() above.
+            neighbours (numpy.array):
+                See process() above.
 
         """
 

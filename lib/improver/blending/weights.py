@@ -80,13 +80,14 @@ class WeightsUtilities(object):
         """Redistribute weights if any of the forecasts are missing.
 
             Args:
-                weights : (numpy.ndarray) of weights.
-                forecast_present : (numpy.ndarray) size of weights
-                                   with values set as
+                weights (numpy.ndarray):
+                    Array of weights.
+                forecast_present (numpy.ndarray):
+                    Size of weights with values set as
                                    1.0 for present
                                    0.0 for missing.
-                method : (string) method to redistribute weights
-                                   Options are
+                method (string):
+                    Method to redistribute weights. Options are
                                    evenly - adding the weights from the
                                             missing forecasts evenly across
                                             the remaining forecasts.
@@ -96,9 +97,9 @@ class WeightsUtilities(object):
                                    Default is evenly
 
             Returns:
-                redistributed_weights : (numpy.ndarray) of weights
-                                       where sum = 1.0
-                                       and missing weights are set to -1.0
+                redistributed_weights (numpy.ndarray):
+                    Array of weights where sum = 1.0 and missing weights are
+                    set to -1.0
 
             Raises:
                 ValueError 1 : the weights input do not add up to 1.
@@ -158,24 +159,26 @@ class WeightsUtilities(object):
         """Calculated weights for a given cube and coord.
 
             Args:
-                cube : iris.cube.Cube
+                cube (iris.cube.Cube):
                        Cube to blend across the coord.
-                coordinate : string
+                coordinate (string):
                        Name of coordinate in the cube to be blended.
-                coord_exp_vals : string
+                coord_exp_vals (string):
                        String list of values which are expected on the
                        coordinate to be blended over.
-                coord_unit : cf_units.Unit
+                coord_unit (cf_units.Unit):
                        The unit in which the coord_exp_vals have been passed
                        in.
 
             Returns:
-                exp_coord_len: int
-                       The number of forecasts we expect to blend, based on the
-                       length of the coordinate we are going to blend over.
-                exp_forecast_found: binary mask
-                       Array showing where the input cube coordinate values
-                       agree with the input expected coordinate values.
+                (tuple) : tuple containing:
+                    **exp_coord_len** (int):
+                           The number of forecasts we expect to blend, based on
+                           the length of the coordinate we are going to blend
+                           over.
+                    **exp_forecast_found** (binary mask):
+                           Array showing where the input cube coordinate values
+                           agree with the input expected coordinate values.
 
             Raises:
                 ValueError 1 : the coordinate to blend over does not exist on
@@ -239,13 +242,13 @@ class ChooseDefaultWeightsLinear(object):
         """Set up for calculating default weights using linear function
 
             Args:
-                y0val : None or positive float
-                        Relative value of starting point.
-                slope : float
-                        Slope of the line. Default = 0.0 (equal weights).
-                ynval : float or None
-                        Relative weights of last point.
-                        Default value is None
+                y0val (None or positive float):
+                    Relative value of starting point.
+                slope (float):
+                    Slope of the line. Default = 0.0 (equal weights).
+                ynval (float or None):
+                    Relative weights of last point.
+                    Default value is None
 
             slope OR ynval should be set but NOT BOTH.
 
@@ -266,16 +269,16 @@ class ChooseDefaultWeightsLinear(object):
         """Create linear weights
 
             Args:
-                num_of_weights : Positive Integer
+                num_of_weights (Positive Integer):
                                  Number of weights to create.
-                y0val : Positive float
+                y0val (Positive float):
                         relative value of starting point. Default = 1.0
 
                 AND EITHER:
-                slope : float
+                slope (float):
                         slope of the line. Default = 0.0 (equal weights)
                 OR
-                ynval : Positive float or None
+                ynval (Positive float or None):
                         Relative weights of last point.
                         Default value is None
 
@@ -317,17 +320,17 @@ class ChooseDefaultWeightsLinear(object):
         """Calculated weights for a given cube and coord.
 
             Args:
-                cube : (iris.cube.Cube)
+                cube (iris.cube.Cube):
                        Cube to blend across the coord.
-                coord_name : string
+                coord_name (string):
                        Name of coordinate in the cube to be blended.
-                coord_vals : string
+                coord_vals (string):
                        String list of values which are expected on the
                        coordinate to be blended over.
-                coord_unit : cf_units.Unit
+                coord_unit (cf_units.Unit):
                        The unit in which the coord_exp_vals have been passed
                        in.
-                weights_distrib_method : string
+                weights_distrib_method (string):
                        The method to use when redistributing weights in cases
                        where there are some forecasts missing. Options:
                        "evenly", "proportional".
@@ -370,7 +373,7 @@ class ChooseDefaultWeightsNonLinear(object):
         """Set up for calculating default weights using non-linear function.
 
             Args:
-                cval = float
+                cval (float):
                        Value greater than 0, less than equal 1.0
                        default = 0.85
                        equal weights when cval = 1.0
@@ -381,11 +384,12 @@ class ChooseDefaultWeightsNonLinear(object):
         """Create nonlinear weights.
 
             Args:
-                num_of_weights : Positive Integer
+                num_of_weights (Positive Integer):
                                  Number of weights to create.
 
             Returns:
-                weights : array of weights, sum of all weights = 1.0
+                weights :
+                    array of weights, sum of all weights = 1.0
 
             Raises:
                 ValueError: an inappropriate value of cval is input.
@@ -409,22 +413,23 @@ class ChooseDefaultWeightsNonLinear(object):
         """Calculated weights for a given cube and coord.
 
             Args:
-                cube : iris.cube.Cube
+                cube (iris.cube.Cube):
                        Cube to blend across the coord.
-                coord_name : string
+                coord_name (string):
                        Name of coordinate in the cube to be blended.
-                coord_vals : string
+                coord_vals (string):
                        String list of values which are expected on the
                        coordinate to be blended over.
-                coord_unit : cf_units.Unit
+                coord_unit (cf_units.Unit):
                        The unit in which the coord_exp_vals have been passed
                        in.
-                weights_distrib_method : string
+                weights_distrib_method (string):
                         The method to use when redistributing weights in cases
                         where there are some forecasts missing. Options:
                         "evenly", "proportional".
             Returns:
-                weights : array of weights, sum of all weights = 1.0
+                weights :
+                    array of weights, sum of all weights = 1.0
 
             Raises:
                 TypeError : input is not a cube
@@ -459,9 +464,9 @@ class ChooseDefaultWeightsTriangular(object):
         """Set up for calculating default weights using triangular function.
 
             Args:
-                width : float
+                width (float):
                     The width of the triangular function from the centre point.
-                units : cf_units.Unit
+                units (cf_units.Unit):
                     The cf units of the width and midpoint.
         """
         self.width = width
@@ -473,12 +478,12 @@ class ChooseDefaultWeightsTriangular(object):
         """Create triangular weights.
 
             Args:
-                coord_vals : numpy array
+                coord_vals (numpy array):
                     An array of coordinate values that we want to calculate
                     weights for.
 
             Returns:
-                weights : array of weights
+                weights (array of weights):
                     Sum of all weights should equal 1.0.
         """
 
@@ -487,10 +492,10 @@ class ChooseDefaultWeightsTriangular(object):
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
             Args:
-                point : float
+                point (float):
                     The point in the coordinate from the cube for
                     which we want to calculate a weight for.
-                slope : float
+                slope (float):
                     The gradient of the triangle, calculated from
                     1/(width of triangle).
             """
@@ -518,15 +523,15 @@ class ChooseDefaultWeightsTriangular(object):
         """Calculate triangular weights for a given cube and coord.
 
             Args:
-                cube : iris.cube.Cube
+                cube (iris.cube.Cube):
                     Cube to blend across the coord.
-                coord_name : string
+                coord_name (string):
                     Name of coordinate in the cube to be blended.
-                midpoint : float
+                midpoint (float):
                     The centre point of the triangular function.
 
             Returns:
-                weights : array of weights
+                weights (array of weights):
                     Sum of all weights = 1.0
 
             Raises:
