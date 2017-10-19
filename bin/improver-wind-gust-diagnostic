@@ -67,20 +67,19 @@ def main():
     parser.add_argument("--percentile_gust", metavar="PERCENTILE_GUST",
                         default="50.0",
                         help="Percentile of wind-gust required."
-                        " Default=50.0")
+                        " Default=50.0", type=float)
     parser.add_argument("--percentile_ws",
                         metavar="PERCENTILE_WIND_SPEED",
                         default="95.0",
                         help="Percentile of wind-speed required."
-                        " Default=95.0")
+                        " Default=95.0", type=float)
 
     args = parser.parse_args()
     cube_wg = iris.load_cube(args.input_filegust)
     cube_ws = iris.load_cube(args.input_filews)
     result = (
-        WindGustDiagnostic(float(args.percentile_gust),
-                           float(args.percentile_ws)).process(cube_wg,
-                                                              cube_ws))
+        WindGustDiagnostic(args.percentile_gust,
+                           args.percentile_ws).process(cube_wg, cube_ws))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
