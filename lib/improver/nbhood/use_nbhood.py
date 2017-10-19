@@ -33,6 +33,9 @@
 
 import iris
 
+from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, find_dimension_coordinate_mismatch)
 
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
@@ -88,7 +91,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ApplyNeighbourhoodProcessingWithAMask: '
-                  'coord_for_masking: {}, neighbourhood_method: {}'
+                  'coord_for_masking: {}, neighbourhood_method: {}, '
                   'radii: {}, lead_times: {}, ens_factor: {}, '
                   'weighted_mode: {}, sum_or_fraction: {}>')
         return result.format(
@@ -108,11 +111,21 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
            across all points along the coordinate is therefore the result.
         """
         cube_slices = iris.cube.CubeList([])
-        for cube_slice in mask_cube.slices_over(coord_for_masking):
-            cube_slice = NeighbourhoodProcessing(
+        for cube_slice in mask_cube.slices_over(self.coord_for_masking):
+            output_cube = NeighbourhoodProcessing(
                 self.neighbourhood_method, self.radii, self.lead_times,
-                self.unweighted_mode, self.ens_factor).process(
-                    cube_slice, mask_cube=mask_cube)
-            cube_slices.append(cube_slice)
+                self.weighted_mode, self.ens_factor).process(
+                    cube, mask_cube=cube_slice)
+            coord_object = cube_slice.coord(self.coord_for_masking).copy()
+            output_cube.add_aux_coord(coord_object)
+            output_cube = iris.util.new_axis(
+                output_cube, self.coord_for_masking)
+            cube_slices.append(output_cube)
         concatenated_cube = cube_slices.concatenate_cube()
-        return max_cube
+        exception_coordinates = (
+            find_dimension_coordinate_mismatch(
+                cube, concatenated_cube, two_way_mismatch=False))
+        concatenated_cube = check_cube_coordinates(
+            cube, concatenated_cube,
+            exception_coordinates=exception_coordinates)
+        return concatenated_cube
