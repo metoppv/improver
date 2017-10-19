@@ -688,7 +688,7 @@ class Test2D(IrisTest):
             modelorog=[0, 250, 230]
         )
         msg = "wind input is not a cube, but <class 'iris.cube.CubeList'>"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(TypeError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights,
                                        aslist=True)
 

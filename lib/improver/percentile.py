@@ -52,22 +52,24 @@ class PercentileConverter(object):
         """
         Create a PDF plugin with a given source plugin.
 
-        Parameters
-        ----------
-        collapse_coord : str (or list of str)
-            The name of the coordinate(s) to collapse over.
+        Args:
+            collapse_coord : str (or list of str)
+                The name of the coordinate(s) to collapse over.
 
-        percentiles : Iterable or None (optional)
-            Percentile values at which to calculate; if not provided uses
-            DEFAULT_PERCENTILES.
+            percentiles : Iterable or None (optional)
+                Percentile values at which to calculate; if not provided uses
+                DEFAULT_PERCENTILES.
+
+        Raises:
+            TypeError: If collapse_coord is not a string.
 
         """
         if not isinstance(collapse_coord, list):
             collapse_coord = [collapse_coord]
         if not all([isinstance(test_coord, basestring)
                     for test_coord in collapse_coord]):
-            raise ValueError('collapse_coord is {!r}, which is not a string '
-                             'as is expected.'.format(collapse_coord))
+            raise TypeError('collapse_coord is {!r}, which is not a string '
+                            'as is expected.'.format(collapse_coord))
 
         if percentiles is not None:
             self.percentiles = [int(value) for value in percentiles]
@@ -96,17 +98,15 @@ class PercentileConverter(object):
             * 15 percentiles - (0%, 5%, 10%, 20%, 25%, 30%, 40%, 50%, 60%,
               70%, 75%, 80%, 90%, 95%, 100%)
 
-        Parameters
-        ----------
-        cube : iris.cube.Cube instance
-            Given the collapse coordinate, convert the set of values
-            along that coordinate into a PDF and extract percentiles.
+        Args:
+            cube : iris.cube.Cube instance
+                Given the collapse coordinate, convert the set of values
+                along that coordinate into a PDF and extract percentiles.
 
-        Returns
-        -------
-        cube : iris.cube.Cube instance
-            A single merged cube of all the cubes produced by each percentile
-            collapse.
+        Returns:
+            cube : iris.cube.Cube instance
+                A single merged cube of all the cubes produced by each
+                percentile collapse.
 
         """
         # Store data type and enforce the same type on return.
