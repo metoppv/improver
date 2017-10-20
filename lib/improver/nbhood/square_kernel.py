@@ -507,8 +507,8 @@ class SquareNeighbourhood(object):
         return neighbourhood_averaged_cubes
 
     def _remove_padding_and_mask(
-            self, neighbourhood_averaged_cubes, pre_neighbourhood_cubes,
-            cube_name, grid_cells_x, grid_cells_y):
+            self, neighbourhood_averaged_cubes, cube_name, grid_cells_x,
+            grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
 
@@ -518,10 +518,6 @@ class SquareNeighbourhood(object):
             CubeList containing the smoothed field after the square
             neighbourhood method has been applied to either the input cube, or
             both the input cube and a mask cube.
-        pre_neighbourhood_cubes : Iris.cube.CubeList
-            CubeList containing the fields prior to applying neighbourhood
-            processing. This is required to be able to know the original mask
-            cube.
         cube_name : String
             Name of the variable that has been neighbourhooded.
         grid_cells_x : Float
@@ -553,10 +549,6 @@ class SquareNeighbourhood(object):
                     neighbourhood_averaged_cube.data, mask_cube.data)
                 divided_data[~np.isfinite(divided_data)] = 0
                 neighbourhood_averaged_cube.data = divided_data
-            original_mask_cube, = pre_neighbourhood_cubes.extract('mask_data')
-            neighbourhood_averaged_cube.data = (
-                neighbourhood_averaged_cube.data *
-                original_mask_cube.data.squeeze())
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):
@@ -602,7 +594,7 @@ class SquareNeighbourhood(object):
                 cubes_to_sum, grid_cells_x, grid_cells_y))
         neighbourhood_averaged_cube = (
             self._remove_padding_and_mask(
-                neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
+                neighbourhood_averaged_cubes, cube.name(),
                 grid_cells_x, grid_cells_y))
 
         neighbourhood_averaged_cube.cell_methods = original_methods
