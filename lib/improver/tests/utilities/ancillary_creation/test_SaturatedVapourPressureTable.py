@@ -83,6 +83,5 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-
 if __name__ == '__main__':
     unittest.main()
