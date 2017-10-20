@@ -412,15 +412,15 @@ class SquareNeighbourhood(object):
             neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
                                    ymin_xmin_array - ymax_xmin_array)
             neighbourhood_total.resize(n_rows, n_columns)
-            # Initialise and calculate the neighbourhood area.
-            neighbourhood_area = np.zeros(neighbourhood_total.shape)
-            neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
 
-            if self.sum_or_fraction is "fraction":
+            if self.sum_or_fraction == "fraction":
+                # Initialise and calculate the neighbourhood area.
+                neighbourhood_area = np.zeros(neighbourhood_total.shape)
+                neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
                 with np.errstate(invalid='ignore', divide='ignore'):
                     slice_2d.data = (neighbourhood_total.astype(float) /
                                      neighbourhood_area.astype(float))
-            elif self.sum_or_fraction is "sum":
+            elif self.sum_or_fraction == "sum":
                 slice_2d.data = neighbourhood_total.astype(float)
 
             slice_2d.data[nan_mask.astype(bool)] = np.NaN
