@@ -835,9 +835,6 @@ class Test__remove_padding_and_mask(IrisTest):
         self.padded_cube = set_up_cube(
             zero_point_indices=((0, 0, 3, 3),), num_time_points=1,
             num_grid_points=7)
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
-            num_grid_points=3)
 
     def test_without_masked_data(self):
         """Test that removing a halo of points from the data on a cube
@@ -848,10 +845,9 @@ class Test__remove_padding_and_mask(IrisTest):
              [1., 1., 1.]])
         grid_cells_x = grid_cells_y = 1
         padded_cubes = CubeList([self.padded_cube])
-        cubes = CubeList([self.cube])
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                padded_cubes, cubes, self.padded_cube.name(),
+                padded_cubes, self.padded_cube.name(),
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
@@ -873,18 +869,9 @@ class Test__remove_padding_and_mask(IrisTest):
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         padded_cubes = CubeList([padded_cube, mask_cube])
-        # Set up cube without padding and associated mask.
-        cube = self.cube
-        mask_cube = cube.copy()
-        masked_array = np.ones(mask_cube.data.shape)
-        masked_array[0, 0, 1, 1] = 0
-        masked_array[0, 0, 0, 1] = 0
-        mask_cube.rename('mask_data')
-        mask_cube.data = masked_array.astype(bool)
-        cubes = CubeList([cube, mask_cube])
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                padded_cubes, cubes, padded_cube.name(),
+                padded_cubes, padded_cube.name(),
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
@@ -928,11 +915,11 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[0., 0., 0.57142857, 0.5, 0.],
-               [0., 0.75, 0.57142857, 0.42857143, 0.],
-               [0., 0., 0.71428571, 0.57142857, 0.2],
-               [0., 0., 0.66666667, 0.57142857, 0.],
-               [0., 0., 0.66666667, 0.66666667, 0.]]]])
+            [[[[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
+               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
+               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.666667, 0.333333]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
@@ -970,11 +957,11 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[0., 0., 0.57142857, 0.5, 0.],
-               [0., 0.75, 0.57142857, 0.42857143, 0.],
-               [0., 0., 0.71428571, 0.57142857, 0.2],
-               [0., 0., 0.66666667, 0.57142857, 0.],
-               [0., 0., 0.66666667, 0.66666667, 0.]]]])
+            [[[[0.000000, 0.500000, 0.571429, 0.500000, 0.666667],
+               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
+               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.666667, 0.333333]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
@@ -1031,16 +1018,16 @@ class Test_run(IrisTest):
         masked_data = np.ma.masked_where(mask == 0, data)
         cube.data = masked_data
         expected_array = np.array(
-            [[[[0., 0., 0.57142857, 0.5, 0.],
-               [0., 0.75, 0.57142857, 0.42857143, 0.],
-               [0., 0., 0.71428571, 0.57142857, 0.2],
-               [0., 0., 0.66666667, 0.57142857, 0.],
-               [0., 0., 0.66666667, 0.66666667, 0.]],
-              [[0., 0., 0.57142857, 0.5, 0.],
-               [0., 0.6, 0.5, 0.42857143, 0.],
-               [0., 0.75, 0.42857143, 0.33333333, 0.],
-               [0., 0., 0., 0.33333333, 0.],
-               [0., 0., 0.4, 0.4, 0.]]]])
+            [[[[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
+               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
+               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.571429, 0.200000],
+               [0.000000, 1.000000, 0.666667, 0.666667, 0.333333]],
+              [[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
+               [0.500000, 0.600000, 0.500000, 0.428571, 0.200000],
+               [0.500000, 0.750000, 0.428571, 0.333333, 0.000000],
+               [0.000000, 0.666667, 0.333333, 0.333333, 0.000000],
+               [0.000000, 1.000000, 0.400000, 0.400000, 0.000000]]]])
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
