@@ -31,3 +31,85 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run neighbourhooding processing when iterating over a coordinate
 defining a series of masks."""
+
+
+import iris
+
+from improver.argparser import ArgParser
+from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
+
+
+def main():
+    """Load in arguments for applying neighbourhood processing when using a
+    mask."""
+    parser = ArgParser(
+        description='Apply the requested neighbourhood method via '
+                    'the ApplyNeighbourhoodProcessingWithAMask plugin '
+                    'to a file with one cube using a mask. The masking '
+                    'coordinate is iterated over, so that different masks '
+                    'as defined by the masking coordinate can be applied to '
+                    'the cube that is being neighbourhood processed.')
+    parser.add_argument('coord_for_masking', metavar='COORD_FOR_MASKING',
+       help='Coordinate to iterate over when applying a mask to the '
+            'neighbourhood processing. ')
+    parser.add_argument('input_filepath', metavar='INPUT_FILE',
+                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('input_mask_filepath', metavar='INPUT_MASK_FILE',
+                        help='A path to an input mask NetCDF file to be '
+                             'used to mask the input file.')
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF.')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--radius', metavar='RADIUS', type=float,
+                       help='The radius (in m) for neighbourhood processing.')
+    group.add_argument('--radii-by-lead-time',
+                       metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                       nargs=2,
+                       help='The radii for neighbourhood processing '
+                       'and the associated lead times at which the radii are '
+                       'valid. The radii are in metres whilst the lead time '
+                       'has units of hours. The radii and lead times are '
+                       'expected as individual comma-separated lists with '
+                       'the list of radii given first followed by a list of '
+                       'lead times to indicate at what lead time each radii '
+                       'should be used. For example: 10000,12000,14000 1,2,3 '
+                       'where a lead time of 1 hour uses a radius of 10000m, '
+                       'a lead time of 2 hours uses a radius of 12000m, etc.')
+    parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
+                        default=1.0,
+                        help='The factor with which to adjust the '
+                        'neighbourhood size for more than one '
+                        'ensemble member. If ens_factor = 1.0 this '
+                        'essentially conserves ensemble members if '
+                        'every grid square is considered to be the '
+                        'equivalent of an ensemble member.'
+                        'Optional, defaults to 1.0.')
+    parser.add_argument('--sum_or_fraction', default="fraction",
+                        choices=["sum", "fraction"],
+                        help='The neighbourhood output can either be in the '
+                             'form of a sum of the neighbourhood, or a '
+                             'fraction calculated by dividing the sum of the '
+                             'neighbourhood by the neighbourhood area. '
+                             '"fraction" is the default option.')
+
+    args = parser.parse_args()
+
+    cube = iris.load_cube(args.input_filepath)
+    mask_cube = iris.load_cube(args.input_mask_filepath)
+
+    if args.radius:
+        radius_or_radii = args.radius
+        lead_times = None
+    elif args.radii_by_lead_time:
+        radius_or_radii = args.radii_by_lead_time[0].split(",")
+        lead_times = args.radii_by_lead_time[1].split(",")
+
+    result = ApplyNeighbourhoodProcessingWithAMask(
+        args.coord_for_masking, radius_or_radii, lead_times=lead_times,
+        ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction
+        ).process(cube, mask_cube)
+    iris.save(result, args.output_filepath)
+
+
+if __name__ == "__main__":
+    main()

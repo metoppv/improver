@@ -40,7 +40,7 @@ from improver.utilities.cube_checker import (
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
     def __init__(
-            self, coord_for_masking, neighbourhood_method, radii,
+            self, coord_for_masking, radii,
             lead_times=None, ens_factor=1.0, weighted_mode=True,
             sum_or_fraction="fraction"):
         """
@@ -50,9 +50,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
             coord_for_masking : string
                 String matching the name of the coordinate that will be used
                 for masking.
-            neighbourhood_method : string
-                Name of the neighbourhood method to use. Options: 'circular',
-                'square'.
             radii : float or List (if defining lead times)
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
@@ -81,7 +78,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 Valid options are "sum" or "fraction".
         """
         self.coord_for_masking = coord_for_masking
-        self.neighbourhood_method = neighbourhood_method
+        self.neighbourhood_method = "square"
         self.radii = radii
         self.lead_times = lead_times
         self.ens_factor = ens_factor
@@ -109,6 +106,22 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         3. Produce a single cube with the coordinate used for masking reduced
            to a single point by finding the maximum. The maximum probability
            across all points along the coordinate is therefore the result.
+
+        Args:
+            cube : Iris.cube.Cube
+                Cube containing the array to which the square neighbourhood
+                will be applied.
+            mask_cube : Iris.cube.Cube
+                Cube containing the array to be used as a mask.
+
+        Returns:
+            concatenated_cube : Iris.cube.Cube
+                Cube containing the smoothed field after the square
+                neighbourhood method has been applied when applying masking
+                for each point along the coord_for_masking coordinate.
+                The resulting cube is concatenated so that the dimension
+                coordinates match the input cube.
+
         """
         cube_slices = iris.cube.CubeList([])
         for cube_slice in mask_cube.slices_over(self.coord_for_masking):
