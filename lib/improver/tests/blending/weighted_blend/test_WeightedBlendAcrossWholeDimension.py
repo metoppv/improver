@@ -160,7 +160,7 @@ class Test_process(IrisTest):
         notacube = 0.0
         msg = ('The first argument must be an instance of ' +
                'iris.cube.Cube')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(TypeError, msg):
             plugin.process(notacube)
 
     def test_fails_perc_coord_not_dim(self):

@@ -1293,7 +1293,7 @@ class Test_add_renamed_cell_method(IrisTest):
         self.cube.cell_methods = ()
         message = ('Input Cell_method is not an instance of '
                    'iris.coord.CellMethod')
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegexp(TypeError, message):
             add_renamed_cell_method(self.cube, 'not_a_cell_method',
                                     'weighted_mean')
 

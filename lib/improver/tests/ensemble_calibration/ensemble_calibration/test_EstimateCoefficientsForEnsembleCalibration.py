@@ -631,7 +631,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
         msg = "The input data within the"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(TypeError, msg):
             plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
 

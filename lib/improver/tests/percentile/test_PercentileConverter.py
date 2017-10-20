@@ -159,7 +159,7 @@ class Test_process(IrisTest):
         """
         collapse_coord = self.cube
         msg = "collapse_coord is "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegexp(TypeError, msg):
             PercentileConverter(collapse_coord)
 
 

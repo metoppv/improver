@@ -523,6 +523,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 String to describe the cube, which is being converted to a
                 CubeList.
 
+            Raises
+            ------
+            TypeError: The input cube is not an Iris cube.
+
             """
             if not isinstance(cubes, iris.cube.CubeList):
                 cubes = iris.cube.CubeList([cubes])
@@ -530,7 +534,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 if not isinstance(cube, iris.cube.Cube):
                     msg = ("The input data within the {} "
                            "is not an Iris Cube.".format(cube_type))
-                    raise ValueError(msg)
+                    raise TypeError(msg)
             return cubes
 
         # Ensure predictor_of_mean_flag is valid.

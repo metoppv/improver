@@ -926,10 +926,14 @@ class RoughnessCorrection(object):
             The 4d wind field with roughness and height correction
             applied in the same order as the input cube.
 
+        Raises
+        ------
+        TypeError: If input_cube is not a cube.
+
         """
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
-            raise ValueError(msg.format(type(input_cube)))
+            raise TypeError(msg.format(type(input_cube)))
         (self.x_name, self.y_name, self.z_name,
          self.t_name) = self.find_coord_names(input_cube)
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)

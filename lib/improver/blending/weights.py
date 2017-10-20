@@ -335,13 +335,13 @@ class ChooseDefaultWeightsLinear(object):
                 weights : array of weights, sum of all weights = 1.0
 
             Raises:
-                ValueError : input is not a cube
+                TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
                    ' {0:s}'.format(type(cube)))
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         (num_of_weights,
          exp_coord_found) = WeightsUtilities.process_coord(
@@ -427,13 +427,13 @@ class ChooseDefaultWeightsNonLinear(object):
                 weights : array of weights, sum of all weights = 1.0
 
             Raises:
-                ValueError : input is not a cube
+                TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
                    ' {0:s}'.format(type(cube)))
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         (num_of_weights,
          exp_coord_found) = WeightsUtilities.process_coord(
@@ -530,13 +530,13 @@ class ChooseDefaultWeightsTriangular(object):
                     Sum of all weights = 1.0
 
             Raises:
-                ValueError : input is not a cube
+                TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
                    ' {0:s}'.format(type(cube)))
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         cube_coord = cube.coord(coord_name)
         coord_vals = cube_coord.points
