@@ -29,7 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run wet bulb temperature plugin."""
+"""CLI to generate wet bulb temperatures from air temperature, relative
+   humidity, and pressure data. """
 
 import argparse
 
@@ -40,7 +41,11 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 
 
 def main():
-    """Load in arguments and get going."""
+    """Parser to accept input data and an output destination before invoking
+    the wet bulb temperature plugin. Also accepted is an optional
+    convergence_condition argument that can be used to specify the tolerance of
+    the Newton iterator used to calculate the wet bulb temperatures."""
+
     parser = argparse.ArgumentParser(
         description='Calculate a cube of wet bulb temperatures.')
     parser.add_argument('temperature', metavar='TEMPERATURE',

@@ -34,6 +34,7 @@ import warnings
 from cf_units import Unit
 import improver.constants as cc
 import numpy as np
+import iris
 
 from improver.psychrometric_calculations import svp_table
 
@@ -62,10 +63,10 @@ class Utilities(object):
         dry air and water vapour in proportion given by the specific humidity.
 
         Args:
-            mixing_ratio : iris.cube.Cube
+            mixing_ratio (iris.cube.Cube):
                 Cube of specific humidity (fractional).
         Returns:
-            iris.cube.Cube
+            iris.cube.Cube:
                 Specific heat capacity of moist air (J kg-1 K-1).
         """
         specific_heat = ((-1.*mixing_ratio + 1.) * cc.U_CP_DRY_AIR +
@@ -80,10 +81,10 @@ class Utilities(object):
         vapour using the relationship employed by the UM.
 
         Args:
-            temperature : iris.cube.Cube
+            temperature_input (iris.cube.Cube):
                 A cube of air temperatures (Celsius, converted if not).
         Returns:
-            iris.cube.Cube
+            iris.cube.Cube:
                 Temperature adjusted latent heat of condesation (J kg-1).
         """
         temperature = temperature_input.copy()
@@ -101,17 +102,17 @@ class Utilities(object):
         Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
 
         Args:
-            mixing_ratio : iris.cube.Cube
+            mixing_ratio (iris.cube.Cube):
                 Cube of mixing ratios.
-            specific_heat : iris.cube.Cube
+            specific_heat (iris.cube.Cube):
                 Cube of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat : iris.cube.Cube
+            latent_heat (iris.cube.Cube):
                 Cube of latent heats of condensation of water vapour
                 (J kg-1).
-            temperature : iris.cube.Cube
+            temperature (iris.cube.Cube):
                 A cube of air temperatures (K).
         Returns:
-           enthalpy : iris.cube.Cube
+           enthalpy (iris.cube.Cube):
                A cube of enthalpy values calculated at the same points as the
                input cubes (J kg-1).
         """
@@ -121,42 +122,118 @@ class Utilities(object):
 
     @staticmethod
     def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
-                                latent_heat, wet_bulb_temperature):
+                                latent_heat, temperature_input):
         """
         Calculate the enthalpy gradient with respect to temperature.
 
         Args:
+            mixing_ratio (iris.cube.Cube):
+                Cube of mixing ratios.
+            specific_heat (iris.cube.Cube):
+                Cube of specific heat capacities of moist air (J kg-1 K-1).
+            latent_heat (iris.cube.Cube):
+                Cube of latent heats of condensation of water vapour
+                (J kg-1).
+            temperature_input (iris.cube.Cube):
+                A cube of temperatures (K, or converted).
 
         Returns:
-
+            iris.cube.Cube:
+                A cube of the enthalpy gradient with respect to temperature.
         """
-        wet_bulb_temperature.convert_units('K')
+        temperature = temperature_input.copy()
+        temperature.convert_units('K')
         numerator = (mixing_ratio * latent_heat ** 2)
-    #    R_term = np.max(np.finfo(cc.R_WATER_VAPOUR).eps,
-    #                    cc.R_WATER_VAPOUR * wet_bulb_temperature ** 2)
-        denominator = cc.U_R_WATER_VAPOUR * wet_bulb_temperature ** 2
+        denominator = cc.U_R_WATER_VAPOUR * temperature ** 2
         return numerator/denominator + specific_heat
+
+    @staticmethod
+    def saturation_vapour_pressure_goff_gratch(temperature):
+        """
+        Saturation Vapour pressure in a water vapour system calculated using
+        the Goff-Gratch Equation (WMO standard method).
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of temperature which will be converted to Kelvin
+                prior to calculation. Valid from 173K to 373K
+
+        Returns:
+            svp (iris.cube.Cube):
+                Cube containing the saturation vapour pressure of a pure
+                water vapour system. A correction must be applied to the data
+                when used to convert this to the SVP in air; see the
+                WetBulbTemperature._pressure_correct_svp function.
+
+        References:
+            Numerical data and functional relationships in science and
+            technology. New series. Group V. Volume 4. Meteorology.
+            Subvolume b. Physical and chemical properties of the air, P35.
+        """
+        constants = {1: 10.79574,
+                     2: 5.028,
+                     3: 1.50475E-4,
+                     4: -8.2969,
+                     5: 0.42873E-3,
+                     6: 4.76955,
+                     7: 0.78614,
+                     8: -9.09685,
+                     9: 3.56654,
+                     10: 0.87682,
+                     11: 0.78614}
+        triple_pt = cc.TRIPLE_PT_WATER
+
+        # Values for which method is considered valid (see reference).
+        WetBulbTemperature._check_range(temperature, 173., 373.)
+
+        data = temperature.data.copy()
+        for cell in np.nditer(data, op_flags=['readwrite']):
+            if cell > triple_pt:
+                n0 = constants[1] * (1. - triple_pt / cell)
+                n1 = constants[2] * np.log10(cell / triple_pt)
+                n2 = constants[3] * (1. - np.power(10.,
+                                                   (constants[4] *
+                                                    (cell / triple_pt - 1.))))
+                n3 = constants[5] * (np.power(10., (constants[6] *
+                                                    (1. - triple_pt / cell))) -
+                                     1.)
+                log_es = n0 - n1 + n2 + n3 + constants[7]
+                cell[...] = (np.power(10., log_es))
+            else:
+                n0 = constants[8] * ((triple_pt / cell) - 1.)
+                n1 = constants[9] * np.log10(triple_pt / cell)
+                n2 = constants[10] * (1. - (cell / triple_pt))
+                log_es = n0 - n1 + n2 + constants[11]
+                cell[...] = (np.power(10., log_es))
+
+        # Create SVP cube
+        svp = iris.cube.Cube(
+            data, long_name='saturated_vapour_pressure', units='hPa')
+        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
+        svp.convert_units('Pa')
+        return svp
 
 
 class WetBulbTemperature(object):
 
     """
-    Functions to calculate the wet bulb temperature.
-    """
+    A plugin to calculate wet bulb temperatures from air temperature, relative
+    humidity, and pressure data. Calculations are performed using a Newton
+    iterator, with saturated vapour pressures drawn from a lookup table using
+    linear interpolation.
 
+    The svp_table used in this plugin is imported (see top of file). It is a
+    table of saturated vapour pressures calculated for a range of temperatures.
+    The import also brings in attributes that describe the range of
+    temperatures covered by the table and the increments in the table.
+
+    """
     def __init__(self, precision=0.005):
         """
         Initialise class.
 
         Args:
-            svp_table : iris.cube.Cube
-                A table of saturated vapour pressures calculated for a range
-                of temperatures. The cube attributes should describe the range
-                of temperature covered by the table with 'temperature_minimum'
-                and 'temperature_maximum' keys. The increments in the table
-                should also be described with a 'temperature_increment'
-                attribute.
-            precision: float
+            precision (float):
                 The precision to which the Newton iterator must converge before
                 returning wet bulb temperatures.
         """
@@ -173,13 +250,13 @@ class WetBulbTemperature(object):
         too low or high for a method to use safely.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 A cube of temperature.
 
-            low : int or float
+            low (int or float):
                 Lowest allowable temperature for check
 
-            high : int or float
+            high (int or float):
                 Highest allowable temperature for check
 
         Raises:
@@ -202,10 +279,10 @@ class WetBulbTemperature(object):
         SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
 
         Args:
-            temperature : iris.cube.Cube
+            temperature (iris.cube.Cube):
                 A cube of air temperatures (K).
         Returns:
-            svp : iris.cube.Cube
+            svp (iris.cube.Cube):
                 A cube of saturated vapour pressures (Pa).
         """
         T_min = svp_table.T_MIN
@@ -235,19 +312,22 @@ class WetBulbTemperature(object):
         the saturated vapour pressure in air.
 
         Args:
-            temperature : iris.cube.Cube
+            svp (iris.cube.Cube):
+                A cube of saturated vapour pressures (Pa).
+            temperature (iris.cube.Cube):
                 A cube of air temperatures (K, converted to Celsius).
-            pressure : iris.cube.Cube
+            pressure (iris.cube.Cube):
                 Cube of pressure (Pa).
 
         Returns:
-            svp : iris.cube.Cube
+            svp (iris.cube.Cube):
                 Cube of saturated vapour pressure of air (Pa).
         """
         temp = temperature.copy()
         temp.convert_units('celsius')
 
-        correction = 1. + 1E-8 * pressure.data * (4.5 + 6E-4 * temp.data ** 2)
+        correction = (1. + 1.0E-8 * pressure.data *
+                      (4.5 + 6.0E-4 * temp.data ** 2))
         svp.data = svp.data*correction
         return svp
 
@@ -256,13 +336,13 @@ class WetBulbTemperature(object):
         humidity, and pressure.
 
         Args:
-            temperature : iris.cube.Cube
+            temperature (iris.cube.Cube):
                 Cube of air temperature (K).
-            pressure : iris.cube.Cube
+            pressure (iris.cube.Cube):
                 Cube of air pressure (Pa).
 
         Returns
-            mixing_ratio : iris.cube.Cube
+            mixing_ratio (iris.cube.Cube):
                 Cube of mixing ratios.
 
         References:
@@ -290,15 +370,15 @@ class WetBulbTemperature(object):
         """
 
         Args:
-            temperature : iris.cube.Cube
+            temperature (iris.cube.Cube):
                 Cube of air temperatures (K).
-            relative_humidity : iris.cube.Cube
+            relative_humidity (iris.cube.Cube):
                 Cube of relative humidities (%, converted to fractional).
-            pressure : iris.cube.Cube
+            pressure (iris.cube.Cube):
                 Cube of air pressures (Pa).
 
-        Returns
-            wbt : iris.cube.Cube
+        Returns:
+            wbt (iris.cube.Cube):
                 Cube of wet bulb temperature (K).
 
         """

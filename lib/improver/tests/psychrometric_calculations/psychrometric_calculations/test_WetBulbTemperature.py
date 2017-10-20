@@ -49,7 +49,8 @@ class Test_WetBulbTemperature(IrisTest):
         """Set up the initial conditions for tests."""
 
         longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
-        temperature = Cube([260., 270., 280.], 'air_temperature', units='K',
+        temperature = Cube([183.15, 260.65, 338.15], 'air_temperature',
+                           units='K',
                            dim_coords_and_dims=[(longitude, 0)])
         pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
                         dim_coords_and_dims=[(longitude, 0)])
@@ -98,7 +99,8 @@ class Test__lookup_svp(Test_WetBulbTemperature):
 
     def test_values(self):
         """Basic extraction of some SVP values from the lookup table."""
-        expected = [197.41815, 474.1368, 999.5001]
+        self.temperature.data[1] = 260.5683203
+        expected = [9.664590e-03, 206., 2.501530e+04]
         result = WetBulbTemperature()._lookup_svp(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
@@ -113,7 +115,7 @@ class Test__pressure_correct_svp(Test_WetBulbTemperature):
         """Basic pressure correction of water vapour SVPs to give SVPs in
         air."""
         svp = self.pressure.copy(data=[197.41815, 474.1368, 999.5001])
-        expected = [198.3270145, 476.25187399, 1003.93547208]
+        expected = [199.265984, 476.293085, 1006.390954]
         result = WetBulbTemperature()._pressure_correct_svp(
             svp, self.temperature, self.pressure)
 
@@ -129,7 +131,7 @@ class Test__mixing_ratio(Test_WetBulbTemperature):
     def test_values(self):
         """Basic mixing ratio calculation."""
 
-        expected = [0.00123448, 0.00299756, 0.00639648]
+        expected = [6.067447e-08, 1.310793e-03, 0.1770631]
         result = WetBulbTemperature()._mixing_ratio(
             self.temperature, self.pressure)
 
@@ -155,7 +157,7 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
     def test_values(self):
         """Basic wet bulb temperature calculation."""
 
-        expected = [259.02284145, 268.59958728, 278.45351191]
+        expected = [183.15, 259.883055, 333.960651]
         result = WetBulbTemperature().calculate_wet_bulb_temperature(
             self.temperature, self.relative_humidity, self.pressure)
 
