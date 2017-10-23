@@ -101,6 +101,15 @@ def main():
                              'fraction calculated by dividing the sum of the '
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
+    parser.add_argument('--re_mask', action='store_true',
+                        help='If re_mask is True, the original '
+                             'un-neighbourhood processed mask is applied to '
+                             'mask out the neighbourhood processed cube. '
+                             'If re_mask is False, the original '
+                             'un-neighbourhood processed mask is not applied. '
+                             'Therefore, the neighbourhood processing may '
+                             'result in values being present in areas that '
+                             'were originally masked. ')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+', type=float,
                         help='Calculate values at the specified percentiles '
@@ -147,7 +156,7 @@ def main():
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
                 weighted_mode=args.weighted_mode,
-                sum_or_fraction=args.sum_or_fraction
+                sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
                 ).process(cube, mask_cube=mask_cube))
     elif args.neighbourhood_output == "percentiles":
         result = (

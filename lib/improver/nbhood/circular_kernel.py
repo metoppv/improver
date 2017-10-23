@@ -98,7 +98,8 @@ class CircularNeighbourhood(object):
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, weighted_mode=True, sum_or_fraction="fraction"):
+    def __init__(self, weighted_mode=True, sum_or_fraction="fraction",
+                 re_mask=False):
         """
         Initialise class.
 
@@ -123,6 +124,7 @@ class CircularNeighbourhood(object):
                    "Valid options are 'sum' or 'fraction'.")
             raise ValueError(msg)
         self.sum_or_fraction = sum_or_fraction
+        self.re_mask = re_mask
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""

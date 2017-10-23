@@ -320,7 +320,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
     def __init__(
             self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0, weighted_mode=True, sum_or_fraction="fraction"):
+            ens_factor=1.0, weighted_mode=True, sum_or_fraction="fraction",
+            re_mask=False):
         """
         Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
@@ -356,6 +357,13 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area. "fraction" is the default.
             Valid options are "sum" or "fraction".
+        re_mask : Logical
+            If re_mask is True, the original un-neighbourhood processed
+            mask is applied to mask out the neighbourhood processed cube.
+            If re_mask is False, the original un-neighbourhood processed
+            mask is not applied. Therefore, the neighbourhood processing may
+            result in values being present in areas that were originally
+            masked.
 
         """
         super(NeighbourhoodProcessing, self).__init__(
@@ -367,7 +375,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(weighted_mode, sum_or_fraction)
+            self.neighbourhood_method = method(
+                weighted_mode, sum_or_fraction, re_mask)
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(

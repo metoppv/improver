@@ -50,7 +50,8 @@ class SquareNeighbourhood(object):
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self, weighted_mode=True, sum_or_fraction="fraction"):
+    def __init__(self, weighted_mode=True, sum_or_fraction="fraction",
+                 re_mask=False):
         """
         Initialise class.
 
@@ -64,6 +65,13 @@ class SquareNeighbourhood(object):
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area. Valid options are "sum" or "fraction".
+        re_mask : Logical
+            If re_mask is True, the original un-neighbourhood processed
+            mask is applied to mask out the neighbourhood processed cube.
+            If re_mask is False, the original un-neighbourhood processed
+            mask is not applied. Therefore, the neighbourhood processing may
+            result in values being present in areas that were originally
+            masked.
         """
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:
@@ -74,12 +82,14 @@ class SquareNeighbourhood(object):
                    "Valid options are 'sum' or 'fraction'.")
             raise ValueError(msg)
         self.sum_or_fraction = sum_or_fraction
+        self.re_mask = re_mask
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<SquareNeighbourhood: weighted_mode: {}, '
-                  'sum_or_fraction: {}>')
-        return result.format(self.weighted_mode, self.sum_or_fraction)
+                  'sum_or_fraction: {}, re_mask: {}>')
+        return result.format(self.weighted_mode, self.sum_or_fraction,
+                             self.re_mask)
 
     @staticmethod
     def cumulate_array(cube):
@@ -507,8 +517,8 @@ class SquareNeighbourhood(object):
         return neighbourhood_averaged_cubes
 
     def _remove_padding_and_mask(
-            self, neighbourhood_averaged_cubes, cube_name, grid_cells_x,
-            grid_cells_y):
+            self, neighbourhood_averaged_cubes, pre_neighbourhood_cubes,
+            cube_name, grid_cells_x, grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
 
@@ -518,6 +528,10 @@ class SquareNeighbourhood(object):
             CubeList containing the smoothed field after the square
             neighbourhood method has been applied to either the input cube, or
             both the input cube and a mask cube.
+        pre_neighbourhood_cubes : Iris.cube.CubeList
+            CubeList containing the fields prior to applying neighbourhood
+            processing. This is required to be able to know the original mask
+            cube.
         cube_name : String
             Name of the variable that has been neighbourhooded.
         grid_cells_x : Float
@@ -549,9 +563,15 @@ class SquareNeighbourhood(object):
                     neighbourhood_averaged_cube.data, mask_cube.data)
                 divided_data[~np.isfinite(divided_data)] = 0
                 neighbourhood_averaged_cube.data = divided_data
+            if self.re_mask:
+                original_mask_cube, = (
+                    pre_neighbourhood_cubes.extract('mask_data'))
+                neighbourhood_averaged_cube.data = (
+                    neighbourhood_averaged_cube.data *
+                    original_mask_cube.data.squeeze())
         return neighbourhood_averaged_cube
 
-    def run(self, cube, radius, mask_cube=None):
+    def run(self, cube, radius, mask_cube=None, re_mask=False):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -573,6 +593,13 @@ class SquareNeighbourhood(object):
             grid cells used to create a square neighbourhood.
         mask_cube : Iris.cube.Cube
             Cube containing the array to be used as a mask.
+        re_mask : Logical
+            If re_mask is True, the original un-neighbourhood processed
+            mask is applied to mask out the neighbourhood processed cube.
+            If re_mask is False, the original un-neighbourhood processed
+            mask is not applied. Therefore, the neighbourhood processing may
+            result in values being present in areas that were originally
+            masked.
 
         Returns
         -------
@@ -594,7 +621,7 @@ class SquareNeighbourhood(object):
                 cubes_to_sum, grid_cells_x, grid_cells_y))
         neighbourhood_averaged_cube = (
             self._remove_padding_and_mask(
-                neighbourhood_averaged_cubes, cube.name(),
+                neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
                 grid_cells_x, grid_cells_y))
 
         neighbourhood_averaged_cube.cell_methods = original_methods

@@ -835,6 +835,9 @@ class Test__remove_padding_and_mask(IrisTest):
         self.padded_cube = set_up_cube(
             zero_point_indices=((0, 0, 3, 3),), num_time_points=1,
             num_grid_points=7)
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
+            num_grid_points=3)
 
     def test_without_masked_data(self):
         """Test that removing a halo of points from the data on a cube
@@ -845,16 +848,17 @@ class Test__remove_padding_and_mask(IrisTest):
              [1., 1., 1.]])
         grid_cells_x = grid_cells_y = 1
         padded_cubes = CubeList([self.padded_cube])
+        cubes = CubeList([self.cube])
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                padded_cubes, self.padded_cube.name(),
+                padded_cubes, cubes, self.padded_cube.name(),
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
 
     def test_with_masked_data(self):
         """Test that removing a halo of points from the data on a cube
-        has worked as intended when the input data is masked."""
+        has worked as intended when the input data has an associated mask."""
         expected = np.array(
             [[1., 0., 1.],
              [1., 0., 1.],
@@ -869,9 +873,54 @@ class Test__remove_padding_and_mask(IrisTest):
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         padded_cubes = CubeList([padded_cube, mask_cube])
+        # Set up cube without padding and associated mask.
+        cube = self.cube
+        mask_cube = cube.copy()
+        masked_array = np.ones(mask_cube.data.shape)
+        masked_array[0, 0, 1, 1] = 0
+        masked_array[0, 0, 0, 1] = 0
+        mask_cube.rename('mask_data')
+        mask_cube.data = masked_array.astype(bool)
+        cubes = CubeList([cube, mask_cube])
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                padded_cubes, padded_cube.name(),
+                padded_cubes, cubes, padded_cube.name(),
+                grid_cells_x, grid_cells_y))
+        self.assertIsInstance(nbcube, Cube)
+        self.assertArrayAlmostEqual(nbcube.data, expected)
+
+    def test_with_masked_data_and_remasking(self):
+        """Test that removing a halo of points from the data on a cube
+        has worked as intended when the input data has an associated mask
+        and re-masking using the original data is required."""
+        expected = np.array(
+            [[1., 0., 1.],
+             [1., 0., 1.],
+             [1., 1., 0.]])
+        grid_cells_x = grid_cells_y = 1
+        padded_cube = self.padded_cube
+        # Set up padded cube and associated mask.
+        mask_cube = padded_cube.copy()
+        masked_array = np.ones(mask_cube.data.shape)
+        masked_array[0, 0, 3, 3] = 0
+        masked_array[0, 0, 2, 3] = 0
+        mask_cube.rename('mask_data')
+        mask_cube.data = masked_array.astype(bool)
+        padded_cubes = CubeList([padded_cube, mask_cube])
+        # Set up cube without padding and associated mask.
+        cube = self.cube
+        mask_cube = cube.copy()
+        masked_array = np.ones(mask_cube.data.shape)
+        masked_array[0, 0, 2, 2] = 0
+        masked_array[0, 0, 1, 1] = 0
+        masked_array[0, 0, 0, 1] = 0
+        mask_cube.rename('mask_data')
+        mask_cube.data = masked_array.astype(bool)
+        cubes = CubeList([cube, mask_cube])
+        re_mask = True
+        nbcube = (
+            SquareNeighbourhood(re_mask=re_mask)._remove_padding_and_mask(
+                padded_cubes, cubes, padded_cube.name(),
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
