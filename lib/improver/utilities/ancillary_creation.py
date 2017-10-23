@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-import improver.constants as cc
 from improver.psychrometric_calculations.psychrometric_calculations import (
     Utilities)
 

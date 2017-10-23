@@ -32,10 +32,7 @@
 
 import unittest
 import numpy as np
-from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coords import DimCoord
-from cf_units import Unit
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 
@@ -46,32 +43,30 @@ class Test_svp_table(IrisTest):
     agreeing with values produced by the creation plugin. Does this piecewise
     to avoid the testing being too slow."""
 
+    @staticmethod
+    def make_svp_table(t_min, t_max, t_increment, expected):
+        """Recreate part of table and compare with expected values."""
+        result = SaturatedVapourPressureTable(
+            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
+
     def test_cube_values_bottom(self):
         """Test the lower end of the SVP table"""
         t_min, t_max, t_increment = 183.15, 185.15, 0.1
         expected = svp_table.DATA[0:21]
-        result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
-
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.make_svp_table(t_min, t_max, t_increment, expected)
 
     def test_cube_values_middle(self):
         """Test the middle of the SVP table"""
         t_min, t_max, t_increment = 273.15, 275.15, 0.1
         expected = svp_table.DATA[900:921]
-        result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
-
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
+        self.make_svp_table(t_min, t_max, t_increment, expected)
 
     def test_cube_values_top(self):
         """Test the upper end of the SVP table"""
         t_min, t_max, t_increment = 336.15, 338.15, 0.1
         expected = svp_table.DATA[1530:]
-        result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
-
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
+        self.make_svp_table(t_min, t_max, t_increment, expected)
 
 
 if __name__ == '__main__':

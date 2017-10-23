@@ -33,12 +33,9 @@ Unit tests for the SaturatedVapourPressureTable utility.
 
 """
 import unittest
-import warnings
 
 from cf_units import Unit
-import iris
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 
