@@ -36,7 +36,7 @@
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
-                       [--sum_or_fraction {sum,fraction}]
+                       [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
@@ -92,6 +92,13 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
+  --re_mask             If re_mask is True, the original un-neighbourhood
+                        processed mask is applied to mask out the
+                        neighbourhood processed cube. If re_mask is False, the
+                        original un-neighbourhood processed mask is not
+                        applied. Therefore, the neighbourhood processing may
+                        result in values being present in areas that were
+                        originally masked.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.

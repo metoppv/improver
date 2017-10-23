@@ -36,7 +36,7 @@
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
-                       [--sum_or_fraction {sum,fraction}]
+                       [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
