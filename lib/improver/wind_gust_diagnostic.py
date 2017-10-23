@@ -134,7 +134,7 @@ class WindGustDiagnostic(object):
 
         Args:
             cube (iris.cube.Cube):
-                Cube contain one or more percentiles of wind_gust data.
+                Cube contain one or more percentiles.
             req_percentile (float):
                 Required percentile value
             standard_name (str):

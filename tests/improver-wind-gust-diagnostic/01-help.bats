@@ -40,7 +40,11 @@ usage: improver-wind-gust-diagnostic [-h] [--percentile_gust PERCENTILE_GUST]
 
 Calculate revised wind-gust data using a specified percentile of wind-gust
 data and a specified percentile of wind-speed data through the
-WindGustDiagnostic plugin.
+WindGustDiagnostic plugin. The wind-gust diagnostic will be the Max of the
+specified percentile data.Currently Typical gusts is MAX(wind-gust(50th
+percentile),wind-speed(95th percentile))and Extreme gust is MAX(wind-gust(95th
+percentile),wind-speed(100th percentile)). If no percentile values are
+supplied the code defaults to values for Typical gusts.
 
 positional arguments:
   INPUT_FILE_GUST       A path to an input Wind Gust Percentile NetCDF file
