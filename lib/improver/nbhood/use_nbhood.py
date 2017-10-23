@@ -37,6 +37,7 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 
+
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
     def __init__(
@@ -72,7 +73,8 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 If False, use a circle with constant weighting.
             sum_or_fraction : string
                 Identifier for whether sum or fraction should be returned from
-                neighbourhooding. The sum represents the sum of the neighbourhood.
+                neighbourhooding. The sum represents the sum of the
+                neighbourhood.
                 The fraction represents the sum of the neighbourhood divided by
                 the neighbourhood area. "fraction" is the default.
                 Valid options are "sum" or "fraction".

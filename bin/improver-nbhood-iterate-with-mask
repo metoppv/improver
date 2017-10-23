@@ -50,8 +50,8 @@ def main():
                     'as defined by the masking coordinate can be applied to '
                     'the cube that is being neighbourhood processed.')
     parser.add_argument('coord_for_masking', metavar='COORD_FOR_MASKING',
-       help='Coordinate to iterate over when applying a mask to the '
-            'neighbourhood processing. ')
+                        help='Coordinate to iterate over when applying a mask '
+                             'to the neighbourhood processing. ')
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('input_mask_filepath', metavar='INPUT_MASK_FILE',
