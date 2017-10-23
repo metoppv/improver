@@ -68,7 +68,8 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(SquareNeighbourhood())
         msg = ('<SquareNeighbourhood: weighted_mode: {}, '
-               'sum_or_fraction: {}>'.format(True, "fraction"))
+               'sum_or_fraction: {}, re_mask: {}>'.format(
+                   True, "fraction", False))
         self.assertEqual(result, msg)
 
 
