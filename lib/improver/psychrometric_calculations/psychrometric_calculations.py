@@ -422,7 +422,8 @@ class WetBulbTemperature(object):
 
             # If the errors are identical between two iterations, stop.
             if np.array_equal(delta_wbt.data, delta_wbt_history.data):
-                print 'No further refinement occuring'
+                warnings.warn('No further refinement occuring; breaking out '
+                              'of Newton iterator and returning result.')
                 break
             delta_wbt_history = delta_wbt
 

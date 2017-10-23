@@ -164,6 +164,21 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('K'))
 
+    def test_different_units(self):
+        """Basic wet bulb temperature calculation with a unit conversion
+        required."""
+
+        self.temperature.convert_units('celsius')
+        self.relative_humidity.convert_units('1')
+        self.pressure.convert_units('kPa')
+
+        expected = [183.15, 259.883055, 333.960651]
+        result = WetBulbTemperature().calculate_wet_bulb_temperature(
+            self.temperature, self.relative_humidity, self.pressure)
+
+        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertEqual(result.units, Unit('K'))
+
 
 if __name__ == '__main__':
     unittest.main()
