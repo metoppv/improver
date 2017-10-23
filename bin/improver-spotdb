@@ -36,7 +36,7 @@ import iris
 import time
 import numpy as np
 
-from improver.database  import SpotDatabase
+from improver.database import SpotDatabase
 from improver.argparser import ArgParser
 
 
@@ -54,8 +54,7 @@ def main():
     parser.add_argument('-o', '--output_filepath', required=True,
                         metavar='OUTPUT_FILE',
                         help='The output path for the processed database.')
-    parser.add_argument('-t', '--testing', action='store_true')                 
-                        
+    parser.add_argument('-t', '--testing', action='store_true')
     # Different file formats (default to SQLite DB):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sqlite', default=False, action='store_true',
@@ -67,8 +66,8 @@ def main():
     structure = parser.add_argument_group(
         'Table format options', 'Options for structure of the output table.')
     structure.add_argument('-rows', '--row_dimension',
-                            default='time',
-                            help='A dimension to turn into the table rows')
+                           default='time',
+                           help='A dimension to turn into the table rows')
 
     args = parser.parse_args()
 
@@ -82,21 +81,19 @@ def main():
 
     if args.testing:
         start = time.time()
-        test_constraint = iris.Constraint(**dict(realization = 0))
+        test_constraint = iris.Constraint(**dict(realization=0))
         cubelist = cubelist.extract(test_constraint)
-        
         db = SpotDatabase(cubelist, args.row_dimension)
         db.to_dataframe()
         print 'Time to convert {} forecasts to Dataframe:',
         print time.time() - start
-        
     else:
         db = SpotDatabase(cubelist, args.row_dimension)
         db.to_dataframe()
     if args.sqlite:
         db.create_table(args.output_filepath, 'test')
         db.to_sql(args.output_filepath, 'test')
-    
+
     if args.csv:
         db.to_csv(args.output_filepath)
 
