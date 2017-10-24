@@ -60,8 +60,9 @@ optional arguments:
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
                         calculate data, otherwise default values are used,
-                        e.g. --percentiles 0 25 50 75 100 ; defaults = [0, 5,
-                        10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
+                        e.g. --percentiles 0 25.5 50 75 100 ; defaults = [0,
+                        5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95,
+                        100]
 __HELP__
   [[ "$output" == "$expected" ]]
 }
