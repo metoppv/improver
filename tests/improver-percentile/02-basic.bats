@@ -43,7 +43,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/percentile/basic/kgo_float.nc"
+      "$IMPROVER_ACC_TEST_DIR/percentile/basic/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
