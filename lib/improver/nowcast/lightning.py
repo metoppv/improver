@@ -32,7 +32,7 @@
 """Module for NowcastLightning class and associated functions."""
 import numpy as np
 import iris
-from improver.nbhood.circular_kernel import CircularNeighbourhood
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.rescale import rescale
 
@@ -54,7 +54,9 @@ class NowcastLightning(object):
         """
         self.debug = debug
         self.radius = radius
-        self.neighbourhood = CircularNeighbourhood()
+        lead_times = [0., 6.]
+        radii = [self.radius, 2*self.radius]
+        self.neighbourhood = NeighbourhoodProcessing('circular', radii, lead_times=lead_times)
 
     def __repr__(self):
         """
@@ -74,11 +76,11 @@ class NowcastLightning(object):
                 Radius will be applied equally on all dimensions.
 
         Returns:
-            new_data : Numpy array of same shape as data
-                Output data with haloes applied
+            new_cube : iris Cube of same shape as cube
+                Output cube with haloes applied
         """
-        new_data = self.neighbourhood.run(cube.copy(), self.radius)
-        return new_data
+        new_cube = self.neighbourhood.process(cube.copy())
+        return new_cube
 
     def _update_meta(self, cube):
         """

@@ -82,7 +82,7 @@ class Test__process_haloes(IrisTest):
 
     def test_data(self):
         """Test that the method returns the expected data"""
-        plugin = Plugin(4000.)
+        plugin = Plugin(3000.)
         expected = self.cube.data.copy()
         expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875,
                                 11./12., 1., 1., 1., 1., 1., 1., 1.]
