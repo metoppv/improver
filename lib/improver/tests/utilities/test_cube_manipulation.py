@@ -914,18 +914,6 @@ class Test__equalise_cube_coords(IrisTest):
                                 for item in warning_list))
             self.assertIsInstance(result, iris.cube.CubeList)
 
-    def test_percentile_over_exception(self):
-        """Test that an exception is raised if a 'percentile_over' coordinate
-        is unmatched."""
-        cube = set_up_percentile_temperature_cube()
-        cube1 = cube.copy()
-        cube2 = cube.copy()
-        cube2.remove_coord("percentile_over_realization")
-        cubes = iris.cube.CubeList([cube1, cube2])
-        msg = "percentile_over coordinates must match to merge"
-        with self.assertRaisesRegexp(ValueError, msg):
-            _equalise_cube_coords(cubes)
-
     def test_threshold_exception(self):
         """Test that an exception is raised if a threshold coordinate is
         unmatched."""
