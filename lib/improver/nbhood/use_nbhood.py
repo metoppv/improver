@@ -40,6 +40,9 @@ from improver.utilities.cube_checker import (
 
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
+    """Class for applying neighbourhood processing when passing in a mask
+    cube that is iterated over."""
+
     def __init__(
             self, coord_for_masking, radii,
             lead_times=None, ens_factor=1.0, weighted_mode=True,

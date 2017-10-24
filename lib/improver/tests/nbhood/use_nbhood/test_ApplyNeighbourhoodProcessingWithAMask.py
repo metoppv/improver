@@ -45,6 +45,8 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
 def set_up_topographic_zone_cube(
         mask_data, topographic_zone_point, topographic_zone_bounds,
         num_time_points=1, num_grid_points=16, num_realization_points=1):
+    """Function to generate a cube with a topographic_zone coordinate. This
+    uses the existing functionality from the set_up_cube function."""
     mask_cube = set_up_cube(
         zero_point_indices=((0, 0, 0, 0),),
         num_time_points=num_time_points, num_grid_points=num_grid_points,
@@ -66,6 +68,7 @@ class Test__init__(IrisTest):
     """Test the __init__ method of ApplyNeighbourhoodProcessingWithAMask."""
 
     def test_basic(self):
+        """Test that the __init__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
         neighbourhood_method = "square"
         radii = 2000
@@ -80,9 +83,10 @@ class Test__init__(IrisTest):
 
 class Test__repr__(IrisTest):
 
-    """Test the __repr__ mtehod of ApplyNeighbourhoodProcessingWithAMask."""
+    """Test the __repr__ method of ApplyNeighbourhoodProcessingWithAMask."""
 
     def test_basic(self):
+        """Test that the __repr__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
         neighbourhood_method = "square"
         radii = 2000
@@ -131,6 +135,8 @@ class Test_process(IrisTest):
         self.mask_cube = mask_cubes.merge_cube()
 
     def test_basic(self):
+        """Test that the expected result is returned, when the
+        topographic_zone coordinate is iterated over."""
         expected = np.array(
             [[[[1.00, 0.00, 0.00, 0.00, 0.00],
                [1.00, 1.00, 0.00, 0.00, 0.00],
