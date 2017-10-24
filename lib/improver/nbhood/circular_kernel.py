@@ -167,7 +167,8 @@ class CircularNeighbourhood(object):
 
         for axis_index, axis in enumerate(axes):
             fullranges[axis] = ranges[axis_index]
-        self.kernel = self.circular_kernel(fullranges, ranges, self.weighted_mode)
+        self.kernel = circular_kernel(fullranges, ranges,
+                                      self.weighted_mode)
         # Smooth the data by applying the kernel.
         if self.sum_or_fraction is "fraction":
             total_area = np.sum(kernel)

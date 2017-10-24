@@ -134,8 +134,8 @@ class Test__modify_first_guess(IrisTest):
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.ltng_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(
-            zero_point_indices=[]), fp_point=0.0)
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
         self.precip_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(), fp_point=0.0)
 
