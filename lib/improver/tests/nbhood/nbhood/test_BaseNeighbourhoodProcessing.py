@@ -657,9 +657,9 @@ class Test_process(IrisTest):
             cube, mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_use_mask_cube_occurrences_not_masked_irregular(self):
+    def test_use_mask_cube_occurrences_masked_irregular(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
-        data array if a mask cube is used and the mask cube does not mask
+        data array if a mask cube is used and the mask cube does mask
         out the occurrences. In this case, an irregular mask is applied."""
         expected = np.array(
             [[[[1.000000, 1.000000, 1.000000, 1.000000, 1.000000],
