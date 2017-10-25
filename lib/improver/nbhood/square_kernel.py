@@ -467,7 +467,8 @@ class SquareNeighbourhood(object):
             if np.ma.is_masked(cube.data):
                 cube.data = cube.data.data
             cube = iris.util.squeeze(cube)
-            cube.data = cube.data * mask_cube.data.squeeze()
+            cube.data = (cube.data * mask_cube.data.squeeze()).astype(
+                cube.data.dtype)
             cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
         else:
             cubes_to_sum = iris.cube.CubeList([cube])
