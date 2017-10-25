@@ -53,12 +53,12 @@ class PercentileConverter(object):
         Create a PDF plugin with a given source plugin.
 
         Args:
-            collapse_coord : str (or list of str)
+            collapse_coord (str or list of str):
                 The name of the coordinate(s) to collapse over.
 
-            percentiles : Iterable or None (optional)
+            percentiles (Iterable list of floats or None):
                 Percentile values at which to calculate; if not provided uses
-                DEFAULT_PERCENTILES.
+                DEFAULT_PERCENTILES. (optional)
 
         Raises:
             TypeError: If collapse_coord is not a string.
@@ -72,9 +72,9 @@ class PercentileConverter(object):
                             'as is expected.'.format(collapse_coord))
 
         if percentiles is not None:
-            self.percentiles = [int(value) for value in percentiles]
+            self.percentiles = [float(value) for value in percentiles]
         else:
-            self.percentiles = DEFAULT_PERCENTILES
+            self.percentiles = [float(value) for value in DEFAULT_PERCENTILES]
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such
