@@ -158,41 +158,41 @@ class ResamplePercentiles(object):
 
     def _interpolate_percentiles(
             self, forecast_at_percentiles, desired_percentiles,
-            bounds_pairing):
+            bounds_pairing, percentile_coord):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
         by linearly interpolating between the original set of percentiles
         to a new set of percentiles.
 
-        Parameters
-        ----------
-        forecast_at_percentiles : Iris CubeList or Iris Cube
-            Cube or CubeList expected to contain a percentile coordinate.
-        desired_percentiles : Numpy array
-            Array of the desired percentiles.
-        bounds_pairing : Tuple
-            Lower and upper bound to be used as the ends of the
-            cumulative distribution function.
+        Args:
+            forecast_at_percentiles (Iris CubeList or Iris Cube):
+                Cube or CubeList expected to contain a percentile coordinate.
+            desired_percentiles (Numpy array):
+                Array of the desired percentiles.
+            bounds_pairing (Tuple):
+                Lower and upper bound to be used as the ends of the
+                cumulative distribution function.
+            percentile_coord (String):
+                Name of required percentile coordinate.
 
-        Returns
-        -------
-        percentile_cube : Iris cube
-            Cube containing values for the required diagnostic e.g.
-            air_temperature at the required percentiles.
+        Returns:
+            percentile_cube (iris cube.Cube):
+                Cube containing values for the required diagnostic e.g.
+                air_temperature at the required percentiles.
 
         """
         original_percentiles = (
             forecast_at_percentiles.coord(
-                "percentile_over_realization").points)
+                percentile_coord).points)
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_at_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
-                forecast_at_percentiles, "percentile_over_realization"))
+                forecast_at_percentiles, percentile_coord))
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord="percentile_over_realization")
+            forecast_at_percentiles, coord=percentile_coord)
 
         original_percentiles, forecast_at_reshaped_percentiles = (
             self._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -213,18 +213,19 @@ class ResamplePercentiles(object):
         forecast_at_percentiles_data = (
             restore_non_probabilistic_dimensions(
                 forecast_at_interpolated_percentiles, forecast_at_percentiles,
-                "percentile_over_realization", len(desired_percentiles)))
+                percentile_coord, len(desired_percentiles)))
 
         for template_cube in forecast_at_percentiles.slices_over(
-                "percentile_over_realization"):
-            template_cube.remove_coord("percentile_over_realization")
+                percentile_coord):
+            template_cube.remove_coord(percentile_coord)
             break
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data)
+            desired_percentiles, template_cube, forecast_at_percentiles_data,
+            custom_name=percentile_coord)
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
-                sampling="quantile"):
+                sampling="quantile", percentile_coord=None):
         """
         1. Concatenates cubes with a percentile coordinate.
         2. Creates a list of percentiles.
@@ -233,36 +234,41 @@ class ResamplePercentiles(object):
         4. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
 
-        Parameters
-        ----------
-        forecast_at_percentiles : Iris CubeList or Iris Cube
-            Cube or CubeList expected to contain a percentile coordinate.
-        no_of_percentiles : Integer or None
-            Number of percentiles
-            If None, the number of percentiles within the input
-            forecast_at_percentiles cube is used as the number of percentiles.
-        sampling : String
-            Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
-            Accepted options for sampling are:
-            Quantile: A regular set of equally-spaced percentiles aimed
-                      at dividing a Cumulative Distribution Function into
-                      blocks of equal probability.
-            Random: A random set of ordered percentiles.
+        Args:
+            forecast_at_percentiles (Iris CubeList or Iris Cube):
+                Cube or CubeList expected to contain a percentile coordinate.
+            no_of_percentiles (Integer or None):
+                Number of percentiles
+                If None, the number of percentiles within the input
+                forecast_at_percentiles cube is used as the
+                number of percentiles.
+            sampling (String):
+                Type of sampling of the distribution to produce a set of
+                percentiles e.g. quantile or random.
+                Accepted options for sampling are:
+                Quantile: A regular set of equally-spaced percentiles aimed
+                    at dividing a Cumulative Distribution Function into
+                    blocks of equal probability.
+                Random: A random set of ordered percentiles.
+            percentile_coord (String or None):
+                Name of required percentile coordinate.
+                If None this defaults to percentile_over_realization
 
-        Returns
-        -------
-        forecast_at_percentiles : Iris cube
-            Cube with forecast values at the desired set of percentiles.
-            The percentile coordinate is always the zeroth dimension.
+        Returns:
+            forecast_at_percentiles (iris.cube.Cube):
+                Cube with forecast values at the desired set of percentiles.
+                The percentile coordinate is always the zeroth dimension.
 
         """
         forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
 
+        if percentile_coord is None:
+            percentile_coord = 'percentile_over_realization'
+
         if no_of_percentiles is None:
             no_of_percentiles = (
                 len(forecast_at_percentiles.coord(
-                    "percentile_over_realization").points))
+                    percentile_coord).points))
 
         percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
@@ -273,7 +279,8 @@ class ResamplePercentiles(object):
                 forecast_at_percentiles.name(), cube_units))
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles, percentiles, bounds_pairing)
+            forecast_at_percentiles, percentiles, bounds_pairing,
+            percentile_coord)
         return forecast_at_percentiles
 
 
