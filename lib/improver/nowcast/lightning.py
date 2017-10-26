@@ -206,7 +206,7 @@ class NowcastLightning(object):
         fg_cube, = cubelist.extract("probability_of_lightning")
         ltng_cube, = cubelist.extract("rate_of_lightning")
         precip_cube, = cubelist.extract("probability_of_precipitation")
-        precip_cube = precip_cube.extract(iris.Constraint(threshold=0.))
+        precip_cube = precip_cube.extract(iris.Constraint(threshold=0.5))
         new_cube = self._update_meta(precip_cube)
         new_cube = self._modify_first_guess(
             new_cube, fg_cube, ltng_cube, precip_cube)
