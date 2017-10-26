@@ -370,7 +370,6 @@ class WeightedBlendAcrossWholeDimension(object):
         except CoordinateNotFoundError:
             perc_coord = None
             perc_dim = None
-            perc_found = 0
 
         # If we have a percentile dimension and the mode is 'max' raise an
         # exception.

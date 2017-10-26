@@ -36,7 +36,6 @@ import unittest
 
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles as Plugin)
