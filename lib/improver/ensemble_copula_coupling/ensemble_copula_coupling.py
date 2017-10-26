@@ -78,19 +78,17 @@ class RebadgePercentilesAsMembers(object):
         ensemble member.
 
         """
-        if not cube.coords("percentile_over_realization"):
-            msg = ("The percentile coordinate could not be found within"
-                   "the input cube: {}.".format(cube))
-            raise CoordinateNotFoundError(msg)
+        percentile_coord = (
+            find_percentile_coordinate(cube).name())
 
         if ensemble_member_numbers is None:
             ensemble_member_numbers = (
                 np.arange(
-                    len(cube.coord("percentile_over_realization").points)))
+                    len(cube.coord(percentile_coord).points)))
 
-        cube.coord("percentile_over_realization").points = (
+        cube.coord(percentile_coord).points = (
             ensemble_member_numbers)
-        cube.coord("percentile_over_realization").rename("realization")
+        cube.coord(percentile_coord).rename("realization")
         cube.coord("realization").units = "1"
 
         return cube
@@ -692,7 +690,8 @@ class EnsembleReordering(object):
 
     @staticmethod
     def _recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members):
+            post_processed_forecast_percentiles, raw_forecast_members,
+            percentile_coord):
         """
         Function to determine whether there is a mismatch between the number
         of percentiles and the number of raw forecast members. If more
@@ -703,25 +702,27 @@ class EnsembleReordering(object):
         requested than ensemble members, then only the first n ensemble
         members are used.
 
-        Parameters
-        ----------
-        post_processed_forecast_percentiles : cube
-            Cube for post-processed percentiles. The percentiles are assumed
-            to be in ascending order.
-        raw_forecast_members : cube
-            Cube containing the raw (not post-processed) forecasts.
+        Args:
+            post_processed_forecast_percentiles  (iris.cube.Cube):
+                Cube for post-processed percentiles.
+                The percentiles are assumed
+                to be in ascending order.
+            raw_forecast_members (iris.cube.Cube):
+                Cube containing the raw (not post-processed) forecasts.
+            percentile_coord (String):
+                Name of required percentile coordinate.
 
-        Returns
-        -------
-        Iris cube
-            Cube for the raw ensemble forecast, where the raw ensemble members
-            have either been recycled or constrained, depending upon the
-            number of percentiles present in the post-processed forecast cube.
+        Returns:
+            raw_forecast_members (iris cube.Cube):
+                Cube for the raw ensemble forecast, where the raw ensemble
+                members have either been recycled or constrained,
+                depending upon the number of percentiles present
+                in the post-processed forecast cube.
 
         """
         plen = len(
             post_processed_forecast_percentiles.coord(
-                "percentile_over_realization").points)
+                percentile_coord).points)
         mlen = len(raw_forecast_members.coord("realization").points)
         if plen == mlen:
             pass
@@ -847,19 +848,27 @@ class EnsembleReordering(object):
             the dataset have been reordered in comparison to the input
             percentiles.
         """
+        if isinstance(post_processed_forecast, iris.cube.Cube):
+            percentile_coord = (
+                find_percentile_coordinate(post_processed_forecast[0]).name())
+        else:
+            percentile_coord = (
+                find_percentile_coordinate(post_processed_forecast).name())
+
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
-            coords_to_slice_over=["percentile_over_realization", "time"])
+            coords_to_slice_over=[percentile_coord, "time"])
         post_processed_forecast_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
                 post_processed_forecast_percentiles,
-                "percentile_over_realization"))
+                percentile_coord))
         raw_forecast_members = concatenate_cubes(raw_forecast)
         raw_forecast_members = ensure_dimension_is_the_zeroth_dimension(
             raw_forecast_members, "realization")
         raw_forecast_members = (
             self._recycle_raw_ensemble_members(
-                post_processed_forecast_percentiles, raw_forecast_members))
+                post_processed_forecast_percentiles, raw_forecast_members,
+                percentile_coord))
         post_processed_forecast_members = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
             random_ordering=random_ordering,

@@ -103,17 +103,20 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([0, 1, 2]))
 
-    def test_no_percentile_coord(self):
+    def test_still_works_if_percentile_coord_id_different(self):
         """
         Check that requesting the desired percentile coordinate results in an
         exception.
         """
         cube = self.current_temperature_cube
-        cube.coord("percentile_over_realization").rename("realization")
+        cube.coord("percentile_over_realization").rename(
+            "percentile_over_nbhood")
+        plen = len(cube.coord("percentile_over_nbhood").points)
         plugin = Plugin()
-        msg = "The percentile coordinate could not be found"
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            plugin.process(cube)
+        result = plugin.process(cube)
+        self.assertEqual(len(result.coord("realization").points), plen)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, np.array([0, 1, 2]))
 
 
 if __name__ == '__main__':
