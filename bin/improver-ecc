@@ -39,7 +39,6 @@ import numpy as np
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsMembers, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
-from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 def main():
