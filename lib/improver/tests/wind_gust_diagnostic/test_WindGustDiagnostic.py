@@ -207,32 +207,6 @@ class Test_extract_percentile_data(IrisTest):
                                            self.wg_perc,
                                            "wind_speed_of_gust")
 
-    def test_fails_if_no_perc_coord(self):
-        """Test it raises an Error if there is no percentile coord."""
-        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        msg = ('No percentile coord found on')
-        cube = self.cube_wg
-        cube.remove_coord("percentile_over_nbhood")
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            plugin.extract_percentile_data(cube,
-                                           self.wg_perc,
-                                           "wind_speed_of_gust")
-
-    def test_fails_if_too_many_perc_coord(self):
-        """Test it raises a Value Error if there are too many perc coords."""
-        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        msg = ('Too many percentile coords found')
-        cube = self.cube_wg
-        new_perc_coord = (
-            iris.coords.AuxCoord(1,
-                                 long_name='percentile_over_realization',
-                                 units='no_unit'))
-        cube.add_aux_coord(new_perc_coord)
-        with self.assertRaisesRegexp(ValueError, msg):
-            plugin.extract_percentile_data(cube,
-                                           self.wg_perc,
-                                           "wind_speed_of_gust")
-
     def test_warning_if_standard_names_do_not_match(self):
         """Test it raises a warning if standard names do not match."""
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)

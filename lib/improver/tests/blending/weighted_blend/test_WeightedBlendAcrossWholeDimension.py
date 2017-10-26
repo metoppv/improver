@@ -146,7 +146,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_fails_coord_not_in_cube(self):
-        """Test it raises a Value Error if coord not in the cube."""
+        """Test it raises CoordinateNotFoundError if coord not in the cube."""
         coord = "notset"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         msg = ('Expected to find exactly 1  coordinate, but found none.')
@@ -154,7 +154,7 @@ class Test_process(IrisTest):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
-        """Test it raises a Value Error if not supplied with a cube."""
+        """Test it raises a Type Error if not supplied with a cube."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         notacube = 0.0
@@ -186,18 +186,6 @@ class Test_process(IrisTest):
                                         long_name="time"), 1)
         msg = ('Percentile coordinate does not have enough points'
                ' in order to blend. Must have at least 2 percentiles.')
-        with self.assertRaisesRegexp(ValueError, msg):
-            plugin.process(new_cube)
-
-    def test_fails_more_than_one_perc_coord(self):
-        """Test it raises a Value Error if more than one percentile coord."""
-        coord = "time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        new_cube = percentile_cube()
-        new_cube.add_aux_coord(AuxCoord([10.0],
-                                        long_name="percentile_over_dummy"))
-        msg = ('There should only be one percentile coord '
-               'on the cube.')
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(new_cube)
 

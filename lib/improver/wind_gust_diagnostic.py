@@ -34,7 +34,6 @@ import warnings
 
 import iris
 from iris import FUTURE
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import find_percentile_coordinate

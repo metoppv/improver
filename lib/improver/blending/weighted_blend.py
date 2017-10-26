@@ -35,8 +35,10 @@ import warnings
 import numpy as np
 import iris
 from iris.analysis import Aggregator
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import add_renamed_cell_method
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class PercentileBlendingAggregator(object):
@@ -351,14 +353,9 @@ class WeightedBlendAcrossWholeDimension(object):
             raise TypeError(msg)
 
         # Check to see if the data is percentile data
-        perc_coord = None
-        perc_dim = None
-        perc_found = 0
-        for coord in cube.coords():
-            if coord.name().find('percentile') >= 0:
-                perc_found += 1
-                perc_coord = coord
-        if perc_found == 1:
+
+        try:
+            perc_coord = find_percentile_coordinate(cube)
             perc_dim = cube.coord_dims(perc_coord.name())
             if not perc_dim:
                 msg = ('The percentile coord must be a dimension '
@@ -370,10 +367,10 @@ class WeightedBlendAcrossWholeDimension(object):
                 msg = ('Percentile coordinate does not have enough points'
                        ' in order to blend. Must have at least 2 percentiles.')
                 raise ValueError(msg)
-        elif perc_found > 1:
-            msg = ('There should only be one percentile coord '
-                   'on the cube.')
-            raise ValueError(msg)
+        except CoordinateNotFoundError:
+            perc_coord = None
+            perc_dim = None
+            perc_found = 0
 
         # If we have a percentile dimension and the mode is 'max' raise an
         # exception.

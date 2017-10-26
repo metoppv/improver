@@ -48,6 +48,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class RebadgePercentilesAsMembers(object):
@@ -225,7 +226,7 @@ class ResamplePercentiles(object):
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
-                sampling="quantile", percentile_coord=None):
+                sampling="quantile"):
         """
         1. Concatenates cubes with a percentile coordinate.
         2. Creates a list of percentiles.
@@ -250,9 +251,6 @@ class ResamplePercentiles(object):
                     at dividing a Cumulative Distribution Function into
                     blocks of equal probability.
                 Random: A random set of ordered percentiles.
-            percentile_coord (String or None):
-                Name of required percentile coordinate.
-                If None this defaults to percentile_over_realization
 
         Returns:
             forecast_at_percentiles (iris.cube.Cube):
@@ -262,8 +260,8 @@ class ResamplePercentiles(object):
         """
         forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
 
-        if percentile_coord is None:
-            percentile_coord = 'percentile_over_realization'
+        percentile_coord = (
+            find_percentile_coordinate(forecast_at_percentiles).name())
 
         if no_of_percentiles is None:
             no_of_percentiles = (

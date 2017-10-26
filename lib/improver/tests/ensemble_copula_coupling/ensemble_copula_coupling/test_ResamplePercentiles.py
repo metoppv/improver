@@ -503,16 +503,8 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, data)
 
-    def test_fails_if_perc_coord_mismatches(self):
-        """Test the plugin fails if percentile coord mismatches. """
-        cube = self.percentile_cube_mismatch
-        plugin = Plugin()
-        msg = 'Expected to find exactly 1  coordinate, but found none.'
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
-            plugin.process(cube)
-
-    def test_ok_if_perc_coord_matches(self):
-        """Test the plugin succeeds if percentile coord is correct"""
+    def test_ok_for_diff_percentile_coord(self):
+        """Test the plugin succeeds if percentile coord is different"""
         data = np.array([[[[4.75, 5.375, 6.],
                            [6.625, 7.25, 7.875],
                            [8.5, 9.125, 9.75]]],
@@ -525,8 +517,7 @@ class Test_process(IrisTest):
 
         cube = self.percentile_cube_mismatch
         plugin = Plugin()
-        result = plugin.process(cube,
-                                percentile_coord="percentile_over_nbhood")
+        result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, data)
 
 
