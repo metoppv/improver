@@ -259,7 +259,7 @@ class Test_process(IrisTest):
             set_up_cube_with_no_realizations())
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
-        coord = DimCoord(0., long_name="threshold", units='mm hr^-1')
+        coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
         self.precip_cube.add_aux_coord(coord)
 
     def test_basic(self):
