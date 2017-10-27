@@ -207,7 +207,8 @@ class Test_process(Test_WetBulbTemperature):
     """Test the calculation of wet bulb temperatures from temperature,
     pressure, and relative humidity information using the process function."""
 
-    def _make_multi_level(self, cube, time_promote=False):
+    @staticmethod
+    def _make_multi_level(cube, time_promote=False):
         """
         Take the input cube data and duplicate it to make a two height level
         cube for testing multi-level data.
