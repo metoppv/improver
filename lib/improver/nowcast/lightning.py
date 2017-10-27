@@ -65,6 +65,18 @@ class NowcastLightning(object):
         radii = [self.radius, 2*self.radius]
         self.neighbourhood = NeighbourhoodProcessing('circular', radii, lead_times=lead_times)
 
+        # Lightning-rate threshold for Lightning Risk 2 level
+        self.lrt_lev2 = 0.
+        # Lightning-rate threshold for Lightning Risk 1 level
+        # (dependent on forecast-length)
+        self.lrt_lev1 = lambda mins : 0.5 + fcmins * 2. / 360.
+        # Prob(lightning) value for Lightning Risk 1 & 2 levels
+        self.pl_dict = {1: 1., 2: 0.25}
+
+        # Values for limiting prob(lightning) with prob(precip)
+        self.pr = (0.0, 0.05, 0.1)  # Prob(precip) thresholds
+        self.pl = (0.0067, 0.2, 1.) # Prob(lightning) values to scale to
+
     def __repr__(self):
         """
         Docstring to describe the repr, which should return a
@@ -162,30 +174,29 @@ class NowcastLightning(object):
             this_out.coord('forecast_period').convert_units('minutes')
             fcmins = this_out.coord('forecast_period').points[0]
 
-            lratethresh = 0.
             # Increase to LR2 prob when within lightning halo:
             this_out.data = np.where(
-                np.logical_and(this_ltng.data >= lratethresh,
-                               this_out.data < 0.25),
-                0.25, this_out.data)
-            lratethresh = 0.5 + fcmins * 2. / 360.
+                np.logical_and(this_ltng.data >= self.lrt_lev2,
+                               this_out.data < self.pl_dict[2]),
+                self.pl_dict[2], this_out.data)
+            lratethresh = self.lrt_lev1(fcmins)
             if self.debug:
                 print 'LRate threshold is {} strikes per minute'.format(
                     lratethresh)
             # Increase to LR1 when within thunderstorm:
             this_out.data = np.where(
-                this_ltng.data >= lratethresh, 1., this_out.data)
-            preciplimit = np.where(this_precip.data < 0.05,
+                this_ltng.data >= lratethresh, self.pl_dict[1], this_out.data)
+            preciplimit = np.where(this_precip.data < self.pr[1],
                                    rescale(this_precip.data,
-                                           data_range=(0.00, 0.05),
-                                           scale_range=(0.0067, 0.2),
+                                           data_range=(self.pr[0], self.pr[1]),
+                                           scale_range=(self.pl[0], self.pl[1]),
                                            clip=True),
                                    rescale(this_precip.data,
-                                           data_range=(0.05, 0.10),
-                                           scale_range=(0.2, 1.0),
+                                           data_range=(self.pr[1], self.pr[2]),
+                                           scale_range=(self.pl[1], self.pl[2]),
                                            clip=True))
             # Reduce to LR2 prob when Prob(rain > 0) is low
-            # and LR3 when very low:
+            # and to LR3 when very low:
             this_out.data = np.minimum(this_out.data, preciplimit)
             new_cube_list.append(this_out)
         merged_cube = new_cube_list.merge_cube()
