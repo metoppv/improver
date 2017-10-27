@@ -169,8 +169,8 @@ class SquareNeighbourhood(object):
             num_of_new_points = len(orig_points) + 2*width + 2*width
             new_points = (
                 np.linspace(
-                    orig_points.min() - 2*width*increment,
-                    orig_points.max() + 2*width*increment,
+                    orig_points[0] - 2*width*increment,
+                    orig_points[-1] + 2*width*increment,
                     num_of_new_points))
         elif method == 'remove':
             end_width = -2*width if width != 0 else None
