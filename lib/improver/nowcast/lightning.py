@@ -46,36 +46,71 @@ class NowcastLightning(object):
       prob(precipitation) - no rain == no lightning
       lightning rate from ATDNet - recent activity == increased prob(lightning)
     """
-    def __init__(self, radius=10000., debug=False):
+    def __init__(self, radius=10000.,
+                 lightning_thresholds=(
+                     lambda mins: 0.5 + mins * 2. / 360., 0.),
+                 problightning_values={1: 1., 2: 0.25},
+                 probprecip_thresholds=(0.0, 0.05, 0.1),
+                 problightning_scaling=(0.0067, 0.2, 1.),
+                 debug=False):
         """Set up class for Nowcast of lightning probability.
 
         Args:
-            radius : float
+            radius : float (optional)
                 This value controls the halo radius (metres)
                 The value supplied applies at T+0
                 and increases to 2*radius at T+6 hours
                 The radius is applied using the circular neighbourhood plugin.
+                Default value is 10000. m
 
-            debug : boolean
+            lightning_thresholds : tuple (optional)
+                Lightning rate thresholds for adjusting the first-guess
+                lightning probability.
+                First element must be a function that takes one argument and
+                returns a single float:
+                  input: int/float forecast-lead-time in minutes
+                  output: float: lightning rate threshold for increasing
+                                 first-guess lightning probability to risk 1.
+                Second element must be a float for the lightning rate threshold
+                for increasing first-guess lightning probability to risk 2.
+                Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
+
+            problightning_values : dict (optional)
+                Lightning probability values to increase first-guess to if
+                the lightning_thresholds are exceeded in the nowcast data.
+                Dict must have keys 1 and 2 and contain float values.
+                Default value is {1: 1., 2: 0.25}
+
+            probprecip_thresholds : tuple (optional)
+                Values for limiting prob(lightning) with prob(precip)
+                These are the three prob(precip) thresholds
+                Devault value is (0.0, 0.05, 0.1)
+
+            problightning_scaling : tuple (optional)
+                Values for limiting prob(lightning) with prob(precip)
+                These are the three prob(lightning) values to scale to.
+                Devault value is (0.0067, 0.2, 1.)
+
+            debug : boolean (optional)
                 True results in verbose output for debugging purposes.
+                Devault value is False
         """
         self.debug = debug
         self.radius = radius
         lead_times = [0., 6.]
         radii = [self.radius, 2*self.radius]
-        self.neighbourhood = NeighbourhoodProcessing('circular', radii, lead_times=lead_times)
+        self.neighbourhood = NeighbourhoodProcessing(
+            'circular', radii, lead_times=lead_times)
 
         # Lightning-rate threshold for Lightning Risk 2 level
-        self.lrt_lev2 = 0.
         # Lightning-rate threshold for Lightning Risk 1 level
         # (dependent on forecast-length)
-        self.lrt_lev1 = lambda mins : 0.5 + fcmins * 2. / 360.
+        self.lrt_lev1, self.lrt_lev2 = lightning_thresholds
         # Prob(lightning) value for Lightning Risk 1 & 2 levels
-        self.pl_dict = {1: 1., 2: 0.25}
+        self.pl_dict = problightning_values
 
-        # Values for limiting prob(lightning) with prob(precip)
-        self.pr = (0.0, 0.05, 0.1)  # Prob(precip) thresholds
-        self.pl = (0.0067, 0.2, 1.) # Prob(lightning) values to scale to
+        self.pr = probprecip_thresholds
+        self.pl = problightning_scaling
 
     def __repr__(self):
         """
