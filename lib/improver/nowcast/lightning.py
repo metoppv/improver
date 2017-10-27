@@ -40,7 +40,11 @@ from improver.utilities.rescale import rescale
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
 
-    Need something meaningful here.
+    This Plugin selects a first-guess lightning probability field from
+    MOGREPS-UK data matching the nowcast validity-time and modifies this
+    based on information from the nowcast on
+      prob(precipitation) - no rain == no lightning
+      lightning rate from ATDNet - recent activity == increased prob(lightning)
     """
     def __init__(self, radius=10000., debug=False):
         """Set up class for Nowcast of lightning probability.
@@ -48,6 +52,9 @@ class NowcastLightning(object):
         Args:
             radius : float
                 This value controls the halo radius (metres)
+                The value supplied applies at T+0
+                and increases to 2*radius at T+6 hours
+                The radius is applied using the circular neighbourhood plugin.
 
             debug : boolean
                 True results in verbose output for debugging purposes.
@@ -73,7 +80,7 @@ class NowcastLightning(object):
 
         Args:
             cube : iris.cube.Cube
-                Radius will be applied equally on all dimensions.
+                Radius will be applied equally on x and y dimensions.
 
         Returns:
             new_cube : iris Cube of same shape as cube
