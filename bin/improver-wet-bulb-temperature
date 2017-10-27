@@ -76,8 +76,7 @@ def main():
     pressure = iris.load_cube(args.pressure)
 
     result = (WetBulbTemperature(precision=args.convergence_condition).
-              calculate_wet_bulb_temperature(temperature, relative_humidity,
-                                             pressure))
+              process(temperature, relative_humidity, pressure))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

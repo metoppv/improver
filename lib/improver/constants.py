@@ -79,7 +79,8 @@ U_LH_CONDENSATION_WATER = make_constant_with_units(LH_CONDENSATION_WATER,
 WATER_VAPOUR_MOLAR_MASS = 0.01801
 U_WATER_VAPOUR_MOLAR_MASS = make_constant_with_units(WATER_VAPOUR_MOLAR_MASS,
                                                      "kg mol-1")
-# Latent heat temperature dependence (J K-1 kg-1)
+# Latent heat temperature dependence (J K-1 kg-1); from Met Office UM.
+# Applied to temperatures in Celsius: LH = 2501 - 2.34E3 * T(celsius)
 LATENT_HEAT_T_DEPENDENCE = 2.34E3
 U_LATENT_HEAT_T_DEPENDENCE = make_constant_with_units(LATENT_HEAT_T_DEPENDENCE,
                                                       "J K-1 kg-1")

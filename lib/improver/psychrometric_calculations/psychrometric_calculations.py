@@ -37,12 +37,13 @@ import numpy as np
 import iris
 
 from improver.psychrometric_calculations import svp_table
+from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class Utilities(object):
 
     """
-    Utilities for pschrometric calculations.
+    Utilities for psychrometric calculations.
     """
 
     def __init__(self):
@@ -71,7 +72,7 @@ class Utilities(object):
         """
         specific_heat = ((-1.*mixing_ratio + 1.) * cc.U_CP_DRY_AIR +
                          mixing_ratio * cc.U_CP_WATER_VAPOUR)
-        specific_heat.rename('specific_heat')
+        specific_heat.rename('specific_heat_capacity_of_moist_air')
         return specific_heat
 
     @staticmethod
@@ -101,6 +102,12 @@ class Utilities(object):
         """
         Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
 
+        Method from referenced UM documentation.
+
+        References:
+            Met Office UM Documentation Paper 080, UM Version 10.8,
+            last updated 2014-12-05.
+
         Args:
             mixing_ratio (iris.cube.Cube):
                 Cube of mixing ratios.
@@ -125,6 +132,12 @@ class Utilities(object):
                                 latent_heat, temperature_input):
         """
         Calculate the enthalpy gradient with respect to temperature.
+
+        Method from referenced UM documentation.
+
+        References:
+            Met Office UM Documentation Paper 080, UM Version 10.8,
+            last updated 2014-12-05.
 
         Args:
             mixing_ratio (iris.cube.Cube):
@@ -184,7 +197,7 @@ class Utilities(object):
         triple_pt = cc.TRIPLE_PT_WATER
 
         # Values for which method is considered valid (see reference).
-        WetBulbTemperature._check_range(temperature, 173., 373.)
+        WetBulbTemperature.check_range(temperature, 173., 373.)
 
         data = temperature.data.copy()
         for cell in np.nditer(data, op_flags=['readwrite']):
@@ -245,7 +258,7 @@ class WetBulbTemperature(object):
         return result
 
     @staticmethod
-    def _check_range(cube, low, high):
+    def check_range(cube, low, high):
         """Function to wrap functionality for throwing out temperatures
         too low or high for a method to use safely.
 
@@ -288,7 +301,7 @@ class WetBulbTemperature(object):
         T_min = svp_table.T_MIN
         T_max = svp_table.T_MAX
         delta_T = svp_table.T_INCREMENT
-        self._check_range(temperature, T_min, T_max)
+        self.check_range(temperature, T_min, T_max)
         temperatures = temperature.data
         T_clipped = np.clip(temperatures, T_min, T_max)
 
@@ -311,6 +324,12 @@ class WetBulbTemperature(object):
         Convert saturated vapour pressure in a pure water vapour system into
         the saturated vapour pressure in air.
 
+        Method from referenced dcumentation.
+
+        References:
+            Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
+            Series, Vol. 30; Equation A4.7.
+
         Args:
             svp (iris.cube.Cube):
                 A cube of saturated vapour pressures (Pa).
@@ -321,7 +340,8 @@ class WetBulbTemperature(object):
 
         Returns:
             svp (iris.cube.Cube):
-                Cube of saturated vapour pressure of air (Pa).
+                The input cube of saturated vapour pressure of air (Pa) is
+                modified by the pressure correction.
         """
         temp = temperature.copy()
         temp.convert_units('celsius')
@@ -331,9 +351,8 @@ class WetBulbTemperature(object):
         svp.data = svp.data*correction
         return svp
 
-    def _mixing_ratio(self, temperature, pressure):
-        """Function to compute the mixing ratio given temperature, relative
-        humidity, and pressure.
+    def _calculate_mixing_ratio(self, temperature, pressure):
+        """Function to compute the mixing ratio given temperature and pressure.
 
         Args:
             temperature (iris.cube.Cube):
@@ -345,6 +364,9 @@ class WetBulbTemperature(object):
             mixing_ratio (iris.cube.Cube):
                 Cube of mixing ratios.
 
+        Method from referenced documentation. Note that EARTH_REPSILON is
+        simply given as an unnamed constant in the reference (0.62198).
+
         References:
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
@@ -353,21 +375,21 @@ class WetBulbTemperature(object):
 
         # Calculation
         result_numer = (cc.EARTH_REPSILON * svp.data)
-        # This max pressure term may be redundant, but we should check in very
-        # low pressure environments.
         max_pressure_term = np.maximum(svp.data, pressure.data)
         result_denom = (max_pressure_term - ((1. - cc.EARTH_REPSILON) *
                                              svp.data))
         mixing_ratio = temperature.copy(data=result_numer / result_denom)
 
         # Tidying up cube
-        mixing_ratio.rename("mixing_ratio")
+        mixing_ratio.rename("humidity_mixing_ratio")
         mixing_ratio.units = Unit("1")
         return mixing_ratio
 
     def calculate_wet_bulb_temperature(self, temperature, relative_humidity,
                                        pressure):
         """
+        Perform the calculation of wet bulb temperatures. A Newton iterator is
+        used to minimise the gradient of enthalpy against temperature.
 
         Args:
             temperature (iris.cube.Cube):
@@ -390,7 +412,8 @@ class WetBulbTemperature(object):
         temperature.convert_units('K')
 
         # Calculate mixing ratios.
-        saturation_mixing_ratio = self._mixing_ratio(temperature, pressure)
+        saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
+                                                               pressure)
         mixing_ratio = relative_humidity * saturation_mixing_ratio
         # Calculate specific and latent heats.
         specific_heat = Utilities.specific_heat_of_moist_air(mixing_ratio)
@@ -404,6 +427,8 @@ class WetBulbTemperature(object):
         wbt.rename('wet_bulb_temperature')
         delta_wbt = temperature.copy(data=(10. * precision))
         delta_wbt_history = temperature.copy(data=(5. * precision))
+        max_iterations = 20
+        iteration = 0
 
         # Iterate to find the wet bulb temperature
         while (np.abs(delta_wbt.data) > precision).any():
@@ -421,14 +446,66 @@ class WetBulbTemperature(object):
                                     delta_wbt.data[unfinished])
 
             # If the errors are identical between two iterations, stop.
-            if np.array_equal(delta_wbt.data, delta_wbt_history.data):
+            if (np.array_equal(delta_wbt.data, delta_wbt_history.data) or
+                    iteration > max_iterations):
                 warnings.warn('No further refinement occuring; breaking out '
                               'of Newton iterator and returning result.')
                 break
             delta_wbt_history = delta_wbt
+            iteration += 1
 
             # Recalculate the saturation mixing ratio
-            saturation_mixing_ratio = self._mixing_ratio(
+            saturation_mixing_ratio = self._calculate_mixing_ratio(
                 wbt, pressure)
 
         return wbt
+
+    def process(self, temperature, relative_humidity, pressure):
+        """
+        Call the calculate_wet_bulb_temperature function to calculate wet bulb
+        temperatures. This process function splits input cubes over vertical
+        levels to mitigate memory issues when trying to operate on multi-level
+        data.
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures (K).
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities (%, converted to fractional).
+            pressure (iris.cube.Cube):
+                Cube of air pressures (Pa).
+
+        Returns:
+            wet_bulb_temperature (iris.cube.Cube):
+                Cube of wet bulb temperature (K).
+        """
+        try:
+            vertical_coords = [cube.coord(axis='z').name() for cube in
+                               [temperature, relative_humidity, pressure]
+                               if cube.coord_dims(cube.coord(axis='z')) != ()]
+        except iris.exceptions.CoordinateNotFoundError:
+            vertical_coords = []
+
+        if len(vertical_coords) == 3 and len(set(vertical_coords)) == 1:
+            level_coord, = set(vertical_coords)
+            temperature_over_levels = temperature.slices_over(level_coord)
+            relative_humidity_over_levels = relative_humidity.slices_over(
+                level_coord)
+            pressure_over_levels = pressure.slices_over(level_coord)
+            slices = zip(temperature_over_levels,
+                         relative_humidity_over_levels, pressure_over_levels)
+        elif len(vertical_coords) > 0 and len(set(vertical_coords)) != 1:
+            raise ValueError('WetBulbTemperature: Cubes have differing '
+                             'vertical coordinates.')
+        else:
+            slices = [(temperature, relative_humidity, pressure)]
+
+        cubelist = iris.cube.CubeList([])
+        for t_slice, rh_slice, p_slice in slices:
+            cubelist.append(self.calculate_wet_bulb_temperature(
+                t_slice, rh_slice, p_slice))
+
+        wet_bulb_temperature = cubelist.merge_cube()
+        wet_bulb_temperature = check_cube_coordinates(temperature,
+                                                      wet_bulb_temperature)
+        return wet_bulb_temperature

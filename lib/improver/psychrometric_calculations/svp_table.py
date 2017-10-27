@@ -31,9 +31,9 @@
 """
 Module to contain a saturated vapour pressure (SVP) lookup table.
 
-Values held in this table were created using the utilties.ancillary_creation
-plugin SaturatedVapourPressureTable, rounded to 6 decimal places. This plugin
-employs the Goff-Gratch method to produce values for a given temperature.
+The data held in this table were created using the utilties.ancillary_creation
+plugin SaturatedVapourPressureTable, rounded to 6 decimal places. That plugin
+employs the Goff-Gratch method to produce values for given temperatures.
 
 The values contained here are for SVP in a pure water vapour system. A
 correction is applied to convert these to SVP in air; see the
@@ -51,7 +51,7 @@ WetBulbTemperature_lookup_svp function.
 import numpy as np
 
 # These values describe the range in temperatures covered by the table and
-# the increments at whichd data points are given.
+# the increments at which data points are given.
 T_MIN = 183.15
 T_MAX = 338.15
 T_INCREMENT = 0.1

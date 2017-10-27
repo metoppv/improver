@@ -31,6 +31,7 @@
 """Unit tests for psychrometric_calculations utilities"""
 
 import unittest
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.coords import DimCoord
@@ -54,7 +55,7 @@ class Test_Utilities(IrisTest):
                         dim_coords_and_dims=[(longitude, 0)])
         relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
                                  dim_coords_and_dims=[(longitude, 0)])
-        mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='mixing_ratio',
+        mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
                             units='1',
                             dim_coords_and_dims=[(longitude, 0)])
 
@@ -140,6 +141,22 @@ class Test_calculate_d_enthalpy_dt(Test_Utilities):
 
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('J kg-1 K-1'))
+
+
+class Test_saturation_vapour_pressure_goff_gratch(Test_Utilities):
+
+    """Test calculations of the saturated vapour pressure using the Goff-Gratch
+    method."""
+
+    def test_basic(self):
+        """Basic calculation of some saturated vapour pressures."""
+        result = Utilities.saturation_vapour_pressure_goff_gratch(
+            self.temperature)
+        print result
+        expected = [195.64190713, 469.67078994, 990.94206073]
+
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
+        self.assertEqual(result.units, Unit('Pa'))
 
 
 if __name__ == '__main__':

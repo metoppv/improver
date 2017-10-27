@@ -33,7 +33,7 @@ Unit tests for the SaturatedVapourPressureTable utility.
 
 """
 import unittest
-
+import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 
@@ -68,7 +68,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.units, Unit('Pa'))
 
     def test_cube_values(self):
-        """Test that returned cube has appropriate values."""
+        """Test that returned cube has expected values."""
         t_min, t_max, t_increment = 183.15, 338.15, 10.
         expected = [0.0096646, 0.0546844, 0.2613554, 1.0799927, 3.9333663,
                     12.8286096, 37.9714586, 103.1532749, 259.6617372,
@@ -78,6 +78,17 @@ class Test_process(IrisTest):
             T_min=t_min, T_max=t_max, T_increment=t_increment).process()
 
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_coordinate_values(self):
+        """Test that returned cube temperature coordinate has expected
+        values."""
+        t_min, t_max, t_increment = 183.15, 338.15, 10.
+        expected = np.arange(t_min, t_max, t_increment)
+        result = SaturatedVapourPressureTable(
+            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+
+        self.assertArrayAlmostEqual(result.coord('air_temperature').points,
+                                    expected)
 
 
 if __name__ == '__main__':

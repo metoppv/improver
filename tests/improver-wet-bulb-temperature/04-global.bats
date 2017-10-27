@@ -37,15 +37,15 @@
 
   # Run wet-bulb-temperature calculation and check the result.
   run improver wet-bulb-temperature \
-      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/basic/enukx_temperature.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/basic/enukx_relative_humidity.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/basic/enukx_pressure.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/global/temperature_input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/global/relative_humidity_input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/global/pressure_input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/basic/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/global/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
