@@ -748,7 +748,7 @@ class RoughnessCorrection(object):
                 (a_cube.coord(x_name).units != exp_unit) or
                 (a_cube.coord(y_name).units != exp_unit)):
             raise ValueError("cube axis have units different from m.")
-        return (xres + yres) / 2.0
+        return (abs(xres) + abs(yres)) / 2.0
 
     @staticmethod
     def check_ancils(a_over_s_cube, sigma_cube, z0_cube, pp_oro_cube,
