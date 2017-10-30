@@ -36,7 +36,7 @@ Unit tests for the
 import itertools
 import unittest
 
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
@@ -610,6 +610,18 @@ class Test_process(IrisTest):
         cube.coord(self.perc_coord).rename("percentile_over_dummy")
         plugin = Plugin()
         result = plugin.process(cube, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, [0, 1, 2])
+
+    def test_works_for_cubelist(self):
+        """Test that the plugin works for a cubelist """
+        plugin = Plugin()
+        cubelist = CubeList([])
+        for cube in self.post_processed_percentiles.slices_over("time"):
+            cubelist.append(cube)
+        result = plugin.process(cubelist, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
         self.assertArrayAlmostEqual(

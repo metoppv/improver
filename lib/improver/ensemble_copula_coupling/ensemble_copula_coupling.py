@@ -848,7 +848,7 @@ class EnsembleReordering(object):
             the dataset have been reordered in comparison to the input
             percentiles.
         """
-        if isinstance(post_processed_forecast, iris.cube.Cube):
+        if isinstance(post_processed_forecast, iris.cube.CubeList):
             percentile_coord = (
                 find_percentile_coordinate(post_processed_forecast[0]).name())
         else:
