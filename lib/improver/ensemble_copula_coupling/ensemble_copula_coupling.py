@@ -48,6 +48,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class RebadgePercentilesAsMembers(object):
@@ -77,19 +78,17 @@ class RebadgePercentilesAsMembers(object):
         ensemble member.
 
         """
-        if not cube.coords("percentile_over_realization"):
-            msg = ("The percentile coordinate could not be found within"
-                   "the input cube: {}.".format(cube))
-            raise CoordinateNotFoundError(msg)
+        percentile_coord = (
+            find_percentile_coordinate(cube).name())
 
         if ensemble_member_numbers is None:
             ensemble_member_numbers = (
                 np.arange(
-                    len(cube.coord("percentile_over_realization").points)))
+                    len(cube.coord(percentile_coord).points)))
 
-        cube.coord("percentile_over_realization").points = (
+        cube.coord(percentile_coord).points = (
             ensemble_member_numbers)
-        cube.coord("percentile_over_realization").rename("realization")
+        cube.coord(percentile_coord).rename("realization")
         cube.coord("realization").units = "1"
 
         return cube
@@ -158,41 +157,41 @@ class ResamplePercentiles(object):
 
     def _interpolate_percentiles(
             self, forecast_at_percentiles, desired_percentiles,
-            bounds_pairing):
+            bounds_pairing, percentile_coord):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
         by linearly interpolating between the original set of percentiles
         to a new set of percentiles.
 
-        Parameters
-        ----------
-        forecast_at_percentiles : Iris CubeList or Iris Cube
-            Cube or CubeList expected to contain a percentile coordinate.
-        desired_percentiles : Numpy array
-            Array of the desired percentiles.
-        bounds_pairing : Tuple
-            Lower and upper bound to be used as the ends of the
-            cumulative distribution function.
+        Args:
+            forecast_at_percentiles (Iris CubeList or Iris Cube):
+                Cube or CubeList expected to contain a percentile coordinate.
+            desired_percentiles (Numpy array):
+                Array of the desired percentiles.
+            bounds_pairing (Tuple):
+                Lower and upper bound to be used as the ends of the
+                cumulative distribution function.
+            percentile_coord (String):
+                Name of required percentile coordinate.
 
-        Returns
-        -------
-        percentile_cube : Iris cube
-            Cube containing values for the required diagnostic e.g.
-            air_temperature at the required percentiles.
+        Returns:
+            percentile_cube (iris cube.Cube):
+                Cube containing values for the required diagnostic e.g.
+                air_temperature at the required percentiles.
 
         """
         original_percentiles = (
             forecast_at_percentiles.coord(
-                "percentile_over_realization").points)
+                percentile_coord).points)
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_at_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
-                forecast_at_percentiles, "percentile_over_realization"))
+                forecast_at_percentiles, percentile_coord))
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord="percentile_over_realization")
+            forecast_at_percentiles, coord=percentile_coord)
 
         original_percentiles, forecast_at_reshaped_percentiles = (
             self._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -213,14 +212,15 @@ class ResamplePercentiles(object):
         forecast_at_percentiles_data = (
             restore_non_probabilistic_dimensions(
                 forecast_at_interpolated_percentiles, forecast_at_percentiles,
-                "percentile_over_realization", len(desired_percentiles)))
+                percentile_coord, len(desired_percentiles)))
 
         for template_cube in forecast_at_percentiles.slices_over(
-                "percentile_over_realization"):
-            template_cube.remove_coord("percentile_over_realization")
+                percentile_coord):
+            template_cube.remove_coord(percentile_coord)
             break
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data)
+            desired_percentiles, template_cube, forecast_at_percentiles_data,
+            custom_name=percentile_coord)
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
@@ -233,36 +233,38 @@ class ResamplePercentiles(object):
         4. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
 
-        Parameters
-        ----------
-        forecast_at_percentiles : Iris CubeList or Iris Cube
-            Cube or CubeList expected to contain a percentile coordinate.
-        no_of_percentiles : Integer or None
-            Number of percentiles
-            If None, the number of percentiles within the input
-            forecast_at_percentiles cube is used as the number of percentiles.
-        sampling : String
-            Type of sampling of the distribution to produce a set of
-            percentiles e.g. quantile or random.
-            Accepted options for sampling are:
-            Quantile: A regular set of equally-spaced percentiles aimed
-                      at dividing a Cumulative Distribution Function into
-                      blocks of equal probability.
-            Random: A random set of ordered percentiles.
+        Args:
+            forecast_at_percentiles (Iris CubeList or Iris Cube):
+                Cube or CubeList expected to contain a percentile coordinate.
+            no_of_percentiles (Integer or None):
+                Number of percentiles
+                If None, the number of percentiles within the input
+                forecast_at_percentiles cube is used as the
+                number of percentiles.
+            sampling (String):
+                Type of sampling of the distribution to produce a set of
+                percentiles e.g. quantile or random.
+                Accepted options for sampling are:
+                Quantile: A regular set of equally-spaced percentiles aimed
+                    at dividing a Cumulative Distribution Function into
+                    blocks of equal probability.
+                Random: A random set of ordered percentiles.
 
-        Returns
-        -------
-        forecast_at_percentiles : Iris cube
-            Cube with forecast values at the desired set of percentiles.
-            The percentile coordinate is always the zeroth dimension.
+        Returns:
+            forecast_at_percentiles (iris.cube.Cube):
+                Cube with forecast values at the desired set of percentiles.
+                The percentile coordinate is always the zeroth dimension.
 
         """
         forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
 
+        percentile_coord = (
+            find_percentile_coordinate(forecast_at_percentiles).name())
+
         if no_of_percentiles is None:
             no_of_percentiles = (
                 len(forecast_at_percentiles.coord(
-                    "percentile_over_realization").points))
+                    percentile_coord).points))
 
         percentiles = choose_set_of_percentiles(
             no_of_percentiles, sampling=sampling)
@@ -273,7 +275,8 @@ class ResamplePercentiles(object):
                 forecast_at_percentiles.name(), cube_units))
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles, percentiles, bounds_pairing)
+            forecast_at_percentiles, percentiles, bounds_pairing,
+            percentile_coord)
         return forecast_at_percentiles
 
 
@@ -687,7 +690,8 @@ class EnsembleReordering(object):
 
     @staticmethod
     def _recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members):
+            post_processed_forecast_percentiles, raw_forecast_members,
+            percentile_coord):
         """
         Function to determine whether there is a mismatch between the number
         of percentiles and the number of raw forecast members. If more
@@ -698,25 +702,27 @@ class EnsembleReordering(object):
         requested than ensemble members, then only the first n ensemble
         members are used.
 
-        Parameters
-        ----------
-        post_processed_forecast_percentiles : cube
-            Cube for post-processed percentiles. The percentiles are assumed
-            to be in ascending order.
-        raw_forecast_members : cube
-            Cube containing the raw (not post-processed) forecasts.
+        Args:
+            post_processed_forecast_percentiles  (iris.cube.Cube):
+                Cube for post-processed percentiles.
+                The percentiles are assumed
+                to be in ascending order.
+            raw_forecast_members (iris.cube.Cube):
+                Cube containing the raw (not post-processed) forecasts.
+            percentile_coord (String):
+                Name of required percentile coordinate.
 
-        Returns
-        -------
-        Iris cube
-            Cube for the raw ensemble forecast, where the raw ensemble members
-            have either been recycled or constrained, depending upon the
-            number of percentiles present in the post-processed forecast cube.
+        Returns:
+            raw_forecast_members (iris cube.Cube):
+                Cube for the raw ensemble forecast, where the raw ensemble
+                members have either been recycled or constrained,
+                depending upon the number of percentiles present
+                in the post-processed forecast cube.
 
         """
         plen = len(
             post_processed_forecast_percentiles.coord(
-                "percentile_over_realization").points)
+                percentile_coord).points)
         mlen = len(raw_forecast_members.coord("realization").points)
         if plen == mlen:
             pass
@@ -842,19 +848,27 @@ class EnsembleReordering(object):
             the dataset have been reordered in comparison to the input
             percentiles.
         """
+        if isinstance(post_processed_forecast, iris.cube.CubeList):
+            percentile_coord = (
+                find_percentile_coordinate(post_processed_forecast[0]).name())
+        else:
+            percentile_coord = (
+                find_percentile_coordinate(post_processed_forecast).name())
+
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
-            coords_to_slice_over=["percentile_over_realization", "time"])
+            coords_to_slice_over=[percentile_coord, "time"])
         post_processed_forecast_percentiles = (
             ensure_dimension_is_the_zeroth_dimension(
                 post_processed_forecast_percentiles,
-                "percentile_over_realization"))
+                percentile_coord))
         raw_forecast_members = concatenate_cubes(raw_forecast)
         raw_forecast_members = ensure_dimension_is_the_zeroth_dimension(
             raw_forecast_members, "realization")
         raw_forecast_members = (
             self._recycle_raw_ensemble_members(
-                post_processed_forecast_percentiles, raw_forecast_members))
+                post_processed_forecast_percentiles, raw_forecast_members,
+                percentile_coord))
         post_processed_forecast_members = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_members,
             random_ordering=random_ordering,

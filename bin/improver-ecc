@@ -33,7 +33,6 @@
 """Script to run Ensemble Copula Coupling processing."""
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 
 import numpy as np
 
@@ -134,11 +133,6 @@ def main():
 
     # Safe to now actually do the work...
     cube = iris.load_cube(args.input_filepath)
-
-    if not cube.coords('percentile_over_realization'):
-        msg = ('The input cube: {} does not have a '
-               'percentile_over_realization dimension.'.format(cube))
-        raise CoordinateNotFoundError(msg)
 
     # TODO: For now, assume only doing percentiles -> percentiles.
     # TODO: Support for probabilities is not yet provided.

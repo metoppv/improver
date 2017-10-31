@@ -36,7 +36,7 @@ Unit tests for the
 import itertools
 import unittest
 
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
@@ -67,7 +67,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile_over_realization")
+        self.perc_coord = "percentile_over_nbhood"
+        cube.coord("realization").rename(self.perc_coord)
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
@@ -83,7 +84,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         raw_forecast_members = self.realization_cube
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
@@ -102,7 +104,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         raw_forecast_members.coord("realization").points = [12, 13]
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
@@ -121,7 +124,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             data, result.coord("realization").points)
@@ -148,7 +152,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         raw_forecast_members = self.realization_cube
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
     def test_realization_for_greater_than_check_data(self):
@@ -174,7 +179,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
     def test_realization_for_less_than_check_data(self):
@@ -196,7 +202,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
     def test_realization_for_greater_than_check_data_lots_of_members(self):
@@ -216,7 +223,7 @@ class Test__recycle_raw_ensemble_members(IrisTest):
 
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("realization").rename(self.perc_coord)
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
 
@@ -252,7 +259,8 @@ class Test__recycle_raw_ensemble_members(IrisTest):
         raw_forecast_members = raw_forecast_members[:2, :, :, :]
         plu = Plugin()
         result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members)
+            post_processed_forecast_percentiles, raw_forecast_members,
+            self.perc_coord)
         self.assertArrayAlmostEqual(expected, result.data)
 
 
@@ -578,10 +586,11 @@ class Test_process(IrisTest):
         self.post_processed_percentiles = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
+        self.perc_coord = "percentile_over_nbhood"
         self.post_processed_percentiles.coord("realization").rename(
-            "percentile_over_realization")
+            self.perc_coord)
         self.post_processed_percentiles.coord(
-            "percentile_over_realization").points = [10, 50, 90]
+            self.perc_coord).points = [10, 50, 90]
 
     def test_basic(self):
         """
@@ -590,6 +599,29 @@ class Test_process(IrisTest):
         """
         plugin = Plugin()
         result = plugin.process(self.post_processed_percentiles, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, [0, 1, 2])
+
+    def test_works_for_different_percentile_coord(self):
+        """Test that it still works for different percentile coordinate"""
+        cube = self.post_processed_percentiles
+        cube.coord(self.perc_coord).rename("percentile_over_dummy")
+        plugin = Plugin()
+        result = plugin.process(cube, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, [0, 1, 2])
+
+    def test_works_for_cubelist(self):
+        """Test that the plugin works for a cubelist """
+        plugin = Plugin()
+        cubelist = CubeList([])
+        for cube in self.post_processed_percentiles.slices_over("time"):
+            cubelist.append(cube)
+        result = plugin.process(cubelist, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
         self.assertArrayAlmostEqual(

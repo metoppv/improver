@@ -171,3 +171,39 @@ def find_dimension_coordinate_mismatch(
     else:
         mismatch = list(set(second_dim_names) - set(first_dim_names))
     return mismatch
+
+
+def find_percentile_coordinate(cube):
+    """Find percentile coord in cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube contain one or more percentiles.
+
+    Returns:
+        perc_coord(iris.coords.Coord) :
+            Percentile coordinate.
+
+    """
+    if not isinstance(cube, iris.cube.Cube):
+        msg = ('Expecting data to be an instance of '
+               'iris.cube.Cube but is'
+               ' {0:s}.'.format(type(cube)))
+        raise TypeError(msg)
+    standard_name = cube.name()
+    perc_coord = None
+    perc_found = 0
+    for coord in cube.coords():
+        if coord.name().find('percentile') >= 0:
+            perc_found += 1
+            perc_coord = coord
+    if perc_found != 1:
+        if perc_found == 0:
+            msg = ('No percentile coord found on '
+                   '{0:s} data'.format(standard_name))
+            raise CoordinateNotFoundError(msg)
+        else:
+            msg = ('Too many percentile coords found on '
+                   '{0:s} data'.format(standard_name))
+            raise ValueError(msg)
+    return perc_coord

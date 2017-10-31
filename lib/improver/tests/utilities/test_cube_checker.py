@@ -31,16 +31,21 @@
 """Unit tests for the cube_checker utility."""
 
 import unittest
+import numpy as np
 
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates,
-    find_dimension_coordinate_mismatch)
+    find_dimension_coordinate_mismatch,
+    find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
+from improver.tests.wind_gust_diagnostic.test_WindGustDiagnostic import (
+    create_cube_with_percentile_coord)
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
@@ -214,6 +219,58 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         result = find_dimension_coordinate_mismatch(first_cube, second_cube)
         self.assertIsInstance(result, list)
         self.assertListEqual(result, ["time", "realization"])
+
+
+class Test_find_percentile_coordinate(IrisTest):
+
+    """Test whether the cube has a percentile coordinate."""
+
+    def setUp(self):
+        """Create a wind-speed and wind-gust cube with percentile coord."""
+        data = np.zeros((2, 2, 2, 2))
+        self.wg_perc = 50.0
+        self.ws_perc = 95.0
+        gust = "wind_speed_of_gust"
+        self.cube_wg = (
+            create_cube_with_percentile_coord(
+                data=data,
+                perc_values=[self.wg_perc, 90.0],
+                perc_name='percentile_over_dummy',
+                standard_name=gust))
+
+    def test_basic(self):
+        """Test that the function returns a Coord."""
+        perc_coord = find_percentile_coordinate(self.cube_wg)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
+        self.assertEqual(perc_coord.name(), "percentile_over_dummy")
+
+    def test_fails_if_data_is_not_cube(self):
+        """Test it raises a Type Error if cube is not a cube."""
+        msg = ('Expecting data to be an instance of '
+               'iris.cube.Cube but is'
+               ' {0:s}.'.format(type(self.wg_perc)))
+        with self.assertRaisesRegexp(TypeError, msg):
+            find_percentile_coordinate(self.wg_perc)
+
+    def test_fails_if_no_perc_coord(self):
+        """Test it raises an Error if there is no percentile coord."""
+        msg = ('No percentile coord found on')
+        cube = self.cube_wg
+        cube.remove_coord("percentile_over_dummy")
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            find_percentile_coordinate(cube)
+
+    def test_fails_if_too_many_perc_coord(self):
+        """Test it raises a Value Error if there are too many perc coords."""
+        msg = ('Too many percentile coords found')
+        cube = self.cube_wg
+        new_perc_coord = (
+            iris.coords.AuxCoord(1,
+                                 long_name='percentile_over_realization',
+                                 units='no_unit'))
+        cube.add_aux_coord(new_perc_coord)
+        with self.assertRaisesRegexp(ValueError, msg):
+            find_percentile_coordinate(cube)
 
 
 if __name__ == '__main__':

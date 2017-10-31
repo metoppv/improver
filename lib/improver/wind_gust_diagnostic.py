@@ -34,9 +34,9 @@ import warnings
 
 import iris
 from iris import FUTURE
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 FUTURE.netcdf_promote = True
 
@@ -153,21 +153,7 @@ class WindGustDiagnostic(object):
                    'iris.cube.Cube but is'
                    ' {1:s}.'.format(standard_name, type(cube)))
             raise TypeError(msg)
-        perc_coord = None
-        perc_found = 0
-        for coord in cube.coords():
-            if coord.name().find('percentile') >= 0:
-                perc_found += 1
-                perc_coord = coord
-        if perc_found != 1:
-            if perc_found == 0:
-                msg = ('No percentile coord found on '
-                       '{0:s} data'.format(standard_name))
-                raise CoordinateNotFoundError(msg)
-            else:
-                msg = ('Too many percentile coords found on '
-                       '{0:s} data'.format(standard_name))
-                raise ValueError(msg)
+        perc_coord = find_percentile_coordinate(cube)
         if cube.standard_name != standard_name:
             msg = ('Warning mismatching name for data expecting'
                    ' {0:s} but found {1:s}'.format(standard_name,
