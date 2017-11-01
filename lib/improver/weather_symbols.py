@@ -85,75 +85,229 @@ class WeatherSymbols(object):
         """
         queries = {
             'significant_precipitation': {
-                'follows': None,
                 'succeed': 'heavy_precipitation',
                 'fail': 'any_precipitation',
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
+                'condition_combination': 'OR',
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.03, 0.03],
                 'diagnostic_condition': 'above'},
+
             'heavy_precipitation': {
-                'follows': 'significant_precipitation',
-                'succeed': 'cloud_cover',
+                'succeed': 'heavy_precipitation_cloud',
                 'fail': 'light_precipitation',
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
+                'condition_combination': 'OR',
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [1.0, 1.0],
                 'diagnostic_condition': 'above'},
+
+            'heavy_precipitation_cloud': {
+                'succeed': 'heavy_sleet_continuous',
+                'fail': 'heavy_sleet_shower',
+                'probability_thresholds': [0.5],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
+                'diagnostic_thresholds': [0.8125],
+                'diagnostic_condition': 'above'},
+
+            'heavy_sleet_continuous': {
+                'succeed': 18,
+                'fail': 'light_rain_or_snow_continuous',
+                'probability_thresholds': [0., 0.],
+                'threshold_condition': '>=',
+                'condition_combination': 'AND',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate'],
+                                      ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate']],
+                'diagnostic_gamma': [0.7, 1.0],
+                'diagnostic_thresholds': [[1., 1.],[1., 1.]],
+                'diagnostic_condition': 'above'},
+
+            'heavy_sleet_shower': {
+                'succeed': 17,
+                'fail': 'heavy_rain_or_snow_shower',
+                'probability_thresholds': [0., 0.],
+                'threshold_condition': '>=',
+                'condition_combination': 'AND',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate'],
+                                      ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate']],
+                'diagnostic_gamma': [0.7, 1.0],
+                'diagnostic_thresholds': [[1., 1.],[1., 1.]],
+                'diagnostic_condition': 'above'},
+
+            'heavy_rain_or_snow_continuous': {
+                'succeed': 27,
+                'fail': 15,
+                'probability_thresholds': [0.],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate']],
+                'diagnostic_gamma': [1.],
+                'diagnostic_thresholds': [[1., 1.]],
+                'diagnostic_condition': 'above'},
+
+            'heavy_rain_or_snow_shower': {
+                'succeed': 26,
+                'fail': 14,
+                'probability_thresholds': [0.],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate']],
+                'diagnostic_gamma': [1.],
+                'diagnostic_thresholds': [[1., 1.]],
+                'diagnostic_condition': 'above'},
+
             'light_precipitation': {
-                'follows': 'heavy_precipitation',
-                'succeed': 'cloud_6.5',
-#                'fail': 'drizzle',
-                'fail': 11,
+                'succeed': 'light_precipitation_cloud',
+                'fail': 'drizzle_mist',
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
+                'condition_combination': 'OR',
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.1, 0.1],
                 'diagnostic_condition': 'above'},
-            'cloud_6.5': {
-                'follows': 'light_precipitation',
-#                'succeed': 'light_sleet_continuous',
-                'succeed': 18,
-#                'fail': 'light_sleet_shower',
-                'fail': 17,
+
+            'light_precipitation_cloud': {
+                'succeed': 'light_sleet_continuous',
+                'fail': 'light_sleet_shower',
                 'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
+                'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
                 'diagnostic_condition': 'above'},
+
+            'light_sleet_continuous': {
+                'succeed': 18,
+                'fail': 'light_rain_or_snow_continuous',
+                'probability_thresholds': [0., 0.],
+                'threshold_condition': '>=',
+                'condition_combination': 'AND',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate'],
+                                      ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate']],
+                'diagnostic_gamma': [0.7, 1.0],
+                'diagnostic_thresholds': [[0.1, 0.1],[0.1, 0.1]],
+                'diagnostic_condition': 'above'},
+
+            'light_rain_or_snow_continuous': {
+                'succeed': 24,
+                'fail': 12,
+                'probability_thresholds': [0.],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate']],
+                'diagnostic_gamma': [1.],
+                'diagnostic_thresholds': [[0.1, 0.1]],
+                'diagnostic_condition': 'above'},
+
+            'light_sleet_shower': {
+                'succeed': 17,
+                'fail': 'light_rain_or_snow_shower',
+                'probability_thresholds': [0., 0.],
+                'threshold_condition': '>=',
+                'condition_combination': 'AND',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate'],
+                                      ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate']],
+                'diagnostic_gamma': [0.7, 1.0],
+                'diagnostic_thresholds': [[0.1, 0.1],[0.1, 0.1]],
+                'diagnostic_condition': 'above'},
+
+            'light_rain_or_snow_shower': {
+                'succeed': 23,
+                'fail': 10,
+                'probability_thresholds': [0.],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
+                                       'probability_of_rainfall_rate']],
+                'diagnostic_gamma': [1.],
+                'diagnostic_thresholds': [[0.1, 0.1]],
+                'diagnostic_condition': 'above'},
+
+            'drizzle_mist': {
+                'succeed': 11,
+                'fail': 'no_precipitation_cloud',
+                'probability_thresholds': [0.5, 0.5],
+                'threshold_condition': '>=',
+                'condition_combination': 'OR',
+                'diagnostic_fields': ['probability_of_rainfall_rate',
+                                      'probability_of_visibility_in_air'],
+                'diagnostic_thresholds': [0.03, 5000.],
+                'diagnostic_condition': 'above'},
+
+            'drizzle_cloud': {
+                'succeed': 11,
+                'fail': 'no_precipitation_cloud',
+                'probability_thresholds': [0.5, 0.5],
+                'threshold_condition': '>=',
+                'condition_combination': 'OR',
+                #### NEED A CLOUD BELOW 1000FT input and to update the threshold from 0.8125
+                'diagnostic_fields': ['probability_of_rainfall_rate',
+                                      'probability_of_cloud_area_fraction'],
+                'diagnostic_thresholds': [0.03, 0.8125],
+                'diagnostic_condition': 'above'},
+
+###################### NOT COMPLETE #############################
+            'no_precipitation_cloud': {
+                'succeed': 'heavy_sleet_continuous',
+                'fail': 'heavy_sleet_shower',
+                'probability_thresholds': [0.5],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
+                'diagnostic_thresholds': [0.8125],
+                'diagnostic_condition': 'above'},
+
+
             'any_precipitation': {
-                'follows': 'significant_precipitation',
                 'succeed': 'precipitation_in_vicinity',
                 'fail': 'mist_conditions',
                 'probability_thresholds': [0.05, 0.05],
                 'threshold_condition': '>=',
+                'condition_combination': 'OR',
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.03, 0.03],
                 'diagnostic_condition': 'above'},
+
             'mist_conditions': {
-                'follows': 'any_precipitation',
                 'succeed': 'fog_conditions',
                 'fail': 1,
-                'probability_thresholds': [0.5, 0.5],
+                'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
+                'condition_combination': '',
                 'diagnostic_fields': ['probability_of_visibility_in_air'],
                 'diagnostic_thresholds': [5000.],
                 'diagnostic_condition': 'below'},
+
             'fog_conditions': {
-                'follows': 'mist_conditions',
                 'succeed': 6,
                 'fail': 5,
-                'probability_thresholds': [0.5, 0.5],
+                'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
+                'condition_combination': '',
                 'diagnostic_fields': ['probability_of_visibility_in_air'],
                 'diagnostic_thresholds': [1000.],
-                'diagnostic_condition': 'below'}
+                'diagnostic_condition': 'below'},
+
+
             }
         return queries
 
@@ -181,7 +335,7 @@ class WeatherSymbols(object):
 
     @staticmethod
     def construct_condition(extract_constraint, condition,
-                            probability_threshold):
+                            probability_threshold, gamma):
         """
         Create a string representing a comparison condition.
 
@@ -197,11 +351,16 @@ class WeatherSymbols(object):
                 The formatted condition statement,
                 e.g. 'rainfall_rate.data < 0.5'
         """
+        if isinstance(extract_constraint, list):
+            return ('(cubes.extract({})[0].data - cubes.extract({})[0].data * '
+                    '{}) {} {}'.format(
+                    extract_constraint[0], extract_constraint[1], gamma,
+                    condition, probability_threshold))
         return 'cubes.extract({})[0].data {} {}'.format(
             extract_constraint, condition, probability_threshold)
 
     @staticmethod
-    def format_condition_chain(conditions):
+    def format_condition_chain(conditions, condition_combination='AND'):
         """
         Chain individual condition statements together in a format that
         numpy.where can use to make a series of comparisons.
@@ -215,6 +374,8 @@ class WeatherSymbols(object):
                 A string formatted as a chain of conditions suitable for use in
                 a numpy.where statement.
         """
+        if condition_combination == 'OR':
+            return ('({}) | '*len(conditions)).format(*conditions).strip('| ')
         return ('({}) & '*len(conditions)).format(*conditions).strip('& ')
 
     @staticmethod
@@ -232,27 +393,63 @@ class WeatherSymbols(object):
                 query.
         """
         conditions = []
+        loop = 0
         for diagnostic, p_threshold, d_threshold in zip(
                 test_conditions['diagnostic_fields'],
                 test_conditions['probability_thresholds'],
                 test_conditions['diagnostic_thresholds']):
+
+            gamma = test_conditions.get('diagnostic_gamma')
+            if gamma is not None:
+                gamma = gamma[loop]
+            loop += 1
+
             extract_constraint = WeatherSymbols.construct_extract_constraint(
                 diagnostic, d_threshold)
             conditions.append(
                 WeatherSymbols.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
-                    p_threshold))
-        return conditions
+                    p_threshold, gamma))
+        condition_chain = WeatherSymbols.format_condition_chain(
+            conditions,
+            condition_combination=test_conditions['condition_combination'])
+
+        return [condition_chain]
 
     @staticmethod
-    def construct_extract_constraint(diagnostic, threshold):
+    def construct_extract_constraint(diagnostics, thresholds):
+        if isinstance(diagnostics, list):
+            constraints = []
+            for diagnostic, threshold in zip(diagnostics, thresholds):
+                constraints.append(iris.Constraint(
+                        name=diagnostic,
+                        coord_values={'threshold': threshold}))
+            return constraints
         return iris.Constraint(
-            name=diagnostic, coord_values={'threshold': threshold})
-#    con = (iris.Constraint(
-#            name='probability_of_rainfall_rate',
-#            coord_values={'threshold': 0.03},
-#            cube_func=lambda cube:
-#                cube.attributes['relative_to_threshold'] == 'above'))
+            name=diagnostics, coord_values={'threshold': thresholds})
+
+    @staticmethod
+    def find_all_paths(graph, start, end, path=[]):
+        """
+        Function to trace all routes through the decision graph.
+        Taken from: https://www.python.org/doc/essays/graphs/
+
+        Copyrighted, needs rejigging.
+        """
+        path = path + [start]
+        if start == end:
+            return [path]
+        if not graph.has_key(start):
+            return []
+        paths = []
+        for node in graph[start]:
+            if node not in path:
+                newpaths = WeatherSymbols.find_all_paths(graph, node, end,
+                                                         path)
+                for newpath in newpaths:
+                    paths.append(newpath)
+        return paths
+
 
     def process(self, cubes):
         """Apply the decision tree to the input cubes to produce weather
@@ -272,52 +469,43 @@ class WeatherSymbols(object):
             Various errors if input data is incorrect.
 
         """
+        graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
+                 for key in self.queries.keys()}
+        defined_symbols = []
+        for item in self.queries.itervalues():
+            for value in item.itervalues():
+                if isinstance(value, int):
+                    defined_symbols.append(value)
+
+
         symbols_map = np.zeros(cubes[0][0].data.shape)
-        print symbols_map.shape
-        leaves = [key for key in self.queries.keys() if
-                  type(self.queries[key]['succeed']) == int]
-        leaves.extend([key for key in self.queries.keys() if
-                       type(self.queries[key]['fail']) == int])
-        leaves.sort()
 
-        previous_leaf = None
-
-        for leaf in leaves:
-            conditions = []
-            current_node = leaf
-            next_node = self.queries[current_node]['follows']
-            if (isinstance(self.queries[current_node]['succeed'], int) and
-                    leaf != previous_leaf):
-                symbol_code = self.queries[current_node]['succeed']
-            elif isinstance(self.queries[current_node]['fail'], int):
-                symbol_code = self.queries[current_node]['fail']
+        for symbol_code in defined_symbols:
             print 'symbol code', symbol_code
-            while next_node is not None:
-                current = copy.copy(self.queries[current_node])
-                next_node = current['follows']
-                if next_node == None:
-                    break
-                next = copy.copy(self.queries[next_node])
-                # Symbol level
-                if (current_node == leaf):
-                    print '{} --> {}'.format(symbol_code, current_node)
-                    if symbol_code == current['fail']:
-#                        print 'INVERT'
-                        current['threshold_condition'] = self.invert_condition(
-                            current)
+            routes = self.find_all_paths(graph, 'significant_precipitation',
+                                        symbol_code)
+
+            # Loop over possible routes from root to leaf.
+            for route in routes:
+                print 'ROUTE ', route
+                conditions = []
+                for i_node in range(len(route)-1):
+                    current_node = route[i_node]
+                    current = copy.copy(self.queries[current_node])
+                    try:
+                        next_node = route[i_node+1]
+                        next = copy.copy(self.queries[next_node])
+                    except:
+                        next_node = symbol_code
+
+                    print '{} --> {}'.format(current_node, next_node)
+                    if (current['fail'] == next_node):
+                        current['threshold_condition'] = self.invert_condition(next)
                     conditions.extend(self.create_condition_chain(current))
-                # Normal process for non-symbol level
-                print '{} --> {}'.format(current_node, next_node)
-                if (next_node is not None and
-                        next['fail'] == current_node):
-#                    print 'INVERT'
-                    next['threshold_condition'] = self.invert_condition(next)
-                conditions.extend(self.create_condition_chain(next))
-                current_node = next_node
-            test_chain = self.format_condition_chain(conditions)
-            print test_chain
-            symbols_map[np.where(eval(test_chain))] = symbol_code
-            previous_leaf = leaf
+
+                test_chain = self.format_condition_chain(conditions)
+#                print test_chain
+                symbols_map[np.where(eval(test_chain))] = symbol_code
 
         return symbols_map
 
