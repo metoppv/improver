@@ -102,14 +102,14 @@ def main():
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
     parser.add_argument('--re_mask', action='store_true',
-                        help='If re_mask is True, the original '
+                        help='If re_mask is set (i.e. True), the original '
                              'un-neighbourhood processed mask is applied to '
                              'mask out the neighbourhood processed cube. '
-                             'If re_mask is False, the original '
-                             'un-neighbourhood processed mask is not applied. '
-                             'Therefore, the neighbourhood processing may '
-                             'result in values being present in areas that '
-                             'were originally masked. ')
+                             'If not set, re_mask defaults to False and the '
+                             'original un-neighbourhood processed mask is '
+                             'not applied. Therefore, the neighbourhood '
+                             'processing may result in values being present '
+                             'in areas that were originally masked. ')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+', type=float,
                         help='Calculate values at the specified percentiles '

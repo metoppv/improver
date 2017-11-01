@@ -92,13 +92,13 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --re_mask             If re_mask is True, the original un-neighbourhood
-                        processed mask is applied to mask out the
-                        neighbourhood processed cube. If re_mask is False, the
-                        original un-neighbourhood processed mask is not
-                        applied. Therefore, the neighbourhood processing may
-                        result in values being present in areas that were
-                        originally masked.
+  --re_mask             If re_mask is set (i.e. True), the original un-
+                        neighbourhood processed mask is applied to mask out
+                        the neighbourhood processed cube. If not set, re_mask
+                        defaults to False and the original un-neighbourhood
+                        processed mask is not applied. Therefore, the
+                        neighbourhood processing may result in values being
+                        present in areas that were originally masked.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.
