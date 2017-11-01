@@ -67,27 +67,28 @@ class BaseNeighbourhoodProcessing(object):
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
 
-        Parameters
-        ----------
-        neighbourhood_method : Class object
-            Instance of the class containing the method that will be used for
-            the neighbourhood processing.
-        radii : float or List (if defining lead times)
-            The radii in metres of the neighbourhood to apply.
-            Rounded up to convert into integer number of grid
-            points east and north, based on the characteristic spacing
-            at the zero indices of the cube projection-x and y coords.
-        lead_times : None or List (optional)
-            List of lead times or forecast periods, at which the radii
-            within 'radii' are defined. The lead times are expected
-            in hours.
-        ens_factor : float (optional)
-            The factor with which to adjust the neighbourhood size
-            for more than one ensemble member.
-            If ens_factor = 1.0 this essentially conserves ensemble
-            members if every grid square is considered to be the
-            equivalent of an ensemble member.
-            Optional, defaults to 1.0
+        Args:
+            neighbourhood_method (Class object):
+                Instance of the class containing the method that will be used
+                for the neighbourhood processing.
+            radii (float or List if defining lead times):
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+
+        Keyword Args:
+            lead_times (None or List):
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
+            ens_factor (float):
+                The factor with which to adjust the neighbourhood size
+                for more than one ensemble member.
+                If ens_factor = 1.0 this essentially conserves ensemble
+                members if every grid square is considered to be the
+                equivalent of an ensemble member.
+                Optional, defaults to 1.0
         """
         self.neighbourhood_method = neighbourhood_method
 
@@ -108,17 +109,15 @@ class BaseNeighbourhoodProcessing(object):
         """
         Adjust neighbourhood size according to ensemble size.
 
-        Parameters
-        ----------
-        num_ens : float
-            Number of realizations or ensemble members.
-        width : float
-            radius or width appropriate for a single forecast in m.
+        Args:
+            num_ens (float):
+                Number of realizations or ensemble members.
+            width (float):
+                radius or width appropriate for a single forecast in m.
 
-        Returns
-        -------
-        new_width : float
-            new neighbourhood radius (m).
+        Returns:
+            new_width (float):
+                new neighbourhood radius (m).
 
         """
         if num_ens <= 1.0:
@@ -136,17 +135,17 @@ class BaseNeighbourhoodProcessing(object):
         Otherwise interpolate to find radius at each cube
         lead time and adjust for ensemble members if necessary.
 
-        Parameters
-        ----------
-        num_ens : float
-            Number of ensemble members or realizations.
-        cube_lead_times : np.array
-            Array of forecast times found in cube.
+        Args:
+            num_ens (float):
+                Number of ensemble members or realizations.
 
-        Returns
-        -------
-        radii : float or np.array of float
-            Required neighbourhood sizes.
+        Keyword Args:
+            cube_lead_times (np.array):
+                Array of forecast times found in cube.
+
+        Returns:
+            radii : float or np.array of float
+                Required neighbourhood sizes.
         """
         if cube_lead_times is None:
             radii = self.adjust_nsize_for_ens(num_ens, self.radii)
@@ -176,19 +175,19 @@ class BaseNeighbourhoodProcessing(object):
         Supply neighbourhood processing method, in order to smooth the
         input cube.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to apply a neighbourhood processing method to, in order to
-            generate a smoother field.
-        mask_cube : Iris.cube.Cube
-            Cube containing the array to be used as a mask.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube to apply a neighbourhood processing method to, in order to
+                generate a smoother field.
 
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube after applying a neighbourhood processing method, so that the
-            resulting field is smoothed.
+        Keyword Args:
+            mask_cube (Iris.cube.Cube):
+                Cube containing the array to be used as a mask.
+
+        Returns:
+            cube (Iris.cube.Cube):
+                Cube after applying a neighbourhood processing method, so that
+                the resulting field is smoothed.
 
         """
         if (not getattr(self.neighbourhood_method, "run", None) or
@@ -273,29 +272,30 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         Create a neighbourhood processing subclass that generates percentiles
         from a neighbourhood of points.
 
-        Parameters
-        ----------
-        neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular'.
-        radii : float or List (if defining lead times)
-            The radii in metres of the neighbourhood to apply.
-            Rounded up to convert into integer number of grid
-            points east and north, based on the characteristic spacing
-            at the zero indices of the cube projection-x and y coords.
-        lead_times : None or List (optional)
-            List of lead times or forecast periods, at which the radii
-            within 'radii' are defined. The lead times are expected
-            in hours.
-        ens_factor : float (optional)
-            The factor with which to adjust the neighbourhood size
-            for more than one ensemble member.
-            If ens_factor = 1.0 this essentially conserves ensemble
-            members if every grid square is considered to be the
-            equivalent of an ensemble member.
-            Optional, defaults to 1.0
-        percentiles : list (optional)
-            Percentile values at which to calculate; if not provided uses
-            DEFAULT_PERCENTILES.
+        Args:
+            neighbourhood_method (str):
+                Name of the neighbourhood method to use. Options: 'circular'.
+            radii (float or List if defining lead times):
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+
+        Keyword Args:
+            lead_times (None or List):
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
+            ens_factor (float):
+                The factor with which to adjust the neighbourhood size
+                for more than one ensemble member.
+                If ens_factor = 1.0 this essentially conserves ensemble
+                members if every grid square is considered to be the
+                equivalent of an ensemble member.
+                Optional, defaults to 1.0
+            percentiles (list):
+                Percentile values at which to calculate; if not provided uses
+                DEFAULT_PERCENTILES.
         """
         super(GeneratePercentilesFromANeighbourhood, self).__init__(
             neighbourhood_method, radii, lead_times=lead_times,
@@ -326,44 +326,46 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
 
-        Parameters
-        ----------
-        neighbourhood_method : str
-            Name of the neighbourhood method to use. Options: 'circular',
-            'square'.
-        radii : float or List (if defining lead times)
-            The radii in metres of the neighbourhood to apply.
-            Rounded up to convert into integer number of grid
-            points east and north, based on the characteristic spacing
-            at the zero indices of the cube projection-x and y coords.
-        lead_times : None or List (optional)
-            List of lead times or forecast periods, at which the radii
-            within 'radii' are defined. The lead times are expected
-            in hours.
-        ens_factor : float (optional)
-            The factor with which to adjust the neighbourhood size
-            for more than one ensemble member.
-            If ens_factor = 1.0 this essentially conserves ensemble
-            members if every grid square is considered to be the
-            equivalent of an ensemble member.
-            Optional, defaults to 1.0
-        weighted_mode : boolean (optional)
-            If True, use a circle for neighbourhood kernel with
-            weighting decreasing with radius.
-            If False, use a circle with constant weighting.
-        sum_or_fraction : string
-            Identifier for whether sum or fraction should be returned from
-            neighbourhooding. The sum represents the sum of the neighbourhood.
-            The fraction represents the sum of the neighbourhood divided by
-            the neighbourhood area. "fraction" is the default.
-            Valid options are "sum" or "fraction".
-        re_mask : Logical
-            If re_mask is True, the original un-neighbourhood processed
-            mask is applied to mask out the neighbourhood processed cube.
-            If re_mask is False, the original un-neighbourhood processed
-            mask is not applied. Therefore, the neighbourhood processing may
-            result in values being present in areas that were originally
-            masked.
+        Args:
+            neighbourhood_method (str):
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
+            radii (float or List if defining lead times):
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+
+        Keyword Args:
+            lead_times (None or List):
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
+            ens_factor (float):
+                The factor with which to adjust the neighbourhood size
+                for more than one ensemble member.
+                If ens_factor = 1.0 this essentially conserves ensemble
+                members if every grid square is considered to be the
+                equivalent of an ensemble member.
+                Optional, defaults to 1.0
+            weighted_mode (boolean):
+                If True, use a circle for neighbourhood kernel with
+                weighting decreasing with radius.
+                If False, use a circle with constant weighting.
+            sum_or_fraction (string):
+                Identifier for whether sum or fraction should be returned from
+                neighbourhooding. The sum represents the sum of the
+                neighbourhood. The fraction represents the sum of the
+                neighbourhood divided by the neighbourhood area.
+                "fraction" is the default.
+                Valid options are "sum" or "fraction".
+            re_mask (boolean):
+                If re_mask is True, the original un-neighbourhood processed
+                mask is applied to mask out the neighbourhood processed cube.
+                If re_mask is False, the original un-neighbourhood processed
+                mask is not applied. Therefore, the neighbourhood processing
+                may result in values being present in areas that were
+                originally masked.
 
         """
         super(NeighbourhoodProcessing, self).__init__(

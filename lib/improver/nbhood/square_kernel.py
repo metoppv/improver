@@ -51,27 +51,27 @@ class SquareNeighbourhood(object):
     """
 
     def __init__(self, weighted_mode=True, sum_or_fraction="fraction",
-                 re_mask=False):
+                 re_mask=True):
         """
         Initialise class.
 
-        Parameters
-        ----------
-        weighted_mode : boolean
-            This is included to allow a standard interface for both the
-            square and circular neighbourhood plugins.
-        sum_or_fraction : string
-            Identifier for whether sum or fraction should be returned from
-            neighbourhooding. The sum represents the sum of the neighbourhood.
-            The fraction represents the sum of the neighbourhood divided by
-            the neighbourhood area. Valid options are "sum" or "fraction".
-        re_mask : Logical
-            If re_mask is True, the original un-neighbourhood processed
-            mask is applied to mask out the neighbourhood processed cube.
-            If re_mask is False, the original un-neighbourhood processed
-            mask is not applied. Therefore, the neighbourhood processing may
-            result in values being present in areas that were originally
-            masked.
+        Keyword Args:
+            weighted_mode (boolean):
+                This is included to allow a standard interface for both the
+                square and circular neighbourhood plugins.
+            sum_or_fraction (string):
+                Identifier for whether sum or fraction should be returned from
+                neighbourhooding. The sum represents the sum of the
+                neighbourhood. The fraction represents the sum of the
+                neighbourhood divided by the neighbourhood area.
+                Valid options are "sum" or "fraction".
+            re_mask (boolean):
+                If re_mask is True, the original un-neighbourhood processed
+                mask is applied to mask out the neighbourhood processed cube.
+                If re_mask is False, the original un-neighbourhood processed
+                mask is not applied. Therefore, the neighbourhood processing
+                may result in values being present in areas that were
+                originally masked.
         """
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:
@@ -100,20 +100,18 @@ class SquareNeighbourhood(object):
         so that the largest values are in the mth column. Each grid point
         will contain the cumulative sum from the origin to that grid point.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube to which the cumulative summing along the y and x direction
-            will be applied.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube to which the cumulative summing along the y and x
+                direction will be applied.
 
-        Returns
-        -------
-        cube : Iris.cube.Cube
-            Cube to which the cumulative summing along the y and x direction
-            has been applied.
-        nan_masks : list
-            List of numpy arrays to be used to set the values within the data
-            of the output cube to be NaN.
+        Returns:
+            cube (Iris.cube.Cube):
+                Cube to which the cumulative summing along the y and x
+                direction has been applied.
+            nan_masks (list):
+                List of numpy arrays to be used to set the values within the
+                data of the output cube to be NaN.
         """
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
@@ -137,29 +135,26 @@ class SquareNeighbourhood(object):
         Construct a new coordinate by extending the current coordinate by the
         padding width.
 
-        Parameters
-        ----------
-        coord : iris.coord
-            Original coordinate which will be used as the basis of the
-            new extended coordinate.
-        width : integer
-            The width of padding in grid cells (the extent of the
-            neighbourhood radius in grid cells in a given direction).
-        method : string
-            A string determining whether the coordinate is being expanded
-            or contracted. Options: 'remove' to remove points from coord;
-            'add' to add points to coord.
+        Args:
+            coord (iris.coord):
+                Original coordinate which will be used as the basis of the
+                new extended coordinate.
+            width (integer):
+                The width of padding in grid cells (the extent of the
+                neighbourhood radius in grid cells in a given direction).
+            method (string):
+                A string determining whether the coordinate is being expanded
+                or contracted. Options: 'remove' to remove points from coord;
+                'add' to add points to coord.
 
-        Returns
-        -------
-        iris.coord
-            Coordinate with expanded or contracted length, to be added to the
-            padded or unpadded iris cube.
+        Returns:
+            iris.coord:
+                Coordinate with expanded or contracted length, to be added to
+                the padded or unpadded iris cube.
 
-        Raises
-        ------
-        ValueError : Raise an error if non-uniform increments exist between
-                     grid points.
+        Raises:
+            ValueError: Raise an error if non-uniform increments exist between
+                        grid points.
         """
         orig_points = coord.points
         increment = orig_points[1:] - orig_points[:-1]
@@ -192,23 +187,21 @@ class SquareNeighbourhood(object):
         the input cube and the supplied x and y coordinates are added to the
         cube.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Template cube used for copying metadata and non x and y axes
-            coordinates.
-        data : Numpy array
-            Data to be put into the new cube.
-        coord_x : Iris.coords.DimCoord
-            Coordinate to be added to the new cube to represent the x axis.
-        coord_y : Iris.coords.DimCoord
-            Coordinate to be added to the new cube to represent the y axis.
+        Args:
+            cube (Iris.cube.Cube):
+                Template cube used for copying metadata and non x and y axes
+                coordinates.
+            data (Numpy array):
+                Data to be put into the new cube.
+            coord_x (Iris.coords.DimCoord):
+                Coordinate to be added to the new cube to represent the x axis.
+            coord_y (Iris.coords.DimCoord):
+                Coordinate to be added to the new cube to represent the y axis.
 
-        Returns
-        -------
-        new_cube : Iris.cube.Cube
-            Cube built from the template cube using the requested data and the
-            supplied x and y axis coordinates.
+        Returns:
+            new_cube (Iris.cube.Cube):
+                Cube built from the template cube using the requested data and
+                the supplied x and y axis coordinates.
         """
         check_for_x_and_y_axes(cube)
 
@@ -242,20 +235,18 @@ class SquareNeighbourhood(object):
         i.e. the neighbourhood width at the edge of the data and uses this
         mean value as the padding value.
 
-        Parameters
-        ----------
-        cube : iris.cube.Cube
-            The original cube prior to applying padding.
-        width_x, width_y : integer
-            The width in x and y directions of the neighbourhood radius in
-            grid cells. This will be the width of padding to be added to the
-            numpy array.
+        Args:
+            cube (iris.cube.Cube):
+                The original cube prior to applying padding.
+            width_x, width_y (integer):
+                The width in x and y directions of the neighbourhood radius in
+                grid cells. This will be the width of padding to be added to
+                the numpy array.
 
-        Returns
-        -------
-        iris.cube.Cube
-            Cube containing the new padded cube, with appropriate
-            changes to the cube's dimension coordinates.
+        Returns:
+            iris.cube.Cube:
+                Cube containing the new padded cube, with appropriate
+                changes to the cube's dimension coordinates.
         """
         check_for_x_and_y_axes(cube)
 
@@ -287,20 +278,18 @@ class SquareNeighbourhood(object):
         Used to 'unpad' cubes which have been previously padded by
         pad_cube_with_halo.
 
-        Parameters
-        ----------
-        cube : iris.cube.Cube
-            The original cube to be trimmed of edge data.
-        width_x, width_y : integer
-            The width in x and y directions of the neighbourhood radius in
-            grid cells. This will be the width removed from the numpy
-            array.
+        Args:
+            cube (iris.cube.Cube):
+                The original cube to be trimmed of edge data.
+            width_x, width_y (integer):
+                The width in x and y directions of the neighbourhood radius in
+                grid cells. This will be the width removed from the numpy
+                array.
 
-        Returns
-        -------
-        iris.cube.Cube
-            Cube containing the new trimmed cube, with appropriate
-            changes to the cube's dimension coordinates.
+        Returns:
+            iris.cube.Cube:
+                Cube containing the new trimmed cube, with appropriate
+                changes to the cube's dimension coordinates.
         """
         check_for_x_and_y_axes(cube)
 
@@ -371,22 +360,20 @@ class SquareNeighbourhood(object):
 
         Neighbourhood mean = 4. / 9.
 
-        Parameters
-        ----------
-        cube : iris.cube.Cube
-            Cube to which neighbourhood processing is being applied. Must
-            be passed through cumulate_array method first.
-        cells_x, cells_y : integer
-            The radius of the neighbourhood in grid points, in the x and y
-            directions (excluding the central grid point).
-        nan_masks : list
-            List of numpy arrays to be used to set the values within the data
-            of the output cube to be NaN.
+        Args:
+            cube (iris.cube.Cube):
+                Cube to which neighbourhood processing is being applied. Must
+                be passed through cumulate_array method first.
+            cells_x, cells_y (integer):
+                The radius of the neighbourhood in grid points, in the x and y
+                directions (excluding the central grid point).
+            nan_masks (list):
+                List of numpy arrays to be used to set the values within the
+                data of the output cube to be NaN.
 
-        Returns
-        -------
-        cube : iris.cube.Cube
-            Cube to which square neighbourhood has been applied.
+        Returns:
+            cube (iris.cube.Cube):
+                Cube to which square neighbourhood has been applied.
         """
         check_for_x_and_y_axes(cube)
 
@@ -443,18 +430,18 @@ class SquareNeighbourhood(object):
         Set up a cubelist containing either the input cube, or the input cube
         and a mask cube.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube that will be checked for whether the data is masked.
-        mask_cube : Iris.cube.Cube
-            Cube containing the array to be used as a mask.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube that will be checked for whether the data is masked.
 
-        Returns
-        -------
-        cubes_to_sum : Iris.cube.CubeList
-            CubeList containing either the input cube, or the input cube and
-            a mask cube.
+        Keyword Args:
+            mask_cube (Iris.cube.Cube):
+                Cube containing the array to be used as a mask.
+
+        Returns:
+            cubes_to_sum (Iris.cube.CubeList):
+                CubeList containing either the input cube, or the input cube
+                and a mask cube.
         """
         # If there is a mask, fill the data array of the mask_cube with a
         # logical array, logically inverted compared to the integer version of
@@ -483,24 +470,22 @@ class SquareNeighbourhood(object):
         2. Cumulate the array along the x and y axes.
         3. Apply neighbourhood processing to the cumulated array.
 
-        Parameters
-        ----------
-        cubes_to_sum : Iris.cube.CubeList
-            CubeList containing either the input cube, or the input cube and
-            a mask cube.
-        grid_cells_x : Float
-            The number of grid cells along the x axis used to create a square
-            neighbourhood.
-        grid_cells_y : Float
-            The number of grid cells along the y axis used to create a square
-            neighbourhood.
+        Args:
+            cubes_to_sum (Iris.cube.CubeList):
+                CubeList containing either the input cube, or the input cube
+                and a mask cube.
+            grid_cells_x (Float):
+                The number of grid cells along the x axis used to create a
+                square neighbourhood.
+            grid_cells_y (Float):
+                The number of grid cells along the y axis used to create a
+                square neighbourhood.
 
-        Returns
-        -------
-        neighbourhood_averaged_cubes : Iris.cube.CubeList
-            CubeList containing the smoothed field after the square
-            neighbourhood method has been applied to either the input cube, or
-            both the input cube and a mask cube.
+        Returns:
+            neighbourhood_averaged_cubes (Iris.cube.CubeList):
+                CubeList containing the smoothed field after the square
+                neighbourhood method has been applied to either the input cube,
+                or both the input cube and a mask cube.
         """
         neighbourhood_averaged_cubes = iris.cube.CubeList([])
         for cube_to_process in cubes_to_sum:
@@ -523,30 +508,28 @@ class SquareNeighbourhood(object):
         """
         Remove the halo from the padded array and apply the mask, if required.
 
-        Parameters
-        ----------
-        neighbourhood_averaged_cubes : Iris.cube.CubeList
-            CubeList containing the smoothed field after the square
-            neighbourhood method has been applied to either the input cube, or
-            both the input cube and a mask cube.
-        pre_neighbourhood_cubes : Iris.cube.CubeList
-            CubeList containing the fields prior to applying neighbourhood
-            processing. This is required to be able to know the original mask
-            cube.
-        cube_name : String
-            Name of the variable that has been neighbourhooded.
-        grid_cells_x : Float
-            The number of grid cells along the x axis used to create a square
-            neighbourhood.
-        grid_cells_y : Float
-            The number of grid cells along the y axis used to create a square
-            neighbourhood.
+        Args:
+            neighbourhood_averaged_cubes (Iris.cube.CubeList):
+                CubeList containing the smoothed field after the square
+                neighbourhood method has been applied to either the input cube,
+                or both the input cube and a mask cube.
+            pre_neighbourhood_cubes (Iris.cube.CubeList):
+                CubeList containing the fields prior to applying neighbourhood
+                processing. This is required to be able to know the original
+                mask cube.
+            cube_name (String):
+                Name of the variable that has been neighbourhooded.
+            grid_cells_x (Float):
+                The number of grid cells along the x axis used to create a
+                square neighbourhood.
+            grid_cells_y (Float):
+                The number of grid cells along the y axis used to create a
+                square neighbourhood.
 
-        Returns
-        -------
-        neighbourhood_averaged_cube : Iris.cube.Cube
-            Cube containing the smoothed field after the square
-            neighbourhood method has been applied.
+        Returns:
+            neighbourhood_averaged_cube (Iris.cube.Cube):
+                Cube containing the smoothed field after the square
+                neighbourhood method has been applied.
         """
         # Correct neighbourhood averages for masked data, which may have been
         # calculated using larger neighbourhood areas than are present in
@@ -572,7 +555,7 @@ class SquareNeighbourhood(object):
                     original_mask_cube.data.squeeze())
         return neighbourhood_averaged_cube
 
-    def run(self, cube, radius, mask_cube=None, re_mask=False):
+    def run(self, cube, radius, mask_cube=None):
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -584,29 +567,22 @@ class SquareNeighbourhood(object):
         3. Remove the halo from the neighbourhooded array and deal with a mask,
            if required.
 
-        Parameters
-        ----------
-        cube : Iris.cube.Cube
-            Cube containing the array to which the square neighbourhood
-            will be applied.
-        radius : Float
-            Radius in metres for use in specifying the number of
-            grid cells used to create a square neighbourhood.
-        mask_cube : Iris.cube.Cube
-            Cube containing the array to be used as a mask.
-        re_mask : Logical
-            If re_mask is True, the original un-neighbourhood processed
-            mask is applied to mask out the neighbourhood processed cube.
-            If re_mask is False, the original un-neighbourhood processed
-            mask is not applied. Therefore, the neighbourhood processing may
-            result in values being present in areas that were originally
-            masked.
+        Args:
+            cube (Iris.cube.Cube):
+                Cube containing the array to which the square neighbourhood
+                will be applied.
+            radius (Float):
+                Radius in metres for use in specifying the number of
+                grid cells used to create a square neighbourhood.
 
-        Returns
-        -------
-        neighbourhood_averaged_cube : Iris.cube.Cube
-            Cube containing the smoothed field after the square neighbourhood
-            method has been applied.
+        Keyword Args:
+            mask_cube (Iris.cube.Cube):
+                Cube containing the array to be used as a mask.
+
+        Returns:
+            neighbourhood_averaged_cube (Iris.cube.Cube):
+                Cube containing the smoothed field after the square
+                neighbourhood method has been applied.
         """
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.

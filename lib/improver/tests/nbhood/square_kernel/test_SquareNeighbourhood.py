@@ -69,7 +69,7 @@ class Test__repr__(IrisTest):
         result = str(SquareNeighbourhood())
         msg = ('<SquareNeighbourhood: weighted_mode: {}, '
                'sum_or_fraction: {}, re_mask: {}>'.format(
-                   True, "fraction", False))
+                   True, "fraction", True))
         self.assertEqual(result, msg)
 
 
@@ -945,7 +945,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood(re_mask=True).run(cube, self.RADIUS)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -960,7 +960,7 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -987,7 +987,7 @@ class Test_run(IrisTest):
                [0.000000, 0.000000, 0.666667, 0.571429, 0.000000],
                [0.000000, 0.000000, 0.666667, 0.666667, 0.000000]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
-        result = SquareNeighbourhood(re_mask=True).run(cube, self.RADIUS)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_re_mask_false(self):
@@ -1013,7 +1013,7 @@ class Test_run(IrisTest):
                [0.000000, 1.000000, 0.666667, 0.571429, 0.200000],
                [0.000000, 1.000000, 0.666667, 0.666667, 0.333333]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_nan_array_re_mask_true(self):
@@ -1029,7 +1029,7 @@ class Test_run(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         cube.data[0, 0, 0, 0] = np.nan
-        result = SquareNeighbourhood(re_mask=True).run(cube, self.RADIUS)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -1045,7 +1045,7 @@ class Test_run(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         cube.data[0, 0, 0, 0] = np.nan
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -1073,7 +1073,7 @@ class Test_run(IrisTest):
                [0.000000, 0.000000, 0.666667, 0.571429, 0.000000],
                [0.000000, 0.000000, 0.666667, 0.666667, 0.000000]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
-        result = SquareNeighbourhood(re_mask=True).run(cube, self.RADIUS)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_with_nans_re_mask_false(self):
@@ -1099,7 +1099,7 @@ class Test_run(IrisTest):
                [0.000000, 1.000000, 0.666667, 0.571429, 0.200000],
                [0.000000, 1.000000, 0.666667, 0.666667, 0.333333]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_times(self):
@@ -1127,7 +1127,8 @@ class Test_run(IrisTest):
 
     def test_multiple_times_with_mask(self):
         """Test that the run method produces a cube with correct data when a
-           cube containing masked data at multiple time steps is passed in."""
+        cube containing masked data at multiple time steps is passed in.
+        Re-masking is disabled."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=2,
             num_grid_points=5)
@@ -1164,7 +1165,7 @@ class Test_run(IrisTest):
                [0.500000, 0.750000, 0.428571, 0.333333, 0.000000],
                [0.000000, 0.666667, 0.333333, 0.333333, 0.000000],
                [0.000000, 1.000000, 0.400000, 0.400000, 0.000000]]]])
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_times_nan(self):

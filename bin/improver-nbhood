@@ -121,7 +121,9 @@ def main():
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
                         help='A path to an input mask NetCDF file to be '
-                             'used to mask the input file.')
+                             'used to mask the input file. '
+                             'This is currently only supported for square '
+                             'neighbourhoods. ')
     args = parser.parse_args()
 
     if (args.neighbourhood_output == "percentiles" and
@@ -136,6 +138,10 @@ def main():
             args.percentiles != DEFAULT_PERCENTILES):
         parser.wrong_args_error(
             'percentiles', 'neighbourhood_shape=probabilities')
+
+    if (args.input_mask_filepath and args.neighbourhood_shape == "circular"):
+        parser.wrong_args_error(
+            'neighbourhood_shape=circular', 'input_mask_filepath')
 
     cube = iris.load_cube(args.input_filepath)
     if args.radius:
@@ -164,7 +170,7 @@ def main():
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
                 percentiles=args.percentiles
-                ).process(cube, mask_cube=mask_cube))
+                ).process(cube))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

@@ -104,7 +104,8 @@ optional arguments:
                         neighbourhood surrounding each grid point.
   --input_mask_filepath INPUT_MASK_FILE
                         A path to an input mask NetCDF file to be used to mask
-                        the input file.
+                        the input file. This is currently only supported for
+                        square neighbourhoods.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
