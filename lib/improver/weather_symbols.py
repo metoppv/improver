@@ -258,16 +258,16 @@ class WeatherSymbols(object):
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
                 'condition_combination': 'OR',
-                #### NEED A CLOUD BELOW 1000FT input and to update the threshold from 0.8125
                 'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.03, 0.8125],
+                                      ('probability_of_cloud_area_fraction_'
+                                       'assuming_only_consider_surface_to_1000'
+                                       '_feet_asl')],
+                'diagnostic_thresholds': [0.03, 0.85],
                 'diagnostic_condition': 'above'},
 
-###################### NOT COMPLETE #############################
             'no_precipitation_cloud': {
-                'succeed': 'heavy_sleet_continuous',
-                'fail': 'heavy_sleet_shower',
+                'succeed': 'overcast_cloud',
+                'fail': 'partly_cloudy',
                 'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
                 'condition_combination': '',
@@ -275,8 +275,44 @@ class WeatherSymbols(object):
                 'diagnostic_thresholds': [0.8125],
                 'diagnostic_condition': 'above'},
 
+            'overcast_cloud': {
+                'succeed': 8,
+                'fail': 7,
+                'probability_thresholds': [0.5],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': [('probability_of_cloud_area_fraction_'
+                                       'assuming_only_consider_surface_to_1000'
+                                       '_feet_asl')],
+                'diagnostic_thresholds': [0.85],
+                'diagnostic_condition': 'above'},
+
+            'partly_cloudy': {
+                'succeed': 3,
+                'fail': 1,
+                'probability_thresholds': [0.5],
+                'threshold_condition': '>=',
+                'condition_combination': '',
+                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
+                'diagnostic_thresholds': [0.1875],
+                'diagnostic_condition': 'above'},
+
+###################### NOT COMPLETE #############################
+
 
             'any_precipitation': {
+#                'succeed': 'precipitation_in_vicinity',
+                'succeed': 100,
+                'fail': 'mist_conditions',
+                'probability_thresholds': [0.05, 0.05],
+                'threshold_condition': '>=',
+                'condition_combination': 'OR',
+                'diagnostic_fields': ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate'],
+                'diagnostic_thresholds': [0.03, 0.03],
+                'diagnostic_condition': 'above'},
+
+            'precipitation_in_vicinity': {
                 'succeed': 'precipitation_in_vicinity',
                 'fail': 'mist_conditions',
                 'probability_thresholds': [0.05, 0.05],
@@ -287,9 +323,10 @@ class WeatherSymbols(object):
                 'diagnostic_thresholds': [0.03, 0.03],
                 'diagnostic_condition': 'above'},
 
+
             'mist_conditions': {
                 'succeed': 'fog_conditions',
-                'fail': 1,
+                'fail': 'no_precipitation_cloud',
                 'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
                 'condition_combination': '',
@@ -487,7 +524,7 @@ class WeatherSymbols(object):
 
             # Loop over possible routes from root to leaf.
             for route in routes:
-                print 'ROUTE ', route
+                print ('--> {}' * len(route)).format(*[node for node in route])
                 conditions = []
                 for i_node in range(len(route)-1):
                     current_node = route[i_node]
@@ -498,7 +535,7 @@ class WeatherSymbols(object):
                     except:
                         next_node = symbol_code
 
-                    print '{} --> {}'.format(current_node, next_node)
+#                    print '{} --> {}'.format(current_node, next_node)
                     if (current['fail'] == next_node):
                         current['threshold_condition'] = self.invert_condition(next)
                     conditions.extend(self.create_condition_chain(current))
