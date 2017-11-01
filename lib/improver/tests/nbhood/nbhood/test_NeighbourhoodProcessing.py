@@ -52,7 +52,8 @@ class Test__init__(IrisTest):
         neighbourhood_method = 'circular'
         radii = 10000
         result = NBHood(neighbourhood_method, radii)
-        msg = '<CircularNeighbourhood: weighted_mode: True>'
+        msg = ('<CircularNeighbourhood: weighted_mode: True, '
+               'sum_or_fraction: fraction>')
         self.assertEqual(str(result.neighbourhood_method), msg)
 
     def test_neighbourhood_method_does_not_exist(self):
@@ -73,7 +74,8 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10000))
         msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
-               '<CircularNeighbourhood: weighted_mode: True>; '
+               '<CircularNeighbourhood: weighted_mode: True, '
+               'sum_or_fraction: fraction>; '
                'radii: 10000.0; lead_times: None; ens_factor: 1.0>')
         self.assertEqual(result, msg)
 

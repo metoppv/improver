@@ -55,6 +55,7 @@ def main():
              'neighbourhood is only supported for a circular neighbourhood. '
              'Options: "probabilities", "percentiles".')
     parser.add_argument('neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
+                        choices=["circular", "square"],
                         help='The shape of the neighbourhood to apply in '
                              'neighbourhood processing. Only a "circular" '
                              'neighbourhood shape is applicable for '
@@ -93,6 +94,22 @@ def main():
                              'weighting is assumed. weighted_mode is only '
                              'applicable for calculating "probability" '
                              'neighbourhood output.')
+    parser.add_argument('--sum_or_fraction', default="fraction",
+                        choices=["sum", "fraction"],
+                        help='The neighbourhood output can either be in the '
+                             'form of a sum of the neighbourhood, or a '
+                             'fraction calculated by dividing the sum of the '
+                             'neighbourhood by the neighbourhood area. '
+                             '"fraction" is the default option.')
+    parser.add_argument('--re_mask', action='store_true',
+                        help='If re_mask is set (i.e. True), the original '
+                             'un-neighbourhood processed mask is applied to '
+                             'mask out the neighbourhood processed cube. '
+                             'If not set, re_mask defaults to False and the '
+                             'original un-neighbourhood processed mask is '
+                             'not applied. Therefore, the neighbourhood '
+                             'processing may result in values being present '
+                             'in areas that were originally masked. ')
     parser.add_argument('--percentiles', metavar='PERCENTILES',
                         default=DEFAULT_PERCENTILES, nargs='+', type=float,
                         help='Calculate values at the specified percentiles '
@@ -102,6 +119,11 @@ def main():
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+    parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
+                        help='A path to an input mask NetCDF file to be '
+                             'used to mask the input file. '
+                             'This is currently only supported for square '
+                             'neighbourhoods. ')
     args = parser.parse_args()
 
     if (args.neighbourhood_output == "percentiles" and
@@ -117,6 +139,10 @@ def main():
         parser.wrong_args_error(
             'percentiles', 'neighbourhood_shape=probabilities')
 
+    if (args.input_mask_filepath and args.neighbourhood_shape == "circular"):
+        parser.wrong_args_error(
+            'neighbourhood_shape=circular', 'input_mask_filepath')
+
     cube = iris.load_cube(args.input_filepath)
     if args.radius:
         radius_or_radii = args.radius
@@ -125,13 +151,19 @@ def main():
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
 
+    if args.input_mask_filepath:
+        mask_cube = iris.load_cube(args.input_mask_filepath)
+    else:
+        mask_cube = None
+
     if args.neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times, ens_factor=args.ens_factor,
-                weighted_mode=args.weighted_mode
-                ).process(cube))
+                weighted_mode=args.weighted_mode,
+                sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
+                ).process(cube, mask_cube=mask_cube))
     elif args.neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(

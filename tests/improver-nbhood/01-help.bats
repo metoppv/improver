@@ -36,7 +36,9 @@
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--ens_factor ENS_FACTOR] [--weighted_mode]
+                       [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
+                       [--input_mask_filepath INPUT_MASK_FILE]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
                        OUTPUT_FILE
 
@@ -85,9 +87,25 @@ optional arguments:
                         constant weighting is assumed. weighted_mode is only
                         applicable for calculating "probability" neighbourhood
                         output.
+  --sum_or_fraction {sum,fraction}
+                        The neighbourhood output can either be in the form of
+                        a sum of the neighbourhood, or a fraction calculated
+                        by dividing the sum of the neighbourhood by the
+                        neighbourhood area. "fraction" is the default option.
+  --re_mask             If re_mask is set (i.e. True), the original un-
+                        neighbourhood processed mask is applied to mask out
+                        the neighbourhood processed cube. If not set, re_mask
+                        defaults to False and the original un-neighbourhood
+                        processed mask is not applied. Therefore, the
+                        neighbourhood processing may result in values being
+                        present in areas that were originally masked.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.
+  --input_mask_filepath INPUT_MASK_FILE
+                        A path to an input mask NetCDF file to be used to mask
+                        the input file. This is currently only supported for
+                        square neighbourhoods.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

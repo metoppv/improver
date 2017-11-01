@@ -29,18 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood [-h]
-                       [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--ens_factor ENS_FACTOR] [--weighted_mode]
-                       [--sum_or_fraction {sum,fraction}] [--re_mask]
-                       [--percentiles PERCENTILES [PERCENTILES ...]]
-                       [--input_mask_filepath INPUT_MASK_FILE]
-                       NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
-                       OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "nbhood 'square' --radius=20000 input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run square neighbourhood processing with masked data and check it passes.
+  run improver nbhood 'probabilities' 'square'\
+      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
+      "$TEST_DIR/output.nc" --radius=20000 --weighted_mode --sum_or_fraction "sum"\
+      --input_mask_filepath "$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run cmp -bl to compare the output and kgo.
+  cmp -bl "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_external_masked.nc"
+  [[ "$status" -eq 0 ]]
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
