@@ -128,9 +128,15 @@ class ProbabilityOfOccurrence(object):
 
         """
         cube = OccurrenceWithinVicinity(self.distance).process(cube)
-        if cube.coord_dims('realization'):
+        try:
+            cube.coord_dims('realization')
+        except iris.exceptions.CoordinateNotFoundError:
+            pass
+        else:
             cube = cube.collapsed('realization', iris.analysis.MEAN)
+
         cube = NeighbourhoodProcessing(
             self.neighbourhood_method, self.radii, self.lead_times,
             self.unweighted_mode, self.ens_factor).process(cube)
+        cube.rename(cube.name() + '_in_vicinity')
         return cube
