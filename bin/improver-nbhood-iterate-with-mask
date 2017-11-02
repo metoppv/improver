@@ -91,6 +91,15 @@ def main():
                              'fraction calculated by dividing the sum of the '
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
+    parser.add_argument('--re_mask', action='store_true',
+                        help='If re_mask is set (i.e. True), the original '
+                             'un-neighbourhood processed mask is applied to '
+                             'mask out the neighbourhood processed cube. '
+                             'If not set, re_mask defaults to False and the '
+                             'original un-neighbourhood processed mask is '
+                             'not applied. Therefore, the neighbourhood '
+                             'processing may result in values being present '
+                             'in areas that were originally masked. ')
 
     args = parser.parse_args()
 
@@ -106,8 +115,8 @@ def main():
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         args.coord_for_masking, radius_or_radii, lead_times=lead_times,
-        ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction
-        ).process(cube, mask_cube)
+        ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
+        re_mask=args.re_mask).process(cube, mask_cube)
     iris.save(result, args.output_filepath)
 
 

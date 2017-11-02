@@ -37,6 +37,7 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--ens_factor ENS_FACTOR]
                                          [--sum_or_fraction {sum,fraction}]
+                                         [--re_mask]
                                          COORD_FOR_MASKING INPUT_FILE
                                          INPUT_MASK_FILE OUTPUT_FILE
 
@@ -79,6 +80,13 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
+  --re_mask             If re_mask is set (i.e. True), the original un-
+                        neighbourhood processed mask is applied to mask out
+                        the neighbourhood processed cube. If not set, re_mask
+                        defaults to False and the original un-neighbourhood
+                        processed mask is not applied. Therefore, the
+                        neighbourhood processing may result in values being
+                        present in areas that were originally masked.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
