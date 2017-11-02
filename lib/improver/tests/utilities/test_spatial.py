@@ -32,6 +32,7 @@
  spatial.py."""
 
 import unittest
+import numpy as np
 
 from iris.tests import IrisTest
 
@@ -135,6 +136,16 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         msg = "Invalid grid"
         with self.assertRaisesRegexp(ValueError, msg):
             check_if_grid_is_equal_area(cube)
+
+    def test_allow_negative_stride(self):
+        """Test no errors raised if cube has negative stride in x and y axes"""
+        cube = set_up_cube()
+        coord_points_x = np.arange(-20000, -52000., -2000)
+        coord_points_y = np.arange(30000., -2000, -2000)
+        cube.coord("projection_x_coordinate").points = coord_points_x
+        cube.coord("projection_y_coordinate").points = coord_points_y
+        test_cube = cube.copy()
+        self.assertEqual(check_if_grid_is_equal_area(cube), None)
 
     def non_equal_intervals_along_axis(self):
         """Test that the cube has equal intervals along the x or y axis."""
