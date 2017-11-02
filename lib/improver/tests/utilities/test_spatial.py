@@ -144,7 +144,6 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         coord_points_y = np.arange(30000., -2000, -2000)
         cube.coord("projection_x_coordinate").points = coord_points_x
         cube.coord("projection_y_coordinate").points = coord_points_y
-        test_cube = cube.copy()
         self.assertEqual(check_if_grid_is_equal_area(cube), None)
 
     def non_equal_intervals_along_axis(self):
