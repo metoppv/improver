@@ -58,7 +58,8 @@ class WeatherSymbols(object):
         """Represent the configured plugin instance as a string."""
         return '<WeatherSymbols>'
 
-    def _define_decision_tree(self):
+    @staticmethod
+    def _define_decision_tree():
         """
         Define queries that comprise the weather symbol decision tree.
 
@@ -138,9 +139,9 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
                                        'probability_of_rainfall_rate'],
                                       ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate']],
+                                       'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[1., 1.],[1., 1.]],
+                'diagnostic_thresholds': [[1., 1.], [1., 1.]],
                 'diagnostic_condition': 'above'},
 
             'heavy_sleet_shower': {
@@ -152,9 +153,9 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
                                        'probability_of_rainfall_rate'],
                                       ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate']],
+                                       'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[1., 1.],[1., 1.]],
+                'diagnostic_thresholds': [[1., 1.], [1., 1.]],
                 'diagnostic_condition': 'above'},
 
             'heavy_rain_or_snow_continuous': {
@@ -211,9 +212,9 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
                                        'probability_of_rainfall_rate'],
                                       ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate']],
+                                       'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1],[0.1, 0.1]],
+                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
                 'diagnostic_condition': 'above'},
 
             'light_rain_or_snow_continuous': {
@@ -237,9 +238,9 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
                                        'probability_of_rainfall_rate'],
                                       ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate']],
+                                       'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1],[0.1, 0.1]],
+                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
                 'diagnostic_condition': 'above'},
 
             'light_rain_or_snow_shower': {
@@ -345,7 +346,7 @@ class WeatherSymbols(object):
                     ['probability_of_rainfall_rate_in_vicinity',
                      'probability_of_lwe_snowfall_rate_in_vicinity']],
                 'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1],[0.1, 0.1]],
+                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
                 'diagnostic_condition': 'above'},
 
             'rain_or_snow_in_vicinity': {
@@ -501,8 +502,8 @@ class WeatherSymbols(object):
         if isinstance(extract_constraint, list):
             return ('(cubes.extract({})[0].data - cubes.extract({})[0].data * '
                     '{}) {} {}'.format(
-                    extract_constraint[0], extract_constraint[1], gamma,
-                    condition, probability_threshold))
+                        extract_constraint[0], extract_constraint[1], gamma,
+                        condition, probability_threshold))
         return 'cubes.extract({})[0].data {} {}'.format(
             extract_constraint, condition, probability_threshold)
 
@@ -596,8 +597,8 @@ class WeatherSymbols(object):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
                 constraints.append(iris.Constraint(
-                        name=diagnostic,
-                        coord_values={'threshold': threshold}))
+                    name=diagnostic,
+                    coord_values={'threshold': threshold}))
             return constraints
         return iris.Constraint(
             name=diagnostics, coord_values={'threshold': thresholds})
@@ -629,7 +630,7 @@ class WeatherSymbols(object):
         route = route + [start]
         if start == end:
             return [route]
-        if not graph.has_key(start):
+        if start not in graph.keys():
             return []
 
         routes = []
@@ -656,16 +657,14 @@ class WeatherSymbols(object):
                 A cube full of -1 values, with suitable metadata to describe
                 the weather symbols that will fill it.
         """
-        # Create empty weather symbols cube
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
-        symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1))
+        symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
+                                                dtype=np.int))
         symbols.remove_coord('threshold')
         symbols.attributes.pop('relative_to_threshold')
         symbols = add_wxcode_metadata(symbols)
-        print symbols.data.shape
         return symbols
-
 
     def process(self, cubes):
         """Apply the decision tree to the input cubes to produce weather
@@ -701,7 +700,8 @@ class WeatherSymbols(object):
 
             # Loop over possible routes from root to leaf
             for route in routes:
-                print ('--> {}' * len(route)).format(*[node for node in route])
+                # print ('--> {}' * len(route)).format(
+                #    *[node for node in route])
                 conditions = []
                 for i_node in range(len(route)-1):
                     current_node = route[i_node]
@@ -709,10 +709,10 @@ class WeatherSymbols(object):
                     try:
                         next_node = route[i_node+1]
                         next_data = copy.copy(self.queries[next_node])
-                    except:
+                    except KeyError:
                         next_node = symbol_code
 
-                    if (current['fail'] == next_node):
+                    if current['fail'] == next_node:
                         current['threshold_condition'] = self.invert_condition(
                             next_data)
                     conditions.extend(self.create_condition_chain(current))
@@ -724,4 +724,3 @@ class WeatherSymbols(object):
                 symbols.data[np.where(eval(test_chain))] = symbol_code
 
         return symbols
-
