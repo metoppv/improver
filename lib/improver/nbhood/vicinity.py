@@ -129,11 +129,10 @@ class ProbabilityOfOccurrence(object):
         """
         cube = OccurrenceWithinVicinity(self.distance).process(cube)
         try:
-            cube.coord_dims('realization')
+            if cube.coord_dims('realization'):
+                cube = cube.collapsed('realization', iris.analysis.MEAN)
         except iris.exceptions.CoordinateNotFoundError:
             pass
-        else:
-            cube = cube.collapsed('realization', iris.analysis.MEAN)
 
         cube = NeighbourhoodProcessing(
             self.neighbourhood_method, self.radii, self.lead_times,
