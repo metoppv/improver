@@ -36,13 +36,13 @@
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes.
-  run improver nbhood-iterate-with-mask 'topographic_zone' "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/input.nc"
+  run improver nbhood-iterate-with-mask 'topographic_zone' "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/input.nc"\
       "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/mask.nc" "$TEST_DIR/output.nc" --radius=20000
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_basic.nc"
+      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/kgo_basic.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
