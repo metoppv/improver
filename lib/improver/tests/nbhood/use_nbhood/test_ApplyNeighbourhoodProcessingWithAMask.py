@@ -70,10 +70,9 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __init__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
-        neighbourhood_method = "square"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, neighbourhood_method, radii)
+            coord_for_masking, radii)
         msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
                "topographic_zone, neighbourhood_method: square, radii: 2000, "
                "lead_times: None, ens_factor: 1.0, weighted_mode: True, "
@@ -88,10 +87,9 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
-        neighbourhood_method = "square"
         radii = 2000
         result = str(ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, neighbourhood_method, radii))
+            coord_for_masking, radii))
         msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
                "topographic_zone, neighbourhood_method: square, radii: 2000, "
                "lead_times: None, ens_factor: 1.0, weighted_mode: True, "
@@ -138,27 +136,25 @@ class Test_process(IrisTest):
         """Test that the expected result is returned, when the
         topographic_zone coordinate is iterated over."""
         expected = np.array(
-            [[[[1.00, 0.00, 0.00, 0.00, 0.00],
-               [1.00, 1.00, 0.00, 0.00, 0.00],
-               [1.00, 1.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.00, 0.00, 0.00],
+            [[[[1.00, 1.00, 1.00, 0.00, 0.00],
+               [1.00, 1.00, 1.00, 0.00, 0.00],
+               [1.00, 1.00, 1.00, 0.00, 0.00],
+               [1.00, 1.00, 1.00, 0.00, 0.00],
+               [0.00, 0.00, 0.00, 0.00, 0.00]]],
+             [[[0.00, 1.00, 1.00, 1.00, 1.00],
+               [0.00, 0.50, 0.75, 0.75, 1.00],
+               [0.00, 0.50, 0.75, 0.75, 1.00],
+               [0.00, 0.00, 0.50, 0.50, 1.00],
                [0.00, 0.00, 0.00, 0.00, 0.00]]],
              [[[0.00, 0.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.75, 0.75, 0.00],
-               [0.00, 0.00, 0.75, 0.75, 0.00],
                [0.00, 0.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.00, 0.00, 0.00]]],
-             [[[0.00, 0.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.00, 0.00, 0.00],
-               [0.00, 0.00, 0.00, 1.00, 1.00],
-               [0.00, 0.00, 0.00, 1.00, 1.00]]]])
+               [0.00, 0.00, 1.00, 1.00, 1.00],
+               [0.00, 0.00, 1.00, 1.00, 1.00],
+               [0.00, 0.00, 1.00, 1.00, 1.00]]]])
         coord_for_masking = "topographic_zone"
-        neighbourhood_method = "square"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, neighbourhood_method, radii
-            ).process(self.cube, self.mask_cube)
+            coord_for_masking, radii).process(self.cube, self.mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
