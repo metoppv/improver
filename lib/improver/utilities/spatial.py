@@ -71,7 +71,7 @@ def check_if_grid_is_equal_area(cube):
             raise ValueError(msg)
     x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
     y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
-    if x_diff != y_diff:
+    if abs(x_diff) != abs(y_diff):
         msg = ("The size of the intervals along the x and y axis "
                "should be equal. x axis interval: {}, y axis interval: {}"
                ).format(x_diff, y_diff)

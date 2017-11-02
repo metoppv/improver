@@ -247,6 +247,15 @@ class Test_pad_coord(IrisTest):
         self.cube.coord("projection_y_coordinate").points = coord_points_y
         self.cube.coord("projection_y_coordinate").bounds = y_bounds
 
+        self.cube_y_reorder = self.cube.copy()
+        coord_points_y_reorder = np.arange(85., -15., -20.)
+        y_bounds_reorder = np.array([coord_points_y_reorder + 10,
+                                     coord_points_y_reorder - 10]).T
+        self.cube_y_reorder.coord("projection_y_coordinate").points = (
+            coord_points_y_reorder)
+        self.cube_y_reorder.coord("projection_y_coordinate").bounds = (
+            y_bounds_reorder)
+
     def test_add(self):
         """Test the functionality to add padding to the chosen coordinate.
         Includes a test that the coordinate bounds array is modified to reflect
@@ -258,6 +267,19 @@ class Test_pad_coord(IrisTest):
         width = 1
         method = "add"
         new_coord = SquareNeighbourhood.pad_coord(coord, width, method)
+        self.assertIsInstance(new_coord, DimCoord)
+        self.assertArrayAlmostEqual(new_coord.points, expected)
+        self.assertArrayEqual(new_coord.bounds, expected_bounds)
+
+    def test_add_y_reorder(self):
+        """Test the functionality to add still works if y is negative."""
+        expected = np.array(
+            [125.0, 105.0, 85.0, 65.0, 45.0, 25.0, 5.0, -15.0, -35.0])
+        y_coord = self.cube_y_reorder.coord("projection_y_coordinate")
+        expected_bounds = np.array([expected + 10, expected - 10]).T
+        width = 1
+        method = "add"
+        new_coord = SquareNeighbourhood.pad_coord(y_coord, width, method)
         self.assertIsInstance(new_coord, DimCoord)
         self.assertArrayAlmostEqual(new_coord.points, expected)
         self.assertArrayEqual(new_coord.bounds, expected_bounds)
@@ -945,6 +967,27 @@ class Test_run(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_negative_strides_re_mask_true(self):
+        """Test that a cube still works if there are negative-strides."""
+        data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        coord_points_x = np.arange(-42000, -52000., -2000)
+        coord_points_y = np.arange(8000., -2000, -2000)
+
+        cube.coord("projection_x_coordinate").points = coord_points_x
+        cube.coord("projection_y_coordinate").points = coord_points_y
+
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
