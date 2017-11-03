@@ -88,9 +88,9 @@ class WeatherSymbols(object):
             * diagnostic_thresholds: The thresholding that is expected to have
                   been applied to the input data; this is used to extract the
                   approproate data from the input cubes.
-            * diagnostic_condition: The condition that is expected to have been
-                  applied to the input data; this can be used to ensure the
-                  thresholding is as expected.
+            * diagnostic_conditions: The condition that is expected to have
+                  been applied to the input data; this can be used to ensure
+                  the thresholding is as expected.
 
         Returns:
             queries (dict):
@@ -107,7 +107,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.03, 0.03],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_precipitation': {
                 'succeed': 'heavy_precipitation_cloud',
@@ -118,7 +118,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [1.0, 1.0],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_precipitation_cloud': {
                 'succeed': 'heavy_sleet_continuous',
@@ -128,7 +128,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_sleet_continuous': {
                 'succeed': 18,
@@ -142,7 +142,7 @@ class WeatherSymbols(object):
                                        'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
                 'diagnostic_thresholds': [[1., 1.], [1., 1.]],
-                'diagnostic_condition': [['above', 'above'],
+                'diagnostic_conditions': [['above', 'above'],
                                          ['above', 'above']]},
 
             'heavy_sleet_shower': {
@@ -157,7 +157,7 @@ class WeatherSymbols(object):
                                        'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
                 'diagnostic_thresholds': [[1., 1.], [1., 1.]],
-                'diagnostic_condition': [['above', 'above'],
+                'diagnostic_conditions': [['above', 'above'],
                                          ['above', 'above']]},
 
             'heavy_rain_or_snow_continuous': {
@@ -170,7 +170,7 @@ class WeatherSymbols(object):
                                        'probability_of_rainfall_rate']],
                 'diagnostic_gamma': [1.],
                 'diagnostic_thresholds': [[1., 1.]],
-                'diagnostic_condition': [['above', 'above']]},
+                'diagnostic_conditions': [['above', 'above']]},
 
             'heavy_rain_or_snow_shower': {
                 'succeed': 26,
@@ -182,7 +182,7 @@ class WeatherSymbols(object):
                                        'probability_of_rainfall_rate']],
                 'diagnostic_gamma': [1.],
                 'diagnostic_thresholds': [[1., 1.]],
-                'diagnostic_condition': [['above', 'above']]},
+                'diagnostic_conditions': [['above', 'above']]},
 
             'light_precipitation': {
                 'succeed': 'light_precipitation_cloud',
@@ -193,7 +193,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.1, 0.1],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'light_precipitation_cloud': {
                 'succeed': 'light_sleet_continuous',
@@ -203,7 +203,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'light_sleet_continuous': {
                 'succeed': 18,
@@ -217,7 +217,7 @@ class WeatherSymbols(object):
                                        'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
                 'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_condition': [['above', 'above'],
+                'diagnostic_conditions': [['above', 'above'],
                                          ['above', 'above']]},
 
             'light_rain_or_snow_continuous': {
@@ -230,7 +230,7 @@ class WeatherSymbols(object):
                                        'probability_of_rainfall_rate']],
                 'diagnostic_gamma': [1.],
                 'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'light_sleet_shower': {
                 'succeed': 17,
@@ -244,7 +244,7 @@ class WeatherSymbols(object):
                                        'probability_of_lwe_snowfall_rate']],
                 'diagnostic_gamma': [0.7, 1.0],
                 'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_condition': [['above', 'above'],
+                'diagnostic_conditions': [['above', 'above'],
                                          ['above', 'above']]},
 
             'light_rain_or_snow_shower': {
@@ -257,7 +257,7 @@ class WeatherSymbols(object):
                                        'probability_of_rainfall_rate']],
                 'diagnostic_gamma': [1.],
                 'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'drizzle_mist': {
                 'succeed': 11,
@@ -268,7 +268,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_visibility_in_air'],
                 'diagnostic_thresholds': [0.03, 5000.],
-                'diagnostic_condition': ['above', 'below']},
+                'diagnostic_conditions': ['above', 'below']},
 
             'drizzle_cloud': {
                 'succeed': 11,
@@ -281,7 +281,7 @@ class WeatherSymbols(object):
                                        'assuming_only_consider_surface_to_1000'
                                        '_feet_asl')],
                 'diagnostic_thresholds': [0.03, 0.85],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'no_precipitation_cloud': {
                 'succeed': 'overcast_cloud',
@@ -291,7 +291,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'overcast_cloud': {
                 'succeed': 8,
@@ -303,7 +303,7 @@ class WeatherSymbols(object):
                                        'assuming_only_consider_surface_to_1000'
                                        '_feet_asl')],
                 'diagnostic_thresholds': [0.85],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'partly_cloudy': {
                 'succeed': 3,
@@ -313,7 +313,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.1875],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'any_precipitation': {
                 'succeed': 'precipitation_in_vicinity',
@@ -324,7 +324,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': ['probability_of_rainfall_rate',
                                       'probability_of_lwe_snowfall_rate'],
                 'diagnostic_thresholds': [0.03, 0.03],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'precipitation_in_vicinity': {
                 'succeed': 'sleet_in_vicinity',
@@ -336,7 +336,7 @@ class WeatherSymbols(object):
                     'probability_of_rainfall_rate_in_vicinity',
                     'probability_of_lwe_snowfall_rate_in_vicinity'],
                 'diagnostic_thresholds': [0.1, 0.1],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'sleet_in_vicinity': {
                 'succeed': 17,
@@ -351,7 +351,7 @@ class WeatherSymbols(object):
                      'probability_of_lwe_snowfall_rate_in_vicinity']],
                 'diagnostic_gamma': [0.7, 1.0],
                 'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_condition': [['above', 'above'],
+                'diagnostic_conditions': [['above', 'above'],
                                          ['above', 'above']]},
 
             'rain_or_snow_in_vicinity': {
@@ -365,7 +365,7 @@ class WeatherSymbols(object):
                      'probability_of_rainfall_rate_in_vicinity']],
                 'diagnostic_gamma': [1.],
                 'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'snow_in_vicinity_cloud': {
                 'succeed': 'heavy_snow_continuous_in_vicinity',
@@ -375,7 +375,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_snow_continuous_in_vicinity': {
                 'succeed': 27,
@@ -386,7 +386,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [
                     'probability_of_lwe_snowfall_rate_in_vicinity'],
                 'diagnostic_thresholds': [1.0],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_snow_shower_in_vicinity': {
                 'succeed': 26,
@@ -397,7 +397,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [
                     'probability_of_lwe_snowfall_rate_in_vicinity'],
                 'diagnostic_thresholds': [1.0],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'rain_in_vicinity_cloud': {
                 'succeed': 'heavy_rain_continuous_in_vicinity',
@@ -407,7 +407,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_cloud_area_fraction'],
                 'diagnostic_thresholds': [0.8125],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_rain_continuous_in_vicinity': {
                 'succeed': 15,
@@ -418,7 +418,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [
                     'probability_of_rainfall_rate_in_vicinity'],
                 'diagnostic_thresholds': [1.0],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'heavy_rain_shower_in_vicinity': {
                 'succeed': 14,
@@ -429,7 +429,7 @@ class WeatherSymbols(object):
                 'diagnostic_fields': [
                     'probability_of_rainfall_rate_in_vicinity'],
                 'diagnostic_thresholds': [1.0],
-                'diagnostic_condition': ['above', 'above']},
+                'diagnostic_conditions': ['above', 'above']},
 
             'mist_conditions': {
                 'succeed': 'fog_conditions',
@@ -439,7 +439,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_visibility_in_air'],
                 'diagnostic_thresholds': [5000.],
-                'diagnostic_condition': ['below', 'below']},
+                'diagnostic_conditions': ['below', 'below']},
 
             'fog_conditions': {
                 'succeed': 6,
@@ -449,7 +449,7 @@ class WeatherSymbols(object):
                 'condition_combination': '',
                 'diagnostic_fields': ['probability_of_visibility_in_air'],
                 'diagnostic_thresholds': [1000.],
-                'diagnostic_condition': ['below', 'below']},
+                'diagnostic_conditions': ['below', 'below']},
             }
 
         return queries
@@ -465,32 +465,50 @@ class WeatherSymbols(object):
 
         Raises:
             IOError:
-                Raises an IOError
+                Raises an IOError if any of the required input data is missing.
+                The error includes details of which fields are missing.
         """
         def _expand_nested_lists(query, key):
-            diagnostics = []
-            for diagnostic in query[key]:
-                if isinstance(diagnostic, list):
-                    diagnostics.extend(diagnostic)
+            """
+            Produce flat lists from list and nested lists.
+
+            Args:
+                query (dict):
+                    A single query from the decision tree.
+                key (string):
+                    A string denoting the field to be taken from the dict.
+
+            Returns:
+                items (list):
+                    A 1D list containing all the values for a given key.
+            """
+            items = []
+            for item in query[key]:
+                if isinstance(item, list):
+                    items.extend(item)
                 else:
-                    diagnostics.extend([diagnostic])
-            return diagnostics
+                    items.extend([item])
+            return items
 
         missing_data = []
         for query in self.queries.itervalues():
             diagnostics = _expand_nested_lists(query, 'diagnostic_fields')
             thresholds = _expand_nested_lists(query, 'diagnostic_thresholds')
-            conditions = _expand_nested_lists(query, 'diagnostic_condition')
-            if len(diagnostics) != len(thresholds) != len(condition):
-                raise Exception('uh oh')
+            conditions = _expand_nested_lists(query, 'diagnostic_conditions')
+            if len(diagnostics) != len(thresholds) != len(conditions):
+                raise Exception('A weather symbols dictionary entry contains '
+                                'an unequal number of diagnostic_fields, '
+                                'diagnostic_thresholds, and '
+                                'diagnostic_conditions')
             for diagnostic, threshold, condition in zip(
-                diagnostics, thresholds, conditions):
+                    diagnostics, thresholds, conditions):
                 test_condition = (
-                    iris.Constraint(
+                    Constraint(
                         name=diagnostic,
                         coord_values={'threshold': threshold},
-                        cube_func=lambda cube:
-                            cube.attributes['relative_to_threshold'] == condition))
+                        cube_func=lambda cube: (
+                            cube.attributes['relative_to_threshold'] ==
+                            condition)))
 
                 if not cubes.extract(test_condition):
                     missing_data.append([diagnostic, threshold, condition])
@@ -498,13 +516,12 @@ class WeatherSymbols(object):
         if not missing_data:
             return
 
-        raise IOError('Missing data')
-#        print missing_data
-#        msg = ('Weather Symbols input cubes are missing the following required'
-#               ' input fields:\n')
-#        dyn_msg = ('name: {}, threshold: {}, relative_to_threshold: {}\n' *
-#                   len(missing_data)).format([item for item in missing_data])
-#        raise IOError(msg + dyn_msg)
+        msg = ('Weather Symbols input cubes are missing the following required'
+               ' input fields:\n')
+        dyn_msg = 'name: {}, threshold: {}, relative_to_threshold: {}\n'
+        for item in missing_data:
+            msg = msg + dyn_msg.format(*item)
+        raise IOError(msg)
 
     @staticmethod
     def invert_condition(test_conditions):
@@ -660,7 +677,7 @@ class WeatherSymbols(object):
             name=diagnostics, coord_values={'threshold': thresholds})
 
     @staticmethod
-    def find_all_routes(graph, start, end, route=[]):
+    def find_all_routes(graph, start, end, route=None):
         """
         Function to trace all routes through the decision tree.
 
@@ -683,6 +700,9 @@ class WeatherSymbols(object):
             Method based upon Python Patterns - Implementing Graphs essay
             https://www.python.org/doc/essays/graphs/
         """
+        if route is None:
+            route = []
+
         route = route + [start]
         if start == end:
             return [route]
@@ -735,6 +755,9 @@ class WeatherSymbols(object):
             symbols (iris.cube.Cube):
                 A cube of weather symbols.
         """
+        # Check input cubes contain required data
+        self.check_input_cubes(cubes)
+
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
                  for key in self.queries.keys()}
