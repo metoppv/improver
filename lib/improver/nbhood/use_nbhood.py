@@ -105,11 +105,11 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         result = ('<ApplyNeighbourhoodProcessingWithAMask: '
                   'coord_for_masking: {}, neighbourhood_method: {}, '
                   'radii: {}, lead_times: {}, ens_factor: {}, '
-                  'weighted_mode: {}, sum_or_fraction: {}>')
+                  'weighted_mode: {}, sum_or_fraction: {}, re_mask: {}>')
         return result.format(
             self.coord_for_masking, self.neighbourhood_method, self.radii,
             self.lead_times, self.ens_factor, self.weighted_mode,
-            self.sum_or_fraction)
+            self.sum_or_fraction, self.re_mask)
 
     def process(self, cube, mask_cube):
         """

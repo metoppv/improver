@@ -43,9 +43,11 @@ usage: improver-nbhood-iterate-with-mask [-h]
 
 Apply the requested neighbourhood method via the
 ApplyNeighbourhoodProcessingWithAMask plugin to a file with one cube using a
-mask. The masking coordinate is iterated over, so that different masks as
-defined by the masking coordinate can be applied to the cube that is being
-neighbourhood processed.
+mask. Within the mask cube, the coordinate chosen as the coordinate to mask
+with, is iterated over. Therefore every slice of the coordinate to mask with
+is applied to the input cube as it is neighbourhood processed. There is also
+an option to re-mask the output cube, so that after neighbourhood processing,
+non-zero values are only present for grid points that are masked in.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the
@@ -80,11 +82,13 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --re_mask             If re_mask is set (i.e. True), the original un-
-                        neighbourhood processed mask is applied to mask out
-                        the neighbourhood processed cube. If not set, re_mask
-                        defaults to False and the original un-neighbourhood
-                        processed mask is not applied. Therefore, the
+  --re_mask             If re_mask is set (i.e. True), the output cube
+                        following neighbourhood processing is re-masked. This
+                        re-masking removes any values that have been generated
+                        by neighbourhood processing at grid points outside of
+                        the masked region.If not set, re_mask defaults to
+                        False and no re-masking is applied to the
+                        neighbourhood processed output. Therefore, the
                         neighbourhood processing may result in values being
                         present in areas that were originally masked.
 __HELP__
