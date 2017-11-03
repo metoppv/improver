@@ -42,9 +42,43 @@ class NowcastLightning(object):
 
     This Plugin selects a first-guess lightning probability field from
     MOGREPS-UK data matching the nowcast validity-time and modifies this
-    based on information from the nowcast on
-      prob(precipitation): no rain ==> no lightning
-      lightning rate from ATDNet: recent activity ==> increased prob(lightning)
+    based on information from the nowcast on:
+     * prob(precipitation): no rain ==> no lightning
+     * lightning rate from ATDNet: recent activity ==> increased prob(lightning)
+
+    Keyword Args:
+        radius (float):
+            This value controls the halo radius (metres)
+            The value supplied applies at T+0
+            and increases to 2*radius at T+6 hours
+            The radius is applied using the circular neighbourhood plugin.
+
+        lightning_thresholds (tuple):
+            Lightning rate thresholds for adjusting the first-guess
+            lightning probability.
+            First element must be a function that takes one argument and
+            returns a float of the lightning rate threshold for increasing
+            first-guess lightning probability to risk 1 when given an int/float
+            forecast-lead-time in minutes.
+            Second element must be a float for the lightning rate threshold
+            for increasing first-guess lightning probability to risk 2.
+            Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
+
+        problightning_values (dict):
+            Lightning probability values to increase first-guess to if
+            the lightning_thresholds are exceeded in the nowcast data.
+            Dict must have keys 1 and 2 and contain float values.
+
+        probprecip_thresholds (tuple):
+            Values for limiting prob(lightning) with prob(precip)
+            These are the three prob(precip) thresholds
+
+        problightning_scaling (tuple):
+            Values for limiting prob(lightning) with prob(precip)
+            These are the three prob(lightning) values to scale to.
+
+        debug (boolean):
+            True results in verbose output for debugging purposes.
     """
     def __init__(self, radius=10000.,
                  lightning_thresholds=(
@@ -53,47 +87,8 @@ class NowcastLightning(object):
                  probprecip_thresholds=(0.0, 0.05, 0.1),
                  problightning_scaling=(0.0067, 0.2, 1.),
                  debug=False):
-        """Set up class for Nowcast of lightning probability.
-
-        Keyword Args:
-            radius (float):
-                This value controls the halo radius (metres)
-                The value supplied applies at T+0
-                and increases to 2*radius at T+6 hours
-                The radius is applied using the circular neighbourhood plugin.
-                Default value is 10000. m
-
-            lightning_thresholds (tuple):
-                Lightning rate thresholds for adjusting the first-guess
-                lightning probability.
-                First element must be a function that takes one argument and
-                returns a single float:
-                  input: int/float forecast-lead-time in minutes
-                  output: float: lightning rate threshold for increasing
-                                 first-guess lightning probability to risk 1.
-                Second element must be a float for the lightning rate threshold
-                for increasing first-guess lightning probability to risk 2.
-                Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
-
-            problightning_values (dict):
-                Lightning probability values to increase first-guess to if
-                the lightning_thresholds are exceeded in the nowcast data.
-                Dict must have keys 1 and 2 and contain float values.
-                Default value is {1: 1., 2: 0.25}
-
-            probprecip_thresholds (tuple):
-                Values for limiting prob(lightning) with prob(precip)
-                These are the three prob(precip) thresholds
-                Default value is (0.0, 0.05, 0.1)
-
-            problightning_scaling (tuple):
-                Values for limiting prob(lightning) with prob(precip)
-                These are the three prob(lightning) values to scale to.
-                Default value is (0.0067, 0.2, 1.)
-
-            debug (boolean):
-                True results in verbose output for debugging purposes.
-                Default value is False
+        """
+        Set up class for Nowcast of lightning probability.
         """
         self.debug = debug
         self.radius = radius
@@ -258,9 +253,9 @@ class NowcastLightning(object):
         Args:
             cubelist (iris.cube.CubeList):
                 Contains cubes of
-                    First-guess lightning probability
-                    Nowcast precipitation probability (threshold > 0)
-                    Nowcast lightning rate
+                    * First-guess lightning probability
+                    * Nowcast precipitation probability (threshold > 0)
+                    * Nowcast lightning rate
 
         Returns:
             new_cube (iris.cube.Cube):
