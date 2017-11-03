@@ -43,8 +43,8 @@ class NowcastLightning(object):
     This Plugin selects a first-guess lightning probability field from
     MOGREPS-UK data matching the nowcast validity-time and modifies this
     based on information from the nowcast on
-      prob(precipitation) - no rain == no lightning
-      lightning rate from ATDNet - recent activity == increased prob(lightning)
+      prob(precipitation): no rain ==> no lightning
+      lightning rate from ATDNet: recent activity ==> increased prob(lightning)
     """
     def __init__(self, radius=10000.,
                  lightning_thresholds=(
@@ -55,15 +55,15 @@ class NowcastLightning(object):
                  debug=False):
         """Set up class for Nowcast of lightning probability.
 
-        Args:
-            radius : float (optional)
+        Keyword Args:
+            radius (float):
                 This value controls the halo radius (metres)
                 The value supplied applies at T+0
                 and increases to 2*radius at T+6 hours
                 The radius is applied using the circular neighbourhood plugin.
                 Default value is 10000. m
 
-            lightning_thresholds : tuple (optional)
+            lightning_thresholds (tuple):
                 Lightning rate thresholds for adjusting the first-guess
                 lightning probability.
                 First element must be a function that takes one argument and
@@ -75,25 +75,25 @@ class NowcastLightning(object):
                 for increasing first-guess lightning probability to risk 2.
                 Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
 
-            problightning_values : dict (optional)
+            problightning_values (dict):
                 Lightning probability values to increase first-guess to if
                 the lightning_thresholds are exceeded in the nowcast data.
                 Dict must have keys 1 and 2 and contain float values.
                 Default value is {1: 1., 2: 0.25}
 
-            probprecip_thresholds : tuple (optional)
+            probprecip_thresholds (tuple):
                 Values for limiting prob(lightning) with prob(precip)
                 These are the three prob(precip) thresholds
-                Devault value is (0.0, 0.05, 0.1)
+                Default value is (0.0, 0.05, 0.1)
 
-            problightning_scaling : tuple (optional)
+            problightning_scaling (tuple):
                 Values for limiting prob(lightning) with prob(precip)
                 These are the three prob(lightning) values to scale to.
-                Devault value is (0.0067, 0.2, 1.)
+                Default value is (0.0067, 0.2, 1.)
 
-            debug : boolean (optional)
+            debug (boolean):
                 True results in verbose output for debugging purposes.
-                Devault value is False
+                Default value is False
         """
         self.debug = debug
         self.radius = radius
@@ -109,8 +109,8 @@ class NowcastLightning(object):
         # Prob(lightning) value for Lightning Risk 1 & 2 levels
         self.pl_dict = problightning_values
 
-        self.pr = probprecip_thresholds
-        self.pl = problightning_scaling
+        self.precipthr = probprecip_thresholds
+        self.ltngthr = problightning_scaling
 
     def __repr__(self):
         """
@@ -126,12 +126,12 @@ class NowcastLightning(object):
         with distance.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 Radius will be applied equally on x and y dimensions.
 
         Returns:
-            new_cube : iris Cube of same shape as cube
-                Output cube with haloes applied
+            new_cube (iris.cube.Cube):
+                Output cube of same shape as cube with haloes applied.
         """
         new_cube = self.neighbourhood.process(cube.copy())
         return new_cube
@@ -142,11 +142,11 @@ class NowcastLightning(object):
         probability
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 An input cube
 
         Returns:
-            new_cube : iris.cube.Cube
+            new_cube (iris.cube.Cube):
                 Output cube - a copy of input cube with meta-data relating to
                 a Nowcast of lightning probability.
                 The data array will be a copy of the input cube.data
@@ -163,30 +163,30 @@ class NowcastLightning(object):
         Modify first-guess lightning probability with nowcast data
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 Provides the meta-data for the Nowcast lightning probability
                 output cube
 
-            ltng_cube : iris.cube.Cube
-                Nowcast lightning rate
-                Must have same dimensions as cube
-
-            precip_cube : iris.cube.Cube
-                Nowcast precipitation probability (threshold > 0)
-                Must have same dimensions as cube
-
-            fg_cube : iris.cube.Cube
+            fg_cube (iris.cube.Cube):
                 First-guess lightning probability
                 Must have same x & y dimensions as cube
                 Time dimension should overlap that of cube
 
+            ltng_cube (iris.cube.Cube):
+                Nowcast lightning rate
+                Must have same dimensions as cube
+
+            precip_cube (iris.cube.Cube):
+                Nowcast precipitation probability (threshold > 0)
+                Must have same dimensions as cube
+
         Returns:
-            new_cube : iris.cube.Cube
+            new_cube (iris.cube.Cube):
                 Output cube containing Nowcast lightning probability.
         """
         new_cube_list = iris.cube.CubeList([])
-        for this_out in cube.slices_over('time'):
-            thistime = this_out.coord('time').points
+        for cube_slice in cube.slices_over('time'):
+            thistime = cube_slice.coord('time').points
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
             this_precip = precip_cube.extract(iris.Constraint(time=thistime))
             fg_time = fg_cube.coord('time').points[
@@ -199,41 +199,53 @@ class NowcastLightning(object):
             assert isinstance(this_precip,
                               iris.cube.Cube), err_string.format("precip",
                                                                  thistime)
-            assert isinstance(this_out,
+            assert isinstance(cube_slice,
                               iris.cube.Cube), err_string.format("output",
                                                                  thistime)
             assert isinstance(this_fg,
                               iris.cube.Cube), err_string.format("first-guess",
                                                                  thistime)
-            this_out.data = this_fg.data
-            this_out.coord('forecast_period').convert_units('minutes')
-            fcmins = this_out.coord('forecast_period').points[0]
+            cube_slice.data = this_fg.data
+            cube_slice.coord('forecast_period').convert_units('minutes')
+            fcmins = cube_slice.coord('forecast_period').points[0]
 
-            # Increase to LR2 prob when within lightning halo:
-            this_out.data = np.where(
+            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when within
+            #   lightning halo (lrt_lev2; 50km of an observed ATDNet strike):
+            cube_slice.data = np.where(
                 np.logical_and(this_ltng.data >= self.lrt_lev2,
-                               this_out.data < self.pl_dict[2]),
-                self.pl_dict[2], this_out.data)
+                               cube_slice.data < self.pl_dict[2]),
+                self.pl_dict[2], cube_slice.data)
             lratethresh = self.lrt_lev1(fcmins)
             if self.debug:
                 print 'LRate threshold is {} strikes per minute'.format(
                     lratethresh)
-            # Increase to LR1 when within thunderstorm:
-            this_out.data = np.where(
-                this_ltng.data >= lratethresh, self.pl_dict[1], this_out.data)
-            preciplimit = np.where(this_precip.data < self.pr[1],
-                                   rescale(this_precip.data,
-                                           data_range=(self.pr[0], self.pr[1]),
-                                           scale_range=(self.pl[0], self.pl[1]),
-                                           clip=True),
-                                   rescale(this_precip.data,
-                                           data_range=(self.pr[1], self.pr[2]),
-                                           scale_range=(self.pl[1], self.pl[2]),
-                                           clip=True))
-            # Reduce to LR2 prob when Prob(rain > 0) is low
-            # and to LR3 when very low:
-            this_out.data = np.minimum(this_out.data, preciplimit)
-            new_cube_list.append(this_out)
+
+            # Increase prob(lightning) to Risk 1 (pl_dict[1]) when within
+            #   lightning storm (lrt_lev1; ~5km of an observed ATDNet strike):
+            cube_slice.data = np.where(this_ltng.data >= lratethresh,
+                                       self.pl_dict[1],
+                                       cube_slice.data)
+
+            # Set up an array of prob(lightning) upper-limits based on
+            # prob(precip) by rescaling the prob(precip) array based on an
+            # upper, mid and lower threshold.
+            # precipthr supplies the prob(precip) points
+            # ltngthr supplies the equivalent prob(lightning) points.
+            preciplimit = np.where(
+                this_precip.data < self.precipthr[1],
+                rescale(this_precip.data,
+                        data_range=(self.precipthr[0], self.precipthr[1]),
+                        scale_range=(self.ltngthr[0], self.ltngthr[1]),
+                        clip=True),
+                rescale(this_precip.data,
+                        data_range=(self.precipthr[1], self.precipthr[2]),
+                        scale_range=(self.ltngthr[1], self.ltngthr[2]),
+                        clip=True))
+            # Ensure prob(lightning) is no larger than the local upper-limit:
+            cube_slice.data = np.minimum(cube_slice.data, preciplimit)
+
+            new_cube_list.append(cube_slice)
+
         merged_cube = new_cube_list.merge_cube()
         merged_cube = check_cube_coordinates(
             cube, merged_cube)
@@ -244,14 +256,14 @@ class NowcastLightning(object):
         Produce Nowcast of lightning probability
 
         Args:
-            cubelist : iris.cube.CubeList
+            cubelist (iris.cube.CubeList):
                 Contains cubes of
                     First-guess lightning probability
                     Nowcast precipitation probability (threshold > 0)
                     Nowcast lightning rate
 
         Returns:
-            new_cube : iris.cube.Cube
+            new_cube (iris.cube.Cube):
                 Output cube containing Nowcast lightning probability.
                 This cube will have the same dimensions as the input
                 Nowcast precipitation probability.
