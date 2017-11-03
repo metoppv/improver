@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing thresholding classes."""
+"""Module containing weather symbol implementation."""
 
 
 import numpy as np
@@ -257,7 +257,7 @@ class WeatherSymbols(object):
 
             'drizzle_mist': {
                 'succeed': 11,
-                'fail': 'no_precipitation_cloud',
+                'fail': 'drizzle_cloud',
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
                 'condition_combination': 'OR',
@@ -325,7 +325,7 @@ class WeatherSymbols(object):
             'precipitation_in_vicinity': {
                 'succeed': 'sleet_in_vicinity',
                 'fail': 'mist_conditions',
-                'probability_thresholds': [0.05, 0.05],
+                'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
                 'condition_combination': 'OR',
                 'diagnostic_fields': [
@@ -363,7 +363,7 @@ class WeatherSymbols(object):
                 'diagnostic_condition': 'above'},
 
             'snow_in_vicinity_cloud': {
-                'succeed': 'heavy_continuous_snow_in_vicinity',
+                'succeed': 'heavy_snow_continuous_in_vicinity',
                 'fail': 'heavy_snow_shower_in_vicinity',
                 'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
@@ -395,7 +395,7 @@ class WeatherSymbols(object):
                 'diagnostic_condition': 'above'},
 
             'rain_in_vicinity_cloud': {
-                'succeed': 'heavy_continuous_rain_in_vicinity',
+                'succeed': 'heavy_rain_continuous_in_vicinity',
                 'fail': 'heavy_rain_shower_in_vicinity',
                 'probability_thresholds': [0.5],
                 'threshold_condition': '>=',
@@ -487,9 +487,9 @@ class WeatherSymbols(object):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
                 The probability value to use in the comparison.
-            gamma (float or unset):
+            gamma (float or None):
                 The gamma factor to multiply one field by when performing
-                a subtraction. This value will be unset in the case that
+                a subtraction. This value will be None in the case that
                 extract_constraint is not a list; it will not be used.
         Returns:
             string:
