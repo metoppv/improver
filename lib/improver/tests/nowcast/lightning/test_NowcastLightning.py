@@ -39,6 +39,7 @@ from iris.tests import IrisTest
 import numpy as np
 import StringIO
 import sys
+import cf_units
 
 from improver.nowcast.lightning import NowcastLightning as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
@@ -53,8 +54,27 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(Plugin())
-        msg = ('<NowcastLightning: radius=10000.0, debug=False>')
+        # Have to pass in a lambda to ensure two strings match the same
+        # function address.
+        set_lightning_thresholds = (lambda mins: mins, 0.)
+        result = str(Plugin(
+            lightning_thresholds=set_lightning_thresholds))
+        msg = ("""
+<NowcastLightning: radius={radius}, debug={debug},
+ lightning mapping (lightning rate in "min^-1"):
+   upper: lightning rate {lthru} => min lightning prob {lprobu}
+   lower: lightning rate {lthrl} => min lightning prob {lprobl}
+ precipitation mapping:
+   upper:  precip probability {precu} => max lightning prob {lprecu}
+   middle: precip probability {precm} => max lightning prob {lprecm}
+   lower:  precip probability {precl} => max lightning prob {lprecl}
+>""".format(
+            radius=10000., debug=False,
+            lthru=set_lightning_thresholds[0], lthrl=0.,
+            lprobu=1., lprobl=0.25,
+            precu=0.1, precm=0.05, precl=0.0,
+            lprecu=1., lprecm=0.2, lprecl=0.0067)
+            )
         self.assertEqual(result, msg)
 
 
@@ -255,6 +275,7 @@ class Test_process(IrisTest):
         self.ltng_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.ltng_cube.rename("rate_of_lightning")
+        self.ltng_cube.units = cf_units.Unit("min^-1")
         self.precip_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations())
         self.precip_cube.rename("probability_of_precipitation")

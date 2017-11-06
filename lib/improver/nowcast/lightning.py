@@ -42,9 +42,19 @@ class NowcastLightning(object):
 
     This Plugin selects a first-guess lightning probability field from
     MOGREPS-UK data matching the nowcast validity-time and modifies this
-    based on information from the nowcast on:
-     * prob(precipitation): no rain ==> no lightning
-     * lightning rate from ATDNet: recent activity ==> increased prob(lightning)
+    based on information from the nowcast. The default behaviour makes
+    these adjustments:
+    lightning mapping (lightning rate in "min^-1"):
+        upper: lightning rate <function> => min lightning prob 1.0
+            The <function> returns a linear value from 0.5 to 2.5
+            over the 6-hour forecast_period.
+        lower: lightning rate 0.0 => min lightning prob 0.25
+            Zero is a special value indicating that lightning is
+            present within 50km.
+    precipitation mapping:
+        upper:  precip probability 0.1 => max lightning prob 1.0
+        middle: precip probability 0.05 => max lightning prob 0.2
+        lower:  precip probability 0.0 => max lightning prob 0.0067
 
     Keyword Args:
         radius (float):
@@ -55,23 +65,33 @@ class NowcastLightning(object):
 
         lightning_thresholds (tuple):
             Lightning rate thresholds for adjusting the first-guess
-            lightning probability.
+            lightning probability (strikes per minute == "min^-1").
             First element must be a function that takes one argument and
             returns a float of the lightning rate threshold for increasing
             first-guess lightning probability to risk 1 when given an int/float
             forecast-lead-time in minutes.
             Second element must be a float for the lightning rate threshold
             for increasing first-guess lightning probability to risk 2.
+            There are two special values in the lightning rate field:
+                0: No lightning at point, but lightning present within 50km.
+                -1: No lightning at point or within 50km halo.
             Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
+            This gives a decreasing influence on the extrapolated lightning
+            nowcast over forecast_period while retaining an influence from the
+            50km halo..
 
         problightning_values (dict):
             Lightning probability values to increase first-guess to if
             the lightning_thresholds are exceeded in the nowcast data.
             Dict must have keys 1 and 2 and contain float values.
+            The default values are selected to represent lightning risk
+            index values of 1 and 2 relating to the key.
 
         probprecip_thresholds (tuple):
             Values for limiting prob(lightning) with prob(precip)
-            These are the three prob(precip) thresholds
+            These are the three prob(precip) thresholds and are designed
+            to prevent a large probability of lightning being output if
+            the probability of precipitation is very low.
 
         problightning_scaling (tuple):
             Values for limiting prob(lightning) with prob(precip)
@@ -112,8 +132,23 @@ class NowcastLightning(object):
         Docstring to describe the repr, which should return a
         printable representation of the object.
         """
-        return "<NowcastLightning: radius={radius}, debug={debug}>".format(
-            radius=self.radius, debug=self.debug)
+        return """
+<NowcastLightning: radius={radius}, debug={debug},
+ lightning mapping (lightning rate in "min^-1"):
+   upper: lightning rate {lthru} => min lightning prob {lprobu}
+   lower: lightning rate {lthrl} => min lightning prob {lprobl}
+ precipitation mapping:
+   upper:  precip probability {precu} => max lightning prob {lprecu}
+   middle: precip probability {precm} => max lightning prob {lprecm}
+   lower:  precip probability {precl} => max lightning prob {lprecl}
+>""".format(
+            radius=self.radius, debug=self.debug,
+            lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
+            lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
+            precu=self.precipthr[2], precm=self.precipthr[1],
+            precl=self.precipthr[0],
+            lprecu=self.ltngthr[2], lprecm=self.ltngthr[1],
+            lprecl=self.ltngthr[0])
 
     def _process_haloes(self, cube):
         """
@@ -265,6 +300,7 @@ class NowcastLightning(object):
         """
         fg_cube, = cubelist.extract("probability_of_lightning")
         ltng_cube, = cubelist.extract("rate_of_lightning")
+        ltng_cube.convert_units("min^-1")  # Ensure units are correct.
         precip_cube, = cubelist.extract("probability_of_precipitation")
         precip_cube = precip_cube.extract(iris.Constraint(threshold=0.5))
         new_cube = self._update_meta(precip_cube)
