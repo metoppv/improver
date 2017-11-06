@@ -35,7 +35,9 @@ import numpy as np
 import copy
 import iris
 from iris import Constraint
-from improver.wxcode.wxcode_utilities import add_wxcode_metadata
+from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
+                                              expand_nested_lists)
+from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 
 
 class WeatherSymbols(object):
@@ -52,407 +54,11 @@ class WeatherSymbols(object):
         the input diagnostics. Use this decision tree to allocate a weather
         symbol to each point.
         """
-        self.queries = self._define_decision_tree()
+        self.queries = wxcode_decision_tree()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return '<WeatherSymbols>'
-
-    @staticmethod
-    def _define_decision_tree():
-        """
-        Define queries that comprise the weather symbol decision tree.
-
-        Each queries contains the following elements:
-            * succeed: The next query to call if the diagnostic being queried
-                  satisfies the current query.
-            * fail: The next query to call if the diagnostic being queried
-                  does not satisfy the current query.
-            * probability_thresholds: A list of probability thresholds that the
-                  query requires. One entry is provided for each diagnostic
-                  field being tested.
-            * threshold_condition: The condition the diagnostic must satisfy
-                  relative to the probability threshold (e.g. greater than (>)
-                  the probability threshold).
-            * condition_combination: The way (AND, OR) in which multiple
-                  conditions should be combined;
-                  e.g. rainfall > 0.5 AND snowfall > 0.5
-            * diagnostics_fields: The diagnostics which are being used in the
-                  query. If this is a list of lists, the two fields in a given
-                  list are subtracted (1st - (2nd * gamma)) and then compared
-                  with the probability threshold.
-            * diagnostic_gamma (NOT UNIVERSAL): This is the gamma factor that
-                  is used when comparing two fields directly, rather than
-                  comparing a single field to a probability threshold.
-                  e.g. gamma * P(SnowfallRate) < P(RainfallRate).
-            * diagnostic_thresholds: The thresholding that is expected to have
-                  been applied to the input data; this is used to extract the
-                  approproate data from the input cubes.
-            * diagnostic_conditions: The condition that is expected to have
-                  been applied to the input data; this can be used to ensure
-                  the thresholding is as expected.
-
-        Returns:
-            queries (dict):
-                A dictionary containing the queries that comprise the decision
-                tree.
-        """
-        queries = {
-            'significant_precipitation': {
-                'succeed': 'heavy_precipitation',
-                'fail': 'any_precipitation',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
-                'diagnostic_thresholds': [0.03, 0.03],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_precipitation': {
-                'succeed': 'heavy_precipitation_cloud',
-                'fail': 'light_precipitation',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
-                'diagnostic_thresholds': [1.0, 1.0],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_precipitation_cloud': {
-                'succeed': 'heavy_sleet_continuous',
-                'fail': 'heavy_sleet_shower',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.8125],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_sleet_continuous': {
-                'succeed': 18,
-                'fail': 'heavy_rain_or_snow_continuous',
-                'probability_thresholds': [0., 0.],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate'],
-                                      ['probability_of_rainfall_rate',
-                                       'probability_of_lwe_snowfall_rate']],
-                'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[1., 1.], [1., 1.]],
-                'diagnostic_conditions': [['above', 'above'],
-                                         ['above', 'above']]},
-
-            'heavy_sleet_shower': {
-                'succeed': 17,
-                'fail': 'heavy_rain_or_snow_shower',
-                'probability_thresholds': [0., 0.],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate'],
-                                      ['probability_of_rainfall_rate',
-                                       'probability_of_lwe_snowfall_rate']],
-                'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[1., 1.], [1., 1.]],
-                'diagnostic_conditions': [['above', 'above'],
-                                         ['above', 'above']]},
-
-            'heavy_rain_or_snow_continuous': {
-                'succeed': 27,
-                'fail': 15,
-                'probability_thresholds': [0.],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate']],
-                'diagnostic_gamma': [1.],
-                'diagnostic_thresholds': [[1., 1.]],
-                'diagnostic_conditions': [['above', 'above']]},
-
-            'heavy_rain_or_snow_shower': {
-                'succeed': 26,
-                'fail': 14,
-                'probability_thresholds': [0.],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate']],
-                'diagnostic_gamma': [1.],
-                'diagnostic_thresholds': [[1., 1.]],
-                'diagnostic_conditions': [['above', 'above']]},
-
-            'light_precipitation': {
-                'succeed': 'light_precipitation_cloud',
-                'fail': 'drizzle_mist',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
-                'diagnostic_thresholds': [0.1, 0.1],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'light_precipitation_cloud': {
-                'succeed': 'light_sleet_continuous',
-                'fail': 'light_sleet_shower',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.8125],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'light_sleet_continuous': {
-                'succeed': 18,
-                'fail': 'light_rain_or_snow_continuous',
-                'probability_thresholds': [0., 0.],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate'],
-                                      ['probability_of_rainfall_rate',
-                                       'probability_of_lwe_snowfall_rate']],
-                'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_conditions': [['above', 'above'],
-                                         ['above', 'above']]},
-
-            'light_rain_or_snow_continuous': {
-                'succeed': 24,
-                'fail': 12,
-                'probability_thresholds': [0.],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate']],
-                'diagnostic_gamma': [1.],
-                'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'light_sleet_shower': {
-                'succeed': 17,
-                'fail': 'light_rain_or_snow_shower',
-                'probability_thresholds': [0., 0.],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate'],
-                                      ['probability_of_rainfall_rate',
-                                       'probability_of_lwe_snowfall_rate']],
-                'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_conditions': [['above', 'above'],
-                                         ['above', 'above']]},
-
-            'light_rain_or_snow_shower': {
-                'succeed': 23,
-                'fail': 10,
-                'probability_thresholds': [0.],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [['probability_of_lwe_snowfall_rate',
-                                       'probability_of_rainfall_rate']],
-                'diagnostic_gamma': [1.],
-                'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'drizzle_mist': {
-                'succeed': 11,
-                'fail': 'drizzle_cloud',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_visibility_in_air'],
-                'diagnostic_thresholds': [0.03, 5000.],
-                'diagnostic_conditions': ['above', 'below']},
-
-            'drizzle_cloud': {
-                'succeed': 11,
-                'fail': 'no_precipitation_cloud',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      ('probability_of_cloud_area_fraction_'
-                                       'assuming_only_consider_surface_to_1000'
-                                       '_feet_asl')],
-                'diagnostic_thresholds': [0.03, 0.85],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'no_precipitation_cloud': {
-                'succeed': 'overcast_cloud',
-                'fail': 'partly_cloudy',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.8125],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'overcast_cloud': {
-                'succeed': 8,
-                'fail': 7,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [('probability_of_cloud_area_fraction_'
-                                       'assuming_only_consider_surface_to_1000'
-                                       '_feet_asl')],
-                'diagnostic_thresholds': [0.85],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'partly_cloudy': {
-                'succeed': 3,
-                'fail': 1,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.1875],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'any_precipitation': {
-                'succeed': 'precipitation_in_vicinity',
-                'fail': 'mist_conditions',
-                'probability_thresholds': [0.05, 0.05],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
-                'diagnostic_thresholds': [0.03, 0.03],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'precipitation_in_vicinity': {
-                'succeed': 'sleet_in_vicinity',
-                'fail': 'mist_conditions',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields': [
-                    'probability_of_rainfall_rate_in_vicinity',
-                    'probability_of_lwe_snowfall_rate_in_vicinity'],
-                'diagnostic_thresholds': [0.1, 0.1],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'sleet_in_vicinity': {
-                'succeed': 17,
-                'fail': 'rain_or_snow_in_vicinity',
-                'probability_thresholds': [0., 0.],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [
-                    ['probability_of_lwe_snowfall_rate_in_vicinity',
-                     'probability_of_rainfall_rate_in_vicinity'],
-                    ['probability_of_rainfall_rate_in_vicinity',
-                     'probability_of_lwe_snowfall_rate_in_vicinity']],
-                'diagnostic_gamma': [0.7, 1.0],
-                'diagnostic_thresholds': [[0.1, 0.1], [0.1, 0.1]],
-                'diagnostic_conditions': [['above', 'above'],
-                                         ['above', 'above']]},
-
-            'rain_or_snow_in_vicinity': {
-                'succeed': 'snow_in_vicinity_cloud',
-                'fail': 'rain_in_vicinity_cloud',
-                'probability_thresholds': [0.],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': [
-                    ['probability_of_lwe_snowfall_rate_in_vicinity',
-                     'probability_of_rainfall_rate_in_vicinity']],
-                'diagnostic_gamma': [1.],
-                'diagnostic_thresholds': [[0.1, 0.1]],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'snow_in_vicinity_cloud': {
-                'succeed': 'heavy_snow_continuous_in_vicinity',
-                'fail': 'heavy_snow_shower_in_vicinity',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.8125],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_snow_continuous_in_vicinity': {
-                'succeed': 27,
-                'fail': 24,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [
-                    'probability_of_lwe_snowfall_rate_in_vicinity'],
-                'diagnostic_thresholds': [1.0],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_snow_shower_in_vicinity': {
-                'succeed': 26,
-                'fail': 23,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [
-                    'probability_of_lwe_snowfall_rate_in_vicinity'],
-                'diagnostic_thresholds': [1.0],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'rain_in_vicinity_cloud': {
-                'succeed': 'heavy_rain_continuous_in_vicinity',
-                'fail': 'heavy_rain_shower_in_vicinity',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_cloud_area_fraction'],
-                'diagnostic_thresholds': [0.8125],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_rain_continuous_in_vicinity': {
-                'succeed': 15,
-                'fail': 12,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [
-                    'probability_of_rainfall_rate_in_vicinity'],
-                'diagnostic_thresholds': [1.0],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'heavy_rain_shower_in_vicinity': {
-                'succeed': 14,
-                'fail': 10,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'AND',
-                'diagnostic_fields': [
-                    'probability_of_rainfall_rate_in_vicinity'],
-                'diagnostic_thresholds': [1.0],
-                'diagnostic_conditions': ['above', 'above']},
-
-            'mist_conditions': {
-                'succeed': 'fog_conditions',
-                'fail': 'no_precipitation_cloud',
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_visibility_in_air'],
-                'diagnostic_thresholds': [5000.],
-                'diagnostic_conditions': ['below', 'below']},
-
-            'fog_conditions': {
-                'succeed': 6,
-                'fail': 5,
-                'probability_thresholds': [0.5],
-                'threshold_condition': '>=',
-                'condition_combination': '',
-                'diagnostic_fields': ['probability_of_visibility_in_air'],
-                'diagnostic_thresholds': [1000.],
-                'diagnostic_conditions': ['below', 'below']},
-            }
-
-        return queries
 
     def check_input_cubes(self, cubes):
         """
@@ -468,38 +74,11 @@ class WeatherSymbols(object):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
-        def _expand_nested_lists(query, key):
-            """
-            Produce flat lists from list and nested lists.
-
-            Args:
-                query (dict):
-                    A single query from the decision tree.
-                key (string):
-                    A string denoting the field to be taken from the dict.
-
-            Returns:
-                items (list):
-                    A 1D list containing all the values for a given key.
-            """
-            items = []
-            for item in query[key]:
-                if isinstance(item, list):
-                    items.extend(item)
-                else:
-                    items.extend([item])
-            return items
-
         missing_data = []
         for query in self.queries.itervalues():
-            diagnostics = _expand_nested_lists(query, 'diagnostic_fields')
-            thresholds = _expand_nested_lists(query, 'diagnostic_thresholds')
-            conditions = _expand_nested_lists(query, 'diagnostic_conditions')
-            if len(diagnostics) != len(thresholds) != len(conditions):
-                raise Exception('A weather symbols dictionary entry contains '
-                                'an unequal number of diagnostic_fields, '
-                                'diagnostic_thresholds, and '
-                                'diagnostic_conditions')
+            diagnostics = expand_nested_lists(query, 'diagnostic_fields')
+            thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
+            conditions = expand_nested_lists(query, 'diagnostic_conditions')
             for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions):
                 test_condition = (
@@ -513,15 +92,15 @@ class WeatherSymbols(object):
                 if not cubes.extract(test_condition):
                     missing_data.append([diagnostic, threshold, condition])
 
-        if not missing_data:
-            return
-
-        msg = ('Weather Symbols input cubes are missing the following required'
-               ' input fields:\n')
-        dyn_msg = 'name: {}, threshold: {}, relative_to_threshold: {}\n'
-        for item in missing_data:
-            msg = msg + dyn_msg.format(*item)
-        raise IOError(msg)
+        if missing_data:
+            msg = ('Weather Symbols input cubes are missing'
+                   ' the following required'
+                   ' input fields:\n')
+            dyn_msg = 'name: {}, threshold: {}, relative_to_threshold: {}\n'
+            for item in missing_data:
+                msg = msg + dyn_msg.format(*item)
+            raise IOError(msg)
+        return
 
     @staticmethod
     def invert_condition(test_conditions):
