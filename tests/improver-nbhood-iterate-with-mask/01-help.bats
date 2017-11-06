@@ -47,7 +47,7 @@ mask. Within the mask cube, the coordinate chosen as the coordinate to mask
 with, is iterated over. Therefore every slice of the coordinate to mask with
 is applied to the input cube as it is neighbourhood processed. There is also
 an option to re-mask the output cube, so that after neighbourhood processing,
-non-zero values are only present for grid points that are masked in.
+non-zero values are only present for unmasked grid points.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the
@@ -85,12 +85,12 @@ optional arguments:
   --re_mask             If re_mask is set (i.e. True), the output cube
                         following neighbourhood processing is re-masked. This
                         re-masking removes any values that have been generated
-                        by neighbourhood processing at grid points outside of
-                        the masked region.If not set, re_mask defaults to
-                        False and no re-masking is applied to the
-                        neighbourhood processed output. Therefore, the
-                        neighbourhood processing may result in values being
-                        present in areas that were originally masked.
+                        by neighbourhood processing at grid points within the
+                        masked region.If not set, re_mask defaults to False
+                        and no re-masking is applied to the neighbourhood
+                        processed output. Therefore, the neighbourhood
+                        processing may result in values being present in areas
+                        that were originally masked.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
