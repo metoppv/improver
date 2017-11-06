@@ -81,6 +81,8 @@ class WeatherSymbols(object):
             conditions = expand_nested_lists(query, 'diagnostic_conditions')
             for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions):
+
+                threshold = threshold.points.item()
                 test_condition = (
                     Constraint(
                         name=diagnostic,
@@ -248,12 +250,14 @@ class WeatherSymbols(object):
         if isinstance(diagnostics, list):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
+                threshold = threshold.points.item()
                 constraints.append(iris.Constraint(
                     name=diagnostic,
                     coord_values={'threshold': threshold}))
             return constraints
+        threshold = thresholds.points.item()
         return iris.Constraint(
-            name=diagnostics, coord_values={'threshold': thresholds})
+            name=diagnostics, coord_values={'threshold': threshold})
 
     @staticmethod
     def find_all_routes(graph, start, end, route=None):
@@ -376,7 +380,7 @@ class WeatherSymbols(object):
                     conditions.extend(self.create_condition_chain(current))
 
                 test_chain = self.format_condition_chain(conditions)
-#                print test_chain
+                # print test_chain
 
                 # Set grid locations to suitable weather symbol
                 symbols.data[np.where(eval(test_chain))] = symbol_code
