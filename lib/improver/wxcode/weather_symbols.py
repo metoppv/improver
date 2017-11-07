@@ -385,7 +385,6 @@ class WeatherSymbols(object):
                     current = copy.copy(self.queries[current_node])
                     try:
                         next_node = route[i_node+1]
-                        next_data = copy.copy(self.queries[next_node])
                     except KeyError:
                         next_node = symbol_code
 

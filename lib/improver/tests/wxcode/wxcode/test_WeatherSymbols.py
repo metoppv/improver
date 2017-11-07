@@ -37,7 +37,6 @@ import numpy as np
 
 import iris
 from iris.tests import IrisTest
-from iris import Constraint
 from iris.coords import AuxCoord
 
 from improver.wxcode.weather_symbols import WeatherSymbols
@@ -183,6 +182,7 @@ class Test_invert_condition(IrisTest):
         self.assertIsInstance(result[1], str)
 
     def test_invert_thresholds_correctly(self):
+        """Test invert_condition inverts thresholds correctly."""
         plugin = WeatherSymbols()
         node = {'threshold_condition': '>=', 'condition_combination': ''}
         possible_inputs = ['>=', '<=', '<', '>']
@@ -193,6 +193,7 @@ class Test_invert_condition(IrisTest):
             self.assertEqual(result[0], inverse_outputs[i])
 
     def test_invert_combination_correctly(self):
+        """Test invert_condition inverts combination correctly."""
         plugin = WeatherSymbols()
         node = {'threshold_condition': '>=', 'condition_combination': ''}
         possible_inputs = ['AND', 'OR', '']
@@ -228,7 +229,7 @@ class Test_construct_condition(IrisTest):
 
     def test_works_with_lists(self):
         """Test that the construct_condition method works with a list
-        of Constraints """
+        of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
             iris.Constraint(name='probability_of_lwe_snowfall_rate',
@@ -266,7 +267,7 @@ class Test_format_condition_chain(IrisTest):
         self.assertEqual(result, expected)
 
     def test_works_with_or(self):
-        """Test that the format_condition_change method works with or."""
+        """Test that the format_condition_change method works with OR."""
         plugin = WeatherSymbols()
         conditions = ['condition1', 'condition2']
         expected = '(condition1) | (condition2)'
@@ -281,6 +282,7 @@ class Test_create_condition_chain(IrisTest):
     """Test the create_condition_chain method."""
 
     def setUp(self):
+        """ Set up queries for testing"""
         self.dummy_queries = {
             'significant_precipitation': {
                 'succeed': 'heavy_precipitation',
@@ -327,8 +329,9 @@ class Test_construct_extract_constraint(IrisTest):
         self.assertIsInstance(result, iris.Constraint)
         self.assertEqual(str(result), expected)
 
-    def test_basic(self):
-        """Test construct_extract_constraint returns a iris.Constraint."""
+    def test_list_of_constraints(self):
+        """Test construct_extract_constraint returns a list
+           of iris.Constraint."""
         plugin = WeatherSymbols()
         diagnostics = ['probability_of_rainfall_rate',
                        'probability_of_lwe_snowfall_rate']
