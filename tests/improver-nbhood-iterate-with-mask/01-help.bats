@@ -86,7 +86,7 @@ optional arguments:
                         following neighbourhood processing is re-masked. This
                         re-masking removes any values that have been generated
                         by neighbourhood processing at grid points within the
-                        masked region.If not set, re_mask defaults to False
+                        masked region. If not set, re_mask defaults to False
                         and no re-masking is applied to the neighbourhood
                         processed output. Therefore, the neighbourhood
                         processing may result in values being present in areas
