@@ -42,12 +42,16 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          INPUT_MASK_FILE OUTPUT_FILE
 
 Apply the requested neighbourhood method via the
-ApplyNeighbourhoodProcessingWithAMask plugin to a file with one cube using a
-mask. Within the mask cube, the coordinate chosen as the coordinate to mask
-with, is iterated over. Therefore every slice of the coordinate to mask with
-is applied to the input cube as it is neighbourhood processed. There is also
-an option to re-mask the output cube, so that after neighbourhood processing,
-non-zero values are only present for unmasked grid points.
+ApplyNeighbourhoodProcessingWithAMask plugin to a file with one diagnostic
+cube in combination with a cube containing one or more masks. The cube
+containing the mask(s) may have an extra dimension compared to the input cube.
+In this case, the user specifies the name of the extra coordinate and this
+coordinate is iterated over so each mask is applied to the input cube
+separately. These masked cubes are concatenated together in the output cube,
+resulting in a cube that has been processed using multiple masks having gained
+the extra dimension from the cube. There is also an option to re-mask the
+output cube, so that after neighbourhood processing, non-zero values are only
+present for unmasked grid points.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the
@@ -85,12 +89,12 @@ optional arguments:
   --re_mask             If re_mask is set (i.e. True), the output cube
                         following neighbourhood processing is re-masked. This
                         re-masking removes any values that have been generated
-                        by neighbourhood processing at grid points within the
-                        masked region. If not set, re_mask defaults to False
-                        and no re-masking is applied to the neighbourhood
-                        processed output. Therefore, the neighbourhood
-                        processing may result in values being present in areas
-                        that were originally masked.
+                        by neighbourhood processing at grid points that were
+                        originally masked. If not set, re_mask defaults to
+                        False and no re-masking is applied to the
+                        neighbourhood processed output. Therefore, the
+                        neighbourhood processing may result in values being
+                        present in areas that were originally masked.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
