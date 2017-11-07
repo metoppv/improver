@@ -33,6 +33,7 @@
 import iris
 import numpy as np
 from glob import glob
+from cf_units import Unit
 
 
 def _make_mask_cube(mask_data, key, coords, topographic_bounds):
@@ -72,7 +73,8 @@ def _make_mask_cube(mask_data, key, coords, topographic_bounds):
         central_point = np.mean(topographic_bounds)
         threshold_coord = iris.coords.AuxCoord(central_point,
                                                bounds=topographic_bounds,
-                                               long_name=coord_name)
+                                               long_name=coord_name,
+                                               units=Unit('m'))
         mask_cube.add_aux_coord(threshold_coord)
     mask_cube.attributes['Topographical Type'] = key.title()
     for coord in coords:

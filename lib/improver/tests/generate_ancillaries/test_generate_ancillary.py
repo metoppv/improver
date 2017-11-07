@@ -40,6 +40,7 @@ from iris.coord_systems import GeogCS
 from iris.fileformats.pp import EARTH_RADIUS
 from iris import save
 import numpy as np
+from cf_units import Unit
 
 from improver.generate_ancillaries.generate_ancillary import (
     _make_mask_cube, find_standard_ancil)
@@ -78,6 +79,7 @@ class Test__make_mask_cube(IrisTest):
         self.coords = [self.x_coord, self.y_coord]
         self.upper = 100.
         self.lower = 0.
+        self.units = Unit('m')
 
     def test_wrong_number_of_bounds(self):
         """test checking that an exception is raised when the _make_mask_cube
@@ -109,6 +111,7 @@ class Test__make_mask_cube(IrisTest):
                          self.lower)
         self.assertEqual(result.coord('topographic_zone').points,
                          np.mean([self.lower, self.upper]))
+        self.assertEqual(result.coord('topographic_zone').units, Unit('m'))
 
 
 class Test_find_standard_ancil(IrisTest):
