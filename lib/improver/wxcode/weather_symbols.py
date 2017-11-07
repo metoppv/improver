@@ -35,6 +35,7 @@ import numpy as np
 import copy
 import iris
 from iris import Constraint
+
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
@@ -113,18 +114,30 @@ class WeatherSymbols(object):
             test_conditions (dict):
                 A single query from the decision tree.
         Returns:
-            string:
-                A string representing the inverted comparison.
+            (tuple): tuple containing:
+                **inverted_threshold** (string):
+                    A string representing the inverted comparison.
+                **inverted_combination** (string):
+                    A string representing the inverted combination
         """
-        condition = test_conditions['threshold_condition']
-        if condition == '>=':
-            return '<'
-        if condition == '<=':
-            return '>'
-        if condition == '<':
-            return '>='
-        if condition == '>':
-            return '<='
+        threshold = test_conditions['threshold_condition']
+        inverted_threshold = threshold
+        if threshold == '>=':
+            inverted_threshold = '<'
+        if threshold == '<=':
+            inverted_threshold = '>'
+        if threshold == '<':
+            inverted_threshold = '>='
+        if threshold == '>':
+            inverted_threshold = '<='
+        combination = test_conditions['condition_combination']
+        inverted_combination = combination
+        if combination == 'OR':
+            inverted_combination = 'AND'
+        elif combination == 'AND':
+            inverted_combination = 'OR'
+
+        return inverted_threshold, inverted_combination
 
     @staticmethod
     def construct_condition(extract_constraint, condition,
@@ -240,8 +253,9 @@ class WeatherSymbols(object):
         Args:
             diagnostics (string or list of strings):
                 The names of the diagnostics to be extracted from the CubeList.
-            thresholds (float or list of floats):
+            thresholds (iris.AuxCoord or list of iris.AuxCoord):
                 A thresholds within the given diagnostic cubes that are needed.
+                Including units.
         Returns:
             iris.Constraint or list of iris.Constraints:
                 The constructed iris constraints.
@@ -316,13 +330,14 @@ class WeatherSymbols(object):
                 A cube full of -1 values, with suitable metadata to describe
                 the weather symbols that will fill it.
         """
-        cube_format = next(cube.slices([cube.coord(axis='y'),
-                                        cube.coord(axis='x')]))
+        cube_format = next(cube.slices_over(['threshold']))
         symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
                                                 dtype=np.int))
+
         symbols.remove_coord('threshold')
         symbols.attributes.pop('relative_to_threshold')
         symbols = add_wxcode_metadata(symbols)
+
         return symbols
 
     def process(self, cubes):
@@ -375,12 +390,13 @@ class WeatherSymbols(object):
                         next_node = symbol_code
 
                     if current['fail'] == next_node:
-                        current['threshold_condition'] = self.invert_condition(
-                            next_data)
+                        (current['threshold_condition'],
+                         current['condition_combination']) = (
+                             self.invert_condition(current))
+
                     conditions.extend(self.create_condition_chain(current))
 
                 test_chain = self.format_condition_chain(conditions)
-                # print test_chain
 
                 # Set grid locations to suitable weather symbol
                 symbols.data[np.where(eval(test_chain))] = symbol_code

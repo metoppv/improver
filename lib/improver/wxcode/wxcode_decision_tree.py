@@ -104,7 +104,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'heavy_sleet_continuous': {
             'succeed': 18,
@@ -188,7 +188,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'light_sleet_continuous': {
             'succeed': 18,
@@ -286,7 +286,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'overcast_cloud': {
             'succeed': 8,
@@ -298,7 +298,7 @@ def wxcode_decision_tree():
                                    'assuming_only_consider_surface_to_1000'
                                    '_feet_asl')],
             'diagnostic_thresholds': [AuxCoord(0.85, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'partly_cloudy': {
             'succeed': 3,
@@ -308,7 +308,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.1875, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'any_precipitation': {
             'succeed': 'precipitation_in_vicinity',
@@ -376,7 +376,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'heavy_snow_continuous_in_vicinity': {
             'succeed': 27,
@@ -387,7 +387,7 @@ def wxcode_decision_tree():
             'diagnostic_fields': [
                 'probability_of_lwe_snowfall_rate_in_vicinity'],
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'heavy_snow_shower_in_vicinity': {
             'succeed': 26,
@@ -398,7 +398,7 @@ def wxcode_decision_tree():
             'diagnostic_fields': [
                 'probability_of_lwe_snowfall_rate_in_vicinity'],
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'rain_in_vicinity_cloud': {
             'succeed': 'heavy_rain_continuous_in_vicinity',
@@ -408,7 +408,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_cloud_area_fraction'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'heavy_rain_continuous_in_vicinity': {
             'succeed': 15,
@@ -419,7 +419,7 @@ def wxcode_decision_tree():
             'diagnostic_fields': [
                 'probability_of_rainfall_rate_in_vicinity'],
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'heavy_rain_shower_in_vicinity': {
             'succeed': 14,
@@ -430,7 +430,7 @@ def wxcode_decision_tree():
             'diagnostic_fields': [
                 'probability_of_rainfall_rate_in_vicinity'],
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': ['above']},
 
         'mist_conditions': {
             'succeed': 'fog_conditions',
@@ -440,7 +440,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_visibility_in_air'],
             'diagnostic_thresholds': [AuxCoord(5000., units='m')],
-            'diagnostic_conditions': ['below', 'below']},
+            'diagnostic_conditions': ['below']},
 
         'fog_conditions': {
             'succeed': 6,
@@ -450,7 +450,7 @@ def wxcode_decision_tree():
             'condition_combination': '',
             'diagnostic_fields': ['probability_of_visibility_in_air'],
             'diagnostic_thresholds': [AuxCoord(1000., units='m')],
-            'diagnostic_conditions': ['below', 'below']},
+            'diagnostic_conditions': ['below']},
         }
 
     return queries

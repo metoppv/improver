@@ -32,18 +32,10 @@
 
 import unittest
 
-import numpy as np
-
-
-import iris
-from iris.cube import Cube
 from iris.tests import IrisTest
-from cf_units import Unit
 
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
-from improver.wxcode.wxcode_utilities import (WX_DICT,
-                                              expand_nested_lists)
-from improver.wxcode.weather_symbols import WeatherSymbols
+from improver.wxcode.wxcode_utilities import expand_nested_lists
 
 
 REQUIRED_KEY_WORDS = ['succeed',
@@ -60,6 +52,7 @@ OPTIONAL_KEY_WORDS = ['diagnostic_gamma']
 THRESHOLD_CONDITIONS = ['<=', '<', '>', '>=']
 CONDITION_COMBINATIONS = ['AND', 'OR']
 DIAGNOSTIC_CONDITIONS = ['below', 'above']
+
 
 class Test_wxcode_decision_tree(IrisTest):
 
@@ -124,9 +117,12 @@ class Test_wxcode_decision_tree(IrisTest):
         """Test that succeed and fail point to valid values or nodes."""
         tree = wxcode_decision_tree()
         for node in tree:
+            query = tree[node]
             diag_len = len(expand_nested_lists(query, 'diagnostic_fields'))
-            thres_len = len(expand_nested_lists(query, 'diagnostic_thresholds'))
-            cond_len = len(expand_nested_lists(query, 'diagnostic_conditions'))
+            thres_len = len(expand_nested_lists(query,
+                                                'diagnostic_thresholds'))
+            cond_len = len(expand_nested_lists(query,
+                                               'diagnostic_conditions'))
             self.assertEqual(diag_len, thres_len)
             self.assertEqual(diag_len, cond_len)
 

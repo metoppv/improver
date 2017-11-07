@@ -36,9 +36,9 @@ import numpy as np
 
 
 import iris
-from iris.cube import Cube
 from iris.tests import IrisTest
-from cf_units import Unit
+from iris import Constraint
+from iris.coords import AuxCoord
 
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
@@ -47,6 +47,92 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 
 
 iris.FUTURE.netcdf_promote = True
+
+
+def set_up_wxcubes():
+    """Set up cubes required for Weather Symbols """
+    data_snow = np.array([0.0, 1.0, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                          0.0, 1.0, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
+                          0.0, 1.0, 0.5, 0.6, 0.8, 0.2,
+                          0.8, 0.1, 0.2]).reshape(3, 1, 3, 3)
+    snowfall_rate = (
+        set_up_probability_above_threshold_cube(
+            data_snow,
+            'lwe_snowfall_rate',
+            'mm hr-1',
+            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+
+    data_rain = np.array([1.0, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                          1.0, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
+                          1.0, 0.3, 0.5, 0.6, 0.8, 0.2,
+                          0.8, 0.1, 0.2]).reshape(3, 1, 3, 3)
+    rainfall_rate = (
+        set_up_probability_above_threshold_cube(
+            data_rain,
+            'rainfall_rate',
+            'mm hr-1',
+            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+
+    data_snowv = np.array([0.0, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                           0.0, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
+                           0.0, 0.3, 0.5, 0.6, 0.8, 0.2,
+                           0.8, 0.1, 0.2]).reshape(3, 1, 3, 3)
+    snowfall_vicinity = (
+        set_up_probability_above_threshold_cube(
+            data_snowv,
+            'lwe_snowfall_rate_in_vicinity',
+            'mm hr-1',
+            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+
+    data_rainv = np.array([0.0, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                           0.0, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
+                           0.0, 0.3, 0.5, 0.6, 0.8, 0.2,
+                           0.8, 0.1, 0.2]).reshape(3, 1, 3, 3)
+    rainfall_vicinity = (
+        set_up_probability_above_threshold_cube(
+            data_rainv,
+            'rainfall_rate_in_vicinity',
+            'mm hr-1',
+            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+
+    data_cloud = np.array([1.0, 1.0, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                           1.0, 1.0, 0.5, 0.6, 0.8, 0.2,
+                           0.8, 0.1, 0.2]).reshape(2, 1, 3, 3)
+    cloud = (set_up_probability_above_threshold_cube(
+        data_cloud,
+        'cloud_area_fraction',
+        '1',
+        forecast_thresholds=np.array([0.1875, 0.8125])))
+
+    data_cld_1000ft = np.array([0.0, 0.3, 0.4, 0.2, 0.6, 0.7,
+                                0.4, 0.2, 0.1]).reshape(1, 1, 3, 3)
+    cloud_below_1000ft = (
+        set_up_probability_above_threshold_cube(
+            data_cld_1000ft,
+            'cloud_area_fraction_assuming_only'
+            '_consider_surface_to_1000_feet_asl',
+            '1',
+            forecast_thresholds=np.array([0.85])))
+
+    data_vis = np.array([0.0, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
+                         0.0, 0.3, 0.5, 0.6, 0.8, 0.2,
+                         0.8, 0.1, 0.2]).reshape(2, 1, 3, 3)
+    visibility = (
+        set_up_probability_above_threshold_cube(
+            data_vis,
+            'visibility_in_air',
+            'm',
+            forecast_thresholds=np.array([1000.0, 5000.0])))
+    visibility.attributes['relative_to_threshold'] = 'below'
+
+    cubes = iris.cube.CubeList([rainfall_rate,
+                                snowfall_rate,
+                                rainfall_vicinity,
+                                snowfall_vicinity,
+                                cloud,
+                                cloud_below_1000ft,
+                                visibility])
+    return cubes
 
 
 class Test__repr__(IrisTest):
@@ -64,98 +150,242 @@ class Test_check_input_cubes(IrisTest):
 
     """Test the check_input_cubes method."""
 
+    def setUp(self):
+        """ Setup for testing """
+        self.cubes = set_up_wxcubes()
+
     def test_basic(self):
-        """Test that the invert_condition method returns a string."""
+        """Test check_input_cubes method raises no error if the data is OK"""
+        plugin = WeatherSymbols()
+        self.assertEqual(plugin.check_input_cubes(self.cubes), None)
+
+    def test_raises_error(self):
+        """Test check_input_cubes method raises error if data is missing"""
+        plugin = WeatherSymbols()
+        cubes = self.cubes.pop()
+        msg = 'Weather Symbols input cubes are missing'
+        with self.assertRaisesRegexp(IOError, msg):
+            plugin.check_input_cubes(cubes)
+
+
+class Test_invert_condition(IrisTest):
+
+    """Test the invert condition method."""
+
+    def test_basic(self):
+        """Test that the invert_condition method returns a tuple of strings."""
         plugin = WeatherSymbols()
         tree = plugin.queries
-        print tree[tree.keys()[0]]
         result = plugin.invert_condition(tree[tree.keys()[0]])
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], str)
+        self.assertIsInstance(result[1], str)
+
+    def test_invert_thresholds_correctly(self):
+        plugin = WeatherSymbols()
+        node = {'threshold_condition': '>=', 'condition_combination': ''}
+        possible_inputs = ['>=', '<=', '<', '>']
+        inverse_outputs = ['<', '>', '>=', '<=']
+        for i, val in enumerate(possible_inputs):
+            node['threshold_condition'] = val
+            result = plugin.invert_condition(node)
+            self.assertEqual(result[0], inverse_outputs[i])
+
+    def test_invert_combination_correctly(self):
+        plugin = WeatherSymbols()
+        node = {'threshold_condition': '>=', 'condition_combination': ''}
+        possible_inputs = ['AND', 'OR', '']
+        inverse_outputs = ['OR', 'AND', '']
+        for i, val in enumerate(possible_inputs):
+            node['condition_combination'] = val
+            result = plugin.invert_condition(node)
+            self.assertEqual(result[1], inverse_outputs[i])
+
+
+class Test_construct_condition(IrisTest):
+
+    """Test the construct condition method."""
+
+    def test_basic(self):
+        """Test that the construct_condition method returns a string."""
+        plugin = WeatherSymbols()
+        constraint_value = iris.Constraint(name='probability_of_rainfall_rate',
+                                           coord_values={'threshold': 0.03})
+        condition = '<'
+        prob_threshold = 0.5
+        gamma = None
+        expected = ("cubes.extract(Constraint(name="
+                    "'probability_of_rainfall_rate',"
+                    " coord_values={'threshold': 0.03})"
+                    ")[0].data < 0.5")
+        result = plugin.construct_condition(constraint_value,
+                                            condition,
+                                            prob_threshold,
+                                            gamma)
         self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
 
-# class Test_invert_condition(IrisTest):
-
-#    """Test the invert condition method."""
-
-#    def test_basic(self):
-#        """Test that the invert_condition method returns a string."""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        self.assertIsInstance(result, str)
-
-
-# class Test_construct_condition(IrisTest):
-
-#    """Test the construct condition method."""
-
-#    def test_basic(self):
-#        """Test that the construct_condition method returns a string."""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        self.assertIsInstance(result, str)
-
-# class Test_format_condition_chain(IrisTest):
-
-#    """Test the format_condition_chain method."""
-
-#    def test_basic(self):
-#        """Test that the format_condition_change method returns a string."""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        self.assertIsInstance(result, str)
+    def test_works_with_lists(self):
+        """Test that the construct_condition method works with a list
+        of Constraints """
+        plugin = WeatherSymbols()
+        constraint_list = [
+            iris.Constraint(name='probability_of_lwe_snowfall_rate',
+                            coord_values={'threshold': 0.03}),
+            iris.Constraint(name='probability_of_rainfall_rate',
+                            coord_values={'threshold': 0.03})]
+        condition = '<'
+        prob_threshold = 0.5
+        gamma = 0.7
+        expected = ("(cubes.extract(Constraint(name="
+                    "'probability_of_lwe_snowfall_rate', "
+                    "coord_values={'threshold': 0.03}))[0].data - "
+                    "cubes.extract(Constraint(name="
+                    "'probability_of_rainfall_rate', "
+                    "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5")
+        result = plugin.construct_condition(constraint_list,
+                                            condition,
+                                            prob_threshold,
+                                            gamma)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
 
 
-# class Test_create_condition_chain(IrisTest):
+class Test_format_condition_chain(IrisTest):
 
-#    """Test the create_condition_chain method."""
+    """Test the format_condition_chain method."""
 
-#    def test_basic(self):
-#        """Test create_condition_change method returns a list of strings."""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        self.assertIsInstance(result, list)
-#        self.assertIsInstance(result[0], str)
+    def test_basic(self):
+        """Test that the format_condition_change method returns a string."""
+        plugin = WeatherSymbols()
+        conditions = ['condition1', 'condition2']
+        expected = '(condition1) & (condition2)'
+        result = plugin.format_condition_chain(conditions)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
+
+    def test_works_with_or(self):
+        """Test that the format_condition_change method works with or."""
+        plugin = WeatherSymbols()
+        conditions = ['condition1', 'condition2']
+        expected = '(condition1) | (condition2)'
+        result = plugin.format_condition_chain(conditions,
+                                               condition_combination='OR')
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
 
 
-# class Test_construct_extract_constraint(IrisTest):
-#
+class Test_create_condition_chain(IrisTest):
+
+    """Test the create_condition_chain method."""
+
+    def setUp(self):
+        self.dummy_queries = {
+            'significant_precipitation': {
+                'succeed': 'heavy_precipitation',
+                'fail': 'any_precipitation',
+                'probability_thresholds': [0.5, 0.5],
+                'threshold_condition': '>=',
+                'condition_combination': 'OR',
+                'diagnostic_fields': ['probability_of_rainfall_rate',
+                                      'probability_of_lwe_snowfall_rate'],
+                'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
+                                          AuxCoord(0.03, units='mm hr-1')],
+                'diagnostic_conditions': ['above', 'above']}
+            }
+
+    def test_basic(self):
+        """Test create_condition_change_chain returns a list of strings."""
+        plugin = WeatherSymbols()
+        test_condition = self.dummy_queries['significant_precipitation']
+        result = plugin.create_condition_chain(test_condition)
+        expected = ("(cubes.extract(Constraint(name="
+                    "'probability_of_rainfall_rate', "
+                    "coord_values={'threshold': 0.03}))[0].data >= 0.5) "
+                    "| (cubes.extract(Constraint(name="
+                    "'probability_of_lwe_snowfall_rate', "
+                    "coord_values={'threshold': 0.03}))[0].data >= 0.5)")
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], str)
+        self.assertEqual(result[0], expected)
+
+
+class Test_construct_extract_constraint(IrisTest):
+
     """Test the construct_extract_constraint method ."""
 
-#    def test_basic(self):
-#        """Test construct_extract_constraint method returns a iris.Constraint.
-#            or list of iris.Constraint"""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        if isinstance(result, list)
-#            self.assertIsInstance(result[0], iris.Constraint)
-#        else:
-#            self.assertIsInstance(result, iris.Constraint)
+    def test_basic(self):
+        """Test construct_extract_constraint returns a iris.Constraint."""
+        plugin = WeatherSymbols()
+        diagnostic = 'probability_of_rainfall_rate'
+        threshold = AuxCoord(0.03, units='mm hr-1')
+        result = plugin.construct_extract_constraint(diagnostic,
+                                                     threshold)
+        expected = ("Constraint(name='probability_of_rainfall_rate',"
+                    " coord_values={'threshold': 0.03})")
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertEqual(str(result), expected)
+
+    def test_basic(self):
+        """Test construct_extract_constraint returns a iris.Constraint."""
+        plugin = WeatherSymbols()
+        diagnostics = ['probability_of_rainfall_rate',
+                       'probability_of_lwe_snowfall_rate']
+        thresholds = [AuxCoord(0.03, units='mm hr-1'),
+                      AuxCoord(0.03, units='mm hr-1')]
+        result = plugin.construct_extract_constraint(diagnostics,
+                                                     thresholds)
+        expected = ("Constraint(name='probability_of_lwe_snowfall_rate',"
+                    " coord_values={'threshold': 0.03})")
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], iris.Constraint)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(str(result[1]), expected)
 
 
-# class Test_find_all_routes(IrisTest):
-#
-#    """Test the find_all_routes method ."""
-#
-#    def test_basic(self):
-#        """Test construct_extract_constraint method returns a iris.Constraint.
-#            or list of iris.Constraint"""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-#        if isinstance(result, list)
-#            self.assertIsInstance(result[0], iris.Constraint)
-#        else:
-#            self.assertIsInstance(result, iris.Constraint)
+class Test_find_all_routes(IrisTest):
+
+    """Test the find_all_routes method ."""
+
+    def setUp(self):
+        """ Setup testing graph """
+        self.test_graph = {'start_node': ['success_1', 'fail_0'],
+                           'success_1': ['success_1_1', 'fail_1_0'],
+                           'fail_0': ['success_0_1', 3],
+                           'success_1_1': [1, 2],
+                           'fail_1_0': [2, 4],
+                           'success_0_1': [5, 1]}
+
+    def test_basic(self):
+        """Test find_all_routes returns a list of expected nodes."""
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        3)
+        expected_nodes = [['start_node',
+                           'fail_0',
+                           3]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_multiple_routes(self):
+        """Test find_all_routes finds multiple routes."""
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1)
+        expected_nodes = [['start_node',
+                           'success_1',
+                           'success_1_1',
+                           1],
+                          ['start_node',
+                           'fail_0',
+                           'success_0_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
 
 class Test_create_symbol_cube(IrisTest):
 
@@ -185,19 +415,23 @@ class Test_create_symbol_cube(IrisTest):
                          self.wxmeaning)
 
 
-# class Test_process(IrisTest):
+class Test_process(IrisTest):
 
-#    """Test the find_all_routes method ."""
+    """Test the find_all_routes method ."""
+    def setUp(self):
+        """ Set up wxcubes for testing. """
+        self.cubes = set_up_wxcubes()
+        self.wxcode = np.array(WX_DICT.keys())
+        self.wxmeaning = " ".join(WX_DICT.values())
 
-#    def test_basic(self):
-#        """Test construct_extract_constraint method returns a iris.Constraint.
-#            or list of iris.Constraint"""
-#        plugin = WeatherSymbols()
-#        tree = plugin.queries
-#        print tree[tree.keys()[0]]
-#        result = plugin.invert_condition(tree[tree.keys()[0]])
-
-#        self.assertIsInstance(result[0], iris.cube.Cube)
+    def test_basic(self):
+        """Test process returns a weather code cube. """
+        plugin = WeatherSymbols()
+        result = plugin.process(self.cubes)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
 
 
 if __name__ == '__main__':
