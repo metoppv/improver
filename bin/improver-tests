@@ -60,7 +60,7 @@ function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
     for SUBTEST in $CLISUBTEST; do
-        test_dir=$IMPROVER_DIR/tests/improver-*$SUBTEST*/
+        test_dir=$IMPROVER_DIR/tests/improver-$SUBTEST/
         test_dir="$(echo -e "${test_dir}" | tr -d '[:space:]')"
         if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
             PROVE_VERBOSE_OPT=
