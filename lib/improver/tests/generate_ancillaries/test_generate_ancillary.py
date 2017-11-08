@@ -79,7 +79,6 @@ class Test__make_mask_cube(IrisTest):
         self.coords = [self.x_coord, self.y_coord]
         self.upper = 100.
         self.lower = 0.
-        self.units = Unit('m')
 
     def test_wrong_number_of_bounds(self):
         """test checking that an exception is raised when the _make_mask_cube
