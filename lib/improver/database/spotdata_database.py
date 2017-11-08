@@ -29,24 +29,26 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+"""
+A plugin for creating tables from spotdata forecasts for Database export.
+
+"""
+
 import iris
 import iris.iterate
 import iris.pandas
 import itertools
-import numpy as np
 import pandas as pd
 import sqlite3
 import os
 from datetime import datetime as dt
 from pandas import DataFrame
 
-
-# For debugging
-from profiler import profile
-import pprint
-import resource
-
 class SpotDatabase(object):
+    """
+    Class to create a Database table from a SpotData iris.cube.
+    
+    """
 
     def __init__(self, cubelist,
                  primary_dim='time',
@@ -98,17 +100,6 @@ class SpotDatabase(object):
             for coord in cube.dim_coords:
                 assert coord.is_compatible(some_cube.coord(coord.name()))
 
-    def determine_dimensions(self, cube):
-        """
-        Determine the dimensions to collapse from the input cube.
-
-        """
-        dimensions = cube.dim_coords
-        dim_names = [dim.standard_name or dim.long_name for dim in dimensions]
-
-        if [self.cols] + [self.rows] in dim_names:
-            self.row.index = dim_names.index(self.row)
-
     def to_dataframe(self):
         """
         Turn the input cubes into a 2-dimensional DataFrame object
@@ -116,17 +107,7 @@ class SpotDatabase(object):
         """
 
         for cube in self.cubelist:
-            print cube
-            for coord in self.cubelist[0].coords():
-                name = coord.standard_name or coord.long_name
-
-                if (name not in self.column_dims + [self.primary_dim] +
-                                                   [self.pivot_dim]):
-                    cube.remove_coord(coord)
-
-            # Loop over the remaining dimensions
-            for c in cube.slices_over(1):
-                cube_name = cube.name()
+            for c in cube.slices_over(self.column_dims[0]):
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
                                columns=['vals'])
@@ -174,51 +155,14 @@ class SpotDatabase(object):
                 except AttributeError:
                     self.df = df
 
-        #self.df = self.df.pivot(columns = 'forecast_period', values='vals')
-
-    def constrained_to_dataframe():
-        """
-        Turn the input cubes into a dataframe sorted by validity_time
-
-        """
-        cubes = self.cubelist
-        rows = self.primary_dim
-        coords = [coord.standard_name or coord.long_name for coord in
-                                                    self.cubelist[0].coords()]
-        for cube in cubes:
-            ignored_coord_dims = [item for item in ignored_coords if item not in cube.dim_coords]
-            print cube
-            for c in cube.slices_over('time'):
-                df = iris.pandas.as_data_frame(c, copy=False)
-
-        primary_key_iterator = self.determine_range(rows)
-        for row_val in sorted(primary_key_iterator, key=lambda x: x.points):
-            print row_val
-            records = []
-
-            # Constrain the cubes by primary_dim
-            constraint = iris.Constraint(**{rows: row_val.points})
-            selection = self.cubelist.extract(constraint)
-
-            record = dict()
-            for cube in selection:
-                df = iris.pandas.as_data_frame(cube, copy=False)
-            return
-            for iterator in iris.iterate.izip(*selection):
-                df = iris.pandas.as_data_frame(cube, copy=False)
-                for cube in iterator:
-                    dictionary = cube.coords()
-                    record = {coord.standard_name or
-                              coord.long_name: coord.points[0]
-                              for coord in [cube.coord(c) for c in cols]}
-                    records.append(record)
-            new_df = DataFrame.from_dict(records)
-            self.df = pd.concat([self.df, new_df])
-        return self.df
-
     def create_table(self, outfile, table='test'):
         """
-        Create the SQL datafile table
+        Method to first create a the SQL datafile table.
+        
+        The primary keys are determined from the indexed columns in
+        the DataFrame.
+        The SQLite3 table's datatypes are determined from the data types in 
+        he DataFrame.
 
         """
 
