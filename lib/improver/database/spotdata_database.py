@@ -46,7 +46,6 @@ from profiler import profile
 import pprint
 import resource
 
-
 class SpotDatabase(object):
 
     def __init__(self, cubelist,
@@ -110,7 +109,6 @@ class SpotDatabase(object):
         if [self.cols] + [self.rows] in dim_names:
             self.row.index = dim_names.index(self.row)
 
-    #@profile
     def to_dataframe(self):
         """
         Turn the input cubes into a 2-dimensional DataFrame object
