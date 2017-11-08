@@ -82,8 +82,8 @@ class SpotDatabase(object):
         Representation of the instance.
 
         """
-
-        return '<SpotDatabase: {}>'.format(self.primary_dim)
+        columns = self.primary_map + self.column_maps + self.pivot_dim
+        return '<SpotDatabase: columns: {}>'.format(all_columns)
 
     def assert_similar(self):
         """
@@ -158,8 +158,8 @@ class SpotDatabase(object):
         
         The primary keys are determined from the indexed columns in
         the DataFrame.
-        The SQLite3 table's datatypes are determined from the data types in 
-        he DataFrame.
+        The SQLite3 table's datatypes are determined from the data types in
+        the DataFrame.
 
         """
 
@@ -194,17 +194,3 @@ class SpotDatabase(object):
         """
 
         self.df.to_csv(outfile)
-
-    def determine_range(self, dimension):
-
-        """
-        Determine the unique values of the dimension over which to unroll into
-        primary key rows in the table.
-
-        """
-        unique_values = set()
-        for cube in self.cubelist:
-            for val in cube.coord(dimension):
-                unique_values.add(val)
-
-        return unique_values
