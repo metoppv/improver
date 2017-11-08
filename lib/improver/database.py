@@ -82,8 +82,8 @@ class SpotDatabase(object):
         Representation of the instance.
 
         """
-        columns = self.primary_map + self.column_maps + self.pivot_dim
-        return '<SpotDatabase: columns: {}>'.format(all_columns)
+        result = '<SpotDatabase: columns (primary={}, other={}, pivot={})>'
+        return result.format(self.primary_map, self.column_maps, self.pivot_dim)
 
     def assert_similar(self):
         """
