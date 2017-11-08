@@ -117,11 +117,6 @@ class SpotDatabase(object):
 
         """
 
-        #coords   = [coord.standard_name or coord.long_name for coord in
-        #                                            self.cubelist[0].coords()]
-        #ignore = [item for item in coords if item not in [self.column_dims] +
-        #                                                 [self.primary_dim] +
-        #                                                 [self.pivot_dim]]
         for cube in self.cubelist:
             print cube
             for coord in self.cubelist[0].coords():
