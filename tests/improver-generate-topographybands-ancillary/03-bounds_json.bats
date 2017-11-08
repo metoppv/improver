@@ -41,7 +41,7 @@
       "$test_path/input_orog.nc" \
       "$test_path/input_land.nc" \
       "$TEST_DIR/output.nc" \
-      --thresholds_$test_path/bounds.json
+      --thresholds $test_path/bounds.json
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

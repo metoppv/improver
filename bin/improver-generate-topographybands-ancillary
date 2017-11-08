@@ -92,7 +92,6 @@ def main():
                               "}"))
     args = parser.parse_args()
 
-    print type(args.thresholds_filepath)
     if args.thresholds_filepath != THRESHOLDS_DICT:
         with open(args.thresholds_filepath, 'r') as filehandle:
             thresholds_dict = json.loads(filehandle.read())
