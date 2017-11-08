@@ -34,9 +34,6 @@ A plugin for creating tables from spotdata forecasts for Database export.
 
 """
 
-import iris
-import iris.iterate
-import iris.pandas
 import itertools
 import pandas as pd
 import sqlite3
@@ -47,7 +44,7 @@ from pandas import DataFrame
 class SpotDatabase(object):
     """
     Class to create a Database table from a SpotData iris.cube.
-    
+
     """
 
     def __init__(self, cubelist,
