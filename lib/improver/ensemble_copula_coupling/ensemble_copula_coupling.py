@@ -385,9 +385,9 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities, coord=threshold_coord.name())
 
         # The requirement below for a monotonically changing probability
-        # across thresholds can be thwarted by precision errors of order 1E-11,
-        # as such, here we round to a precision of 10 decimal places.
-        prob_slices = np.around(prob_slices, 10)
+        # across thresholds can be thwarted by precision errors of order 1E-10,
+        # as such, here we round to a precision of 9 decimal places.
+        prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
         relation = forecast_probabilities.attributes['relative_to_threshold']
