@@ -174,7 +174,7 @@ class GenerateOrographyBandAncils(object):
 
     @staticmethod
     def gen_orography_masks(
-            standard_orography, standard_landmask, key, thresholds):
+            standard_orography, standard_landmask, key, thresholds, units='m'):
         """
         Function to generate topographical band masks.
 
@@ -202,9 +202,12 @@ class GenerateOrographyBandAncils(object):
             Key from THRESHOLD_DICT which describes type of topography band.
         thresholds: list
             Upper and/or lower thresholds of the current topographical band.
-        units : string
-            Units to be fed to CF_units to create a unit for the cube.
-            The unit must be convertable to meters.
+
+        Keyword Args:
+            units (string):
+                Units to be fed to CF_units to create a unit for the cube.
+                The unit must be convertable to meters. If no unit is given
+                this will default to meters.
 
         Returns
         -------
