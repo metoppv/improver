@@ -114,7 +114,7 @@ class Test_wxcode_decision_tree(IrisTest):
                 self.assertEqual(fail in tree, True)
 
     def test_diagnostic_len_match(self):
-        """Test that succeed and fail point to valid values or nodes."""
+        """Test diagnostic fields, thresholds and conditions are same len."""
         tree = wxcode_decision_tree()
         for node in tree:
             query = tree[node]

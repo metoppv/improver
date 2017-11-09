@@ -258,7 +258,7 @@ class Test_format_condition_chain(IrisTest):
     """Test the format_condition_chain method."""
 
     def test_basic(self):
-        """Test that the format_condition_change method returns a string."""
+        """Test that the format_condition_chain method returns a string."""
         plugin = WeatherSymbols()
         conditions = ['condition1', 'condition2']
         expected = '(condition1) & (condition2)'
@@ -267,7 +267,7 @@ class Test_format_condition_chain(IrisTest):
         self.assertEqual(result, expected)
 
     def test_works_with_or(self):
-        """Test that the format_condition_change method works with OR."""
+        """Test that the format_condition_chain method works with OR."""
         plugin = WeatherSymbols()
         conditions = ['condition1', 'condition2']
         expected = '(condition1) | (condition2)'
@@ -298,7 +298,7 @@ class Test_create_condition_chain(IrisTest):
             }
 
     def test_basic(self):
-        """Test create_condition_change_chain returns a list of strings."""
+        """Test create_condition_chain returns a list of strings."""
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
