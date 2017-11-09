@@ -124,11 +124,11 @@ class WeatherSymbols(object):
         inverted_threshold = threshold
         if threshold == '>=':
             inverted_threshold = '<'
-        if threshold == '<=':
+        elif threshold == '<=':
             inverted_threshold = '>'
-        if threshold == '<':
+        elif threshold == '<':
             inverted_threshold = '>='
-        if threshold == '>':
+        elif threshold == '>':
             inverted_threshold = '<='
         combination = test_conditions['condition_combination']
         inverted_combination = combination
@@ -287,6 +287,8 @@ class WeatherSymbols(object):
                 significant_precipitation).
             end (int):
                 The weather symbol code to which we are tracing all routes.
+            route (list):
+                A list of node names found so far.
 
         Returns:
             routes (list):
@@ -347,7 +349,7 @@ class WeatherSymbols(object):
         Args:
             cubes (iris.cube.CubeList):
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at conincident times.
+                weather symbols decision tree, these at co-incident times.
 
         Returns:
             symbols (iris.cube.Cube):
@@ -372,6 +374,8 @@ class WeatherSymbols(object):
 
         # Loop over possible symbols
         for symbol_code in defined_symbols:
+            # In current decision tree
+            # start node is significant_precipitation
             routes = self.find_all_routes(graph, 'significant_precipitation',
                                           symbol_code)
 

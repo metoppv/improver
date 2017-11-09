@@ -124,12 +124,9 @@ def set_up_wxcubes():
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
 
-    cubes = iris.cube.CubeList([snowfall_rate,
-                                rainfall_rate,
-                                snowfall_vicinity,
-                                rainfall_vicinity,
-                                cloud,
-                                cloud_below_1000ft,
+    cubes = iris.cube.CubeList([snowfall_rate, rainfall_rate,
+                                snowfall_vicinity, rainfall_vicinity,
+                                cloud, cloud_below_1000ft,
                                 visibility])
     return cubes
 

@@ -79,9 +79,8 @@ class Test_wxcode_decision_tree(IrisTest):
             num_diagnostics = len(tree[node]['diagnostic_fields'])
             if num_diagnostics == 2:
                 self.assertEqual(combination in CONDITION_COMBINATIONS, True)
-            # else:
-            #     print node, combination
-            #     self.assertEqual(combination, '')
+            else:
+                self.assertEqual(combination, '')
 
     def test_threshold_condition(self):
         """Test only permissible values are used in threshold_condition."""
@@ -108,7 +107,7 @@ class Test_wxcode_decision_tree(IrisTest):
         for node in tree:
             succeed = tree[node]['succeed']
             if isinstance(succeed, str):
-                self.assertEqual(succeed in tree, True)
+                self.assertEqual(succeed in tree.keys(), True)
             fail = tree[node]['fail']
             if isinstance(fail, str):
                 self.assertEqual(fail in tree, True)
