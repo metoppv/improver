@@ -264,6 +264,7 @@ class Test_set_up_cube(IrisTest):
     def test_regrid(self):
         """
         Test that set_up_cube returns a cube that can be regridded
+        as this proves that it has a coordinate reference systems.
         """
         result = set_up_cube().regrid(set_up_cube_lat_long(),
                                       iris.analysis.Linear())
