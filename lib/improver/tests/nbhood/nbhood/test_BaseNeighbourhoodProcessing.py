@@ -265,7 +265,7 @@ class Test_set_up_cube(IrisTest):
         """
         Test that set_up_cube returns a cube that can be regridded
         """
-        result = set_up_cube().regrid(sample_points,
+        result = set_up_cube().regrid(set_up_cube_lat_long(),
                                       iris.analysis.Linear())
         self.assertIsInstance(result, Cube)
 
