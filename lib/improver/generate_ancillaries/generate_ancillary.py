@@ -202,6 +202,12 @@ class GenerateOrographyBandAncils(object):
             Key from THRESHOLD_DICT which describes type of topography band.
         thresholds: list
             Upper and/or lower thresholds of the current topographical band.
+<<<<<<< HEAD
+=======
+        units : string
+            Units to be fed to CF_units to create a unit for the cube.
+            The unit must be convertable to meters.
+>>>>>>> changed default THRESHOLDS DICT structure to include units
 
         Returns
         -------
@@ -269,12 +275,13 @@ class GenerateOrographyBandAncils(object):
           list of orographic band mask cubes.
         """
         cubelist = iris.cube.CubeList()
-        for dict_key, dict_bound in thresholds_dict.iteritems():
-            if len(dict_bound) == 0:
+        for dict_key, bounds_dict in thresholds_dict.iteritems():
+            if len(bounds_dict) == 0:
                 msg = 'No threshold(s) found for topographic type: {}'
                 raise ValueError(msg.format(dict_key))
-            for limits in dict_bound:
+            
+            for limits in bounds_dict['bounds']:
                 oro_band = GenerateOrographyBandAncils.gen_orography_masks(
-                    orography, landmask, dict_key, limits)
+                    orography, landmask, dict_key, limits, bounds_dict['units'])
                 cubelist.append(oro_band)
         return cubelist

@@ -23,6 +23,9 @@ optional arguments:
   -h, --help            show this help message and exit
   --force               If True, ancillaries will be generated even if doing
                         so will overwrite existing files
+  --thresholds THRESHOLD_DICT
+                        The address of a json file which can be used to set
+                        the number and size of topographic bounds                        
 __HELP__
   [[ "$output" == "$expected" ]]
 }

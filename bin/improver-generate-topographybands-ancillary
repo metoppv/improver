@@ -62,6 +62,9 @@ def main():
                         action='store_true',
                         help=('If True, ancillaries will be generated even '
                               'if doing so will overwrite existing files'))
+    parser.add_argument('--thresholds', metavar='THRESHOLD_DICT', default=THRESHOLDS_DICT,
+                        help=("The address of a json file which can be used "
+                              "to set the number and size of topographic bounds"))    
     parser.add_argument('input_filepath_standard_orography',
                         metavar='INPUT_FILE_STANDARD_OROGRAPHY',
                         help=('A path to an input NetCDF orography file to '
