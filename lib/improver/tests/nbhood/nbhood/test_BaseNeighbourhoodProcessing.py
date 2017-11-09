@@ -240,6 +240,19 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
     return cube
 
 
+class Test_set_up_cube(IrisTest):
+
+    """Test the set_up_cube method in this module"""
+
+    def test_interpolate(self):
+        """
+        Test that set_up_cube returns a cube that can be interpolated
+        """
+        result = set_up_cube().interpolate(set_up_cube_lat_long,
+                                           iris.analysis.Linear())
+        self.assertIsInstance(result, Cube)
+
+
 class Test__init__(IrisTest):
 
     """Test the __init__ method of NeighbourhoodProcessing"""
