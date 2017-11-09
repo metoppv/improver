@@ -34,7 +34,8 @@
 @test "generate-topographybands-ancillary input_orog.nc input_land.nc output.nc" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
+  #test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
+  test_path=~/IMP-376-DATA/
 
   # Run topography band ancillary generation and check it passes.
   run improver generate-topographybands-ancillary \

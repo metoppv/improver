@@ -74,11 +74,12 @@ def main():
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
-                        help=('If True, ancillaries will be generated even '
-                              'if doing so will overwrite existing files'))
+                        help=('If keyword is set (i.e. True), ancillaries '
+                              'will be generated even if doing so will '
+                              'overwrite existing files'))
     parser.add_argument('--thresholds_filepath',
-                        metavar='THRESHOLD_DICT',
-                        default=THRESHOLDS_DICT,
+                        metavar='THRESHOLDS_FILEPATH',
+                        default=None,
                         help=("The path to a json file which can be used "
                               "to set the number and size of topographic "
                               "bounds. If unset a default bounds dictionary"
@@ -92,11 +93,11 @@ def main():
                               "}"))
     args = parser.parse_args()
 
-    if args.thresholds_filepath != THRESHOLDS_DICT:
+    if args.thresholds_filepath:
         with open(args.thresholds_filepath, 'r') as filehandle:
             thresholds_dict = json.loads(filehandle.read())
     else:
-        thresholds_dict = args.thresholds_filepath
+        thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = find_standard_ancil(args.input_filepath_standard_orography)

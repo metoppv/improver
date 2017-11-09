@@ -34,19 +34,20 @@
 @test "generate-topographybands-ancillary input_orog.nc input_land.nc output.nc" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
+  #test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
+  test_path=~/IMP-376-DATA/
 
   # Run topography band ancillary generation and check it passes.
   run improver generate-topographybands-ancillary \
       "$test_path/input_orog.nc" \
       "$test_path/input_land.nc" \
       "$TEST_DIR/output.nc" \
-      --thresholds $test_path/bounds.json
+      --thresholds_filepath $test_path/bounds.json
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
+      "$test_path/kgo_from_json_bounds.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
