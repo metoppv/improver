@@ -261,12 +261,12 @@ class Test_set_up_cube(IrisTest):
 
     """Test the set_up_cube method in this module"""
 
-    def test_interpolate(self):
+    def test_regrid(self):
         """
-        Test that set_up_cube returns a cube that can be interpolated
+        Test that set_up_cube returns a cube that can be regridded
         """
-        result = set_up_cube().interpolate(set_up_cube_lat_long,
-                                           iris.analysis.Linear())
+        result = set_up_cube().regrid(sample_points,
+                                      iris.analysis.Linear())
         self.assertIsInstance(result, Cube)
 
 
