@@ -38,6 +38,8 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.coord_systems import (LambertAzimuthalEqualArea,
+                                GeogCS)
 import numpy as np
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
@@ -101,6 +103,15 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array([
      0.99486125, 1.0, 1.0]
 ])
 
+ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
+                   semi_minor_axis=6356752.314140356)
+STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
+    latitude_of_projection_origin=54.9,
+    longitude_of_projection_origin=-2.5,
+    false_easting=0.0, false_northing=0.0,
+    ellipsoid=ELLIPSOID
+    )
+
 
 def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
                 num_grid_points=16, num_realization_points=1):
@@ -137,7 +148,8 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
         DimCoord(
             y_points,
             'projection_y_coordinate',
-            units='m'
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
         ),
         2
     )
@@ -147,7 +159,8 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
         DimCoord(
             x_points,
             'projection_x_coordinate',
-            units='m'
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
         ),
         3
     )
@@ -193,7 +206,8 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
         DimCoord(
             y_points,
             'projection_y_coordinate',
-            units='m'
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
         ),
         1
     )
@@ -203,7 +217,8 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
         DimCoord(
             x_points,
             'projection_x_coordinate',
-            units='m'
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
         ),
         2
     )
@@ -227,14 +242,16 @@ def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'latitude',
-                 units='degrees'),
+                 units='degrees',
+                 coord_system=ELLIPSOID),
         1
     )
     cube.add_dim_coord(
         DimCoord(np.linspace(0.0, float(num_grid_points - 1),
                              num_grid_points),
                  'longitude',
-                 units='degrees'),
+                 units='degrees',
+                 coord_system=ELLIPSOID),
         2
     )
     return cube
