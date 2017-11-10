@@ -313,8 +313,7 @@ class WeatherSymbols(object):
             if node not in route:
                 newroutes = WeatherSymbols.find_all_routes(graph, node, end,
                                                            route)
-                for newroute in newroutes:
-                    routes.append(newroute)
+                routes.extend(newroutes)
         return routes
 
     @staticmethod
