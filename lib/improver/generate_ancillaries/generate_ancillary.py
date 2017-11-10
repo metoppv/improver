@@ -181,9 +181,9 @@ class GenerateOrographyBandAncils(object):
         For each threshold defined in 'thresholds', a cube containing a masked
         array will be generated. This array will be masked over sea points and
         will have values of 1 on land points within the topography band.
-        The lower threshold is inclusive to the band whilst the upper
-        threshold is exclusive i.e:
-        lower_threshold <= band < upper_threshold
+        The lower threshold is exclusive to the band whilst the upper
+        threshold is inclusive i.e:
+        lower_threshold < band <= upper_threshold
 
         For example, for threshold pair: [1,3] with
         orography: [[0 0 2]    and      sea mask: [[-- -- 2]
@@ -191,8 +191,8 @@ class GenerateOrographyBandAncils(object):
                     [0 1 4]]                       [-- 1  4]]
 
         the resultant array will be: [[-- -- 1]
-                                      [0  1  0]
-                                      [-- 1  0]]
+                                      [0  1  1]
+                                      [-- 0  0]]
 
         Parameters
         -----------
@@ -243,8 +243,8 @@ class GenerateOrographyBandAncils(object):
         if key == 'land':  # regular topographical bands above land
             lower_threshold, upper_threshold = thresholds
             orog_band = np.ma.masked_where(
-                np.ma.logical_and((standard_orography.data >= lower_threshold),
-                                  (standard_orography.data < upper_threshold)),
+                np.ma.logical_and((standard_orography.data > lower_threshold),
+                                  (standard_orography.data <= upper_threshold)),
                 standard_orography.data).mask.astype(int)
             if not isinstance(orog_band, np.ndarray):
                 orog_band = np.zeros(standard_orography.data.shape).astype(int)
