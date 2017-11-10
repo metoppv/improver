@@ -179,18 +179,20 @@ class GenerateOrographyBandAncils(object):
         Function to generate topographical band masks.
 
         For each threshold defined in 'thresholds', a cube containing a masked
-        array will be generated. This array will be masked over sea
-        points and will have values of 0 or 1 on land points, depending on
-        whether the given point's orography value falls between the thresholds.
+        array will be generated. This array will be masked over sea points and
+        will have values of 1 on land points within the topography band.
+        The lower threshold is inclusive to the band whilst the upper
+        threshold is exclusive i.e:
+        lower_threshold <= band < upper_threshold
 
         For example, for threshold pair: [1,3] with
         orography: [[0 0 2]    and      sea mask: [[-- -- 2]
-                    [1 2 1]                        [1  2  1]
+                    [0 2 3]                        [0  2  3]
                     [0 1 4]]                       [-- 1  4]]
 
         the resultant array will be: [[-- -- 1]
                                       [0  1  0]
-                                      [-- 0  0]]
+                                      [-- 1  0]]
 
         Parameters
         -----------
