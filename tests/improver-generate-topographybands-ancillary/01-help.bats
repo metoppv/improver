@@ -5,6 +5,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-generate-topographybands-ancillary [-h] [--force]
+                                                   [--thresholds_filepath THRESHOLDS_FILEPATH]
                                                    INPUT_FILE_STANDARD_OROGRAPHY
                                                    INPUT_FILE_LAND OUTPUT_FILE
 
@@ -21,8 +22,16 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --force               If True, ancillaries will be generated even if doing
-                        so will overwrite existing files
+  --force               If keyword is set (i.e. True), ancillaries will be
+                        generated even if doing so will overwrite existing
+                        files
+  --thresholds_filepath THRESHOLDS_FILEPATH
+                        The path to a json file which can be used to set the
+                        number and size of topographic bounds. If unset a
+                        default bounds dictionary will be used:{'land':
+                        {'bounds' : [[-500, 0], [0, 50], [50, 100], [100,
+                        150],[150, 200], [200, 250], [250, 300], [300, 400],
+                        [400, 500], [500, 600]],'units': 'm'}}
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -183,7 +183,8 @@ class Test_process(IrisTest):
                               [20., 100., 15.],
                               [-10., 100., 40.]])
         self.orography = Cube(orog_data, long_name='test orog')
-        self.threshold_dict = {'land': [[-10, 0], [0, 50]]}
+        self.threshold_dict = {'land': {'bounds': [[-10, 0], [0, 50]],
+                                        'units': 'm'}}
 
     def test_thresholdset(self):
         """test the plugin produces correct number of cubes"""
