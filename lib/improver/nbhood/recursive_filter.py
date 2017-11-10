@@ -34,6 +34,7 @@ import iris
 import numpy as np
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class RecursiveFilter(object):
@@ -98,16 +99,28 @@ class RecursiveFilter(object):
 
     @staticmethod
     def run_recursion(cube, alphas_x, alphas_y, iterations):
+
         output = cube.data
         for i in range(iterations):
-            output = RecursiveFilter.recurse_forward_x(output, alphas_x.data)
-            output = RecursiveFilter.recurse_backwards_x(output, alphas_x.data)
-            output = RecursiveFilter.recurse_forward_y(output, alphas_y.data)
-            output = RecursiveFilter.recurse_backwards_y(output, alphas_y.data)
-
-        cube.data = output
+            output = RecursiveFilter.recurse_forward_x(output,
+                                                       alphas_x.data)
+            output = RecursiveFilter.recurse_backwards_x(output,
+                                                         alphas_x.data)
+            output = RecursiveFilter.recurse_forward_y(output,
+                                                       alphas_y.data)
+            output = RecursiveFilter.recurse_backwards_y(output,
+                                                         alphas_y.data)
+            cube.data = output
         return cube
 
+    def set_alphas(self, cube, alpha, alphas_cube):
+        if alphas_cube is None:
+            alphas_cube = cube.copy(
+                data=np.ones(cube.data.shape) * alpha)
+
+        alphas_cube = SquareNeighbourhood().pad_cube_with_halo(
+            alphas_cube, self.edge_width, self.edge_width)
+        return alphas_cube
 
 
     def process(self, cube, alphas_x=None, alphas_y=None):
@@ -115,26 +128,24 @@ class RecursiveFilter(object):
         Set up the alpha parameters and run the recursive filter.
 
         """
-        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            cube, self.edge_width, self.edge_width)
 
-        if alphas_x is None:
-            alphas_x = padded_cube.copy(data=np.ones(padded_cube.data.shape) *
-                                        self.alpha_x)
-        else:
-            alphas_x = SquareNeighbourhood().pad_cube_with_halo(
-                alphas_x, self.edge_width, self.edge_width)
+        cube_format = next(cube.slices([cube.coord(axis='y'),
+                                        cube.coord(axis='x')]))
+        alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
+        alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
 
-        if alphas_y is None:
-            alphas_y = padded_cube.copy(data=np.ones(padded_cube.data.shape) *
-                                        self.alpha_y)
-        else:
-            alphas_y = SquareNeighbourhood().pad_cube_with_halo(
-                alphas_y, self.edge_width, self.edge_width)
+        recursed_cube = iris.cube.CubeList()
+        for output in cube.slices([cube.coord(axis='y'),
+                                   cube.coord(axis='x')]):
 
-        cube = self.run_recursion(padded_cube, alphas_x, alphas_y,
-                                  self.iterations)
-        cube = SquareNeighbourhood().remove_halo_from_cube(
-            cube, self.edge_width, self.edge_width)
+            padded_cube = SquareNeighbourhood().pad_cube_with_halo(
+                output, self.edge_width, self.edge_width)
+            new_cube = self.run_recursion(padded_cube, alphas_x, alphas_y,
+                                          self.iterations)
+            new_cube = SquareNeighbourhood().remove_halo_from_cube(
+                new_cube, self.edge_width, self.edge_width)
+            recursed_cube.append(new_cube)
 
-        return cube
+        new_cube = recursed_cube.merge_cube()
+        new_cube = check_cube_coordinates(cube, new_cube)
+        return new_cube
