@@ -43,7 +43,8 @@ from iris.tests import IrisTest
 from cf_units import Unit
 
 from improver.wxcode.wxcode_utilities import (WX_DICT,
-                                              add_wxcode_metadata)
+                                              add_wxcode_metadata,
+                                              expand_nested_lists)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 
@@ -132,6 +133,32 @@ class Test_add_wxcode_metadata(IrisTest):
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
+
+
+class Test_expand_nested_lists(IrisTest):
+    """ Test expand_nested_lists is working correctly """
+
+    def setUp(self):
+        """ Set up dictionary for testing """
+        self.dictionary = {'list': ['a', 'a'],
+                           'list_of_lists': [['a', 'a'], ['a', 'a']]}
+
+    def test_basic(self):
+        """Test that the expand_nested_lists returns a list."""
+        result = expand_nested_lists(self.dictionary, 'list')
+        self.assertIsInstance(result, list)
+
+    def test_simple_list(self):
+        """Testexpand_nested_lists returns a expanded list if given a list."""
+        result = expand_nested_lists(self.dictionary, 'list')
+        for val in result:
+            self.assertEquals(val, 'a')
+
+    def test_list_of_lists(self):
+        """Returns a expanded list if given a list of lists."""
+        result = expand_nested_lists(self.dictionary, 'list_of_lists')
+        for val in result:
+            self.assertEquals(val, 'a')
 
 if __name__ == '__main__':
     unittest.main()

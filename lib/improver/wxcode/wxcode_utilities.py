@@ -86,3 +86,26 @@ def add_wxcode_metadata(cube):
     wxstring = " ".join(WX_DICT.values())
     cube.attributes.update({'weather_code_meaning': wxstring})
     return cube
+
+
+def expand_nested_lists(query, key):
+    """
+    Produce flat lists from list and nested lists.
+
+    Args:
+        query (dict):
+            A single query from the decision tree.
+        key (string):
+            A string denoting the field to be taken from the dict.
+
+    Returns:
+        items (list):
+            A 1D list containing all the values for a given key.
+    """
+    items = []
+    for item in query[key]:
+        if isinstance(item, list):
+            items.extend(item)
+        else:
+            items.extend([item])
+    return items
