@@ -58,7 +58,8 @@ class Test_rescale(IrisTest):
         self.stdout = StringIO.StringIO()
         sys.stdout = self.stdout  # Redirect standard out.
 
-    def tearDown(self):
+    @staticmethod
+    def tearDown():
         """Reset standard out stream."""
         sys.stdout = sys.__stdout__  # Reset standard out.
 
