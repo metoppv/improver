@@ -64,7 +64,7 @@ class Test__repr__(IrisTest):
         result = str(ProbabilityOfOccurrence(2000, "square", 2000))
         msg = ('<ProbabilityOfOccurrence: distance: 2000; '
                'neighbourhood_method: square; radii: 2000; '
-               'lead_times: None; unweighted_mode: False; '
+               'lead_times: None; weighted_mode: True; '
                'ens_factor: 1.0>')
         self.assertEqual(result, msg)
 
@@ -146,12 +146,12 @@ class Test_process(IrisTest):
         lead_times = [3, 6]
         cube.add_aux_coord(AuxCoord(
             lead_times, "forecast_period", units="hours"), 1)
-        unweighted_mode = True
+        weighted_mode = False
         ens_factor = 0.9
         result = (
             ProbabilityOfOccurrence(
                 distance, neighbourhood_method, radii, lead_times=lead_times,
-                unweighted_mode=unweighted_mode, ens_factor=ens_factor
+                weighted_mode=weighted_mode, ens_factor=ens_factor
                 ).process(cube))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
