@@ -9,8 +9,9 @@ usage: improver-generate-topographybands-ancillary [-h] [--force]
                                                    INPUT_FILE_STANDARD_OROGRAPHY
                                                    INPUT_FILE_LAND OUTPUT_FILE
 
-Read input orography and landmask fields. Mask data inside the bounds
-specified in the THRESHOLD_DICT dictionary
+Read input orography and landmask fields. Return a a cube of masks, where each
+mask excludes data below or equal to the lower threshold, and excludes data
+above the upper threshold.
 
 positional arguments:
   INPUT_FILE_STANDARD_OROGRAPHY

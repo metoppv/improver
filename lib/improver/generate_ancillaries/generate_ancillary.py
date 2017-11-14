@@ -291,5 +291,4 @@ class GenerateOrographyBandAncils(object):
                     orography, landmask, dict_key,
                     limits, bounds_dict['units'])
                 cubelist.append(oro_band)
-                print oro_band.coord('topographic_zone')
         return cubelist

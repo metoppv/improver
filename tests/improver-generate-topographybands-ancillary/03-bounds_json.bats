@@ -32,7 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "generate-topographybands-ancillary input_orog.nc input_land.nc output.nc" {
-  TEST_DIR=$(mktemp -d)
+#  TEST_DIR=$(mktemp -d)
+  TEST_DIR=/home/h02/bayliffe/KGO/
   improver_check_skip_acceptance
   test_path=$IMPROVER_ACC_TEST_DIR/generate-topographybands/basic/
 
@@ -47,6 +48,6 @@
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$test_path/kgo_from_json_bounds.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+#  rm "$TEST_DIR/output.nc"
+#  rmdir "$TEST_DIR"
 }

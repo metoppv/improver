@@ -60,9 +60,10 @@ THRESHOLDS_DICT = {'land': {'bounds': [[-500., 0.], [0., 50.],
 def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
-        description=('Read input orography and landmask fields. Mask '
-                     'data inside the bounds specified in the '
-                     'THRESHOLD_DICT dictionary'))
+        description=('Read input orography and landmask fields. Return a '
+                     'a cube of masks, where each mask excludes data below '
+                     'or equal to the lower threshold, and excludes data above'
+                     ' the upper threshold.'))
     parser.add_argument('input_filepath_standard_orography',
                         metavar='INPUT_FILE_STANDARD_OROGRAPHY',
                         help=('A path to an input NetCDF orography file to '
@@ -107,6 +108,7 @@ def main():
         landmask = find_standard_ancil(args.input_filepath_landmask, msg)
         result = GenerateOrographyBandAncils().process(
             orography, landmask, thresholds_dict)
+        result = result.concatenate_cube()
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
