@@ -36,6 +36,7 @@ A plugin for creating tables from spotdata forecasts for Database export.
 
 import itertools
 import pandas as pd
+import numpy as np
 import sqlite3
 import os
 from datetime import datetime as dt
@@ -55,9 +56,10 @@ class SpotDatabase(object):
 
                  pivot_dim='forecast_period',
                  pivot_map=lambda x: 'fcr_tplus{:03d}'.format(int(x/3600)),
+                 pivot_max=54*60*60,
 
-                 column_dims=['wmo_site', 'name'],
-                 column_maps=['station_id', 'cf_name']):
+                 column_dims=['wmo_site', 'name', 'IMPRO'],
+                 column_maps=['station_id', 'cf_name', 'exp_id']):
 
         """
         Initialise class.
@@ -67,6 +69,7 @@ class SpotDatabase(object):
         self.cubelist = cubelist
         self.pivot_dim = pivot_dim
         self.pivot_map = pivot_map
+        self.pivot_max = pivot_max
         self.primary_dim = primary_dim
         self.primary_map = primary_map
         self.primary_func = primary_func
@@ -82,8 +85,10 @@ class SpotDatabase(object):
         Representation of the instance.
 
         """
-        result = '<SpotDatabase: columns (primary={}, other={}, pivot={})>'
-        return result.format(self.primary_map, self.column_maps, self.pivot_dim)
+        result = ('<SpotDatabase: columns (primary={primary_map}, '
+                                          'other={column_dims}, '
+                                          'pivot={pivot_dim})>')
+        return result.format(**self.__dict__)
 
     def assert_similar(self):
         """
@@ -129,33 +134,65 @@ class SpotDatabase(object):
                                                        self.column_maps):
                     if dim in df.columns:
                         continue
-
-                    if dim in [coord.standard_name or coord.long_name for coord in
-                                                  c.dim_coords + c.aux_coords]:
+                    
+                    if dim in [coord.standard_name or coord.long_name 
+                               for coord in c.dim_coords + c.aux_coords]:
                         coord = c.coord(dim)
-                        col_name = col or dim
+                        column_name = col or dim
                         if len(coord.points) == 1:
-                            col_data = coord.points[0]
+                            column_data = coord.points[0]
                         else:
-                            col_data = coord.points
+                            column_data = coord.points
+                    
+                    # Check to see if provided dim is a method of the cube
+                    elif hasattr(c, dim):
+                        attr = getattr(c, dim)
+                        if callable(attr):
+                            column_name = col
+                            column_data = attr()
+                            
                     else:
-                        # Should have a conditional
-                        col_name = col or dim
-                        col_data = cube.name()
-
-                    df.insert(1, col_name, col_data)
-                    if dim != self.pivot_dim:
-                        # This is rather expensive
-                        df.set_index(col_name, append=True, inplace=True)
+                        column_name = col
+                        column_data = dim
+                   
+                    as_index = True if dim != self.pivot_dim else False
+                    self.insert_column(df, column_name, column_data, as_index)
+                        
                 try:
                     self.df = self.df.combine_first(df)
                 except AttributeError:
+                    # Ensure the first instance has all pivot columns created
+                    self.ensure_all_pivot_columns(df)
                     self.df = df
+    
+    @staticmethod
+    def insert_column(dataframe, column_name, column_data, as_index=False):
+        """
+        Method to insert a column at front of a datframe, adding to the index
+        if required, creating a multiple-index dataframe.
+        """
+        dataframe.insert(1, column_name, column_data)
+        if as_index:
+            dataframe.set_index(column_name, append=True, inplace=True)
+    
+    
+    def ensure_all_pivot_columns(self, dataframe):
+        """
+        Method to ensure all pivot columns exist in the dataframe, adding any 
+        that do not.
+        
+        """
+        
+        if self.pivot_dim and self.pivot_max:
+            for pivot_val in range(self.pivot_max+1):
+                if not self.pivot_map(pivot_val) in dataframe.columns:
+                    dataframe[self.pivot_map(pivot_val)] = np.nan
+
 
     def create_table(self, outfile, table='test'):
         """
         Method to first create a the SQL datafile table.
-        
+
         The primary keys are determined from the indexed columns in
         the DataFrame.
         The SQLite3 table's datatypes are determined from the data types in
@@ -167,14 +204,12 @@ class SpotDatabase(object):
             os.unlink(outfile)
 
         # Remove the current index, and use the indexed columns for for db keys
-        columns = self.df.columns
         new_df = self.df.reset_index()
-        n_keys = len(new_df) - len(columns)
-
-        schema = pd.io.sql.get_schema(self.df, table,
+        # Find the number of columns which were indexes to index primary keys
+        n_keys = len(new_df.columns) - len(self.df.columns)
+        schema = pd.io.sql.get_schema(new_df, table,
                                       flavor='sqlite',
-                                      keys=self.df.columns[:n_keys])
-
+                                      keys=new_df.columns[:n_keys])
         with sqlite3.connect(outfile) as db:
             db.execute(schema)
 
