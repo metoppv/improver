@@ -54,7 +54,11 @@ def main():
     parser.add_argument('-o', '--output_filepath', required=True,
                         metavar='OUTPUT_FILE',
                         help='The output path for the processed database.')
-    parser.add_argument('-t', '--testing', action='store_true')
+    parser.add_argument('--table', required=False,
+                        metavar='OUTPUT_TABLE',
+                        help='The output path for the processed database.')
+    parser.add_argument('-exp_id', '--experiment',
+                       help='A name to provide as the experiment identifier')
     # Different file formats (default to SQLite DB):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sqlite', default=False, action='store_true',
@@ -79,23 +83,19 @@ def main():
                    '{} dimension.'.format(cube, columns))
             raise CoordinateNotFoundError(msg)
 
-    if args.testing:
-        start = time.time()
-        test_constraint = iris.Constraint(**dict(realization=0))
-        cubelist = cubelist.extract(test_constraint)
-        db = SpotDatabase(cubelist, args.row_dimension)
-        db.to_dataframe()
-        print 'Time to convert {} forecasts to Dataframe:',
-        print time.time() - start
-    else:
-        db = SpotDatabase(cubelist, args.row_dimension)
-        db.to_dataframe()
     if args.sqlite:
-        db.create_table(args.output_filepath, 'test')
-        db.to_sql(args.output_filepath, 'test')
-
-    if args.csv:
-        db.to_csv(args.output_filepath)
+        output = 'sqlite'
+    elif args.csv:
+        output = 'csv'
+        
+    if args.table:
+        table_name = args.table
+    else:
+        table_name = 'improver'
+    
+    database_creator = SpotDatabase(cubelist, output, args.output_filepath,
+                                    args.table, args.row_dimension)
+    database_creator.process()
 
 if __name__ == '__main__':
     main()

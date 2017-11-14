@@ -48,7 +48,7 @@ class SpotDatabase(object):
 
     """
 
-    def __init__(self, cubelist,
+    def __init__(self, cubelist, output, outfile, tablename,
                  primary_dim='time',
                  primary_map=['validity_date', 'validity_time'],
                  primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
@@ -66,7 +66,10 @@ class SpotDatabase(object):
 
         """
 
-        self.cubelist = cubelist
+        self.cubelist  = cubelist
+        self.output    = output
+        self.outfile   = outfile
+        self.tablename = tablename
         self.pivot_dim = pivot_dim
         self.pivot_map = pivot_map
         self.pivot_max = pivot_max
@@ -76,7 +79,6 @@ class SpotDatabase(object):
 
         self.column_dims = column_dims
         self.column_maps = column_maps
-        self.column_func = []
 
         self.assert_similar()
 
@@ -213,7 +215,7 @@ class SpotDatabase(object):
         with sqlite3.connect(outfile) as db:
             db.execute(schema)
 
-    def to_sql(self, outfile, table='test', new=True):
+    def to_sql(self, outfile, table='test'):
         """
         Output the dataframe to SQL database file
 
@@ -229,3 +231,18 @@ class SpotDatabase(object):
         """
 
         self.df.to_csv(outfile)
+        
+    def process(self):
+        """
+        Method to perform the table creation and output to file.
+        
+        """
+        
+        self.to_dataframe()
+        
+        if self.output == 'sqlite':
+            self.create_table(self.outfile, self.tablename)
+            self.to_sql(self.outfile, self.tablename)
+
+        if self.output == 'csv':
+            self.to_csv(self.outfile)
