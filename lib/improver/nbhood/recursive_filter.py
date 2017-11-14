@@ -43,18 +43,54 @@ class RecursiveFilter(object):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, alpha_x=None, alpha_y=None, iterations=5, edge_width=1):
+    def __init__(self, alpha_x=None, alpha_y=None, iterations=None, edge_width=1):
         """
         Initialise the class.
 
         Args:
 
+            alpha_x : Float or None
+                Filter parameter: A constant used to weight the recursive filter 
+                along the x-axis. Defined such that 0.0 <= alpha_x <= 1.0
+            alpha_y : Float or None
+                Filter parameter: A constant used to weight the recursive filter 
+                along the y-axis. Defined such that 0.0 <= alpha_y <= 1.0
+            iterations : integer or None
+                The number of iterations of the recursive filter.
+            edge_width : integer
+                The width of the padding applied to the grid cells when adding the 
+                SquareNeighbourhood halo.
+
+        Raises:
+
+            ValueError: If alpha_x is not set such that 0 <= alpha_x <= 1
+            ValueError: If alpha_y is not set such that 0 <= alpha_y <= 1
+            ValueError: If number of iterations is not None and 
+                          is set such that iterations is not >= 1
+
         """
+
         if alpha_x is not None:
             self.alpha_x = alpha_x
+            if not 0 <= alpha_x <= 1:
+                raise ValueError(
+                    "Invalid alpha_x: {}. Must be >= 0 and <= 1".format(
+                        alpha_x))
+
         if alpha_y is not None:
             self.alpha_y = alpha_y
-        self.iterations = iterations
+            if not 0 <= alpha_y <= 1:
+                raise ValueError(
+                    "Invalid alpha_y: {}. Must be >= 0 and <= 1".format(
+                        alpha_y))
+
+        if iterations is not None:
+            self.iterations = iterations
+            if not iterations >= 1:
+                raise ValueError(
+                    "Invalid number of iterations: {}. Must be >= 1".format(
+                        iterations))
+
         self.edge_width = edge_width
 
 
@@ -67,6 +103,25 @@ class RecursiveFilter(object):
 
     @staticmethod
     def recurse_forward_x(grid, alphas):
+        """
+        Method to run the recursive filter in the forward x-direction.
+
+        Args:
+
+            grid : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the x-axis.
+
+        Returns
+
+            grid : Iris.cube.Cube 
+                Cube containing the smoothed field after the recursive filter
+                method has been applied to the input cube in the forward x-direction.
+        """
+
         nx, ny = grid.shape
         for i in range(1, nx):
             grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
@@ -75,6 +130,25 @@ class RecursiveFilter(object):
 
     @staticmethod
     def recurse_backwards_x(grid, alphas):
+        """
+        Method to run the recursive filter in the backwards x-direction.
+
+        Args:
+
+            grid : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the x-axis.
+
+        Returns
+
+            grid : Iris.cube.Cube 
+                Cube containing the smoothed field after the recursive filter
+                method has been applied to the input cube in the backwards x-direction.
+        """
+
         nx, ny = grid.shape
         for i in range(nx-2, -1, -1):
             grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
@@ -83,6 +157,25 @@ class RecursiveFilter(object):
 
     @staticmethod
     def recurse_forward_y(grid, alphas):
+        """
+        Method to run the recursive filter in the forward y-direction.
+
+        Args:
+
+            grid : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the y-axis.
+
+        Returns
+
+            grid : Iris.cube.Cube 
+                Cube containing the smoothed field after the recursive filter
+                method has been applied to the input cube in the forward y-direction.
+        """
+
         nx, ny = grid.shape
         for i in range(1, ny):
             grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
@@ -91,6 +184,25 @@ class RecursiveFilter(object):
 
     @staticmethod
     def recurse_backwards_y(grid, alphas):
+        """
+        Method to run the recursive filter in the backwards y-direction.
+
+        Args:
+
+            grid : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the y-axis.
+
+        Returns
+
+            grid : Iris.cube.Cube 
+                Cube containing the smoothed field after the recursive filter
+                method has been applied to the input cube in the backwards y-direction.
+        """
+
         nx, ny = grid.shape
         for i in range(ny-2, -1, -1):
             grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
@@ -99,6 +211,35 @@ class RecursiveFilter(object):
 
     @staticmethod
     def run_recursion(cube, alphas_x, alphas_y, iterations):
+        """
+        Method to run the recursive filter.
+
+        Recursive filtering is calculated as Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
+
+        Progressing from gridpoint i-1 to i ......
+        Bi = new value at gridpoint i, Ai =  Old value at gridpoint i
+        Bi-1 = New value at gridpoint i-1
+
+        Args:
+
+            cube : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas_x : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the x-axis.
+            alphas_y : Iris.cube.Cube
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the y-axis.
+            iterations : integer
+                The number of iterations of the recursive filter
+
+        Returns
+
+            cube : Iris.cube.Cube 
+                Cube containing the smoothed field after the recursive filter
+                method has been applied to the input cube.
+        """
 
         output = cube.data
         for i in range(iterations):
@@ -114,6 +255,29 @@ class RecursiveFilter(object):
         return cube
 
     def set_alphas(self, cube, alpha, alphas_cube):
+        """
+        Set up the alpha parameter.
+
+        Args:
+
+            cube : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alpha : 
+                The constant used to weight the recursive filter in that direction: 
+                Defined such that 0.0 <= alpha <= 1.0
+
+            alphas_cube : Iris.cube.Cube or None
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter in a specific direction. If not set
+                uses an array where all values are set to 1.0 * alpha       
+
+        Returns
+
+            alphas_cube : Iris.cube.Cube 
+                Padded cube containing array of alpha values for specified direction.
+        """
+
         if alphas_cube is None:
             alphas_cube = cube.copy(
                 data=np.ones(cube.data.shape) * alpha)
@@ -127,7 +291,47 @@ class RecursiveFilter(object):
         """
         Set up the alpha parameters and run the recursive filter.
 
+        The steps undertaken are:
+        1. Split the input cube into slices determined by the co-ordinates in
+           the x and y directions.
+        2. Construct an array of filter parameters (alphas_x and alphas_y) for 
+           each cube slice that are used to weight the recursive filter in
+           the x- and y-directions.
+        3. Pad each cube slice with a square-neighboorhood halo and apply 
+           the recursive filter for the required number of iterations.
+        4. Remove the halo from the cube slice and append the recursed cube slice
+           to a 'recursed cube'.
+        5. Merge all the cube slices in the 'recursed cube' into a 'new cube'.
+        6. Modify the 'new cube' so that its scalar dimension co-ordinates are
+           consistent with those in the original input cube. 
+        7. Return the 'new cube' which now contains the recursively filtered values
+           for the original input cube.
+
+        Args:
+
+            cube : Iris.cube.Cube
+                Cube containing the input data to which the recursive filter
+                will be applied.
+            alphas_x : Iris.cube.Cube or None
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the x-axis.
+            alphas_y : Iris.cube.Cube or None
+                Cube containing an array of alpha values that will be used when applying
+                the recursive filter along the y-axis.
+
+        Raises:
+
+            ValueError: If a np.nan value is detected within the input cube.
+
+        Returns
+
+            new_cube : Iris.cube.Cube
+                Cube containing the smoothed field after the recursive filter
+                method has been applied.
         """
+
+        if np.isnan(cube.data).any():
+            raise ValueError("Error: NaN detected in input cube data")
 
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
