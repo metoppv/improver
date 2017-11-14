@@ -94,7 +94,7 @@ def main():
         table_name = 'improver'
     
     database_creator = SpotDatabase(cubelist, output, args.output_filepath,
-                                    args.table, args.row_dimension)
+                                    table_name, args.row_dimension)
     database_creator.process()
 
 if __name__ == '__main__':

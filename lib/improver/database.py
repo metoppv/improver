@@ -136,8 +136,8 @@ class SpotDatabase(object):
                                                        self.column_maps):
                     if dim in df.columns:
                         continue
-                    
-                    if dim in [coord.standard_name or coord.long_name 
+
+                    if dim in [coord.standard_name or coord.long_name
                                for coord in c.dim_coords + c.aux_coords]:
                         coord = c.coord(dim)
                         column_name = col or dim
@@ -180,7 +180,7 @@ class SpotDatabase(object):
     
     def ensure_all_pivot_columns(self, dataframe):
         """
-        Method to ensure all pivot columns exist in the dataframe, adding any 
+        Method to ensure all pivot columns exist in the dataframe, adding any
         that do not.
         
         """
@@ -189,21 +189,15 @@ class SpotDatabase(object):
             for pivot_val in range(self.pivot_max+1):
                 if not self.pivot_map(pivot_val) in dataframe.columns:
                     dataframe[self.pivot_map(pivot_val)] = np.nan
-
-
-    def create_table(self, outfile, table='test'):
+                    
+    def determine_schema(self, table):
         """
-        Method to first create a the SQL datafile table.
-
-        The primary keys are determined from the indexed columns in
-        the DataFrame.
-        The SQLite3 table's datatypes are determined from the data types in
-        the DataFrame.
-
+        Method to determine the schema of the database.
+        
+        Primary keys and datatypes are determined from the indexed columns and
+        the datatypes in the DataFrame.
+        
         """
-
-        if os.path.isfile(outfile):
-            os.unlink(outfile)
 
         # Remove the current index, and use the indexed columns for for db keys
         new_df = self.df.reset_index()
@@ -212,21 +206,33 @@ class SpotDatabase(object):
         schema = pd.io.sql.get_schema(new_df, table,
                                       flavor='sqlite',
                                       keys=new_df.columns[:n_keys])
+        return schema
+
+
+    def create_table(self, outfile, table):
+        """
+        Method to first create a the SQL datafile table.
+
+        """
+        
+        schema = self.determine_schema(table)
         with sqlite3.connect(outfile) as db:
             db.execute(schema)
 
-    def to_sql(self, outfile, table='test'):
+    def to_sql(self, outfile, table):
         """
-        Output the dataframe to SQL database file
+        Output the dataframe to SQL database file.
 
         """
-
+        if not os.path.isfile(self.outfile):
+            self.create_table(self.outfile, self.tablename)
+            
         with sqlite3.connect(outfile) as db:
             self.df.to_sql(table, con=db, if_exists='append', index=True)
 
     def to_csv(self, outfile):
         """
-        Output the dataframe to comma seperated file
+        Output the dataframe to comma seperated file.
 
         """
 
@@ -237,12 +243,11 @@ class SpotDatabase(object):
         Method to perform the table creation and output to file.
         
         """
-        
+
         self.to_dataframe()
-        
+
         if self.output == 'sqlite':
-            self.create_table(self.outfile, self.tablename)
-            self.to_sql(self.outfile, self.tablename)
+           self.to_sql(self.outfile, self.tablename)
 
         if self.output == 'csv':
             self.to_csv(self.outfile)
