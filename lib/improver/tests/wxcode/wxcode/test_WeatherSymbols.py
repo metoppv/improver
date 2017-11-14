@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 from iris.coords import AuxCoord
+from cf_units import Unit
 
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
@@ -69,8 +70,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_rain,
             'rainfall_rate',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_snowv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -162,6 +165,16 @@ class Test_check_input_cubes(IrisTest):
         msg = 'Weather Symbols input cubes are missing'
         with self.assertRaisesRegexp(IOError, msg):
             plugin.check_input_cubes(cubes)
+
+    def test_incorrect_units(self):
+        """Test that check_input_cubes method raises error if units are
+        different to the input cube."""
+        plugin = WeatherSymbols()
+        self.cubes[6].units = Unit('kg')
+        self.cubes[0].units = Unit('m s-1')
+        msg = '.*\n.*kg.*m\n.*m s-1.*mm hr-1'
+        with self.assertRaisesRegexp(TypeError, msg):
+            plugin.check_input_cubes(self.cubes)
 
 
 class Test_invert_condition(IrisTest):

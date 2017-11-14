@@ -76,6 +76,7 @@ class WeatherSymbols(object):
                 The error includes details of which fields are missing.
         """
         missing_data = []
+        mismatched_units = []
         for query in self.queries.itervalues():
             diagnostics = expand_nested_lists(query, 'diagnostic_fields')
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
@@ -83,6 +84,7 @@ class WeatherSymbols(object):
             for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions):
 
+                threshold_units = threshold.units
                 threshold = threshold.points.item()
                 test_condition = (
                     Constraint(
@@ -94,6 +96,11 @@ class WeatherSymbols(object):
 
                 if not cubes.extract(test_condition):
                     missing_data.append([diagnostic, threshold, condition])
+                elif cubes.extract(test_condition)[0].units != threshold_units:
+                    mismatched_units.append([diagnostic,
+                                             cubes.extract(test_condition)[0]
+                                             .units,
+                                             threshold_units])
 
         if missing_data:
             msg = ('Weather Symbols input cubes are missing'
@@ -103,6 +110,14 @@ class WeatherSymbols(object):
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
+
+        if mismatched_units:
+            msg = ('Weather Symbols input cubes have different units'
+                   'to the thresholds required:\n')
+            dyn_msg = 'name: {}, cube units: {}, threshold units: {}\n'
+            for item in mismatched_units:
+                msg = msg + dyn_msg.format(*item)
+            raise TypeError(msg)
         return
 
     @staticmethod
@@ -201,7 +216,7 @@ class WeatherSymbols(object):
     def create_condition_chain(test_conditions):
         """
         A wrapper to call the construct_condition function for all the
-        conditions specfied in a single query.
+        conditions specified in a single query.
 
         Args:
             test_conditions (dict):

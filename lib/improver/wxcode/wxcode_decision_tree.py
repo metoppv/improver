@@ -80,7 +80,8 @@ def wxcode_decision_tree():
             'condition_combination': 'OR',
             'diagnostic_fields': ['probability_of_rainfall_rate',
                                   'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(8.33333333e-09,
+                                               units='m s-1'),
                                       AuxCoord(0.03, units='mm hr-1')],
             'diagnostic_conditions': ['above', 'above']},
 
@@ -92,7 +93,8 @@ def wxcode_decision_tree():
             'condition_combination': 'OR',
             'diagnostic_fields': ['probability_of_rainfall_rate',
                                   'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(2.77777778e-07,
+                                               units='m s-1'),
                                       AuxCoord(1.0, units='mm hr-1')],
             'diagnostic_conditions': ['above', 'above']},
 
@@ -118,8 +120,10 @@ def wxcode_decision_tree():
                                    'probability_of_lwe_snowfall_rate']],
             'diagnostic_gamma': [0.7, 1.0],
             'diagnostic_thresholds': [[AuxCoord(1.0, units='mm hr-1'),
-                                       AuxCoord(1.0, units='mm hr-1')],
-                                      [AuxCoord(1.0, units='mm hr-1'),
+                                       AuxCoord(2.77777778e-07,
+                                                units='m s-1')],
+                                      [AuxCoord(2.77777778e-07,
+                                                units='m s-1'),
                                        AuxCoord(1.0, units='mm hr-1')]],
             'diagnostic_conditions': [['above', 'above'],
                                       ['above', 'above']]},
@@ -136,8 +140,10 @@ def wxcode_decision_tree():
                                    'probability_of_lwe_snowfall_rate']],
             'diagnostic_gamma': [0.7, 1.0],
             'diagnostic_thresholds': [[AuxCoord(1.0, units='mm hr-1'),
-                                       AuxCoord(1.0, units='mm hr-1')],
-                                      [AuxCoord(1.0, units='mm hr-1'),
+                                       AuxCoord(2.77777778e-07,
+                                                units='m s-1')],
+                                      [AuxCoord(2.77777778e-07,
+                                                units='m s-1'),
                                        AuxCoord(1.0, units='mm hr-1')]],
             'diagnostic_conditions': [['above', 'above'],
                                       ['above', 'above']]},
@@ -152,7 +158,8 @@ def wxcode_decision_tree():
                                    'probability_of_rainfall_rate']],
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[AuxCoord(1.0, units='mm hr-1'),
-                                       AuxCoord(1.0, units='mm hr-1')]],
+                                       AuxCoord(2.77777778e-07,
+                                                units='m s-1')]],
             'diagnostic_conditions': [['above', 'above']]},
 
         'heavy_rain_or_snow_shower': {
@@ -165,7 +172,8 @@ def wxcode_decision_tree():
                                    'probability_of_rainfall_rate']],
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[AuxCoord(1.0, units='mm hr-1'),
-                                       AuxCoord(1.0, units='mm hr-1')]],
+                                       AuxCoord(2.77777778e-07,
+                                                units='m s-1')]],
             'diagnostic_conditions': [['above', 'above']]},
 
         'light_precipitation': {
@@ -176,7 +184,8 @@ def wxcode_decision_tree():
             'condition_combination': 'OR',
             'diagnostic_fields': ['probability_of_rainfall_rate',
                                   'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(0.1, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(2.77777778e-08,
+                                               units='m s-1'),
                                       AuxCoord(0.1, units='mm hr-1')],
             'diagnostic_conditions': ['above', 'above']},
 
@@ -202,8 +211,10 @@ def wxcode_decision_tree():
                                    'probability_of_lwe_snowfall_rate']],
             'diagnostic_gamma': [0.7, 1.0],
             'diagnostic_thresholds': [[AuxCoord(0.1, units='mm hr-1'),
-                                       AuxCoord(0.1, units='mm hr-1')],
-                                      [AuxCoord(0.1, units='mm hr-1'),
+                                       AuxCoord(2.77777778e-08,
+                                                units='m s-1')],
+                                      [AuxCoord(2.77777778e-08,
+                                                units='m s-1'),
                                        AuxCoord(0.1, units='mm hr-1')]],
             'diagnostic_conditions': [['above', 'above'],
                                       ['above', 'above']]},
@@ -218,7 +229,8 @@ def wxcode_decision_tree():
                                    'probability_of_rainfall_rate']],
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[AuxCoord(0.1, units='mm hr-1'),
-                                       AuxCoord(0.1, units='mm hr-1')]],
+                                       AuxCoord(2.77777778e-08,
+                                                units='m s-1')]],
             'diagnostic_conditions': ['above', 'above']},
 
         'light_sleet_shower': {
@@ -233,8 +245,10 @@ def wxcode_decision_tree():
                                    'probability_of_lwe_snowfall_rate']],
             'diagnostic_gamma': [0.7, 1.0],
             'diagnostic_thresholds': [[AuxCoord(0.1, units='mm hr-1'),
-                                       AuxCoord(0.1, units='mm hr-1')],
-                                      [AuxCoord(0.1, units='mm hr-1'),
+                                       AuxCoord(2.77777778e-08,
+                                                units='m s-1')],
+                                      [AuxCoord(2.77777778e-08,
+                                                units='m s-1'),
                                        AuxCoord(0.1, units='mm hr-1')]],
             'diagnostic_conditions': [['above', 'above'],
                                       ['above', 'above']]},
@@ -249,7 +263,8 @@ def wxcode_decision_tree():
                                    'probability_of_rainfall_rate']],
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[AuxCoord(0.1, units='mm hr-1'),
-                                       AuxCoord(0.1, units='mm hr-1')]],
+                                       AuxCoord(2.77777778e-08,
+                                                units='m s-1')]],
             'diagnostic_conditions': ['above', 'above']},
 
         'drizzle_mist': {
@@ -260,7 +275,8 @@ def wxcode_decision_tree():
             'condition_combination': 'AND',
             'diagnostic_fields': ['probability_of_rainfall_rate',
                                   'probability_of_visibility_in_air'],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(8.33333333e-09,
+                                               units='m s-1'),
                                       AuxCoord(5000., units='m')],
             'diagnostic_conditions': ['above', 'below']},
 
@@ -274,7 +290,8 @@ def wxcode_decision_tree():
                                   ('probability_of_cloud_area_fraction_'
                                    'assuming_only_consider_surface_to_1000'
                                    '_feet_asl')],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(8.33333333e-09,
+                                               units='m s-1'),
                                       AuxCoord(0.85, units=1)],
             'diagnostic_conditions': ['above', 'above']},
 
@@ -318,7 +335,8 @@ def wxcode_decision_tree():
             'condition_combination': 'OR',
             'diagnostic_fields': ['probability_of_rainfall_rate',
                                   'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
+            'diagnostic_thresholds': [AuxCoord(8.33333333e-09,
+                                               units='m s-1'),
                                       AuxCoord(0.03, units='mm hr-1')],
             'diagnostic_conditions': ['above', 'above']},
 
