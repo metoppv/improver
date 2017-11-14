@@ -243,8 +243,9 @@ class GenerateOrographyBandAncils(object):
         if key == 'land':  # regular topographical bands above land
             lower_threshold, upper_threshold = thresholds
             orog_band = np.ma.masked_where(
-                np.ma.logical_and((standard_orography.data > lower_threshold),
-                                  (standard_orography.data <= upper_threshold)),
+                np.ma.logical_and(
+                    (standard_orography.data > lower_threshold),
+                    (standard_orography.data <= upper_threshold)),
                 standard_orography.data).mask.astype(int)
             if not isinstance(orog_band, np.ndarray):
                 orog_band = np.zeros(standard_orography.data.shape).astype(int)
@@ -290,4 +291,5 @@ class GenerateOrographyBandAncils(object):
                     orography, landmask, dict_key,
                     limits, bounds_dict['units'])
                 cubelist.append(oro_band)
+                print oro_band.coord('topographic_zone')
         return cubelist
