@@ -57,23 +57,23 @@ class Test_gen_orography_masks(IrisTest):
         self.orography = Cube(orog_data, long_name='test orog')
         self.valley_key = 'land'
         self.valley_threshold = [-10, 10]
-        self.exp_valleymask = np.array([[[1., 999999., 999999.],
-                                         [0., 999999., 999999.],
-                                         [1., 0., 0.]]])
+        self.exp_valleymask = np.array([[[1, 999999, 999999],
+                                         [0, 999999, 999999],
+                                         [0, 0, 0]]])
         self.land_key = 'land'
         self.land_threshold = [0, 50]
-        self.exp_landmask = np.array([[[1., 999999., 999999.],
-                                       [1., 999999., 999999.],
+        self.exp_landmask = np.array([[[1., 999999, 999999],
+                                       [1., 999999, 999999],
                                        [0., 0., 1.]]])
 
         self.nonzero_land_threshold = [30, 100]
-        self.exp_nonzero_landmask = np.array([[[0., 999999., 999999.],
-                                               [0., 999999., 999999.],
-                                               [0., 1., 1.]]])
+        self.exp_nonzero_landmask = np.array([[[0, 999999, 999999],
+                                               [0, 999999, 999999],
+                                               [0, 1, 1]]])
 
         self.high_land_threshold = [500, 600]
-        self.exp_high_landmask = np.array([[[0., 999999., 999999.],
-                                            [0., 999999., 999999.],
+        self.exp_high_landmask = np.array([[[0., 999999, 999999],
+                                            [0., 999999, 999999],
                                             [0., 0., 0.]]])
 
     def test_nonsensekey(self):
