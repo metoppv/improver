@@ -33,10 +33,11 @@
 import numpy as np
 
 
-def rescale(data, datarange=None, scalerange=(0., 1.),
+def rescale(data, data_range=None, scale_range=(0., 1.),
             clip=False, debug=False):
     """
-    Rescale data array so that datamin => scalemin and datamax => scale max.
+    Rescale data array so that data_min => scale_min
+    and data_max => scale max.
     All adjustments are linear
 
     Args:
@@ -44,11 +45,11 @@ def rescale(data, datarange=None, scalerange=(0., 1.),
             Source values
 
     Keyword Args:
-        datarange (list):
+        data_range (list):
             List containing two floats
             Lowest and highest source value to rescale.
             Defaults to [min(data), max(data)]
-        scalerange (list):
+        scale_range (list):
             List containing two floats
             Lowest and highest value after rescaling.
             Defaults to (0., 1.)
@@ -64,26 +65,26 @@ def rescale(data, datarange=None, scalerange=(0., 1.),
         result (numpy.ndarray):
             Output array of scaled data. Has same shape as data.
     """
-    datamin = np.min(data) if datarange is None else datarange[0]
-    datamax = np.max(data) if datarange is None else datarange[1]
-    scalemin = scalerange[0]
-    scalemax = scalerange[1]
+    data_min = np.min(data) if data_range is None else data_range[0]
+    data_max = np.max(data) if data_range is None else data_range[1]
+    scale_min = scale_range[0]
+    scale_max = scale_range[1]
     if debug:
-        print "Rescaling data so that {} -> {} and {} -> {}".format(datamin,
-                                                                    scalemin,
-                                                                    datamax,
-                                                                    scalemax)
+        print "Rescaling data so that {} -> {} and {} -> {}".format(data_min,
+                                                                    scale_min,
+                                                                    data_max,
+                                                                    scale_max)
     # Range check
-    if datamin == datamax:
+    if data_min == data_max:
         raise ValueError("Cannot rescale a zero input range " +
-                         "({} -> {})".format(datamin, datamax))
+                         "({} -> {})".format(data_min, data_max))
 
-    if scalemin == scalemax:
+    if scale_min == scale_max:
         raise ValueError("Cannot rescale a zero output range " +
-                         "({} -> {})".format(scalemin, scalemax))
+                         "({} -> {})".format(scale_min, scale_max))
 
-    result = ((data - datamin) * (scalemax - scalemin) /
-              (datamax - datamin)) + scalemin
+    result = ((data - data_min) * (scale_max - scale_min) /
+              (data_max - data_min)) + scale_min
     if clip:
-        result = np.clip(result, scalemin, scalemax)
+        result = np.clip(result, scale_min, scale_max)
     return result

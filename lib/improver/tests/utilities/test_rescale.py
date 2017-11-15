@@ -83,7 +83,7 @@ class Test_rescale(IrisTest):
         """
         msg = "Cannot rescale a zero input range"
         with self.assertRaisesRegexp(ValueError, msg):
-            rescale(self.cube.data, datarange=[0, 0])
+            rescale(self.cube.data, data_range=[0, 0])
 
     def test_zerorange_output(self):
         """
@@ -91,7 +91,7 @@ class Test_rescale(IrisTest):
         """
         msg = "Cannot rescale a zero output range"
         with self.assertRaisesRegexp(ValueError, msg):
-            rescale(self.cube.data, scalerange=[4, 4])
+            rescale(self.cube.data, scale_range=[4, 4])
 
     def test_rescaling_inrange(self):
         """
@@ -100,8 +100,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 110.
         expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datarange=(0., 1.),
-                         scalerange=(100., 110.))
+        result = rescale(self.cube.data, data_range=(0., 1.),
+                         scale_range=(100., 110.))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_rescaling_outrange(self):
@@ -111,8 +111,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 98.
-        result = rescale(self.cube.data, datarange=(0.2, 1.2),
-                         scalerange=(100., 110.))
+        result = rescale(self.cube.data, data_range=(0.2, 1.2),
+                         scale_range=(100., 110.))
         self.assertArrayAlmostEqual(result, expected)
 
     def test_clip(self):
@@ -122,8 +122,8 @@ class Test_rescale(IrisTest):
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 100.
-        result = rescale(self.cube.data, datarange=(0.2, 1.2),
-                         scalerange=(100., 110.), clip=True)
+        result = rescale(self.cube.data, data_range=(0.2, 1.2),
+                         scale_range=(100., 110.), clip=True)
         self.assertArrayAlmostEqual(result, expected)
 
 
