@@ -112,11 +112,13 @@ class ProbabilityOfOccurrence(object):
         """
         Identify the probability of having a phenomenon occur within a
         vicinity.
+
         The steps for this are as follows:
-        1. Calculate the occurrence of a phenomenon within a defined vicinity.
-        2. If the cube contains a realization dimension coordinate, find the
-           mean.
-        3. Compute neighbourhood processing.
+            1.   Calculate the occurrence of a phenomenon within
+                 a defined vicinity.
+            2.   If the cube contains a realization dimension coordinate,
+                 find the mean.
+            3.   Compute neighbourhood processing.
 
         Args:
             cube (iris.cube.Cube):
@@ -132,12 +134,17 @@ class ProbabilityOfOccurrence(object):
         cube = OccurrenceWithinVicinity(self.distance).process(cube)
         try:
             if cube.coord_dims('realization'):
+                ens_members = cube.coord('realization').points
                 cube = cube.collapsed('realization', iris.analysis.MEAN)
+                cube.remove_coord('realization')
+                cube.attributes['source_realizations'] = ens_members
         except iris.exceptions.CoordinateNotFoundError:
             pass
 
         cube = NeighbourhoodProcessing(
-            self.neighbourhood_method, self.radii, self.lead_times,
-            self.weighted_mode, self.ens_factor).process(cube)
+            self.neighbourhood_method, self.radii,
+            lead_times=self.lead_times,
+            weighted_mode=self.weighted_mode,
+            ens_factor=self.ens_factor).process(cube)
         cube.rename(cube.name() + '_in_vicinity')
         return cube

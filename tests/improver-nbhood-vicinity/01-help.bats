@@ -39,8 +39,9 @@ usage: improver-nbhood-vicinity [-h]
                                 [--ens_factor ENS_FACTOR] [--weighted_mode]
                                 VICINITY_DISTANCE INPUT_FILE OUTPUT_FILE
 
-Calculate the probability of having a phenomenon occur within a vicinity via
-the ProbabilityOfOccurence plugin to a file with one cube.
+Calculate the probability of having a phenomenon occur within the vicinity of
+a point via the ProbabilityOfOccurence plugin The input file contains a single
+diagnostic cube to which this process is applied.
 
 positional arguments:
   VICINITY_DISTANCE     Distance in metres used to define the vicinity within
