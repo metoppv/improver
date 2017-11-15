@@ -176,8 +176,8 @@ class Test_check_input_cubes(IrisTest):
         """Test that check_input_cubes method raises error if units are
         different to the input cube."""
         plugin = WeatherSymbols()
-        msg = 'Weather Symbols input cubes have different units'
-        self.cubes[0].units = Unit('mm hr-1')
+        msg = 'Weather Symbols input cubes have threshold units'
+        self.cubes[0].coord('threshold').units = Unit('mm hr-1')
         with self.assertRaisesRegexp(TypeError, msg):
             plugin.check_input_cubes(self.cubes)
 
@@ -317,12 +317,12 @@ class Test_create_condition_chain(IrisTest):
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
-        expected = ("(cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate', "
-                    "coord_values={'threshold': 0.03}))[0].data >= 0.5) "
-                    "| (cubes.extract(Constraint(name="
-                    "'probability_of_lwe_snowfall_rate', "
-                    "coord_values={'threshold': 0.03}))[0].data >= 0.5)")
+        expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
+                    "rainfall_rate', threshold=lambda cell: 0.03*0.98 < cell <"
+                    " 0.03*1.02))[0].data >= 0.5) | (cubes.extract(iris."
+                    "Constraint(name='probability_of_lwe_snowfall_rate', "
+                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02))[0]"
+                    ".data >= 0.5)")
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
         self.assertEqual(result[0], expected)
@@ -339,9 +339,8 @@ class Test_construct_extract_constraint(IrisTest):
         threshold = AuxCoord(0.03, units='mm hr-1')
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
-        expected = ("Constraint(name='probability_of_rainfall_rate',"
-                    " coord_values={'threshold': 0.03})")
-        self.assertIsInstance(result, iris.Constraint)
+        expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
+                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02)")
         self.assertEqual(str(result), expected)
 
     def test_list_of_constraints(self):
@@ -354,10 +353,10 @@ class Test_construct_extract_constraint(IrisTest):
                       AuxCoord(0.03, units='mm hr-1')]
         result = plugin.construct_extract_constraint(diagnostics,
                                                      thresholds)
-        expected = ("Constraint(name='probability_of_lwe_snowfall_rate',"
-                    " coord_values={'threshold': 0.03})")
+
+        expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
+                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02)")
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], iris.Constraint)
         self.assertEqual(len(result), 2)
         self.assertEqual(str(result[1]), expected)
 

@@ -96,11 +96,14 @@ class WeatherSymbols(object):
                 if not cubes.extract(test_condition):
                     missing_data.append([diagnostic, threshold, condition])
 
-                cube_threshold_units = cubes.extract(test_condition)[0].coord(
-                    'threshold').units
-                if cube_threshold_units != threshold_units:
-                    mismatched_units.append(
-                        [diagnostic, cube_threshold_units, threshold_units])
+                else:
+                    cube_threshold_units = (
+                        cubes.extract(test_condition)[0].coord(
+                            'threshold').units)
+                    if cube_threshold_units != threshold_units:
+                        mismatched_units.append(
+                            [diagnostic, cube_threshold_units,
+                             threshold_units])
 
         if missing_data:
             msg = ('Weather Symbols input cubes are missing'
