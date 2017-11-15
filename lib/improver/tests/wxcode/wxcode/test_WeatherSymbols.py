@@ -59,8 +59,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_snow,
             'lwe_snowfall_rate',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
@@ -83,8 +85,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_snowv,
             'lwe_snowfall_rate_in_vicinity',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_rainv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -94,8 +98,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_rainv,
             'rainfall_rate_in_vicinity',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                            0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
@@ -170,9 +176,8 @@ class Test_check_input_cubes(IrisTest):
         """Test that check_input_cubes method raises error if units are
         different to the input cube."""
         plugin = WeatherSymbols()
-        self.cubes[6].units = Unit('kg')
-        self.cubes[0].units = Unit('m s-1')
-        msg = '.*\n.*kg.*m\n.*m s-1.*mm hr-1'
+        msg = 'Weather Symbols input cubes have different units'
+        self.cubes[0].units = Unit('mm hr-1')
         with self.assertRaisesRegexp(TypeError, msg):
             plugin.check_input_cubes(self.cubes)
 

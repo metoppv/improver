@@ -112,7 +112,7 @@ class WeatherSymbols(object):
             raise IOError(msg)
 
         if mismatched_units:
-            msg = ('Weather Symbols input cubes have different units'
+            msg = ('Weather Symbols input cubes have different units '
                    'to the thresholds required:\n')
             dyn_msg = 'name: {}, cube units: {}, threshold units: {}\n'
             for item in mismatched_units:
