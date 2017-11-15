@@ -34,7 +34,6 @@
 import numpy as np
 import copy
 import iris
-from iris import Constraint
 
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists)
@@ -87,20 +86,21 @@ class WeatherSymbols(object):
                 threshold_units = threshold.units
                 threshold = threshold.points.item()
                 test_condition = (
-                    Constraint(
+                    iris.Constraint(
                         name=diagnostic,
-                        coord_values={'threshold': threshold},
+                        threshold=lambda cell:
+                            threshold*0.98 < cell < threshold*1.02,
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
-
                 if not cubes.extract(test_condition):
                     missing_data.append([diagnostic, threshold, condition])
-                elif cubes.extract(test_condition)[0].units != threshold_units:
-                    mismatched_units.append([diagnostic,
-                                             cubes.extract(test_condition)[0]
-                                             .units,
-                                             threshold_units])
+
+                cube_threshold_units = cubes.extract(test_condition)[0].coord(
+                    'threshold').units
+                if cube_threshold_units != threshold_units:
+                    mismatched_units.append(
+                        [diagnostic, cube_threshold_units, threshold_units])
 
         if missing_data:
             msg = ('Weather Symbols input cubes are missing'
@@ -112,9 +112,9 @@ class WeatherSymbols(object):
             raise IOError(msg)
 
         if mismatched_units:
-            msg = ('Weather Symbols input cubes have different units '
-                   'to the thresholds required:\n')
-            dyn_msg = 'name: {}, cube units: {}, threshold units: {}\n'
+            msg = ('Weather Symbols input cubes have threshold units '
+                   'that differ from those required:\n')
+            dyn_msg = 'name: {}, cube threshold unit: {}, required unit: {}\n'
             for item in mismatched_units:
                 msg = msg + dyn_msg.format(*item)
             raise TypeError(msg)
@@ -275,18 +275,28 @@ class WeatherSymbols(object):
             iris.Constraint or list of iris.Constraints:
                 The constructed iris constraints.
         """
+        def _constraint_string(diagnostic, threshold):
+            """
+            Return iris constraint as a string for deferred creation of the
+            lambda functions.
+            Args:
+                diagnostic (string)
+                threshold (float)
+            """
+            return '{}{}{}{}{}{}{}'.format(
+                "iris.Constraint(name='", diagnostic, "', "
+                "threshold=lambda cell: ", threshold,
+                "*0.98 < cell < ", threshold, "*1.02)")
 
         if isinstance(diagnostics, list):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
                 threshold = threshold.points.item()
-                constraints.append(iris.Constraint(
-                    name=diagnostic,
-                    coord_values={'threshold': threshold}))
+                constraints.append(
+                    _constraint_string(diagnostic, threshold))
             return constraints
         threshold = thresholds.points.item()
-        return iris.Constraint(
-            name=diagnostics, coord_values={'threshold': threshold})
+        return _constraint_string(diagnostics, threshold)
 
     @staticmethod
     def find_all_routes(graph, start, end, route=None):
@@ -395,8 +405,6 @@ class WeatherSymbols(object):
 
             # Loop over possible routes from root to leaf
             for route in routes:
-                # print ('--> {}' * len(route)).format(
-                #    *[node for node in route])
                 conditions = []
                 for i_node in range(len(route)-1):
                     current_node = route[i_node]
