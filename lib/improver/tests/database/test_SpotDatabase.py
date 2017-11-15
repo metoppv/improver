@@ -41,7 +41,7 @@ import cf_units
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-
+from datetime import datetime as dt
 from improver.database import SpotDatabase
 
 
@@ -128,18 +128,73 @@ class Test___repr__(IrisTest):
 
 class Test_to_dataframe(IrisTest):
     """A set of tests for the to_dataframe method"""
+
     def test_single_cube(self):
         """Basic test using one input cube."""
+        # Set up expected dataframe.
+        validity_date = dt.utcfromtimestamp(1487311200).date()
+        data = [[validity_date, 600, 1000, "air_temperature", "IMPRO", 280.],
+                [validity_date, 600, 1001, "air_temperature", "IMPRO", 280.],
+                [validity_date, 600, 1002, "air_temperature", "IMPRO", 280.]]
+        columns = ["validity_date", "validity_time", "station_id", "cf_name",
+                   "exp_id", "fcr_tplus000"]
+        expected_df = pd.DataFrame(data, columns=columns)
+        expected_df = expected_df.set_index(["validity_date", "validity_time",
+                                             "station_id", "cf_name",
+                                             "exp_id"])
+        expected_df.columns.name = "forecast_period"
+        # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
         plugin = SpotDatabase(cubes, "output", "csv", "improver", pivot_max=1)
         plugin.to_dataframe()
         result = plugin.df
-        print result
-        expected_dataframe = pd.DataFrame(data=np.array([280.0, 280.0, 280.0]),
-                                          columns=["fcr_tplus000"])
-        print expected_dataframe
+        assert_frame_equal(expected_df, result)
+
+
+class Test_ensure_all_pivot_columns(IrisTest):
+    """A set of tests for the ensure_all_pivot_collumns method"""
+    def test_single_cube(self):
+        """Basic test using one input cube."""
+
+        cubes = iris.cube.CubeList([set_up_spot_cube(280)])
+        plugin = SpotDatabase(cubes, "output", "csv", "improver",
+                              pivot_max=3600)
+        test_dataframe = pd.DataFrame(data=np.array([280.0, 280.0, 280.0]),
+                                      columns=["fcr_tplus000"])
+        plugin.ensure_all_pivot_columns(test_dataframe)
+        result = test_dataframe
+        expected_dataframe = pd.DataFrame(data=np.array([[280.0, np.nan],
+                                                         [280.0, np.nan],
+                                                         [280.0, np.nan]]),
+                                          columns=["fcr_tplus000",
+                                                   "fcr_tplus001"])
         assert_frame_equal(expected_dataframe, result)
 
+
+class Test_determine_schema(IrisTest):
+    """A set of tests for the determine_schema method"""
+    def setUp(self):
+        """Set up the plugin and dataframe needed for this test"""
+        cubes = iris.cube.CubeList([set_up_spot_cube(280)])
+        self.plugin = SpotDatabase(cubes, "output", "csv", "improver",
+                                   pivot_max=3600)
+        self.dataframe = self.plugin.to_dataframe()
+
+    def test_full_schema(self):
+        """Basic test using a basic dataframe as input"""
+        schema = self.plugin.determine_schema("improver")
+        expected_schema = ('CREATE TABLE "improver" '
+                           '(\n"validity_date" TIMESTAMP,\n  '
+                           '"validity_time" INTEGER,\n  '
+                           '"station_id" INTEGER,\n  '
+                           '"cf_name" TEXT,\n  '
+                           '"exp_id" TEXT,\n  '
+                           '"fcr_tplus000" REAL,\n  '
+                           '"fcr_tplus001" REAL,\n  '
+                           'CONSTRAINT improver_pk PRIMARY KEY '
+                           '("validity_date", "validity_time", '
+                           '"station_id", "cf_name", "exp_id")\n)')
+        self.assertEqual(schema, expected_schema)
 
 if __name__ == '__main__':
     unittest.main()
