@@ -509,3 +509,70 @@ class WetBulbTemperature(object):
         wet_bulb_temperature = check_cube_coordinates(temperature,
                                                       wet_bulb_temperature)
         return wet_bulb_temperature
+
+
+class WetBulbTemperatureIntegral(object):
+    """Calculate  a wet-bulb temperature integral."""
+
+    def __init__(self, precision=0.005, coord_name_to_integrate = "height",
+                 start_point=None, end_point=None):
+        """
+        Initialise class.
+
+        Args:
+            precision (float):
+                The precision to which the Newton iterator must converge
+                before returning wet bulb temperatures.
+            coord_name_to_integrate (iris.cube.Cube):
+                Name of the coordinate to be integrated.
+            start_point (float or None):
+                Point at which to start the interpolation.
+                Default is None.
+            end_point (float or None):
+                Point at which to end the interpolation.
+                Default is None.
+            direction_of_integration (string):
+                Description of the direction in which to integrate.
+                Options are 'upwards' or 'downwards'.
+        """
+        self.precision = precision
+        self.coord_name_to_integrate = coord_name_to_integrate
+        self.start_point = start_point
+        self.end_point = end_point
+        self.direction_of_integration = direction_of_integration
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<WetBulbTemperatureIntegral: precision: {}, '
+                  'coord_name_to_integrate: {}, start_point: {}, '
+                  'end_point: {}, direction_of_integration: {}>'.format(
+                      self.precision, self.coord_name_to_integrate,
+                      self.start_point, self.end_point,
+                      self.direction_of_integration))
+        return result
+
+    def process(self, temperature, relative_humidity, pressure):
+        """
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures (K).
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities (%, converted to fractional).
+            pressure (iris.cube.Cube):
+                Cube of air pressures (Pa).
+
+        Returns:
+            wet_bulb_temperature_integral (iris.cube.Cube):
+                Cube of wet bulb temperature integral (Kelvin-metres).
+        """
+        # Calculate wet-bulb temperature.
+        wet_bulb_temperature = (
+            WetBulbTemperature(precision=self.precision).process(
+                temperature, relative_humidity, pressure))
+        # Integrate.
+        wet_bulb_temperature_integral = (
+            VerticalIntegration(
+                coord_name_to_integrate, start_point=self.start_point,
+                end_point=self.start_point).process(wet_bulb_temperature))
+        wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
+        return wet_bulb_temperature_integral
