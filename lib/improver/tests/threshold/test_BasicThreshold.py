@@ -195,11 +195,13 @@ class Test_process(IrisTest):
 
     def test_threshold_negative(self):
         """Test a point when the threshold is negative."""
+        self.cube.data[0][2][2] = -0.75
         plugin = Threshold(
             -1.0, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
         result = plugin.process(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape(
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
             1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_below(self):
