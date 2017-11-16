@@ -34,7 +34,8 @@
   [[ "$status" -eq 2 ]]
 expected="usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
                        [--experiment_id EXPERIMENT_ID] (--sqlite | --csv)
-                       [-rows ROW_DIMENSION]
+                       [-rows ROW_DIMENSION] [-cols EXTRA_COLUMNS]
+                       [-col_vals EXTRA_VALUES]
                        INPUT_FILES OUTPUT_FILE
 improver-spotdb: error: too few arguments"
   [[ "$output" =~ "$expected" ]]

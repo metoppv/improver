@@ -48,7 +48,7 @@ class SpotDatabase(object):
 
     """
 
-    def __init__(self, cubelist, output, outfile, tablename,
+    def __init__(self, output, outfile, tablename,
                  primary_dim='time',
                  primary_map=['validity_date', 'validity_time'],
                  primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
@@ -58,15 +58,17 @@ class SpotDatabase(object):
                  pivot_map=lambda x: 'fcr_tplus{:03d}'.format(int(x/3600)),
                  pivot_max=54*60*60,
 
-                 column_dims=['wmo_site', 'name', 'IMPRO'],
-                 column_maps=['station_id', 'cf_name', 'exp_id']):
+                 column_dims=['wmo_site', 'name'],
+                 column_maps=['station_id', 'cf_name'],
+
+                 extra_columns=None,
+                 extra_values=None):
 
         """
         Initialise class.
 
         """
 
-        self.cubelist  = cubelist
         self.output    = output
         self.outfile   = outfile
         self.tablename = tablename
@@ -79,8 +81,9 @@ class SpotDatabase(object):
 
         self.column_dims = column_dims
         self.column_maps = column_maps
-
-        self.assert_similar()
+        if extra_columns and extra_values:    
+            self.column_maps.append(extra_columns)
+            self.column_dims.append(extra_values)
 
     def __repr__(self):
         """
@@ -92,25 +95,13 @@ class SpotDatabase(object):
                                           'pivot={pivot_dim})>')
         return result.format(**self.__dict__)
 
-    def assert_similar(self):
-        """
-        Ensure that the dimensions and coordinates are shared between cubes.
-
-        """
-        cubelist = self.cubelist
-        some_cube = self.cubelist[0]
-
-        for cube in cubelist:
-            for coord in cube.dim_coords:
-                assert coord.is_compatible(some_cube.coord(coord.name()))
-
-    def to_dataframe(self):
+    def to_dataframe(self, cubelist):
         """
         Turn the input cubes into a 2-dimensional DataFrame object
 
         """
 
-        for cube in self.cubelist:
+        for cube in cubelist:
             for c in cube.slices_over(self.column_dims[0]):
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
@@ -238,13 +229,13 @@ class SpotDatabase(object):
 
         self.df.to_csv(outfile)
         
-    def process(self):
+    def process(self, cubelist):
         """
         Method to perform the table creation and output to file.
         
         """
 
-        self.to_dataframe()
+        self.to_dataframe(cubelist)
 
         if self.output == 'sqlite':
            self.to_sql(self.outfile, self.tablename)

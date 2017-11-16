@@ -70,12 +70,17 @@ def main():
                        help='The option used to create a CSV file.')
 
     # Some options pertaining to the structure of the table.
-    structure = parser.add_argument_group(
-        'Table format options', 'Options for structure of the output table.')
+    structure = parser.add_argument_group('Table format options',
+                           'Options for structure of the output table.')
     structure.add_argument('-rows', '--row_dimension',
                            default='time',
                            help='A dimension to turn into the table rows')
-
+    structure.add_argument('-cols', '--extra_columns',
+                           default=None,
+                           help='Any extra columns to append to the table')
+    structure.add_argument('-col_vals', '--extra_values',
+                           default=None,
+                           help='Values for any extra columns to append')
     args = parser.parse_args()
 
     cubelist = iris.load(args.input_filepath)
@@ -96,9 +101,11 @@ def main():
     else:
         table_name = 'improver'
 
-    database_creator = SpotDatabase(cubelist, output, args.output_filepath,
-                                    table_name, args.row_dimension)
-    database_creator.process()
+    database_creator = SpotDatabase(output, args.output_filepath, table_name, 
+                                    primary_dim=args.row_dimension, 
+                                    extra_columns=args.extra_columns,
+                                    extra_values=args.extra_values)
+    database_creator.process(cubelist)
 
 if __name__ == '__main__':
     main()

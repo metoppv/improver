@@ -35,7 +35,8 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
                        [--experiment_id EXPERIMENT_ID] (--sqlite | --csv)
-                       [-rows ROW_DIMENSION]
+                       [-rows ROW_DIMENSION] [-cols EXTRA_COLUMNS]
+                       [-col_vals EXTRA_VALUES]
                        INPUT_FILES OUTPUT_FILE
 
 Convert spot forecast cubes to a table and save in csv or as a sql database.
@@ -63,6 +64,10 @@ Table format options:
 
   -rows ROW_DIMENSION, --row_dimension ROW_DIMENSION
                         A dimension to turn into the table rows
+  -cols EXTRA_COLUMNS, --extra_columns EXTRA_COLUMNS
+                        Any extra columns to append to the table
+  -col_vals EXTRA_VALUES, --extra_values EXTRA_VALUES
+                        Values for any extra columns to append
 __HELP__
   [[ "$output" == "$expected" ]]
 }
