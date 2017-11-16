@@ -50,33 +50,44 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6]
         fuzzy_factor = None
+        fuzzy_bounds = [(0.6, 0.6)]
         below_thresh_ok = False
-        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
-        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+        result = str(Threshold(threshold,
+                               below_thresh_ok=below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, '
+               'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_factor, below_thresh_ok))
+                threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_multiple_thresholds(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6, 0.8]
         fuzzy_factor = None
+        fuzzy_bounds = [(0.6, 0.6), (0.8, 0.8)]
         below_thresh_ok = False
-        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
-        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+        result = str(Threshold(threshold,
+                               below_thresh_ok=below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, '
+               'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_factor, below_thresh_ok))
+                threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_below_fuzzy_threshold(self):
         """Test that the __repr__ returns the expected string."""
-        threshold = [0.6]
+        threshold = 0.6
         fuzzy_factor = 0.2
+        fuzzy_bounds = [(0.12, 1.08)]
         below_thresh_ok = True
-        result = str(Threshold(threshold, fuzzy_factor, below_thresh_ok))
-        msg = ('<BasicThreshold: thresholds {}, fuzzy factor {}, '
+        result = str(Threshold(threshold,
+                               fuzzy_factor=fuzzy_factor,
+                               below_thresh_ok=below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds [{}], '
+               'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_factor, below_thresh_ok))
+                threshold, fuzzy_bounds, below_thresh_ok))
+        self.assertEqual(result, msg)
         self.assertEqual(result, msg)
 
 
