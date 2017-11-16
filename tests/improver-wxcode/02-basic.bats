@@ -31,10 +31,9 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wind-gust-diagnostic" {
+@test "wxcode" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-IMPROVER_ACC_TEST_DIR=/data/users/tpilling/IMP-373-data/
 
   # Run wind-gust-diagnostic processing and check it passes.
   run improver wxcode \
@@ -45,12 +44,12 @@ IMPROVER_ACC_TEST_DIR=/data/users/tpilling/IMP-373-data/
       "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_in_vicinity.nc" \
-      "output.nc"
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output_average.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/kgo_average_wind_gust.nc"
-  rm "$TEST_DIR/output_average.nc"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/kgo.nc"
+  rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
