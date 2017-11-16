@@ -88,6 +88,35 @@ class Test__repr__(IrisTest):
                'below_thresh_ok: {}>'.format(
                 threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
+
+    def test_fuzzy_bounds_scalar(self):
+        """Test that the __repr__ returns the expected string."""
+        threshold = 0.6
+        fuzzy_factor = None
+        fuzzy_bounds = (0.4, 0.8)
+        below_thresh_ok = False
+        result = str(Threshold(threshold,
+                               fuzzy_bounds=fuzzy_bounds,
+                               below_thresh_ok=below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds [{}], '
+               'fuzzy_bounds [{}], '
+               'below_thresh_ok: {}>'.format(
+                threshold, fuzzy_bounds, below_thresh_ok))
+        self.assertEqual(result, msg)
+
+    def test_fuzzy_bounds_list(self):
+        """Test that the __repr__ returns the expected string."""
+        threshold = [0.6, 2.0]
+        fuzzy_factor = None
+        fuzzy_bounds = [(0.4, 0.8), (1.8, 2.1)]
+        below_thresh_ok = False
+        result = str(Threshold(threshold,
+                               fuzzy_bounds=fuzzy_bounds,
+                               below_thresh_ok=below_thresh_ok))
+        msg = ('<BasicThreshold: thresholds {}, '
+               'fuzzy_bounds {}, '
+               'below_thresh_ok: {}>'.format(
+                threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
 
@@ -186,6 +215,107 @@ class Test_process(IrisTest):
         expected_result_array = np.zeros_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 1.0/3.0
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_fuzzybounds(self):
+        """Test when a point is in the fuzzy threshold area."""
+        bounds = (0.6 * self.fuzzy_factor, 0.6 * (2. - self.fuzzy_factor))
+        plugin = Threshold(0.6, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1.0/3.0
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_boundingzero(self):
+        """Test fuzzy threshold of zero."""
+        bounds = (-1.0, 1.0)
+        plugin = Threshold(0.0, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.full_like(
+            self.cube.data, fill_value=0.5).reshape(1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.75
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_boundingzero_above(self):
+        """Test fuzzy threshold of zero."""
+        bounds = (-0.1, 0.1)
+        plugin = Threshold(0.0, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.full_like(
+            self.cube.data, fill_value=0.5).reshape(1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1.
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_boundingbelowzero(self):
+        """Test fuzzy threshold of below-zero."""
+        bounds = (-1.0, 1.0)
+        plugin = Threshold(0.0, fuzzy_bounds=bounds, below_thresh_ok=True)
+        result = plugin.process(self.cube)
+        expected_result_array = np.full_like(
+            self.cube.data, fill_value=0.5).reshape(1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.25
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_below(self):
+        """Test when a point is below assymmetric fuzzy threshold area."""
+        bounds = (0.51, 0.9)
+        plugin = Threshold(0.6, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_lower(self):
+        """Test when a point is in lower assymmetric fuzzy threshold area."""
+        bounds = (0.4, 0.9)
+        plugin = Threshold(0.6, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.25
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_middle(self):
+        """Test when a point is on the threshold with assymmetric fuzzy
+        bounds."""
+        bounds = (0.4, 0.9)
+        plugin = Threshold(0.5, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.5
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_upper(self):
+        """Test when a point is in upper assymmetric fuzzy threshold area."""
+        bounds = (0.0, 0.6)
+        plugin = Threshold(0.4, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.75
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_above(self):
+        """Test when a point is above assymmetric fuzzy threshold area."""
+        bounds = (0.0, 0.45)
+        plugin = Threshold(0.4, fuzzy_bounds=bounds)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1.
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_assymetric_bounds_upper_below(self):
+        """Test when a point is in upper assymmetric fuzzy threshold area
+        and below-threshold is requested."""
+        bounds = (0.0, 0.6)
+        plugin = Threshold(0.4, fuzzy_bounds=bounds, below_thresh_ok=True)
+        result = plugin.process(self.cube)
+        expected_result_array = np.ones_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzy_miss(self):
@@ -304,6 +434,36 @@ class Test_process(IrisTest):
         msg = "Invalid fuzzy_factor: must be >0 and <1: 2.0"
         with self.assertRaisesRegexp(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor)
+
+    def test_fuzzy_factor_and_fuzzy_bounds(self):
+        """Test when fuzzy_factor and fuzzy_bounds both set (ambiguous)."""
+        fuzzy_factor = 2.0
+        fuzzy_bounds = (0.4, 0.8)
+        msg = ("Invalid combination of keywords. Cannot specify "
+               "fuzzy_factor and fuzzy_bounds together")
+        with self.assertRaisesRegexp(ValueError, msg):
+            Threshold(0.6, fuzzy_factor=fuzzy_factor,
+                      fuzzy_bounds=fuzzy_bounds)
+
+    def test_invalid_upper_bound(self):
+        """Test when fuzzy_bounds do not bound threshold (invalid)."""
+        threshold = 0.6
+        fuzzy_bounds = (0.4, 0.5)
+        msg = ("Upper bound error: {} !<= {}".format(threshold,
+                                                     fuzzy_bounds[1]))
+        with self.assertRaisesRegexp(AssertionError, msg):
+            Threshold(threshold,
+                      fuzzy_bounds=fuzzy_bounds)
+
+    def test_invalid_lower_bound(self):
+        """Test when fuzzy_bounds do not bound threshold (invalid)."""
+        threshold = 0.6
+        fuzzy_bounds = (0.7, 0.8)
+        msg = ("Lower bound error: {} !<= {}".format(fuzzy_bounds[0],
+                                                     threshold))
+        with self.assertRaisesRegexp(AssertionError, msg):
+            Threshold(threshold,
+                      fuzzy_bounds=fuzzy_bounds)
 
 
 if __name__ == '__main__':
