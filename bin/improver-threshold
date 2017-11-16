@@ -33,9 +33,9 @@
 
 import argparse
 
+import json
 import iris
 import cf_units
-import json
 
 from improver.threshold import BasicThreshold
 

@@ -49,7 +49,6 @@ class Test__repr__(IrisTest):
     def test_single_threshold(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6]
-        fuzzy_factor = None
         fuzzy_bounds = [(0.6, 0.6)]
         below_thresh_ok = False
         result = str(Threshold(threshold,
@@ -57,13 +56,12 @@ class Test__repr__(IrisTest):
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_bounds, below_thresh_ok))
+                   threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_multiple_thresholds(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6, 0.8]
-        fuzzy_factor = None
         fuzzy_bounds = [(0.6, 0.6), (0.8, 0.8)]
         below_thresh_ok = False
         result = str(Threshold(threshold,
@@ -71,7 +69,7 @@ class Test__repr__(IrisTest):
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_bounds, below_thresh_ok))
+                   threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_below_fuzzy_threshold(self):
@@ -86,13 +84,12 @@ class Test__repr__(IrisTest):
         msg = ('<BasicThreshold: thresholds [{}], '
                'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_bounds, below_thresh_ok))
+                   threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_fuzzy_bounds_scalar(self):
         """Test that the __repr__ returns the expected string."""
         threshold = 0.6
-        fuzzy_factor = None
         fuzzy_bounds = (0.4, 0.8)
         below_thresh_ok = False
         result = str(Threshold(threshold,
@@ -101,13 +98,12 @@ class Test__repr__(IrisTest):
         msg = ('<BasicThreshold: thresholds [{}], '
                'fuzzy_bounds [{}], '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_bounds, below_thresh_ok))
+                   threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
     def test_fuzzy_bounds_list(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6, 2.0]
-        fuzzy_factor = None
         fuzzy_bounds = [(0.4, 0.8), (1.8, 2.1)]
         below_thresh_ok = False
         result = str(Threshold(threshold,
@@ -116,7 +112,7 @@ class Test__repr__(IrisTest):
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'below_thresh_ok: {}>'.format(
-                threshold, fuzzy_bounds, below_thresh_ok))
+                   threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
 
 
@@ -473,7 +469,7 @@ class Test_process(IrisTest):
         fuzzy_bounds = (0.4, 0.5)
         # Note that back-slashes are necessary to make regexp literal.
         msg = ("Threshold must be within bounds: "
-               "\!\( {} <= {} <= {} \)".format(
+               r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
@@ -485,7 +481,7 @@ class Test_process(IrisTest):
         fuzzy_bounds = (0.7, 0.8)
         # Note that back-slashes are necessary to make regexp literal.
         msg = ("Threshold must be within bounds: "
-               "\!\( {} <= {} <= {} \)".format(
+               r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
