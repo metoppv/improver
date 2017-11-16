@@ -35,6 +35,7 @@ import numpy as np
 import iris
 from cf_units import Unit
 from improver.spotdata.extract_data import ExtractData
+from improver.utilities.rescale import rescale
 
 
 class BasicThreshold(object):
@@ -47,35 +48,50 @@ class BasicThreshold(object):
 
     Can operate on multiple time sequences within a cube.
 
+    Args:
+        thresholds (list of floats or float):
+            The threshold points for 'significant' datapoints.
+
+    Keyword Args:
+        fuzzy_factor (float):
+            Percentage above or below threshold for fuzzy membership value.
+            If None, no fuzzy_factor is applied.
+        fuzzy_bounds (list of tuples):
+            Lower and upper bounds for fuzziness.
+            List should be of same length as thresholds.
+            Each entry in list should be a tuple of two floats
+            representing the lower and upper bounds respectively.
+            If None, no fuzzy_bounds are applied.
+        below_thresh_ok (boolean):
+            True to count points as significant if *below* the threshold,
+            False to count points as significant if *above* the threshold.
+
+    Raises:
+        ValueError: If a threshold of 0.0 is requested when using a fuzzy
+                    factor.
+        ValueError: If the fuzzy_factor is not greater than 0 and less
+                    than 1.
+        ValueError: If both fuzzy_factor and fuzzy_bounds are set
+                    as this is ambiguous.
     """
 
     def __init__(self, thresholds, fuzzy_factor=None,
+                 fuzzy_bounds=None,
                  below_thresh_ok=False):
-        """Set up for processing an in-or-out of threshold binary field.
-
-        Args:
-            thresholds (list of floats or float):
-                The threshold points for 'significant' datapoints.
-            fuzzy_factor (float):
-                Percentage above or below threshold for fuzzy membership value.
-                If None, no fuzzy_factor is applied.
-            below_thresh_ok (boolean):
-                True to count points as significant if *below* the threshold,
-                False to count points as significant if *above* the threshold.
-
-        Raises:
-            ValueError: If a threshold of 0.0 is requested when using a fuzzy
-                        factor.
-            ValueError: If the fuzzy_factor is not greater than 0 and less
-                        than 1.
-
+        """
+        Set up for processing an in-or-out of threshold binary field.
         """
         # Ensure iterable threshold list provided, even if it's a single value.
         self.thresholds = thresholds
         if np.isscalar(thresholds):
             self.thresholds = [thresholds]
 
+        fuzzy_factor_loc = 1.
         if fuzzy_factor is not None:
+            if fuzzy_bounds is not None:
+                raise ValueError(
+                    "Invalid combination of keywords. Cannot specify "
+                    "fuzzy_factor and fuzzy_bounds together")
             if not 0 < fuzzy_factor < 1:
                 raise ValueError(
                     "Invalid fuzzy_factor: must be >0 and <1: {}".format(
@@ -84,21 +100,43 @@ class BasicThreshold(object):
                 raise ValueError(
                     "Invalid threshold with fuzzy factor: cannot use a "
                     "multiplicative fuzzy factor with threshold == 0")
+            fuzzy_factor_loc = fuzzy_factor
+        if fuzzy_bounds is None:
+            self.fuzzy_bounds = []
+            for thr in self.thresholds:
+                lower_thr = thr * fuzzy_factor_loc
+                upper_thr = thr * (2. - fuzzy_factor_loc)
+                if thr < 0:
+                    lower_thr, upper_thr = upper_thr, lower_thr
+                self.fuzzy_bounds.append((lower_thr, upper_thr))
+        else:
+            self.fuzzy_bounds = fuzzy_bounds
+        if self.fuzzy_bounds is not None:
+            # Ensure fuzzy_bounds is a list, even if a single tuple is
+            # supplied.
+            if isinstance(fuzzy_bounds, tuple):
+                self.fuzzy_bounds = [fuzzy_bounds]
+            for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
+                assert bounds[0] <= thr, (
+                    "Lower bound error: {} !<= {}".format(bounds[0], thr))
+                assert bounds[1] >= thr, (
+                    "Upper bound error: {} !<= {}".format(thr, bounds[1]))
 
-        self.fuzzy_factor = fuzzy_factor
         self.below_thresh_ok = below_thresh_ok
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<BasicThreshold: thresholds {}, fuzzy factor {}, ' +
+            '<BasicThreshold: thresholds {}, ' +
+            'fuzzy_bounds {}, ' +
             'below_thresh_ok: {}>'
-        ).format(self.thresholds, self.fuzzy_factor, self.below_thresh_ok)
+        ).format(self.thresholds, self.fuzzy_bounds,
+                 self.below_thresh_ok)
 
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
-        values. The truth value may or may not be fuzzy depending upon if a
-        fuzzy_factor is supplied.
+        values. The truth value may or may not be fuzzy depending upon if
+        fuzzy_bounds are supplied.
 
         Args:
             input_cube (iris.cube.Cube):
@@ -124,17 +162,23 @@ class BasicThreshold(object):
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        for threshold in self.thresholds:
+        for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
-            if self.fuzzy_factor is None:
+            if bounds[0] == bounds[1]:
                 truth_value = cube.data > threshold
             else:
-                lower_threshold = threshold * self.fuzzy_factor
-                truth_value = (
-                    (cube.data - lower_threshold) /
-                    ((threshold * (2. - self.fuzzy_factor)) - lower_threshold)
+                truth_value = np.where(
+                    cube.data < threshold,
+                    rescale(cube.data,
+                            data_range=(bounds[0], threshold),
+                            scale_range=(0., 0.5),
+                            clip=True),
+                    rescale(cube.data,
+                            data_range=(threshold, bounds[1]),
+                            scale_range=(0.5, 1.),
+                            clip=True),
                 )
-            truth_value = np.clip(truth_value, 0., 1.).astype(np.float64)
+            truth_value = truth_value.astype(np.float64)
             if self.below_thresh_ok:
                 truth_value = 1. - truth_value
             cube.data = truth_value
