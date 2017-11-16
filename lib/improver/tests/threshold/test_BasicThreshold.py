@@ -474,7 +474,7 @@ class Test_process(IrisTest):
         # Note that back-slashes are necessary to make regexp literal.
         msg = ("Threshold must be within bounds: "
                "\!\( {} <= {} <= {} \)".format(
-            fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
+                   fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
@@ -486,7 +486,7 @@ class Test_process(IrisTest):
         # Note that back-slashes are necessary to make regexp literal.
         msg = ("Threshold must be within bounds: "
                "\!\( {} <= {} <= {} \)".format(
-            fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
+                   fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)

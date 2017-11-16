@@ -111,7 +111,8 @@ def main():
         except ValueError as e:
             # Extend error message with hint for common JSON error.
             raise type(e)(e.message + " in JSON file {}. \nHINT: Try adding a "
-                "zero after the decimal point.".format(args.threshold_config))
+                          "zero after the decimal point.".format(
+                              args.threshold_config))
         except Exception as e:
             # Extend any errors with message about WHERE this occurred.
             raise type(e)(e.message + " in JSON file {}".format(

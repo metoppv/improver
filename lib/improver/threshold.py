@@ -121,7 +121,8 @@ class BasicThreshold(object):
                     "Invalid bounds for one threshold: {}. "
                     "Expected 2 floats.".format(bounds))
                 bounds_msg = ("Threshold must be within bounds: "
-                    "!( {} <= {} <= {} )".format(bounds[0], thr, bounds[1]))
+                              "!( {} <= {} <= {} )".format(bounds[0],
+                                                           thr, bounds[1]))
                 assert bounds[0] <= thr, bounds_msg
                 assert bounds[1] >= thr, bounds_msg
 
