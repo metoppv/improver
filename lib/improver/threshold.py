@@ -117,10 +117,13 @@ class BasicThreshold(object):
             if isinstance(fuzzy_bounds, tuple):
                 self.fuzzy_bounds = [fuzzy_bounds]
             for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
-                assert bounds[0] <= thr, (
-                    "Lower bound error: {} !<= {}".format(bounds[0], thr))
-                assert bounds[1] >= thr, (
-                    "Upper bound error: {} !<= {}".format(thr, bounds[1]))
+                assert len(bounds) == 2, (
+                    "Invalid bounds for one threshold: {}. "
+                    "Expected 2 floats.".format(bounds))
+                bounds_msg = ("Threshold must be within bounds: "
+                    "!( {} <= {} <= {} )".format(bounds[0], thr, bounds[1]))
+                assert bounds[0] <= thr, bounds_msg
+                assert bounds[1] >= thr, bounds_msg
 
         self.below_thresh_ok = below_thresh_ok
 

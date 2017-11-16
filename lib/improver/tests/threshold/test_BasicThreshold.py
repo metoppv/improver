@@ -445,12 +445,36 @@ class Test_process(IrisTest):
             Threshold(0.6, fuzzy_factor=fuzzy_factor,
                       fuzzy_bounds=fuzzy_bounds)
 
+    def test_invalid_bounds_toofew(self):
+        """Test when fuzzy_bounds contains one value (invalid)."""
+        threshold = 0.6
+        fuzzy_bounds = (0.4, )
+        # Regexp matches .* with any string.
+        msg = ("Invalid bounds for one threshold: .*. "
+               "Expected 2 floats.")
+        with self.assertRaisesRegexp(AssertionError, msg):
+            Threshold(threshold,
+                      fuzzy_bounds=fuzzy_bounds)
+
+    def test_invalid_bounds_toomany(self):
+        """Test when fuzzy_bounds contains three values (invalid)."""
+        threshold = 0.6
+        fuzzy_bounds = (0.4, 0.8, 1.2)
+        # Regexp matches .* with any string.
+        msg = ("Invalid bounds for one threshold: .*. "
+               "Expected 2 floats.")
+        with self.assertRaisesRegexp(AssertionError, msg):
+            Threshold(threshold,
+                      fuzzy_bounds=fuzzy_bounds)
+
     def test_invalid_upper_bound(self):
         """Test when fuzzy_bounds do not bound threshold (invalid)."""
         threshold = 0.6
         fuzzy_bounds = (0.4, 0.5)
-        msg = ("Upper bound error: {} !<= {}".format(threshold,
-                                                     fuzzy_bounds[1]))
+        # Note that back-slashes are necessary to make regexp literal.
+        msg = ("Threshold must be within bounds: "
+               "\!\( {} <= {} <= {} \)".format(
+            fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
@@ -459,8 +483,10 @@ class Test_process(IrisTest):
         """Test when fuzzy_bounds do not bound threshold (invalid)."""
         threshold = 0.6
         fuzzy_bounds = (0.7, 0.8)
-        msg = ("Lower bound error: {} !<= {}".format(fuzzy_bounds[0],
-                                                     threshold))
+        # Note that back-slashes are necessary to make regexp literal.
+        msg = ("Threshold must be within bounds: "
+               "\!\( {} <= {} <= {} \)".format(
+            fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegexp(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
