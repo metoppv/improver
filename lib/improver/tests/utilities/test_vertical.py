@@ -40,18 +40,24 @@ from iris.tests import IrisTest
 
 from improver.utilities.vertical import VerticalIntegration
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (
-        set_up_temperature_cube)
+    helper_functions import set_up_temperature_cube
 
 
-def set_up_height_cube(height_points):
+def set_up_height_cube(height_points, cube=set_up_temperature_cube()):
     """Create a height cube using the existing set_up_temperature_cube
     utility."""
-    cube = set_up_temperature_cube()
+    ascending = False
+    if np.all(np.diff(height_points) > 0):
+        ascending = True
+
     cubelist = iris.cube.CubeList([])
     for height_point in height_points:
         temp_cube = cube.copy()
         height_coord = iris.coords.DimCoord(height_point, "height")
+        if ascending:
+            height_coord.attributes = {"positive": "up"}
+        else:
+            height_coord.attributes = {"positive": "down"}
         temp_cube.add_aux_coord(height_coord)
         temp_cube = iris.util.new_axis(temp_cube, "height")
         cubelist.append(temp_cube)
@@ -82,27 +88,27 @@ class Test__repr__(IrisTest):
         result = str(VerticalIntegration(coord_name))
         msg = ('<VerticalIntegration: coord_name_to_integrate: height, '
                'start_point: None, end_point: None, '
-               'direction_of_integration: upwards>')
+               'direction_of_integration: downwards>')
         self.assertEqual(result, msg)
 
 
-class Test_ensure_monotonic_in_chosen_direction(IrisTest):
+class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
 
-    """Test the ensure_monotonic_in_chosen_direction method."""
+    """Test the ensure_monotonic_increase_in_chosen_direction method."""
 
     def setUp(self):
         """Set up the cube."""
-        self.increasing_height_points = np.array([5., 10., 20.])
-        self.increasing_cube = (
-            set_up_height_cube(self.increasing_height_points))
-        self.decreasing_height_points = np.array([20., 10., 5.])
-        self.decreasing_cube = (
-            set_up_height_cube(self.decreasing_height_points))
-        self.decreasing_cube.coord("height").points = (
-            self.decreasing_height_points)
+        self.ascending_height_points = np.array([5., 10., 20.])
+        self.ascending_cube = (
+            set_up_height_cube(self.ascending_height_points))
+        self.descending_height_points = np.array([20., 10., 5.])
+        self.descending_cube = (
+            set_up_height_cube(self.descending_height_points))
+        self.descending_cube.coord("height").points = (
+            self.descending_height_points)
 
-    def test_increasing_coordinate_upwards(self):
-        """Test that for a monotonically increasing coordinate, where the
+    def test_ascending_coordinate_upwards(self):
+        """Test that for a monotonically ascending coordinate, where the
         chosen direction is upward, the resulting coordinate still increases.
         """
         coord_name = "height"
@@ -110,14 +116,14 @@ class Test_ensure_monotonic_in_chosen_direction(IrisTest):
         cube = (
             VerticalIntegration(
                 coord_name, direction_of_integration=direction
-                ).ensure_monotonic_in_chosen_direction(
-                    self.increasing_cube))
+                ).ensure_monotonic_increase_in_chosen_direction(
+                    self.ascending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.increasing_height_points)
+            cube.coord(coord_name).points, self.ascending_height_points)
 
-    def test_increasing_coordinate_downwards(self):
-        """Test that for a monotonically increasing coordinate, where the
+    def test_ascending_coordinate_downwards(self):
+        """Test that for a monotonically ascending coordinate, where the
         chosen direction is downward, the resulting coordinate now decreases.
         """
         coord_name = "height"
@@ -125,14 +131,14 @@ class Test_ensure_monotonic_in_chosen_direction(IrisTest):
         cube = (
             VerticalIntegration(
                 coord_name, direction_of_integration=direction
-                ).ensure_monotonic_in_chosen_direction(
-                    self.increasing_cube))
+                ).ensure_monotonic_increase_in_chosen_direction(
+                    self.ascending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.decreasing_height_points)
+            cube.coord(coord_name).points, self.descending_height_points)
 
-    def test_decreasing_coordinate_upwards(self):
-        """Test that for a monotonically increasing coordinate, where the
+    def test_descending_coordinate_upwards(self):
+        """Test that for a monotonically ascending coordinate, where the
         chosen direction is upward, the resulting coordinate still
         increases."""
         coord_name = "height"
@@ -140,25 +146,25 @@ class Test_ensure_monotonic_in_chosen_direction(IrisTest):
         cube = (
             VerticalIntegration(
                 coord_name, direction_of_integration=direction
-                ).ensure_monotonic_in_chosen_direction(
-                    self.decreasing_cube))
+                ).ensure_monotonic_increase_in_chosen_direction(
+                    self.descending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.increasing_height_points)
+            cube.coord(coord_name).points, self.ascending_height_points)
 
-    def test_decreasing_coordinate_downwards(self):
-        """Test that for a monotonically increasing coordinate, where the
+    def test_descending_coordinate_downwards(self):
+        """Test that for a monotonically ascending coordinate, where the
         chosen direction is upward, the resulting coordinate now decreases."""
         coord_name = "height"
         direction = "downwards"
         cube = (
             VerticalIntegration(
                 coord_name, direction_of_integration=direction
-                ).ensure_monotonic_in_chosen_direction(
-                    self.decreasing_cube))
+                ).ensure_monotonic_increase_in_chosen_direction(
+                    self.descending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.decreasing_height_points)
+            cube.coord(coord_name).points, self.descending_height_points)
 
 
 class Test_process(IrisTest):
@@ -167,10 +173,17 @@ class Test_process(IrisTest):
 
     def setUp(self):
         self.height_points = np.array([5., 10., 20.])
-        self.cube = set_up_height_cube(self.height_points)
+        cube = set_up_height_cube(self.height_points)[:, 0, :, :, :]
+        data = np.ones(cube.shape)
+        data[1] = np.zeros(cube[1].shape)+2
+        data[2] = np.zeros(cube[2].shape)+3
+        data[0, :, 0, 0] = 6
+        cube.data = data
+        self.cube = cube
 
     def test_basic(self):
-        """Test the """
+        """Test that a cube with the points on the chosen coordinate are
+        in the expected order."""
         coord_name = "height"
         direction = "downwards"
         result = (
@@ -182,8 +195,15 @@ class Test_process(IrisTest):
             result.coord("height").points, np.array([10., 5.]))
 
     def test_data(self):
-        """"""
-        expected = np.array([])
+        """Test that the resulting cube contains the expected data following
+        vertical integration."""
+        expected = np.array(
+            [[[[25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]],
+             [[[45.00, 32.50, 32.50],
+               [32.50, 32.50, 32.50],
+               [32.50, 32.50, 32.50]]]])
         coord_name = "height"
         direction = "downwards"
         result = (
@@ -194,26 +214,41 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_start_point(self):
-        """"""
-        expected = np.array([])
+        """Test that the resulting cube contains the expected data when a
+        start_point is specified, so that only part of the column is
+        integrated."""
+        expected = np.array(
+            [[[[20.00, 7.50, 7.50],
+               [7.50, 7.50, 7.50],
+               [7.50, 7.50, 7.50]]]])
         coord_name = "height"
-        start_point = 2000
+        start_point = 18.
         direction = "downwards"
-        cube = (
+        result = (
             VerticalIntegration(
-                coord_name, direction_of_integration=direction
+                coord_name, start_point=start_point,
+                direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(cube, iris.cube.Cube)
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_end_point(self):
-        """"""
-        expected = np.array([])
-        cube = (
+        """Test that the resulting cube contains the expected data when a
+        end_point is specified, so that only part of the column is
+        integrated."""
+        expected = np.array(
+            [[[[25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]]])
+        coord_name = "height"
+        end_point = 8.
+        direction = "downwards"
+        result = (
             VerticalIntegration(
-                coord_name, direction_of_integration=direction
+                coord_name, end_point=end_point,
+                direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(cube, iris.cube.Cube)
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 

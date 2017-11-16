@@ -34,13 +34,15 @@ import numpy as np
 
 import iris
 
+from improver.utilities.cube_manipulation import sort_coord_in_cube
+
 
 class VerticalIntegration(object):
     """Perform integration along a chosen coordinate."""
 
     def __init__(self, coord_name_to_integrate,
                  start_point=None, end_point=None,
-                 direction_of_integration="upwards"):
+                 direction_of_integration="downwards"):
         """
         Initialise class.
 
@@ -76,7 +78,7 @@ class VerticalIntegration(object):
                       self.end_point, self.direction_of_integration))
         return result
 
-    def ensure_monotonic_in_chosen_direction(self, cube):
+    def ensure_monotonic_increase_in_chosen_direction(self, cube):
         """Ensure that the chosen coordinate is monotonically increasing in
         the specified direction.
 
@@ -100,9 +102,9 @@ class VerticalIntegration(object):
         if increasing_order and direction == "upwards":
             pass
         elif increasing_order and direction == "downwards":
-            cube.coord(coord_name).points = cube.coord(coord_name).points[::-1]
+            cube = sort_coord_in_cube(cube, coord_name, order="descending")
         elif not increasing_order and direction == "upwards":
-            cube.coord(coord_name).points = cube.coord(coord_name).points[::-1]
+            cube = sort_coord_in_cube(cube, coord_name)
         elif not increasing_order and direction == "downwards":
             pass
         return cube
@@ -132,6 +134,9 @@ class VerticalIntegration(object):
                 This will contain the same metadata as the input cube.
 
         """
+        # Make coordinate monotonic in the direction desired for integration.
+        cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
+
         # Define upper and lower level cubes for the integration.
         upper_levels = cube.coord(self.coord_name_to_integrate).points[:-1]
         lower_levels = cube.coord(self.coord_name_to_integrate).points[1:]
@@ -146,33 +151,58 @@ class VerticalIntegration(object):
                     coord_values={self.coord_name_to_integrate:
                                   lower_levels})))
 
-        # Make coordinate monotonic in the direction desired for integration.
-        upper_level_cube = (
-            self.ensure_monotonic_in_chosen_direction(upper_level_cube))
-        lower_level_cube = (
-            self.ensure_monotonic_in_chosen_direction(lower_level_cube))
-        integrated_cube = lower_level_cube.copy()
+        # Determine which cube to copy for most appropriate points of the
+        # vertical coordinate.
+        if self.direction_of_integration == "upwards":
+            integrated_cube = upper_level_cube.copy()
+        elif self.direction_of_integration == "downwards":
+            integrated_cube = lower_level_cube.copy()
+        integrated_cube.data = np.zeros(lower_level_cube.shape)
 
-        # Create a tuple for looping over.
+        # Create a zip for looping over.
         levels_tuple = zip(
             upper_level_cube.slices_over(self.coord_name_to_integrate),
             lower_level_cube.slices_over(self.coord_name_to_integrate),
             integrated_cube.slices_over(self.coord_name_to_integrate))
 
+        # Perform the integration
         layer_sum = 0
+        integrated_cubelist = iris.cube.CubeList([])
         for (upper_level_slice, lower_level_slice,
-                 integrated_slice) in levels_tuple:
+             integrated_slice) in levels_tuple:
             upper_depth = (
-                upper_level_slice.coord(self.coord_name_to_integrate).points)
+                upper_level_slice.coord(
+                    self.coord_name_to_integrate).points.item())
             lower_depth = (
-                lower_level_slice.coord(self.coord_name_to_integrate).points)
-            if ((self.start_point and upper_depth < self.start_point) or
-                    (self.end_point and lower_depth > self.end_point)):
-                layer_depth = upper_depth - lower_depth
-                top_half_of_layer = (
-                    upper_level_slice.data * 0.5 * layer_depth)
-                bottom_half_of_layer = (
-                    lower_level_slice.data * 0.5 * layer_depth)
-                layer_sum += bottom_half_of_layer + top_half_of_layer
-                integrated_slice.data = layer_sum
+                lower_level_slice.coord(
+                    self.coord_name_to_integrate).points.item())
+            if not self.start_point and not self.end_point:
+                pass
+            elif self.start_point:
+                if (upper_depth >= self.start_point or
+                        lower_depth >= self.start_point):
+                    continue
+            elif self.end_point:
+                if (lower_depth <= self.end_point or
+                        upper_depth <= self.end_point):
+                    continue
+            layer_depth = np.abs(upper_depth - lower_depth)
+            top_half_of_layer = upper_level_slice.data * 0.5 * layer_depth
+            bottom_half_of_layer = lower_level_slice.data * 0.5 * layer_depth
+            layer_sum += bottom_half_of_layer + top_half_of_layer
+            integrated_slice.data = layer_sum
+            integrated_cubelist.append(integrated_slice.copy())
+
+        # Merge resulting cubes back together
+        integrated_cube = integrated_cubelist.merge_cube()
+
+        # Make sure that the coordinate that has been integrated is a
+        # dimension coordinate.
+        for coord in integrated_cube.aux_coords[::-1]:
+            if coord.name() == self.coord_name_to_integrate:
+                integrated_cube = iris.util.new_axis(
+                    integrated_cube, self.coord_name_to_integrate)
+        integrated_cube = (
+            self.ensure_monotonic_increase_in_chosen_direction(
+                integrated_cube))
         return integrated_cube
