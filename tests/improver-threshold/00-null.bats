@@ -32,9 +32,10 @@
 @test "threshold no arguments" {
   run improver threshold
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-threshold [-h] [--threshold_units THRESHOLD_UNITS]
+  expected="usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
+                          [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
-                          INPUT_FILE OUTPUT_FILE THRESHOLD_VALUES
-                          [THRESHOLD_VALUES ...]"
+                          INPUT_FILE OUTPUT_FILE
+                          [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]"
   [[ "$output" =~ "$expected" ]]
 }

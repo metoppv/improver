@@ -33,24 +33,30 @@
   run improver threshold -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-threshold [-h] [--threshold_units THRESHOLD_UNITS]
+usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
+                          [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
-                          INPUT_FILE OUTPUT_FILE THRESHOLD_VALUES
-                          [THRESHOLD_VALUES ...]
+                          INPUT_FILE OUTPUT_FILE
+                          [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]
 
 Calculate the threshold truth value of cube data relative to the provided
 threshold value. By default data are tested to be above the thresholds, though
-the --below_threshold flag enables testing below thresholds. A fuzzy factor
-may be provided to capture data that is within this factor of the threshold.
+the --below_threshold flag enables testing below thresholds. A fuzzy factor or
+fuzzy bounds may be provided to capture data that is close to the threshold.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed
   OUTPUT_FILE           The output path for the processed NetCDF
   THRESHOLD_VALUES      Threshold value or values about which to calculate the
-                        truth values; e.g. 270 300
+                        truth values; e.g. 270 300. Must be omitted if
+                        --threshold_config is used.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --threshold_config THRESHOLD_CONFIG
+                        Threshold configuration JSON file containing
+                        thresholds and fuzzy bounds. Best used in combination
+                        with --threshold_units.
   --threshold_units THRESHOLD_UNITS
                         Units of the threshold values. If not provided the
                         units are assumed to be the same as those of the input
@@ -66,7 +72,8 @@ optional arguments:
                         Data which fail a test against the hard threshold
                         value may return a fractional truth value if they fall
                         within this fuzzy factor region. NB A fuzzy factor
-                        cannot be used with a zero threshold.
+                        cannot be used with a zero threshold or a
+                        threshold_config file.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
