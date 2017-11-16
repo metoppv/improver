@@ -38,7 +38,7 @@ import iris
 
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.vertical import VerticalIntegration
+from improver.utilities.mathematical_operations import Integration
 
 
 class Utilities(object):
@@ -573,7 +573,7 @@ class WetBulbTemperatureIntegral(object):
                 temperature, relative_humidity, pressure))
         # Integrate.
         wet_bulb_temperature_integral = (
-            VerticalIntegration(
+            Integration(
                 self.coord_name_to_integrate, start_point=self.start_point,
                 end_point=self.start_point).process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")

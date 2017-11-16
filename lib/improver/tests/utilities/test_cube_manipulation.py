@@ -65,7 +65,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         set_up_probability_above_threshold_temperature_cube,
         add_forecast_reference_time_and_forecast_period)
 
-from improver.tests.utilities.test_vertical import set_up_height_cube
+from improver.tests.utilities.test_mathematical_operations import (
+    set_up_height_cube)
 
 
 def set_up_percentile_cube(data, phenomenon_standard_name, phenomenon_units,

@@ -41,7 +41,8 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperatureIntegral)
 from improver.tests.psychrometric_calculations.psychrometric_calculations.\
     test_WetBulbTemperature import set_up_cubes_for_wet_bulb_temperature
-from improver.tests.utilities.test_vertical import set_up_height_cube
+from improver.tests.utilities.test_mathematical_operations import (
+    set_up_height_cube)
 
 
 class Test__repr__(IrisTest):
