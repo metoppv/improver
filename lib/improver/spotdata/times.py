@@ -45,7 +45,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
     (00, 06, 12, 18) and to run out to T+144 hours.
 
     Args:
-        forecast_length (integer):
+        forecast_length (int):
             An integer giving the desired length of the forecast output in
             hours (e.g. 48 for a two day forecast period).
 
@@ -53,7 +53,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
             A string of format YYYYMMDD defining the start date for which
             forecasts are required. If unset it defaults to today in UTC.
 
-        forecast_time (integer):
+        forecast_time (int):
             An integer giving the hour on the forecast_date at which to start
             the forecast output; 24hr clock such that 17 = 17Z for example. If
             unset it defaults to the latest 6 hour cycle as a start time.

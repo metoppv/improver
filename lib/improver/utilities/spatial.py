@@ -89,7 +89,7 @@ def convert_distance_into_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (Float):
             Distance in metres.
-        max_distance_in_grid_cells (integer):
+        max_distance_in_grid_cells (int):
             Maximum distance in grid cells.
 
     Returns:

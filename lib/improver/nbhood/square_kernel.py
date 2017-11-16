@@ -140,7 +140,7 @@ class SquareNeighbourhood(object):
             coord (iris.coord):
                 Original coordinate which will be used as the basis of the
                 new extended coordinate.
-            width (integer):
+            width (int):
                 The width of padding in grid cells (the extent of the
                 neighbourhood radius in grid cells in a given direction).
             method (string):
@@ -239,7 +239,7 @@ class SquareNeighbourhood(object):
         Args:
             cube (iris.cube.Cube):
                 The original cube prior to applying padding.
-            width_x, width_y (integer):
+            width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width of padding to be added to
                 the numpy array.
@@ -282,7 +282,7 @@ class SquareNeighbourhood(object):
         Args:
             cube (iris.cube.Cube):
                 The original cube to be trimmed of edge data.
-            width_x, width_y (integer):
+            width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width removed from the numpy
                 array.
@@ -370,7 +370,7 @@ class SquareNeighbourhood(object):
             cube (iris.cube.Cube):
                 Cube to which neighbourhood processing is being applied. Must
                 be passed through cumulate_array method first.
-            cells_x, cells_y (integer):
+            cells_x, cells_y (int):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
             nan_masks (list):

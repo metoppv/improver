@@ -804,13 +804,13 @@ class RoughnessCorrection(object):
 
         Returns:
             (tuple) : tuple containing:
-                **xpos** (integer):
+                **xpos** (int):
                     position of x axis.
-                **ypos** (integer):
+                **ypos** (int):
                     position of y axis.
-                **zpos** (integer):
+                **zpos** (int):
                     position of z axis.
-                **tpos** (integer):
+                **tpos** (int):
                     position of t axis.
 
         """
@@ -868,9 +868,9 @@ class RoughnessCorrection(object):
         they have the same ordering.
 
         Args:
-            xwp (integer):
+            xwp (int):
                 representing the position of the x-axis in the wind cube
-            ywp (integer):
+            ywp (int):
                 representing the position of the y-axis of the wind cube
 
         """

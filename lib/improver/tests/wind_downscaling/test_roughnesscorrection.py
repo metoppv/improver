@@ -192,7 +192,7 @@ class TestMultiPoint(object):
                 Multi-level wind target data
 
         Keyword Args:
-            dtime (integer):
+            dtime (int):
                 Number of time dimension values, default 1
             height (float):
                 Value for height in metres for zeroth slice of wind,

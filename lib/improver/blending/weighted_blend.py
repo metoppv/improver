@@ -89,7 +89,7 @@ class PercentileBlendingAggregator(object):
         Args:
             data (np.array):
                    Array containing the data to blend
-            axis (integer):
+            axis (int):
                    The index of the coordinate dimension in the cube. This
                    dimension will be aggregated over.
             arr_percent(np.array):
@@ -98,7 +98,7 @@ class PercentileBlendingAggregator(object):
                      same size as the percentile dimension of data.
             arr_weights(np.array):
                      Array of weights, same size as the axis dimension of data.
-            perc_dim (integer):
+            perc_dim (int):
                      The index of the percentile coordinate
             (Note percent and weights have special meaning in Aggregator
              hence the rename.)
@@ -242,7 +242,7 @@ class MaxProbabilityAggregator(object):
         Args:
             data (np.array):
                    Array containing the data to blend
-            axis (integer):
+            axis (int):
                    The index of the coordinate dimension in the cube. This
                    dimension will be aggregated over.
             arr_weights (np.array):
