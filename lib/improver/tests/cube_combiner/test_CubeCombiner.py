@@ -30,30 +30,29 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
-import warnings
+
 import numpy as np
 
 import iris
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError
 from cf_units import Unit
 
 from improver.cube_combiner import CubeCombiner
 
 
-def create_cube_with_threshold_coord(data=None,
-                                     long_name=None,
-                                     threshold_values=None,
-                                     units=None):
+def create_cube_with_threshold(data=None,
+                               long_name=None,
+                               threshold_values=None,
+                               units=None):
     """Create a cube with threshold coord."""
     if threshold_values is None:
         threshold_values = [1.0]
     if data is None:
         data = np.zeros((len(threshold_values), 2, 2, 2))
         data[:, 0, :, :] = 0.5
-        data[:, 1, :, :] = 0.1
+        data[:, 1, :, :] = 0.6
     if long_name is None:
         long_name = "probability_of_rainfall_rate"
     if units is None:
@@ -84,6 +83,12 @@ class Test__init__(IrisTest):
         plugin = CubeCombiner('+')
         self.assertEqual(plugin.operation, '+')
 
+    def test_raise_error_wrong_operation(self):
+        """Test __init__ raises a ValueError for invalid operation"""
+        msg = 'Unknown operation '
+        with self.assertRaisesRegexp(ValueError, msg):
+            CubeCombiner('%')
+
 
 class Test__repr__(IrisTest):
 
@@ -96,15 +101,111 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_add_metadata(IrisTest):
+class Test_resolve_metadata_diff(IrisTest):
 
-    """Test the add_metadata method."""
+    """Test the resolve_metadata_diff method."""
+
+    def test_basic(self):
+        """Test that the function returns a tuple of Cubes. """
+        plugin = CubeCombiner('-')
+        cube1 = create_cube_with_threshold()
+        cube2 = cube1.copy()
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], Cube)
+        self.assertIsInstance(result[1], Cube)
+
+
+class Test_combine(IrisTest):
+
+    """Test the combine method."""
+
+    def setUp(self):
+        self.cube1 = create_cube_with_threshold()
+        data = np.zeros((1, 2, 2, 2))
+        data[0, 0, :, :] = 0.1
+        data[0, 1, :, :] = 0.4
+        self.cube2 = create_cube_with_threshold(data=data)
+        data2 = np.zeros((1, 2, 2, 2))
+        data2[0, 0, :, :] = 0.1
+        data2[0, 1, :, :] = 0.8
+        self.cube3 = create_cube_with_threshold(data=data2)
+
     def test_basic(self):
         """Test that the function returns a Cube. """
-        plugin = CubeCombiner('-')
-        cube = create_cube_with_threshold_coord()
-        result = plugin.add_metadata(cube)
+        operation = '*'
+        plugin = CubeCombiner(operation)
+        cube1 = self.cube1
+        cube2 = cube1.copy()
+        result = plugin.combine(cube1, cube2, operation,
+                                'new_cube_name')
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.25
+        expected_data[0, 1, :, :] = 0.36
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_add(self):
+        """Test combine adds the cubes correctly. """
+        operation = '+'
+        plugin = CubeCombiner(operation)
+        result = plugin.combine(self.cube1, self.cube2,
+                                operation,
+                                'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.6
+        expected_data[0, 1, :, :] = 1.0
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_minus(self):
+        """Test combine minus the cubes correctly. """
+        operation = '-'
+        plugin = CubeCombiner(operation)
+        result = plugin.combine(self.cube1, self.cube2,
+                                operation,
+                                'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.4
+        expected_data[0, 1, :, :] = 0.2
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_max(self):
+        """Test combine finds the max of the cubes correctly."""
+        operation = 'max'
+        plugin = CubeCombiner(operation)
+        result = plugin.combine(self.cube1, self.cube3,
+                                operation,
+                                'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.5
+        expected_data[0, 1, :, :] = 0.8
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_min(self):
+        """Test combine finds the min of the cubes correctly."""
+        operation = 'min'
+        plugin = CubeCombiner(operation)
+        result = plugin.combine(self.cube1, self.cube3,
+                                operation,
+                                'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.1
+        expected_data[0, 1, :, :] = 0.6
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_mean(self):
+        """Test that the function adds the cubes correctly for mean."""
+        operation = '+'
+        plugin = CubeCombiner(operation)
+        result = plugin.combine(self.cube1, self.cube3,
+                                operation,
+                                'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[0, 0, :, :] = 0.6
+        expected_data[0, 1, :, :] = 1.4
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 class Test_process(IrisTest):
@@ -114,11 +215,31 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns a Cube. """
         plugin = CubeCombiner('+')
-        cube = create_cube_with_threshold_coord()
-        cubelist = iris.cube.CubeList([cube,cube])
-        result = plugin.process(cubelist)
+        cube = create_cube_with_threshold()
+        cubelist = iris.cube.CubeList([cube, cube])
+        result = plugin.process(cubelist, 'new_cube_name')
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[:, 0, :, :] = 1.0
+        expected_data[:, 1, :, :] = 1.2
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_mean(self):
+        """Test that the plugin calculates the mean correctly. """
+        plugin = CubeCombiner('mean')
+        cube1 = create_cube_with_threshold()
+        data = np.zeros((1, 2, 2, 2))
+        data[0, 0, :, :] = 0.1
+        data[0, 1, :, :] = 0.4
+        cube2 = create_cube_with_threshold(data=data)
+        cubelist = iris.cube.CubeList([cube1, cube2])
+        result = plugin.process(cubelist, 'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[:, 0, :, :] = 0.3
+        expected_data[:, 1, :, :] = 0.5
+        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 if __name__ == '__main__':
     unittest.main()

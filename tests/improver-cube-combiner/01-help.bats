@@ -34,6 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-cube-combiner [-h] [--operation OPERATION]
+                              [--new_cube_name NEW_CUBE_NAME]
                               INPUT_FILENAMES [INPUT_FILENAMES ...]
                               OUTPUT_FILE
 
@@ -50,6 +51,9 @@ optional arguments:
   --operation OPERATION
                         Operation to use in combining the cubes Default=+ i.e.
                         add
+  --new_cube_name NEW_CUBE_NAME
+                        New cube name. Will default to name of first cube if
+                        not set
 __HELP__
   [[ "$output" == "$expected" ]]
 }

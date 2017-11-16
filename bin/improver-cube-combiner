@@ -52,16 +52,27 @@ def main():
                         help="The output path for the processed NetCDF")
     parser.add_argument("--operation", metavar="OPERATION",
                         default="+",
-                        choices=["+", "-", "*", "min", "max", "mean"],
+                        choices=["+", "-", "*",
+                                 "add", "minus", "multiple",
+                                 "min", "max", "mean"],
                         help="Operation to use in combining the cubes"
                         " Default=+ i.e. add ", type=str)
+    parser.add_argument("--new_cube_name", metavar="NEW_CUBE_NAME",
+                        default=None,
+                        help="New cube name. Will default to name of "
+                        "first cube if not set ", type=str)
 
     args = parser.parse_args()
     cubes = iris.cube.CubeList([])
+    new_cube_name = args.new_cube_name
     for filename in args.input_filenames:
-        cubes.append(iris.load_cube(filename))
+        new_cube = iris.load_cube(filename)
+        cubes.append(new_cube)
+        if new_cube_name is None:
+            new_cube_name == new_cube.name()
+
     result = (
-        CubeCombiner(args.operation).process(cubes))
+        CubeCombiner(args.operation).process(cubes, new_cube_name))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

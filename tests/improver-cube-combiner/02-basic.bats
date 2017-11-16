@@ -37,14 +37,15 @@
 
   # Run cube-combiner processing and check it passes.
   run improver cube-combiner \
-      "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/wind_gust_perc.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/wind_speed_perc.nc" \
+      --new_cube_name='cloud_cover' \
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/low_cloud.nc" \
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/medium_cloud.nc" \
        "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/wind_gust_perc.nc"
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/kgo_cloud.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

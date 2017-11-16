@@ -34,6 +34,7 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-cube-combiner [-h] [--operation OPERATION]
+                              [--new_cube_name NEW_CUBE_NAME]
                               INPUT_FILENAMES [INPUT_FILENAMES ...]
                               OUTPUT_FILE
 __TEXT__

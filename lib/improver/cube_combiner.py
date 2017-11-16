@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin for CubeCombiner."""
 
-import warnings
-
+import numpy as np
 import iris
 from iris import FUTURE
 
@@ -47,51 +46,129 @@ class CubeCombiner(object):
     def __init__(self, operation):
         """
         Create a CubeCombiner plugin
-        
+
         Args:
             operation (str):
-                Operation (+, - etc) to apply to the incoming cubes)
+                Operation (+, - etc) to apply to the incoming cubes.
+
+        Raises:
+            ValueError: Unknown operation.
         """
-        possible_operations = [ '+', '-', '*', 'max', 'min', 'mean']
+        possible_operations = ['+', 'add',
+                               '-', 'minus',
+                               '*', 'multiple',
+                               'max', 'min', 'mean']
         if operation in possible_operations:
             self.operation = operation
+        else:
+            msg = 'Unknown operation {}'.format(operation)
+            raise ValueError(msg)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         desc = '<CubeCombiner: operation={}>'.format(self.operation)
         return desc
 
-    def add_metadata(self, cube):
-        """Add metadata to cube.
+    @staticmethod
+    def resolve_metadata_diff(cube1, cube2):
+        """Resolve any differences in  metadata between cubes.
 
         Args:
-            cube (iris.cube.Cube):
-                Cube containing the wind-gust diagnostic data.
+            cube1 (iris.cube.Cube):
+                Cube containing data to be combined.
+            cube2 (iris.cube.Cube):
+                Cube containing data to be combined.
+        Returns:
+            (tuple): tuple containing
+                **result1** (iris.cube.Cube):
+                    Cube with corrected Metadata.
+                **result2** (iris.cube.Cube):
+                    Cube with corrected Metadata.
+        """
+        result1 = cube1
+        result2 = cube2
+
+        return result1, result2
+
+    @staticmethod
+    def combine(cube1, cube2, operation, new_diagnostic_name):
+        """
+        Combine cube data
+
+        Args:
+            cube1 (iris.cube.Cube):
+                Cube containing data to be combined.
+            cube2 (iris.cube.Cube):
+                Cube containing data to be combined.
+            operation (str):
+                Operation (+, - etc) to apply to the incoming cubes)
+            new_diagnostic_name (str):
+                New name for the combined diagnostic.
         Returns:
             result (iris.cube.Cube):
-                Cube containing the wind-gust diagnostic data with
-                corrected Metadata.
-
+                Cube containing the combined data.
+        Raises:
+            ValueError: Unknown operation.
         """
-        result = cube
 
+        if operation == '+' or operation == 'add' or operation == 'mean':
+            result = cube1 + cube2
+        elif operation == '-' or operation == 'minus':
+            result = cube1 - cube2
+        elif operation == '*' or operation == 'multiple':
+            result = cube1 * cube2
+        elif operation == 'min':
+            result = cube1
+            np.minimum(cube1.data, cube2.data, result.data)
+        elif operation == 'max':
+            result = cube1
+            np.maximum(cube1.data, cube2.data, result.data)
+        else:
+            msg = 'Unknown operation {}'.format(operation)
+            raise ValueError(msg)
+        result.rename(new_diagnostic_name)
         return result
 
-    def process(self, cube_list):
+    def process(self, cube_list, new_diagnostic_name):
         """
         Create a cube.
 
         Args:
             cube_list (iris.cube.CubeList):
                 Cube List contain the cubes to combine.
+            new_diagnostic_name (str):
+                New name for the combined diagnostic.
 
         Returns:
             result (iris.cube.Cube):
                 Cube containing the combined data.
 
         """
-        data_type = cube_list[0].dtype
-        result = cube_list[0]
-        result.data = result.data.astype(data_type)
+        if not isinstance(cube_list, iris.cube.CubeList):
+            msg = ('Expecting data to be an instance of '
+                   'iris.cube.CubeList but is'
+                   ' {0:s}.'.format(type(cube_list)))
+            raise TypeError(msg)
+        if len(cube_list) < 2:
+            msg = 'Expecting 2 or more cubes in cube_list'
+            raise ValueError(msg)
 
+        # resulting cube will be based on the first cube.
+        data_type = cube_list[0].dtype
+        result = cube_list[0].copy()
+
+        for ind in range(1, len(cube_list)):
+            cube1, cube2 = (
+                self.resolve_metadata_diff(result.copy(),
+                                           cube_list[ind].copy()))
+            result = self.combine(cube1,
+                                  cube2,
+                                  self.operation,
+                                  new_diagnostic_name)
+
+        if self.operation == 'mean':
+            result = result / len(cube_list)
+            result.rename(new_diagnostic_name)
+
+        result.data = result.data.astype(data_type)
         return result
