@@ -63,7 +63,7 @@ class DiagnoseConvectivePrecipitation(object):
             neighbourhood_method (str):
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or List):
+            radii (float or List if defining lead times):
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
@@ -89,7 +89,7 @@ class DiagnoseConvectivePrecipitation(object):
                 members if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
-            use_adjacent_grid_square_differences (Logical):
+            use_adjacent_grid_square_differences (boolean):
                 If True, use the differences between adjacent grid squares
                 to diagnose convective precipitation.
                 If False, use the raw field without calculating differences to

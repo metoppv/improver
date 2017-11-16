@@ -467,20 +467,22 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         forecasts.
 
         The main contents of this method is:
+
         1. Metadata checks to ensure that the current forecast, historic
            forecast and truth exist in a form that can be processed.
-        2. Loop through times within the concatenated current forecast cube.
-           a. Extract the desired forecast period from the historic forecasts
+        2. Loop through times within the concatenated current forecast cube:
+
+           1. Extract the desired forecast period from the historic forecasts
               to match the current forecasts. Apply unit conversion to ensure
               that historic forecasts have the desired units for calibration.
-           b. Extract the relevant truth to co-incide with the time within
+           2. Extract the relevant truth to co-incide with the time within
               the historic forecasts. Apply unit conversion to ensure
               that the truth has the desired units for calibration.
-           c. Calculate mean and variance.
-           d. Calculate initial guess at coefficient values by performing a
+           3. Calculate mean and variance.
+           4. Calculate initial guess at coefficient values by performing a
               linear regression, if requested, otherwise default values are
               used.
-           e. Perform minimisation.
+           5. Perform minimisation.
 
         Args:
             current_forecast (Iris Cube or CubeList):

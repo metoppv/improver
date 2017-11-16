@@ -131,13 +131,15 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
     """
     Returns a coordinate list of n points comprising the original
     coordinate (i,j) plus the n-1 neighbouring points on a cartesian grid.
-    e.g. n = 9
+    e.g.::
 
-    (i-1, j-1) | (i-1, j) | (i-1, j+1)
-    ----------------------------------
-      (i, j-1) |  (i, j)  | (i, j+1)
-    ----------------------------------
-    (i+1, j-1) | (i+1, j) | (i+1, j+1)
+      n = 9
+
+      (i-1, j-1) | (i-1, j) | (i-1, j+1)
+      ----------------------------------
+        (i, j-1) |  (i, j)  | (i, j+1)
+      ----------------------------------
+      (i+1, j-1) | (i+1, j) | (i+1, j+1)
 
     n must be in the sequence (2*d(ij) + 1)**2 where d(ij) is the +- in the
     index (1,2,3, etc.); equivalently sqrt(n) is an odd integer and n >= 9.
@@ -274,8 +276,8 @@ def index_of_minimum_difference(whole_list, subset_list=None):
 def list_entry_from_index(list_in, index_in):
     """
     Extracts index_in element from each list in a list of lists, and returns
-    as a list.
-    e.g.
+    as a list, e.g.::
+
          list_in = [[0,1,2],[5,6,7],[8,9,10]]
          index_in = 1
          Returns [1,6,9]

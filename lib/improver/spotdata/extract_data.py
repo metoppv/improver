@@ -496,121 +496,110 @@ class ExtractData(object):
             available levels.
 
             The essential equations are those converting between temperature
-            and potential temperature (theta):
+            and potential temperature (theta)::
 
-                         pref   R/cp                 p_site  R/cp
-            Theta = T ( ------ )         T = Theta ( ------ )
-                        p_site                        pref
+                           pref   R/cp                 p_site  R/cp
+              Theta = T ( ------ )         T = Theta ( ------ )
+                          p_site                        pref
 
-            ln (Theta) = ln (T)     + kappa [ ln(pref) - ln(p) ]
-            ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
+              ln (Theta) = ln (T)     + kappa [ ln(pref) - ln(p) ]
+              ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
 
-            kappa = (R_DRY_AIR / CP_DRY_AIR)
-            pref = 1000 hPa (1.0E5 Pa)
-            p_site = pressure interpolated/extrapolated to spotdata site
-                     assuming a linear change in pressure with altitude; this
-                     is assumption is reasonable if dz_max_adjustment is not
-                     large (> several hundred metres).
+              kappa = (R_DRY_AIR / CP_DRY_AIR)
+              pref = 1000 hPa (1.0E5 Pa)
+              p_site = pressure interpolated/extrapolated to spotdata site
+                       assuming a linear change in pressure with altitude; this
+                       is assumption is reasonable if dz_max_adjustment is not
+                       large (> several hundred metres).
 
 
             **Methodology**
 
             Use multi-level temperature data to calculate potential temperature
             gradients and use these to adjust extracted grid point temperatures
-            to the altitudes of SpotData sites.
+            to the altitudes of SpotData sites::
 
 
-            ---upper_level--- Model level (k_upper)
+              ---upper_level--- Model level (k_upper)
 
-            ---lower_level--- Model level (k_lower)
+              ---lower_level--- Model level (k_lower)
 
-            --model_surface-- Model level (k=0)
+              --model_surface-- Model level (k=0)
 
 
             1. Calculate potential temperature gradient between lower and
                upper model levels.
             2. Compare the gradient with a defined threshold value that is
                used to indicate whether the gradient has been calculated
-               across an inversion.
+               across an inversion::
 
-               dtheta/dz <= threshold --> Keep value
-               dtheta/dz >  threshold --> Recalculate gradient between surface
-                                          and lower_level to capture inversion.
+                 dtheta/dz <= threshold --> Keep value
+                 dtheta/dz >  threshold --> Recalculate gradient between
+                                            surface and lower_level to capture
+                                            inversion.
 
             3. Determine if the SpotData site is below the lowest model level
                (the surface level, dz < 0). (This check is only at the
                neighbouring grid point, so doesn't actually guarantee we are
                below the model orography; combining this with neighbour finding
                with a below bias can ensure we are finding unresolved valleys/
-               dips.)
+               dips).
 
-               IF: SpotData site height < model_surface --> Extrapolate
-                                                            downwards.
-               ----------------------------------------------------------------
 
-               True surface below model surface (dz -ve) 'Unresolved valley'
+               **IF SpotData site height < model_surface --> Extrapolate
+               downwards.**
 
-               ---upper_level--- Model level (k_upper)
+               True surface below model surface (dz -ve) `Unresolved valley`::
 
-               ---lower_level--- Model level (k_lower)
+                 ---upper_level--- Model level (k_upper)
 
-               --model_surface-- Model level (k=0)
+                 ---lower_level--- Model level (k_lower)
 
-               ===site height=== SpotData site height
+                 --model_surface-- Model level (k=0)
 
-               ----------------------------------------------------------------
+                 ===site height=== SpotData site height
+
                4. Calculate pressure gradient between lower and upper model
                   levels.
                5. Use calculated gradients to extrapolate potential temperature
                   and pressure to the SpotData site height.
                6. Convert back to temperature using the equations given above.
-               ----------------------------------------------------------------
-               ---------------------------RETURN RESULT------------------------
+               7. RETURN RESULT.
 
+               **ELSE: SpotData site height > model_surface --> Interpolate to
+               site height.**
 
-               ELSE: SpotData site height > model_surface --> Interpolate to
-                                                              site height.
-               ----------------------------------------------------------------
+               True surface above model surface (dz +ve) 'Unresolved hill'::
 
-               True surface above model surface (dz +ve) 'Unresolved hill'
+                 ---upper_level--- Model level (k_upper)
 
-               ---upper_level--- Model level (k_upper)
+                 ===site height=== SpotData site height
 
-               ===site height=== SpotData site height
+                 ---lower_level--- Model level (k_lower)
 
-               ---lower_level--- Model level (k_lower)
-
-               --model_surface-- Model level (k=0)
+                 --model_surface-- Model level (k=0)
 
 
                4. Use potential temperature gradient as an indicator of
                   atmospheric stability.
 
-                  IF: dtheta/dz > 0 --> Stable atmosphere
+                  **IF: dtheta/dz > 0 --> Stable atmosphere**
 
-                  -------------------------------------------------------------
-                  --> Stable
-                  -------------------------------------------------------------
                   5. Calculate pressure gradient between lower and upper model
                      levels.
                   6. Use calculated gradients to extrapolate potential
                      temperature and pressure to the SpotData site height.
                   7. Convert back to temperature using the equations given
                      above.
-                  -------------------------RETURN RESULT-----------------------
+                  8. RETURN RESULT.
 
+                  **ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere**
 
-                  ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere
-
-                  -------------------------------------------------------------
-                  --> Neutral/well-mixed
-                  -------------------------------------------------------------
                   5. Use potential temperature from surface level; for a well
                      mixed atmosphere dtheta/dz should be nearly constant.
                   6. Convert back to temperature using the pressure
                      interpolated to SpotData site height.
-                  -------------------------RETURN RESULT-----------------------
-
+                  7. RETURN RESULT.
         """
         # Reference pressure of 1000hPa (1.0E5 Pa).
         p_ref = 1.0E5

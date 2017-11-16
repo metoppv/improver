@@ -178,14 +178,18 @@ class GenerateOrographyBandAncils(object):
         threshold is inclusive i.e:
         lower_threshold < band <= upper_threshold
 
-        For example, for threshold pair: [1,3] with
-        orography: [[0 0 2]    and      sea mask: [[-- -- 2]
-                    [0 2 3]                        [0  2  3]
-                    [0 1 4]]                       [-- 1  4]]
 
-        the resultant array will be: [[-- -- 1]
-                                      [0  1  1]
-                                      [-- 0  0]]
+        For example, for threshold pair [1,3] with orography::
+
+                     [[0 0 2]    and      sea mask: [[-- -- 2]
+                      [0 2 3]                        [0  2  3]
+                      [0 1 4]]                       [-- 1  4]]
+
+        the resultant array will be::
+
+                     [[-- -- 1]
+                      [0  1  1]
+                      [-- 0  0]]
 
         Args:
             standard_orography (iris.cube.Cube):

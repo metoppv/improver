@@ -135,48 +135,46 @@ class ExtractExtrema(object):
 
 def make_local_time_cube(cube):
     """
-    Methods:
+    Construct a cube in which data are arranged along a dimension
+    coordinate of local time. This allows for the calculation of maxima/
+    minima values over given ranges of local time (e.g. 09Z - 21Z maxima).
 
-    Construct a cube in which data are arranged along a dimension coordinate of
-    local time. This allows for the calculation of maxima/minima values over
-    given ranges of local time (e.g. 09Z - 21Z maxima).
+    e.g.::
 
-    e.g.
+      UTC Coord  :  12   13   14   15   16
+      Data: Site 1  300  302  296  294  290 (UTC offset = -2)
+            Site 2  280  282  283  280  279 (UTC offset = +2)
 
-    UTC Coord  :  12   13   14   15   16
-    Data: Site 1  300  302  296  294  290 (UTC offset = -2)
-          Site 2  280  282  283  280  279 (UTC offset = +2)
+    Data redistributed according to UTC offset to sit on local time::
 
-    Data redistributed according to UTC offset to sit on local time.
+      Local times:  10   11   12   13   14   15   16   17   18
+      Data: Site 1  300  302  296  294  290  -    -    -    -
+            Site 2  -    -    -    -    280  282  283  280  279
 
-    Local times:  10   11   12   13   14   15   16   17   18
-    Data: Site 1  300  302  296  294  290  -    -    -    -
-          Site 2  -    -    -    -    280  282  283  280  279
-
-    There will be missing but masked data in locations which are not forecast
-    at the given local time, e.g. a SpotData site at a UTC location for a 12Z
-    run will have no forecast temperatures on the local time axis for times
-    earlier than 12Z.
+    There will be missing but masked data in locations which are not
+    forecast at the given local time, e.g. a SpotData site at a UTC
+    location for a 12Z run will have no forecast temperatures on the local
+    time axis for times earlier than 12Z.
 
     Maxima/Minima can then be calculated on local time, as makes sense for
     quantities such as maximum in day.
 
-    New index is obtained as:
-        Site_UTC_offset + 12 + UTC_coordinate_index
+    New index is obtained as::
 
-        +12 ensures that UTC offset -12 sits at an index of 0 etc.
+      Site_UTC_offset + 12 + UTC_coordinate_index
 
-        UTC_coordinate_index is the data's index on the original coordinate
-        axis. So imagining a model run with a forecast reference time of 12Z,
-        a temperature at 14Z UTC will sit at index=2. At a SpotData site with
-        a UTC offset of -6, the index will become 8:
+    +12 ensures that UTC offset -12 sits at an index of 0 etc.
 
-   Index: 0  1  2  3  4  5  6  7  8  9  10 11 12
-   UTC    12 13 14 15 16 17 18 19 20 21 22 23 00
-   Data :       X
-   Local: 00 01 02 03 04 05 06 07 08 09 10 11 12
-   Data :                         X
+    UTC_coordinate_index is the data's index on the original coordinate
+    axis. So imagining a model run with a forecast reference time of
+    12Z, a temperature at 14Z UTC will sit at index=2. At a SpotData
+    site with a UTC offset of -6, the index will become 8::
 
+      Index: 0  1  2  3  4  5  6  7  8  9  10 11 12
+      UTC    12 13 14 15 16 17 18 19 20 21 22 23 00
+      Data :       X
+      Local: 00 01 02 03 04 05 06 07 08 09 10 11 12
+      Data :                         X
 
     Args:
         cube (iris.cube.Cube):
@@ -252,10 +250,14 @@ def get_datetime_limits(time_coord, start_hour):
             The hour on a 24hr clock at which to set the returned times.
 
     Returns:
-        start_time, end_time (datetime.datetime object):
-            First day and last day on a time coordinate, with the time on each
-            day set to the hour given by start hour
+        (tuple) : tuple containing:
+            **start_time** (datetime.datetime object):
+                First day on a time coordinate, with the time set to the hour
+                given by start hour
 
+            **end_time** (datetime.datetime object):
+                Last day on a time coordinate, with the time set to the hour
+                given by start hour
     """
     dates = iris_time_to_datetime(time_coord)
     start_time = dt.combine(min(dates).date(), datetime.time(start_hour))

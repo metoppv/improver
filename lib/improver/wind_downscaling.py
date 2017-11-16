@@ -120,15 +120,15 @@ class RoughnessCorrectionUtilities(object):
 
     This holds functions to calculate the roughness and height
     corrections given the ancil files:
-    * standard deviation of height in grid cell as sigma (model grid on
-      pp grid)
-    * Silhouette roughness as a_over_s (model grid on pp grid)
-    * vegetative roughness length z_0 (model grid on pp grid)
-    * post-processing grid orography pporo
-    * model grid orography interpolated on post-processing grid modoro
-    * height level 3D/ 1D grid
-    and
-    * windspeed 3D field on height level 3D grid (from above).
+
+     * standard deviation of height in grid cell as sigma (model grid on
+       pp grid)
+     * Silhouette roughness as a_over_s (model grid on pp grid)
+     * vegetative roughness length z_0 (model grid on pp grid)
+     * post-processing grid orography pporo
+     * model grid orography interpolated on post-processing grid modoro
+     * height level 3D/ 1D grid
+     * windspeed 3D field on height level 3D grid (from above).
 
     """
 

@@ -45,14 +45,15 @@ class ArgParser(argparse.ArgumentParser):
         combinations are passed in.
 
         Args:
-            args : string
+            args (string):
               The incompatible arguments
-            method :  string
+            method (string):
               The method with which the arguments are incompatible
 
         Raises:
-            parser.error to notify user of incompatible method-argument
-            combinations.
+            parser.error:
+                To notify user of incompatible method-argument
+                combinations.
         """
         msg = 'Method: {} does not accept arguments: {}'
         self.error(msg.format(method, args))

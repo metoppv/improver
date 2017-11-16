@@ -63,16 +63,16 @@ class PointSelection(object):
         the grid points closest to sites of interest.
 
         Args:
-            method : string
+            method (string):
                 Name of the method of neighbour finding to be used.
 
-            vertical_bias : string/None
+            vertical_bias (string or None):
                 Sets the preferred vertical displacement bias of the grid point
                 relative to the site; above/below/None. If this criteria cannot
                 be met (e.g. bias below, but all grid points above site) the
                 smallest vertical displacment neighbour will be returned.
 
-            land_constraint : boolean
+            land_constraint (boolean):
                 If True spot data sites on land should only select neighbouring
                 grid points also over land.
 
@@ -93,18 +93,19 @@ class PointSelection(object):
                 unimportant as long as the grid is structured in the same way
                 as those from which data will be extracted using the neighbour
                 list.
-
             sites (OrderedDict):
                 Site data, including latitude/longitude and altitude
                 information.
-                e.g. {<site_id>: {'latitude': 50, 'longitude': 0,
-                                  'altitude': 10}}
+                e.g.::
 
+                  {<site_id>: {'latitude': 50, 'longitude': 0,
+                               'altitude': 10}}
             ancillary_data (dict):
                 Dictionary of ancillary (time invariant) model data that is
                 needed.
-                e.g. {'orography': <cube of orography>}
+                e.g.::
 
+                  {'orography': <cube of orography>}
             default_neighbours/no_neighbours :
                 see minimum_height_error_neighbour() below.
 

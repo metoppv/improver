@@ -45,11 +45,11 @@ def convert_cube_data_to_2d(
     numpy array. The result can be transposed, if required.
 
     Args:
-        forecast (Iris cube):
+        forecast (iris.cube.Cube):
             N-dimensional cube to be reshaped.
-        coord (String):
+        coord (string):
             The data will be flattened along this coordinate.
-        transpose (Logical):
+        transpose (boolean):
             If True, the resulting flattened data is transposed.
             This will transpose a 2d array of the format [:, coord]
             to [coord, :].
@@ -81,10 +81,10 @@ def ensure_dimension_is_the_zeroth_dimension(cube, coord):
     If the coordinate is not present on the cube, then an error is raised.
 
     Args:
-        cube (Iris cube):
+        cube (iris.cube.Cube):
             Cube where the requirement for the required dimension to be the
             first dimension will be enforced.
-        coord (String):
+        coord (string):
             Name of the coordinate that is to be made the first dimension
             coordinate in the cube.
 
@@ -112,11 +112,11 @@ def rename_coordinate(cubes, original_coord, renamed_coord):
     input Iris Cube or Iris CubeList.
 
     Args:
-        cubes (Iris cubelist or Iris cube):
+        cubes (iris.cube.CubeList or iris.cube.Cube):
             Cubes with coordinates to be renamed.
-        original_coord (String):
+        original_coord (string):
             Original name for the coordinate.
-        renamed_coord (String):
+        renamed_coord (string):
             Name for the coordinate to be renamed to.
 
     """
@@ -140,11 +140,11 @@ def _renamer(cube, original_coord, renamed_coord):
     original cube is returned.
 
     Args:
-        cube (Iris cube):
+        cube (iris.cube.Cube):
             Cube with coordinates to be renamed.
-        original_coord (String):
+        original_coord (string):
             Original name for the coordinate.
-        renamed_coord (String):
+        renamed_coord (string):
             Name for the coordinate to be renamed to.
 
     """
@@ -159,7 +159,7 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
     and raise an error later.
 
     Args:
-        predictor_of_mean_flag (String):
+        predictor_of_mean_flag (string):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean ("mean") and the ensemble members
             ("members") are supported as the predictors.

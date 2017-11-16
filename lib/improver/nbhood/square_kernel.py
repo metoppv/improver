@@ -324,6 +324,7 @@ class SquareNeighbourhood(object):
         the neighbourhood to calculate the mean value in the neighbourhood.
 
         For all points, a fast vectorised approach is taken:
+
         1. The displacements between the four points used to calculate the
            neighbourhood total sum and the central grid point are calculated.
         2. Four copies of the cumulate array output are flattened and rolled
@@ -334,14 +335,14 @@ class SquareNeighbourhood(object):
 
         Displacements are calculated as follows for the following input array,
         where the accumulation has occurred from left to right and top to
-        bottom.
+        bottom::
 
         | 2 | 4 | 6 | 7 |
         | 2 | 4 | 5 | 6 |
         | 1 | 3 | 4 | 4 |
         | 1 | 2 | 2 | 2 |
 
-        For a 3x3 neighbourhood centred around the point with a value of 5:
+        For a 3x3 neighbourhood centred around the point with a value of 5::
 
         | 2 (A) | 4 | 6                 | 7 (B) |
         | 2     | 4 | 5 (Central point) | 6     |
@@ -349,17 +350,21 @@ class SquareNeighbourhood(object):
         | 1 (C) | 2 | 2                 | 2 (D) |
 
         To calculate the value for the neighbourhood sum at the "Central point"
-        with a value of 5, calculate:
-        Neighbourhood sum = B - A - D + C
-        At the central point, this will yield:
-        Neighbourhood sum = 7 - 2 - 2 +1 => 4
-        Neighbourhood mean = Neighbourhood sum
-                             -----------------
-                             (2 * nb_width +1)
-        where nb_width is the neighbourhood width, which is equal to 1 for a
-        3x3 neighbourhood.
+        with a value of 5, calculate::
 
-        Neighbourhood mean = 4. / 9.
+          Neighbourhood sum = B - A - D + C
+
+        At the central point, this will yield::
+
+          Neighbourhood sum = 7 - 2 - 2 +1 => 4
+          Neighbourhood mean = Neighbourhood sum
+                               -----------------
+                               (2 * nb_width +1)
+
+        where nb_width is the neighbourhood width, which is equal to 1 for a
+        3x3 neighbourhood. This example gives::
+
+          Neighbourhood mean = 4. / 9.
 
         Args:
             cube (iris.cube.Cube):
@@ -562,6 +567,7 @@ class SquareNeighbourhood(object):
         method to a cube.
 
         The steps undertaken are:
+
         1. Set up cubes by determining, if the arrays are masked.
         2. Pad the input array with a halo and then calculate the neighbourhood
            of the haloed array.

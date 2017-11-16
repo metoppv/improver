@@ -110,9 +110,9 @@ def _check_coord_type(cube, coord):
        as scalar or auxiliary coordinate.
 
        Args:
-           cube: cube
+           cube (iris.cube.Cube):
                Iris cube containing coordinates to be checked
-           coord: coordinate
+           coord (iris.coords.DimCoord or iris.coords.AuxCoord):
                Cube coordinate to check
     '''
     coord_scalar = False

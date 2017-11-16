@@ -60,22 +60,23 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
             following loading in a cube, and any additional data required to
             be able to compute the methods requested.
 
-            For example:
-            {
-                "temperature": {
-                    "diagnostic_name": "air_temperature",
-                    "extrema": True,
-                    "filepath": "temperature_at_screen_level",
-                    "interpolation_method": "use_nearest",
-                    "neighbour_finding": {
-                        "land_constraint": False,
-                        "method": "fast_nearest_neighbour",
-                        "vertical_bias": None
-                    "data": iris.cube.CubeList
-                    "additional_data" : iris.cube.CubeList
-                    }
-                }
-            }
+            For example::
+
+              {
+                  "temperature": {
+                      "diagnostic_name": "air_temperature",
+                      "extrema": True,
+                      "filepath": "temperature_at_screen_level",
+                      "interpolation_method": "use_nearest",
+                      "neighbour_finding": {
+                          "land_constraint": False,
+                          "method": "fast_nearest_neighbour",
+                          "vertical_bias": None
+                      "data": iris.cube.CubeList
+                      "additional_data" : iris.cube.CubeList
+                      }
+                  }
+              }
 
         ancillary_data (dict):
             Dictionary containing named ancillary data; the key gives the name
@@ -211,21 +212,22 @@ def process_diagnostic(diagnostics, neighbours, sites,
             Dictionary containing information regarding how the diagnostics
             are to be processed.
 
-            For example:
-            {
-                "temperature": {
-                    "diagnostic_name": "air_temperature",
-                    "extrema": true,
-                    "filepath": "temperature_at_screen_level",
-                    "interpolation_method":
-                        "model_level_temperature_lapse_rate",
-                    "neighbour_finding": {
-                        "land_constraint": false,
-                        "method": "fast_nearest_neighbour",
-                        "vertical_bias": null
-                    }
-                }
-            }
+            For example::
+
+              {
+                  "temperature": {
+                      "diagnostic_name": "air_temperature",
+                      "extrema": true,
+                      "filepath": "temperature_at_screen_level",
+                      "interpolation_method":
+                          "model_level_temperature_lapse_rate",
+                      "neighbour_finding": {
+                          "land_constraint": false,
+                          "method": "fast_nearest_neighbour",
+                          "vertical_bias": null
+                      }
+                  }
+              }
 
         neighbours (numpy.array):
             Array of neigbouring grid points that are associated with sites

@@ -216,6 +216,7 @@ class PercentileBlendingAggregator(object):
 class MaxProbabilityAggregator(object):
     """Class for the Aggregator used to calculate the maximum weighted
        probability.
+
        1. Find the weighted probabilities for each point in the dimension of
           interest by multiplying each probability by the corresponding weight.
        2. Find the maximum weighted probability and return the array with one

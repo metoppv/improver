@@ -94,10 +94,10 @@ def convert_distance_into_number_of_grid_cells(
 
     Returns:
         (tuple) : tuple containing:
-            **grid_cells_x** (Integer):
+            **grid_cells_x** (int):
                 Number of grid cells in the x direction based on the requested
                 distance in metres.
-            **grid_cells_y** (Integer):
+            **grid_cells_y** (int):
                 Number of grid cells in the y direction based on the requested
                 distance in metres.
 
@@ -230,7 +230,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         """
         Calculate the difference along the x and y axes and return
         the result in separate cubes. The difference along each axis is
-         calculated using numpy.diff.
+        calculated using numpy.diff.
 
         Args:
             cube (Iris.cube.Cube):

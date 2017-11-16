@@ -245,11 +245,13 @@ class ResamplePercentiles(object):
             sampling (String):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
+
                 Accepted options for sampling are:
-                Quantile: A regular set of equally-spaced percentiles aimed
-                    at dividing a Cumulative Distribution Function into
-                    blocks of equal probability.
-                Random: A random set of ordered percentiles.
+
+                * Quantile: A regular set of equally-spaced percentiles aimed
+                     at dividing a Cumulative Distribution Function into
+                     blocks of equal probability.
+                * Random: A random set of ordered percentiles.
 
         Returns:
             forecast_at_percentiles (iris.cube.Cube):
@@ -470,11 +472,13 @@ class GeneratePercentilesFromProbabilities(object):
             sampling (String):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
+
                 Accepted options for sampling are:
-                Quantile: A regular set of equally-spaced percentiles aimed
+
+                * Quantile: A regular set of equally-spaced percentiles aimed
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
-                Random: A random set of ordered percentiles.
+                * Random: A random set of ordered percentiles.
 
         Returns:
             forecast_at_percentiles (Iris cube):

@@ -124,17 +124,17 @@ class TestMultiPoint(object):
         """Set up multi-point tests.
 
         Args:
-            nx_ny: a scalar or an np.array([x,y])
+            nx_ny (int or an np.array([x,y])):
                 Sets dimension for tests.
-            AoS: float or 1D or 2D array
+            AoS (float or 1D or 2D numpy.array):
                 Silhouette roughness field
-            Sigma: float or 1D or 2D array
+            Sigma (float or 1D or 2D numpy.array):
                 Standard deviation field of height in grid cell
-            z_0: float or 1D or 2D array
+            z_0 (float or 1D or 2D numpy.array):
                 Vegetative roughness field
-            pporog: float or 1D or 2D array
+            pporog (float or 1D or 2D numpy.array):
                 Unsmoothed orography field on post-processing grid
-            modelorog: float or 1D or 2D array
+            modelorog (float or 1D or 2D numpy.array):
                 Model orography field on post-processing grid
 
         """
@@ -188,15 +188,18 @@ class TestMultiPoint(object):
         array.
 
         Args:
-            wind: 2 or 3D array
+            wind (2D or 3D numpy.array)
                 Multi-level wind target data
-            dtime: integer, default 1
-                Number of time dimension values
-            height: float, default None
-                Value for height in metres for zeroth slice of wind
-            aslist: boolean, default False
-                Make wind cube into a CubeList of height slices or not.
 
+        Keyword Args:
+            dtime (integer):
+                Number of time dimension values, default 1
+            height (float):
+                Value for height in metres for zeroth slice of wind,
+                default None
+            aslist (boolean):
+                Make wind cube into a CubeList of height slices or not,
+                default False
         """
         if aslist:
             self.w_cube = iris.cube.CubeList()
@@ -253,18 +256,18 @@ class TestSinglePoint(object):
                                                         133., 333., 1133.])):
         """Set up the single point test for RoughnessCorrection.
 
-        Args:
-            AoS: float
+        Keyword Args:
+            AoS (float):
                 Silhouette roughness field
-            Sigma: float
+            Sigma (float):
                 Standard deviation field of height in grid cell
-            z_0: float
+            z_0 (float):
                 Vegetative roughness field
-            pporog: float
+            pporog (float):
                 Unsmoothed orography on post-processing grid
-            modelorog: float
+            modelorog (float):
                 Model orography on post-processing grid
-            heightlevels: 1D np.array
+            heightlevels (1D numpy.array):
                 Height level array
 
         """
@@ -291,13 +294,14 @@ class TestSinglePoint(object):
         Make an iris cube of the supplied wind and set up the height
         axis in m.
 
-        Parameters
-        ----------
-        wind: 1 or 2D array
-            Array of wind speeds
-        height: float, default None
-            Value for height in metres for zeroth slice of wind
+        Args:
+            wind (1D or 2D numpy.array):
+                Array of wind speeds
 
+        Keyword Args:
+            height (float):
+                Value for height in metres for zeroth slice of wind,
+                default None.
         """
         wind = np.array(wind)
         if wind.ndim == 1:
