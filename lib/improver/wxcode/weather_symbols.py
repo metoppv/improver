@@ -89,7 +89,7 @@ class WeatherSymbols(object):
                     iris.Constraint(
                         name=diagnostic,
                         threshold=lambda cell:
-                            threshold*0.98 < cell < threshold*1.02,
+                            threshold*0.99 < cell < threshold*1.01,
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
@@ -289,7 +289,7 @@ class WeatherSymbols(object):
             return '{}{}{}{}{}{}{}'.format(
                 "iris.Constraint(name='", diagnostic, "', "
                 "threshold=lambda cell: ", threshold,
-                "*0.98 < cell < ", threshold, "*1.02)")
+                "*0.99 < cell < ", threshold, "*1.01)")
 
         if isinstance(diagnostics, list):
             constraints = []

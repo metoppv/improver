@@ -318,10 +318,10 @@ class Test_create_condition_chain(IrisTest):
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate', threshold=lambda cell: 0.03*0.98 < cell <"
-                    " 0.03*1.02))[0].data >= 0.5) | (cubes.extract(iris."
+                    "rainfall_rate', threshold=lambda cell: 0.03*0.99 < cell <"
+                    " 0.03*1.01))[0].data >= 0.5) | (cubes.extract(iris."
                     "Constraint(name='probability_of_lwe_snowfall_rate', "
-                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02))[0]"
+                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01))[0]"
                     ".data >= 0.5)")
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
@@ -340,7 +340,7 @@ class Test_construct_extract_constraint(IrisTest):
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
         expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
-                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02)")
+                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
         self.assertEqual(str(result), expected)
 
     def test_list_of_constraints(self):
@@ -355,7 +355,7 @@ class Test_construct_extract_constraint(IrisTest):
                                                      thresholds)
 
         expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
-                    "threshold=lambda cell: 0.03*0.98 < cell < 0.03*1.02)")
+                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
         self.assertEqual(str(result[1]), expected)
