@@ -45,20 +45,23 @@ def main():
     Load in the arguments and apply the requested variant of database creation.
     """
     parser = ArgParser(
-        description='Create or append to a database a set of forecast cubes')
-
-    # General options:
-    parser.add_argument('-i', '--input_filepaths', nargs='*', required=True,
-                        metavar='INPUT_FILES',
-                        help='A path to an input NetCDF file to be processed.')
-    parser.add_argument('-o', '--output_filepath', required=True,
-                        metavar='OUTPUT_FILE',
+        description="Convert spot forecast cubes to a table and save in csv "
+                    "or as a sql database. For all the spot files provided it "
+                    "creates a table in memory and then saves it in the form "
+                    "specified by the user.")
+    parser.add_argument('input_filepath',  metavar='INPUT_FILES',
+                        help="A path (with wildcards if necessary) to input "
+                             "NetCDF files to be processed.")
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed database.')
-    parser.add_argument('--table', required=False,
-                        metavar='OUTPUT_TABLE',
-                        help='The output path for the processed database.')
-    parser.add_argument('-exp_id', '--experiment',
-                       help='A name to provide as the experiment identifier')
+    parser.add_argument('--table_name', required=False,
+                        metavar='OUTPUT_TABLE_NAME',
+                        help='The name of the table for the processed '
+                             'database.')
+    parser.add_argument( '--experiment_id',
+                       help='A name to provide as the experiment identifier, '
+                            'which refers to the post-processing stage the '
+                            'input data comes from')
     # Different file formats (default to SQLite DB):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sqlite', default=False, action='store_true',
@@ -75,7 +78,7 @@ def main():
 
     args = parser.parse_args()
 
-    cubelist = iris.load(args.input_filepaths)
+    cubelist = iris.load(args.input_filepath)
     # TODO: Move this to the plugin itself?
     for cube in cubelist:
         if not cube.coords(args.row_dimension):
@@ -87,12 +90,12 @@ def main():
         output = 'sqlite'
     elif args.csv:
         output = 'csv'
-        
-    if args.table:
-        table_name = args.table
+
+    if args.table_name:
+        table_name = args.table_name
     else:
         table_name = 'improver'
-    
+
     database_creator = SpotDatabase(cubelist, output, args.output_filepath,
                                     table_name, args.row_dimension)
     database_creator.process()
