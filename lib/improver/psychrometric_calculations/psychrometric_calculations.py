@@ -587,4 +587,5 @@ class WetBulbTemperatureIntegral(object):
                 direction_of_integration=self.direction_of_integration
                 ).process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
+        wet_bulb_temperature_integral.units = Unit('K m')
         return wet_bulb_temperature_integral

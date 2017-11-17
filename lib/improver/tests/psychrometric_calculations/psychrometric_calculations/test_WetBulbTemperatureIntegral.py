@@ -34,6 +34,7 @@ import unittest
 
 import numpy as np
 
+from cf_units import Unit
 import iris
 from iris.tests import IrisTest
 
@@ -84,6 +85,7 @@ class Test_process(IrisTest):
             self.pressure_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "wet_bulb_temperature_integral")
+        self.assertEqual(result.units, Unit('K m'))
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
