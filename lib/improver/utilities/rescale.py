@@ -48,7 +48,7 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
         data_range (list):
             List containing two floats
             Lowest and highest source value to rescale.
-            Defaults to [min(data), max(data)]
+            Default value of None is converted to [min(data), max(data)]
         scale_range (list):
             List containing two floats
             Lowest and highest value after rescaling.
