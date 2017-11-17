@@ -49,18 +49,6 @@ class SpotDatabase(object):
     """
 
     def __init__(self, output, outfile, tablename,
-                 primary_dim='time',
-                 primary_map=['validity_date', 'validity_time'],
-                 primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
-                               lambda x:dt.utcfromtimestamp(x).hour*100],
-
-                 pivot_dim='forecast_period',
-                 pivot_map=lambda x: 'fcr_tplus{:03d}'.format(int(x/3600)),
-                 pivot_max=54*60*60,
-
-                 column_dims=['wmo_site', 'name'],
-                 column_maps=['station_id', 'cf_name'],
-
                  extra_columns=None,
                  extra_values=None):
 
@@ -72,18 +60,10 @@ class SpotDatabase(object):
         self.output    = output
         self.outfile   = outfile
         self.tablename = tablename
-        self.pivot_dim = pivot_dim
-        self.pivot_map = pivot_map
-        self.pivot_max = pivot_max
-        self.primary_dim = primary_dim
-        self.primary_map = primary_map
-        self.primary_func = primary_func
 
-        self.column_dims = column_dims
-        self.column_maps = column_maps
         if extra_columns and extra_values:    
-            self.column_maps.append(extra_columns)
-            self.column_dims.append(extra_values)
+            self.column_dims = self.column_dims + [extra_columns]
+            self.column_maps = self.column_maps + [extra_values]
 
     def __repr__(self):
         """
@@ -242,3 +222,26 @@ class SpotDatabase(object):
 
         if self.output == 'csv':
             self.to_csv(self.outfile)
+            
+class VerificationTable(SpotDatabase):
+    """
+    Represents a single Verification database table
+    
+    """
+    
+    def __init__(self, *args, **kwargs):
+    
+       self.primary_dim='time'
+       self.primary_map=['validity_date', 'validity_time']
+       self.primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
+                          lambda x:dt.utcfromtimestamp(x).hour*100]
+
+       self.pivot_dim='forecast_period'
+       self.pivot_map=lambda x: 'fcr_tplus{:03d}'.format(int(x/3600))
+       self.pivot_max=54*60*60
+
+       self.column_dims=['wmo_site', 'name']
+       self.column_maps=['station_id', 'cf_name']
+       
+       super(VerificationTable, self).__init__(*args, **kwargs)
+

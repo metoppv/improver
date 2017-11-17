@@ -36,7 +36,7 @@ import iris
 import time
 import numpy as np
 
-from improver.database import SpotDatabase
+from improver.database import VerificationTable
 from improver.argparser import ArgParser
 
 
@@ -58,10 +58,6 @@ def main():
                         metavar='OUTPUT_TABLE_NAME',
                         help='The name of the table for the processed '
                              'database.')
-    parser.add_argument( '--experiment_id',
-                       help='A name to provide as the experiment identifier, '
-                            'which refers to the post-processing stage the '
-                            'input data comes from')
     # Different file formats (default to SQLite DB):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sqlite', default=False, action='store_true',
@@ -72,9 +68,6 @@ def main():
     # Some options pertaining to the structure of the table.
     structure = parser.add_argument_group('Table format options',
                            'Options for structure of the output table.')
-    structure.add_argument('-rows', '--row_dimension',
-                           default='time',
-                           help='A dimension to turn into the table rows')
     structure.add_argument('-cols', '--extra_columns',
                            default=None,
                            help='Any extra columns to append to the table')
@@ -84,12 +77,6 @@ def main():
     args = parser.parse_args()
 
     cubelist = iris.load(args.input_filepath)
-    # TODO: Move this to the plugin itself?
-    for cube in cubelist:
-        if not cube.coords(args.row_dimension):
-            msg = ('The input cube: {} does not have a '
-                   '{} dimension.'.format(cube, columns))
-            raise CoordinateNotFoundError(msg)
 
     if args.sqlite:
         output = 'sqlite'
@@ -100,11 +87,11 @@ def main():
         table_name = args.table_name
     else:
         table_name = 'improver'
-
-    database_creator = SpotDatabase(output, args.output_filepath, table_name, 
-                                    primary_dim=args.row_dimension, 
-                                    extra_columns=args.extra_columns,
-                                    extra_values=args.extra_values)
+        
+    database_creator = VerificationTable(output, args.output_filepath,
+                                         table_name,
+                                         extra_columns=args.extra_columns,
+                                         extra_values=args.extra_values)
     database_creator.process(cubelist)
 
 if __name__ == '__main__':
