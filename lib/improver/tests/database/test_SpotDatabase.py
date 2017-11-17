@@ -46,6 +46,7 @@ from improver.database import SpotDatabase
 from tempfile import mkdtemp
 from subprocess import call as Call
 
+
 def set_up_spot_cube(point_data, validity_time=1487311200, forecast_period=0,
                      number_of_sites=3):
     """Set up a spot data cube at a given validity time and forecast period for
@@ -170,7 +171,7 @@ class Test_to_dataframe(IrisTest):
         # Call the plugin.
         cube = set_up_spot_cube(280)
         second_cube = cube.copy()
-        second_cube.coord("percentile").points=np.array([60.0])
+        second_cube.coord("percentile").points = np.array([60.0])
         cubelist = iris.cube.CubeList([cube, second_cube])
         cubes = cubelist.concatenate()
         plugin = SpotDatabase("output", "csv", "improver", pivot_max=1,
@@ -308,7 +309,7 @@ class Test_process(IrisTest):
         """Set up the plugin and dataframe needed for this test"""
         self.cubes = iris.cube.CubeList([set_up_spot_cube(280)])
         self.data_directory = mkdtemp()
-        self.plugin = SpotDatabase("csv", self.data_directory+ "/test.csv",
+        self.plugin = SpotDatabase("csv", self.data_directory + "/test.csv",
                                    "improver", pivot_max=3600,
                                    extra_columns="exp_id",
                                    extra_values="IMPRO")
@@ -317,7 +318,6 @@ class Test_process(IrisTest):
         """Remove temporary directories created for testing."""
         Call(['rm', '-f', self.data_directory + '/test.csv'])
         Call(['rmdir', self.data_directory])
-
 
     def test_save_as_csv(self):
         """Basic test using a basic dataframe as input"""

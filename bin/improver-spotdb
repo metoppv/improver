@@ -66,8 +66,9 @@ def main():
                        help='The option used to create a CSV file.')
 
     # Some options pertaining to the structure of the table.
-    structure = parser.add_argument_group('Table format options',
-                           'Options for structure of the output table.')
+    structure = parser.add_argument_group(
+        'Table format options. ',
+        'Options for structure of the output table.')
     structure.add_argument('-cols', '--extra_columns',
                            default=None,
                            help='Any extra columns to append to the table')
@@ -87,7 +88,7 @@ def main():
         table_name = args.table_name
     else:
         table_name = 'improver'
-        
+
     database_creator = VerificationTable(output, args.output_filepath,
                                          table_name,
                                          extra_columns=args.extra_columns,

@@ -42,6 +42,7 @@ import os
 from datetime import datetime as dt
 from pandas import DataFrame
 
+
 class SpotDatabase(object):
     """
     Class to create a Database table from a SpotData iris.cube.
@@ -57,11 +58,11 @@ class SpotDatabase(object):
 
         """
 
-        self.output    = output
-        self.outfile   = outfile
+        self.output = output
+        self.outfile = outfile
         self.tablename = tablename
 
-        if extra_columns and extra_values:    
+        if extra_columns and extra_values:
             self.column_dims = self.column_dims + [extra_columns]
             self.column_maps = self.column_maps + [extra_values]
 
@@ -71,8 +72,8 @@ class SpotDatabase(object):
 
         """
         result = ('<SpotDatabase: columns (primary={primary_map}, '
-                                          'other={column_dims}, '
-                                          'pivot={pivot_dim})>')
+                  'other={column_dims}, '
+                  'pivot={pivot_dim})>')
         return result.format(**self.__dict__)
 
     def to_dataframe(self, cubelist):
@@ -116,28 +117,28 @@ class SpotDatabase(object):
                             column_data = coord.points[0]
                         else:
                             column_data = coord.points
-                    
+
                     # Check to see if provided dim is a method of the cube
                     elif hasattr(c, dim):
                         attr = getattr(c, dim)
                         if callable(attr):
                             column_name = col
                             column_data = attr()
-                            
+
                     else:
                         column_name = col
                         column_data = dim
-                   
+
                     as_index = True if dim != self.pivot_dim else False
                     self.insert_column(df, column_name, column_data, as_index)
-                        
+
                 try:
                     self.df = self.df.combine_first(df)
                 except AttributeError:
                     # Ensure the first instance has all pivot columns created
                     self.ensure_all_pivot_columns(df)
                     self.df = df
-    
+
     @staticmethod
     def insert_column(dataframe, column_name, column_data, as_index=False):
         """
@@ -147,27 +148,26 @@ class SpotDatabase(object):
         dataframe.insert(1, column_name, column_data)
         if as_index:
             dataframe.set_index(column_name, append=True, inplace=True)
-    
-    
+
     def ensure_all_pivot_columns(self, dataframe):
         """
         Method to ensure all pivot columns exist in the dataframe, adding any
         that do not.
-        
+
         """
-        
+
         if self.pivot_dim and self.pivot_max:
             for pivot_val in range(self.pivot_max+1):
                 if not self.pivot_map(pivot_val) in dataframe.columns:
                     dataframe[self.pivot_map(pivot_val)] = np.nan
-                    
+
     def determine_schema(self, table):
         """
         Method to determine the schema of the database.
-        
+
         Primary keys and datatypes are determined from the indexed columns and
         the datatypes in the DataFrame.
-        
+
         """
 
         # Remove the current index, and use the indexed columns for for db keys
@@ -179,13 +179,12 @@ class SpotDatabase(object):
                                       keys=new_df.columns[:n_keys])
         return schema
 
-
     def create_table(self, outfile, table):
         """
         Method to first create a the SQL datafile table.
 
         """
-        
+
         schema = self.determine_schema(table)
         with sqlite3.connect(outfile) as db:
             db.execute(schema)
@@ -197,7 +196,7 @@ class SpotDatabase(object):
         """
         if not os.path.isfile(self.outfile):
             self.create_table(self.outfile, self.tablename)
-            
+
         with sqlite3.connect(outfile) as db:
             self.df.to_sql(table, con=db, if_exists='append', index=True)
 
@@ -208,40 +207,40 @@ class SpotDatabase(object):
         """
 
         self.df.to_csv(outfile)
-        
+
     def process(self, cubelist):
         """
         Method to perform the table creation and output to file.
-        
+
         """
 
         self.to_dataframe(cubelist)
 
         if self.output == 'sqlite':
-           self.to_sql(self.outfile, self.tablename)
+            self.to_sql(self.outfile, self.tablename)
 
         if self.output == 'csv':
             self.to_csv(self.outfile)
-            
+
+
 class VerificationTable(SpotDatabase):
     """
     Represents a single Verification database table
-    
+
     """
-    
+
     def __init__(self, *args, **kwargs):
-    
-       self.primary_dim='time'
-       self.primary_map=['validity_date', 'validity_time']
-       self.primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
-                          lambda x:dt.utcfromtimestamp(x).hour*100]
 
-       self.pivot_dim='forecast_period'
-       self.pivot_map=lambda x: 'fcr_tplus{:03d}'.format(int(x/3600))
-       self.pivot_max=54*60*60
+        self.primary_dim = 'time'
+        self.primary_map = ['validity_date', 'validity_time']
+        self.primary_func = [lambda x:dt.utcfromtimestamp(x).date(),
+                             lambda x:dt.utcfromtimestamp(x).hour*100]
 
-       self.column_dims=['wmo_site', 'name']
-       self.column_maps=['station_id', 'cf_name']
-       
-       super(VerificationTable, self).__init__(*args, **kwargs)
+        self.pivot_dim = 'forecast_period'
+        self.pivot_map = lambda x: 'fcr_tplus{:03d}'.format(int(x/3600))
+        self.pivot_max = 54*60*60
 
+        self.column_dims = ['wmo_site', 'name']
+        self.column_maps = ['station_id', 'cf_name']
+
+        super(VerificationTable, self).__init__(*args, **kwargs)
