@@ -34,7 +34,7 @@ import numpy as np
 
 
 def rescale(data, data_range=None, scale_range=(0., 1.),
-            clip=False, debug=False):
+            clip=False):
     """
     Rescale data array so that data_min => scale_min
     and data_max => scale max.
@@ -58,8 +58,6 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
             will be set to the scale min or max appropriately.
             Default is False which continues the scaling beyond min and
             max.
-        debug (boolean):
-            Causes a printout of the min and max values.
 
     Returns:
         result (numpy.ndarray):
@@ -69,11 +67,6 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
     data_max = np.max(data) if data_range is None else data_range[1]
     scale_min = scale_range[0]
     scale_max = scale_range[1]
-    if debug:
-        print "Rescaling data so that {} -> {} and {} -> {}".format(data_min,
-                                                                    scale_min,
-                                                                    data_max,
-                                                                    scale_max)
     # Range check
     if data_min == data_max:
         raise ValueError("Cannot rescale a zero input range " +

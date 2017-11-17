@@ -68,15 +68,6 @@ class Test_rescale(IrisTest):
         result = rescale(self.cube.data)
         self.assertIsInstance(result, np.ndarray)
 
-    def test_debug(self):
-        """
-        Test that the method returns the expected array type in debug mode
-        """
-        expected = "Rescaling data so that 0.0 -> 0.0 and 1.0 -> 1.0\n"
-        result = rescale(self.cube.data, debug=True)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(self.stdout.getvalue(), expected)
-
     def test_zerorange_input(self):
         """
         Test that the method returns the expected error
