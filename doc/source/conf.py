@@ -20,9 +20,9 @@ import os
 import sys
 
 SOURCE_DIR = os.path.abspath(os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)),
-                    '..', '..', 'lib'
-                    ))
+    os.path.dirname(os.path.abspath(__file__)),
+    '..', '..', 'lib'
+    ))
 
 sys.path.insert(0, SOURCE_DIR)
 
@@ -252,21 +252,21 @@ htmlhelp_basename = 'Improverdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-     # The paper size ('letterpaper' or 'a4paper').
-     #
-     # 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    # 'papersize': 'letterpaper',
 
-     # The font size ('10pt', '11pt' or '12pt').
-     #
-     # 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
 
-     # Additional stuff for the LaTeX preamble.
-     #
-     # 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
 
-     # Latex figure (float) alignment
-     #
-     # 'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
@@ -359,11 +359,10 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 napoleon_include_init_with_doc = True
 
 
-# Allow automatic running of sphinx-apidoc:
-# Adapted from: https://github.com/rtfd/readthedocs.org/issues/1139
 def run_apidoc(_):
+    """Allow automatic running of sphinx-apidoc:
+    Adapted from: https://github.com/rtfd/readthedocs.org/issues/1139"""
     from sphinx.apidoc import main
-    import os
 
     output_dir = os.path.dirname(os.path.abspath(__file__))
     exclude_dir = os.path.join(SOURCE_DIR, 'improver', 'tests')
@@ -371,4 +370,5 @@ def run_apidoc(_):
 
 
 def setup(app):
+    """setup sphinx"""
     app.connect('builder-inited', run_apidoc)
