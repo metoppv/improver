@@ -212,11 +212,21 @@ class Test_process(IrisTest):
 
     """Test the plugin combines the cubelist into a cube."""
 
+    def setUp(self):
+        self.cube1 = create_cube_with_threshold()
+        data = np.zeros((1, 2, 2, 2))
+        data[0, 0, :, :] = 0.1
+        data[0, 1, :, :] = 0.4
+        self.cube2 = create_cube_with_threshold(data=data)
+        data2 = np.zeros((1, 2, 2, 2))
+        data2[0, 0, :, :] = 0.9
+        data2[0, 1, :, :] = 0.2
+        self.cube3 = create_cube_with_threshold(data=data2)
+
     def test_basic(self):
         """Test that the plugin returns a Cube. """
         plugin = CubeCombiner('+')
-        cube = create_cube_with_threshold()
-        cubelist = iris.cube.CubeList([cube, cube])
+        cubelist = iris.cube.CubeList([self.cube1, self.cube1])
         result = plugin.process(cubelist, 'new_cube_name')
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
@@ -228,18 +238,27 @@ class Test_process(IrisTest):
     def test_mean(self):
         """Test that the plugin calculates the mean correctly. """
         plugin = CubeCombiner('mean')
-        cube1 = create_cube_with_threshold()
-        data = np.zeros((1, 2, 2, 2))
-        data[0, 0, :, :] = 0.1
-        data[0, 1, :, :] = 0.4
-        cube2 = create_cube_with_threshold(data=data)
-        cubelist = iris.cube.CubeList([cube1, cube2])
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, 'new_cube_name')
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[:, 0, :, :] = 0.3
         expected_data[:, 1, :, :] = 0.5
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_mean_multi_cube(self):
+        """Test that the plugin calculates the mean for three cubes. """
+        plugin = CubeCombiner('mean')
+        cubelist = iris.cube.CubeList([self.cube1,
+                                       self.cube2,
+                                       self.cube3])
+        result = plugin.process(cubelist, 'new_cube_name')
+        expected_data = np.zeros((1, 2, 2, 2))
+        expected_data[:, 0, :, :] = 0.5
+        expected_data[:, 1, :, :] = 0.4
+        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
 
 if __name__ == '__main__':
     unittest.main()
