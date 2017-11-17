@@ -122,6 +122,7 @@ class Test_combine(IrisTest):
     """Test the combine method."""
 
     def setUp(self):
+        """ Set up cubes for testing. """
         self.cube1 = create_cube_with_threshold()
         data = np.zeros((1, 2, 2, 2))
         data[0, 0, :, :] = 0.1
@@ -213,6 +214,7 @@ class Test_process(IrisTest):
     """Test the plugin combines the cubelist into a cube."""
 
     def setUp(self):
+        """ Set up cubes for testing. """
         self.cube1 = create_cube_with_threshold()
         data = np.zeros((1, 2, 2, 2))
         data[0, 0, :, :] = 0.1
