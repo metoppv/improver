@@ -69,25 +69,19 @@ class Test_rescale(IrisTest):
         self.assertIsInstance(result, np.ndarray)
 
     def test_zero_range_input(self):
-        """
-        Test that the method returns the expected error
-        """
+        """Test that the method returns the expected error"""
         msg = "Cannot rescale a zero input range"
         with self.assertRaisesRegexp(ValueError, msg):
             rescale(self.cube.data, data_range=[0, 0])
 
     def test_zero_range_output(self):
-        """
-        Test that the method returns the expected error
-        """
+        """Test that the method returns the expected error"""
         msg = "Cannot rescale a zero output range"
         with self.assertRaisesRegexp(ValueError, msg):
             rescale(self.cube.data, scale_range=[4, 4])
 
     def test_rescaling_inrange(self):
-        """
-        Test that the method returns the expected values when in range
-        """
+        """Test that the method returns the expected values when in range"""
         expected = self.cube.data.copy()
         expected[...] = 110.
         expected[0, 0, 7, 7] = 100.
@@ -96,9 +90,7 @@ class Test_rescale(IrisTest):
         self.assertArrayAlmostEqual(result, expected)
 
     def test_rescaling_outrange(self):
-        """
-        Test that the method returns the expected values when out of range
-        """
+        """Test that the method gives the expected values when out of range"""
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 98.
@@ -107,9 +99,7 @@ class Test_rescale(IrisTest):
         self.assertArrayAlmostEqual(result, expected)
 
     def test_clip(self):
-        """
-        Test that the method clips values when out of range
-        """
+        """Test that the method clips values when out of range"""
         expected = self.cube.data.copy()
         expected[...] = 108.
         expected[0, 0, 7, 7] = 100.
