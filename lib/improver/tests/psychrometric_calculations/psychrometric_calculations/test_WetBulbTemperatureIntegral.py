@@ -66,7 +66,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cubes."""
-        temperature, pressure, relative_humidity, mixing_ratio = (
+        temperature, pressure, relative_humidity, _ = (
             set_up_cubes_for_wet_bulb_temperature())
         self.height_points = np.array([5., 10., 20.])
         self.temperature_cube = set_up_height_cube(
