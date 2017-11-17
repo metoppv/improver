@@ -68,7 +68,7 @@ class Test_rescale(IrisTest):
         result = rescale(self.cube.data)
         self.assertIsInstance(result, np.ndarray)
 
-    def test_zerorange_input(self):
+    def test_zero_range_input(self):
         """
         Test that the method returns the expected error
         """
@@ -76,7 +76,7 @@ class Test_rescale(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             rescale(self.cube.data, data_range=[0, 0])
 
-    def test_zerorange_output(self):
+    def test_zero_range_output(self):
         """
         Test that the method returns the expected error
         """
