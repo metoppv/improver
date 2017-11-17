@@ -1302,15 +1302,15 @@ class Test_add_renamed_cell_method(IrisTest):
 
 
 class Test_sort_coord_in_cube(IrisTest):
-    """Class to test the sort_coord_in_cube function"""
+    """Class to test the sort_coord_in_cube function."""
 
     def setUp(self):
         """Set up a cube."""
         self.ascending_height_points = np.array([5., 10., 20.])
         cube = set_up_height_cube(self.ascending_height_points)[:, 0, :, :, :]
         data = np.ones(cube.shape)
-        data[1] = np.zeros(cube[1].shape)+2
-        data[2] = np.zeros(cube[2].shape)+3
+        data[1] = np.zeros(cube[1].shape) + 2
+        data[2] = np.zeros(cube[2].shape) + 3
         cube.data = data
         self.ascending_cube = cube
         descending_cube = cube.copy()
@@ -1320,7 +1320,7 @@ class Test_sort_coord_in_cube(IrisTest):
 
     def test_ascending_then_ascending(self):
         """Test that the sorting successfully sorts the cube based
-        on the points within the given coordinate. The points on the resulting
+        on the points within the given coordinate. The points in the resulting
         cube should now be in ascending order."""
         expected_data = np.array(
             [[[[1.00, 1.00, 1.00],
@@ -1347,7 +1347,7 @@ class Test_sort_coord_in_cube(IrisTest):
 
     def test_ascending_then_descending(self):
         """Test that the sorting successfully sorts the cube based
-        on the points within the given coordinate. The points on the resulting
+        on the points within the given coordinate. The points in the resulting
         cube should now be in descending order."""
         expected_data = np.array(
             [[[[3.00, 3.00, 3.00],
@@ -1373,7 +1373,7 @@ class Test_sort_coord_in_cube(IrisTest):
 
     def test_descending_then_ascending(self):
         """Test that the sorting successfully sorts the cube based
-        on the points within the given coordinate. The points on the resulting
+        on the points within the given coordinate. The points in the resulting
         cube should now be in ascending order."""
         expected_data = np.array(
             [[[[3.00, 3.00, 3.00],
@@ -1398,7 +1398,7 @@ class Test_sort_coord_in_cube(IrisTest):
 
     def test_descending_then_descending(self):
         """Test that the sorting successfully sorts the cube based
-        on the points within the given coordinate. The points on the resulting
+        on the points within the given coordinate. The points in the resulting
         cube should now be in descending order."""
         expected_data = np.array(
             [[[[1.00, 1.00, 1.00],
@@ -1424,8 +1424,8 @@ class Test_sort_coord_in_cube(IrisTest):
 
     def test_latitude(self):
         """Test that the sorting successfully sorts the cube based
-        on the points within the given coordinate. The points on the resulting
-        cube should now be in descending order."""
+        on the points within the given coordinate (latitude).
+        The points in the resulting cube should now be in descending order."""
         expected_data = np.array(
             [[[[1.00, 1.00, 1.00],
                [1.00, 1.00, 1.00],

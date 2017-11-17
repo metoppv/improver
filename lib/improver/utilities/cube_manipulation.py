@@ -643,7 +643,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     if order == "descending":
         index[dim] = index[dim][::-1]
     if coord in ["height"] and order == "ascending":
-        cube.coord(coord).attributes = {"positive": "up"}
+        cube.coord(coord).attributes["positive"] = "up"
     elif coord in ["height"] and order == "descending":
-        cube.coord(coord).attributes = {"positive": "down"}
+        cube.coord(coord).attributes["positive"] = "down"
     return cube[tuple(index)]

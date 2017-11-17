@@ -54,11 +54,15 @@ class Test__repr__(IrisTest):
         result = str(WetBulbTemperatureIntegral())
         msg = ('<WetBulbTemperatureIntegral: precision: 0.005, '
                'coord_name_to_integrate: height, start_point: None, '
-               'end_point: None, direction_of_integration: downwards>')
+               'end_point: None, direction_of_integration: negative>')
         self.assertEqual(result, msg)
 
 
 class Test_process(IrisTest):
+
+    """Test the calculation of the wet bulb temperature integral from
+    temperature, pressure, and relative humidity information using the
+    process function. Integration is calculated in the vertical."""
 
     def setUp(self):
         """Set up cubes."""

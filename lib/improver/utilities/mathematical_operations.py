@@ -50,14 +50,18 @@ class Integration(object):
             coord_name_to_integrate (iris.cube.Cube):
                 Name of the coordinate to be integrated.
             start_point (float or None):
-                Point at which to start the interpolation.
+                Point at which to start the integration.
                 Default is None.
             end_point (float or None):
-                Point at which to end the interpolation.
+                Point at which to end the integration.
                 Default is None.
             direction_of_integration (string):
                 Description of the direction in which to integrate.
                 Options are 'positive' or 'negative'.
+                'positive' corresponds to the values within the array
+                increasing as the array index increases.
+                'negative' corresponds to the values within the array
+                decreasing as the array index increases.
         """
         self.coord_name_to_integrate = coord_name_to_integrate
         self.start_point = start_point
@@ -118,7 +122,7 @@ class Integration(object):
         difference between the upper and lower bound. The contribution from
         the uppermost half of the stride is calculated by multiplying the
         upper bound value by 0.5 * stride, and the contribution
-        from the lowermost half of the layer is calculated by multiplying the
+        from the lowermost half of the stride is calculated by multiplying the
         lower bound value by 0.5 * stride. The contribution from the
         uppermost half of the stride and the bottom half of the stride is
         summed.
@@ -140,8 +144,13 @@ class Integration(object):
         cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
 
         # Define upper and lower level cubes for the integration.
-        upper_bounds = cube.coord(self.coord_name_to_integrate).points[:-1]
-        lower_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
+        if self.direction_of_integration == "positive":
+            upper_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
+            lower_bounds = cube.coord(self.coord_name_to_integrate).points[:-1]
+        elif self.direction_of_integration == "negative":
+            upper_bounds = cube.coord(self.coord_name_to_integrate).points[:-1]
+            lower_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
+
         upper_bounds_cube = (
              cube.extract(
                  iris.Constraint(
@@ -153,8 +162,8 @@ class Integration(object):
                     coord_values={self.coord_name_to_integrate:
                                   lower_bounds})))
 
-        # Determine which cube to copy for most appropriate points from the
-        # coordinate that is being integrated.
+        # Determine which cube to copy in order to have the most appropriate
+        # points within the coordinate that is being integrated.
         if self.direction_of_integration == "positive":
             integrated_cube = upper_bounds_cube.copy()
         elif self.direction_of_integration == "negative":
@@ -181,13 +190,19 @@ class Integration(object):
             if not self.start_point and not self.end_point:
                 pass
             elif self.start_point:
-                if (upper_bound >= self.start_point or
-                        lower_bound >= self.start_point):
-                    continue
+                if self.direction_of_integration == "positive":
+                    if lower_bound <= self.start_point:
+                        continue
+                elif self.direction_of_integration == "negative":
+                    if upper_bound >= self.start_point:
+                        continue
             elif self.end_point:
-                if (lower_bound <= self.end_point or
-                        upper_bound <= self.end_point):
-                    continue
+                if self.direction_of_integration == "positive":
+                    if upper_bound >= self.end_point:
+                        continue
+                elif self.direction_of_integration == "negative":
+                    if lower_bound <= self.end_point:
+                        continue
             stride = np.abs(upper_bound - lower_bound)
             upper_half_of_stride = upper_bounds_slice.data * 0.5 * stride
             lower_half_of_stride = lower_bounds_slice.data * 0.5 * stride
@@ -204,6 +219,9 @@ class Integration(object):
             if coord.name() == self.coord_name_to_integrate:
                 integrated_cube = iris.util.new_axis(
                     integrated_cube, self.coord_name_to_integrate)
+        # Make sure that the order of the coordinate that has been integrated
+        # within the integrated_cube corresponds the direction in which the
+        # cube has been integrated.
         integrated_cube = (
             self.ensure_monotonic_increase_in_chosen_direction(
                 integrated_cube))

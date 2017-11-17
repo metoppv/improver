@@ -517,7 +517,7 @@ class WetBulbTemperatureIntegral(object):
 
     def __init__(self, precision=0.005, coord_name_to_integrate="height",
                  start_point=None, end_point=None,
-                 direction_of_integration="downwards"):
+                 direction_of_integration="negative"):
         """
         Initialise class.
 
@@ -528,14 +528,18 @@ class WetBulbTemperatureIntegral(object):
             coord_name_to_integrate (iris.cube.Cube):
                 Name of the coordinate to be integrated.
             start_point (float or None):
-                Point at which to start the interpolation.
+                Point at which to start the integration.
                 Default is None.
             end_point (float or None):
-                Point at which to end the interpolation.
+                Point at which to end the integration.
                 Default is None.
             direction_of_integration (string):
                 Description of the direction in which to integrate.
-                Options are 'upwards' or 'downwards'.
+                Options are 'positive' or 'negative'.
+                'positive' corresponds to the values within the array
+                increasing as the array index increases.
+                'negative' corresponds to the values within the array
+                decreasing as the array index increases.
         """
         self.precision = precision
         self.coord_name_to_integrate = coord_name_to_integrate
@@ -555,6 +559,10 @@ class WetBulbTemperatureIntegral(object):
 
     def process(self, temperature, relative_humidity, pressure):
         """
+        Calculate the wet bulb temperature integral by firstly calculating
+        the wet bulb temperature from the inputs provided, and then
+        calculating the vertical integral of the wet bulb temperature.
+
         Args:
             temperature (iris.cube.Cube):
                 Cube of air temperatures (K).
@@ -575,6 +583,8 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature_integral = (
             Integration(
                 self.coord_name_to_integrate, start_point=self.start_point,
-                end_point=self.start_point).process(wet_bulb_temperature))
+                end_point=self.start_point,
+                direction_of_integration=self.direction_of_integration
+                ).process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
         return wet_bulb_temperature_integral
