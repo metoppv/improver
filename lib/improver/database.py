@@ -232,8 +232,10 @@ class VerificationTable(SpotDatabase):
 
     """
 
-    def __init__(self, output, outfile, primary_dim, tablename, experiment_ID):
-        super(VerificationTable, self).__init__(output, outfile, tablename, primary_dim)
+    def __init__(self, output, outfile, tablename, primary_dim, experiment_ID,
+                 max_forecast_lead_time):
+        super(VerificationTable, self).__init__(output, outfile,
+                                                tablename, primary_dim)
         self.primary_dim = 'time'
         self.primary_map = ['validity_date', 'validity_time']
         self.primary_func = [lambda x:dt.utcfromtimestamp(x).date(),
@@ -241,14 +243,15 @@ class VerificationTable(SpotDatabase):
 
         self.pivot_dim = 'forecast_period'
         self.pivot_map = lambda x: 'fcr_tplus{:03d}'.format(int(x/3600))
-        self.pivot_max = 54*60*60
 
         self.column_dims = ['wmo_site', 'name']
         self.column_maps = ['station_id', 'cf_name']
+        self.coord_to_slice_over = "index"
 
         if experiment_ID:
-            self.column_dims = self.column_dims + ["exp_id"]
-            self.column_maps = self.column_maps + [experiment_ID]
+            self.column_dims = self.column_dims + [experiment_ID]
+            self.column_maps = self.column_maps + ["exp_id"]
+        self.max_forecast_lead_time = max_forecast_lead_time
 
     def ensure_all_pivot_columns(self, dataframe):
         """
@@ -257,7 +260,11 @@ class VerificationTable(SpotDatabase):
 
         """
 
-        if self.pivot_dim and self.pivot_max:
-            for pivot_val in range(self.pivot_max+1):
+        if self.pivot_dim and self.max_forecast_lead_time:
+            for pivot_val in range(self.max_forecast_lead_time+1):
                 if not self.pivot_map(pivot_val) in dataframe.columns:
                     dataframe[self.pivot_map(pivot_val)] = np.nan
+
+    def to_dataframe(self, cubelist, coord_to_slice_over):
+        super(VerificationTable, self).to_dataframe(cubelist, self.coord_to_slice_over)
+        self.ensure_all_pivot_columns(self.df)
