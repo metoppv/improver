@@ -125,15 +125,16 @@ class Integration(object):
                 Cube containing the data to be integrated.
 
         Returns:
-            upper_bounds_cube (iris.cube.Cube):
-                Cube containing the upper bounds to be used during the
-                integration.
-            lower_bounds_cube (iris.cube.Cube):
-                Cube containing the lower bounds to be used during the
-                integration.
-            integrated_cube (iris.cube.Cube):
-                Cube that will be used for storing the output of the
-                integration containing the most appropriate coordinates.
+            (tuple): tuple containing
+                **upper_bounds_cube** (iris.cube.Cube):
+                    Cube containing the upper bounds to be used during the
+                    integration.
+                **lower_bounds_cube** (iris.cube.Cube):
+                    Cube containing the lower bounds to be used during the
+                    integration.
+                **integrated_cube** (iris.cube.Cube):
+                    Cube that will be used for storing the output of the
+                    integration containing the most appropriate coordinates.
 
         """
 
