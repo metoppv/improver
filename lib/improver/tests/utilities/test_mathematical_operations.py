@@ -28,8 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the convert_distance_into_number_of_grid_cells function from
- spatial.py."""
+"""Unit tests for the plugins and functions within mathematical_operations.py
+"""
 
 import unittest
 
@@ -44,8 +44,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 
 
 def set_up_height_cube(height_points, cube=set_up_temperature_cube()):
-    """Create a height cube using the existing set_up_temperature_cube
-    utility."""
+    """Create cube with added height dimension. By default the existing
+    set_up_temperature_cube utility is used."""
     ascending = False
     if np.all(np.diff(height_points) > 0):
         ascending = True
@@ -176,9 +176,10 @@ class Test_process(IrisTest):
         """Set up the cube."""
         self.height_points = np.array([5., 10., 20.])
         cube = set_up_height_cube(self.height_points)[:, 0, :, :, :]
-        data = np.ones(cube.shape)
-        data[1] = np.zeros(cube[1].shape)+2
-        data[2] = np.zeros(cube[2].shape)+3
+        data = np.zeros(cube.shape)
+        data[0] = np.ones(cube[0].shape, dtype=np.int32)
+        data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
+        data[2] = np.full(cube[2].shape, 3, dtype=np.int32)
         data[0, :, 0, 0] = 6
         cube.data = data
         self.cube = cube
@@ -212,7 +213,6 @@ class Test_process(IrisTest):
             Integration(
                 coord_name, direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -236,7 +236,6 @@ class Test_process(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -260,7 +259,6 @@ class Test_process(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -284,7 +282,6 @@ class Test_process(IrisTest):
                 coord_name, end_point=end_point,
                 direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -308,7 +305,6 @@ class Test_process(IrisTest):
                 coord_name, end_point=end_point,
                 direction_of_integration=direction
                 ).process(self.cube))
-        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)

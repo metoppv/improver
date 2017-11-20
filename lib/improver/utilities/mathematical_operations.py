@@ -47,14 +47,18 @@ class Integration(object):
         Initialise class.
 
         Args:
-            coord_name_to_integrate (iris.cube.Cube):
+            coord_name_to_integrate (string):
                 Name of the coordinate to be integrated.
+
+        Keyword Args:
             start_point (float or None):
                 Point at which to start the integration.
-                Default is None.
+                Default is None. If start_point is None, integration is start
+                from the first available point.
             end_point (float or None):
                 Point at which to end the integration.
-                Default is None.
+                Default is None. If end_point is None, integration will
+                continue until the last available point.
             direction_of_integration (string):
                 Description of the direction in which to integrate.
                 Options are 'positive' or 'negative'.
@@ -95,9 +99,6 @@ class Integration(object):
                 The cube containing a coordinate that is monotonically
                 increasing in the desired direction.
 
-        Raises:
-            ValueError: The chosen coordinate is not monotonic.
-
         """
         coord_name = self.coord_name_to_integrate
         direction = self.direction_of_integration
@@ -132,7 +133,7 @@ class Integration(object):
 
         Args:
             cube (Iris.cube.Cube):
-                The cube containing the coordinate to check.
+                Cube containing the data to be integrated.
 
         Returns:
             integrated_cube (Iris.cube.Cube):

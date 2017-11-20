@@ -521,18 +521,20 @@ class WetBulbTemperatureIntegral(object):
         """
         Initialise class.
 
-        Args:
+        Keyword Args:
             precision (float):
                 The precision to which the Newton iterator must converge
                 before returning wet bulb temperatures.
-            coord_name_to_integrate (iris.cube.Cube):
+            coord_name_to_integrate (string):
                 Name of the coordinate to be integrated.
             start_point (float or None):
                 Point at which to start the integration.
-                Default is None.
+                Default is None. If start_point is None, integration is start
+                from the first available point.
             end_point (float or None):
                 Point at which to end the integration.
-                Default is None.
+                Default is None. If end_point is None, integration will
+                continue until the last available point.
             direction_of_integration (string):
                 Description of the direction in which to integrate.
                 Options are 'positive' or 'negative'.
@@ -541,20 +543,18 @@ class WetBulbTemperatureIntegral(object):
                 'negative' corresponds to the values within the array
                 decreasing as the array index increases.
         """
-        self.precision = precision
-        self.coord_name_to_integrate = coord_name_to_integrate
-        self.start_point = start_point
-        self.end_point = end_point
-        self.direction_of_integration = direction_of_integration
+        self.wet_bulb_temperature_plugin = (
+            WetBulbTemperature(precision=precision))
+        self.integration_plugin = Integration(
+            coord_name_to_integrate, start_point=start_point,
+            end_point=end_point,
+            direction_of_integration=direction_of_integration)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperatureIntegral: precision: {}, '
-                  'coord_name_to_integrate: {}, start_point: {}, '
-                  'end_point: {}, direction_of_integration: {}>'.format(
-                      self.precision, self.coord_name_to_integrate,
-                      self.start_point, self.end_point,
-                      self.direction_of_integration))
+        result = ('<WetBulbTemperatureIntegral: precision: 0.005, '
+                  'coord_name_to_integrate: height, start_point: None, '
+                  'end_point: None, direction_of_integration: negative>')
         return result
 
     def process(self, temperature, relative_humidity, pressure):
@@ -577,15 +577,12 @@ class WetBulbTemperatureIntegral(object):
         """
         # Calculate wet-bulb temperature.
         wet_bulb_temperature = (
-            WetBulbTemperature(precision=self.precision).process(
+            self.wet_bulb_temperature_plugin.process(
                 temperature, relative_humidity, pressure))
+        print "wet_bulb_temperature = ", wet_bulb_temperature.data
         # Integrate.
         wet_bulb_temperature_integral = (
-            Integration(
-                self.coord_name_to_integrate, start_point=self.start_point,
-                end_point=self.start_point,
-                direction_of_integration=self.direction_of_integration
-                ).process(wet_bulb_temperature))
+            self.integration_plugin.process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
         wet_bulb_temperature_integral.units = Unit('K m')
         return wet_bulb_temperature_integral

@@ -1308,9 +1308,10 @@ class Test_sort_coord_in_cube(IrisTest):
         """Set up a cube."""
         self.ascending_height_points = np.array([5., 10., 20.])
         cube = set_up_height_cube(self.ascending_height_points)[:, 0, :, :, :]
-        data = np.ones(cube.shape)
-        data[1] = np.zeros(cube[1].shape) + 2
-        data[2] = np.zeros(cube[2].shape) + 3
+        data = np.zeros(cube.shape)
+        data[0] = np.ones(cube[0].shape, dtype=np.int32)
+        data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
+        data[2] = np.full(cube[2].shape, 3, dtype=np.int32)
         cube.data = data
         self.ascending_cube = cube
         descending_cube = cube.copy()
@@ -1448,6 +1449,34 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertArrayAlmostEqual(
             expected_points, result.coord(coord_name).points)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_warn_raised_for_circular_coordinate(self):
+        """Test that a warning is successfully raised when circular
+        coordinates are sorted."""
+        expected_data = np.array(
+            [[[[1.00, 1.00, 1.00],
+               [1.00, 1.00, 1.00],
+               [6.00, 1.00, 1.00]]],
+             [[[2.00, 2.00, 2.00],
+               [2.00, 2.00, 2.00],
+               [6.00, 2.00, 2.00]]],
+             [[[3.00, 3.00, 3.00],
+               [3.00, 3.00, 3.00],
+               [6.00, 3.00, 3.00]]]])
+        self.ascending_cube.data[:, :, 0, 0] = 6.0
+        expected_points = np.array([45., 0., -45])
+        coord_name = "latitude"
+        self.ascending_cube.coord(coord_name).circular = True
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = sort_coord_in_cube(
+                self.ascending_cube, coord_name, order="descending")
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            warning_msg = "The latitude coordinate is circular."
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertIsInstance(result, iris.cube.Cube)
 
 
 if __name__ == '__main__':
