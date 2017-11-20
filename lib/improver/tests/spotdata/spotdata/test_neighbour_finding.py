@@ -74,9 +74,7 @@ class Test_PointSelection(IrisTest):
         sites.update({'100': {'latitude': 50,
                               'longitude': 0,
                               'altitude': 10,
-                              'gmtoffset': 0
-                              }
-                      })
+                              'gmtoffset': 0}})
 
         neighbour_list = np.empty(1, dtype=[('i', 'i8'),
                                             ('j', 'i8'),
