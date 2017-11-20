@@ -161,10 +161,12 @@ class WeatherSymbols(object):
         Returns:
             string:
                 The formatted condition statement,
-                e.g. cubes.extract(Constraint(
-                         name='probability_of_rainfall_rate',
-                         coord_values={'threshold': 0.03})
-                     )[0].data < 0.5)
+                e.g.::
+
+                  cubes.extract(Constraint(
+                          name='probability_of_rainfall_rate',
+                          coord_values={'threshold': 0.03})
+                                )[0].data < 0.5)
         """
         if isinstance(extract_constraint, list):
             return ('(cubes.extract({})[0].data - cubes.extract({})[0].data * '
@@ -210,17 +212,18 @@ class WeatherSymbols(object):
             condition_chain (list):
                 A list of strings that describe the conditions comprising the
                 query.
-                e.g.
-                [
-                  "(cubes.extract(Constraint(
-                        name='probability_of_rainfall_rate',
-                        coord_values={'threshold': 0.03})
-                   )[0].data < 0.5) |
-                   (cubes.extract(Constraint(
-                        name='probability_of_lwe_snowfall_rate',
-                        coord_values={'threshold': 0.03})
-                   )[0].data < 0.5)"
-                ]
+                e.g.::
+
+                  [
+                    "(cubes.extract(Constraint(
+                          name='probability_of_rainfall_rate',
+                          coord_values={'threshold': 0.03})
+                     )[0].data < 0.5) |
+                     (cubes.extract(Constraint(
+                          name='probability_of_lwe_snowfall_rate',
+                          coord_values={'threshold': 0.03})
+                     )[0].data < 0.5)"
+                  ]
         """
         conditions = []
         loop = 0

@@ -90,31 +90,29 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Function to pass a given minimisation function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
-        Parameters
-        ----------
-        initial_guess : List
-            List of optimised coefficients.
-            Order of coefficients is [c, d, a, b].
-        forecast_predictor : Iris cube
-            Cube containing the fields to be used as the predictor,
-            either the ensemble mean or the ensemble members.
-        truth : Iris cube
-            Cube containing the field, which will be used as truth.
-        forecast_var : Iris cube
-            Cube containg the field containing the ensemble variance.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
-        distribution : String
-            String used to access the appropriate minimisation function
-            within self.minimisation_dict.
+        Args:
+            initial_guess (List):
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
+            forecast_predictor (iris.cube.Cube):
+                Cube containing the fields to be used as the predictor,
+                either the ensemble mean or the ensemble members.
+            truth (iris.cube.Cube):
+                Cube containing the field, which will be used as truth.
+            forecast_var (iris.cube.Cube):
+                Cube containg the field containing the ensemble variance.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
+            distribution (String):
+                String used to access the appropriate minimisation function
+                within self.minimisation_dict.
 
-        Returns
-        -------
-        optimised_coeffs : List
-            List of optimised coefficients.
-            Order of coefficients is [c, d, a, b].
+        Returns:
+            optimised_coeffs (List):
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
 
         """
         def calculate_percentage_change_in_last_iteration(allvecs):
@@ -124,11 +122,10 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             between the last iteration and the last-but-one iteration exceeds
             the threshold, a warning message is printed.
 
-            Parameters
-            ----------
-            allvecs : List
-                List of numpy arrays containing the optimised coefficients,
-                after each iteration.
+            Args:
+                allvecs : List
+                    List of numpy arrays containing the optimised coefficients,
+                    after each iteration.
             """
             last_iteration_percentage_change = np.absolute(
                 (allvecs[-1] - allvecs[-2]) / allvecs[-2])*100
@@ -203,29 +200,27 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Statistics and Minimum CRPS Estimation.
         Monthly Weather Review, 133(5), pp.1098-1118.
 
-        Parameters
-        ----------
-        initial_guess : List
-            List of optimised coefficients.
-            Order of coefficients is [c, d, a, b].
-        forecast_predictor : Numpy array
-            Data to be used as the predictor,
-            either the ensemble mean or the ensemble members.
-        truth : Numpy array
-            Data to be used as truth.
-        forecast_var : Numpy array
-            Ensemble variance data.
-        sqrt_pi : Numpy array
-            Square root of Pi
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            initial_guess : List
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
+            forecast_predictor : Numpy array
+                Data to be used as the predictor,
+                either the ensemble mean or the ensemble members.
+            truth : Numpy array
+                Data to be used as truth.
+            forecast_var : Numpy array
+                Ensemble variance data.
+            sqrt_pi : Numpy array
+                Square root of Pi
+            predictor_of_mean_flag : String
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
 
-        Returns
-        -------
-        result : Float
-            Minimum value for the CRPS achieved.
+        Returns:
+            result (Float):
+                Minimum value for the CRPS achieved.
 
         """
         if predictor_of_mean_flag.lower() in ["mean"]:
@@ -261,29 +256,27 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Journal of the Royal Statistical Society.
         Series A: Statistics in Society, 173(2), pp.371-388.
 
-        Parameters
-        ----------
-        initial_guess : List
-            List of optimised coefficients.
-            Order of coefficients is [c, d, a, b].
-        forecast_predictor : Numpy array
-            Data to be used as the predictor,
-            either the ensemble mean or the ensemble members.
-        truth : Numpy array
-            Data to be used as truth.
-        forecast_var : Numpy array
-            Ensemble variance data.
-        sqrt_pi : Numpy array
-            Square root of Pi
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            initial_guess (List):
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
+            forecast_predictor (Numpy array):
+                Data to be used as the predictor,
+                either the ensemble mean or the ensemble members.
+            truth (Numpy array):
+                Data to be used as truth.
+            forecast_var (Numpy array):
+                Ensemble variance data.
+            sqrt_pi (Numpy array):
+                Square root of Pi
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
 
-        Returns
-        -------
-        result : Float
-            Minimum value for the CRPS achieved.
+        Returns:
+            result (Float):
+                Minimum value for the CRPS achieved.
 
         """
         if predictor_of_mean_flag.lower() in ["mean"]:
@@ -331,19 +324,18 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
-        Parameters
-        ----------
-        distribution : String
-            Name of distribution. Assume that the current forecast can be
-            represented using this distribution.
-        desired_units : String or cf_units.Unit
-            The unit that you would like the calibration to be undertaken in.
-            The current forecast, historical forecast and truth will be
-            converted as required.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            distribution (String):
+                Name of distribution. Assume that the current forecast can be
+                represented using this distribution.
+            desired_units (String or cf_units.Unit):
+                The unit that you would like the calibration to be undertaken
+                in. The current forecast, historical forecast and truth will be
+                converted as required.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
 
         """
         self.distribution = distribution
@@ -392,29 +384,27 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         2017 ensemble calibration report available on the Science Plugin
         Documents Confluence page.
 
-        Parameters
-        ----------
-        truth : Iris cube
-            Cube containing the field, which will be used as truth.
-        forecast_predictor : Iris cube
-            Cube containing the fields to be used as the predictor,
-            either the ensemble mean or the ensemble members.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
-        estimate_coefficients_from_linear_model_flag : Logical
-            Flag whether coefficients should be estimated from
-            the linear regression, or static estimates should be used.
-        no_of_members : Int
-            Number of members, if ensemble members are to be used as
-            predictors. Default is None.
+        Args:
+            truth (Iris cube):
+                Cube containing the field, which will be used as truth.
+            forecast_predictor (Iris cube):
+                Cube containing the fields to be used as the predictor,
+                either the ensemble mean or the ensemble members.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
+            estimate_coefficients_from_linear_model_flag (Logical):
+                Flag whether coefficients should be estimated from
+                the linear regression, or static estimates should be used.
+            no_of_members (Int):
+                Number of members, if ensemble members are to be used as
+                predictors. Default is None.
 
-        Returns
-        -------
-        initial_guess : List
-            List of coefficients to be used as initial guess.
-            Order of coefficients is [c, d, a, b].
+        Returns:
+            initial_guess (List):
+                List of coefficients to be used as initial guess.
+                Order of coefficients is [c, d, a, b].
 
         """
 
@@ -477,51 +467,51 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         forecasts.
 
         The main contents of this method is:
+
         1. Metadata checks to ensure that the current forecast, historic
            forecast and truth exist in a form that can be processed.
-        2. Loop through times within the concatenated current forecast cube.
-           a. Extract the desired forecast period from the historic forecasts
+        2. Loop through times within the concatenated current forecast cube:
+
+           1. Extract the desired forecast period from the historic forecasts
               to match the current forecasts. Apply unit conversion to ensure
               that historic forecasts have the desired units for calibration.
-           b. Extract the relevant truth to co-incide with the time within
+           2. Extract the relevant truth to co-incide with the time within
               the historic forecasts. Apply unit conversion to ensure
               that the truth has the desired units for calibration.
-           c. Calculate mean and variance.
-           d. Calculate initial guess at coefficient values by performing a
+           3. Calculate mean and variance.
+           4. Calculate initial guess at coefficient values by performing a
               linear regression, if requested, otherwise default values are
               used.
-           e. Perform minimisation.
+           5. Perform minimisation.
 
-        Parameters
-        ----------
-        current_forecast : Iris Cube or CubeList
-            The cube containing the current forecast.
-        historical_forecast : Iris Cube or CubeList
-            The cube or cubelist containing the historical forecasts used for
-            calibration.
-        truth : Iris Cube or CubeList
-            The cube or cubelist containing the truth used for calibration.
+        Args:
+            current_forecast (Iris Cube or CubeList):
+                The cube containing the current forecast.
+            historical_forecast (Iris Cube or CubeList):
+                The cube or cubelist containing the historical forecasts used
+                for calibration.
+            truth (Iris Cube or CubeList):
+                The cube or cubelist containing the truth used for calibration.
 
-        Returns
-        -------
-        optimised_coeffs : Dictionary
-            Dictionary containing a list of the optimised coefficients
-            for each date.
-        coeff_names : List
-            The name of each coefficient.
+        Returns:
+            (tuple): tuple containing:
+                **optimised_coeffs** (Dictionary):
+                    Dictionary containing a list of the optimised coefficients
+                    for each date.
+                **coeff_names** (List):
+                    The name of each coefficient.
 
         """
         def convert_to_cubelist(cubes, cube_type="forecast"):
             """
             Convert cube to cubelist, if necessary.
 
-            Parameters
-            ----------
-            cubes : Iris Cube or Iris CubeList
-                Cube to be converted to CubeList.
-            cube_type : String
-                String to describe the cube, which is being converted to a
-                CubeList.
+            Args:
+                cubes (Iris Cube or Iris CubeList):
+                    Cube to be converted to CubeList.
+                cube_type (String):
+                    String to describe the cube, which is being converted to a
+                    CubeList.
 
             Raises
             ------
@@ -680,19 +670,18 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Regression, applies coefficients created using on historical forecasts
         and applies the coefficients to the current forecast.
 
-        Parameters
-        ----------
-        current_forecast : Iris Cube or CubeList
-            The Cube or CubeList containing the current forecast.
-        optimised_coeffs : Dictionary
-            Dictionary containing a list of the optimised coefficients
-            for each date.
-        coeff_names : List
-            The name of each coefficient.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            current_forecast (Iris Cube or CubeList):
+                The Cube or CubeList containing the current forecast.
+            optimised_coeffs (Dictionary):
+                Dictionary containing a list of the optimised coefficients
+                for each date.
+            coeff_names (List):
+                The name of each coefficient.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
 
         """
         self.current_forecast = current_forecast
@@ -704,18 +693,16 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         """
         Function to find all coordinates with a length of 1.
 
-        Parameters
-        ----------
-        cube : Iris cube
-            Cube
-        add_dimension : Logical
-            Adds a dimension of 0 to each coordinate. A tuple is appended.
+        Args:
+            cube (Iris cube):
+                Cube
+            add_dimension (Logical):
+                Adds a dimension of 0 to each coordinate. A tuple is appended.
 
-        Returns
-        -------
-        length_one_coords : List or List of tuples
-            List of length one coordinates or list of tuples containing
-            length one coordinates and the dimension.
+        Returns:
+            length_one_coords (List or List of tuples):
+                List of length one coordinates or list of tuples containing
+                length one coordinates and the dimension.
 
         """
         length_one_coords = []
@@ -733,21 +720,20 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Function to separate coordinates into auxiliary and dimension
         coordinates.
 
-        Parameters
-        ----------
-        length_one_coords : Iterable of coordinates
-            The coordinates to be checked for length one coordinates.
-        dim_coords : List of coordinates
-            The length one coordinates to be made dimension coordinates.
+        Args:
+            length_one_coords (Iterable of coordinates):
+                The coordinates to be checked for length one coordinates.
+            dim_coords (List of coordinates):
+                The length one coordinates to be made dimension coordinates.
 
-        Returns
-        -------
-        length_one_coords_for_aux_coords
-            List of length one coordinates to be auxiliary coordinates, i.e.
-            not in the dim_coords list.
-        length_one_coords_for_dim_coords
-            List of length one coordinates to be dimension coordinates,
-            according to dim_coords list.
+        Returns:
+            (tuple) : tuple containing:
+                **length_one_coords_for_aux_coords** (List):
+                    List of length one coordinates to be auxiliary coordinates,
+                    i.e. not in the dim_coords list.
+                    **length_one_coords_for_dim_coords** (List):
+                    List of length one coordinates to be dimension coordinates,
+                    according to dim_coords list.
 
         """
         length_one_coords_for_aux_coords = []
@@ -767,20 +753,18 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Function to create a cube to store the coefficients used in the
         ensemble calibration.
 
-        Parameters
-        ----------
-        cube : Iterable of coordinates
-            The coordinates to be checked for length one coordinates.
-        optimised_coeffs_at_date : List of coefficients
-            Optimised coefficients for a particular date.
-        coeff_names : List
-            List of coefficient names.
+        Args:
+            cube (Iterable of coordinates):
+                The coordinates to be checked for length one coordinates.
+            optimised_coeffs_at_date (List of coefficients):
+                Optimised coefficients for a particular date.
+            coeff_names (List):
+                List of coefficient names.
 
 
-        Returns
-        -------
-        coeff_cubes : Iris cube
-            Cube containing the coefficient value as the data array.
+        Returns:
+            coeff_cubes (Iris cube):
+                Cube containing the coefficient value as the data array.
 
         """
         length_one_coords = self._find_coords_of_length_one(cube)
@@ -803,17 +787,17 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Wrapping function to calculate the forecast predictor and forecast
         variance prior to applying coefficients to the current forecast.
 
-        Returns
-        -------
-        calibrated_forecast_predictor : CubeList
-            CubeList containing both the calibrated version of the ensemble
-            predictor, either the ensemble mean/members.
-        calibrated_forecast_variance : CubeList
-            CubeList containing both the calibrated version of the ensemble
-            variance, either the ensemble mean/members.
-        calibrated_forecast_coefficients : CubeList
-            CubeList containing both the coefficients for calibrating
-            the ensemble.
+        Returns:
+            (tuple) : tuple containing:
+                **calibrated_forecast_predictor** (CubeList):
+                    CubeList containing both the calibrated version of the
+                    ensemble predictor, either the ensemble mean/members.
+                **calibrated_forecast_variance** (CubeList):
+                    CubeList containing both the calibrated version of the
+                    ensemble variance, either the ensemble mean/members.
+                **calibrated_forecast_coefficients** (CubeList):
+                    CubeList containing both the coefficients for calibrating
+                    the ensemble.
 
         """
         # Ensure predictor_of_mean_flag is valid.
@@ -848,30 +832,30 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         """
         Function to apply EMOS coefficients to all required dates.
 
-        Parameters
-        ----------
-        forecast_predictors : Iris cube
-            Cube containing the forecast predictor e.g. ensemble mean
-            or ensemble members.
-        forecast_vars : Iris cube.
-            Cube containing the forecast variance e.g. ensemble variance.
-        optimised_coeffs : List
-            Coefficients for all dates.
-        coeff_names : List
-            Coefficient names.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            forecast_predictors (Iris cube):
+                Cube containing the forecast predictor e.g. ensemble mean
+                or ensemble members.
+            forecast_vars (Iris cube.):
+                Cube containing the forecast variance e.g. ensemble variance.
+            optimised_coeffs (List):
+                Coefficients for all dates.
+            coeff_names (List):
+                Coefficient names.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
 
-        Returns
-        -------
-        calibrated_forecast_predictor_all_dates : CubeList
-            List of cubes containing the calibrated forecast predictor.
-        calibrated_forecast_var_all_dates : CubeList
-            List of cubes containing the calibrated forecast variance.
-        calibrated_forecast_coefficients_all_dates : CubeList
-            List of cubes containing the coefficients used for calibration.
+        Returns:
+            (tuple) : tuple containing:
+                **calibrated_forecast_predictor_all_dates** (CubeList):
+                    List of cubes containing the calibrated forecast predictor.
+                **calibrated_forecast_var_all_dates** (CubeList):
+                    List of cubes containing the calibrated forecast variance.
+                **calibrated_forecast_coefficients_all_dates** (CubeList):
+                    List of cubes containing the coefficients used for
+                    calibration.
 
         """
         calibrated_forecast_predictor_all_dates = iris.cube.CubeList()
@@ -1016,29 +1000,28 @@ class EnsembleCalibration(object):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
-        Parameters
-        ----------
-        calibration_method : String
-            The calibration method that will be applied.
-            Supported methods are:
-                ensemble model output statistics
-                nonhomogeneous gaussian regression
-            Currently these methods are not supported:
-                logistic regression
-                bayesian model averaging
-        distribution : String
-            The distribution that will be used for calibration. This will be
-            dependent upon the input phenomenon. This has to be supported by
-            the minimisation functions in
-            ContinuousRankedProbabilityScoreMinimisers.
-        desired_units : String or cf_units.Unit
-            The unit that you would like the calibration to be undertaken in.
-            The current forecast, historical forecast and truth will be
-            converted as required.
-        predictor_of_mean_flag : String
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+        Args:
+            calibration_method (String):
+                The calibration method that will be applied.
+                Supported methods are:
+                    ensemble model output statistics
+                    nonhomogeneous gaussian regression
+                Currently these methods are not supported:
+                    logistic regression
+                    bayesian model averaging
+            distribution (String):
+                The distribution that will be used for calibration. This will
+                be dependent upon the input phenomenon. This has to be
+                supported by the minimisation functions in
+                ContinuousRankedProbabilityScoreMinimisers.
+            desired_units (String or cf_units.Unit):
+                The unit that you would like the calibration to be undertaken
+                in. The current forecast, historical forecast and truth will be
+                converted as required.
+            predictor_of_mean_flag (String):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble members
+                ("members") are supported as the predictors.
         """
         self.calibration_method = calibration_method
         self.distribution = distribution
@@ -1061,23 +1044,21 @@ class EnsembleCalibration(object):
         1. Estimate optimised coefficients from training period.
         2. Apply optimised coefficients to current forecast.
 
-        Parameters
-        ----------
-        current_forecast : Iris Cube or CubeList
-            The Cube or CubeList that provides the input forecast for
-            the current cycle.
-        historic_forecast : Iris Cube or CubeList
-            The Cube or CubeList that provides the input historic forecasts for
-            calibration.
-        truth : Iris Cube or CubeList
-            The Cube or CubeList that provides the input truth for calibration
-            with dates matching the historic forecasts.
+        Args:
+            current_forecast (Iris Cube or CubeList):
+                The Cube or CubeList that provides the input forecast for
+                the current cycle.
+            historic_forecast (Iris Cube or CubeList):
+                The Cube or CubeList that provides the input historic forecasts
+                for calibration.
+            truth (Iris Cube or CubeList):
+                The Cube or CubeList that provides the input truth for
+                calibration with dates matching the historic forecasts.
 
-        Returns
-        -------
-        *  calibrated_forecast_predictor_and_variance : CubeList
-            CubeList containing the calibrated forecast predictor and
-            calibrated forecast variance.
+        Returns:
+            calibrated_forecast_predictor_and_variance (CubeList):
+                CubeList containing the calibrated forecast predictor and
+                calibrated forecast variance.
 
         """
         def format_calibration_method(calibration_method):

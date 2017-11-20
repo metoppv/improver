@@ -99,12 +99,12 @@ class PercentileConverter(object):
               70%, 75%, 80%, 90%, 95%, 100%)
 
         Args:
-            cube : iris.cube.Cube instance
+            cube (iris.cube.Cube):
                 Given the collapse coordinate, convert the set of values
                 along that coordinate into a PDF and extract percentiles.
 
         Returns:
-            cube : iris.cube.Cube instance
+            cube (iris.cube.Cube):
                 A single merged cube of all the cubes produced by each
                 percentile collapse.
 

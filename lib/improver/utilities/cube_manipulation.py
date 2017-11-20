@@ -47,22 +47,20 @@ def _associate_any_coordinate_with_master_coordinate(
     For example, forecast_reference_time and forecast_period can be converted
     from scalar coordinates to auxiliary coordinates, and associated with time.
 
-    Parameters
-    ----------
-    cube : Iris cube
-        Cube requiring addition of the specified coordinates as auxiliary
-        coordinates.
-    master_coord : String
-        Coordinate that the other coordinates will be associated with.
-    coordinates : None or List
-        List of coordinates to be associated with the master_coord.
+    Args:
+        cube (Iris cube):
+            Cube requiring addition of the specified coordinates as auxiliary
+            coordinates.
+        master_coord (String):
+            Coordinate that the other coordinates will be associated with.
+        coordinates (None or List):
+            List of coordinates to be associated with the master_coord.
 
-    Returns
-    -------
-    forecast_data : Iris cube
-        Cube where the the requested coordinates have been added to the cube
-        as auxiliary coordinates and associated with the desired master
-        coordinate.
+    Returns:
+        forecast_data (Iris cube):
+            Cube where the the requested coordinates have been added to the
+            cube as auxiliary coordinates and associated with the desired
+            master coordinate.
 
     """
     if coordinates is None:
@@ -98,17 +96,15 @@ def _slice_over_coordinate(cubes, coord_to_slice_over):
     promote the sliced coordinate into a dimension coordinate
     to help concatenation.
 
-    Parameters
-    ----------
-    cubes : Iris cubelist or Iris cube
-        Cubes to be concatenated.
-    coords_to_slice_over : List
-        Coordinates to be sliced over.
+    Args:
+        cubes (Iris cubelist or Iris cube):
+            Cubes to be concatenated.
+        coords_to_slice_over (List):
+            Coordinates to be sliced over.
 
-    Returns
-    -------
-    Iris CubeList
-        CubeList containing sliced cubes.
+    Returns:
+        Iris CubeList
+            CubeList containing sliced cubes.
 
     """
     sliced_by_coord_cubelist = iris.cube.CubeList([])
@@ -133,11 +129,11 @@ def _strip_var_names(cubes):
     to help concatenation.
 
     Args:
-        cubes : Iris cubelist or Iris cube
+        cubes (Iris cubelist or Iris cube):
             Cubes to be concatenated.
 
     Returns:
-        cubes Iris CubeList
+        cubes (Iris CubeList):
             CubeList containing original cubes without a var_name on the cube,
             or on the coordinates.
             Note: This internal function modifies the incoming cubes
@@ -161,17 +157,17 @@ def concatenate_cubes(
     coordinates to allow concatenation.
 
     Args:
-        cubes_in : Iris cubelist or Iris cube
+        cubes_in (Iris cubelist or Iris cube):
             Cubes to be concatenated.
-        coords_to_slice_over : List
+        coords_to_slice_over (List):
             Coordinates to be sliced over.
-        master_coord : String
+        master_coord (String):
             Coordinate that the other coordinates will be associated with.
-        coordinates_for_association : List
+        coordinates_for_association (List):
             List of coordinates to be associated with the master_coord.
 
     Returns:
-        result: Iris cube
+        result (Iris cube):
             Concatenated / merge cube.
 
     """
@@ -209,11 +205,11 @@ def merge_cubes(cubes):
     attributes, and coords.
 
     Args:
-        cubes : Iris cubelist or Iris cube
+        cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
 
     Returns:
-        result : Iris cube
+        result (Iris cube):
             Merged cube.
 
     """
@@ -231,13 +227,13 @@ def equalise_cubes(cubes_in, merging=True):
     Function to equalise cubes where they do not match.
 
     Args:
-        cubes_in : Iris cubelist
+        cubes_in (Iris cubelist):
             List of cubes to check and equalise.
-        merging : boolean
+        merging (boolean):
             Flag for whether the equalising is for merging
             as slightly different processing is required.
     Returns:
-        cubelist : Iris cubelist
+        cubelist (Iris cubelist):
             List of cubes with revised cubes.
             If merging the number of cubes in cubelist
             may be greater than the original number
@@ -268,10 +264,10 @@ def _equalise_cube_attributes(cubes):
     Function to equalise attributes that do not match.
 
     Args:
-        cubes : Iris cubelist
+        cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
     Returns:
-        cubelist : Iris cubelist
+        cubelist (Iris cubelist):
         Note: This internal function modifies the incoming cubes
     Warns:
         Warning: If it does not know what to do with an unmatching
@@ -320,10 +316,10 @@ def _equalise_cube_coords(cubes):
     Function to equalise coordinates that do not match.
 
     Args:
-        cubes : Iris cubelist
+        cubes (Iris cubelist):
             List of cubes to check the coords and revise.
     Returns:
-        cubelist : Iris cubelist
+        cubelist (Iris cubelist):
             List of cubes with revised coords.
             The number of cubes in cubelist
             may be greater than the original number
@@ -417,11 +413,11 @@ def compare_attributes(cubes):
     Function to compare attributes of cubes
 
     Args:
-        cubes : Iris cubelist
+        cubes (Iris cubelist):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        unmatching_attributes : List
+        unmatching_attributes (List):
             List of dictionaries of unmatching attributes
 
     Warns:
@@ -454,11 +450,11 @@ def compare_coords(cubes):
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes : Iris cubelist
+        cubes (Iris cubelist):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        unmatching_coords : List
+        unmatching_coords (List):
             List of dictionaries of unmatching coordinates
             Number of dictionaries equals number of cubes
             unless cubes is a single cube in which case
@@ -514,32 +510,32 @@ def build_coordinate(data, long_name=None,
     Construct an iris.coord.Dim/Auxcoord using the provided options.
 
     Args:
-        data : number/list/np.array
+        data (number/list/np.array):
             List or array of values to populate the coordinate points.
-        long_name : str (optional)
+        long_name (str (optional)):
             Name of the coordinate to be built.
-        standard_name : str (optional)
+        standard_name (str (optional)):
             CF Name of the coordinate to be built.
-        var_name : str (optional)
+        var_name (str (optional)):
             Variable name
-        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
+        coord_type (iris.coord.AuxCoord or iris.coord.DimCoord (optional)):
             Selection between Dim and Aux coord.
-        data_type : <type> (optional)
+        data_type (<type> (optional)):
             The data type of the coordinate points, e.g. int
-        units : str (optional)
+        units (str (optional)):
             String defining the coordinate units.
-        bounds : np.array (optional)
+        bounds (np.array (optional)):
             A (len(data), 2) array that defines coordinate bounds.
-        coord_system: iris.coord_systems.<coord_system> (optional)
+        coord_system(iris.coord_systems.<coord_system> (optional)):
             A coordinate system in which the dimension coordinates are defined.
-        template_coord : iris.coord
+        template_coord (iris.coord):
             A coordinate to copy.
-        custom_function : function (optional)
+        custom_function (function (optional)):
             A function to apply to the data values before constructing the
             coordinate, e.g. np.nan_to_num.
 
     Returns:
-        crd_out: iris coordinate
+        crd_out(iris coordinate):
             Dim or Auxcoord as chosen.
 
     """
@@ -590,12 +586,12 @@ def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
        which is a renamed version of the input cell_method.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                    The cube which we need to add the cell_method to.
-            orig_cell_method: iris.coord.CellMethod
+            orig_cell_method(iris.coord.CellMethod):
                    The original cell method we want to rename and add to the
                    cube.
-            new_cell_method_name : string
+            new_cell_method_name (string):
                    The name of the new cell_method we want to rename the
                    original cell_method to.
         Raises:

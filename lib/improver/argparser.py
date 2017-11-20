@@ -44,17 +44,16 @@ class ArgParser(argparse.ArgumentParser):
         standard error to be used when incompatible method-argument
         combinations are passed in.
 
-        Parameters
-        ----------
-        args : string
-          The incompatible arguments
-        method :  string
-          The method with which the arguments are incompatible
+        Args:
+            args (string):
+              The incompatible arguments
+            method (string):
+              The method with which the arguments are incompatible
 
-        Raises
-        ------
-        parser.error to notify user of incompatible method-argument
-        combinations.
+        Raises:
+            parser.error:
+                To notify user of incompatible method-argument
+                combinations.
         """
         msg = 'Method: {} does not accept arguments: {}'
         self.error(msg.format(method, args))

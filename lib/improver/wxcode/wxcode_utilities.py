@@ -71,10 +71,10 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 def add_wxcode_metadata(cube):
     """ Add weather code metadata to a cube
     Args:
-        cube: Iris.cube.Cube
+        cube (Iris.cube.Cube):
             Cube which needs weather code metadata added.
     Returns:
-        cube: Iris.cube.Cube
+        cube (Iris.cube.Cube):
             Cube with weather code metadata added.
     """
     cube.long_name = "weather_code"

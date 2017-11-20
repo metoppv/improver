@@ -53,12 +53,11 @@ class ImportSiteData(object):
         line or in the suite.
 
         Args:
-        -----
-        source : string
-            String setting the source of site data, available options are:
-            - 'from_file' to read in site specifications from a file.
-            - 'runtime_list' to interpret lists passed to the CLI as site
-              definitions.
+            source (string):
+                String setting the source of site data, available options are:
+                - 'from_file' to read in site specifications from a file.
+                - 'runtime_list' to interpret lists passed to the CLI as site
+                  definitions.
 
         """
         self.source = source
@@ -92,13 +91,11 @@ class ImportSiteData(object):
         different file types to be easily introduced.
 
         Args:
-        -----
-        file_path : string
-            Path to file containing SpotData site information.
+            file_path (string):
+                Path to file containing SpotData site information.
 
         Raises:
-        -------
-        IOError : For unknown file types.
+            IOError : For unknown file types.
 
         """
         if file_path.endswith('.json'):
@@ -116,38 +113,35 @@ class ImportSiteData(object):
         sites dictionary.
 
         Args:
-        -----
-        site_data : dictionary
-            A dictionary of site data for checking and use in constructing a
-            consistently formatted site dictionary. This step is to allow for
-            input from either a read in file or for definition on the command
-            line.
+            site_data (dictionary):
+                A dictionary of site data for checking and use in constructing
+                a consistently formatted site dictionary. This step is to allow
+                for input from either a read in file or for definition on the
+                command line.
 
-            Contains : Required
+                Contains : Required
 
-            latitudes/longitudes : lists of floats
-                Lists of coordinates at which to extract data, these define the
-                positions of the SpotData sites.
+                latitudes/longitudes (lists of floats):
+                    Lists of coordinates at which to extract data, these define
+                    the positions of the SpotData sites.
 
-            Contains : Optional
+                Contains : Optional
 
-            altitudes : list of floats
-                List of altitudes that can optionally be used in defining sites
-                on the fly. If unset the altitudes will be assumed as
-                equivalent to which ever neighbouring grid point is used as a
-                data source.
+                altitudes (list of floats):
+                    List of altitudes that can optionally be used in defining
+                    sites on the fly. If unset the altitudes will be assumed as
+                    equivalent to which ever neighbouring grid point is used as
+                    a data source.
 
-            utc_offsets : list of floats
-                List of utc_offsets for calculating local time of the site.
+                utc_offsets (list of floats):
+                    List of utc_offsets for calculating local time of the site.
 
         Returns:
-        --------
-        sites : dict
-            Dictionary of site data.
+            sites (dict):
+                Dictionary of site data.
 
         Raises:
-        -------
-        KeyError : If longitude or latitude information is not found.
+            KeyError : If longitude or latitude information is not found.
 
         """
         latitude_entries = [i_site for (i_site, site) in enumerate(site_data)
@@ -209,8 +203,8 @@ class ImportSiteData(object):
         spotdata routines a consistent source of site data.
 
         Returns:
-        --------
-        sites : Dictionary of site data.
+            sites (dict):
+                Dictionary of site data.
 
         """
         sites = OrderedDict()
@@ -233,12 +227,12 @@ def set_utc_offset(longitudes):
     when no more rigorous source of timeszone information is provided.
 
     Args:
-    -----
-    longitudes : list of longitudes.
+        longitudes (List):
+            List of longitudes.
 
     Returns:
-    --------
-    utc_offsets : list of utc_offsets calculated using longitude.
+        utc_offsets (List):
+            List of utc_offsets calculated using longitude.
 
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)

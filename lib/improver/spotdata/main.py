@@ -54,72 +54,77 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
     gridded iris.cube.Cubes.
 
     Args:
-        diagnostics : dict
+        diagnostics (dict):
             Dictionary containing the information regarding the methods that
             will be applied for a specific diagnostic, as well as the data
             following loading in a cube, and any additional data required to
             be able to compute the methods requested.
 
-            For example:
-            {
-                "temperature": {
-                    "diagnostic_name": "air_temperature",
-                    "extrema": True,
-                    "filepath": "temperature_at_screen_level",
-                    "interpolation_method": "use_nearest",
-                    "neighbour_finding": {
-                        "land_constraint": False,
-                        "method": "fast_nearest_neighbour",
-                        "vertical_bias": None
-                    "data": iris.cube.CubeList
-                    "additional_data" : iris.cube.CubeList
-                    }
-                }
-            }
+            For example::
 
-        ancillary_data : dict
+              {
+                  "temperature": {
+                      "diagnostic_name": "air_temperature",
+                      "extrema": True,
+                      "filepath": "temperature_at_screen_level",
+                      "interpolation_method": "use_nearest",
+                      "neighbour_finding": {
+                          "land_constraint": False,
+                          "method": "fast_nearest_neighbour",
+                          "vertical_bias": None
+                      "data": iris.cube.CubeList
+                      "additional_data" : iris.cube.CubeList
+                      }
+                  }
+              }
+
+        ancillary_data (dict):
             Dictionary containing named ancillary data; the key gives the name
             and the item is the iris.cube.Cube of data.
 
-        sites : dict
+        sites (dict):
             Contains:
 
-            latitudes : list of ints/floats or None
+            latitudes (list of ints/floats or None):
                 A list of latitudes for running for a custom set of
                 sites. The order should correspond to the subsequent latitudes
                 and altitudes variables to construct each site.
 
-            longitudes : list of ints/floats or None
+            longitudes (list of ints/floats or None):
                 A list of longitudes for running for a custom set of
                 sites.
 
-            altitudes : list of ints/floats or None
+            altitudes (list of ints/floats or None):
                 A list of altitudes for running for a custom set of
                 sites.
 
-            site_ids : list of ints or None
+            site_ids (list of ints or None):
                 A list of site_ids to associate with the above
                 constructed sites. This must be ordered the same as the
                 latitudes/longitudes/altitudes lists.
 
-        config_constants : dict
+        config_constants (dict):
             Dictionary defining constants to be used in methods that have
             tolerances that may be set. e.g. maximum vertical extrapolation/
             interpolation of temperatures using a temperature lapse rate
             method.
 
-        use_multiprocessing : boolean
+        use_multiprocessing (boolean):
             A switch determining whether to use multiprocessing in the data
             extraction step.
 
     Returns:
-        resulting_cubes : iris.cube.CubeList
-            CubeList after extracting the diagnostic requested using the
-            desired extraction method.
-        extrema_cubes : iris.cube.CubeList
-            CubeList containing extrema values, if the 'extrema' diagnostic
-            is requested.
-
+        (tuple): tuple containing:
+            **resulting_cube** (iris.cube.Cube or None):
+                Cube after extracting the diagnostic requested using the
+                desired extraction method.
+                None is returned if the "resulting_cubes" is an empty CubeList
+                after processing.
+            **extrema_cubes** (iris.cube.CubeList or None):
+                CubeList containing extrema values, if the 'extrema' diagnostic
+                is requested.
+                None is returned if the value for diagnostic_dict["extrema"]
+                is False, so that the extrema calculation is not required.
     """
     # Read in constants to use; if not available, defaults will be used.
     neighbour_kwargs = {}
@@ -203,53 +208,55 @@ def process_diagnostic(diagnostics, neighbours, sites,
     Extract data and write output for a given diagnostic.
 
     Args:
-        diagnostics : dict
+        diagnostics (dict):
             Dictionary containing information regarding how the diagnostics
             are to be processed.
 
-            For example:
-            {
-                "temperature": {
-                    "diagnostic_name": "air_temperature",
-                    "extrema": true,
-                    "filepath": "temperature_at_screen_level",
-                    "interpolation_method":
-                        "model_level_temperature_lapse_rate",
-                    "neighbour_finding": {
-                        "land_constraint": false,
-                        "method": "fast_nearest_neighbour",
-                        "vertical_bias": null
-                    }
-                }
-            }
+            For example::
 
-        neighbours : numpy.array
+              {
+                  "temperature": {
+                      "diagnostic_name": "air_temperature",
+                      "extrema": true,
+                      "filepath": "temperature_at_screen_level",
+                      "interpolation_method":
+                          "model_level_temperature_lapse_rate",
+                      "neighbour_finding": {
+                          "land_constraint": false,
+                          "method": "fast_nearest_neighbour",
+                          "vertical_bias": null
+                      }
+                  }
+              }
+
+        neighbours (numpy.array):
             Array of neigbouring grid points that are associated with sites
             in the SortedDictionary of sites.
 
-        sites : dict
+        sites (dict):
             A dictionary containing the properties of spotdata sites.
 
-        ancillary_data : dict
+        ancillary_data (dict):
             A dictionary containing additional model data that is needed.
             e.g. {'orography': <cube of orography>}
 
-        diagnostic_name : string
+        diagnostic_name (string):
             A string matching the keys in the diagnostics dictionary that
             will be used to access information regarding how the diagnostic
             is to be processed.
 
     Returns:
-        resulting_cube : iris.cube.Cube or None
-            Cube after extracting the diagnostic requested using the
-            desired extraction method.
-            None is returned if the "resulting_cubes" is an empty CubeList
-            after processing.
-        extrema_cubes : iris.cube.CubeList or None
-            CubeList containing extrema values, if the 'extrema' diagnostic
-            is requested.
-            None is returned if the value for diagnostic_dict["extrema"]
-            is False, so that the extrema calculation is not required.
+        (tuple): tuple containing:
+            **resulting_cube** (iris.cube.Cube or None):
+                Cube after extracting the diagnostic requested using the
+                desired extraction method.
+                None is returned if the "resulting_cubes" is an empty CubeList
+                after processing.
+            **extrema_cubes** (iris.cube.CubeList or None):
+                CubeList containing extrema values, if the 'extrema' diagnostic
+                is requested.
+                None is returned if the value for diagnostic_dict["extrema"]
+                is False, so that the extrema calculation is not required.
 
     """
     diagnostic_dict = diagnostics[diagnostic_name]

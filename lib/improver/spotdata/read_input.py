@@ -49,11 +49,11 @@ class Load(object):
         file.
 
         Args:
-        -----
-        method : string
-            A string representing the method of loading, be it a 'single_file'
-            that is loaded as an iris.cube.Cube, or 'multi_file' that causes
-            an iris.cube.CubeList to be returned containing all the cubes.
+            method (string):
+                A string representing the method of loading, be it a
+                'single_file' that is loaded as an iris.cube.Cube, or
+                'multi_file' that causes an iris.cube.CubeList to be returned
+                containing all the cubes.
 
         """
         self.method = method
@@ -68,17 +68,16 @@ class Load(object):
         Simple wrapper for using iris load on a supplied netCDF file.
 
         Args:
-        -----
-        filepath : string
-            Path to the input data files.
+            filepath (string):
+                Path to the input data files.
 
-        diagnostic : string
-            The name of the desired diagnostic to be loaded.
+            diagnostic (string):
+                The name of the desired diagnostic to be loaded.
 
-        Returns
-        -------
-        An iris.cube.Cube or CubeList containing the data from the netCDF
-        file(s).
+        Returns:
+            iris.cube.Cube or iris.cube.CubeList:
+                An iris.cube.Cube or CubeList containing the data from the
+                netCDF file(s).
 
         """
         try:
@@ -114,15 +113,14 @@ def get_method_prerequisites(method, diagnostic_data_path):
     method of data extraction.
 
     Args:
-    -----
-    method : string
-        String representing the method of data extraction that is being used.
+        method (string):
+            String representing the method of data extraction that is being
+            used.
 
     Returns:
-    --------
-    additional_diagnostics: dict
-        A dictionary keyed with the diagnostic names and containing the
-        additional iris.cube.Cubes that are required.
+        additional_diagnostics (dict):
+            A dictionary keyed with the diagnostic names and containing the
+            additional iris.cube.Cubes that are required.
 
     """
 
@@ -149,22 +147,22 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
     Load additional diagnostics needed for particular spot data processes.
 
     Args:
-    -----
-    diagnostic_name : The name of the diagnostic to be loaded. Used to find
-                      the relevant file.
+        diagnostic_name (string):
+            The name of the diagnostic to be loaded. Used to find
+            the relevant file.
 
-    time_extract    : An iris constraint to extract and return only data from
-                      the desired time.
+        time_extract (iris.Constraint):
+            An iris constraint to extract and return only data from the desired
+            time.
 
     Returns:
-    --------
-    cube            : An iris.cube.CubeList containing the desired diagnostic
-                      data, with a single entry if time_extract is provided.
+        cube (iris.cube.CubeList):
+            CubeList containing the desired diagnostic data, with a single
+            entry if time_extract is provided.
 
     Raises:
-    -------
-    IOError : If files are not found.
-    ValueError : If required diagnostics are not found in the read files.
+        IOError : If files are not found.
+        ValueError : If required diagnostics are not found in the read files.
 
     """
     # Search diadnostic data directory for all files relevant to current

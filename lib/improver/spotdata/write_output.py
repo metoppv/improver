@@ -45,14 +45,13 @@ class WriteOutput(object):
         Select the method (format) for writing out the data cubes.
 
         Args:
-        -----
-        method : string
-            Method of writing data. Currently supported methods are:
-            - as_netcdf : writes out a netcdf file.
+            method (string):
+                Method of writing data. Currently supported methods are:
+                - as_netcdf : writes out a netcdf file.
 
-        path : string
-            Optional string setting the output path for the file. If unset
-            files are written to current working directory.
+            path (string):
+                Optional string setting the output path for the file. If unset
+                files are written to current working directory.
 
         """
         self.method = method
@@ -80,13 +79,11 @@ class WriteOutput(object):
         Writes iris.cube.Cube data out to netCDF format files.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-            Diagnostic data cube.
+            cube (iris.cube.Cube):
+                Diagnostic data cube.
 
         Returns:
-        --------
-        Nil. Writes out file to filepath or working directory.
+            Nil. Writes out file to filepath or working directory.
 
         """
         if self.filename is None:

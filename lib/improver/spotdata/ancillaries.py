@@ -45,24 +45,21 @@ def get_ancillary_data(diagnostics, ancillary_path):
     finding or data extraction methods.
 
     Args:
-    -----
-    diagnostics : dict
-        Dictionary containing each diagnostic to be processed with associated
-        options for how they should be produced, e.g. method of neighbour
-        selection, method of data extraction etc.
+        diagnostics (dict):
+            Dictionary containing each diagnostic to be processed with
+            associated options for how they should be produced, e.g. method of
+            neighbour selection, method of data extraction etc.
 
-    ancillary_path : string
-        String giving the path of ancillary files to be used.
+        ancillary_path (string):
+            String giving the path of ancillary files to be used.
 
     Returns:
-    --------
-    ancillary_data : dict
-        Dictionary containing named ancillary data; the key gives the name and
-        the item is the iris.cube.Cube of data.
+        ancillary_data (dict):
+            Dictionary containing named ancillary data; the key gives the name
+            and the item is the iris.cube.Cube of data.
 
     Raises:
-    -------
-    IOError if required input files are not found.
+        IOError if required input files are not found.
 
     """
     ancillary_data = {}

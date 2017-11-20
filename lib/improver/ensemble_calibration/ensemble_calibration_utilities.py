@@ -44,23 +44,21 @@ def convert_cube_data_to_2d(
     Function to convert data from a N-dimensional cube into a 2d
     numpy array. The result can be transposed, if required.
 
-    Parameters
-    ----------
-    forecast : Iris cube
-        N-dimensional cube to be reshaped.
-    coord : String
-        The data will be flattened along this coordinate.
-    transpose : Logical
-        If True, the resulting flattened data is transposed.
-        This will transpose a 2d array of the format [:, coord]
-        to [coord, :].
-        If False, the resulting flattened data is not transposed.
-        This will result in a 2d array of format [:, coord].
+    Args:
+        forecast (iris.cube.Cube):
+            N-dimensional cube to be reshaped.
+        coord (string):
+            The data will be flattened along this coordinate.
+        transpose (boolean):
+            If True, the resulting flattened data is transposed.
+            This will transpose a 2d array of the format [:, coord]
+            to [coord, :].
+            If False, the resulting flattened data is not transposed.
+            This will result in a 2d array of format [:, coord].
 
-    Returns
-    -------
-    forecast_data : Numpy array
-        Reshaped 2d array.
+    Returns:
+        forecast_data (numpy.array):
+            Reshaped 2d array.
 
     """
     forecast_data = []
@@ -82,14 +80,13 @@ def ensure_dimension_is_the_zeroth_dimension(cube, coord):
     coordinate becoming a dimension coordinate.
     If the coordinate is not present on the cube, then an error is raised.
 
-    Parameters
-    ----------
-    cube : Iris cube
-        Cube where the requirement for the required dimension to be the first
-        dimension will be enforced.
-    coord : String
-        Name of the coordinate that is to be made the first dimension
-        coordinate in the cube.
+    Args:
+        cube (iris.cube.Cube):
+            Cube where the requirement for the required dimension to be the
+            first dimension will be enforced.
+        coord (string):
+            Name of the coordinate that is to be made the first dimension
+            coordinate in the cube.
 
     """
     if cube.coords(coord, dim_coords=True):
@@ -114,14 +111,13 @@ def rename_coordinate(cubes, original_coord, renamed_coord):
     Renames a coordinate to an alternative name for an
     input Iris Cube or Iris CubeList.
 
-    Parameters
-    ----------
-    cubes : Iris cubelist or Iris cube
-        Cubes with coordinates to be renamed.
-    original_coord : String
-        Original name for the coordinate.
-    renamed_coord : String
-        Name for the coordinate to be renamed to.
+    Args:
+        cubes (iris.cube.CubeList or iris.cube.Cube):
+            Cubes with coordinates to be renamed.
+        original_coord (string):
+            Original name for the coordinate.
+        renamed_coord (string):
+            Name for the coordinate to be renamed to.
 
     """
     if isinstance(cubes, iris.cube.Cube):
@@ -143,14 +139,13 @@ def _renamer(cube, original_coord, renamed_coord):
     If the coordinate is not found within the cube, then the
     original cube is returned.
 
-    Parameters
-    ----------
-    cube : Iris cube
-        Cube with coordinates to be renamed.
-    original_coord : String
-        Original name for the coordinate.
-    renamed_coord : String
-        Name for the coordinate to be renamed to.
+    Args:
+        cube (iris.cube.Cube):
+            Cube with coordinates to be renamed.
+        original_coord (string):
+            Original name for the coordinate.
+        renamed_coord (string):
+            Name for the coordinate to be renamed to.
 
     """
     if cube.coords(original_coord):
@@ -163,12 +158,11 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
     estimate_coefficients_for_ngr method, to avoid having to check
     and raise an error later.
 
-    Parameters
-    ----------
-    predictor_of_mean_flag : String
-        String to specify the input to calculate the calibrated mean.
-        Currently the ensemble mean ("mean") and the ensemble members
-        ("members") are supported as the predictors.
+    Args:
+        predictor_of_mean_flag (string):
+            String to specify the input to calculate the calibrated mean.
+            Currently the ensemble mean ("mean") and the ensemble members
+            ("members") are supported as the predictors.
 
     """
     if predictor_of_mean_flag.lower() not in ["mean", "members"]:

@@ -106,12 +106,13 @@ class SquareNeighbourhood(object):
                 direction will be applied.
 
         Returns:
-            cube (Iris.cube.Cube):
-                Cube to which the cumulative summing along the y and x
-                direction has been applied.
-            nan_masks (list):
-                List of numpy arrays to be used to set the values within the
-                data of the output cube to be NaN.
+            (tuple) : tuple containing:
+                **cube** (Iris.cube.Cube):
+                    Cube to which the cumulative summing along the y and x
+                    direction has been applied.
+                **nan_masks** (list):
+                    List of numpy arrays to be used to set the values within
+                    the data of the output cube to be NaN.
         """
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
@@ -139,7 +140,7 @@ class SquareNeighbourhood(object):
             coord (iris.coord):
                 Original coordinate which will be used as the basis of the
                 new extended coordinate.
-            width (integer):
+            width (int):
                 The width of padding in grid cells (the extent of the
                 neighbourhood radius in grid cells in a given direction).
             method (string):
@@ -238,7 +239,7 @@ class SquareNeighbourhood(object):
         Args:
             cube (iris.cube.Cube):
                 The original cube prior to applying padding.
-            width_x, width_y (integer):
+            width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width of padding to be added to
                 the numpy array.
@@ -281,7 +282,7 @@ class SquareNeighbourhood(object):
         Args:
             cube (iris.cube.Cube):
                 The original cube to be trimmed of edge data.
-            width_x, width_y (integer):
+            width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width removed from the numpy
                 array.
@@ -323,6 +324,7 @@ class SquareNeighbourhood(object):
         the neighbourhood to calculate the mean value in the neighbourhood.
 
         For all points, a fast vectorised approach is taken:
+
         1. The displacements between the four points used to calculate the
            neighbourhood total sum and the central grid point are calculated.
         2. Four copies of the cumulate array output are flattened and rolled
@@ -333,14 +335,14 @@ class SquareNeighbourhood(object):
 
         Displacements are calculated as follows for the following input array,
         where the accumulation has occurred from left to right and top to
-        bottom.
+        bottom::
 
         | 2 | 4 | 6 | 7 |
         | 2 | 4 | 5 | 6 |
         | 1 | 3 | 4 | 4 |
         | 1 | 2 | 2 | 2 |
 
-        For a 3x3 neighbourhood centred around the point with a value of 5:
+        For a 3x3 neighbourhood centred around the point with a value of 5::
 
         | 2 (A) | 4 | 6                 | 7 (B) |
         | 2     | 4 | 5 (Central point) | 6     |
@@ -348,23 +350,27 @@ class SquareNeighbourhood(object):
         | 1 (C) | 2 | 2                 | 2 (D) |
 
         To calculate the value for the neighbourhood sum at the "Central point"
-        with a value of 5, calculate:
-        Neighbourhood sum = B - A - D + C
-        At the central point, this will yield:
-        Neighbourhood sum = 7 - 2 - 2 +1 => 4
-        Neighbourhood mean = Neighbourhood sum
-                             -----------------
-                             (2 * nb_width +1)
-        where nb_width is the neighbourhood width, which is equal to 1 for a
-        3x3 neighbourhood.
+        with a value of 5, calculate::
 
-        Neighbourhood mean = 4. / 9.
+          Neighbourhood sum = B - A - D + C
+
+        At the central point, this will yield::
+
+          Neighbourhood sum = 7 - 2 - 2 +1 => 4
+          Neighbourhood mean = Neighbourhood sum
+                               -----------------
+                               (2 * nb_width +1)
+
+        where nb_width is the neighbourhood width, which is equal to 1 for a
+        3x3 neighbourhood. This example gives::
+
+          Neighbourhood mean = 4. / 9.
 
         Args:
             cube (iris.cube.Cube):
                 Cube to which neighbourhood processing is being applied. Must
                 be passed through cumulate_array method first.
-            cells_x, cells_y (integer):
+            cells_x, cells_y (int):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
             nan_masks (list):
@@ -561,6 +567,7 @@ class SquareNeighbourhood(object):
         method to a cube.
 
         The steps undertaken are:
+
         1. Set up cubes by determining, if the arrays are masked.
         2. Pad the input array with a halo and then calculate the neighbourhood
            of the haloed array.

@@ -72,57 +72,56 @@ class ExtractData(object):
         the resulting data cubes into an Iris.CubeList.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-            Cube of diagnostic data from which to extract spotdata.
+            cube (iris.cube.Cube):
+                Cube of diagnostic data from which to extract spotdata.
 
-        sites : OrderedDict
-            A dictionary containing the properties of spotdata sites.
+            sites (OrderedDict):
+                A dictionary containing the properties of spotdata sites.
 
-        neighbours : numpy.array
-            Array of neighbouring grid points that are associated with sites
-            in the OrderedDict of sites.
+            neighbours (numpy.array):
+                Array of neighbouring grid points that are associated with
+                sites in the OrderedDict of sites.
 
-        additional_data : dict
-            A dictionary containing any supplmentary time varying diagnostics
-            that are needed for the selected extraction method.
+            additional_data (dict):
+                A dictionary containing any supplmentary time varying
+                diagnostics that are needed for the selected extraction method.
 
-        ancillary_data : dict
-            A dictionary containing additional model data that is needed.
-            e.g. {'orography': <cube of orography>}
+            ancillary_data (dict):
+                A dictionary containing additional model data that is needed.
+                e.g. {'orography': <cube of orography>}
 
-        no_neighbours : int
-            Number of grid points about the site to consider when calculating a
-            local temperature lapse rate using orography variation.
-            e.g. consider a 5x5 grid of points -> no_neighbours = 25.
+            no_neighbours (int):
+                Number of grid points about the site to consider when
+                calculating a local temperature lapse rate using orography
+                variation.
+                e.g. consider a 5x5 grid of points -> no_neighbours = 25.
 
-        upper/lower_level : ints
-            Define the hybrid height model levels to use when calculating
-            potential temperature gradients for use in lapse rate temperature
-            adjustment.
+            upper/lower_level (ints):
+                Define the hybrid height model levels to use when calculating
+                potential temperature gradients for use in lapse rate
+                temperature adjustment.
 
-        dz_tolerance : float (units: m)
-            Vertical displacement between spotdata site and neighbouring grid
-            point below which there is no need to perform a lapse rate
-            adjustment. Defaults to value of 2m.
+            dz_tolerance (float (units: m)):
+                Vertical displacement between spotdata site and neighbouring
+                grid point below which there is no need to perform a lapse rate
+                adjustment. Defaults to value of 2m.
 
-        dthetadz_threshold : float (units: K/m)
-            Potential temperature gradient threshold, with gradients above this
-            value deemed to have been calculated across an inversion. Defaults
-            to UKPP value of 0.02 K/m.
+            dthetadz_threshold (float (units: K/m)):
+                Potential temperature gradient threshold, with gradients above
+                this value deemed to have been calculated across an inversion.
+                Defaults to UKPP value of 0.02 K/m.
 
-        dz_max_adjustment : float (units: m)
-            Maximum vertical distance over which a temperature will be adjusted
-            using the lapse rate. If the spotdata site is more than this
-            distance above or below its neighbouring grid point, the adjustment
-            will be made using dz = dz_max_adjustment. Defaults to UKPP value
-            of 70m.
+            dz_max_adjustment (float (units: m)):
+                Maximum vertical distance over which a temperature will be
+                adjusted using the lapse rate. If the spotdata site is more
+                than this distance above or below its neighbouring grid point,
+                the adjustment will be made using dz = dz_max_adjustment.
+                Defaults to UKPP value of 70m.
 
         Returns:
-        --------
-        cube : iris.cube.Cube
-            An irregular (i.e. non-gridded) cube of diagnostic data extracted
-            at the spotdata sites.
+            cube (iris.cube.Cube):
+                An irregular (i.e. non-gridded) cube of diagnostic data
+                extracted at the spotdata sites.
 
         """
         if self.method == 'use_nearest':
@@ -166,28 +165,28 @@ class ExtractData(object):
         Construct an iris.coord.Dim/Auxcoord using the provided options.
 
         Args:
-        -----
-        data : number/list/np.array
-            List or array of values to populate the coordinate points.
-        coordinate : str
-            Name of the coordinate to be built.
-        coord_type : iris.coord.AuxCoord or iris.coord.DimCoord (optional)
-            Selection between Dim and Aux coord.
-        data_type : <type> (optional)
-            The data type of the coordinate points, e.g. int
-        units : str (optional)
-            String defining the coordinate units.
-        bounds : np.array (optional)
-            A (len(data), 2) array that defines coordinate bounds.
-        coord_system: iris.coord_systems.<coord_system> (optional)
-            A coordinate system in which the dimension coordinates are defined.
-        custom_function : function (optional)
-            A function to apply to the data values before constructing the
-            coordinate, e.g. np.nan_to_num.
+            data (number/list/np.array):
+                List or array of values to populate the coordinate points.
+            coordinate (str):
+                Name of the coordinate to be built.
+            coord_type (iris.coord.AuxCoord or iris.coord.DimCoord (optional)):
+                Selection between Dim and Aux coord.
+            data_type (<type> (optional)):
+                The data type of the coordinate points, e.g. int
+            units (str (optional)):
+                String defining the coordinate units.
+            bounds (np.array (optional)):
+                A (len(data), 2) array that defines coordinate bounds.
+            coord_system(iris.coord_systems.<coord_system> (optional)):
+                A coordinate system in which the dimension coordinates are
+                defined.
+            custom_function (function (optional)):
+                A function to apply to the data values before constructing the
+                coordinate, e.g. np.nan_to_num.
 
         Returns:
-        --------
-        iris coordinate : Dim or Auxcoord as chosen.
+            iris coordinate:
+                Dim or Auxcoord as chosen.
 
         """
         data = np.array(data, data_type)
@@ -205,8 +204,9 @@ class ExtractData(object):
         Define coordinates that need to be made for the cube to be produced.
 
         Returns:
-        --------
-        Dictionary of coordinates that are required for a spotdata cube.
+            dict:
+                Dictionary of coordinates that are required for a spotdata
+                cube.
 
         """
         return {'latitude': {'units': 'degrees', 'data_type': float,
@@ -228,19 +228,16 @@ class ExtractData(object):
         coordinate is first.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-        The cube to be reordered.
+            cube (iris.cube.Cube):
+                The cube to be reordered.
 
         Returns:
-        --------
-        cube : iris.cube.Cube
-        Cube with the statistical coordinate moved to be first.
+            cube (iris.cube.Cube):
+                Cube with the statistical coordinate moved to be first.
 
         Raises:
-        -------
-        Warning if more than one statistical dimension is found. Then promotes
-        the first found to become the leading dimension.
+            Warning if more than one statistical dimension is found. Then
+            promotes the first found to become the leading dimension.
 
         """
         stat_coordinates = ['realization', 'percentile_over']
@@ -273,21 +270,20 @@ class ExtractData(object):
         grids by the desired method for the sites provided.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-            The original diagnostic cube from which data has been extracted.
+            cube (iris.cube.Cube):
+                The original diagnostic cube from which data has been
+                extracted.
 
-        data : numpy.array
-            Array of diagnostic values extracted for the defined sites.
+            data (numpy.array):
+                Array of diagnostic values extracted for the defined sites.
 
-        sites : OrderedDict
-            A dictionary containing the properties of spotdata sites.
+            sites (OrderedDict):
+                A dictionary containing the properties of spotdata sites.
 
         Returns:
-        --------
-        cube : iris.cube.Cube
-            An irregularly (i.e. non-gridded) cube of diagnostic data extracted
-            at the spotdata sites.
+            cube (iris.cube.Cube):
+                An irregularly (i.e. non-gridded) cube of diagnostic data
+                extracted at the spotdata sites.
 
         """
 
@@ -374,13 +370,12 @@ class ExtractData(object):
         the site.
 
         Args:
-        -----
-        See process() above.
+            See process() above.
 
         Returns:
-        --------
-        iris.cube.Cube containing data extracted from the diagnostic cube grid
-        points associated with spotdata sites.
+            iris.cube.Cube:
+                Cube containing data extracted from the diagnostic cube
+                grid points associated with spotdata sites.
 
         """
         data = cube.data[..., neighbours['i'], neighbours['j']]
@@ -399,22 +394,21 @@ class ExtractData(object):
         these points.
 
         Args:
-        -----
-        cube : iris.cube.Cube
-            A cube of screen level temperatures at a single time.
+            cube (iris.cube.Cube):
+                A cube of screen level temperatures at a single time.
 
-        sites/neighbours/no_neighbours : See process() above.
+            sites/neighbours/no_neighbours : See process() above.
 
-        orography : numpy.array
-            Array of orography data on a grid that corresponds to the grid of
-            the diagnostic cube.
+            orography (numpy.array):
+                Array of orography data on a grid that corresponds to the grid
+                of the diagnostic cube.
 
         Returns:
-        --------
-        iris.cube.Cube containing data extracted from the screen level
-        temperature cube at spotdata sites which has then been adjusted using
-        a temperature lapse rate calculated using local variations in
-        temperature with orography.
+            iris.cube.Cube:
+                Cube containing data extracted from the screen level
+                temperature cube at spotdata sites which has then been adjusted
+                using a temperature lapse rate calculated using local
+                variations in temperature with orography.
 
         """
         def _local_lapse_rate(cube, orography, node_list):
@@ -459,162 +453,153 @@ class ExtractData(object):
             dz_tolerance, dthetadz_threshold, dz_max_adjustment):
 
         """
-        Lapse rate method based on potential temperature. Follows the work of
-        S.B. Vosper 2005 - Near-surface temperature variations over complex
-        terrain; Milestone Report RC10JR Local forecasting in complex terrain;
-        V 1.0 August 2005.
-
-        Calculate potential temperature gradient and use this to adjust
-        temperatures to the spotdata site altitude. The method varies
-        depending on whether the adjustment is an extrapolation to below
-        the lowest available model level, or an interpolation between
-        available levels.
-
-        The essential equations are those converting between temperature and
-        potential temperature (theta):
-
-                     pref   R/cp                 p_site  R/cp
-        Theta = T ( ------ )         T = Theta ( ------ )
-                    p_site                        pref
-
-        ln (Theta) = ln (T)     + kappa [ ln(pref) - ln(p) ]
-        ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
-
-        kappa = (R_DRY_AIR / CP_DRY_AIR)
-        pref = 1000 hPa (1.0E5 Pa)
-        p_site = pressure interpolated/extrapolated to spotdata site assuming
-                 a linear change in pressure with altitude; this is assumption
-                 is reasonable if dz_max_adjustment is not large (> several
-                 hundred metres).
-
-
-        Methodology
-        ===========
-
-        Use multi-level temperature data to calculate potential temperature
-        gradients and use these to adjust extracted grid point temperatures
-        to the altitudes of SpotData sites.
-
-
-        ---upper_level--- Model level (k_upper)
-
-        ---lower_level--- Model level (k_lower)
-
-        --model_surface-- Model level (k=0)
-
-
-        1. Calculate potential temperature gradient between lower and
-           upper model levels.
-        2. Compare the gradient with a defined threshold value that is
-           used to indicate whether the gradient has been calculated
-           across an inversion.
-
-           dtheta/dz <= threshold --> Keep value
-           dtheta/dz >  threshold --> Recalculate gradient between surface
-                                      and lower_level to capture inversion.
-
-        3. Determine if the SpotData site is below the lowest model level
-           (the surface level, dz < 0). (This check is only at the neighbouring
-           grid point, so doesn't actually guarantee we are below the model
-           orography; combining this with neighbour finding with a below bias
-           can ensure we are finding unresolved valleys/dips.)
-
-           IF: SpotData site height < model_surface --> Extrapolate downwards.
-           -------------------------------------------------------------------
-
-           True surface below model surface (dz -ve) 'Unresolved valley'
-
-           ---upper_level--- Model level (k_upper)
-
-           ---lower_level--- Model level (k_lower)
-
-           --model_surface-- Model level (k=0)
-
-           ===site height=== SpotData site height
-
-           -------------------------------------------------------------------
-           4. Calculate pressure gradient between lower and upper model levels.
-           5. Use calculated gradients to extrapolate potential temperature
-              and pressure to the SpotData site height.
-           6. Convert back to temperature using the equations given above.
-           -------------------------------------------------------------------
-           ---------------------------RETURN RESULT---------------------------
-
-
-           ELSE: SpotData site height > model_surface --> Interpolate to site
-                                                          height.
-           -------------------------------------------------------------------
-
-           True surface above model surface (dz +ve) 'Unresolved hill'
-
-           ---upper_level--- Model level (k_upper)
-
-           ===site height=== SpotData site height
-
-           ---lower_level--- Model level (k_lower)
-
-           --model_surface-- Model level (k=0)
-
-
-           4. Use potential temperature gradient as an indicator of atmospheric
-              stability.
-
-              IF: dtheta/dz > 0 --> Stable atmosphere
-
-              ----------------------------------------------------------------
-              --> Stable
-              ----------------------------------------------------------------
-              5. Calculate pressure gradient between lower and upper model
-                 levels.
-              6. Use calculated gradients to extrapolate potential temperature
-                 and pressure to the SpotData site height.
-              7. Convert back to temperature using the equations given above.
-              -------------------------RETURN RESULT--------------------------
-
-
-              ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere
-
-              ----------------------------------------------------------------
-              --> Neutral/well-mixed
-              ----------------------------------------------------------------
-              5. Use potential temperature from surface level; for a well mixed
-                 atmosphere dtheta/dz should be nearly constant.
-              6. Convert back to temperature using the pressure interpolated to
-                 SpotData site height.
-              -------------------------RETURN RESULT--------------------------
-
-
         Args:
-        -----
+            cube (iris.cube.Cube):
+                A cube of screen level temperatures at a single time.
 
-        cube : iris.cube.Cube
-            A cube of screen level temperatures at a single time.
+            sites/neighbours : See process() above.
 
-        sites/neighbours : See process() above.
+            surface_pressure (iris.cube.Cube):
+                Cube of surface pressures at an equivalent time to the cube of
+                screen level temperatures.
 
-        surface_pressure : iris.cube.Cube
-            Cube of surface pressures at an equivalent time to the cube of
-            screen level temperatures.
+            lower/upper_pressure (iris.cube.Cube):
+                Cubes of pressure data at the defined lower and upper model
+                levels, each at an equivalent time to the cube of screen level
+                temperatures.
 
-        lower/upper_pressure : iris.cube.Cube
-            Cubes of pressure data at the defined lower and upper model
-            levels, each at an equivalent time to the cube of screen level
-            temperatures.
+            lower/upper_temperature (iris.cube.Cube):
+                Cubes of temperature data at the defined lower and upper model
+                levels, each at an equivalent time to the cube of screen level
+                temperatures.
 
-        lower/upper_temperature : iris.cube.Cube
-            Cubes of temperature data at the defined lower and upper model
-            levels, each at an equivalent time to the cube of screen level
-            temperatures.
-
-        dz_tolerance/dthetadz_threshold/dz_max_adjustment :
-            See process docstring.
+            dz_tolerance/dthetadz_threshold/dz_max_adjustment :
+                See process docstring.
 
         Returns:
-        --------
-        iris.cube.Cube containing data extracted from the screen level
-        temperature cube at spotdata sites which has then been adjusted using
-        a temperature lapse rate calculated using multi-level temperature data.
+            iris.cube.Cube:
+                Cube containing data extracted from the screen level
+                temperature cube at spotdata sites which has then been adjusted
+                using a temperature lapse rate calculated using multi-level
+                temperature data.
 
+        Examples:
+            Lapse rate method based on potential temperature. Follows the work
+            of S.B. Vosper 2005 - Near-surface temperature variations over
+            complex terrain; Milestone Report RC10JR Local forecasting in
+            complex terrain; V 1.0 August 2005.
+
+            Calculate potential temperature gradient and use this to adjust
+            temperatures to the spotdata site altitude. The method varies
+            depending on whether the adjustment is an extrapolation to below
+            the lowest available model level, or an interpolation between
+            available levels.
+
+            The essential equations are those converting between temperature
+            and potential temperature (theta)::
+
+                           pref   R/cp                 p_site  R/cp
+              Theta = T ( ------ )         T = Theta ( ------ )
+                          p_site                        pref
+
+              ln (Theta) = ln (T)     + kappa [ ln(pref) - ln(p) ]
+              ln (T)     = ln (Theta) + kappa [ ln(p) - ln(pref) ]
+
+              kappa = (R_DRY_AIR / CP_DRY_AIR)
+              pref = 1000 hPa (1.0E5 Pa)
+              p_site = pressure interpolated/extrapolated to spotdata site
+                       assuming a linear change in pressure with altitude; this
+                       is assumption is reasonable if dz_max_adjustment is not
+                       large (> several hundred metres).
+
+
+            **Methodology**
+
+            Use multi-level temperature data to calculate potential temperature
+            gradients and use these to adjust extracted grid point temperatures
+            to the altitudes of SpotData sites::
+
+
+              ---upper_level--- Model level (k_upper)
+
+              ---lower_level--- Model level (k_lower)
+
+              --model_surface-- Model level (k=0)
+
+
+            1. Calculate potential temperature gradient between lower and
+               upper model levels.
+            2. Compare the gradient with a defined threshold value that is
+               used to indicate whether the gradient has been calculated
+               across an inversion::
+
+                 dtheta/dz <= threshold --> Keep value
+                 dtheta/dz >  threshold --> Recalculate gradient between
+                                            surface and lower_level to capture
+                                            inversion.
+
+            3. Determine if the SpotData site is below the lowest model level
+               (the surface level, dz < 0). (This check is only at the
+               neighbouring grid point, so doesn't actually guarantee we are
+               below the model orography; combining this with neighbour finding
+               with a below bias can ensure we are finding unresolved valleys/
+               dips).
+
+
+               **IF SpotData site height < model_surface --> Extrapolate
+               downwards.**
+
+               True surface below model surface (dz -ve) `Unresolved valley`::
+
+                 ---upper_level--- Model level (k_upper)
+
+                 ---lower_level--- Model level (k_lower)
+
+                 --model_surface-- Model level (k=0)
+
+                 ===site height=== SpotData site height
+
+               4. Calculate pressure gradient between lower and upper model
+                  levels.
+               5. Use calculated gradients to extrapolate potential temperature
+                  and pressure to the SpotData site height.
+               6. Convert back to temperature using the equations given above.
+               7. RETURN RESULT.
+
+               **ELSE: SpotData site height > model_surface --> Interpolate to
+               site height.**
+
+               True surface above model surface (dz +ve) 'Unresolved hill'::
+
+                 ---upper_level--- Model level (k_upper)
+
+                 ===site height=== SpotData site height
+
+                 ---lower_level--- Model level (k_lower)
+
+                 --model_surface-- Model level (k=0)
+
+
+               4. Use potential temperature gradient as an indicator of
+                  atmospheric stability.
+
+                  **IF: dtheta/dz > 0 --> Stable atmosphere**
+
+                  5. Calculate pressure gradient between lower and upper model
+                     levels.
+                  6. Use calculated gradients to extrapolate potential
+                     temperature and pressure to the SpotData site height.
+                  7. Convert back to temperature using the equations given
+                     above.
+                  8. RETURN RESULT.
+
+                  **ELSE: dtheta/dz <= 0 --> Neutral/well-mixed atmosphere**
+
+                  5. Use potential temperature from surface level; for a well
+                     mixed atmosphere dtheta/dz should be nearly constant.
+                  6. Convert back to temperature using the pressure
+                     interpolated to SpotData site height.
+                  7. RETURN RESULT.
         """
         # Reference pressure of 1000hPa (1.0E5 Pa).
         p_ref = 1.0E5

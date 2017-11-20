@@ -43,16 +43,14 @@ def find_required_lead_times(cube):
     the forecast_period, time and forecast_reference_time coordinates are
     converted, if required.
 
-    Parameters
-    ----------
-    cube : Iris.cube.Cube
-        Cube from which the lead times will be determined.
+    Args:
+        cube (Iris.cube.Cube):
+            Cube from which the lead times will be determined.
 
-    Returns
-    -------
-    required_lead_times : Numpy array
-        Array containing the lead times, at which the radii need to be
-        calculated.
+    Returns:
+        required_lead_times (Numpy array):
+            Array containing the lead times, at which the radii need to be
+            calculated.
 
     """
     if cube.coords("forecast_period"):
