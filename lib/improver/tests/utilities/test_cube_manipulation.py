@@ -1453,18 +1453,7 @@ class Test_sort_coord_in_cube(IrisTest):
     def test_warn_raised_for_circular_coordinate(self):
         """Test that a warning is successfully raised when circular
         coordinates are sorted."""
-        expected_data = np.array(
-            [[[[1.00, 1.00, 1.00],
-               [1.00, 1.00, 1.00],
-               [6.00, 1.00, 1.00]]],
-             [[[2.00, 2.00, 2.00],
-               [2.00, 2.00, 2.00],
-               [6.00, 2.00, 2.00]]],
-             [[[3.00, 3.00, 3.00],
-               [3.00, 3.00, 3.00],
-               [6.00, 3.00, 3.00]]]])
         self.ascending_cube.data[:, :, 0, 0] = 6.0
-        expected_points = np.array([45., 0., -45])
         coord_name = "latitude"
         self.ascending_cube.coord(coord_name).circular = True
         with warnings.catch_warnings(record=True) as warning_list:
