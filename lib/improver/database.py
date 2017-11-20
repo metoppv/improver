@@ -49,22 +49,31 @@ class SpotDatabase(object):
 
     """
 
-    def __init__(self, output, outfile, tablename,
-                 extra_columns=None,
-                 extra_values=None):
+    def __init__(self, output, outfile, tablename, primary_dim,
+                 primary_map=None,
+                 primary_func=None,
+                 pivot_dim=None,
+                 pivot_map=None,
+                 column_dims=None,
+                 column_maps=None,
+                 coord_to_slice_over=None):
 
         """
         Initialise class.
 
         """
+        self.primary_dim = primary_dim
+        self.primary_map = primary_map
+        self.primary_func = primary_func
+        self.pivot_dim = pivot_dim
+        self.pivot_map = pivot_map
 
+        self.column_dims = column_dims
+        self.column_maps = column_maps
         self.output = output
         self.outfile = outfile
         self.tablename = tablename
-
-        if extra_columns and extra_values:
-            self.column_dims = self.column_dims + [extra_columns]
-            self.column_maps = self.column_maps + [extra_values]
+        self.coord_to_slice_over = coord_to_slice_over
 
     def __repr__(self):
         """
@@ -76,90 +85,84 @@ class SpotDatabase(object):
                   'pivot={pivot_dim})>')
         return result.format(**self.__dict__)
 
-    def to_dataframe(self, cubelist):
+    def pivot_table(self, cube, df):
+        """Pivots the table based on the """
+        coords = cube.coord(self.pivot_dim).points
+        col_names = map(self.pivot_map, coords)
+        df.insert(1, self.pivot_dim, col_names)
+        df = df.pivot(columns=self.pivot_dim, values='values')
+        return df
+
+    def map_primary_index(self, df):
+        # Switch the index out for a map if specified
+        # Has to have "time" as index if time is primary index.
+        for mapping, function in zip(self.primary_map,
+                                        self.primary_func):
+            df.insert(0, mapping, map(function, df.index))
+        # Takes significant time if a multi-index
+        df.set_index(self.primary_map, inplace=True)
+
+
+    def insert_extra_mapped_columns(self, df, cube, dim, col):
+        #print "dim:{}".format(dim)
+        if dim in df.columns:
+            return
+        # Check if dim is a coordinate on the cube, and use this coordinate for
+        # the new column if available.
+        elif dim in [coord.name() for coord in cube.coords()]:
+            coord = cube.coord(dim)
+            column_name = col
+            if len(coord.points) == 1:
+                column_data = coord.points[0]
+            else:
+                column_data = coord.points
+        # Check to see if provided dim is a method or attribute of the cube.
+        # Attributes are converted to a string.
+        elif hasattr(cube, dim):
+            attr = getattr(cube, dim)
+            column_name = col
+            if callable(attr):
+                column_data = attr()
+            else:
+                column_data = str(attr)
+            #print "\ncolumn_name: {}\ncolumn_data:{}\n".format(column_name, column_data)
+        else:
+            column_name = col
+            column_data = dim
+        df.insert(1, column_name, column_data)
+        df.set_index(column_name, append=True, inplace=True)
+
+    def to_dataframe(self, cubelist, coord_to_slice_over):
         """
         Turn the input cubes into a 2-dimensional DataFrame object
 
         """
 
         for cube in cubelist:
-            for c in cube.slices_over(self.column_dims[0]):
+            for c in cube.slices_over(coord_to_slice_over):
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
-                               columns=['vals'])
-
+                               columns=['values'])
+                #print "\noriginal_df:\n{}\n\n".format(df)
                 if self.pivot_dim:
                     # Reshape data based on column values
-                    coords = c.coord(self.pivot_dim).points
-                    col_names = map(self.pivot_map, coords)
-                    df.insert(1, self.pivot_dim, col_names)
-                    df = df.pivot(columns=self.pivot_dim, values='vals')
+                    df = self.pivot_table(c, df)
 
                 if self.primary_map:
-                    # Switch the index out for a map if specified
-                    for mapping, function in zip(self.primary_map,
-                                                 self.primary_func):
-                        df.insert(0, mapping, map(function, df.index))
+                    self.map_primary_index(df)
 
-                    # Takes significant time if a multi-index
-                    df.set_index(self.primary_map, inplace=True)
-
-                for dim, col in itertools.izip_longest(self.column_dims,
-                                                       self.column_maps):
-                    if dim in df.columns:
-                        continue
-
-                    if dim in [coord.standard_name or coord.long_name
-                               for coord in c.dim_coords + c.aux_coords]:
-                        coord = c.coord(dim)
-                        column_name = col or dim
-                        if len(coord.points) == 1:
-                            column_data = coord.points[0]
-                        else:
-                            column_data = coord.points
-
-                    # Check to see if provided dim is a method of the cube
-                    elif hasattr(c, dim):
-                        attr = getattr(c, dim)
-                        if callable(attr):
-                            column_name = col
-                            column_data = attr()
-
-                    else:
-                        column_name = col
-                        column_data = dim
-
-                    as_index = True if dim != self.pivot_dim else False
-                    self.insert_column(df, column_name, column_data, as_index)
-
+                if self.column_dims and self.column_maps:
+                    for dim, col in itertools.izip_longest(self.column_dims,
+                                                           self.column_maps):
+                        #print "dim: {} col: {}".format(dim, col)
+                        self.insert_extra_mapped_columns(df,c, dim, col)
+                #print "\nfinal_df\n:{}".format(df)
                 try:
                     self.df = self.df.combine_first(df)
                 except AttributeError:
                     # Ensure the first instance has all pivot columns created
-                    self.ensure_all_pivot_columns(df)
+                    #self.ensure_all_pivot_columns(df)
                     self.df = df
-
-    @staticmethod
-    def insert_column(dataframe, column_name, column_data, as_index=False):
-        """
-        Method to insert a column at front of a datframe, adding to the index
-        if required, creating a multiple-index dataframe.
-        """
-        dataframe.insert(1, column_name, column_data)
-        if as_index:
-            dataframe.set_index(column_name, append=True, inplace=True)
-
-    def ensure_all_pivot_columns(self, dataframe):
-        """
-        Method to ensure all pivot columns exist in the dataframe, adding any
-        that do not.
-
-        """
-
-        if self.pivot_dim and self.pivot_max:
-            for pivot_val in range(self.pivot_max+1):
-                if not self.pivot_map(pivot_val) in dataframe.columns:
-                    dataframe[self.pivot_map(pivot_val)] = np.nan
 
     def determine_schema(self, table):
         """
@@ -214,13 +217,13 @@ class SpotDatabase(object):
 
         """
 
-        self.to_dataframe(cubelist)
+        self.to_dataframe(cubelist, self.coord_to_slice_over)
 
         if self.output == 'sqlite':
             self.to_sql(self.outfile, self.tablename)
 
         if self.output == 'csv':
-            self.to_csv(self.outfile)
+            self.df.to_csv(self.outfile)
 
 
 class VerificationTable(SpotDatabase):
@@ -229,8 +232,8 @@ class VerificationTable(SpotDatabase):
 
     """
 
-    def __init__(self, *args, **kwargs):
-
+    def __init__(self, output, outfile, primary_dim, tablename, experiment_ID):
+        super(VerificationTable, self).__init__(output, outfile, tablename, primary_dim)
         self.primary_dim = 'time'
         self.primary_map = ['validity_date', 'validity_time']
         self.primary_func = [lambda x:dt.utcfromtimestamp(x).date(),
@@ -243,4 +246,18 @@ class VerificationTable(SpotDatabase):
         self.column_dims = ['wmo_site', 'name']
         self.column_maps = ['station_id', 'cf_name']
 
-        super(VerificationTable, self).__init__(*args, **kwargs)
+        if experiment_ID:
+            self.column_dims = self.column_dims + ["exp_id"]
+            self.column_maps = self.column_maps + [experiment_ID]
+
+    def ensure_all_pivot_columns(self, dataframe):
+        """
+        Method to ensure all pivot columns exist in the dataframe, adding any
+        that do not.
+
+        """
+
+        if self.pivot_dim and self.pivot_max:
+            for pivot_val in range(self.pivot_max+1):
+                if not self.pivot_map(pivot_val) in dataframe.columns:
+                    dataframe[self.pivot_map(pivot_val)] = np.nan
