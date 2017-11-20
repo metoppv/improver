@@ -579,7 +579,6 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature = (
             self.wet_bulb_temperature_plugin.process(
                 temperature, relative_humidity, pressure))
-        print "wet_bulb_temperature = ", wet_bulb_temperature.data
         # Integrate.
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))

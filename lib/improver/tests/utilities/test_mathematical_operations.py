@@ -168,6 +168,247 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
             cube.coord(coord_name).points, self.descending_height_points)
 
 
+class Test_prepare_for_integration(IrisTest):
+
+    """Test the prepare_for_integration method."""
+
+    def setUp(self):
+        """Set up the cube."""
+        self.height_points = np.array([5., 10., 20.])
+        cube = set_up_height_cube(self.height_points)[:, 0, :, :, :]
+        data = np.zeros(cube.shape)
+        data[0] = np.ones(cube[0].shape, dtype=np.int32)
+        data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
+        data[2] = np.full(cube[2].shape, 3, dtype=np.int32)
+        data[0, :, 0, 0] = 6
+        cube.data = data
+        self.cube = cube
+
+    def test_basic(self):
+        """Test that the type of the returned value is as expected and the
+        expected number of items are returned."""
+        coord_name = "height"
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).prepare_for_integration(self.cube))
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 3)
+
+    def test_positive_points(self):
+        """Test that the expected coordinate points are returned for each
+        cube when the direction of integration is positive."""
+        coord_name = "height"
+        direction = "positive"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).prepare_for_integration(self.cube))
+        self.assertArrayAlmostEqual(
+            result[0].coord("height").points, np.array([10., 20.]))
+        self.assertArrayAlmostEqual(
+            result[1].coord("height").points, np.array([5., 10.]))
+        self.assertArrayAlmostEqual(
+            result[2].coord("height").points, np.array([10., 20.]))
+
+    def test_negative_points(self):
+        """Test that the expected coordinate points are returned for each
+        cube when the direction of integration is negative."""
+        coord_name = "height"
+        direction = "negative"
+        self.cube.coord("height").points = np.array([20., 10., 5.])
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).prepare_for_integration(self.cube))
+        self.assertArrayAlmostEqual(
+            result[0].coord("height").points, np.array([20., 10.]))
+        self.assertArrayAlmostEqual(
+            result[1].coord("height").points, np.array([10., 5.]))
+        self.assertArrayAlmostEqual(
+            result[2].coord("height").points, np.array([10., 5.]))
+
+
+class Test_perform_integration(IrisTest):
+
+    """Test the perform_integration method."""
+
+    def setUp(self):
+        """Set up the cubes. One set of cubes for integrating in the positive
+        direction and another set of cubes for integrating in the negative
+        direction."""
+        self.height_points = np.array([5., 10., 20.])
+        cube = set_up_height_cube(self.height_points)[:, 0, :, :, :]
+        data = np.zeros(cube.shape)
+        data[0] = np.ones(cube[0].shape, dtype=np.int32)
+        data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
+        data[2] = np.full(cube[2].shape, 3, dtype=np.int32)
+        data[0, :, 0, 0] = 6
+        cube.data = data
+
+        # Cubes for integrating in the positive direction.
+        self.positive_upper_bounds_cube = cube[1:, ...]
+        self.positive_lower_bounds_cube = cube[:-1, ...]
+        self.positive_integrated_cube = cube[1:, ...]
+        self.positive_integrated_cube.data = (
+            np.zeros(self.positive_integrated_cube.shape))
+
+        # Cubes for integrating in the negative direction.
+        new_cube = cube.copy()
+        # Sort cube so that it is in the expected order.
+        index = [[2, 1, 0], slice(None), slice(None), slice(None)]
+        new_cube = new_cube[tuple(index)]
+        self.negative_upper_bounds_cube = new_cube[:-1, ...]
+        self.negative_lower_bounds_cube = new_cube[1:, ...]
+        self.negative_integrated_cube = new_cube[1:, ...]
+        self.negative_integrated_cube.data = (
+            np.zeros(self.negative_integrated_cube.shape))
+
+    def test_basic(self):
+        """Test that a cube is returned by the perform_integration method with
+        the expected coordinate points."""
+        coord_name = "height"
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).perform_integration(
+                      self.negative_upper_bounds_cube,
+                      self.negative_lower_bounds_cube,
+                      self.negative_integrated_cube))
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([5., 10.]))
+
+    def test_data(self):
+        """Test that the resulting cube contains the expected data following
+        vertical integration."""
+        expected = np.array(
+            [[[[45.00, 32.50, 32.50],
+               [32.50, 32.50, 32.50],
+               [32.50, 32.50, 32.50]]],
+             [[[25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]]])
+        coord_name = "height"
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).perform_integration(
+                      self.negative_upper_bounds_cube,
+                      self.negative_lower_bounds_cube,
+                      self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([5., 10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_start_point_positive(self):
+        """Test that the resulting cube contains the expected data when a
+        start_point is specified, so that only part of the column is
+        integrated. For integration in the positive direction (equivalent to
+        integrating downwards for a height coordinate), the presense of a
+        start_point indicates that the integration may start above the
+        lowest height within the column to be integrated."""
+        expected = np.array(
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
+        coord_name = "height"
+        start_point = 8.
+        direction = "positive"
+        result = (
+            Integration(
+                coord_name, start_point=start_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.positive_upper_bounds_cube,
+                      self.positive_lower_bounds_cube,
+                      self.positive_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([20.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_start_point_negative(self):
+        """Test that the resulting cube contains the expected data when a
+        start_point is specified, so that only part of the column is
+        integrated. For integration in the negative direction (equivalent to
+        integrating downwards for a height coordinate), the presense of a
+        start_point indicates that the integration may start below the
+        highest height within the column to be integrated."""
+        expected = np.array(
+            [[[20.00, 7.50, 7.50],
+              [7.50, 7.50, 7.50],
+              [7.50, 7.50, 7.50]]])
+        coord_name = "height"
+        start_point = 18.
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, start_point=start_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.negative_upper_bounds_cube,
+                      self.negative_lower_bounds_cube,
+                      self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([5.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_end_point_positive(self):
+        """Test that the resulting cube contains the expected data when a
+        end_point is specified, so that only part of the column is
+        integrated. For integration in the negative direction (equivalent to
+        integrating downwards for a height coordinate), the presense of an
+        end_point indicates that the integration may end below the
+        highest height within the column to be integrated."""
+        expected = np.array(
+            [[[20.00, 7.50, 7.50],
+              [7.50, 7.50, 7.50],
+              [7.50, 7.50, 7.50]]])
+        coord_name = "height"
+        end_point = 18.
+        direction = "positive"
+        result = (
+            Integration(
+                coord_name, end_point=end_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.positive_upper_bounds_cube,
+                      self.positive_lower_bounds_cube,
+                      self.positive_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_end_point_negative(self):
+        """Test that the resulting cube contains the expected data when a
+        end_point is specified, so that only part of the column is
+        integrated. For integration in the negative direction (equivalent to
+        integrating downwards for a height coordinate), the presense of an
+        end_point indicates that the integration may end above the
+        lowest height within the column to be integrated."""
+        expected = np.array(
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
+        coord_name = "height"
+        end_point = 8.
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, end_point=end_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.negative_upper_bounds_cube,
+                      self.negative_lower_bounds_cube,
+                      self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+
 class Test_process(IrisTest):
 
     """Test the process method."""
@@ -215,98 +456,6 @@ class Test_process(IrisTest):
                 ).process(self.cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_start_point_positive(self):
-        """Test that the resulting cube contains the expected data when a
-        start_point is specified, so that only part of the column is
-        integrated. For integration in the positive direction (equivalent to
-        integrating downwards for a height coordinate), the presense of a
-        start_point indicates that the integration may start above the
-        lowest height within the column to be integrated."""
-        expected = np.array(
-            [[[[25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00]]]])
-        coord_name = "height"
-        start_point = 8.
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).process(self.cube))
-        self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([20.]))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_start_point_negative(self):
-        """Test that the resulting cube contains the expected data when a
-        start_point is specified, so that only part of the column is
-        integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of a
-        start_point indicates that the integration may start below the
-        highest height within the column to be integrated."""
-        expected = np.array(
-            [[[[20.00, 7.50, 7.50],
-               [7.50, 7.50, 7.50],
-               [7.50, 7.50, 7.50]]]])
-        coord_name = "height"
-        start_point = 18.
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).process(self.cube))
-        self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([5.]))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_end_point_positive(self):
-        """Test that the resulting cube contains the expected data when a
-        end_point is specified, so that only part of the column is
-        integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of an
-        end_point indicates that the integration may end below the
-        highest height within the column to be integrated."""
-        expected = np.array(
-            [[[[20.00, 7.50, 7.50],
-               [7.50, 7.50, 7.50],
-               [7.50, 7.50, 7.50]]]])
-        coord_name = "height"
-        end_point = 18.
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, end_point=end_point,
-                direction_of_integration=direction
-                ).process(self.cube))
-        self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([10.]))
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_end_point_negative(self):
-        """Test that the resulting cube contains the expected data when a
-        end_point is specified, so that only part of the column is
-        integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of an
-        end_point indicates that the integration may end above the
-        lowest height within the column to be integrated."""
-        expected = np.array(
-            [[[[25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00]]]])
-        coord_name = "height"
-        end_point = 8.
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, end_point=end_point,
-                direction_of_integration=direction
-                ).process(self.cube))
-        self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
 

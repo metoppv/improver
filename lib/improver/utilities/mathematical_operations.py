@@ -114,35 +114,28 @@ class Integration(object):
             pass
         return cube
 
-    def process(self, cube):
-        """Integrate a specified coordinate. This is calculated by defining the
-        upper and lower bounds for the steps along a chosen coordinate
-        within the cube.
-
-        Integration is performed by firstly defining the stride as the
-        difference between the upper and lower bound. The contribution from
-        the uppermost half of the stride is calculated by multiplying the
-        upper bound value by 0.5 * stride, and the contribution
-        from the lowermost half of the stride is calculated by multiplying the
-        lower bound value by 0.5 * stride. The contribution from the
-        uppermost half of the stride and the bottom half of the stride is
-        summed.
-
-        As the coordinate is progressively integrated, the contribution of
-        each stride is cumulatively summed.
+    def prepare_for_integration(self, cube):
+        """Prepare for integration by creating the cubes needed for the
+        integration. These are separate cubes for representing the upper
+        limit of the integration and the lower limit of the integration,
+        as well as setting up the output cube for the integrated output.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the data to be integrated.
 
         Returns:
-            integrated_cube (Iris.cube.Cube):
-                The cube containing the result of the integration.
-                This will contain the same metadata as the input cube.
+            upper_bounds_cube (iris.cube.Cube):
+                Cube containing the upper bounds to be used during the
+                integration.
+            lower_bounds_cube (iris.cube.Cube):
+                Cube containing the lower bounds to be used during the
+                integration.
+            integrated_cube (iris.cube.Cube):
+                Cube that will be used for storing the output of the
+                integration containing the most appropriate coordinates.
 
         """
-        # Make coordinate monotonic in the direction desired for integration.
-        cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
 
         # Define upper and lower level cubes for the integration.
         if self.direction_of_integration == "positive":
@@ -170,7 +163,40 @@ class Integration(object):
         elif self.direction_of_integration == "negative":
             integrated_cube = lower_bounds_cube.copy()
         integrated_cube.data = np.zeros(lower_bounds_cube.shape)
+        return upper_bounds_cube, lower_bounds_cube, integrated_cube
 
+    def perform_integration(
+            self, upper_bounds_cube, lower_bounds_cube, integrated_cube):
+        """Perform the integration.
+
+        Integration is performed by firstly defining the stride as the
+        difference between the upper and lower bound. The contribution from
+        the uppermost half of the stride is calculated by multiplying the
+        upper bound value by 0.5 * stride, and the contribution
+        from the lowermost half of the stride is calculated by multiplying the
+        lower bound value by 0.5 * stride. The contribution from the
+        uppermost half of the stride and the bottom half of the stride is
+        summed.
+
+        As the coordinate is progressively integrated, the contribution of
+        each stride is cumulatively summed.
+
+        Args:
+            upper_bounds_cube (iris.cube.Cube):
+                Cube containing the upper bounds to be used during the
+                integration.
+            lower_bounds_cube (iris.cube.Cube):
+                Cube containing the lower bounds to be used during the
+                integration.
+            integrated_cube (iris.cube.Cube):
+                Cube that will be used for storing the output of the
+                integration containing the most appropriate coordinates.
+
+        Returns:
+            integrated_cube (iris.cube.Cube):
+                Cube containing the output from the integration.
+
+        """
         # Create a zip for looping over.
         levels_tuple = zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
@@ -210,9 +236,44 @@ class Integration(object):
             stride_sum += lower_half_of_stride + upper_half_of_stride
             integrated_slice.data = stride_sum
             integrated_cubelist.append(integrated_slice.copy())
-
         # Merge resulting cubes back together
         integrated_cube = integrated_cubelist.merge_cube()
+        return integrated_cube
+
+    def process(self, cube):
+        """Integrate a specified coordinate. This is calculated by defining the
+        upper and lower bounds for the steps along a chosen coordinate
+        within the cube.
+
+        Functions utilised are:
+            1. Ensure the cube is sorted in the direction desired for
+               integration.
+            2. Prepare for integration by creating cubes that represent the
+               upper and lower limits of the integration, as well as as a
+               template cube to put the integrated output.
+            3. Perform the integration using the trapezoidal rule.
+            4. Ensure that the integrated coordinate is a dimension coordinate
+               and ensure that the integrated coordinate is sorted in the
+               desired direction.
+
+        Args:
+            cube (Iris.cube.Cube):
+                Cube containing the data to be integrated.
+
+        Returns:
+            integrated_cube (Iris.cube.Cube):
+                The cube containing the result of the integration.
+                This will contain the same metadata as the input cube.
+
+        """
+        # Make coordinate monotonic in the direction desired for integration.
+        cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
+
+        upper_bounds_cube, lower_bounds_cube, integrated_cube = (
+            self.prepare_for_integration(cube))
+
+        integrated_cube = self.perform_integration(
+            upper_bounds_cube, lower_bounds_cube, integrated_cube)
 
         # Make sure that the coordinate that has been integrated is a
         # dimension coordinate.
