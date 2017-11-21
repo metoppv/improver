@@ -90,6 +90,38 @@ class SpotDatabase(object):
                  'column_maps={column_maps}>'
         return result.format(**self.__dict__)
 
+    def check_input_dimensions(self, cube):
+        """
+        Check that the input cube has the correct dimsions after being sliced
+        along the coord_to_slice_over. In the input cube only a the dimension
+        we are slicing over and the pivot dimension can have multiple points
+        in.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube to check.
+        Raises:
+            ValueError: If the cube has the wrong dimensions and cannot be
+                convertered to a table using this function.
+        """
+        shape = cube.shape
+        pivot_axis = None
+        if self.pivot_dim:
+            pivot_axis = cube.coord_dims(self.pivot_dim)[0]
+
+        for i, dim_length in enumerate(shape):
+            if pivot_axis and i == pivot_axis:
+                pass
+            elif dim_length is not 1:
+                message = ("Dimensions that are not described by the pivot_dim"
+                           " or coord_to_slice_over must only have one point "
+                           "in. Dimension '{}' has length '{}' and "
+                           "is associated with the '{}' coordinate.")
+                message = message.format(
+                    i, dim_length,
+                    cube.coord(dimensions=i, dim_coords=True).name())
+                raise ValueError(message)
+
     def pivot_table(self, cube, df):
         """Pivots the table based on the """
         coords = cube.coord(self.pivot_dim).points
@@ -145,6 +177,7 @@ class SpotDatabase(object):
 
         for cube in cubelist:
             for c in cube.slices_over(self.coord_to_slice_over):
+                self.check_input_dimensions(c)
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
                                columns=['values'])

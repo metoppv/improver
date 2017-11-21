@@ -153,6 +153,57 @@ class Test___repr__(IrisTest):
         self.assertEqual(expected_result, result)
 
 
+class Test_check_input_dimensions(IrisTest):
+    """Test the check_input_dimensions function"""
+    def setUp(self):
+        """Set up the plugin and dataframe needed for these tests"""
+        self.cube = set_up_spot_cube(280, number_of_sites=1)
+        second_cube = self.cube.copy()
+        second_cube.coord("percentile").points = np.array([60.0])
+        cubelist = CubeList([self.cube, second_cube])
+        self.cubes = cubelist.concatenate()
+        self.plugin = SpotDatabase("csv", "output", "improver",
+                                   "time", "IMPRO", 0)
+
+    def test_basic_1D_cube(self):
+        """Test it doesn't raise an exception if a 1D cube is input."""
+        self.assertFalse(self.plugin.check_input_dimensions(self.cube))
+
+    def test_raises_if_extra_dim(self):
+        """Test it raises an exception if a 2D cube is input and
+           no pivot_dim."""
+        message = ("Dimensions that are not described by the pivot_dim or "
+                   "coord_to_slice_over must only have one point in. "
+                   "Dimension '1' has length '2' and is associated with the "
+                   "'percentile' coordinate.")
+        with self.assertRaisesRegexp(ValueError, message):
+            self.plugin.check_input_dimensions(self.cubes[0])
+
+    def test_no_exception_if_pivot_dim_set(self):
+        """Test it raises an exception if a 2D cube is input and
+           no pivot_dim."""
+        plugin = SpotDatabase("csv", "output", "improver", "time", "IMPRO",
+                              0, pivot_dim="percentile")
+        self.assertFalse(plugin.check_input_dimensions(self.cubes[0]))
+
+    def test_exception_if_pivot_dim_set(self):
+        """Test it raises an exception if a 2D cube is input and
+           no pivot_dim."""
+        plugin = SpotDatabase("csv", "output", "improver", "time", "IMPRO",
+                              0, pivot_dim="percentile")
+        cube = set_up_spot_cube(280, number_of_sites=3)
+        second_cube = cube.copy()
+        second_cube.coord("percentile").points = np.array([60.0])
+        cubelist = CubeList([cube, second_cube])
+        cubes = cubelist.concatenate()
+        message = "Dimensions that are not described by the pivot_dim or "\
+                  "coord_to_slice_over must only have one point in. "\
+                  "Dimension '2' has length '3' and is associated with the "\
+                  "'index' coordinate."
+        with self.assertRaisesRegexp(ValueError, message):
+            plugin.check_input_dimensions(cubes[0])
+
+
 class Test_pivot_table(IrisTest):
     """Test the pivot_table method"""
     def setUp(self):
@@ -482,17 +533,6 @@ class Test_determine_schema(IrisTest):
         expected_schema = 'CREATE TABLE "improver" (\n"index" INTEGER,\n  '\
                           '"values" REAL,\n  CONSTRAINT improver_pk '\
                           'PRIMARY KEY ("index")\n)'
-        # expected_schema = ('CREATE TABLE "improver" '
-        #                   '(\n"validity_date" TIMESTAMP,\n  '
-        #                   '"validity_time" INTEGER,\n  '
-        #                   '"station_id" INTEGER,\n  '
-        #                   '"cf_name" TEXT,\n  '
-        #                   '"exp_id" TEXT,\n  '
-        #                   '"fcr_tplus000" REAL,\n  '
-        #                   '"fcr_tplus001" REAL,\n  '
-        #                   'CONSTRAINT improver_pk PRIMARY KEY '
-        #                   '("validity_date", "validity_time", '
-        #                   '"station_id", "cf_name", "exp_id")\n)')
         self.assertEqual(schema, expected_schema)
 
 

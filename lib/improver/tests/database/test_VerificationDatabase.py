@@ -83,32 +83,22 @@ class Test_to_dataframe(IrisTest):
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
-    # def test_single_cube_extra_data(self):
-    #    """Basic test using one input cube with an extra point in the
-    #        percentile dimension."""
-    #      Set up expected dataframe.
-    #    validity_date = dt.utcfromtimestamp(1487311200).date()
-    #    data = [[validity_date, 600, 1000, "air_temperature", "IMPRO", 280.],
-    #            [validity_date, 600, 1001, "air_temperature", "IMPRO", 280.],
-    #            [validity_date, 600, 1002, "air_temperature", "IMPRO", 280.]]
-    #    columns = ["validity_date", "validity_time", "station_id", "cf_name",
-    #                "exp_id", "fcr_tplus000"]
-    #    expected_df = pd.DataFrame(data, columns=columns)
-    #    expected_df = expected_df.set_index(["validity_date", "validity_time",
-    #                                            "station_id", "cf_name",
-    #                                            "exp_id"])
-    #    expected_df.columns.name = "forecast_period"
-    #    #  Call the plugin.
-    #    cube = set_up_spot_cube(280)
-    #    second_cube = cube.copy()
-    #    second_cube.coord("percentile").points = np.array([60.0])
-    #    cubelist = iris.cube.CubeList([cube, second_cube])
-    #    cubes = cubelist.concatenate()
-    #    plugin = VerificationTable("csv", "output", "improver",
-    #                               "time", "IMPRO", 0)
-    #    plugin.to_dataframe(cubes, "index")
-    #    result = plugin.df
-    #    assert_frame_equal(expected_df, result)
+    def test_single_cube_extra_data(self):
+        """Basic test using one input cube with an extra point in the
+           percentile dimension."""
+        # Set up cubes
+        cube = set_up_spot_cube(280)
+        second_cube = cube.copy()
+        second_cube.coord("percentile").points = np.array([60.0])
+        cubelist = iris.cube.CubeList([cube, second_cube])
+        cubes = cubelist.concatenate()
+        plugin = VerificationTable("csv", "output", "improver", "IMPRO", 0)
+        message = "Dimensions that are not described by the pivot_dim or "\
+                  "coord_to_slice_over must only have one point in. "\
+                  "Dimension '1' has length '2' and is associated with the "\
+                  "'percentile' coordinate."
+        with self.assertRaisesRegexp(ValueError, message):
+            plugin.to_dataframe(cubes)
 
     @staticmethod
     def test_single_cube_single_site():
