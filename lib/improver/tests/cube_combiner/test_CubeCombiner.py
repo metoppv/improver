@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
+"""Unit tests for the cube_combiner.CubeCombiner plugin."""
 import unittest
 
 import numpy as np

@@ -55,7 +55,7 @@ class CubeCombiner(object):
             ValueError: Unknown operation.
         """
         possible_operations = ['+', 'add',
-                               '-', 'minus',
+                               '-', 'subtract',
                                '*', 'multiple',
                                'max', 'min', 'mean']
         if operation in possible_operations:
@@ -113,16 +113,16 @@ class CubeCombiner(object):
 
         if operation == '+' or operation == 'add' or operation == 'mean':
             result = cube1 + cube2
-        elif operation == '-' or operation == 'minus':
+        elif operation == '-' or operation == 'subtract':
             result = cube1 - cube2
         elif operation == '*' or operation == 'multiple':
             result = cube1 * cube2
         elif operation == 'min':
             result = cube1
-            np.minimum(cube1.data, cube2.data, result.data)
+            result.data = np.minimum(cube1.data, cube2.data)
         elif operation == 'max':
             result = cube1
-            np.maximum(cube1.data, cube2.data, result.data)
+            result.data = np.maximum(cube1.data, cube2.data)
         else:
             msg = 'Unknown operation {}'.format(operation)
             raise ValueError(msg)

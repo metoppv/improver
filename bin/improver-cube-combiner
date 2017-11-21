@@ -34,6 +34,7 @@
 import argparse
 
 import iris
+import warnings
 
 from improver.cube_combiner import CubeCombiner
 
@@ -53,7 +54,7 @@ def main():
     parser.add_argument("--operation", metavar="OPERATION",
                         default="+",
                         choices=["+", "-", "*",
-                                 "add", "minus", "multiple",
+                                 "add", "subtract", "multiple",
                                  "min", "max", "mean"],
                         help="Operation to use in combining the cubes"
                         " Default=+ i.e. add ", type=str)
@@ -69,7 +70,13 @@ def main():
         new_cube = iris.load_cube(filename)
         cubes.append(new_cube)
         if new_cube_name is None:
-            new_cube_name == new_cube.name()
+            new_cube_name = new_cube.name()
+        if (args.new_cube_name is None and
+                new_cube_name != new_cube.name()):
+            msg = ("Defaulting to first cube name, {}".format(new_cube_name) +
+                   " but combining with a cube "
+                   "with name, {}.".format(new_cube.name()))
+            warnings.warn(msg)
 
     result = (
         CubeCombiner(args.operation).process(cubes, new_cube_name))
