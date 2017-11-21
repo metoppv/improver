@@ -53,7 +53,7 @@ class Integration(object):
         Keyword Args:
             start_point (float or None):
                 Point at which to start the integration.
-                Default is None. If start_point is None, integration is start
+                Default is None. If start_point is None, integration starts
                 from the first available point.
             end_point (float or None):
                 Point at which to end the integration.

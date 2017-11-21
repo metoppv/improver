@@ -529,7 +529,7 @@ class WetBulbTemperatureIntegral(object):
                 Name of the coordinate to be integrated.
             start_point (float or None):
                 Point at which to start the integration.
-                Default is None. If start_point is None, integration is start
+                Default is None. If start_point is None, integration starts
                 from the first available point.
             end_point (float or None):
                 Point at which to end the integration.
@@ -552,9 +552,9 @@ class WetBulbTemperatureIntegral(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperatureIntegral: precision: 0.005, '
-                  'coord_name_to_integrate: height, start_point: None, '
-                  'end_point: None, direction_of_integration: negative>')
+        result = ('<WetBulbTemperatureIntegral: {}, {}>'.format(
+                      self.wet_bulb_temperature_plugin,
+                      self.integration_plugin))
         return result
 
     def process(self, temperature, relative_humidity, pressure):
