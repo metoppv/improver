@@ -36,11 +36,11 @@ A plugin for creating tables from spotdata forecasts for Database export.
 
 import itertools
 import pandas as pd
+from pandas import DataFrame
 import numpy as np
 import sqlite3
 import os
 from datetime import datetime as dt
-from pandas import DataFrame
 
 
 class SpotDatabase(object):
@@ -229,8 +229,8 @@ class VerificationTable(SpotDatabase):
         super(VerificationTable, self).__init__(output, outfile,
                                                 tablename, "time")
         self.primary_map = ['validity_date', 'validity_time']
-        self.primary_func = [lambda x:dt.utcfromtimestamp(x).date(),
-                             lambda x:dt.utcfromtimestamp(x).hour*100]
+        self.primary_func = [lambda x: dt.utcfromtimestamp(x).date(),
+                             lambda x: dt.utcfromtimestamp(x).hour*100]
 
         self.pivot_dim = 'forecast_period'
         self.pivot_map = lambda x: 'fcr_tplus{:03d}'.format(int(x/3600))
@@ -257,6 +257,7 @@ class VerificationTable(SpotDatabase):
                     dataframe[self.pivot_map(pivot_val)] = np.nan
 
     def to_dataframe(self, cubelist, coord_to_slice_over):
+        """Add an extra method call to the to_dataframe above"""
         super(VerificationTable, self).to_dataframe(cubelist,
                                                     self.coord_to_slice_over)
         self.ensure_all_pivot_columns(self.df)

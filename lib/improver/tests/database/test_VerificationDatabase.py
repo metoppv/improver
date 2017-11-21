@@ -32,19 +32,17 @@
 
 import unittest
 
+from datetime import datetime as dt
+
 import iris
-from iris.coords import AuxCoord, DimCoord
-from iris.coord_systems import GeogCS
-from iris.cube import Cube
 from iris.tests import IrisTest
-import cf_units
+
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from datetime import datetime as dt
+
 from improver.database import VerificationTable
-from tempfile import mkdtemp
-from subprocess import call as Call
+
 
 from improver.tests.database.test_SpotDatabase import set_up_spot_cube
 
@@ -68,7 +66,7 @@ class Test_to_dataframe(IrisTest):
         expected_df.columns.name = "forecast_period"
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
-        plugin = VerificationTable("csv", "output",  "improver", "IMPRO", 0)
+        plugin = VerificationTable("csv", "output", "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
@@ -164,8 +162,8 @@ class Test_to_dataframe(IrisTest):
         expected_df.columns.name = "forecast_period"
         # Call the plugin.
         cubes = [set_up_spot_cube(
-                    280+i, validity_time=1487311200+3600*i,
-                    forecast_period=i, number_of_sites=1) for i in range(3)]
+            280+i, validity_time=1487311200+3600*i,
+            forecast_period=i, number_of_sites=1) for i in range(3)]
         cubes = iris.cube.CubeList(cubes)
         plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
@@ -199,7 +197,6 @@ class Test_ensure_all_pivot_columns(IrisTest):
     def test_single_cube(self):
         """Basic test using one input cube."""
 
-        cubes = iris.cube.CubeList([set_up_spot_cube(280)])
         plugin = VerificationTable("csv", "output", "improver",
                                    "nbhood", 3600)
         test_dataframe = pd.DataFrame(data=np.array([280.0, 280.0, 280.0]),
