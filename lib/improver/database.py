@@ -110,8 +110,8 @@ class SpotDatabase(object):
             pivot_axis = cube.coord_dims(self.pivot_dim)[0]
 
         for i, dim_length in enumerate(shape):
-            if pivot_axis and i == pivot_axis:
-                pass
+            if pivot_axis is not None and i == pivot_axis:
+                continue
             elif dim_length is not 1:
                 message = ("Dimensions that are not described by the pivot_dim"
                            " or coord_to_slice_over must only have one point "

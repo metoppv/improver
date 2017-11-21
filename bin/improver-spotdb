@@ -65,10 +65,12 @@ def main():
                              "which refers to the post-processing stage the "
                              "input data comes from. Default is \"IMPRO\"")
     parser.add_argument("--max_forecast_leadtime", metavar="MAX_LEADTIME",
-                        help="The maximum forecast lead time needed as a "
-                             "column in the verification table. The output "
-                             "table will contain columns for hourly forecast "
-                             "lead times up to this time.")
+                        default=54, type=int,
+                        help="The maximum forecast lead time in hours needed "
+                             "as a column in the verification table. The "
+                             "output table will contain columns for hourly "
+                             "forecast lead times up to this time. Default "
+                             "is 54 hours.")
     # Different file formats (default to SQLite DB):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--sqlite', default=False, action='store_true',
@@ -88,7 +90,7 @@ def main():
     database_creator = VerificationTable(output, args.output_filepath,
                                          args.table_name,
                                          args.experiment_id,
-                                         args.max_forecast_leadtime)
+                                         args.max_forecast_leadtime*3600)
     database_creator.process(cubelist)
 
 if __name__ == '__main__':

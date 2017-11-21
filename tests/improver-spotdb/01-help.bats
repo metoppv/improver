@@ -59,10 +59,10 @@ optional arguments:
                         refers to the post-processing stage the input data
                         comes from. Default is "IMPRO"
   --max_forecast_leadtime MAX_LEADTIME
-                        The maximum forecast lead time needed as a column in
-                        the verification table. The output table will contain
-                        columns for hourly forecast lead times up to this
-                        time.
+                        The maximum forecast lead time in hours needed as a
+                        column in the verification table. The output table
+                        will contain columns for hourly forecast lead times up
+                        to this time. Default is 54 hours.
   --sqlite              Create or append to a SQLite Database file.
   --csv                 The option used to create a CSV file.
 __HELP__
