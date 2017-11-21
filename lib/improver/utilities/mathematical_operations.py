@@ -93,6 +93,7 @@ class Integration(object):
         Args:
             cube (Iris.cube.Cube):
                 The cube containing the coordinate to check.
+                Note that the input cube will be modified by this method.
 
         Returns:
             cube (Iris.cube.Cube):
@@ -159,10 +160,17 @@ class Integration(object):
 
         # Determine which cube to copy in order to have the most appropriate
         # points within the coordinate that is being integrated.
+        # TODO: Update metadata convention for bounds to better represent
+        # integrated quantities.
         if self.direction_of_integration == "positive":
             integrated_cube = upper_bounds_cube.copy()
+            integrated_cube.coord(self.coord_name_to_integrate).bounds = (
+                zip(lower_bounds, upper_bounds))
         elif self.direction_of_integration == "negative":
             integrated_cube = lower_bounds_cube.copy()
+            integrated_cube.coord(self.coord_name_to_integrate).bounds = (
+                zip(lower_bounds, upper_bounds))
+
         integrated_cube.data = np.zeros(lower_bounds_cube.shape)
         return upper_bounds_cube, lower_bounds_cube, integrated_cube
 

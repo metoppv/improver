@@ -195,6 +195,9 @@ class Test_prepare_for_integration(IrisTest):
                 ).prepare_for_integration(self.cube))
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
+        self.assertIsInstance(result[0], iris.cube.Cube)
+        self.assertIsInstance(result[1], iris.cube.Cube)
+        self.assertIsInstance(result[2], iris.cube.Cube)
 
     def test_positive_points(self):
         """Test that the expected coordinate points are returned for each
