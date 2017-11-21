@@ -131,7 +131,7 @@ class CubeCombiner(object):
 
     def process(self, cube_list, new_diagnostic_name):
         """
-        Create a cube.
+        Create a combined cube.
 
         Args:
             cube_list (iris.cube.CubeList):
