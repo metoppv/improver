@@ -61,7 +61,8 @@ class Test___repr__(IrisTest):
 class Test_to_dataframe(IrisTest):
     """A set of tests for the to_dataframe method"""
 
-    def test_single_cube(self):
+    @staticmethod
+    def test_single_cube():
         """Basic test using one input cube."""
         # Set up expected dataframe.
         validity_date = dt.utcfromtimestamp(1487311200).date()
@@ -109,7 +110,8 @@ class Test_to_dataframe(IrisTest):
     #    result = plugin.df
     #    assert_frame_equal(expected_df, result)
 
-    def test_single_cube_single_site(self):
+    @staticmethod
+    def test_single_cube_single_site():
         """Basic test using one input cube with a single site in it."""
         # Set up expected dataframe.
         validity_date = dt.utcfromtimestamp(1487311200).date()
@@ -128,7 +130,8 @@ class Test_to_dataframe(IrisTest):
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
-    def test_multiple_cubes_same_validity_time(self):
+    @staticmethod
+    def test_multiple_cubes_same_validity_time():
         """Basic test using several input cubes with same validity times
         but with different forecast_period."""
         # Set up expected dataframe.
@@ -152,7 +155,8 @@ class Test_to_dataframe(IrisTest):
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
-    def test_multiple_forecast_periods(self):
+    @staticmethod
+    def test_multiple_forecast_periods():
         """Basic test using several input cubes with different validity times
            and different forecast_periods.This is what the output will look
            like if you load in multiple cubes from the same cycle."""
@@ -181,7 +185,8 @@ class Test_to_dataframe(IrisTest):
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
-    def test_single_cube_max_lead_time(self):
+    @staticmethod
+    def test_single_cube_max_lead_time():
         """Basic test using one input cube with larger max lead time
            in output"""
         # Set up expected dataframe.

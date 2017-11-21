@@ -439,7 +439,8 @@ class Test_to_dataframe(IrisTest):
         plugin.to_dataframe(self.cubelist_multiple, "index")
         assert_frame_equal(plugin.df, expected_df)
 
-    def test_all_optional_args_multiple_sites(self):
+    @staticmethod
+    def test_all_optional_args_multiple_sites():
         """Test we create a datafram even when we have all optional
            arguements set and multiple spots"""
         # Set up expected dataframe.

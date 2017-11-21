@@ -100,6 +100,7 @@ class SpotDatabase(object):
         return df
 
     def map_primary_index(self, df):
+        """Place holder docstring"""
         # Switch the index out for a map if specified
         # Has to have "time" as index if time is primary index.
         for mapping, function in zip(self.primary_map,
@@ -108,7 +109,9 @@ class SpotDatabase(object):
         # Takes significant time if a multi-index
         df.set_index(self.primary_map, inplace=True)
 
-    def insert_extra_mapped_columns(self, df, cube, dim, col):
+    @staticmethod
+    def insert_extra_mapped_columns(df, cube, dim, col):
+        """Place holder docstring"""
         if dim in df.columns:
             return
         # Check if dim is a coordinate on the cube, and use this coordinate for
