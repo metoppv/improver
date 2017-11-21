@@ -34,40 +34,37 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
-                       [--experiment_id EXPERIMENT_ID] (--sqlite | --csv)
-                       [-rows ROW_DIMENSION] [-cols EXTRA_COLUMNS]
-                       [-col_vals EXTRA_VALUES]
+                       [--experiment_id EXPERIMENT_ID]
+                       [--max_forecast_leadtime MAX_LEADTIME]
+                       (--sqlite | --csv)
                        INPUT_FILES OUTPUT_FILE
 
-Convert spot forecast cubes to a table and save in csv or as a sql database.
-For all the spot files provided it creates a table in memory and then saves it
-in the form specified by the user.
+Convert spot forecast cubes to a table and save in csv or as a sqlite
+database. For all the spot files provided it creates a table in memory and
+then saves it in the format specified by the user.
 
 positional arguments:
   INPUT_FILES           A path (with wildcards if necessary) to input NetCDF
                         files to be processed.
-  OUTPUT_FILE           The output path for the processed database.
+  OUTPUT_FILE           The output path for the processed database or csv
+                        file.
 
 optional arguments:
   -h, --help            show this help message and exit
   --table_name OUTPUT_TABLE_NAME
                         The name of the table for the processed database.
+                        Default is "improver"
   --experiment_id EXPERIMENT_ID
                         A name to provide as the experiment identifier, which
                         refers to the post-processing stage the input data
-                        comes from
+                        comes from. Default is "IMPRO"
+  --max_forecast_leadtime MAX_LEADTIME
+                        The maximum forecast lead time needed as a column in
+                        the verification table. The output table will contain
+                        columns for hourly forecast lead times up to this
+                        time.
   --sqlite              Create or append to a SQLite Database file.
   --csv                 The option used to create a CSV file.
-
-Table format options:
-  Options for structure of the output table.
-
-  -rows ROW_DIMENSION, --row_dimension ROW_DIMENSION
-                        A dimension to turn into the table rows
-  -cols EXTRA_COLUMNS, --extra_columns EXTRA_COLUMNS
-                        Any extra columns to append to the table
-  -col_vals EXTRA_VALUES, --extra_values EXTRA_VALUES
-                        Values for any extra columns to append
 __HELP__
   [[ "$output" == "$expected" ]]
 }

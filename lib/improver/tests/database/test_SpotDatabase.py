@@ -126,8 +126,31 @@ class Test___repr__(IrisTest):
     """A basic test of the repr method"""
     def test_basic_repr(self):
         """Basic test of string representation"""
-        expected_result = "some_string"
+        expected_result = ('<SpotDatabase: csv, output, improver, time, '
+                           'primary_map=None, '
+                           'primary_func=None, '
+                           'pivot_dim=None, '
+                           'pivot_map=None, '
+                           'column_dims=None, '
+                           'column_maps=None, '
+                           'coord_to_slice_over=None>')
         result = str(SpotDatabase("csv", "output", "improver", "time"))
+        self.assertEqual(expected_result, result)
+
+    def test_repr_after_dataframe_created(self):
+        """Basic test of string representation after a database has been
+           created and added to self."""
+        expected_result = ('<SpotDatabase: csv, output, improver, time, '
+                           'primary_map=None, '
+                           'primary_func=None, '
+                           'pivot_dim=None, '
+                           'pivot_map=None, '
+                           'column_dims=None, '
+                           'column_maps=None, '
+                           'coord_to_slice_over=None>')
+        plugin = SpotDatabase("csv", "output", "improver", "time")
+        plugin.df = pd.DataFrame()
+        result = str(plugin)
         self.assertEqual(expected_result, result)
 
 

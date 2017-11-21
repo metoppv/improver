@@ -47,6 +47,17 @@ from improver.database import VerificationTable
 from improver.tests.database.test_SpotDatabase import set_up_spot_cube
 
 
+class Test___repr__(IrisTest):
+    """A basic test of the repr method"""
+    def test_basic_repr(self):
+        """Basic test of string representation"""
+        expected_result = ("<VerificationTable: csv, output, improver, "
+                           "nbhood, 54>")
+        result = str(VerificationTable("csv", "output", "improver",
+                                       "nbhood", 54))
+        self.assertEqual(expected_result, result)
+
+
 class Test_to_dataframe(IrisTest):
     """A set of tests for the to_dataframe method"""
 

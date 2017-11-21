@@ -80,9 +80,15 @@ class SpotDatabase(object):
         Representation of the instance.
 
         """
-        result = ('<SpotDatabase: columns (primary={primary_map}, '
-                  'other={column_dims}, '
-                  'pivot={pivot_dim})>')
+        result = '<SpotDatabase: {output}, {outfile}, {tablename}, '\
+                 '{primary_dim}, '\
+                 'primary_map={primary_map}, '\
+                 'primary_func={primary_func}, '\
+                 'pivot_dim={pivot_dim}, '\
+                 'pivot_map={pivot_map}, '\
+                 'column_dims={column_dims}, '\
+                 'column_maps={column_maps}, '\
+                 'coord_to_slice_over={coord_to_slice_over}>'
         return result.format(**self.__dict__)
 
     def pivot_table(self, cube, df):
@@ -226,8 +232,11 @@ class VerificationTable(SpotDatabase):
 
     def __init__(self, output, outfile, tablename, experiment_ID,
                  max_forecast_lead_time):
-        super(VerificationTable, self).__init__(output, outfile,
-                                                tablename, "time")
+        self.output = output
+        self.outfile = outfile
+        self.tablename = tablename
+        self.primary_dim = "time"
+
         self.primary_map = ['validity_date', 'validity_time']
         self.primary_func = [lambda x: dt.utcfromtimestamp(x).date(),
                              lambda x: dt.utcfromtimestamp(x).hour*100]
@@ -239,10 +248,21 @@ class VerificationTable(SpotDatabase):
         self.column_maps = ['station_id', 'cf_name']
         self.coord_to_slice_over = "index"
 
+        self.experiment_ID = experiment_ID
+
         if experiment_ID:
-            self.column_dims = self.column_dims + [experiment_ID]
+            self.column_dims = self.column_dims + [self.experiment_ID]
             self.column_maps = self.column_maps + ["exp_id"]
         self.max_forecast_lead_time = max_forecast_lead_time
+
+    def __repr__(self):
+        """
+        Representation of the instance.
+
+        """
+        result = '<VerificationTable: {output}, {outfile}, {tablename}, '\
+                 '{experiment_ID}, {max_forecast_lead_time}>'
+        return result.format(**self.__dict__)
 
     def ensure_all_pivot_columns(self, dataframe):
         """
