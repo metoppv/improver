@@ -518,6 +518,14 @@ class Test_process(IrisTest):
         expected_string = ',values\n1487311200,280.0\n'
         self.assertEqual(resulting_string, expected_string)
 
+    def test_unknown_output_type(self):
+        plugin = SpotDatabase("kitten", self.data_directory + "/test.csv",
+                              "improver", "time", "index")
+        message = ("Unrecognised output type. Current options are 'sqlite'"
+                   " or 'csv', 'kitten' given.")
+        with self.assertRaisesRegexp(ValueError, message):
+            plugin.process(self.cubes)
+
 
 if __name__ == '__main__':
     unittest.main()

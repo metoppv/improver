@@ -203,14 +203,6 @@ class SpotDatabase(object):
         with sqlite3.connect(outfile) as db:
             self.df.to_sql(table, con=db, if_exists='append', index=True)
 
-    def to_csv(self, outfile):
-        """
-        Output the dataframe to comma seperated file.
-
-        """
-
-        self.df.to_csv(outfile)
-
     def process(self, cubelist):
         """
         Method to perform the table creation and output to file.
@@ -218,6 +210,11 @@ class SpotDatabase(object):
         """
 
         self.to_dataframe(cubelist)
+
+        if self.output not in ["sqlite", "csv"]:
+            message = ("Unrecognised output type. Current options are 'sqlite'"
+                       " or 'csv', '{}' given.").format(self.output)
+            raise ValueError(message)
 
         if self.output == 'sqlite':
             self.to_sql(self.outfile, self.tablename)
