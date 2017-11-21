@@ -234,7 +234,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
-                    data, "air_temperature", "1",
+                    data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
                     x_dimension_length=1)))
         cube = self.current_temperature_forecast_cube
@@ -263,7 +263,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
-                    data, "air_temperature", "1",
+                    data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
                     x_dimension_length=1)))
         cube = self.current_temperature_forecast_cube
@@ -333,7 +333,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
-                    data, "air_temperature", "1",
+                    data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
                     x_dimension_length=1)))
         cube = self.current_temperature_forecast_cube
@@ -431,7 +431,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_cube(
-                    input_probs, "air_temperature", "1",
+                    input_probs, "air_temperature", "degreesC",
                     forecast_thresholds=temperature_values)))
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)

@@ -176,7 +176,9 @@ class Test_check_input_cubes(IrisTest):
         """Test that check_input_cubes method raises error if units are
         different to the input cube."""
         plugin = WeatherSymbols()
-        msg = 'Weather Symbols input cubes have threshold units'
+
+        msg = ('Weather Symbols input cubes have threshold units '
+               'that differ from those required')
         self.cubes[0].coord('threshold').units = Unit('mm hr-1')
         with self.assertRaisesRegexp(TypeError, msg):
             plugin.check_input_cubes(self.cubes)
@@ -341,7 +343,8 @@ class Test_construct_extract_constraint(IrisTest):
                                                      threshold)
         expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
                     "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
-        self.assertEqual(str(result), expected)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
 
     def test_list_of_constraints(self):
         """Test construct_extract_constraint returns a list
@@ -357,8 +360,9 @@ class Test_construct_extract_constraint(IrisTest):
         expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
                     "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
         self.assertIsInstance(result, list)
+        self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
-        self.assertEqual(str(result[1]), expected)
+        self.assertEqual(result[1], expected)
 
 
 class Test_find_all_routes(IrisTest):
