@@ -48,6 +48,7 @@ from subprocess import call as Call
 
 from improver.tests.database.test_SpotDatabase import set_up_spot_cube
 
+
 class Test_to_dataframe(IrisTest):
     """A set of tests for the to_dataframe method"""
 
@@ -67,36 +68,37 @@ class Test_to_dataframe(IrisTest):
         expected_df.columns.name = "forecast_period"
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
-        plugin = VerificationTable("csv", "output",  "improver", "time", "IMPRO", 0)
+        plugin = VerificationTable("csv", "output",  "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
-    #def test_single_cube_extra_data(self):
-        #"""Basic test using one input cube with an extra point in the
-           #percentile dimension."""
-        ## Set up expected dataframe.
-        #validity_date = dt.utcfromtimestamp(1487311200).date()
-        #data = [[validity_date, 600, 1000, "air_temperature", "IMPRO", 280.],
-                #[validity_date, 600, 1001, "air_temperature", "IMPRO", 280.],
-                #[validity_date, 600, 1002, "air_temperature", "IMPRO", 280.]]
-        #columns = ["validity_date", "validity_time", "station_id", "cf_name",
-                   #"exp_id", "fcr_tplus000"]
-        #expected_df = pd.DataFrame(data, columns=columns)
-        #expected_df = expected_df.set_index(["validity_date", "validity_time",
-                                             #"station_id", "cf_name",
-                                             #"exp_id"])
-        #expected_df.columns.name = "forecast_period"
-        ## Call the plugin.
-        #cube = set_up_spot_cube(280)
-        #second_cube = cube.copy()
-        #second_cube.coord("percentile").points = np.array([60.0])
-        #cubelist = iris.cube.CubeList([cube, second_cube])
-        #cubes = cubelist.concatenate()
-        #plugin = VerificationTable("csv", "output", "improver", "time", "IMPRO", 0)
-        #plugin.to_dataframe(cubes, "index")
-        #result = plugin.df
-        #assert_frame_equal(expected_df, result)
+    # def test_single_cube_extra_data(self):
+    #    """Basic test using one input cube with an extra point in the
+    #        percentile dimension."""
+    #      Set up expected dataframe.
+    #    validity_date = dt.utcfromtimestamp(1487311200).date()
+    #    data = [[validity_date, 600, 1000, "air_temperature", "IMPRO", 280.],
+    #            [validity_date, 600, 1001, "air_temperature", "IMPRO", 280.],
+    #            [validity_date, 600, 1002, "air_temperature", "IMPRO", 280.]]
+    #    columns = ["validity_date", "validity_time", "station_id", "cf_name",
+    #                "exp_id", "fcr_tplus000"]
+    #    expected_df = pd.DataFrame(data, columns=columns)
+    #    expected_df = expected_df.set_index(["validity_date", "validity_time",
+    #                                            "station_id", "cf_name",
+    #                                            "exp_id"])
+    #    expected_df.columns.name = "forecast_period"
+    #    #  Call the plugin.
+    #    cube = set_up_spot_cube(280)
+    #    second_cube = cube.copy()
+    #    second_cube.coord("percentile").points = np.array([60.0])
+    #    cubelist = iris.cube.CubeList([cube, second_cube])
+    #    cubes = cubelist.concatenate()
+    #    plugin = VerificationTable("csv", "output", "improver",
+    #                               "time", "IMPRO", 0)
+    #    plugin.to_dataframe(cubes, "index")
+    #    result = plugin.df
+    #    assert_frame_equal(expected_df, result)
 
     def test_single_cube_single_site(self):
         """Basic test using one input cube with a single site in it."""
@@ -112,7 +114,7 @@ class Test_to_dataframe(IrisTest):
         expected_df.columns.name = "forecast_period"
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280, number_of_sites=1)])
-        plugin = VerificationTable("output", "csv", "improver",  "time", "IMPRO", 0)
+        plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
@@ -136,7 +138,7 @@ class Test_to_dataframe(IrisTest):
         cubes = [set_up_spot_cube(280+i, forecast_period=i, number_of_sites=1)
                  for i in range(3)]
         cubes = iris.cube.CubeList(cubes)
-        plugin = VerificationTable("output", "csv", "improver",  "time", "IMPRO", 0)
+        plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
@@ -165,16 +167,18 @@ class Test_to_dataframe(IrisTest):
                     280+i, validity_time=1487311200+3600*i,
                     forecast_period=i, number_of_sites=1) for i in range(3)]
         cubes = iris.cube.CubeList(cubes)
-        plugin = VerificationTable("output", "csv", "improver",   "time", "IMPRO", 0)
+        plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
     def test_single_cube_max_lead_time(self):
-        """Basic test using one input cube with larger max lead time in output"""
+        """Basic test using one input cube with larger max lead time
+           in output"""
         # Set up expected dataframe.
         validity_date = dt.utcfromtimestamp(1487311200).date()
-        data = [[validity_date, 600, 1000, "air_temperature", "IMPRO", 280., np.nan]]
+        data = [[validity_date, 600, 1000, "air_temperature", "IMPRO",
+                 280., np.nan]]
         columns = ["validity_date", "validity_time", "station_id", "cf_name",
                    "exp_id", "fcr_tplus000", "fcr_tplus001"]
         expected_df = pd.DataFrame(data, columns=columns)
@@ -184,7 +188,7 @@ class Test_to_dataframe(IrisTest):
         expected_df.columns.name = "forecast_period"
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280, number_of_sites=1)])
-        plugin = VerificationTable("output", "csv", "improver",  "time", "IMPRO", 3600)
+        plugin = VerificationTable("output", "csv", "improver", "IMPRO", 3600)
         plugin.to_dataframe(cubes, "index")
         result = plugin.df
         assert_frame_equal(expected_df, result)
@@ -196,7 +200,7 @@ class Test_ensure_all_pivot_columns(IrisTest):
         """Basic test using one input cube."""
 
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
-        plugin = VerificationTable("csv", "output", "improver", "time",
+        plugin = VerificationTable("csv", "output", "improver",
                                    "nbhood", 3600)
         test_dataframe = pd.DataFrame(data=np.array([280.0, 280.0, 280.0]),
                                       columns=["fcr_tplus000"])

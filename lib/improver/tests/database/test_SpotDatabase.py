@@ -119,24 +119,26 @@ def set_up_spot_cube(point_data, validity_time=1487311200, forecast_period=0,
     return cube
 
 
-#class Test___repr__(IrisTest):
-    #"""A basic test of the repr method"""
-    #def test_basic_repr(self):
-        #"""Basic test of string representation"""
-        #expected_result = "some_string"
-        #result = str(SpotDatabase())
-        #self.assertEqual(expected_result, result)
+class Test___repr__(IrisTest):
+    """A basic test of the repr method"""
+    def test_basic_repr(self):
+        """Basic test of string representation"""
+        expected_result = "some_string"
+        result = str(SpotDatabase())
+        self.assertEqual(expected_result, result)
+
 
 class Test_pivot_table(IrisTest):
     """Test the pivot_table method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
-        self.cube=set_up_spot_cube(280, number_of_sites=1,)
-        self.plugin = SpotDatabase("csv", "output", "improver", "time",
-            pivot_map=lambda x:'T+{:03d}'.format(int(x/3600)),
+        self.cube = set_up_spot_cube(280, number_of_sites=1)
+        self.plugin = SpotDatabase(
+            "csv", "output", "improver", "time",
+            pivot_map=lambda x: 'T+{:03d}'.format(int(x/3600)),
             pivot_dim="forecast_period")
         data = [[1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
 
     def test_single_cube(self):
@@ -165,8 +167,8 @@ class Test_pivot_table(IrisTest):
         merged_cube = iris.cube.CubeList([self.cube, second_cube])
         merged_cube = merged_cube.concatenate()
         # Set up input dataframe
-        data = [[1487311200,  280.],
-                [1487311200+3600,   281.]]
+        data = [[1487311200, 280.],
+                [1487311200+3600, 281.]]
         columns = ["time",  "values"]
         input_df = pd.DataFrame(data, columns=columns)
         result = self.plugin.pivot_table(merged_cube[0], input_df)
@@ -192,7 +194,7 @@ class Test_pivot_table(IrisTest):
         merged_cube = merged_cube.concatenate()
         # Set up input dataframe
         data = [[1487311200, 3001, 280.],
-                [1487311200+3600, 3002,  281.]]
+                [1487311200+3600, 3002, 281.]]
         columns = ["time", "wmo_site", "values"]
         input_df = pd.DataFrame(data, columns=columns)
         result = self.plugin.pivot_table(merged_cube[0], input_df)
@@ -203,13 +205,14 @@ class Test_map_primary_index(IrisTest):
     """Test the map_primary_index method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
-        self.cube=set_up_spot_cube(280, number_of_sites=1,)
-        self.plugin = SpotDatabase("csv", "output", "improver", "time",
+        self.cube = set_up_spot_cube(280, number_of_sites=1,)
+        self.plugin = SpotDatabase(
+            "csv", "output", "improver", "time",
             primary_map=['validity_date', 'validity_time'],
             primary_func=[lambda x:dt.utcfromtimestamp(x).date(),
                           lambda x:dt.utcfromtimestamp(x).hour*100])
         data = [[1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
         self.input_df = self.input_df.set_index(["time"])
 
@@ -218,41 +221,42 @@ class Test_map_primary_index(IrisTest):
         # Set up expected dataframe.
 
         validity_date = dt.utcfromtimestamp(1487311200).date()
-        expected_data = [[validity_date, 600,  280.],]
+        expected_data = [[validity_date, 600, 280.]]
         columns = ['validity_date', 'validity_time', "values"]
         expected_df = pd.DataFrame(expected_data, columns=columns)
         expected_df = expected_df.set_index(["validity_date", "validity_time"])
         # Call the method.
-        self.plugin.map_primary_index( self.input_df)
+        self.plugin.map_primary_index(self.input_df)
         assert_frame_equal(expected_df, self.input_df)
 
     def test_multiple_times_cube(self):
         """Test using one input cube, with one site and multiple times."""
         # Set up expected dataframe.
         validity_date = dt.utcfromtimestamp(1487311200).date()
-        expected_data = [[validity_date, 600, 280., ],
+        expected_data = [[validity_date, 600, 280.],
                          [validity_date, 700, 281.]]
         columns = ['validity_date', 'validity_time', "values"]
         expected_df = pd.DataFrame(expected_data, columns=columns)
         expected_df = expected_df.set_index(["validity_date", "validity_time"])
 
         # Set up input dataframe
-        data = [[1487311200,  280.],
-                [1487311200+3600,   281.]]
-        columns = ["time",  "values"]
+        data = [[1487311200, 280.],
+                [1487311200+3600, 281.]]
+        columns = ["time", "values"]
         input_df = pd.DataFrame(data, columns=columns)
         input_df = input_df.set_index(["time"])
-        self.plugin.map_primary_index( input_df)
+        self.plugin.map_primary_index(input_df)
         assert_frame_equal(expected_df, input_df)
+
 
 class Test_insert_extra_mapped_columns(IrisTest):
     """Test the insert_extra_mapped_columns method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
-        self.cube=set_up_spot_cube(280, number_of_sites=1,)
-        self.plugin = SpotDatabase("csv", "output", "improver", "time",)
+        self.cube = set_up_spot_cube(280, number_of_sites=1)
+        self.plugin = SpotDatabase("csv", "output", "improver", "time")
         data = [[1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
 
     def test_extra_column_in_df(self):
@@ -260,27 +264,22 @@ class Test_insert_extra_mapped_columns(IrisTest):
            In this case the function does nothing to the dataframe."""
         # Set up expected dataframe.
         data = [[1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        #expected_df.set_index(["time","altitude_of_site"],)
         # Call the method.
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            self.cube, "values", [380.])
-        #print self.input_df
-        #print expected_df
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, self.cube, "values", [380.])
         assert_frame_equal(self.input_df, expected_df)
 
     def test_extra_column_from_coord(self):
         """Test for when we are taking data from a coordinate in the cube"""
         data = [[1487311200, 100, 280.]]
-        columns = ["time","altitude_of_site", "values"]
+        columns = ["time", "altitude_of_site", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["altitude_of_site"],append=True, inplace=True)
-        ## Call the method.
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            self.cube, "altitude", "altitude_of_site")
-        #print "result ",self.input_df
-        #print "expected ", expected_df
+        expected_df.set_index(["altitude_of_site"], append=True, inplace=True)
+        # Call the method.
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, self.cube, "altitude", "altitude_of_site")
         assert_frame_equal(self.input_df, expected_df)
 
     def test_extra_column_from_coord_multiple_points(self):
@@ -289,33 +288,29 @@ class Test_insert_extra_mapped_columns(IrisTest):
         data = [[1487311200, 100, 280.],
                 [1487311200, 101, 280.],
                 [1487311200, 102, 280.]]
-        columns = ["time","altitude_of_site", "values"]
+        columns = ["time", "altitude_of_site", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["altitude_of_site"],append=True, inplace=True)
-        ## Call the method.
-        cube=set_up_spot_cube(280, number_of_sites=3,)
+        expected_df.set_index(["altitude_of_site"], append=True, inplace=True)
+        # Call the method.
+        cube = set_up_spot_cube(280, number_of_sites=3)
         data = [[1487311200, 280.],
                 [1487311200, 280.],
                 [1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            cube, "altitude", "altitude_of_site")
-        #print "result ",self.input_df
-        #print "expected ", expected_df
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, cube, "altitude", "altitude_of_site")
         assert_frame_equal(self.input_df, expected_df)
 
     def test_extra_column_from_cube_name(self):
         """Test for when we are taking data from the cube name."""
         data = [[1487311200, "air_temperature", 280.]]
-        columns = ["time","name_of_cube", "values"]
+        columns = ["time", "name_of_cube", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["name_of_cube"],append=True, inplace=True)
-        ## Call the method.
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            self.cube, "name", "name_of_cube")
-        #print self.input_df
-        #print expected_df
+        expected_df.set_index(["name_of_cube"], append=True, inplace=True)
+        # Call the method.
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, self.cube, "name", "name_of_cube")
         assert_frame_equal(self.input_df, expected_df)
 
     def test_extra_column_from_cube_attribute(self):
@@ -323,10 +318,10 @@ class Test_insert_extra_mapped_columns(IrisTest):
         data = [[1487311200, "K", 280.]]
         columns = ["time", "cube_units", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["cube_units"],append=True, inplace=True)
-        ## Call the method.
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            self.cube, "units", "cube_units")
+        expected_df.set_index(["cube_units"], append=True, inplace=True)
+        # Call the method.
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, self.cube, "units", "cube_units")
         assert_frame_equal(self.input_df, expected_df)
 
     def test_static_extra_column(self):
@@ -335,34 +330,40 @@ class Test_insert_extra_mapped_columns(IrisTest):
         data = [[1487311200, "IMPRO_nbhood", 280.]]
         columns = ["time", "experiment_id", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["experiment_id"],append=True, inplace=True)
-        ## Call the method.
-        self.cube.attributes["source_grid"]="ukvx"
-        self.plugin.insert_extra_mapped_columns(self.input_df,
-            self.cube, "IMPRO_nbhood", "experiment_id")
+        expected_df.set_index(["experiment_id"], append=True, inplace=True)
+        # Call the method.
+        self.cube.attributes["source_grid"] = "ukvx"
+        self.plugin.insert_extra_mapped_columns(
+            self.input_df, self.cube, "IMPRO_nbhood", "experiment_id")
         assert_frame_equal(self.input_df, expected_df)
+
 
 class Test_to_dataframe(IrisTest):
     """Test the to_dataframe method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
-        self.cube=set_up_spot_cube(280, number_of_sites=1,)
-        self.cube2=set_up_spot_cube(281, number_of_sites=1,validity_time=1487311200+3600, forecast_period=1,)
-        self.cube3=set_up_spot_cube(282, number_of_sites=1,validity_time=1487311200+7200, forecast_period=2,)
+        self.cube = set_up_spot_cube(280, number_of_sites=1)
+        self.cube2 = set_up_spot_cube(
+            281, number_of_sites=1, validity_time=1487311200+3600,
+            forecast_period=1)
+        self.cube3 = set_up_spot_cube(
+            282, number_of_sites=1, validity_time=1487311200+7200,
+            forecast_period=2)
         self.cubelist = iris.cube.CubeList([self.cube])
-        self.cubelist_multiple = iris.cube.CubeList([self.cube, self.cube2, self.cube3])
-        self.plugin = SpotDatabase("csv", "output", "improver", "time",)
+        self.cubelist_multiple = iris.cube.CubeList([self.cube, self.cube2,
+                                                     self.cube3])
+        self.plugin = SpotDatabase("csv", "output", "improver", "time")
         data = [[1487311200, 280.]]
-        columns = ["time","values"]
+        columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
 
     def test_no_optional_args(self):
         """Test we create a datafram even when we have no optional
            arguements set"""
         # Set up expected dataframe.
-        data = [[ 280.]]
+        data = [[280.]]
         columns = ["values"]
-        expected_df = pd.DataFrame(data,index=[1487311200], columns=columns)
+        expected_df = pd.DataFrame(data, index=[1487311200], columns=columns)
 
         # Call the method.
         self.plugin.to_dataframe(self.cubelist, "index")
@@ -373,12 +374,13 @@ class Test_to_dataframe(IrisTest):
         """Test we create a datafram even when we have all optional
            arguements set"""
         # Set up expected dataframe.
-        data = [[600,"air_temperature", 280.]]
-        columns = ["validity_time","cf_name","T+000"]
+        data = [[600, "air_temperature", 280.]]
+        columns = ["validity_time", "cf_name", "T+000"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["validity_time","cf_name",], inplace=True)
+        expected_df.set_index(["validity_time", "cf_name"], inplace=True)
         expected_df.columns.name = "forecast_period"
-        plugin = SpotDatabase("csv", "output", "improver", "time",
+        plugin = SpotDatabase(
+            "csv", "output", "improver", "time",
             primary_map=['validity_time'],
             primary_func=[lambda x:dt.utcfromtimestamp(x).hour*100],
             pivot_dim='forecast_period',
@@ -393,14 +395,15 @@ class Test_to_dataframe(IrisTest):
         """Test we create a dataframe even when we have no optional
            arguements set and multiple cubes"""
         # Set up expected dataframe.
-        data = [[600,"air_temperature", 280., np.nan, np.nan],
-                [700,"air_temperature", np.nan, 281., np.nan],
-                [800,"air_temperature", np.nan, np.nan, 282.],]
-        columns = ["validity_time","cf_name","T+000","T+001","T+002"]
+        data = [[600, "air_temperature", 280., np.nan, np.nan],
+                [700, "air_temperature", np.nan, 281., np.nan],
+                [800, "air_temperature", np.nan, np.nan, 282.]]
+        columns = ["validity_time", "cf_name", "T+000", "T+001", "T+002"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["validity_time","cf_name",], inplace=True)
+        expected_df.set_index(["validity_time", "cf_name"], inplace=True)
         expected_df.columns.name = "forecast_period"
-        plugin = SpotDatabase("csv", "output", "improver", "time",
+        plugin = SpotDatabase(
+            "csv", "output", "improver", "time",
             primary_map=['validity_time'],
             primary_func=[lambda x:dt.utcfromtimestamp(x).hour*100],
             pivot_dim='forecast_period',
@@ -415,19 +418,21 @@ class Test_to_dataframe(IrisTest):
         """Test we create a datafram even when we have all optional
            arguements set and multiple spots"""
         # Set up expected dataframe.
-        data = [[600,"air_temperature", 0, 280.],
-                [600,"air_temperature", 1, 280.],
-                [600,"air_temperature", 2, 280.]]
-        columns = ["validity_time","cf_name","site","T+000"]
+        data = [[600, "air_temperature", 0, 280.],
+                [600, "air_temperature", 1, 280.],
+                [600, "air_temperature", 2, 280.]]
+        columns = ["validity_time", "cf_name", "site", "T+000"]
         expected_df = pd.DataFrame(data, columns=columns)
-        expected_df.set_index(["validity_time","cf_name","site"], inplace=True)
+        expected_df.set_index(["validity_time", "cf_name", " site"],
+                              inplace=True)
         expected_df.columns.name = "forecast_period"
-        plugin = SpotDatabase("csv", "output", "improver", "time",
+        plugin = SpotDatabase(
+            "csv", "output", "improver", "time",
             primary_map=['validity_time'],
             primary_func=[lambda x:dt.utcfromtimestamp(x).hour*100],
             pivot_dim='forecast_period',
             pivot_map=lambda x: 'T+{:03d}'.format(int(x/3600)),
-            column_dims=['name', "index"], column_maps=['cf_name',"site"],
+            column_dims=['name', "index"], column_maps=['cf_name', "site"],
             coord_to_slice_over="index")
         # Call the method.
         cube = set_up_spot_cube(280, number_of_sites=3,)
@@ -435,18 +440,15 @@ class Test_to_dataframe(IrisTest):
         assert_frame_equal(plugin.df, expected_df)
 
 
-
-
-
 class Test_determine_schema(IrisTest):
     """A set of tests for the determine_schema method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for this test"""
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
-        self.plugin = SpotDatabase( "csv","output", "improver", "time",
+        self.plugin = SpotDatabase("csv", "output", "improver", "time",
                                    coord_to_slice_over="index")
         self.dataframe = self.plugin.to_dataframe(cubes,
-            coord_to_slice_over="index")
+                                                  coord_to_slice_over="index")
 
     def test_full_schema(self):
         """Basic test using a basic dataframe as input"""
@@ -454,17 +456,17 @@ class Test_determine_schema(IrisTest):
         expected_schema = 'CREATE TABLE "improver" (\n"index" INTEGER,\n  '\
                           '"values" REAL,\n  CONSTRAINT improver_pk '\
                           'PRIMARY KEY ("index")\n)'
-        #expected_schema = ('CREATE TABLE "improver" '
-                           #'(\n"validity_date" TIMESTAMP,\n  '
-                           #'"validity_time" INTEGER,\n  '
-                           #'"station_id" INTEGER,\n  '
-                           #'"cf_name" TEXT,\n  '
-                           #'"exp_id" TEXT,\n  '
-                           #'"fcr_tplus000" REAL,\n  '
-                           #'"fcr_tplus001" REAL,\n  '
-                           #'CONSTRAINT improver_pk PRIMARY KEY '
-                           #'("validity_date", "validity_time", '
-                           #'"station_id", "cf_name", "exp_id")\n)')
+        # expected_schema = ('CREATE TABLE "improver" '
+        #                   '(\n"validity_date" TIMESTAMP,\n  '
+        #                   '"validity_time" INTEGER,\n  '
+        #                   '"station_id" INTEGER,\n  '
+        #                   '"cf_name" TEXT,\n  '
+        #                   '"exp_id" TEXT,\n  '
+        #                   '"fcr_tplus000" REAL,\n  '
+        #                   '"fcr_tplus001" REAL,\n  '
+        #                   'CONSTRAINT improver_pk PRIMARY KEY '
+        #                   '("validity_date", "validity_time", '
+        #                   '"station_id", "cf_name", "exp_id")\n)')
         self.assertEqual(schema, expected_schema)
 
 
@@ -489,11 +491,6 @@ class Test_process(IrisTest):
         with open(self.data_directory + '/test.csv') as f:
             resulting_string = f.read()
         expected_string = ',values\n1487311200,280.0\n'
-        #expected_string = "validity_date,validity_time,station_id,cf_name,"\
-                          #"fcr_tplus000,fcr_tplus001\n"\
-                          #"2017-02-17,600,1000,air_temperature,280.0,\n"\
-                          #"2017-02-17,600,1001,air_temperature,280.0,\n"\
-                          #"2017-02-17,600,1002,air_temperature,280.0,\n"
         self.assertEqual(resulting_string, expected_string)
 
 

@@ -97,14 +97,12 @@ class SpotDatabase(object):
         # Switch the index out for a map if specified
         # Has to have "time" as index if time is primary index.
         for mapping, function in zip(self.primary_map,
-                                        self.primary_func):
+                                     self.primary_func):
             df.insert(0, mapping, map(function, df.index))
         # Takes significant time if a multi-index
         df.set_index(self.primary_map, inplace=True)
 
-
     def insert_extra_mapped_columns(self, df, cube, dim, col):
-        #print "dim:{}".format(dim)
         if dim in df.columns:
             return
         # Check if dim is a coordinate on the cube, and use this coordinate for
@@ -125,7 +123,6 @@ class SpotDatabase(object):
                 column_data = attr()
             else:
                 column_data = str(attr)
-            #print "\ncolumn_name: {}\ncolumn_data:{}\n".format(column_name, column_data)
         else:
             column_name = col
             column_data = dim
@@ -143,7 +140,6 @@ class SpotDatabase(object):
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
                                columns=['values'])
-                #print "\noriginal_df:\n{}\n\n".format(df)
                 if self.pivot_dim:
                     # Reshape data based on column values
                     df = self.pivot_table(c, df)
@@ -154,14 +150,10 @@ class SpotDatabase(object):
                 if self.column_dims and self.column_maps:
                     for dim, col in itertools.izip_longest(self.column_dims,
                                                            self.column_maps):
-                        #print "dim: {} col: {}".format(dim, col)
-                        self.insert_extra_mapped_columns(df,c, dim, col)
-                #print "\nfinal_df\n:{}".format(df)
+                        self.insert_extra_mapped_columns(df, c, dim, col)
                 try:
                     self.df = self.df.combine_first(df)
                 except AttributeError:
-                    # Ensure the first instance has all pivot columns created
-                    #self.ensure_all_pivot_columns(df)
                     self.df = df
 
     def determine_schema(self, table):
@@ -232,11 +224,10 @@ class VerificationTable(SpotDatabase):
 
     """
 
-    def __init__(self, output, outfile, tablename, primary_dim, experiment_ID,
+    def __init__(self, output, outfile, tablename, experiment_ID,
                  max_forecast_lead_time):
         super(VerificationTable, self).__init__(output, outfile,
-                                                tablename, primary_dim)
-        self.primary_dim = 'time'
+                                                tablename, "time")
         self.primary_map = ['validity_date', 'validity_time']
         self.primary_func = [lambda x:dt.utcfromtimestamp(x).date(),
                              lambda x:dt.utcfromtimestamp(x).hour*100]
@@ -266,5 +257,6 @@ class VerificationTable(SpotDatabase):
                     dataframe[self.pivot_map(pivot_val)] = np.nan
 
     def to_dataframe(self, cubelist, coord_to_slice_over):
-        super(VerificationTable, self).to_dataframe(cubelist, self.coord_to_slice_over)
+        super(VerificationTable, self).to_dataframe(cubelist,
+                                                    self.coord_to_slice_over)
         self.ensure_all_pivot_columns(self.df)
