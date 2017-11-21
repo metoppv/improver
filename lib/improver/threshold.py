@@ -54,7 +54,9 @@ class BasicThreshold(object):
 
     Keyword Args:
         fuzzy_factor (float):
-            Percentage above or below threshold for fuzzy membership value.
+            Specifies lower bound for fuzzy membership value when multiplied
+            by each threshold. Upper bound is equivalent linear distance above
+            threshold.
             If None, no fuzzy_factor is applied.
         fuzzy_bounds (list of tuples):
             Lower and upper bounds for fuzziness.
@@ -79,7 +81,7 @@ class BasicThreshold(object):
                  fuzzy_bounds=None,
                  below_thresh_ok=False):
         """
-        Set up for processing an in-or-out of threshold binary field.
+        Set up for processing an in-or-out of threshold field.
         """
         # Ensure iterable threshold list provided, even if it's a single value.
         self.thresholds = thresholds
@@ -111,20 +113,19 @@ class BasicThreshold(object):
                 self.fuzzy_bounds.append((lower_thr, upper_thr))
         else:
             self.fuzzy_bounds = fuzzy_bounds
-        if self.fuzzy_bounds is not None:
-            # Ensure fuzzy_bounds is a list, even if a single tuple is
-            # supplied.
-            if isinstance(fuzzy_bounds, tuple):
-                self.fuzzy_bounds = [fuzzy_bounds]
-            for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
-                assert len(bounds) == 2, (
-                    "Invalid bounds for one threshold: {}. "
-                    "Expected 2 floats.".format(bounds))
-                bounds_msg = ("Threshold must be within bounds: "
-                              "!( {} <= {} <= {} )".format(bounds[0],
-                                                           thr, bounds[1]))
-                assert bounds[0] <= thr, bounds_msg
-                assert bounds[1] >= thr, bounds_msg
+        # Ensure fuzzy_bounds is a list, even if a single tuple is
+        # supplied.
+        if isinstance(fuzzy_bounds, tuple):
+            self.fuzzy_bounds = [fuzzy_bounds]
+        for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
+            assert len(bounds) == 2, (
+                "Invalid bounds for one threshold: {}. "
+                "Expected 2 floats.".format(bounds))
+            bounds_msg = ("Threshold must be within bounds: "
+                          "!( {} <= {} <= {} )".format(bounds[0],
+                                                       thr, bounds[1]))
+            assert bounds[0] <= thr, bounds_msg
+            assert bounds[1] >= thr, bounds_msg
 
         self.below_thresh_ok = below_thresh_ok
 

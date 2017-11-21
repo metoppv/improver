@@ -62,7 +62,12 @@ def main():
                         type=str,
                         help="Threshold configuration JSON file containing "
                         "thresholds and fuzzy bounds. Best used in "
-                        "combination  with --threshold_units.")
+                        "combination  with --threshold_units. "
+                        "It should contain a dictionary of strings that can "
+                        "be interpreted as floats with the structure: "
+                        " \"THRESHOLD_VALUE\": [LOWER_BOUND, UPPER_BOUND] "
+                        "e.g: {\"280.0\": [278.0, 282.0], "
+                        "\"290.0\": [288.0, 292.0]}")
     parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
                         default=None, type=str,
                         help="Units of the threshold values. If not provided "
@@ -108,14 +113,14 @@ def main():
             for key in thresholds_from_file.keys():
                 thresholds.append(float(key))
                 fuzzy_bounds.append(tuple(thresholds_from_file[key]))
-        except ValueError as e:
+        except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(e)(e.message + " in JSON file {}. \nHINT: Try adding a "
-                          "zero after the decimal point.".format(
-                              args.threshold_config))
-        except Exception as e:
+            raise type(err)(err.message + " in JSON file {}. \nHINT: Try "
+                            "adding a zero after the decimal point.".format(
+                                args.threshold_config))
+        except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(e)(e.message + " in JSON file {}".format(
+            raise type(err)(err.message + " in JSON file {}".format(
                 args.threshold_config))
     else:
         thresholds = args.threshold_values
