@@ -1,6 +1,8 @@
 [MASTER]
 extension-pkg-whitelist=numpy,scipy
+ignore=conf.py
 
 [TYPECHECK]
 ignored-classes=data,list,tuple,WeightedAggregator,MaskedArray,PercentileAggregator
 ignored-modules=numpy,scipy,scipy.stats,cartopy.crs
+
