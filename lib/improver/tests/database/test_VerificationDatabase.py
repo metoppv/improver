@@ -79,7 +79,7 @@ class Test_to_dataframe(IrisTest):
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280)])
         plugin = VerificationTable("csv", "output", "improver", "IMPRO", 0)
-        plugin.to_dataframe(cubes, "index")
+        plugin.to_dataframe(cubes)
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
@@ -126,7 +126,7 @@ class Test_to_dataframe(IrisTest):
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280, number_of_sites=1)])
         plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
-        plugin.to_dataframe(cubes, "index")
+        plugin.to_dataframe(cubes)
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
@@ -151,7 +151,7 @@ class Test_to_dataframe(IrisTest):
                  for i in range(3)]
         cubes = iris.cube.CubeList(cubes)
         plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
-        plugin.to_dataframe(cubes, "index")
+        plugin.to_dataframe(cubes)
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
@@ -181,7 +181,7 @@ class Test_to_dataframe(IrisTest):
             forecast_period=i, number_of_sites=1) for i in range(3)]
         cubes = iris.cube.CubeList(cubes)
         plugin = VerificationTable("output", "csv", "improver", "IMPRO", 0)
-        plugin.to_dataframe(cubes, "index")
+        plugin.to_dataframe(cubes)
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
@@ -203,14 +203,15 @@ class Test_to_dataframe(IrisTest):
         # Call the plugin.
         cubes = iris.cube.CubeList([set_up_spot_cube(280, number_of_sites=1)])
         plugin = VerificationTable("output", "csv", "improver", "IMPRO", 3600)
-        plugin.to_dataframe(cubes, "index")
+        plugin.to_dataframe(cubes)
         result = plugin.df
         assert_frame_equal(expected_df, result)
 
 
 class Test_ensure_all_pivot_columns(IrisTest):
     """A set of tests for the ensure_all_pivot_collumns method"""
-    def test_single_cube(self):
+    @staticmethod
+    def test_single_cube():
         """Basic test using one input cube."""
 
         plugin = VerificationTable("csv", "output", "improver",

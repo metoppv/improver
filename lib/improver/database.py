@@ -50,13 +50,13 @@ class SpotDatabase(object):
     """
 
     def __init__(self, output, outfile, tablename, primary_dim,
+                 coord_to_slice_over,
                  primary_map=None,
                  primary_func=None,
                  pivot_dim=None,
                  pivot_map=None,
                  column_dims=None,
-                 column_maps=None,
-                 coord_to_slice_over=None):
+                 column_maps=None):
 
         """
         Initialise class.
@@ -81,14 +81,13 @@ class SpotDatabase(object):
 
         """
         result = '<SpotDatabase: {output}, {outfile}, {tablename}, '\
-                 '{primary_dim}, '\
+                 '{primary_dim}, {coord_to_slice_over}, '\
                  'primary_map={primary_map}, '\
                  'primary_func={primary_func}, '\
                  'pivot_dim={pivot_dim}, '\
                  'pivot_map={pivot_map}, '\
                  'column_dims={column_dims}, '\
-                 'column_maps={column_maps}, '\
-                 'coord_to_slice_over={coord_to_slice_over}>'
+                 'column_maps={column_maps}>'
         return result.format(**self.__dict__)
 
     def pivot_table(self, cube, df):
@@ -138,14 +137,14 @@ class SpotDatabase(object):
         df.insert(1, column_name, column_data)
         df.set_index(column_name, append=True, inplace=True)
 
-    def to_dataframe(self, cubelist, coord_to_slice_over):
+    def to_dataframe(self, cubelist):
         """
         Turn the input cubes into a 2-dimensional DataFrame object
 
         """
 
         for cube in cubelist:
-            for c in cube.slices_over(coord_to_slice_over):
+            for c in cube.slices_over(self.coord_to_slice_over):
                 df = DataFrame(c.data,
                                index=c.coord(self.primary_dim).points,
                                columns=['values'])
@@ -218,7 +217,7 @@ class SpotDatabase(object):
 
         """
 
-        self.to_dataframe(cubelist, self.coord_to_slice_over)
+        self.to_dataframe(cubelist)
 
         if self.output == 'sqlite':
             self.to_sql(self.outfile, self.tablename)
@@ -279,8 +278,7 @@ class VerificationTable(SpotDatabase):
                 if not self.pivot_map(pivot_val) in dataframe.columns:
                     dataframe[self.pivot_map(pivot_val)] = np.nan
 
-    def to_dataframe(self, cubelist, coord_to_slice_over):
+    def to_dataframe(self, cubelist):
         """Add an extra method call to the to_dataframe above"""
-        super(VerificationTable, self).to_dataframe(cubelist,
-                                                    self.coord_to_slice_over)
+        super(VerificationTable, self).to_dataframe(cubelist)
         self.ensure_all_pivot_columns(self.df)

@@ -126,29 +126,28 @@ class Test___repr__(IrisTest):
     """A basic test of the repr method"""
     def test_basic_repr(self):
         """Basic test of string representation"""
-        expected_result = ('<SpotDatabase: csv, output, improver, time, '
-                           'primary_map=None, '
+        expected_result = ('<SpotDatabase: csv, output, improver, time, index,'
+                           ' primary_map=None, '
                            'primary_func=None, '
                            'pivot_dim=None, '
                            'pivot_map=None, '
                            'column_dims=None, '
-                           'column_maps=None, '
-                           'coord_to_slice_over=None>')
-        result = str(SpotDatabase("csv", "output", "improver", "time"))
+                           'column_maps=None>')
+        result = str(SpotDatabase("csv", "output", "improver", "time",
+                                  "index"))
         self.assertEqual(expected_result, result)
 
     def test_repr_after_dataframe_created(self):
         """Basic test of string representation after a database has been
            created and added to self."""
-        expected_result = ('<SpotDatabase: csv, output, improver, time, '
-                           'primary_map=None, '
+        expected_result = ('<SpotDatabase: csv, output, improver, time, index,'
+                           ' primary_map=None, '
                            'primary_func=None, '
                            'pivot_dim=None, '
                            'pivot_map=None, '
                            'column_dims=None, '
-                           'column_maps=None, '
-                           'coord_to_slice_over=None>')
-        plugin = SpotDatabase("csv", "output", "improver", "time")
+                           'column_maps=None>')
+        plugin = SpotDatabase("csv", "output", "improver", "time", "index")
         plugin.df = pd.DataFrame()
         result = str(plugin)
         self.assertEqual(expected_result, result)
@@ -160,7 +159,7 @@ class Test_pivot_table(IrisTest):
         """Set up the plugin and dataframe needed for these tests"""
         self.cube = set_up_spot_cube(280, number_of_sites=1)
         self.plugin = SpotDatabase(
-            "csv", "output", "improver", "time",
+            "csv", "output", "improver", "time", "index",
             pivot_map=lambda x: 'T+{:03d}'.format(int(x/3600)),
             pivot_dim="forecast_period")
         data = [[1487311200, 280.]]
@@ -233,7 +232,7 @@ class Test_map_primary_index(IrisTest):
         """Set up the plugin and dataframe needed for these tests"""
         self.cube = set_up_spot_cube(280, number_of_sites=1,)
         self.plugin = SpotDatabase(
-            "csv", "output", "improver", "time",
+            "csv", "output", "improver", "time", "index",
             primary_map=['validity_date', 'validity_time'],
             primary_func=[lambda x: dt.utcfromtimestamp(x).date(),
                           lambda x: dt.utcfromtimestamp(x).hour*100])
@@ -280,7 +279,8 @@ class Test_insert_extra_mapped_columns(IrisTest):
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
         self.cube = set_up_spot_cube(280, number_of_sites=1)
-        self.plugin = SpotDatabase("csv", "output", "improver", "time")
+        self.plugin = SpotDatabase("csv", "output", "improver", "time",
+                                   "index")
         data = [[1487311200, 280.]]
         columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
@@ -377,7 +377,8 @@ class Test_to_dataframe(IrisTest):
             forecast_period=2)
         self.cubelist = CubeList([self.cube])
         self.cubelist_multiple = CubeList([self.cube, self.cube2, self.cube3])
-        self.plugin = SpotDatabase("csv", "output", "improver", "time")
+        self.plugin = SpotDatabase("csv", "output", "improver", "time",
+                                   "index")
         data = [[1487311200, 280.]]
         columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
@@ -391,7 +392,7 @@ class Test_to_dataframe(IrisTest):
         expected_df = pd.DataFrame(data, index=[1487311200], columns=columns)
 
         # Call the method.
-        self.plugin.to_dataframe(self.cubelist, "index")
+        self.plugin.to_dataframe(self.cubelist)
 
         assert_frame_equal(self.plugin.df, expected_df)
 
@@ -413,7 +414,7 @@ class Test_to_dataframe(IrisTest):
             column_dims=['name'], column_maps=['cf_name'],
             coord_to_slice_over="index")
         # Call the method.
-        plugin.to_dataframe(self.cubelist, "index")
+        plugin.to_dataframe(self.cubelist)
         assert_frame_equal(plugin.df, expected_df)
 
     def test_all_optional_args_multiple_input_cubes(self):
@@ -436,7 +437,7 @@ class Test_to_dataframe(IrisTest):
             column_dims=['name'], column_maps=['cf_name'],
             coord_to_slice_over="index")
         # Call the method.
-        plugin.to_dataframe(self.cubelist_multiple, "index")
+        plugin.to_dataframe(self.cubelist_multiple)
         assert_frame_equal(plugin.df, expected_df)
 
     @staticmethod
@@ -462,7 +463,7 @@ class Test_to_dataframe(IrisTest):
             coord_to_slice_over="index")
         # Call the method.
         cube = set_up_spot_cube(280, number_of_sites=3,)
-        plugin.to_dataframe(CubeList([cube]), "index")
+        plugin.to_dataframe(CubeList([cube]))
         assert_frame_equal(plugin.df, expected_df)
 
 
@@ -472,9 +473,8 @@ class Test_determine_schema(IrisTest):
         """Set up the plugin and dataframe needed for this test"""
         cubes = CubeList([set_up_spot_cube(280)])
         self.plugin = SpotDatabase("csv", "output", "improver", "time",
-                                   coord_to_slice_over="index")
-        self.dataframe = self.plugin.to_dataframe(cubes,
-                                                  coord_to_slice_over="index")
+                                   "index")
+        self.dataframe = self.plugin.to_dataframe(cubes)
 
     def test_full_schema(self):
         """Basic test using a basic dataframe as input"""
@@ -503,8 +503,7 @@ class Test_process(IrisTest):
         self.cubes = CubeList([set_up_spot_cube(280)])
         self.data_directory = mkdtemp()
         self.plugin = SpotDatabase("csv", self.data_directory + "/test.csv",
-                                   "improver", "time",
-                                   coord_to_slice_over="index")
+                                   "improver", "time", "index")
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
