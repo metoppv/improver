@@ -519,6 +519,7 @@ class Test_process(IrisTest):
         self.assertEqual(resulting_string, expected_string)
 
     def test_unknown_output_type(self):
+        """Test what happens if you give an unknown output type."""
         plugin = SpotDatabase("kitten", self.data_directory + "/test.csv",
                               "improver", "time", "index")
         message = ("Unrecognised output type. Current options are 'sqlite'"
