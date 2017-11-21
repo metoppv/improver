@@ -112,6 +112,13 @@ class Test_process(IrisTest):
         tunit = Unit(time_origin, calendar)
         cube.add_dim_coord(DimCoord([402192.5, 402193.5],
                                     "time", units=tunit), 0)
+        cube.add_aux_coord(AuxCoord([402190.0, 402191.0],
+                           "forecast_reference_time", units=tunit),
+                           data_dims=0)
+        cube.add_aux_coord(AuxCoord([3.0, 4.0],
+                           "forecast_period", units=tunit),
+                           data_dims=0)
+
         self.cube = cube
         new_scalar_coord = iris.coords.AuxCoord(1,
                                                 long_name='dummy_scalar_coord',
@@ -135,6 +142,11 @@ class Test_process(IrisTest):
         cube_threshold.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
                                               'longitude',
                                               units='degrees'), 3)
+        cube_threshold.add_aux_coord(
+            AuxCoord([402190.0, 402191.0], "forecast_reference_time",
+            units=tunit), data_dims=0)
+        cube_threshold.add_aux_coord(
+            AuxCoord([3.0, 4.0], "forecast_period", units=tunit), data_dims=0)
         cube_threshold.attributes.update({'relative_to_threshold': 'below'})
         self.cube_threshold = cube_threshold
 
