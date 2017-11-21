@@ -30,13 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the spotdata.PointSelection plugin."""
 
-
+from collections import OrderedDict
 import unittest
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-from collections import OrderedDict
+
 
 from improver.spotdata.neighbour_finding import PointSelection as Plugin
 
@@ -115,6 +115,7 @@ class Test_PointSelection(IrisTest):
 
 
 class Test_miscellaneous(Test_PointSelection):
+    """Miscellaneous tests"""
     def test_invalid_method(self):
         """
         Test that the plugin can handle an invalid method being passed in.
@@ -159,30 +160,30 @@ class Test_miscellaneous(Test_PointSelection):
 
 
 class Test_fast_nearest_neighbour(Test_PointSelection):
-    '''
+    """
     Tests for fast_nearest_neighbour method. No other conditions beyond
     proximity are considered.
 
-    '''
+    """
     method = 'fast_nearest_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method)
 
     def test_correct_neighbour(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10.)
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Should function without any ancillary fields and return expected type.
-        '''
+        """
         self.without_ancillary_data(self.method)
 
 
 class Test_minimum_height_error_neighbour_no_bias(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -190,61 +191,61 @@ class Test_minimum_height_error_neighbour_no_bias(Test_PointSelection):
     In this case there is no bias as to whether dz is positive (grid point
     below site) or dz is negative (grid point above site).
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method)
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10.)
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0.)
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
 
         In this case of equal minimum vertical grid point displacements above
         and below the site the code will select the first occurrence of this
         smallest dz that is comes across; (14, 10) is tested before (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 1.)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
 
         With no vertical displacement bias the smallest of the two unequal
         dz values is chosen; -1 at (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 16, 10, -1.)
 
 
 class Test_minimum_height_error_neighbour_bias_above(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -253,36 +254,36 @@ class Test_minimum_height_error_neighbour_bias_above(Test_PointSelection):
     site), but if this condition cannot be met, a minimum positive dz (grid
     point below site) neighbour will be returned.
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method, vertical_bias='above')
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method, vertical_bias='above')
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above')
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes above the site if these are available.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='above')
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes ABOVE the site if these are available.
@@ -291,13 +292,13 @@ class Test_minimum_height_error_neighbour_bias_above(Test_PointSelection):
         and below the site the code will select the point which obeys the bias
         condition; here (16, 10) is ABOVE the site and will be chosen instead
         of (14, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 16, 10, -1., vertical_bias='above')
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes ABOVE the site if these are available.
@@ -306,14 +307,14 @@ class Test_minimum_height_error_neighbour_bias_above(Test_PointSelection):
         goes against the selection bias of grid points ABOVE the site. As such
         the next nearest dz that fulfils the bias condition is chosen; -2 at
         (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 12.
         self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above')
 
 
 class Test_minimum_height_error_neighbour_bias_below(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -322,36 +323,36 @@ class Test_minimum_height_error_neighbour_bias_below(Test_PointSelection):
     site), but if this condition cannot be met, a minimum negative dz (grid
     point above site) neighbour will be returned.
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method, vertical_bias='below')
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method, vertical_bias='below')
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below')
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes below the site if these are available.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='below')
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes BELOW the site if these are available.
@@ -360,13 +361,13 @@ class Test_minimum_height_error_neighbour_bias_below(Test_PointSelection):
         and below the site the code will select the point which obeys the bias
         condition; here (14, 10) is BELOW the site and will be chosen instead
         of (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 1., vertical_bias='below')
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes BELOW the site if these are available.
@@ -375,14 +376,14 @@ class Test_minimum_height_error_neighbour_bias_below(Test_PointSelection):
         (16, 10) goes against the selection bias of grid points BELOW the site.
         As such the next nearest dz that fulfils the bias condition is chosen;
         2 at (14, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below')
 
 
 class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -395,69 +396,69 @@ class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
     is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method, land_constraint=True)
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method, land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10., land_constraint=True)
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0., land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
 
         In this case of equal minimum vertical grid point displacements above
         and below the site the code will select the first occurrence of this
         smallest dz that is comes across; (14, 10) is tested before (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 1., land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
 
         With no vertical displacement bias the smallest of the two unequal
         dz values is chosen; -1 at (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 16, 10, -1., land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
-        '''
+        """
         Sets nearest grid point to be a sea point. Assumes site is sea point
         and leaves coordinates unchanged (dz should not vary over the sea).
 
-        '''
+        """
         self.ancillary_data['land_mask'].data[15, 10] = 0.
         self.correct_neighbour(self.method, 15, 10, 10., land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. No relative altitude bias in selection.
 
@@ -465,14 +466,14 @@ class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
         land is discounted. So (14, 10) is disregarded leaving (16, 10) to give
         the smallest dz, so this point is returned as the neighbour.
 
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.ancillary_data['land_mask'].data[14, 10] = 0.
         self.correct_neighbour(self.method, 16, 10, -1., land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. A land point is required. No relative altitude
         bias in selection.
@@ -480,7 +481,7 @@ class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
         (16, 10) is disregarded as it is a sea point. As such (14, 10) is
         returned as the neighbour despite its slightly larger dz.
 
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.ancillary_data['land_mask'].data[16, 10] = 0.
@@ -488,7 +489,7 @@ class Test_minimum_height_error_neighbour_land_no_bias(Test_PointSelection):
 
 
 class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -502,40 +503,40 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
     is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method, vertical_bias='above',
                           land_constraint=True)
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method, vertical_bias='above',
                                     land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above',
                                land_constraint=True)
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes above the site if these are available.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='above',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes ABOVE the site if these are available.
@@ -544,14 +545,14 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
         and below the site the code will select the point which obeys the bias
         condition; here (16, 10) is ABOVE the site and will be chosen instead
         of (14, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 16, 10, -1., vertical_bias='above',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes ABOVE the site if these are available.
@@ -560,24 +561,24 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
         goes against the selection bias of grid points ABOVE the site. As such
         the next nearest dz that fulfils the bias condition is chosen; -2 at
         (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 12.
         self.correct_neighbour(self.method, 16, 10, -2., vertical_bias='above',
                                land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
-        '''
+        """
         Sets nearest grid point to be a sea point. Assumes site is sea point
         and leaves coordinates unchanged (dz should not vary over the sea).
 
-        '''
+        """
         self.ancillary_data['land_mask'].data[15, 10] = 0.
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='above',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes ABOVE the site if these are available.
@@ -587,7 +588,7 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
         the smallest dz. This point is returned as the neighbour as no points
         fulfill the ABOVE bias condition.
 
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.ancillary_data['land_mask'].data[16, 10] = 0.
@@ -595,7 +596,7 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
                                land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. A land point is required. Biased to prefer
         grid points with relative altitudes ABOVE the site if these are
@@ -606,7 +607,7 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
         the smallest dz. This point is returned as the neighbour as no other
         point fulfills the ABOVE bias condition.
 
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.ancillary_data['land_mask'].data[16, 10] = 0.
@@ -615,7 +616,7 @@ class Test_minimum_height_error_neighbour_land_bias_above(Test_PointSelection):
 
 
 class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
-    '''
+    """
     Tests for the minimum_height_error neighbour method of point selection.
     This method seeks to minimise the vertical displacement between a spotdata
     site and a neigbouring grid point.
@@ -629,40 +630,40 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
     is a sea point, the site is assumed to be a sea point as well and the
     neighbour point will not be changed.
 
-    '''
+    """
 
     method = 'minimum_height_error_neighbour'
 
     def test_return_type(self):
-        '''Ensure a numpy array of the format expected is returned.'''
+        """Ensure a numpy array of the format expected is returned."""
         self.return_types(self.method, vertical_bias='below',
                           land_constraint=True)
 
     def test_without_ancillary_data(self):
-        '''
+        """
         Ensure an exception is raised if needed ancillary fields are
         missing.
-        '''
+        """
         self.without_ancillary_data(self.method, vertical_bias='below',
                                     land_constraint=True)
 
     def test_correct_neighbour_no_orography(self):
-        '''Nearest neighbouring grid point with no other conditions.'''
+        """Nearest neighbouring grid point with no other conditions."""
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below',
                                land_constraint=True)
 
     def test_correct_neighbour_orography(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes below the site if these are available.
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 10.
         self.correct_neighbour(self.method, 14, 10, 0., vertical_bias='below',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes BELOW the site if these are available.
@@ -671,14 +672,14 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
         and below the site the code will select the point which obeys the bias
         condition; here (14, 10) is BELOW the site and will be chosen instead
         of (16, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 9.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 1., vertical_bias='below',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes BELOW the site if these are available.
@@ -687,24 +688,24 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
         (16, 10) goes against the selection bias of grid points BELOW the site.
         As such the next nearest dz that fulfils the bias condition is chosen;
         2 at (14, 10).
-        '''
+        """
         self.ancillary_data['orography'].data[14, 10] = 8.
         self.ancillary_data['orography'].data[16, 10] = 11.
         self.correct_neighbour(self.method, 14, 10, 2., vertical_bias='below',
                                land_constraint=True)
 
     def test_correct_neighbour_no_orography_land(self):
-        '''
+        """
         Sets nearest grid point to be a sea point. Assumes site is sea point
         and leaves coordinates unchanged (dz should not vary over the sea).
 
-        '''
+        """
         self.ancillary_data['land_mask'].data[15, 10] = 0.
         self.correct_neighbour(self.method, 15, 10, 10., vertical_bias='below',
                                land_constraint=True)
 
     def test_correct_neighbour_orography_equal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. Biased to prefer grid points with relative
         altitudes BELOW the site if these are available.
@@ -714,7 +715,7 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
         the smallest dz. This point is returned as the neighbour as no points
         fulfill the BELOW bias condition.
 
-        '''
+        """
         self.ancillary_data['orography'].data = (
             self.ancillary_data['orography'].data + 20.)
         self.ancillary_data['orography'].data[14, 10] = 9.
@@ -724,7 +725,7 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
                                land_constraint=True)
 
     def test_correct_neighbour_orography_unequal_displacement_land(self):
-        '''
+        """
         Nearest neighbouring grid point condition relaxed to give smallest
         vertical displacement. A land point is required. Biased to prefer
         grid points with relative altitudes BELOW the site if these are
@@ -735,7 +736,7 @@ class Test_minimum_height_error_neighbour_land_bias_below(Test_PointSelection):
         the smallest dz. This point is returned as the neighbour as no points
         fulfill the BELOW bias condition.
 
-        '''
+        """
         self.ancillary_data['orography'].data = (
             self.ancillary_data['orography'].data + 20.)
         self.ancillary_data['orography'].data[14, 10] = 9.
