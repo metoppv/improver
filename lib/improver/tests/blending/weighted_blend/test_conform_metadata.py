@@ -33,7 +33,9 @@
 import unittest
 
 import numpy as np
+import iris
 from iris.tests import IrisTest
+from iris.coords import AuxCoord
 
 from improver.blending.weighted_blend import conform_metadata
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
@@ -46,72 +48,88 @@ class Test_conform_metadata(IrisTest):
 
     def setUp(self):
         """Set up cubes for testing."""
-        data = np.full((3, 3), 275.15, dtype=np.float)
+        data = np.full((3, 1, 3, 3), 275.15, dtype=np.float)
         cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube(data, "air_temperature", "Kelvin"))
-        cube = cube[0].remove_coord("realization")
-        #cube.add_aux_coord(AuxCoord([402190.0], "forecast_reference_time",
-            #units=cube.coord("time").units), data_dims=1)
-        #cube.add_aux_coord(
-            #AuxCoord([3.0], "forecast_period", units=tunit), data_dims=0)
+        cube = cube[0]
+        cube.remove_coord("realization")
+        self.cube = cube
 
         # Cube with multiple times.
-        cube_orig = add_forecast_reference_time_and_forecast_period(
-            set_up_cube(data, "air_temperature", "Kelvin", timesteps=2))
-        cube_orig = cube_orig[0].remove_coord("realization")
-        #cube_orig.add_aux_coord(AuxCoord([402190.0, 402191.0], "forecast_reference_time",
-            #units=cube_orig.coord("time").units), data_dims=1)
-        #cube_orig.add_aux_coord(
-            #AuxCoord([3.0, 4.0], "forecast_period", units=tunit), data_dims=0)
+        data = np.full((3, 2, 3, 3), 275.15, dtype=np.float)
+        temp_cube = set_up_cube(data, "air_temperature", "Kelvin", timesteps=2)
+        fp_points = [3.0, 4.0]
+        temp_cubes = iris.cube.CubeList([])
+        for cube, fp_point in zip(temp_cube.slices_over("time"), fp_points):
+            temp_cubes.append(add_forecast_reference_time_and_forecast_period(
+                cube, time_point=cube.coord("time").points, fp_point=fp_point))
+        cube_orig = temp_cubes.merge_cube()
+        cube_orig.transpose([1, 0, 2, 3])
+        cube_orig = cube_orig[0]
+        cube_orig.remove_coord("realization")
+        self.cube_orig = cube_orig
 
-        # Cube without forecast_period
+        # Cube without forecast_period.
         cube_orig_without_fp = cube_orig.copy()
         cube_orig_without_fp.remove_coord("forecast_period")
+        self.cube_orig_without_fp = cube_orig_without_fp
+        self.cube_without_fp = cube_orig_without_fp.copy().collapsed(
+            "forecast_reference_time", iris.analysis.MEAN)
+
+        # Cube with a model, model_id and model realization.
+        cube_orig_model = cube_orig.copy()
+        cube_orig_model.add_aux_coord(
+            AuxCoord([1000, 1000], long_name="model"), data_dims=0)
+        cube_orig_model.add_aux_coord(
+            AuxCoord(["Operational MOGREPS-UK Model Forecast",
+                      "Operational UKV Model Forecast"], long_name="model_id"),
+            data_dims=0)
+        cube_orig_model.add_aux_coord(
+            AuxCoord([0, 1001], long_name="model_realization"), data_dims=0)
+        cube_orig_model.add_aux_coord(
+            AuxCoord([0, 1], long_name="realization"), data_dims=0)
+        self.cube_orig_model = cube_orig_model
+        self.cube_model = cube_orig_model.collapsed(
+            "forecast_reference_time", iris.analysis.MEAN)
 
     def test_basic(self):
-       result = conform_metadata(self.cube, self.cube_orig)
-       self.assertIsInstance(result, Cube)
-
-# Cube returned
+        """Test that conform_metadata returns a cube."""
+        result = conform_metadata(self.cube, self.cube_orig)
+        self.assertIsInstance(result, iris.cube.Cube)
 
     def test_with_forecast_reference_time_and_forecast_period(self):
-       result = conform_metadata(self.cube, self.cube_orig)
-       self.assertEqual(
-           result.coord("forecast_reference_time").points,
-           np.max(self.cube_orig.coord("forecast_reference_time").points))
-       self.assertFalse(result.coord("forecast_reference_time").bounds)
-       self.assertEqual(
-           result.coord("forecast_period").points,
-           np.min(self.cube_orig.coord("forecast_period").points))
-       self.assertFalse(result.coord("forecast_period").bounds)
-
-# Cube with frt and fp
+        """Test that a cube is dealt with correctly, if the cube contains
+        a forecast_reference_time and forecast_period coordinate."""
+        result = conform_metadata(self.cube, self.cube_orig)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points,
+            np.max(self.cube_orig.coord("forecast_reference_time").points))
+        self.assertFalse(result.coord("forecast_reference_time").bounds)
+        self.assertEqual(
+            result.coord("forecast_period").points,
+            np.min(self.cube_orig.coord("forecast_period").points))
+        self.assertFalse(result.coord("forecast_period").bounds)
 
     def test_with_forecast_reference_time_and_without_forecast_period(self):
-       result = conform_metadata(self.cube, self.cube_orig)
-       self.assertEqual(
-           result.coord("forecast_reference_time").points,
-           np.max(self.cube_orig.coord("forecast_reference_time").points))
-       self.assertFalse(result.coord("forecast_reference_time").bounds)
-       self.assertEqual(
-           result.coord("forecast_period").points,
-           np.min(self.cube_orig.coord("forecast_period").points))
-       self.assertFalse(result.coord("forecast_period").bounds)
-
-# Cube with frt and without fp
-
-# Cube with model_id, model_realization
+        """Test that a cube is dealt with correctly, if the cube contains a
+        forecast_reference_time coordinate but not a forecast_period."""
+        result = conform_metadata(
+            self.cube_without_fp, self.cube_orig_without_fp)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points,
+            np.max(self.cube_orig.coord("forecast_reference_time").points))
+        self.assertFalse(result.coord("forecast_reference_time").bounds)
+        self.assertEqual(
+            result.coord("forecast_period").points,
+            np.min(self.cube_orig.coord("forecast_period").points))
+        self.assertFalse(result.coord("forecast_period").bounds)
 
     def test_with_model_model_id_and_model_realization(self):
-       result = conform_metadata(self.cube, self.cube_orig)
-       self.assertEqual(
-           result.coord("forecast_reference_time").points,
-           np.max(self.cube_orig.coord("forecast_reference_time").points))
-       self.assertFalse(result.coord("forecast_reference_time").bounds)
-       self.assertEqual(
-           result.coord("forecast_period").points,
-           np.min(self.cube_orig.coord("forecast_period").points))
-       self.assertFalse(result.coord("forecast_period").bounds)
+        """Test that a cube is dealt with correctly, if the cube contains a
+        model, model_id and model_realization coordinate."""
+        result = conform_metadata(self.cube_model, self.cube_orig_model)
+        self.assertFalse(result.coords("model_id"))
+        self.assertFalse(result.coords("model_realization"))
 
 
 if __name__ == '__main__':

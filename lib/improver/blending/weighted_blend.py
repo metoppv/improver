@@ -39,6 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import add_renamed_cell_method
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.temporal import find_required_lead_times
 
 
 def conform_metadata(cube, cube_orig):
@@ -57,8 +58,7 @@ def conform_metadata(cube, cube_orig):
             Cube containing the adjusted metadata.
 
     """
-    print "conform_metadata"
-    if cube.coords("forecast_reference_time"): 
+    if cube.coords("forecast_reference_time"):
         cube.coord("forecast_reference_time").points = (
             np.max(cube_orig.coord("forecast_reference_time").points))
         cube.coord("forecast_reference_time").bounds = None
@@ -68,9 +68,12 @@ def conform_metadata(cube, cube_orig):
             np.min(cube_orig.coord("forecast_period").points))
         cube.coord("forecast_period").bounds = None
     elif cube.coords("forecast_reference_time") and cube.coords("time"):
-        forecast_periods = find_required_lead_times(cube_orig)
-        cube.coord("forecast_period").points = forecast_periods
-        cube.coord("forecast_period").bounds = None
+        forecast_period = np.min(find_required_lead_times(cube_orig))
+        ndim = cube.coord_dims("time")
+        cube.add_aux_coord(
+            iris.coords.AuxCoord(
+                forecast_period, standard_name="forecast_period"),
+            data_dims=ndim)
 
     for coord in ["model_id", "model_realization", "realization"]:
         if cube.coords(coord):
@@ -450,9 +453,6 @@ class WeightedBlendAcrossWholeDimension(object):
                 else:
                     slices_over_threshold = [cube]
 
-            print "self.coord = ", self.coord
-            print "cube = ", cube
-
             cubelist = iris.cube.CubeList([])
             for cube_thres in slices_over_threshold:
                 # Blend the cube across the coordinate
@@ -514,9 +514,7 @@ class WeightedBlendAcrossWholeDimension(object):
                     cube_new = cube_thres.collapsed(self.coord,
                                                     MAX_PROBABILITY,
                                                     arr_weights=weights)
-                print "cube_new = ", cube_new
                 cube_new = conform_metadata(cube_new, cube_thres)
-                print "cube_new = ", cube_new
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):

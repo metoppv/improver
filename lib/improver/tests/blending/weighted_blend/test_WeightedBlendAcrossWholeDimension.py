@@ -144,7 +144,7 @@ class Test_process(IrisTest):
                                               units='degrees'), 3)
         cube_threshold.add_aux_coord(
             AuxCoord([402190.0, 402191.0], "forecast_reference_time",
-            units=tunit), data_dims=0)
+                     units=tunit), data_dims=0)
         cube_threshold.add_aux_coord(
             AuxCoord([3.0, 4.0], "forecast_period", units=tunit), data_dims=0)
         cube_threshold.attributes.update({'relative_to_threshold': 'below'})
