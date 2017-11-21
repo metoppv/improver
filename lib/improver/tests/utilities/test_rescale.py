@@ -32,8 +32,6 @@
 
 import unittest
 import numpy as np
-import StringIO
-import sys
 
 from iris.tests import IrisTest
 
@@ -55,13 +53,6 @@ class Test_rescale(IrisTest):
         """
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube())
-        self.stdout = StringIO.StringIO()
-        sys.stdout = self.stdout  # Redirect standard out.
-
-    @staticmethod
-    def tearDown():
-        """Reset standard out stream."""
-        sys.stdout = sys.__stdout__  # Reset standard out.
 
     def test_basic(self):
         """Test that the method returns the expected array type"""
