@@ -75,7 +75,6 @@ class WeatherSymbols(object):
                 The error includes details of which fields are missing.
         """
         missing_data = []
-        mismatched_units = []
         for query in self.queries.itervalues():
             diagnostics = expand_nested_lists(query, 'diagnostic_fields')
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
@@ -83,7 +82,6 @@ class WeatherSymbols(object):
             for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions):
 
-                threshold_units = threshold.units
                 # First we check the diagnostic name and units, performing
                 # a conversion is required and possible.
                 test_condition = (iris.Constraint(name=diagnostic))
