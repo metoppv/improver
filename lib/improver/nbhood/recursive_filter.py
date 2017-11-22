@@ -49,17 +49,17 @@ class RecursiveFilter(object):
         Initialise the class.
 
         Keyword Args:
-            alpha_x {Float or None}:
+            alpha_x (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
                 that 0.0 <= alpha_x <= 1.0
-            alpha_y {Float or None}:
+            alpha_y (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
                 that 0.0 <= alpha_y <= 1.0
-            iterations {integer or None}:
+            iterations (integer or None):
                 The number of iterations of the recursive filter.
-            edge_width {integer}:
+            edge_width (integer):
                 The width of the padding applied to the grid cells
                 when adding the SquareNeighbourhood halo.
 
@@ -107,15 +107,15 @@ class RecursiveFilter(object):
         Method to run the recursive filter in the forward x-direction.
 
         Args:
-            grid {numpy array}:
+            grid (numpy array):
                 Array containing the input data to which the recursive filter
                 will be applied.
-            alphas {numpy array}:
+            alphas (numpy array):
                 Array of alpha values that will be used when applying
                 the recursive filter along the x-axis.
 
-        Returns
-            grid {numpy array}:
+        Returns:
+            grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 forward x-direction.
@@ -133,15 +133,15 @@ class RecursiveFilter(object):
         Method to run the recursive filter in the backwards x-direction.
 
         Args:
-            grid {numpy array}:
+            grid (numpy array):
                 Array containing the input data to which the recursive filter
                 will be applied.
-            alphas {numpy array}:
+            alphas (numpy array):
                 Array of alpha values that will be used when applying
                 the recursive filter along the x-axis.
 
-        Returns
-            grid {numpy array}:
+        Returns:
+            grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filtermethod has been applied to the input array in the
                 backwards x-direction.
@@ -159,15 +159,15 @@ class RecursiveFilter(object):
         Method to run the recursive filter in the forward y-direction.
 
         Args:
-            grid {numpy array}:
+            grid (numpy array):
                 Array containing the input data to which the recursive filter
                 will be applied.
-            alphas {numpy array}:
+            alphas (numpy array):
                 Array of alpha values that will be used when applying
                 the recursive filter along the y-axis.
 
-        Returns
-            grid {numpy array}:
+        Returns:
+            grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 forward y-direction.
@@ -185,15 +185,15 @@ class RecursiveFilter(object):
         Method to run the recursive filter in the backwards y-direction.
 
         Args:
-            grid {numpy array}:
+            grid (numpy array):
                 Array containing the input data to which the recursive filter
                 will be applied.
-            alphas {numpy array}:
+            alphas (numpy array):
                 Array of alpha values that will be used when applying
                 the recursive filter along the y-axis.
 
-        Returns
-            grid {numpy array}:
+        Returns:
+            grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filter method has been applied to the input arary in the
                 backwards y-direction.
@@ -218,20 +218,20 @@ class RecursiveFilter(object):
         Bi-1 = New value at gridpoint i-1
 
         Args:
-            cube {Iris.cube.Cube}:
+            cube (Iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            alphas_x {Iris.cube.Cube}:
+            alphas_x (Iris.cube.Cube):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter along the x-axis.
-            alphas_y {Iris.cube.Cube}:
+            alphas_y (Iris.cube.Cube):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter along the y-axis.
-            iterations {integer}:
+            iterations (integer):
                 The number of iterations of the recursive filter
 
-        Returns
-            cube {Iris.cube.Cube}:
+        Returns:
+            cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied to the input cube.
         """
@@ -254,13 +254,13 @@ class RecursiveFilter(object):
         Set up the alpha parameter.
 
         Args:
-            cube {Iris.cube.Cube}:
+            cube (Iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            alpha {Float}:
+            alpha (Float):
                 The constant used to weight the recursive filter in that
                 direction: Defined such that 0.0 <= alpha <= 1.0
-            alphas_cube {Iris.cube.Cube or None}:
+            alphas_cube (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter in a specific direction.
 
@@ -270,8 +270,8 @@ class RecursiveFilter(object):
             ValueError: If dimension of alphas array is greater than dimension
                         of data array
 
-        Returns
-            alphas_cube {Iris.cube.Cube}:
+        Returns:
+            alphas_cube (Iris.cube.Cube):
                 Cube containing a padded array of alpha values
                 for the specified direction.
         """
@@ -296,6 +296,7 @@ class RecursiveFilter(object):
         Set up the alpha parameters and run the recursive filter.
 
         The steps undertaken are:
+
         1. Split the input cube into slices determined by the co-ordinates in
            the x and y directions.
         2. Construct an array of filter parameters (alphas_x and alphas_y) for
@@ -312,20 +313,20 @@ class RecursiveFilter(object):
            values for the original input cube.
 
         Args:
-            cube {Iris.cube.Cube}:
+            cube (Iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
 
         Keyword Args:
-            alphas_x {Iris.cube.Cube or None}:
+            alphas_x (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the x-axis.
-            alphas_y {Iris.cube.Cube or None}:
+            alphas_y (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the y-axis.
 
-        Returns
-            new_cube {Iris.cube.Cube}:
+        Returns:
+            new_cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
         """
