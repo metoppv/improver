@@ -84,26 +84,30 @@ class WeatherSymbols(object):
                     diagnostics, thresholds, conditions):
 
                 threshold_units = threshold.units
+                # First we check the diagnostic name and units, performing
+                # a conversion is required and possible.
+                test_condition = (iris.Constraint(name=diagnostic))
+                matched_cube = cubes.extract(test_condition)
+                if not matched_cube:
+                    missing_data.append([diagnostic, threshold, condition])
+                    continue
+                else:
+                    cube_threshold_units = (
+                        matched_cube[0].coord('threshold').units)
+                    threshold.convert_units(cube_threshold_units)
+
+                # Then we check if the required threshold is present in the
+                # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
-                test_condition = (
-                    iris.Constraint(
-                        name=diagnostic,
+                test_condition = (iris.Constraint(
                         threshold=lambda cell:
                             threshold*0.99 < cell < threshold*1.01,
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
-                if not cubes.extract(test_condition):
+                matched_threshold = matched_cube.extract(test_condition)
+                if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
-
-                else:
-                    cube_threshold_units = (
-                        cubes.extract(test_condition)[0].coord(
-                            'threshold').units)
-                    if cube_threshold_units != threshold_units:
-                        mismatched_units.append(
-                            [diagnostic, cube_threshold_units,
-                             threshold_units])
 
         if missing_data:
             msg = ('Weather Symbols input cubes are missing'
@@ -113,14 +117,6 @@ class WeatherSymbols(object):
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
-
-        if mismatched_units:
-            msg = ('Weather Symbols input cubes have threshold units '
-                   'that differ from those required:\n')
-            dyn_msg = 'name: {}, cube threshold unit: {}, required unit: {}\n'
-            for item in mismatched_units:
-                msg = msg + dyn_msg.format(*item)
-            raise TypeError(msg)
         return
 
     @staticmethod

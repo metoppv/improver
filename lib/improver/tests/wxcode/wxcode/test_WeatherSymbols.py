@@ -173,14 +173,13 @@ class Test_check_input_cubes(IrisTest):
             plugin.check_input_cubes(cubes)
 
     def test_incorrect_units(self):
-        """Test that check_input_cubes method raises error if units are
-        different to the input cube."""
+        """Test that check_input_cubes method raises an error if the units are
+        incompatible between the input cube and the decision tree."""
         plugin = WeatherSymbols()
 
-        msg = ('Weather Symbols input cubes have threshold units '
-               'that differ from those required')
-        self.cubes[0].coord('threshold').units = Unit('mm hr-1')
-        with self.assertRaisesRegexp(TypeError, msg):
+        msg = "Unable to convert from"
+        self.cubes[0].coord('threshold').units = Unit('mm kg-1')
+        with self.assertRaisesRegexp(ValueError, msg):
             plugin.check_input_cubes(self.cubes)
 
 
