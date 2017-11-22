@@ -312,3 +312,4 @@ class VerificationTable(SpotDatabase):
         """Add an extra method call to the to_dataframe above"""
         super(VerificationTable, self).to_dataframe(cubelist)
         self.ensure_all_pivot_columns(self.df)
+        self.df.sort_index(axis=1, inplace=True)
