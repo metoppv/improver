@@ -234,7 +234,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_boundingzero_above(self):
-        """Test fuzzy threshold of zero."""
+        """Test fuzzy threshold of zero where data are above upper-bound."""
         bounds = (-0.1, 0.1)
         plugin = Threshold(0.0, fuzzy_bounds=bounds)
         result = plugin.process(self.cube)
@@ -253,8 +253,8 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_below(self):
-        """Test when a point is below assymmetric fuzzy threshold area."""
+    def test_threshold_asymmetric_bounds_below(self):
+        """Test when a point is below asymmetric fuzzy threshold area."""
         bounds = (0.51, 0.9)
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin.process(self.cube)
@@ -262,8 +262,8 @@ class Test_process(IrisTest):
             1, 1, 5, 5)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_lower(self):
-        """Test when a point is in lower assymmetric fuzzy threshold area."""
+    def test_threshold_asymmetric_bounds_lower(self):
+        """Test when a point is in lower asymmetric fuzzy threshold area."""
         bounds = (0.4, 0.9)
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin.process(self.cube)
@@ -272,8 +272,8 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_middle(self):
-        """Test when a point is on the threshold with assymmetric fuzzy
+    def test_threshold_asymmetric_bounds_middle(self):
+        """Test when a point is on the threshold with asymmetric fuzzy
         bounds."""
         bounds = (0.4, 0.9)
         plugin = Threshold(0.5, fuzzy_bounds=bounds)
@@ -283,8 +283,8 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 0.5
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_upper(self):
-        """Test when a point is in upper assymmetric fuzzy threshold area."""
+    def test_threshold_asymmetric_bounds_upper(self):
+        """Test when a point is in upper asymmetric fuzzy threshold area."""
         bounds = (0.0, 0.6)
         plugin = Threshold(0.4, fuzzy_bounds=bounds)
         result = plugin.process(self.cube)
@@ -293,8 +293,8 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 0.75
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_above(self):
-        """Test when a point is above assymmetric fuzzy threshold area."""
+    def test_threshold_asymmetric_bounds_above(self):
+        """Test when a point is above asymmetric fuzzy threshold area."""
         bounds = (0.0, 0.45)
         plugin = Threshold(0.4, fuzzy_bounds=bounds)
         result = plugin.process(self.cube)
@@ -303,8 +303,8 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 1.
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_assymetric_bounds_upper_below(self):
-        """Test when a point is in upper assymmetric fuzzy threshold area
+    def test_threshold_asymmetric_bounds_upper_below(self):
+        """Test when a point is in upper asymmetric fuzzy threshold area
         and below-threshold is requested."""
         bounds = (0.0, 0.6)
         plugin = Threshold(0.4, fuzzy_bounds=bounds, below_thresh_ok=True)

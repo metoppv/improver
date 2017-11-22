@@ -60,7 +60,9 @@ optional arguments:
                         of strings that can be interpreted as floats with the
                         structure: "THRESHOLD_VALUE": [LOWER_BOUND,
                         UPPER_BOUND] e.g: {"280.0": [278.0, 282.0], "290.0":
-                        [288.0, 292.0]}
+                        [288.0, 292.0]}. Repeated thresholds with different
+                        bounds are not handled well. Only the last duplicate
+                        will be used.
   --threshold_units THRESHOLD_UNITS
                         Units of the threshold values. If not provided the
                         units are assumed to be the same as those of the input
