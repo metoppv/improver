@@ -99,7 +99,8 @@ class WeatherSymbols(object):
                 # Then we check if the required threshold is present in the
                 # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
-                test_condition = (iris.Constraint(
+                test_condition = (
+                    iris.Constraint(
                         threshold=lambda cell:
                             threshold*0.99 < cell < threshold*1.01,
                         cube_func=lambda cube: (
