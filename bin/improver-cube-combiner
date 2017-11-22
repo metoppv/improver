@@ -34,6 +34,7 @@
 import argparse
 
 import iris
+import json
 import warnings
 
 from improver.cube_combiner import CubeCombiner
@@ -43,14 +44,14 @@ def main():
     """Load in arguments for the cube combiner plugin.
     """
     parser = argparse.ArgumentParser(
-        description="Combine the input cubes into a single cube using"
+        description="Combine the input cubes into a single cube using "
                     "the requested operation e.g. + - min max etc.")
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
                         nargs="+", type=str,
                         help="A path to an input NETCDF files."
-                        "One cube per NetCDF file")
+                        " One cube per NetCDF file")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
+                        help="The output path for the processed NetCDF.")
     parser.add_argument("--operation", metavar="OPERATION",
                         default="+",
                         choices=["+", "-", "*",
@@ -62,8 +63,18 @@ def main():
                         default=None,
                         help="New cube name. Will default to name of "
                         "first cube if not set ", type=str)
+    parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
+                        default=None,
+                        help="Filename for the json file containing "
+                        "required changes to the metadata. "
+                        " default=None", type=str)
+    parser.add_argument('--warnings_on', action='store_true',
+                        help="If warings_on is set (i.e. True), "
+                        "Warning messages where cubes do not match "
+                        "will be given. Default=False", default=False)
 
     args = parser.parse_args()
+    # Load the cubes
     cubes = iris.cube.CubeList([])
     new_cube_name = args.new_cube_name
     for filename in args.input_filenames:
@@ -71,15 +82,35 @@ def main():
         cubes.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
-        if (args.new_cube_name is None and
-                new_cube_name != new_cube.name()):
-            msg = ("Defaulting to first cube name, {}".format(new_cube_name) +
-                   " but combining with a cube "
-                   "with name, {}.".format(new_cube.name()))
-            warnings.warn(msg)
+        if args.warnings_on:
+            if (args.new_cube_name is None and
+                    new_cube_name != new_cube.name()):
+                msg = ("Defaulting to first "
+                       "cube name, {}".format(new_cube_name) +
+                       " but combining with a cube "
+                       "with name, {}.".format(new_cube.name()))
+                warnings.warn(msg)
+
+    # Load the metadata changes if required
+    new_coords = None
+    new_attr = None
+    if args.metadata_jsonfile:
+        # Read in extraction recipes for all diagnostics.
+        with open(args.metadata_jsonfile, 'r') as input_file:
+            new_metadata = json.load(input_file)
+            if 'coordinates' in new_metadata:
+                new_coords = new_metadata['coordinates']
+            if 'attributes' in new_metadata:
+                new_attr = new_metadata['attributes']
 
     result = (
-        CubeCombiner(args.operation).process(cubes, new_cube_name))
+        CubeCombiner(args.operation).process(
+            cubes,
+            new_cube_name,
+            revised_coords=new_coords,
+            revised_attributes=new_attr,
+            warnings_on=args.warnings_on))
+
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 

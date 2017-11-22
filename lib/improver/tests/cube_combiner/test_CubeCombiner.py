@@ -71,6 +71,7 @@ def create_cube_with_threshold(data=None,
     cube.add_dim_coord(DimCoord(threshold_values,
                                 long_name='threshold',
                                 units=units), 0)
+    cube.attributes['relative_to_threshold'] = 'above'
     return cube
 
 
@@ -110,11 +111,86 @@ class Test_resolve_metadata_diff(IrisTest):
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
-        result = plugin.resolve_metadata_diff(cube1, cube2)
+        result = plugin.resolve_metadata_diff(cube1, cube2, None, None)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], Cube)
         self.assertIsInstance(result[1], Cube)
+
+
+class Test_amend_metadata(IrisTest):
+
+    """Test the amend_metadata method."""
+
+    def test_basic(self):
+        """Test that the function returns a Cube. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       None, None)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'new_cube_name')
+
+    def test_attributes_updated(self):
+        """Test amend_metadata  updates attributes OK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attributes = {'relative_to_threshold': 'between'}
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       None, attributes)
+        self.assertEqual(result.attributes['relative_to_threshold'],
+                         'between')
+
+    def test_attributes_added(self):
+        """Test amend_metadata  updates attributes OK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attributes = {'new_attribute': 'new_value'}
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       None, attributes)
+        self.assertEqual(result.attributes['new_attribute'],
+                         'new_value')
+
+    def test_attributes_deleted(self):
+        """Test amend_metadata  updates attributes OK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attributes = {'relative_to_threshold': 'delete'}
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       None, attributes)
+        self.assertEqual('relative_to_threshold' in result.attributes,
+                         False)
+
+    def test_coords_updated(self):
+        """Test amend_metadata updates coords correctly. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        coords = {'threshold': {'points': [2.0], 'bounds': [0.1, 2.0]}}
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       coords, None)
+        self.assertArrayEqual(result.coord('threshold').points,
+                              np.array([2.0]))
+
+    def test_coords_deleted(self):
+        """Test amend_metadata updates coords correctly. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        coords = {'threshold': 'delete'}
+        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                       coords, None)
+        found_key = 'threshold' in [coord.name() for coord in result.coords()]
+        self.assertArrayEqual(found_key,
+                              False)
+
+    def test_coords_deleted_fails(self):
+        """Test amend_metadata updates coords correctly. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        coords = {'time': 'delete'}
+        msg = "Can only remove a coordinate of len 1"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
+                                  coords, None)
 
 
 class Test_combine(IrisTest):
@@ -139,10 +215,8 @@ class Test_combine(IrisTest):
         plugin = CubeCombiner(operation)
         cube1 = self.cube1
         cube2 = cube1.copy()
-        result = plugin.combine(cube1, cube2, operation,
-                                'new_cube_name')
+        result = plugin.combine(cube1, cube2, operation)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), 'new_cube_name')
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.25
         expected_data[0, 1, :, :] = 0.36
@@ -153,8 +227,7 @@ class Test_combine(IrisTest):
         operation = '+'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube2,
-                                operation,
-                                'new_cube_name')
+                                operation)
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.6
         expected_data[0, 1, :, :] = 1.0
@@ -165,8 +238,7 @@ class Test_combine(IrisTest):
         operation = '-'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube2,
-                                operation,
-                                'new_cube_name')
+                                operation)
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.4
         expected_data[0, 1, :, :] = 0.2
@@ -177,8 +249,7 @@ class Test_combine(IrisTest):
         operation = 'max'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube3,
-                                operation,
-                                'new_cube_name')
+                                operation)
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.5
         expected_data[0, 1, :, :] = 0.8
@@ -189,8 +260,7 @@ class Test_combine(IrisTest):
         operation = 'min'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube3,
-                                operation,
-                                'new_cube_name')
+                                operation)
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.1
         expected_data[0, 1, :, :] = 0.6
@@ -201,8 +271,7 @@ class Test_combine(IrisTest):
         operation = '+'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube3,
-                                operation,
-                                'new_cube_name')
+                                operation)
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.6
         expected_data[0, 1, :, :] = 1.4

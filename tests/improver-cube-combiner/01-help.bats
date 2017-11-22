@@ -35,16 +35,18 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-cube-combiner [-h] [--operation OPERATION]
                               [--new_cube_name NEW_CUBE_NAME]
+                              [--metadata_jsonfile METADATA_JSONFILE]
+                              [--warnings_on]
                               INPUT_FILENAMES [INPUT_FILENAMES ...]
                               OUTPUT_FILE
 
-Combine the input cubes into a single cube usingthe requested operation e.g. +
-- min max etc.
+Combine the input cubes into a single cube using the requested operation e.g.
++ - min max etc.
 
 positional arguments:
-  INPUT_FILENAMES       A path to an input NETCDF files.One cube per NetCDF
+  INPUT_FILENAMES       A path to an input NETCDF files. One cube per NetCDF
                         file
-  OUTPUT_FILE           The output path for the processed NetCDF
+  OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -54,6 +56,11 @@ optional arguments:
   --new_cube_name NEW_CUBE_NAME
                         New cube name. Will default to name of first cube if
                         not set
+  --metadata_jsonfile METADATA_JSONFILE
+                        Filename for the json file containing required changes
+                        to the metadata. default=None
+  --warnings_on         If warings_on is set (i.e. True), Warning messages
+                        where cubes do not match will be given. Default=False
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -35,6 +35,8 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-cube-combiner [-h] [--operation OPERATION]
                               [--new_cube_name NEW_CUBE_NAME]
+                              [--metadata_jsonfile METADATA_JSONFILE]
+                              [--warnings_on]
                               INPUT_FILENAMES [INPUT_FILENAMES ...]
                               OUTPUT_FILE
 __TEXT__

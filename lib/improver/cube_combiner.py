@@ -32,7 +32,11 @@
 
 import numpy as np
 import iris
+import warnings
 from iris import FUTURE
+
+from improver.utilities.cube_manipulation import (compare_attributes,
+                                                  compare_coords)
 
 FUTURE.netcdf_promote = True
 
@@ -70,7 +74,9 @@ class CubeCombiner(object):
         return desc
 
     @staticmethod
-    def resolve_metadata_diff(cube1, cube2):
+    def resolve_metadata_diff(cube1, cube2, revised_coords,
+                              revised_attributes,
+                              warnings_on=False):
         """Resolve any differences in  metadata between cubes.
 
         Args:
@@ -78,6 +84,12 @@ class CubeCombiner(object):
                 Cube containing data to be combined.
             cube2 (iris.cube.Cube):
                 Cube containing data to be combined.
+            revised_coords (dict or None):
+                Revised coordinates for combined cube.
+            revised_attributes (dict or None):
+                Revised attributes for combined cube.
+            warnings_on (bool):
+                If True output warnings for mismatching metadata.
         Returns:
             (tuple): tuple containing
                 **result1** (iris.cube.Cube):
@@ -85,13 +97,112 @@ class CubeCombiner(object):
                 **result2** (iris.cube.Cube):
                     Cube with corrected Metadata.
         """
+        cubes = iris.cube.CubeList([cube1, cube2])
+        unmatching_attributes = compare_attributes(cubes)
+        unmatching_coords = compare_coords(cubes)
+
         result1 = cube1
         result2 = cube2
 
         return result1, result2
 
     @staticmethod
-    def combine(cube1, cube2, operation, new_diagnostic_name):
+    def amend_metadata(cube,
+                       new_diagnostic_name,
+                       data_type,
+                       revised_coords,
+                       revised_attributes,
+                       warnings_on=False):
+        """Amend the metadata in the combined cube.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube containing combined data.
+            new_diagnostic_name (str):
+                New name for the combined diagnostic.
+            data_type (numpy.dtype):
+                data type of cube data.
+            revised_coords (dict or None):
+                Revised coordinates for combined cube.
+            revised_attributes (dict or None):
+                Revised attributes for combined cube.
+        Keyword Args:
+            warnings_on (bool):
+                If True output warnings for mismatching metadata.
+        Returns:
+            result (iris.cube.Cube):
+                Cube with corrected Metadata.
+        """
+        result = cube
+        result.data = result.data.astype(data_type)
+        result.rename(new_diagnostic_name)
+
+        if revised_coords:
+            for key in revised_coords:
+                # If and exising coordinate.
+                if key in [coord.name() for coord in cube.coords()]:
+                    new_coord = cube.coord(key)
+                    changes = revised_coords[key]
+                    if changes == 'delete':
+                        if len(new_coord.points) != 1:
+                            msg = ("Can only remove a coordinate of len 1"
+                                   " coord  = {}".format(key))
+                            raise ValueError(msg)
+                        result.remove_coord(key)
+                        result = iris.util.squeeze(result)
+                    else:
+                        if 'points' in changes:
+                            new_points = np.array(changes['points'])
+                            if (len(new_points) ==
+                                    len(new_coord.points)):
+                                new_coord.points = new_points
+                            else:
+                                msg = ("Mismatch in points in existing"
+                                       " coord and updated metadata for "
+                                       " coord {}".format(key))
+                                raise ValueError(msg)
+                        if 'bounds' in changes:
+                            new_bounds = np.array(changes['bounds'])
+                            if new_coord.bounds:
+                                if (len(new_bounds) ==
+                                        len(new_coord.bounds)):
+                                    new_coord.bounds = new_bounds
+                                else:
+                                    msg = ("Mismatch in bounds in existing"
+                                           " coord and updated metadata for "
+                                           " coord {}".format(key))
+                                    raise ValueError(msg)
+                            else:
+                                new_coord.bounds = new_bounds
+                        if 'units' in changes:
+                            new_coord.units = changes['units']
+                        if warnings_on:
+                            msg = ("Updated coordinate "
+                                   "{}".format(key) +
+                                   "with {}".format(changes))
+                            warnings.warn(msg)
+                # Adding coord
+                else:
+                    changes = revised_coords[key]
+                    print 'Adding coords here'
+                    points = None
+                    bounds = None
+
+        if revised_attributes:
+            for key in revised_attributes:
+                if revised_attributes[key] == 'delete':
+                    result.attributes.pop(key)
+                    if warnings_on:
+                        msg = ("Deleted attribute "
+                               "{}".format(key))
+                        warnings.warn(msg)
+                else:
+                    result.attributes[key] = revised_attributes[key]
+
+        return result
+
+    @staticmethod
+    def combine(cube1, cube2, operation):
         """
         Combine cube data
 
@@ -102,8 +213,7 @@ class CubeCombiner(object):
                 Cube containing data to be combined.
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes)
-            new_diagnostic_name (str):
-                New name for the combined diagnostic.
+
         Returns:
             result (iris.cube.Cube):
                 Cube containing the combined data.
@@ -126,10 +236,13 @@ class CubeCombiner(object):
         else:
             msg = 'Unknown operation {}'.format(operation)
             raise ValueError(msg)
-        result.rename(new_diagnostic_name)
+
         return result
 
-    def process(self, cube_list, new_diagnostic_name):
+    def process(self, cube_list, new_diagnostic_name,
+                revised_coords=None,
+                revised_attributes=None,
+                warnings_on=False):
         """
         Create a combined cube.
 
@@ -138,6 +251,12 @@ class CubeCombiner(object):
                 Cube List contain the cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
+            revised_coords (dict or None):
+                Revised coordinates for combined cube.
+            revised_attributes (dict or None):
+                Revised attributes for combined cube.
+            warnings_on (bool):
+                True output warnings for mismatching metadata.
 
         Returns:
             result (iris.cube.Cube):
@@ -160,15 +279,22 @@ class CubeCombiner(object):
         for ind in range(1, len(cube_list)):
             cube1, cube2 = (
                 self.resolve_metadata_diff(result.copy(),
-                                           cube_list[ind].copy()))
+                                           cube_list[ind].copy(),
+                                           revised_coords,
+                                           revised_attributes,
+                                           warnings_on))
             result = self.combine(cube1,
                                   cube2,
-                                  self.operation,
-                                  new_diagnostic_name)
+                                  self.operation)
 
         if self.operation == 'mean':
             result = result / len(cube_list)
-            result.rename(new_diagnostic_name)
 
-        result.data = result.data.astype(data_type)
+        result = self.amend_metadata(result,
+                                     new_diagnostic_name,
+                                     data_type,
+                                     revised_coords,
+                                     revised_attributes,
+                                     warnings_on)
+
         return result

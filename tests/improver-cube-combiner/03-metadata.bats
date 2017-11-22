@@ -31,22 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "cube-combiner" {
+@test "cube-combiner --metadata_jsonfile" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run cube-combiner processing and check it passes.
   run improver cube-combiner \
-      --operation='max' \
-      --new_cube_name='total_cloud_cover_excluding_high_cloud' \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/low_cloud.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/medium_cloud.nc" \
+      --operation='-' \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/prob_precip.json" \
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/precip_prob_0p1.nc" \
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/precip_prob_1p0.nc" \
        "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/kgo_cloud.nc"
+      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/kgo_prob_precip.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
