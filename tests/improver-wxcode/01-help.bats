@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "wind-gust-diagnostic -h" {
+@test "wxcode -h" {
   run improver wxcode -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true

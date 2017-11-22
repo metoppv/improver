@@ -29,17 +29,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "wxcode no arguments" {
-  run improver wxcode
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-wxcode [-h]
-                       PROBABILITY_OF_RAINFALL_RATE
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION
-                       PROBABILITY_OF_VISIBILITY_IN_AIR
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY OUTPUT_FILE
-improver-wxcode: error: too few arguments"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wxcode <input files - SI units>" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run wind-gust-diagnostic processing and check it passes.
+  run improver wxcode \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_rainfall_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_lwe_snowfall_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_cloud_area_fraction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_visibility_in_air.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_rainfall_rate_in_vicinity.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

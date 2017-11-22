@@ -29,45 +29,55 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate wet bulb temperatures from air temperature, relative
-   humidity, and pressure data. """
+"""CLI to generate weather symbols."""
 
 import argparse
-
 import iris
 
-from improver.wxcode.weather_symbols import (
-    WeatherSymbols)
+from improver.wxcode.weather_symbols import WeatherSymbols
 
 
 def main():
     """Parser to accept input data and an output destination before invoking
-    the wxcode (weather symbols) plugin. """
+    the weather symbols plugin. """
     parser = argparse.ArgumentParser(
         description='Calculate a cube of weather symbol codes.')
     parser.add_argument('probability_of_rainfall_rate',
                         metavar='PROBABILITY_OF_RAINFALL_RATE',
                         help='File path to a cube of '
-                        'probability_of_rainfall_rate'
-                        ' at the points for which the weather symbols '
+                        'probability_of_rainfall_rate '
+                        'at the points for which the weather symbols '
+                        'are being calculated.')
+    parser.add_argument('probability_of_rainfall_rate_in_vicinity',
+                        metavar='PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY',
+                        help='File path to a cube of '
+                        'probability_of_rainfall_rate_in_vicinity '
+                        'at the points for which the weather symbols '
                         'are being calculated.')
     parser.add_argument('probability_of_lwe_snowfall_rate',
                         metavar='PROBABILITY_OF_LWE_SNOWFALL_RATE',
                         help='File path to a cube of '
-                        'probability_of_lwe_snowfall_rate'
-                        ' at the points for which the weather symbols '
+                        'probability_of_lwe_snowfall_rate '
+                        'at the points for which the weather symbols '
                         'are being calculated.')
-    parser.add_argument('probability_of_cloud_area_fraction',
-                        metavar='PROBABILITY_OF_CLOUD_AREA_FRACTION',
+    parser.add_argument('probability_of_lwe_snowfall_rate_in_vicinity',
+                        metavar='PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_'
+                        'VICINITY',
                         help='File path to a cube of '
-                        'probability_of_cloud_area_fraction'
-                        ' at the points for which the weather symbols '
+                        'probability_of_lwe_snowfall_rate_in_vicinity '
+                        'at the points for which the weather symbols '
                         'are being calculated.')
     parser.add_argument('probability_of_visibility_in_air',
                         metavar='PROBABILITY_OF_VISIBILITY_IN_AIR',
                         help='File path to a cube of '
-                        'probability_of_visibility_in_air'
-                        ' at the points for which the weather symbols '
+                        'probability_of_visibility_in_air '
+                        'at the points for which the weather symbols '
+                        'are being calculated.')
+    parser.add_argument('probability_of_cloud_area_fraction',
+                        metavar='PROBABILITY_OF_CLOUD_AREA_FRACTION',
+                        help='File path to a cube of '
+                        'probability_of_cloud_area_fraction '
+                        'at the points for which the weather symbols '
                         'are being calculated.')
     parser.add_argument('probability_of_cloud_area_fraction_'
                         'below_1000_feet_asl',
@@ -75,21 +85,8 @@ def main():
                                 '_BELOW_1000_FEET_ASL',
                         help='File path to a cube of '
                         'probability_of_cloud_area_fraction_assuming_'
-                        'only_consider_surface_to_1000_feet_asl'
-                        ' at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_lwe_snowfall_rate_in_vicinity',
-                        metavar='PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_'
-                        'VICINITY',
-                        help='File path to a cube of '
-                        'probability_of_lwe_snowfall_rate_in_vicinity'
-                        ' at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_rainfall_rate_in_vicinity',
-                        metavar='PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY',
-                        help='File path to a cube of '
-                        'probability_of_rainfall_rate_in_vicinity'
-                        ' at the points for which the weather symbols '
+                        'only_consider_surface_to_1000_feet_asl '
+                        'at the points for which the weather symbols '
                         'are being calculated.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')

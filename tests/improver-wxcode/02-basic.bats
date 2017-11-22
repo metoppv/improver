@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wxcode" {
+@test "wxcode <input files - decision tree units>" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
