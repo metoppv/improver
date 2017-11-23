@@ -327,5 +327,6 @@ class Test_run_recursion(Test_RecursiveFilter):
         expected_result = 0.13382206
         self.assertAlmostEqual(result.data[4][4], expected_result)
 
+
 if __name__ == '__main__':
     unittest.main()

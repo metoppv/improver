@@ -106,6 +106,14 @@ class RecursiveFilter(object):
         """
         Method to run the recursive filter in the forward x-direction.
 
+        In the forward direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
+
+            Progressing from gridpoint i-1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi-1 = New value at gridpoint i-1
+
         Args:
             grid (numpy array):
                 Array containing the input data to which the recursive filter
@@ -131,6 +139,14 @@ class RecursiveFilter(object):
     def recurse_backwards_x(grid, alphas):
         """
         Method to run the recursive filter in the backwards x-direction.
+
+        In the backwards direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
+
+            Progressing from gridpoint i+1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi+1 = New value at gridpoint i+1
 
         Args:
             grid (numpy array):
@@ -158,6 +174,14 @@ class RecursiveFilter(object):
         """
         Method to run the recursive filter in the forward y-direction.
 
+        In the forward direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
+
+            Progressing from gridpoint i-1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi-1 = New value at gridpoint i-1
+
         Args:
             grid (numpy array):
                 Array containing the input data to which the recursive filter
@@ -184,6 +208,14 @@ class RecursiveFilter(object):
         """
         Method to run the recursive filter in the backwards y-direction.
 
+        In the backwards direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
+
+            Progressing from gridpoint i+1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi+1 = New value at gridpoint i+1
+
         Args:
             grid (numpy array):
                 Array containing the input data to which the recursive filter
@@ -195,7 +227,7 @@ class RecursiveFilter(object):
         Returns:
             grid (numpy array):
                 Array containing the smoothed field after the recursive
-                filter method has been applied to the input arary in the
+                filter method has been applied to the input array in the
                 backwards y-direction.
         """
 
@@ -210,12 +242,21 @@ class RecursiveFilter(object):
         """
         Method to run the recursive filter.
 
-        Recursive filtering is calculated as:
-            Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
+        In the forward direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
 
-        Progressing from gridpoint i-1 to i ......
-        Bi = new value at gridpoint i, Ai =  Old value at gridpoint i
-        Bi-1 = New value at gridpoint i-1
+            Progressing from gridpoint i-1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi-1 = New value at gridpoint i-1
+
+        In the backwards direction:
+            Recursive filtering is calculated as:
+                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
+
+            Progressing from gridpoint i+1 to i ......
+            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+            Bi+1 = New value at gridpoint i+1
 
         Args:
             cube (Iris.cube.Cube):
@@ -302,7 +343,7 @@ class RecursiveFilter(object):
         2. Construct an array of filter parameters (alphas_x and alphas_y) for
            each cube slice that are used to weight the recursive filter in
            the x- and y-directions.
-        3. Pad each cube slice with a square-neighboorhood halo and apply
+        3. Pad each cube slice with a square-neighbourhood halo and apply
            the recursive filter for the required number of iterations.
         4. Remove the halo from the cube slice and append the recursed cube
            slice to a 'recursed cube'.
