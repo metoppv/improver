@@ -100,6 +100,8 @@ def find_required_lead_times(cube, force_lead_time_calculation=False):
     Args:
         cube (Iris.cube.Cube):
             Cube from which the lead times will be determined.
+
+    Keyword Args:
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if the
