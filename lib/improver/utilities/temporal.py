@@ -87,7 +87,10 @@ def cycletime_to_number(
     return unit.date2num(dt, time_unit, calendar)
 
 
-def find_required_lead_times(cube, force_lead_time_calculation=False):
+def find_required_lead_times(
+        cube, time_units="hours since 1970-01-01 00:00:00",
+        forecast_reference_time_units="hours since 1970-01-01 00:00:00",
+        force_lead_time_calculation=False):
     """
     Determine the lead times within a cube, either by reading the
     forecast_period coordinate, or by calculating the difference between
@@ -102,6 +105,12 @@ def find_required_lead_times(cube, force_lead_time_calculation=False):
             Cube from which the lead times will be determined.
 
     Keyword Args:
+        time_units (string):
+            String to describe the units of time to convert to.
+            Default is "hours since 1970-01-01 00:00:00".
+        forecast_reference_time_units (string):
+            String to describe the units of time to convert to.
+            Default is "hours since 1970-01-01 00:00:00".
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if the
@@ -124,10 +133,9 @@ def find_required_lead_times(cube, force_lead_time_calculation=False):
     else:
         if cube.coords("time") and cube.coords("forecast_reference_time"):
             try:
-                cube.coord("time").convert_units(
-                    "hours since 1970-01-01 00:00:00")
+                cube.coord("time").convert_units(time_units)
                 cube.coord("forecast_reference_time").convert_units(
-                    "hours since 1970-01-01 00:00:00")
+                    forecast_reference_time_units)
             except ValueError as err:
                 msg = "For time/forecast_reference_time: {}".format(err)
                 raise ValueError(msg)

@@ -178,6 +178,22 @@ class Test_find_required_lead_times(IrisTest):
         result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_check_time_intentionally_convert_units(self):
+        """
+        Test that the data within the numpy array is as expected, when
+        the time coordinates within the input cube are converted into the
+        desired units of seconds since 1970-01-01 00:00:00 to that the
+        resulting forecast_periods are in the expected units.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points.copy()
+        time_units = "seconds since 1970-01-01 00:00:00"
+        forecast_reference_time_units = "seconds since 1970-01-01 00:00:00"
+        result = find_required_lead_times(
+            cube, time_units=time_units,
+            forecast_reference_time_units=forecast_reference_time_units)
+        self.assertArrayAlmostEqual(result, expected_result)
+
     def test_check_forecast_period_unit_conversion_exception(self):
         """
         Test that an exception is raised, when the input cube has a

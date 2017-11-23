@@ -83,12 +83,23 @@ def conform_metadata(
         if cycletime is None:
             forecast_period = np.min(cube_orig.coord("forecast_period").points)
         else:
+            time_units = cube.coord("time").units
+            forecast_reference_time_units = (
+                cube.coord("forecast_reference_time").units)
             forecast_period = find_required_lead_times(
-                cube, force_lead_time_calculation=True)
+                cube, time_units=time_units,
+                forecast_reference_time_units=forecast_reference_time_units,
+                force_lead_time_calculation=True)
         cube.coord("forecast_period").points = forecast_period
         cube.coord("forecast_period").bounds = None
     elif cube.coords("forecast_reference_time") and cube.coords("time"):
-        forecast_period = np.min(find_required_lead_times(cube))
+        time_units = cube.coord("time").units
+        forecast_reference_time_units = (
+            cube.coord("forecast_reference_time").units)
+        forecast_period = np.min(
+            find_required_lead_times(
+                cube, time_units=time_units,
+                forecast_reference_time_units=forecast_reference_time_units))
         ndim = cube.coord_dims("time")
         cube.add_aux_coord(
             iris.coords.AuxCoord(
