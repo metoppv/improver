@@ -290,6 +290,7 @@ class RecursiveFilter(object):
                 when applying the recursive filter in a specific direction.
 
         Raises:
+            ValueError: If alpha and alphas_cube are both set to None
             ValueError: If dimension of alphas array is less than dimension
                         of data array
             ValueError: If dimension of alphas array is greater than dimension
