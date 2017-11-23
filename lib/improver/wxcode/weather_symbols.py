@@ -34,7 +34,6 @@
 import numpy as np
 import copy
 import iris
-from iris import Constraint
 
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists)
@@ -54,8 +53,12 @@ class WeatherSymbols(object):
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
         symbol to each point.
+
+        float_tolerance defines the tolerance when matching thresholds to allow
+        for the difficulty of float comparisons.
         """
         self.queries = wxcode_decision_tree()
+        self.float_tolerance = 0.01
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -83,16 +86,31 @@ class WeatherSymbols(object):
             for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions):
 
+                # First we check the diagnostic name and units, performing
+                # a conversion is required and possible.
+                test_condition = (iris.Constraint(name=diagnostic))
+                matched_cube = cubes.extract(test_condition)
+                if not matched_cube:
+                    missing_data.append([diagnostic, threshold, condition])
+                    continue
+                else:
+                    cube_threshold_units = (
+                        matched_cube[0].coord('threshold').units)
+                    threshold.convert_units(cube_threshold_units)
+
+                # Then we check if the required threshold is present in the
+                # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
                 test_condition = (
-                    Constraint(
-                        name=diagnostic,
-                        coord_values={'threshold': threshold},
+                    iris.Constraint(
+                        threshold=lambda cell: (
+                            threshold * (1. - self.float_tolerance) < cell <
+                            threshold * (1. + self.float_tolerance)),
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
-
-                if not cubes.extract(test_condition):
+                matched_threshold = matched_cube.extract(test_condition)
+                if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
 
         if missing_data:
@@ -146,10 +164,11 @@ class WeatherSymbols(object):
         Create a string representing a comparison condition.
 
         Args:
-            extract_constraint (iris.Constraint or list of Constraints):
-                An iris constraint that will be used to extract the correct
-                diagnostic cube (by name) from the input cube list and the
-                correct threshold from that cube.
+            extract_constraint (string or list of strings):
+                A string, or list of strings, encoding iris constraints
+                that will be used to extract the correct diagnostic cube
+                (by name) from the input cube list and the correct threshold
+                from that cube.
             condition (string):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
@@ -203,7 +222,7 @@ class WeatherSymbols(object):
     def create_condition_chain(test_conditions):
         """
         A wrapper to call the construct_condition function for all the
-        conditions specfied in a single query.
+        conditions specified in a single query.
 
         Args:
             test_conditions (dict):
@@ -260,21 +279,34 @@ class WeatherSymbols(object):
                 A thresholds within the given diagnostic cubes that are needed.
                 Including units.
         Returns:
-            iris.Constraint or list of iris.Constraints:
-                The constructed iris constraints.
+            string or list of strings:
+                String, or list of strings, encoding iris cube constraints.
         """
+        def _constraint_string(diagnostic, threshold):
+            """
+            Return iris constraint as a string for deferred creation of the
+            lambda functions.
+            Args:
+                diagnostic (string)
+                threshold (float)
+            Returns: (string)
+            """
+            return ("iris.Constraint(name='{diagnostic}', threshold="
+                    "lambda cell: {threshold} * {float_min} < cell < "
+                    "{threshold} * {float_max})".format(
+                        diagnostic=diagnostic, threshold=threshold,
+                        float_min=(1. - WeatherSymbols().float_tolerance),
+                        float_max=(1. + WeatherSymbols().float_tolerance)))
 
         if isinstance(diagnostics, list):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
                 threshold = threshold.points.item()
-                constraints.append(iris.Constraint(
-                    name=diagnostic,
-                    coord_values={'threshold': threshold}))
+                constraints.append(
+                    _constraint_string(diagnostic, threshold))
             return constraints
         threshold = thresholds.points.item()
-        return iris.Constraint(
-            name=diagnostics, coord_values={'threshold': threshold})
+        return _constraint_string(diagnostics, threshold)
 
     @staticmethod
     def find_all_routes(graph, start, end, route=None):
@@ -383,8 +415,6 @@ class WeatherSymbols(object):
 
             # Loop over possible routes from root to leaf
             for route in routes:
-                # print ('--> {}' * len(route)).format(
-                #    *[node for node in route])
                 conditions = []
                 for i_node in range(len(route)-1):
                     current_node = route[i_node]

@@ -53,11 +53,11 @@ def set_up_probability_above_threshold_cube(
     cube_long_name = (
         "probability_of_{}".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
-                units=phenomenon_units)
+                units=1)
     coord_long_name = "threshold"
     cube.add_dim_coord(
         DimCoord(forecast_thresholds, long_name=coord_long_name,
-                 units='degreesC'), 0)
+                 units=phenomenon_units), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
@@ -85,7 +85,8 @@ def set_up_probability_above_threshold_temperature_cube():
                        [0.2, 0.0, 0.1],
                        [0.0, 0.0, 0.0]]]])
     return (
-        set_up_probability_above_threshold_cube(data, "air_temperature", "1"))
+        set_up_probability_above_threshold_cube(data, "air_temperature",
+                                                "degreesC"))
 
 
 def set_up_probability_above_threshold_spot_cube(
@@ -99,11 +100,11 @@ def set_up_probability_above_threshold_spot_cube(
     cube_long_name = (
         "probability_of_{}".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
-                units=phenomenon_units)
+                units=1)
     coord_long_name = "threshold"
     cube.add_dim_coord(
         DimCoord(forecast_thresholds, long_name=coord_long_name,
-                 units='degreesC'), 0)
+                 units=phenomenon_units), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
@@ -135,7 +136,7 @@ def set_up_probability_above_threshold_spot_temperature_cube():
                        0.0, 0.0, 0.0]]])
     return (
         set_up_probability_above_threshold_spot_cube(
-            data, "air_temperature", "1"))
+            data, "air_temperature", "degreesC"))
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
