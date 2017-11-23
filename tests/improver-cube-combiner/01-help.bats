@@ -59,7 +59,7 @@ optional arguments:
   --metadata_jsonfile METADATA_JSONFILE
                         Filename for the json file containing required changes
                         to the metadata. default=None
-  --warnings_on         If warings_on is set (i.e. True), Warning messages
+  --warnings_on         If warnings_on is set (i.e. True), Warning messages
                         where cubes do not match will be given. Default=False
 __HELP__
   [[ "$output" == "$expected" ]]

@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--operation", metavar="OPERATION",
                         default="+",
                         choices=["+", "-", "*",
-                                 "add", "subtract", "multiple",
+                                 "add", "subtract", "multiply",
                                  "min", "max", "mean"],
                         help="Operation to use in combining the cubes"
                         " Default=+ i.e. add ", type=str)
@@ -69,7 +69,7 @@ def main():
                         "required changes to the metadata. "
                         " default=None", type=str)
     parser.add_argument('--warnings_on', action='store_true',
-                        help="If warings_on is set (i.e. True), "
+                        help="If warnings_on is set (i.e. True), "
                         "Warning messages where cubes do not match "
                         "will be given. Default=False", default=False)
 
@@ -104,12 +104,11 @@ def main():
                 new_attr = new_metadata['attributes']
 
     result = (
-        CubeCombiner(args.operation).process(
+        CubeCombiner(args.operation, warnings_on=args.warnings_on).process(
             cubes,
             new_cube_name,
             revised_coords=new_coords,
-            revised_attributes=new_attr,
-            warnings_on=args.warnings_on))
+            revised_attributes=new_attr))
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

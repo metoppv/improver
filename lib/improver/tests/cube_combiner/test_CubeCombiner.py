@@ -32,6 +32,7 @@
 import unittest
 
 import numpy as np
+import warnings
 
 import iris
 from iris.tests import IrisTest
@@ -98,24 +99,274 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CubeCombiner('+'))
-        msg = '<CubeCombiner: operation=+>'
+        msg = '<CubeCombiner: operation=+, warnings_on = False>'
         self.assertEqual(result, msg)
 
 
-class Test_resolve_metadata_diff(IrisTest):
+class Test_remove_metadata_diff(IrisTest):
 
-    """Test the resolve_metadata_diff method."""
+    """Test the remove_metadata_diff method."""
 
     def test_basic(self):
         """Test that the function returns a tuple of Cubes. """
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
-        result = plugin.resolve_metadata_diff(cube1, cube2, None, None)
+        result = plugin.remove_metadata_diff(cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], Cube)
         self.assertIsInstance(result[1], Cube)
+
+
+class Test_add_metadata_diff(IrisTest):
+
+    """Test the add_metadata_diff method."""
+
+    def test_basic(self):
+        """Test that the function returns a cube. """
+        plugin = CubeCombiner('-')
+        cube1 = create_cube_with_threshold()
+        cube2 = cube1.copy()
+        result = plugin.add_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, Cube)
+
+
+class Test_add_coord(IrisTest):
+
+    """Test the update_coord method."""
+
+    def test_basic(self):
+        """Test that add_coord returns a Cube and adds coord correctly. """
+        plugin = CubeCombiner('-')
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(cube)
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        result = plugin.add_coord(cube, coord_name, changes)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayEqual(result.coord(coord_name).points,
+                              np.array([2.0]))
+        self.assertArrayEqual(result.coord(coord_name).bounds,
+                              np.array([[0.1, 2.0]]))
+        self.assertEqual(str(result.coord(coord_name).units),
+                         'mm')
+
+    def test_fails_no_points(self):
+        """Test that add_coord fails if points not included in metadata """
+        plugin = CubeCombiner('-')
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(cube)
+        changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
+        msg = 'Trying to add new coord but no points defined'
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.add_coord(cube, coord_name, changes)
+
+    def test_fails_points_greater_than_1(self):
+        """Test that add_coord fails if points greater than 1 """
+        plugin = CubeCombiner('-')
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(cube)
+        changes = {'points': [0.1, 2.0]}
+        msg = 'Can not add a coordinate of length > 1'
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.add_coord(cube, coord_name, changes)
+
+    def test_warning_messages(self):
+        """Test that warning messages is raised correctly. """
+        plugin = CubeCombiner('-', warnings_on=True)
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(cube)
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        warning_msg = "Adding new coordinate"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            plugin.add_coord(cube, coord_name, changes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+
+
+class Test_update_coord(IrisTest):
+
+    """Test the update_coord method."""
+
+    def test_basic(self):
+        """Test update_coord returns a Cube and updates coord correctly. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        result = plugin.update_coord(cube, 'threshold', changes)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayEqual(result.coord('threshold').points,
+                              np.array([2.0]))
+        self.assertArrayEqual(result.coord('threshold').bounds,
+                              np.array([[0.1, 2.0]]))
+        self.assertEqual(str(result.coord('threshold').units),
+                         'mm')
+
+    def test_coords_deleted(self):
+        """Test update_coord deletes coordinate. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        changes = 'delete'
+        result = plugin.update_coord(cube, 'threshold', changes)
+        found_key = 'threshold' in [coord.name() for coord in result.coords()]
+        self.assertArrayEqual(found_key,
+                              False)
+
+    def test_coords_deleted_fails(self):
+        """Test update_coord fails to delete coord of len > 1. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        changes = 'delete'
+        msg = "Can only remove a coordinate of length 1"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.update_coord(cube, 'time', changes)
+
+    def test_warning_messages_with_delete(self):
+        """Test warning message is raised correctly when deleting coord. """
+        plugin = CubeCombiner('-', warnings_on=True)
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        changes = 'delete'
+        warning_msg = "Deleted coordinate"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            plugin.update_coord(cube, coord_name, changes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+
+    def test_coords_update_fail_points(self):
+        """Test that update_coord fails if points do not match. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        changes = {'points': [2.0, 3.0]}
+        msg = "Mismatch in points in existing coord and updated metadata"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.update_coord(cube, 'threshold', changes)
+
+    def test_coords_update_fail_bounds(self):
+        """Test update_coord fails if shape of new bounds do not match. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        changes = {'bounds': [0.1, 2.0]}
+        msg = "The shape of the bounds array should be"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.update_coord(cube, 'threshold', changes)
+
+    def test_coords_update_bounds_succeed(self):
+        """Test that update_coord succeeds if bounds do match """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        cube.coord('threshold').guess_bounds()
+        changes = {'bounds': [[0.1, 2.0], [2.0, 3.0]]}
+        result = plugin.update_coord(cube, 'threshold', changes)
+        self.assertArrayEqual(result.coord('threshold').bounds,
+                              np.array([[0.1, 2.0], [2.0, 3.0]]))
+
+    def test_coords_update_fails_bounds_differ(self):
+        """Test that update_coord succeeds if bounds do match """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        cube.coord('threshold').guess_bounds()
+        changes = {'bounds': [[0.1, 2.0], [2.0, 3.0], [3.0, 4.0]]}
+        msg = "Mismatch in bounds in existing coord and updated metadata"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.update_coord(cube, 'threshold', changes)
+
+    def test_warning_messages_with_update(self):
+        """Test warning message is raised correctly when updating coord. """
+        plugin = CubeCombiner('-', warnings_on=True)
+        coord_name = 'threshold'
+        cube = create_cube_with_threshold()
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        warning_msg = "Updated coordinate"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            plugin.update_coord(cube, coord_name, changes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+
+
+class Test_update_attribute(IrisTest):
+
+    """Test the update_attribute method."""
+
+    def test_basic(self):
+        """Test that update_attribute returns a Cube and updates OK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attribute_name = 'relative_to_threshold'
+        changes = 'between'
+        result = plugin.update_attribute(cube, attribute_name, changes)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.attributes['relative_to_threshold'],
+                         'between')
+
+    def test_attributes_updated_warnings(self):
+        """Test update_attribute updates attributes and gives warning. """
+        plugin = CubeCombiner('-', warnings_on=True)
+        cube = create_cube_with_threshold()
+        attribute_name = 'relative_to_threshold'
+        changes = 'between'
+        warning_msg = "Adding or updating attribute"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = plugin.update_attribute(cube, attribute_name, changes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertEqual(result.attributes['relative_to_threshold'],
+                             'between')
+
+    def test_attributes_added(self):
+        """Test update_attribute adds attributeOK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attribute_name = 'new_attribute'
+        changes = 'new_value'
+        result = plugin.update_attribute(cube, attribute_name, changes)
+        self.assertEqual(result.attributes['new_attribute'],
+                         'new_value')
+
+    def test_attributes_deleted(self):
+        """Test update_attribute deletes attribute OK. """
+        plugin = CubeCombiner('-')
+        cube = create_cube_with_threshold()
+        attribute_name = 'relative_to_threshold'
+        changes = 'delete'
+        result = plugin.update_attribute(cube, attribute_name, changes)
+        self.assertFalse('relative_to_threshold' in result.attributes)
+
+    def test_attributes_deleted_warnings(self):
+        """Test update_attribute deletes and gives warning. """
+        plugin = CubeCombiner('-', warnings_on=True)
+        cube = create_cube_with_threshold()
+        attribute_name = 'relative_to_threshold'
+        changes = 'delete'
+        warning_msg = "Deleted attribute"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            result = plugin.update_attribute(cube, attribute_name, changes)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
+            self.assertFalse('relative_to_threshold' in result.attributes)
 
 
 class Test_amend_metadata(IrisTest):
@@ -131,23 +382,16 @@ class Test_amend_metadata(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
 
-    def test_attributes_updated(self):
-        """Test amend_metadata  updates attributes OK. """
+    def test_attributes_updated_and_added(self):
+        """Test amend_metadata  updates and adds attributes OK. """
         plugin = CubeCombiner('-')
         cube = create_cube_with_threshold()
-        attributes = {'relative_to_threshold': 'between'}
+        attributes = {'relative_to_threshold': 'between',
+                      'new_attribute': 'new_value'}
         result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
                                        None, attributes)
         self.assertEqual(result.attributes['relative_to_threshold'],
                          'between')
-
-    def test_attributes_added(self):
-        """Test amend_metadata  updates attributes OK. """
-        plugin = CubeCombiner('-')
-        cube = create_cube_with_threshold()
-        attributes = {'new_attribute': 'new_value'}
-        result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
-                                       None, attributes)
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
@@ -158,39 +402,33 @@ class Test_amend_metadata(IrisTest):
         attributes = {'relative_to_threshold': 'delete'}
         result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
                                        None, attributes)
-        self.assertEqual('relative_to_threshold' in result.attributes,
-                         False)
+        self.assertFalse('relative_to_threshold' in result.attributes)
 
     def test_coords_updated(self):
-        """Test amend_metadata updates coords correctly. """
+        """Test amend_metadata returns a Cube and updates coord correctly. """
         plugin = CubeCombiner('-')
         cube = create_cube_with_threshold()
-        coords = {'threshold': {'points': [2.0], 'bounds': [0.1, 2.0]}}
+        updated_coords = {'threshold': {'points': [2.0]},
+                          'time': {'points': [402193.5, 402194.5]}}
         result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
-                                       coords, None)
+                                       updated_coords, None)
         self.assertArrayEqual(result.coord('threshold').points,
                               np.array([2.0]))
+        self.assertArrayEqual(result.coord('time').points,
+                              np.array([402193.5, 402194.5]))
 
-    def test_coords_deleted(self):
-        """Test amend_metadata updates coords correctly. """
+    def test_coords_deleted_and_adds(self):
+        """Test amend metadata deletes and adds coordinate. """
         plugin = CubeCombiner('-')
         cube = create_cube_with_threshold()
-        coords = {'threshold': 'delete'}
+        coords = {'threshold': 'delete',
+                  'new_coord': {'points': [2.0]}}
         result = plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
                                        coords, None)
         found_key = 'threshold' in [coord.name() for coord in result.coords()]
-        self.assertArrayEqual(found_key,
-                              False)
-
-    def test_coords_deleted_fails(self):
-        """Test amend_metadata updates coords correctly. """
-        plugin = CubeCombiner('-')
-        cube = create_cube_with_threshold()
-        coords = {'time': 'delete'}
-        msg = "Can only remove a coordinate of len 1"
-        with self.assertRaisesRegexp(ValueError, msg):
-            plugin.amend_metadata(cube, 'new_cube_name', np.dtype,
-                                  coords, None)
+        self.assertFalse(found_key)
+        self.assertArrayEqual(result.coord('new_coord').points,
+                              np.array([2.0]))
 
 
 class Test_combine(IrisTest):
