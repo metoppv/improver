@@ -549,6 +549,7 @@ class WetBulbTemperatureIntegral(object):
             coord_name_to_integrate, start_point=start_point,
             end_point=end_point,
             direction_of_integration=direction_of_integration)
+        self.coord_name_to_integrate = coord_name_to_integrate
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -583,5 +584,8 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
-        wet_bulb_temperature_integral.units = Unit('K m')
+        units_string = "{} {}".format(
+            wet_bulb_temperature.units,
+            wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
+        wet_bulb_temperature_integral.units = Unit(units_string)
         return wet_bulb_temperature_integral

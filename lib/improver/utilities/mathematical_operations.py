@@ -227,17 +227,17 @@ class Integration(object):
                 pass
             elif self.start_point:
                 if self.direction_of_integration == "positive":
-                    if lower_bound <= self.start_point:
+                    if lower_bound < self.start_point:
                         continue
                 elif self.direction_of_integration == "negative":
-                    if upper_bound >= self.start_point:
+                    if upper_bound > self.start_point:
                         continue
             elif self.end_point:
                 if self.direction_of_integration == "positive":
-                    if upper_bound >= self.end_point:
+                    if upper_bound > self.end_point:
                         continue
                 elif self.direction_of_integration == "negative":
-                    if lower_bound <= self.end_point:
+                    if lower_bound < self.end_point:
                         continue
             stride = np.abs(upper_bound - lower_bound)
             upper_half_of_stride = upper_bounds_slice.data * 0.5 * stride
@@ -245,6 +245,16 @@ class Integration(object):
             stride_sum += lower_half_of_stride + upper_half_of_stride
             integrated_slice.data = stride_sum
             integrated_cubelist.append(integrated_slice.copy())
+
+        if len(integrated_cubelist) == 0:
+            msg = ("No integration could be performed for "
+                   "coord_to_integrate: {}, start_point: {}, end_point: {}, "
+                   "direction_of_integration: {}. "
+                   "The resulting cubelist was empty.".format(
+                       self.coord_name_to_integrate, self.start_point,
+                       self.end_point, self.direction_of_integration))
+            raise ValueError(msg)
+
         # Merge resulting cubes back together
         integrated_cube = integrated_cubelist.merge_cube()
         return integrated_cube

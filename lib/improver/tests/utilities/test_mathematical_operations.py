@@ -53,7 +53,7 @@ def set_up_height_cube(height_points, cube=set_up_temperature_cube()):
     cubelist = iris.cube.CubeList([])
     for height_point in height_points:
         temp_cube = cube.copy()
-        height_coord = iris.coords.DimCoord(height_point, "height")
+        height_coord = iris.coords.DimCoord(height_point, "height", units="m")
         if ascending:
             height_coord.attributes = {"positive": "up"}
         else:
@@ -410,6 +410,89 @@ class Test_perform_integration(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_start_point_at_bound_positive(self):
+        """Test that the resulting cube contains the expected data when a
+        start_point is specified, so that only part of the column is
+        integrated. In this instance, the start_point of 10 is equal to the
+        available height levels [5., 10., 20.]. If the start_point is greater
+        than a height level then integration will start from the next layer
+        in the vertical. In this example, the start_point is equal to a height
+        level, so the layer above the start_point is included within the
+        integration.
+
+        For integration in the positive direction (equivalent to
+        integrating downwards for a height coordinate), the presense of a
+        start_point indicates that the integration may start above the
+        lowest height within the column to be integrated."""
+        expected = np.array(
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
+        coord_name = "height"
+        start_point = 10.
+        direction = "positive"
+        result = (
+            Integration(
+                coord_name, start_point=start_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.positive_upper_bounds_cube,
+                      self.positive_lower_bounds_cube,
+                      self.positive_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([20.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_end_point_at_bound_negative(self):
+        """Test that the resulting cube contains the expected data when a
+        end_point is specified, so that only part of the column is
+        integrated. In this instance, the end_point of 10 is equal to the
+        available height levels [5., 10., 20.]. If the end_point is lower
+        than a height level then integration will end. In this example,
+        the end_point is equal to a height level, so the layer above the
+        end_point is included within the integration.
+
+        For integration in the negative direction (equivalent to
+        integrating downwards for a height coordinate), the presense of an
+        end_point indicates that the integration may end above the
+        lowest height within the column to be integrated."""
+        expected = np.array(
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
+        coord_name = "height"
+        end_point = 10.
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, end_point=end_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.negative_upper_bounds_cube,
+                      self.negative_lower_bounds_cube,
+                      self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_integration_not_performed(self):
+        """Test that the expected exception is raise if no integration
+        can be performed, as a result of the options selected, for example,
+        if the start_point is above the height of any of the levels within
+        the cube."""
+        coord_name = "height"
+        start_point = 25.
+        direction = "positive"
+        msg = "No integration could be performed for"
+        with self.assertRaisesRegexp(ValueError, msg):
+            Integration(
+                coord_name, start_point=start_point,
+                direction_of_integration=direction
+                ).perform_integration(
+                      self.positive_upper_bounds_cube,
+                      self.positive_lower_bounds_cube,
+                      self.positive_integrated_cube)
 
 
 class Test_process(IrisTest):
