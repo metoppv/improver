@@ -110,9 +110,9 @@ class RecursiveFilter(object):
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
 
-            Progressing from gridpoint i-1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi-1 = New value at gridpoint i-1
+            Progressing from gridpoint i-1 to i:
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi-1 = New value at gridpoint i-1
 
         Args:
             grid (numpy array):
@@ -144,9 +144,9 @@ class RecursiveFilter(object):
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
 
-            Progressing from gridpoint i+1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi+1 = New value at gridpoint i+1
+            Progressing from gridpoint i+1 to i:
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi+1 = New value at gridpoint i+1
 
         Args:
             grid (numpy array):
@@ -178,9 +178,9 @@ class RecursiveFilter(object):
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
 
-            Progressing from gridpoint i-1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi-1 = New value at gridpoint i-1
+            Progressing from gridpoint i-1 to i:
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi-1 = New value at gridpoint i-1
 
         Args:
             grid (numpy array):
@@ -212,9 +212,9 @@ class RecursiveFilter(object):
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
 
-            Progressing from gridpoint i+1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi+1 = New value at gridpoint i+1
+            Progressing from gridpoint i+1 to i:.
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi+1 = New value at gridpoint i+1
 
         Args:
             grid (numpy array):
@@ -246,17 +246,17 @@ class RecursiveFilter(object):
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
 
-            Progressing from gridpoint i-1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi-1 = New value at gridpoint i-1
+            Progressing from gridpoint i-1 to i:
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi-1 = New value at gridpoint i-1
 
         In the backwards direction:
             Recursive filtering is calculated as:
                 Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
 
-            Progressing from gridpoint i+1 to i ......
-            Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-            Bi+1 = New value at gridpoint i+1
+            Progressing from gridpoint i+1 to i:
+                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
+                Bi+1 = New value at gridpoint i+1
 
         Args:
             cube (Iris.cube.Cube):
