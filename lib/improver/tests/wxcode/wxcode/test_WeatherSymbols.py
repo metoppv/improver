@@ -164,10 +164,19 @@ class Test_check_input_cubes(IrisTest):
         plugin = WeatherSymbols()
         self.assertEqual(plugin.check_input_cubes(self.cubes), None)
 
-    def test_raises_error(self):
+    def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
         plugin = WeatherSymbols()
         cubes = self.cubes.pop()
+        msg = 'Weather Symbols input cubes are missing'
+        with self.assertRaisesRegexp(IOError, msg):
+            plugin.check_input_cubes(cubes)
+
+    def test_raises_error_missing_threshold(self):
+        """Test check_input_cubes method raises error if data is missing"""
+        plugin = WeatherSymbols()
+        cubes = self.cubes
+        cubes[0] = cubes[0][0]
         msg = 'Weather Symbols input cubes are missing'
         with self.assertRaisesRegexp(IOError, msg):
             plugin.check_input_cubes(cubes)
@@ -319,11 +328,13 @@ class Test_create_condition_chain(IrisTest):
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate', threshold=lambda cell: 0.03*0.99 < cell <"
-                    " 0.03*1.01))[0].data >= 0.5) | (cubes.extract(iris."
-                    "Constraint(name='probability_of_lwe_snowfall_rate', "
-                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01))[0]"
-                    ".data >= 0.5)")
+                    "rainfall_rate', threshold=lambda cell: 0.03 * {t_min} < "
+                    "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
+                    "(iris.Constraint(name='probability_of_lwe_snowfall_rate',"
+                    " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max}))[0].data >= 0.5)".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
         self.assertEqual(result[0], expected)
@@ -341,7 +352,10 @@ class Test_construct_extract_constraint(IrisTest):
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
         expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
-                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
+                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max})".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -357,7 +371,10 @@ class Test_construct_extract_constraint(IrisTest):
                                                      thresholds)
 
         expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
-                    "threshold=lambda cell: 0.03*0.99 < cell < 0.03*1.01)")
+                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max})".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)

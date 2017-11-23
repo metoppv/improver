@@ -53,8 +53,12 @@ class WeatherSymbols(object):
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
         symbol to each point.
+
+        float_tolerance defines the tolerance when matching thresholds to allow
+        for the difficulty of float comparisons.
         """
         self.queries = wxcode_decision_tree()
+        self.float_tolerance = 0.01
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -99,8 +103,9 @@ class WeatherSymbols(object):
                 threshold = threshold.points.item()
                 test_condition = (
                     iris.Constraint(
-                        threshold=lambda cell:
-                            threshold*0.99 < cell < threshold*1.01,
+                        threshold=lambda cell: (
+                            threshold * (1. - self.float_tolerance) < cell <
+                            threshold * (1. + self.float_tolerance)),
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
@@ -283,10 +288,12 @@ class WeatherSymbols(object):
                 threshold (float)
             Returns: (string)
             """
-            return '{}{}{}{}{}{}{}'.format(
-                "iris.Constraint(name='", diagnostic, "', "
-                "threshold=lambda cell: ", threshold,
-                "*0.99 < cell < ", threshold, "*1.01)")
+            return ("iris.Constraint(name='{diagnostic}', threshold="
+                    "lambda cell: {threshold} * {float_min} < cell < "
+                    "{threshold} * {float_max})".format(
+                        diagnostic=diagnostic, threshold=threshold,
+                        float_min=(1. - WeatherSymbols().float_tolerance),
+                        float_max=(1. + WeatherSymbols().float_tolerance)))
 
         if isinstance(diagnostics, list):
             constraints = []
