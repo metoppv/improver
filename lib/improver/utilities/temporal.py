@@ -87,7 +87,7 @@ def cycletime_to_number(
     return unit.date2num(dt, time_unit, calendar)
 
 
-def find_required_lead_times(cube):
+def find_required_lead_times(cube, force_lead_time_calculation=False):
     """
     Determine the lead times within a cube, either by reading the
     forecast_period coordinate, or by calculating the difference between
@@ -100,6 +100,11 @@ def find_required_lead_times(cube):
     Args:
         cube (Iris.cube.Cube):
             Cube from which the lead times will be determined.
+        force_lead_time_calculation (bool):
+            Force the lead time to be calculated from the
+            forecast_reference_time and the time coordinate, even if the
+            forecast_period coordinate exists.
+            Default is False.
 
     Returns:
         required_lead_times (Numpy array):
@@ -107,7 +112,7 @@ def find_required_lead_times(cube):
             calculated.
 
     """
-    if cube.coords("forecast_period"):
+    if cube.coords("forecast_period") and not force_lead_time_calculation:
         try:
             cube.coord("forecast_period").convert_units("hours")
         except ValueError as err:

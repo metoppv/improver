@@ -129,6 +129,17 @@ class Test_find_required_lead_times(IrisTest):
         result = find_required_lead_times(cube)
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_check_coordinate_force_lead_time_calculation(self):
+        """
+        Test that the data within the numpy array is as expected, when
+        the input cube has a forecast_period coordinate.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        expected_result = cube.coord("forecast_period").points
+        result = find_required_lead_times(
+            cube, force_lead_time_calculation=True)
+        self.assertArrayAlmostEqual(result, expected_result)
+
     def test_check_coordinate_without_forecast_period(self):
         """
         Test that the data within the numpy array is as expected, when

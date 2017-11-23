@@ -82,9 +82,8 @@ def conform_metadata(
             forecast_period = np.min(cube_orig.coord("forecast_period").points)
         else:
             fp_coord = cube.coord("forecast_period")
-            cube.remove_coord("forecast_period")
-            forecast_period = find_required_lead_times(cube)
-            cube.add_aux_coord(fp_coord)
+            forecast_period = find_required_lead_times(
+                cube, force_lead_time_calculation=True)
         cube.coord("forecast_period").points = forecast_period
         cube.coord("forecast_period").bounds = None
     elif cube.coords("forecast_reference_time") and cube.coords("time"):
