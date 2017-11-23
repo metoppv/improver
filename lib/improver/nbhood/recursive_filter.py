@@ -307,9 +307,8 @@ class RecursiveFilter(object):
                 emsg = ("A value for alpha must be set if alphas_cube is "
                         "set to None: alpha is currently set as: {}")
                 raise ValueError(emsg.format(alpha))
-            else:
-                alphas_cube = cube.copy(
-                    data=np.ones(cube.data.shape) * alpha)
+            alphas_cube = cube.copy(
+                data=np.ones(cube.data.shape) * alpha)
 
         if alphas_cube is not None:
             if alphas_cube.data.shape != cube.data.shape:
