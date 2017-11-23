@@ -29,13 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "threshold no arguments" {
-  run improver threshold
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
-                          [--threshold_units THRESHOLD_UNITS]
-                          [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
-                          INPUT_FILE OUTPUT_FILE
-                          [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "threshold input output 280 --fuzzy_factor 0.2" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run threshold processing and check it passes.
+  run improver threshold \
+      "$IMPROVER_ACC_TEST_DIR/threshold/basic/input.nc" "$TEST_DIR/output.nc" \
+      --threshold_config $IMPROVER_ACC_TEST_DIR/threshold/fuzzy_bounds/threshold_config.json
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/threshold/fuzzy_factor/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
