@@ -30,7 +30,61 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for making temporal calculations."""
 
+import cf_units as unit
+from datetime import datetime
+
 from iris.exceptions import CoordinateNotFoundError
+
+
+def cycletime_to_datetime(cycletime, format="%Y%m%dT%H%MZ"):
+    """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
+
+     Args:
+         cycletime (string):
+             A cycletime that can be converted into a datetime using the
+             cycletime_format supplied.
+
+     Keyword Args:
+         cycletime_format (string):
+             String containg the appropriate directives to indicate how
+             the output datetime should display.
+
+    Returns:
+        datetime:
+            A correctly formatted datetime object.
+    """
+    return datetime.strptime(cycletime, format)
+
+
+def cycletime_to_number(
+        cycletime, format="%Y%m%dT%H%MZ",
+        time_unit="hours since 1970-01-01 00:00:00",
+        calendar="gregorian"):
+    """Convert a cycletime of the format YYYYMMDDTHHMMZ into a numeric
+    time value.
+
+    Args:
+        cycletime (str):
+            A cycletime that can be converted into a datetime using the
+            cycletime_format supplied.
+
+    Keyword Args:
+        format (str):
+            String containg the appropriate directives to indicate how
+            the output datetime should display.
+        time_unit (str):
+            String representation of the cycletime units.
+        calendar (str):
+            String describing the calendar used for defining the cycletime.
+            The choice of calendar must be supported by cf_units.CALENDARS.
+
+    Returns:
+        float:
+            A numeric value to represent the datetime using assumed choices
+            for the unit of time and the calendar.
+    """
+    dt = cycletime_to_datetime(cycletime, format=format)
+    return unit.date2num(dt, time_unit, calendar)
 
 
 def find_required_lead_times(cube):

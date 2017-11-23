@@ -39,10 +39,12 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import add_renamed_cell_method
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.temporal import find_required_lead_times
+from improver.utilities.temporal import (
+    cycletime_to_number, find_required_lead_times)
 
 
-def conform_metadata(cube, cube_orig):
+def conform_metadata(
+        cube, cube_orig, cycletime=None):
     """Ensure that the metadata conforms after blending together across
     the chosen coordinate.
 
@@ -52,6 +54,8 @@ def conform_metadata(cube, cube_orig):
         cube_orig (iris.cube.Cube):
             Cube containing metadata that may be useful for adjusting
             metadata on the `cube` variable.
+        cycletime (str):
+            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
 
     Returns:
         cube (iris.cube.Cube):
@@ -59,16 +63,32 @@ def conform_metadata(cube, cube_orig):
 
     """
     if cube.coords("forecast_reference_time"):
-        cube.coord("forecast_reference_time").points = (
-            np.max(cube_orig.coord("forecast_reference_time").points))
+        if cycletime is None:
+            new_cycletime = (
+                np.max(cube_orig.coord("forecast_reference_time").points))
+        else:
+            cycletime_units = (
+                cube_orig.coord("forecast_reference_time").units.origin)
+            cycletime_calendar = (
+                cube.coord("forecast_reference_time").units.calendar)
+            new_cycletime = cycletime_to_number(
+                cycletime, time_unit=cycletime_units,
+                calendar=cycletime_calendar)
+        cube.coord("forecast_reference_time").points = new_cycletime
         cube.coord("forecast_reference_time").bounds = None
 
     if cube.coords("forecast_period"):
-        cube.coord("forecast_period").points = (
-            np.min(cube_orig.coord("forecast_period").points))
+        if cycletime is None:
+            forecast_period = np.min(cube_orig.coord("forecast_period").points)
+        else:
+            fp_coord = cube.coord("forecast_period")
+            cube.remove_coord("forecast_period")
+            forecast_period = find_required_lead_times(cube)
+            cube.add_aux_coord(fp_coord)
+        cube.coord("forecast_period").points = forecast_period
         cube.coord("forecast_period").bounds = None
     elif cube.coords("forecast_reference_time") and cube.coords("time"):
-        forecast_period = np.min(find_required_lead_times(cube_orig))
+        forecast_period = np.min(find_required_lead_times(cube))
         ndim = cube.coord_dims("time")
         cube.add_aux_coord(
             iris.coords.AuxCoord(
@@ -320,7 +340,10 @@ class WeightedBlendAcrossWholeDimension(object):
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, weighting_mode, coord_adjust=None):
+    def __init__(self, coord, weighting_mode, coord_adjust=None,
+                 cycletime=None,
+                 cycletime_unit="hours since 1970-01-01 00:00:00",
+                 cycletime_calendar="gregorian"):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -332,12 +355,17 @@ class WeightedBlendAcrossWholeDimension(object):
                    of interest.
                  - Weighted_maximum: the points in the coordinate of interest
                    are multiplied by the weights and then the maximum is taken.
+
+        Keyword Args:
             coord_adjust (function):
                 Function to apply to the coordinate after collapsing the cube
                 to correct the values, for example for time windowing and
                 cycle averaging the follow function would adjust the time
                 coordinates.
                     e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+            cycletime (str):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+
         Raises:
             ValueError : If an invalid weighting_mode is given.
         """
@@ -348,6 +376,7 @@ class WeightedBlendAcrossWholeDimension(object):
             raise ValueError(msg)
         self.mode = weighting_mode
         self.coord_adjust = coord_adjust
+        self.cycletime = cycletime
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -514,7 +543,8 @@ class WeightedBlendAcrossWholeDimension(object):
                     cube_new = cube_thres.collapsed(self.coord,
                                                     MAX_PROBABILITY,
                                                     arr_weights=weights)
-                cube_new = conform_metadata(cube_new, cube_thres)
+                cube_new = conform_metadata(
+                    cube_new, cube_thres, cycletime=self.cycletime)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):

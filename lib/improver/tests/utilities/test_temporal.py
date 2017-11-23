@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for temporal utilities."""
 
+import datetime
 import unittest
 
 import iris
@@ -40,11 +41,72 @@ import numpy as np
 
 from cf_units import Unit
 
-from improver.utilities.temporal import find_required_lead_times
+from improver.utilities.temporal import (
+    cycletime_to_datetime, cycletime_to_number, find_required_lead_times)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
+
+
+class Test_cycletime_to_datetime(IrisTest):
+
+    """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
+    into a datetime object."""
+
+    def test_basic(self):
+        """Test that a datetime object is returned of the expected value."""
+        cycletime = "20171122T0100Z"
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        result = cycletime_to_datetime(cycletime)
+        self.assertIsInstance(result, datetime.datetime)
+        self.assertEqual(result, dt)
+
+    def test_define_cycletime_format(self):
+        """Test when a cycletime is defined."""
+        cycletime = "201711220100"
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        result = cycletime_to_datetime(
+            cycletime, format="%Y%m%d%H%M")
+        self.assertEqual(result, dt)
+
+
+class Test_cycletime_to_number(IrisTest):
+
+    """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
+      into a numeric time value."""
+
+    def test_basic(self):
+        """Test that a number is returned of the expected value."""
+        cycletime = "20171122T0000Z"
+        dt = 419808.0
+        result = cycletime_to_number(cycletime)
+        self.assertIsInstance(result, float)
+        self.assertAlmostEqual(result, dt)
+
+    def test_cycletime_format_defined(self):
+        """Test when a cycletime is defined."""
+        cycletime = "201711220000"
+        dt = 419808.0
+        result = cycletime_to_number(
+            cycletime, format="%Y%m%d%H%M")
+        self.assertAlmostEqual(result, dt)
+
+    def test_alternative_units_defined(self):
+        """Test when alternative units are defined."""
+        cycletime = "20171122T0000Z"
+        dt = 1511308800.0
+        result = cycletime_to_number(
+            cycletime, time_unit="seconds since 1970-01-01 00:00:00")
+        self.assertAlmostEqual(result, dt)
+
+    def test_alternative_calendar_defined(self):
+        """Test when an alternative calendar is defined."""
+        cycletime = "20171122T0000Z"
+        dt = 419520.0
+        result = cycletime_to_number(
+            cycletime, calendar="365_day")
+        self.assertAlmostEqual(result, dt)
 
 
 class Test_find_required_lead_times(IrisTest):

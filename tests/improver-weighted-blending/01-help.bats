@@ -41,6 +41,7 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
+                                  [--cycletime CYCLETIME]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
@@ -75,7 +76,7 @@ optional arguments:
                         seperated by , e.g. "1496289600, 1496293200"
   --coordinate_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
-                        1970-01-01 00:00:00.
+                        1970-01-01 00:00:00
   --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
@@ -86,6 +87,9 @@ optional arguments:
                         redistribute weights evenly between the forecasts that
                         are available. "proportional": redistribute weights
                         using the original weighting function.
+  --cycletime CYCLETIME
+                        The forecast_reference_time to be used after blending
+                        has been applied in the format YYYYMMDDTHHMMZ.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear

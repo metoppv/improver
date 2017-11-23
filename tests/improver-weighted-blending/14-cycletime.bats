@@ -31,26 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --cval" {
-  # Run blending with non-linear weights calculation but linear args: check it fails.
-  run improver weighted-blending 'nonlinear' 'time' 'weighted_mean' --ynval 1 --y0val 0\
-      "NO_INPUT_FILE" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
-                                  [--cycletime CYCLETIME]
-                                  WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
-improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, slope, ynval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+@test "weighted-blending linear coordinate input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run weighted blending with linear weights and check it passes.
+  run improver weighted-blending 'linear' 'time' 'weighted_mean' --cycletime '20171022T2200Z'\
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/multiple_probabilities_temperature_*H.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
