@@ -36,7 +36,7 @@ from datetime import datetime
 from iris.exceptions import CoordinateNotFoundError
 
 
-def cycletime_to_datetime(cycletime, format="%Y%m%dT%H%MZ"):
+def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
 
      Args:
@@ -53,11 +53,11 @@ def cycletime_to_datetime(cycletime, format="%Y%m%dT%H%MZ"):
         datetime:
             A correctly formatted datetime object.
     """
-    return datetime.strptime(cycletime, format)
+    return datetime.strptime(cycletime, cycletime_format)
 
 
 def cycletime_to_number(
-        cycletime, format="%Y%m%dT%H%MZ",
+        cycletime, cycletime_format="%Y%m%dT%H%MZ",
         time_unit="hours since 1970-01-01 00:00:00",
         calendar="gregorian"):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a numeric
@@ -69,7 +69,7 @@ def cycletime_to_number(
             cycletime_format supplied.
 
     Keyword Args:
-        format (str):
+        cycletime_format (str):
             String containg the appropriate directives to indicate how
             the output datetime should display.
         time_unit (str):
@@ -83,7 +83,7 @@ def cycletime_to_number(
             A numeric value to represent the datetime using assumed choices
             for the unit of time and the calendar.
     """
-    dt = cycletime_to_datetime(cycletime, format=format)
+    dt = cycletime_to_datetime(cycletime, cycletime_format=cycletime_format)
     return unit.date2num(dt, time_unit, calendar)
 
 

@@ -67,7 +67,7 @@ class Test_cycletime_to_datetime(IrisTest):
         cycletime = "201711220100"
         dt = datetime.datetime(2017, 11, 22, 1, 0)
         result = cycletime_to_datetime(
-            cycletime, format="%Y%m%d%H%M")
+            cycletime, cycletime_format="%Y%m%d%H%M")
         self.assertEqual(result, dt)
 
 
@@ -89,7 +89,7 @@ class Test_cycletime_to_number(IrisTest):
         cycletime = "201711220000"
         dt = 419808.0
         result = cycletime_to_number(
-            cycletime, format="%Y%m%d%H%M")
+            cycletime, cycletime_format="%Y%m%d%H%M")
         self.assertAlmostEqual(result, dt)
 
     def test_alternative_units_defined(self):

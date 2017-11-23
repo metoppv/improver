@@ -83,7 +83,6 @@ def conform_metadata(
         if cycletime is None:
             forecast_period = np.min(cube_orig.coord("forecast_period").points)
         else:
-            fp_coord = cube.coord("forecast_period")
             forecast_period = find_required_lead_times(
                 cube, force_lead_time_calculation=True)
         cube.coord("forecast_period").points = forecast_period
