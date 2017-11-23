@@ -72,7 +72,7 @@ class RecursiveFilter(object):
         """
 
         if alpha_x is not None:
-            if not 0 < alpha_x < 1:
+            if not 0 <= alpha_x < 1:
                 raise ValueError(
                     "Invalid alpha_x: must be >= 0 and < 1: {}".format(
                         alpha_x))
