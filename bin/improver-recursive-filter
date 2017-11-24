@@ -57,21 +57,23 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("--input_filepath_alphas_x", metavar="ALPHAS_X",
-                        help="A path to a NetCDF file describing the alpha"
+                        help="A path to a NetCDF file describing the alpha "
                              "factors to be used for smoothing in the x "
                              "direction")
     parser.add_argument("--input_filepath_alphas_y", metavar="ALPHAS_Y",
-                        help="A path to a NetCDF file describing the alpha"
+                        help="A path to a NetCDF file describing the alpha "
                              "factors to be used for smoothing in the y "
                              "direction")
     parser.add_argument("--alpha_x", metavar="ALPHA_X",
                         default=None, type=float,
                         help="A single alpha factor (0>=alpha_x<1) to be "
-                             "applied to every grid square in the x direction.")
+                             "applied to every grid square in the x "
+                             "direction.")
     parser.add_argument("--alpha_y", metavar="ALPHA_Y",
                         default=None, type=float,
                         help="A single alpha factor (0>=alpha_y<1) to be "
-                             "applied to every grid square in the y direction.")
+                             "applied to every grid square in the y "
+                             "direction.")
     parser.add_argument("--iterations", metavar="ITERATIONS",
                         default=1, type=int,
                         help="Number of cycles over which to apply the filter")
