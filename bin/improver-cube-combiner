@@ -49,7 +49,10 @@ def main():
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
                         nargs="+", type=str,
                         help="A path to an input NETCDF files."
-                        " One cube per NetCDF file")
+                        " One cube per NetCDF file. The resulting"
+                        " cube will be based on the first cube but"
+                        " its metadata can be overwritten via"
+                        " the metadata_jsonfile.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF.")
     parser.add_argument("--operation", metavar="OPERATION",

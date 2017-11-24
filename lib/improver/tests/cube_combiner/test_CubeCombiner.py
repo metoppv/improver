@@ -31,8 +31,8 @@
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
 import unittest
 
-import numpy as np
 import warnings
+import numpy as np
 
 import iris
 from iris.tests import IrisTest
@@ -103,33 +103,118 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_remove_metadata_diff(IrisTest):
+class Test_resolve_metadata_diff(IrisTest):
 
     """Test the remove_metadata_diff method."""
+
+    def setUp(self):
+        """Create a cube with threshold coord is not first coord."""
+        threshold_values = [1.0]
+        data = np.zeros((2, len(threshold_values), 2, 2, 2))
+        data[:, :, 0, :, :] = 0.5
+        data[:, :, 1, :, :] = 0.6
+        long_name = "probability_of_rainfall_rate"
+        units = "m s^-1"
+
+        self.cube = Cube(data, long_name=long_name, units='1')
+        self.cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
+                                         'latitude',
+                                         units='degrees'), 3)
+        self.cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
+                                         'longitude',
+                                         units='degrees'), 4)
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        self.cube.add_dim_coord(DimCoord([402192.5, 402193.5],
+                                         "time", units=tunit), 2)
+        self.cube.add_dim_coord(DimCoord(threshold_values,
+                                         long_name='threshold',
+                                         units=units), 1)
+        self.cube.add_dim_coord(DimCoord([0, 1],
+                                         long_name='realization',
+                                         units=units), 0)
+        self.cube.attributes['relative_to_threshold'] = 'above'
 
     def test_basic(self):
         """Test that the function returns a tuple of Cubes. """
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
-        result = plugin.remove_metadata_diff(cube1, cube2)
+        result = plugin.resolve_metadata_diff(cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], Cube)
         self.assertIsInstance(result[1], Cube)
 
+    def test_mismatching_coords_wrong_shape(self):
+        """Test raises an error if shape do not match. """
+        plugin = CubeCombiner('-')
+        cube1 = create_cube_with_threshold()
+        cube2 = create_cube_with_threshold(threshold_values=[1.0, 2.0])
+        msg = "Can not combine cubes, mismatching shapes"
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.resolve_metadata_diff(cube1, cube2)
 
-class Test_add_metadata_diff(IrisTest):
-
-    """Test the add_metadata_diff method."""
-
-    def test_basic(self):
-        """Test that the function returns a cube. """
+    def test_mismatching_coords_missing_1d_coord(self):
+        """Test that the function returns a tuple of Cubes. """
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
-        result = plugin.add_metadata_diff(cube1, cube2)
-        self.assertIsInstance(result, Cube)
+        cube2.remove_coord('threshold')
+        cube2 = iris.util.squeeze(cube2)
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
+        self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
+
+    def test_mismatching_coords_missing_1d_coord_v2(self):
+        """Test that the function returns a tuple of Cubes. """
+        plugin = CubeCombiner('-')
+        cube1 = create_cube_with_threshold()
+        cube2 = cube1.copy()
+        cube1.remove_coord('threshold')
+        cube1 = iris.util.squeeze(cube1)
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].shape, np.array([2, 2, 2]))
+        self.assertArrayEqual(result[1].shape, np.array([2, 2, 2]))
+
+    def test_mismatching_coords_missing_1d_coord_v3(self):
+        """Test that the function returns a tuple of Cubes. """
+        plugin = CubeCombiner('-')
+        cube1 = self.cube
+        cube2 = cube1.copy()
+        cube2.remove_coord('threshold')
+        cube2 = iris.util.squeeze(cube2)
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].shape, np.array([2, 1, 2, 2, 2]))
+        self.assertArrayEqual(result[1].shape, np.array([2, 1, 2, 2, 2]))
+
+    def test_mismatching_coords_missing_1d_coord_v4(self):
+        """Test that the function returns a tuple of Cubes. """
+        plugin = CubeCombiner('-')
+        cube1 = self.cube
+        cube2 = cube1.copy()
+        cube1.remove_coord('threshold')
+        cube1 = iris.util.squeeze(cube1)
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].shape, np.array([2, 2, 2, 2]))
+        self.assertArrayEqual(result[1].shape, np.array([2, 2, 2, 2]))
+
+    def test_mismatching_coords_same_shape(self):
+        """Test that the function returns a tuple of Cubes. """
+        plugin = CubeCombiner('-')
+        cube1 = create_cube_with_threshold()
+        cube2 = create_cube_with_threshold(threshold_values=[2.0])
+        result = plugin.resolve_metadata_diff(cube1, cube2)
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].coord('threshold').points,
+                              np.array([1.0]))
+        self.assertArrayEqual(result[1].coord('threshold').points,
+                              np.array([2.0]))
 
 
 class Test_add_coord(IrisTest):

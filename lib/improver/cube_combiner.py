@@ -36,8 +36,7 @@ import numpy as np
 import iris
 from iris import FUTURE
 
-from improver.utilities.cube_manipulation import (compare_attributes,
-                                                  compare_coords)
+from improver.utilities.cube_manipulation import compare_coords
 
 FUTURE.netcdf_promote = True
 
@@ -81,7 +80,7 @@ class CubeCombiner(object):
                                                self.warnings_on))
         return desc
 
-    def remove_metadata_diff(self, cube1, cube2):
+    def resolve_metadata_diff(self, cube1, cube2):
         """Remove any differences in metadata between cubes.
 
         Args:
@@ -96,70 +95,41 @@ class CubeCombiner(object):
                     Cube with corrected Metadata.
                 **result2** (iris.cube.Cube):
                     Cube with corrected Metadata.
+
         """
         result1 = cube1
         result2 = cube2
         cubes = iris.cube.CubeList([result1, result2])
-        unmatching_attributes = compare_attributes(cubes)
-        for attr in unmatching_attributes[0]:
-            self.update_attribute(result1, attr, 'delete')
-        for attr in unmatching_attributes[1]:
-            self.update_attribute(result2, attr, 'delete')
+
+        # Processing will be based on cube1 so any unmatching
+        # attributes will be ignored
+
+        # Find mismatching coords
         unmatching_coords = compare_coords(cubes)
+        # If extra dim coord length 1 on cube1 then add to cube2
         for coord in unmatching_coords[0]:
-            if len(result1.coord(coord).points) == 1:
-                if coord not in [crd.name() for crd in result2.coords()]:
-                    self.update_coord(result1, coord, 'delete')
+            if coord not in unmatching_coords[1]:
+                if len(result1.coord(coord).points) == 1:
+                    if result1.coord_dims(coord) is not None:
+                        coord_dict = dict()
+                        coord_dict['points'] = result1.coord(coord).points
+                        coord_dict['bounds'] = result1.coord(coord).bounds
+                        coord_dict['units'] = result1.coord(coord).units
+                        coord_dict['metatype'] = 'DimCoord'
+                        self.add_coord(result2, coord, coord_dict)
+                        result2 = iris.util.as_compatible_shape(result2,
+                                                                result1)
+        # If extra dim coord length 1 on cube2 then delete from cube2
         for coord in unmatching_coords[1]:
-            if len(result2.coord(coord).points) == 1:
-                if coord not in [crd.name() for crd in result1.coords()]:
-                    self.update_coord(result2, coord, 'delete')
+            if coord not in unmatching_coords[0]:
+                if len(result2.coord(coord).points) == 1:
+                    result2 = self.update_coord(result2, coord, 'delete')
+
+        # If shapes still do not match Raise an error
         if result1.data.shape != result2.data.shape:
             msg = "Can not combine cubes, mismatching shapes"
             raise ValueError(msg)
         return result1, result2
-
-    def add_metadata_diff(self, cube_in, cube_to_match):
-        """Add any differences in  metadata between cubes.
-
-        Args:
-            cube_in (iris.cube.Cube):
-                Cube to add metadata.
-            cube_to_match (iris.cube.Cube):
-                Cube to match metadata.
-
-        Returns:
-            result (iris.cube.Cube):
-                Cube with corrected Metadata.
-
-        Raises:
-            ValueError : Could not add mismatching coord
-
-        """
-        cubes = iris.cube.CubeList([cube_in, cube_to_match])
-        unmatching_attributes = compare_attributes(cubes)
-        unmatching_coords = compare_coords(cubes)
-        result = cube_in
-        for attr in unmatching_attributes[1]:
-            self.update_attribute(result, attr, cube_to_match.attributes[attr])
-        for coord in unmatching_coords[1]:
-            if cube_to_match(coord).points == 1:
-                coord_dict = dict()
-                coord_dict['points'] = cube_to_match.coord(coord).points
-                coord_dict['bounds'] = cube_to_match.coord(coord).bounds
-                coord_dict['units'] = cube_to_match.coord(coord).units
-                if not cube_to_match.coord_dims(coord):
-                    coord_dict['metatype'] = 'AuxCoord'
-                try:
-                    self.add_coord(result, coord, coord_dict)
-                except ValueError:
-                    msg = "Could not add mismatching coord, {}".format(coord)
-                    raise ValueError(msg)
-            else:
-                msg = "Could not add mismatching coord, {}".format(coord)
-                raise ValueError(msg)
-
-        return result
 
     def add_coord(self, cube, coord_name, changes):
         """Add coord to the cube.
@@ -403,18 +373,16 @@ class CubeCombiner(object):
             ValueError: Unknown operation.
 
         """
-
+        result = cube1
         if operation == '+' or operation == 'add' or operation == 'mean':
-            result = cube1 + cube2
+            result.data = cube1.data + cube2.data
         elif operation == '-' or operation == 'subtract':
-            result = cube1 - cube2
+            result.data = cube1.data - cube2.data
         elif operation == '*' or operation == 'multiple':
-            result = cube1 * cube2
+            result.data = cube1.data * cube2.data
         elif operation == 'min':
-            result = cube1
             result.data = np.minimum(cube1.data, cube2.data)
         elif operation == 'max':
-            result = cube1
             result.data = np.maximum(cube1.data, cube2.data)
         else:
             msg = 'Unknown operation {}'.format(operation)
@@ -459,17 +427,14 @@ class CubeCombiner(object):
 
         for ind in range(1, len(cube_list)):
             cube1, cube2 = (
-                self.remove_metadata_diff(result.copy(),
-                                          cube_list[ind].copy()))
+                self.resolve_metadata_diff(result.copy(),
+                                           cube_list[ind].copy()))
             result = self.combine(cube1,
                                   cube2,
                                   self.operation)
 
         if self.operation == 'mean':
             result = result / len(cube_list)
-        result = (
-            self.add_metadata_diff(result.copy(),
-                                   cube_list[0].copy()))
 
         result = self.amend_metadata(result,
                                      new_diagnostic_name,

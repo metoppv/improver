@@ -45,7 +45,9 @@ Combine the input cubes into a single cube using the requested operation e.g.
 
 positional arguments:
   INPUT_FILENAMES       A path to an input NETCDF files. One cube per NetCDF
-                        file
+                        file. The resulting cube will be based on the first
+                        cube but its metadata can be overwritten via the
+                        metadata_jsonfile.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
