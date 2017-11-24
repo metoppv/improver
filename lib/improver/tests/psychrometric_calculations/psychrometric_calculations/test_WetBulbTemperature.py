@@ -42,30 +42,35 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
 
 
+def set_up_cubes_for_wet_bulb_temperature():
+    """Set up cubes required for wet bulb temperature unit tests."""
+    longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
+    time = DimCoord([1491955200], 'time')
+    temperature = Cube([183.15, 260.65, 338.15], 'air_temperature',
+                       units='K',
+                       dim_coords_and_dims=[(longitude, 0)])
+    temperature.add_aux_coord(time)
+    pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
+                    dim_coords_and_dims=[(longitude, 0)])
+    pressure.add_aux_coord(time)
+    relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
+                             dim_coords_and_dims=[(longitude, 0)])
+    relative_humidity.add_aux_coord(time)
+    mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
+                        units='1',
+                        dim_coords_and_dims=[(longitude, 0)])
+    mixing_ratio.add_aux_coord(time)
+    return temperature, pressure, relative_humidity, mixing_ratio
+
+
 class Test_WetBulbTemperature(IrisTest):
 
     """Test class for the WetBulbTemperature tests, setting up cubes."""
 
     def setUp(self):
         """Set up the initial conditions for tests."""
-
-        longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
-        time = DimCoord([1491955200], 'time')
-        temperature = Cube([183.15, 260.65, 338.15], 'air_temperature',
-                           units='K',
-                           dim_coords_and_dims=[(longitude, 0)])
-        temperature.add_aux_coord(time)
-        pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
-                        dim_coords_and_dims=[(longitude, 0)])
-        pressure.add_aux_coord(time)
-        relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
-                                 dim_coords_and_dims=[(longitude, 0)])
-        relative_humidity.add_aux_coord(time)
-        mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
-                            units='1',
-                            dim_coords_and_dims=[(longitude, 0)])
-        mixing_ratio.add_aux_coord(time)
-
+        temperature, pressure, relative_humidity, mixing_ratio = (
+            set_up_cubes_for_wet_bulb_temperature())
         self.temperature = temperature
         self.pressure = pressure
         self.relative_humidity = relative_humidity
