@@ -38,12 +38,12 @@
   # Run wind-gust-diagnostic processing and check it passes.
   run improver wxcode \
       "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_visibility_in_air.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_in_vicinity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_visibility_in_air.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

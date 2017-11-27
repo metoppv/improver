@@ -35,12 +35,13 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-wxcode [-h]
                        PROBABILITY_OF_RAINFALL_RATE
+                       PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
                        PROBABILITY_OF_LWE_SNOWFALL_RATE
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION
-                       PROBABILITY_OF_VISIBILITY_IN_AIR
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
                        PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY OUTPUT_FILE
+                       PROBABILITY_OF_VISIBILITY_IN_AIR
+                       PROBABILITY_OF_CLOUD_AREA_FRACTION
+                       PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
+                       OUTPUT_FILE
 
 Calculate a cube of weather symbol codes.
 
@@ -49,37 +50,36 @@ positional arguments:
                         File path to a cube of probability_of_rainfall_rate at
                         the points for which the weather symbols are being
                         calculated.
+  PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
+                        File path to a cube of
+                        probability_of_rainfall_rate_in_vicinity at the points
+                        for which the weather symbols are being calculated.
   PROBABILITY_OF_LWE_SNOWFALL_RATE
                         File path to a cube of
                         probability_of_lwe_snowfall_rate at the points for
                         which the weather symbols are being calculated.
-  PROBABILITY_OF_CLOUD_AREA_FRACTION
+  PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
                         File path to a cube of
-                        probability_of_cloud_area_fraction at the points for
-                        which the weather symbols are being calculated.
+                        probability_of_lwe_snowfall_rate_in_vicinity at the
+                        points for which the weather symbols are being
+                        calculated.
   PROBABILITY_OF_VISIBILITY_IN_AIR
                         File path to a cube of
                         probability_of_visibility_in_air at the points for
+                        which the weather symbols are being calculated.
+  PROBABILITY_OF_CLOUD_AREA_FRACTION
+                        File path to a cube of
+                        probability_of_cloud_area_fraction at the points for
                         which the weather symbols are being calculated.
   PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
                         File path to a cube of probability_of_cloud_area_fract
                         ion_assuming_only_consider_surface_to_1000_feet_asl at
                         the points for which the weather symbols are being
                         calculated.
-  PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                        File path to a cube of
-                        probability_of_lwe_snowfall_rate_in_vicinity at the
-                        points for which the weather symbols are being
-                        calculated.
-  PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
-                        File path to a cube of
-                        probability_of_rainfall_rate_in_vicinity at the points
-                        for which the weather symbols are being calculated.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
   -h, --help            show this help message and exit
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }
