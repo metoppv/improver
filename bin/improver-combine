@@ -62,10 +62,11 @@ def main():
                                  "min", "max", "mean"],
                         help="Operation to use in combining the cubes"
                         " Default=+ i.e. add ", type=str)
-    parser.add_argument("--new_cube_name", metavar="NEW_CUBE_NAME",
+    parser.add_argument("--new-name", metavar="NEW_NAME",
                         default=None,
-                        help="New cube name. Will default to name of "
-                        "first cube if not set ", type=str)
+                        help="New name for the resulting diagnostic cube. Will"
+                        " default to the name of the first diagnostic cube if "
+                        "not set.", type=str)
     parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
                         default=None,
                         help="Filename for the json file containing "
@@ -79,14 +80,14 @@ def main():
     args = parser.parse_args()
     # Load the cubes
     cubes = iris.cube.CubeList([])
-    new_cube_name = args.new_cube_name
+    new_cube_name = args.new_name
     for filename in args.input_filenames:
         new_cube = iris.load_cube(filename)
         cubes.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
         if args.warnings_on:
-            if (args.new_cube_name is None and
+            if (args.new_name is None and
                     new_cube_name != new_cube.name()):
                 msg = ("Defaulting to first "
                        "cube name, {}".format(new_cube_name) +

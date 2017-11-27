@@ -29,40 +29,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "cube-combiner -h" {
-  run improver cube-combiner -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "combine --metadata_jsonfile" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run cube-combiner processing and check it passes.
+  run improver combine \
+      --operation='-' \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata/prob_precip.json" \
+      "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_0p1.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_1p0.nc" \
+       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-usage: improver-cube-combiner [-h] [--operation OPERATION]
-                              [--new_cube_name NEW_CUBE_NAME]
-                              [--metadata_jsonfile METADATA_JSONFILE]
-                              [--warnings_on]
-                              INPUT_FILENAMES [INPUT_FILENAMES ...]
-                              OUTPUT_FILE
 
-Combine the input cubes into a single cube using the requested operation e.g.
-+ - min max etc.
-
-positional arguments:
-  INPUT_FILENAMES       A path to an input NETCDF files. One cube per NetCDF
-                        file. The resulting cube will be based on the first
-                        cube but its metadata can be overwritten via the
-                        metadata_jsonfile.
-  OUTPUT_FILE           The output path for the processed NetCDF.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --operation OPERATION
-                        Operation to use in combining the cubes Default=+ i.e.
-                        add
-  --new_cube_name NEW_CUBE_NAME
-                        New cube name. Will default to name of first cube if
-                        not set
-  --metadata_jsonfile METADATA_JSONFILE
-                        Filename for the json file containing required changes
-                        to the metadata. default=None
-  --warnings_on         If warnings_on is set (i.e. True), Warning messages
-                        where cubes do not match will be given. Default=False
-__HELP__
-  [[ "$output" == "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/metadata/kgo_prob_precip.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

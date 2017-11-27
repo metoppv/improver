@@ -29,17 +29,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "cube combiner no arguments" {
-  run improver cube-combiner
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-cube-combiner [-h] [--operation OPERATION]
-                              [--new_cube_name NEW_CUBE_NAME]
-                              [--metadata_jsonfile METADATA_JSONFILE]
-                              [--warnings_on]
-                              INPUT_FILENAMES [INPUT_FILENAMES ...]
-                              OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-  echo "$output"
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "cube-combiner" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run cube-combiner processing and check it passes.
+  run improver combine \
+      --operation='max' \
+      --new-name='total_cloud_cover_excluding_high_cloud' \
+      "$IMPROVER_ACC_TEST_DIR/combine/basic/low_cloud.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/basic/medium_cloud.nc" \
+       "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/basic/kgo_cloud.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

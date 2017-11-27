@@ -29,24 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "cube-combiner --metadata_jsonfile" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  # Run cube-combiner processing and check it passes.
-  run improver cube-combiner \
-      --operation='-' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/prob_precip.json" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/precip_prob_0p1.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/precip_prob_1p0.nc" \
-       "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/metadata/kgo_prob_precip.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+@test "combine no arguments" {
+  run improver combine
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-combine [-h] [--operation OPERATION] [--new-name NEW_NAME]
+                        [--metadata_jsonfile METADATA_JSONFILE]
+                        [--warnings_on]
+                        INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

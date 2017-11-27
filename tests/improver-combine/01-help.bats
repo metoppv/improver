@@ -29,24 +29,38 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "cube-combiner" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  # Run cube-combiner processing and check it passes.
-  run improver cube-combiner \
-      --operation='max' \
-      --new_cube_name='total_cloud_cover_excluding_high_cloud' \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/low_cloud.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/medium_cloud.nc" \
-       "$TEST_DIR/output.nc"
+@test "cube-combiner -h" {
+  run improver combine -h
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-combine [-h] [--operation OPERATION] [--new-name NEW_NAME]
+                        [--metadata_jsonfile METADATA_JSONFILE]
+                        [--warnings_on]
+                        INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/cube-combiner/basic/kgo_cloud.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+Combine the input cubes into a single cube using the requested operation e.g.
++ - min max etc.
+
+positional arguments:
+  INPUT_FILENAMES       A path to an input NETCDF files. One cube per NetCDF
+                        file. The resulting cube will be based on the first
+                        cube but its metadata can be overwritten via the
+                        metadata_jsonfile.
+  OUTPUT_FILE           The output path for the processed NetCDF.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --operation OPERATION
+                        Operation to use in combining the cubes Default=+ i.e.
+                        add
+  --new-name NEW_NAME   New name for the resulting diagnostic cube. Will
+                        default to the name of the first diagnostic cube if
+                        not set.
+  --metadata_jsonfile METADATA_JSONFILE
+                        Filename for the json file containing required changes
+                        to the metadata. default=None
+  --warnings_on         If warnings_on is set (i.e. True), Warning messages
+                        where cubes do not match will be given. Default=False
+__HELP__
+  [[ "$output" == "$expected" ]]
 }
