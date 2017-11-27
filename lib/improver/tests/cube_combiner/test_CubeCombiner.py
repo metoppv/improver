@@ -105,7 +105,7 @@ class Test__repr__(IrisTest):
 
 class Test_resolve_metadata_diff(IrisTest):
 
-    """Test the remove_metadata_diff method."""
+    """Test the resolve_metadata_diff method."""
 
     def setUp(self):
         """Create a cube with threshold coord is not first coord."""
@@ -156,8 +156,8 @@ class Test_resolve_metadata_diff(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.resolve_metadata_diff(cube1, cube2)
 
-    def test_mismatching_coords_missing_1d_coord(self):
-        """Test that the function returns a tuple of Cubes. """
+    def test_mismatching_coords_1d_coord_pos0_on_cube1(self):
+        """Test missing coord on cube2. Coord is leading coord in cube1."""
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
@@ -168,8 +168,8 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
-    def test_mismatching_coords_missing_1d_coord_v2(self):
-        """Test that the function returns a tuple of Cubes. """
+    def test_mismatching_coords_1d_coord_pos0_on_cube2(self):
+        """Test missing coord on cube1. Coord is leading coord in cube2."""
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
@@ -180,8 +180,9 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[0].shape, np.array([2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([2, 2, 2]))
 
-    def test_mismatching_coords_missing_1d_coord_v3(self):
-        """Test that the function returns a tuple of Cubes. """
+    def test_mismatching_coords_1d_coord_pos1_cube1(self):
+        """Test missing 1d coord on cube2.
+           Coord is not leading coord in cube1."""
         plugin = CubeCombiner('-')
         cube1 = self.cube
         cube2 = cube1.copy()
@@ -192,8 +193,9 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[0].shape, np.array([2, 1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([2, 1, 2, 2, 2]))
 
-    def test_mismatching_coords_missing_1d_coord_v4(self):
-        """Test that the function returns a tuple of Cubes. """
+    def test_mismatching_coords_1d_coord_pos1_cube2(self):
+        """Test missing 1d coord on cube1.
+           Coord is not leading coord in cube2."""
         plugin = CubeCombiner('-')
         cube1 = self.cube
         cube2 = cube1.copy()
@@ -205,7 +207,7 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[1].shape, np.array([2, 2, 2, 2]))
 
     def test_mismatching_coords_same_shape(self):
-        """Test that the function returns a tuple of Cubes. """
+        """Test works with mismatching coords but coords same shape."""
         plugin = CubeCombiner('-')
         cube1 = create_cube_with_threshold()
         cube2 = create_cube_with_threshold(threshold_values=[2.0])
@@ -219,7 +221,7 @@ class Test_resolve_metadata_diff(IrisTest):
 
 class Test_add_coord(IrisTest):
 
-    """Test the update_coord method."""
+    """Test the add_coord method."""
 
     def test_basic(self):
         """Test that add_coord returns a Cube and adds coord correctly. """
@@ -361,7 +363,7 @@ class Test_update_coord(IrisTest):
                               np.array([[0.1, 2.0], [2.0, 3.0]]))
 
     def test_coords_update_fails_bounds_differ(self):
-        """Test that update_coord succeeds if bounds do match """
+        """Test that update_coord fails if bounds differ."""
         plugin = CubeCombiner('-')
         cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
         cube.coord('threshold').guess_bounds()

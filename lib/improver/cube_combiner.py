@@ -116,7 +116,7 @@ class CubeCombiner(object):
                         coord_dict['bounds'] = result1.coord(coord).bounds
                         coord_dict['units'] = result1.coord(coord).units
                         coord_dict['metatype'] = 'DimCoord'
-                        self.add_coord(result2, coord, coord_dict)
+                        result2 = self.add_coord(result2, coord, coord_dict)
                         result2 = iris.util.as_compatible_shape(result2,
                                                                 result1)
         # If extra dim coord length 1 on cube2 then delete from cube2
