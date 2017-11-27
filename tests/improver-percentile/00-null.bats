@@ -35,7 +35,7 @@
   expected="usage: improver-percentile [-h]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
                            [--percentiles PERCENTILES [PERCENTILES ...] |
-                           --no_of_percentiles NUMBER_OF_PERCENTILES]
+                           --no-of-percentiles NUMBER_OF_PERCENTILES]
                            INPUT_FILE OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }
