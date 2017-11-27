@@ -38,6 +38,7 @@ import iris
 
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.mathematical_operations import Integration
 
 
 class Utilities(object):
@@ -509,3 +510,82 @@ class WetBulbTemperature(object):
         wet_bulb_temperature = check_cube_coordinates(temperature,
                                                       wet_bulb_temperature)
         return wet_bulb_temperature
+
+
+class WetBulbTemperatureIntegral(object):
+    """Calculate  a wet-bulb temperature integral."""
+
+    def __init__(self, precision=0.005, coord_name_to_integrate="height",
+                 start_point=None, end_point=None,
+                 direction_of_integration="negative"):
+        """
+        Initialise class.
+
+        Keyword Args:
+            precision (float):
+                The precision to which the Newton iterator must converge
+                before returning wet bulb temperatures.
+            coord_name_to_integrate (string):
+                Name of the coordinate to be integrated.
+            start_point (float or None):
+                Point at which to start the integration.
+                Default is None. If start_point is None, integration starts
+                from the first available point.
+            end_point (float or None):
+                Point at which to end the integration.
+                Default is None. If end_point is None, integration will
+                continue until the last available point.
+            direction_of_integration (string):
+                Description of the direction in which to integrate.
+                Options are 'positive' or 'negative'.
+                'positive' corresponds to the values within the array
+                increasing as the array index increases.
+                'negative' corresponds to the values within the array
+                decreasing as the array index increases.
+        """
+        self.wet_bulb_temperature_plugin = (
+            WetBulbTemperature(precision=precision))
+        self.integration_plugin = Integration(
+            coord_name_to_integrate, start_point=start_point,
+            end_point=end_point,
+            direction_of_integration=direction_of_integration)
+        self.coord_name_to_integrate = coord_name_to_integrate
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<WetBulbTemperatureIntegral: {}, {}>'.format(
+                      self.wet_bulb_temperature_plugin,
+                      self.integration_plugin))
+        return result
+
+    def process(self, temperature, relative_humidity, pressure):
+        """
+        Calculate the wet bulb temperature integral by firstly calculating
+        the wet bulb temperature from the inputs provided, and then
+        calculating the vertical integral of the wet bulb temperature.
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures (K).
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities (%, converted to fractional).
+            pressure (iris.cube.Cube):
+                Cube of air pressures (Pa).
+
+        Returns:
+            wet_bulb_temperature_integral (iris.cube.Cube):
+                Cube of wet bulb temperature integral (Kelvin-metres).
+        """
+        # Calculate wet-bulb temperature.
+        wet_bulb_temperature = (
+            self.wet_bulb_temperature_plugin.process(
+                temperature, relative_humidity, pressure))
+        # Integrate.
+        wet_bulb_temperature_integral = (
+            self.integration_plugin.process(wet_bulb_temperature))
+        wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
+        units_string = "{} {}".format(
+            wet_bulb_temperature.units,
+            wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
+        wet_bulb_temperature_integral.units = Unit(units_string)
+        return wet_bulb_temperature_integral

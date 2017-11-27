@@ -33,6 +33,7 @@
 
 import argparse
 
+import json
 import iris
 import cf_units
 
@@ -45,17 +46,30 @@ def main():
         description="Calculate the threshold truth value of cube data "
         "relative to the provided threshold value. By default data are "
         "tested to be above the thresholds, though the --below_threshold "
-        "flag enables testing below thresholds. A fuzzy factor may be "
-        "provided to capture data that is within this factor of the "
+        "flag enables testing below thresholds. A fuzzy factor or fuzzy "
+        "bounds may be provided to capture data that is close to the "
         "threshold.")
     parser.add_argument("input_filepath", metavar="INPUT_FILE",
                         help="A path to an input NetCDF file to be processed")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("threshold_values", metavar="THRESHOLD_VALUES",
-                        nargs="+", type=float,
+                        nargs="*", type=float,
                         help="Threshold value or values about which to "
-                        "calculate the truth values; e.g. 270 300")
+                        "calculate the truth values; e.g. 270 300. "
+                        "Must be omitted if --threshold_config is used.")
+    parser.add_argument("--threshold_config", metavar="THRESHOLD_CONFIG",
+                        type=str,
+                        help="Threshold configuration JSON file containing "
+                        "thresholds and fuzzy bounds. Best used in "
+                        "combination  with --threshold_units. "
+                        "It should contain a dictionary of strings that can "
+                        "be interpreted as floats with the structure: "
+                        " \"THRESHOLD_VALUE\": [LOWER_BOUND, UPPER_BOUND] "
+                        "e.g: {\"280.0\": [278.0, 282.0], "
+                        "\"290.0\": [288.0, 292.0]}. "
+                        "Repeated thresholds with different bounds are not "
+                        "handled well. Only the last duplicate will be used.")
     parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
                         default=None, type=str,
                         help="Units of the threshold values. If not provided "
@@ -76,19 +90,57 @@ def main():
                         "fuzzy. Data which fail a test against the hard "
                         "threshold value may return a fractional truth value "
                         "if they fall within this fuzzy factor region. NB A "
-                        "fuzzy factor cannot be used with a zero threshold.")
+                        "fuzzy factor cannot be used with a zero threshold "
+                        "or a threshold_config file.")
 
     args = parser.parse_args()
+
+    # Deal with mutual-exclusions that ArgumentParser can't handle:
+    if args.threshold_values and args.threshold_config:
+        raise parser.error("--threshold_config option is not compatible "
+                           "with THRESHOLD_VALUES list.")
+    if args.fuzzy_factor and args.threshold_config:
+        raise parser.error("--threshold_config option is not compatible "
+                           "with --fuzzy_factor option.")
+
     cube = iris.load_cube(args.input_filepath)
+
+    if args.threshold_config:
+        try:
+            # Read in threshold configuration from JSON file.
+            with open(args.threshold_config, 'r') as input_file:
+                thresholds_from_file = json.load(input_file)
+            thresholds = []
+            fuzzy_bounds = []
+            for key in thresholds_from_file.keys():
+                thresholds.append(float(key))
+                fuzzy_bounds.append(tuple(thresholds_from_file[key]))
+        except ValueError as err:
+            # Extend error message with hint for common JSON error.
+            raise type(err)(err.message + " in JSON file {}. \nHINT: Try "
+                            "adding a zero after the decimal point.".format(
+                                args.threshold_config))
+        except Exception as err:
+            # Extend any errors with message about WHERE this occurred.
+            raise type(err)(err.message + " in JSON file {}".format(
+                args.threshold_config))
+    else:
+        thresholds = args.threshold_values
+        fuzzy_bounds = None
 
     # Allow for threshold value unit conversion.
     if args.threshold_units is not None:
         threshold_unit = cf_units.Unit(args.threshold_units)
-        args.threshold_values = [threshold_unit.convert(threshold, cube.units)
-                                 for threshold in args.threshold_values]
+        thresholds = [threshold_unit.convert(threshold, cube.units)
+                      for threshold in thresholds]
+        if fuzzy_bounds is not None:
+            fuzzy_bounds = [tuple(
+                [threshold_unit.convert(threshold, cube.units)
+                 for threshold in bounds]) for bounds in fuzzy_bounds]
 
     result = BasicThreshold(
-        args.threshold_values, fuzzy_factor=args.fuzzy_factor,
+        thresholds, fuzzy_factor=args.fuzzy_factor,
+        fuzzy_bounds=fuzzy_bounds,
         below_thresh_ok=args.below_threshold).process(cube)
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])

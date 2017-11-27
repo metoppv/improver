@@ -610,3 +610,44 @@ def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
     final_cms = [cm for cm in cube.cell_methods if cm != orig_cell_method]
     final_cms = tuple(final_cms + [renamed_cell_method])
     cube.cell_methods = final_cms
+
+
+def sort_coord_in_cube(cube, coord, order="ascending"):
+    """Sort a cube based on the ordering within the chosen coordinate.
+    Sorting can either be in ascending or descending order.
+    This code is based upon https://gist.github.com/pelson/9763057.
+
+    Args:
+        cube (iris.cube.Cube):
+            The input cube to be sorted.
+        coord (string):
+            Name of the coordinate to be sorted.
+        order (string):
+            Choice of how to order the sorted coordinate.
+            Options are either "ascending" or "descending".
+
+    Returns:
+        iris.cube.Cube:
+            Cube where the chosen coordinate has been sorted into either
+            ascending or descending order.
+
+    Warns:
+        Warning if the coordinate being processed is a circular coordinate.
+
+    """
+    coord_to_sort = cube.coord(coord)
+    if coord_to_sort.circular:
+        msg = ("The {} coordinate is circular. If the values in the "
+               "coordinate span a boundary then the sorting may "
+               "return an undesirable result.".format(coord_to_sort.name()))
+        warnings.warn(msg)
+    dim, = cube.coord_dims(coord_to_sort)
+    index = [slice(None)] * cube.ndim
+    index[dim] = np.argsort(coord_to_sort.points)
+    if order == "descending":
+        index[dim] = index[dim][::-1]
+    if coord in ["height"] and order == "ascending":
+        cube.coord(coord).attributes["positive"] = "up"
+    elif coord in ["height"] and order == "descending":
+        cube.coord(coord).attributes["positive"] = "down"
+    return cube[tuple(index)]

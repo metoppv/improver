@@ -35,14 +35,18 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-percentile [-h]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
-                           [--percentiles PERCENTILES [PERCENTILES ...]]
+                           [--percentiles PERCENTILES [PERCENTILES ...] |
+                           --no-of-percentiles NUMBER_OF_PERCENTILES]
                            INPUT_FILE OUTPUT_FILE
 
 Calculate percentiled data over a cube coordinate by collapsing that
 coordinate. Typically used to convert realization (member) data into
 percentiled data, but may calculate over any dimension coordinate.
 Alternatively, calling this CLI with a cube containing probabilities will
-convert those to percentiles using the ensemble copula coupling plugin.
+convert those to percentiles using the ensemble copula coupling plugin. If no
+particular percentiles are given at which to calculate values and no 'number
+of percentiles' to calculate are specified, the following defaults will be
+used: [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed
@@ -59,9 +63,11 @@ optional arguments:
                         probabilities to percentiles and may be omitted.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
-                        calculate data, otherwise default values are used,
-                        e.g. --percentiles 0 33.3 66.6 100 ; defaults = [0, 5,
-                        10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
+                        calculate data, e.g. --percentiles 0 33.3 66.6 100
+  --no-of-percentiles NUMBER_OF_PERCENTILES
+                        Optional definition of the number of percentiles to be
+                        generated, these distributed regularly with the aim of
+                        dividing into blocks of equal probability.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

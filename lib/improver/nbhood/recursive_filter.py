@@ -52,11 +52,11 @@ class RecursiveFilter(object):
             alpha_x (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
-                that 0.0 <= alpha_x <= 1.0
+                that 0 <= alpha_x < 1.0
             alpha_y (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
-                that 0.0 <= alpha_y <= 1.0
+                that 0 <= alpha_y < 1.0
             iterations (integer or None):
                 The number of iterations of the recursive filter.
             edge_width (integer):
@@ -64,23 +64,23 @@ class RecursiveFilter(object):
                 when adding the SquareNeighbourhood halo.
 
         Raises:
-            ValueError: If alpha_x is not set such that 0 <= alpha_x <= 1
-            ValueError: If alpha_y is not set such that 0 <= alpha_y <= 1
+            ValueError: If alpha_x is not set such that 0 <= alpha_x < 1
+            ValueError: If alpha_y is not set such that 0 <= alpha_y < 1
             ValueError: If number of iterations is not None and is set such
-            that iterations is not >= 1
+                        that iterations is not >= 1
 
         """
 
         if alpha_x is not None:
-            if not 0. < alpha_x < 1.:
+            if not 0 <= alpha_x < 1:
                 raise ValueError(
-                    "Invalid alpha_x: must be >= 0 and <= 1: {}".format(
+                    "Invalid alpha_x: must be >= 0 and < 1: {}".format(
                         alpha_x))
 
         if alpha_y is not None:
-            if not 0. <= alpha_y <= 1.:
+            if not 0 <= alpha_y < 1:
                 raise ValueError(
-                    "Invalid alpha_y: must be >= 0 and <= 1: {}".format(
+                    "Invalid alpha_y: must be >= 0 and < 1: {}".format(
                         alpha_y))
 
         if iterations is not None:
@@ -242,22 +242,6 @@ class RecursiveFilter(object):
         """
         Method to run the recursive filter.
 
-        In the forward direction:
-            Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
-
-            Progressing from gridpoint i-1 to i:
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi-1 = New value at gridpoint i-1
-
-        In the backwards direction:
-            Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
-
-            Progressing from gridpoint i+1 to i:
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi+1 = New value at gridpoint i+1
-
         Args:
             cube (Iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
@@ -306,6 +290,7 @@ class RecursiveFilter(object):
                 when applying the recursive filter in a specific direction.
 
         Raises:
+            ValueError: If alpha and alphas_cube are both set to None
             ValueError: If dimension of alphas array is less than dimension
                         of data array
             ValueError: If dimension of alphas array is greater than dimension
@@ -318,6 +303,10 @@ class RecursiveFilter(object):
         """
 
         if alphas_cube is None:
+            if alpha is None:
+                emsg = ("A value for alpha must be set if alphas_cube is "
+                        "set to None: alpha is currently set as: {}")
+                raise ValueError(emsg.format(alpha))
             alphas_cube = cube.copy(
                 data=np.ones(cube.data.shape) * alpha)
 

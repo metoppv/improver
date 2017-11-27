@@ -120,7 +120,7 @@ class Test_RecursiveFilter(IrisTest):
     def test_alpha_x_gt_unity(self):
         """Test when an alpha_x value > unity is given (invalid)."""
         alpha_x = 1.1
-        msg = "Invalid alpha_x: must be >= 0 and <= 1: 1.1"
+        msg = "Invalid alpha_x: must be >= 0 and < 1: 1.1"
         with self.assertRaisesRegexp(ValueError, msg):
             RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
                             iterations=None, edge_width=1)
@@ -128,7 +128,7 @@ class Test_RecursiveFilter(IrisTest):
     def test_alpha_x_lt_zero(self):
         """Test when an alpha_x value < zero is given (invalid)."""
         alpha_x = -0.5
-        msg = "Invalid alpha_x: must be >= 0 and <= 1: -0.5"
+        msg = "Invalid alpha_x: must be >= 0 and < 1: -0.5"
         with self.assertRaisesRegexp(ValueError, msg):
             RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
                             iterations=None, edge_width=1)
@@ -136,7 +136,7 @@ class Test_RecursiveFilter(IrisTest):
     def test_alpha_y_gt_unity(self):
         """Test when an alpha_y value > unity is given (invalid)."""
         alpha_y = 1.1
-        msg = "Invalid alpha_y: must be >= 0 and <= 1: 1.1"
+        msg = "Invalid alpha_y: must be >= 0 and < 1: 1.1"
         with self.assertRaisesRegexp(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
                             iterations=None, edge_width=1)
@@ -144,7 +144,7 @@ class Test_RecursiveFilter(IrisTest):
     def test_alpha_y_lt_zero(self):
         """Test when an alpha_y value < zero is given (invalid)."""
         alpha_y = -0.5
-        msg = "Invalid alpha_y: must be >= 0 and <= 1: -0.5"
+        msg = "Invalid alpha_y: must be >= 0 and < 1: -0.5"
         with self.assertRaisesRegexp(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
                             iterations=None, edge_width=1)
@@ -224,6 +224,18 @@ class Test_set_alphas(Test_RecursiveFilter):
         # Check shape: Array should be padded with 4 extra rows/columns
         expected_shape = (9, 9)
         self.assertEqual(result.shape, expected_shape)
+
+    def test_alphas_cube_and_alpha_not_set(self):
+        """Test error is raised when both alphas_cube and alpha are set
+           to None (invalid)."""
+        alpha_x = None
+        alpha_y = None
+        alphas_cube = None
+        plugin = RecursiveFilter(alpha_x=alpha_x, alpha_y=alpha_y,
+                                 iterations=self.iterations)
+        msg = "A value for alpha must be set if alphas_cube is "
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.set_alphas(self.cube, alpha_x, alphas_cube)
 
 
 class Test_recurse_forward_x(Test_RecursiveFilter):

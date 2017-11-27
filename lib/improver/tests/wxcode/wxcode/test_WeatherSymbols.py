@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 from iris.coords import AuxCoord
+from cf_units import Unit
 
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
@@ -58,8 +59,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_snow,
             'lwe_snowfall_rate',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
@@ -69,8 +72,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_rain,
             'rainfall_rate',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_snowv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -80,8 +85,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_snowv,
             'lwe_snowfall_rate_in_vicinity',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_rainv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -91,8 +98,10 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_rainv,
             'rainfall_rate_in_vicinity',
-            'mm hr-1',
-            forecast_thresholds=np.array([0.03, 0.1, 1.0])))
+            'm s-1',
+            forecast_thresholds=np.array([8.33333333e-09,
+                                          2.77777778e-08,
+                                          2.77777778e-07])))
 
     data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                            0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
@@ -155,13 +164,32 @@ class Test_check_input_cubes(IrisTest):
         plugin = WeatherSymbols()
         self.assertEqual(plugin.check_input_cubes(self.cubes), None)
 
-    def test_raises_error(self):
+    def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
         plugin = WeatherSymbols()
         cubes = self.cubes.pop()
         msg = 'Weather Symbols input cubes are missing'
         with self.assertRaisesRegexp(IOError, msg):
             plugin.check_input_cubes(cubes)
+
+    def test_raises_error_missing_threshold(self):
+        """Test check_input_cubes method raises error if data is missing"""
+        plugin = WeatherSymbols()
+        cubes = self.cubes
+        cubes[0] = cubes[0][0]
+        msg = 'Weather Symbols input cubes are missing'
+        with self.assertRaisesRegexp(IOError, msg):
+            plugin.check_input_cubes(cubes)
+
+    def test_incorrect_units(self):
+        """Test that check_input_cubes method raises an error if the units are
+        incompatible between the input cube and the decision tree."""
+        plugin = WeatherSymbols()
+
+        msg = "Unable to convert from"
+        self.cubes[0].coord('threshold').units = Unit('mm kg-1')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.check_input_cubes(self.cubes)
 
 
 class Test_invert_condition(IrisTest):
@@ -299,12 +327,14 @@ class Test_create_condition_chain(IrisTest):
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
-        expected = ("(cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate', "
-                    "coord_values={'threshold': 0.03}))[0].data >= 0.5) "
-                    "| (cubes.extract(Constraint(name="
-                    "'probability_of_lwe_snowfall_rate', "
-                    "coord_values={'threshold': 0.03}))[0].data >= 0.5)")
+        expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
+                    "rainfall_rate', threshold=lambda cell: 0.03 * {t_min} < "
+                    "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
+                    "(iris.Constraint(name='probability_of_lwe_snowfall_rate',"
+                    " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max}))[0].data >= 0.5)".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
         self.assertEqual(result[0], expected)
@@ -321,10 +351,13 @@ class Test_construct_extract_constraint(IrisTest):
         threshold = AuxCoord(0.03, units='mm hr-1')
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
-        expected = ("Constraint(name='probability_of_rainfall_rate',"
-                    " coord_values={'threshold': 0.03})")
-        self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(str(result), expected)
+        expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
+                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max})".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
 
     def test_list_of_constraints(self):
         """Test construct_extract_constraint returns a list
@@ -336,12 +369,16 @@ class Test_construct_extract_constraint(IrisTest):
                       AuxCoord(0.03, units='mm hr-1')]
         result = plugin.construct_extract_constraint(diagnostics,
                                                      thresholds)
-        expected = ("Constraint(name='probability_of_lwe_snowfall_rate',"
-                    " coord_values={'threshold': 0.03})")
+
+        expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
+                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max})".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], iris.Constraint)
+        self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
-        self.assertEqual(str(result[1]), expected)
+        self.assertEqual(result[1], expected)
 
 
 class Test_find_all_routes(IrisTest):

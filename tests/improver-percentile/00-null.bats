@@ -34,7 +34,8 @@
   [[ "$status" -eq 2 ]]
   expected="usage: improver-percentile [-h]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
-                           [--percentiles PERCENTILES [PERCENTILES ...]]
+                           [--percentiles PERCENTILES [PERCENTILES ...] |
+                           --no-of-percentiles NUMBER_OF_PERCENTILES]
                            INPUT_FILE OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }
