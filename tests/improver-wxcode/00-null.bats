@@ -33,13 +33,7 @@
   run improver wxcode
   [[ "$status" -eq 2 ]]
   expected="usage: improver-wxcode [-h]
-                       PROBABILITY_OF_RAINFALL_RATE
-                       PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_VISIBILITY_IN_AIR
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
-                       OUTPUT_FILE"
+                       INPUT_FILES INPUT_FILES INPUT_FILES INPUT_FILES
+                       INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }

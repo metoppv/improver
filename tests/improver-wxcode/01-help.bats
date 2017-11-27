@@ -34,52 +34,25 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-wxcode [-h]
-                       PROBABILITY_OF_RAINFALL_RATE
-                       PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE
-                       PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                       PROBABILITY_OF_VISIBILITY_IN_AIR
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION
-                       PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
-                       OUTPUT_FILE
+                       INPUT_FILES INPUT_FILES INPUT_FILES INPUT_FILES
+                       INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE
 
 Calculate a cube of weather symbol codes.
+This plugin requires a specific set of input cubes:
+ - probability_of_lwe_snowfall_rate; thresholds: 0.03 (mm hr-1), 0.1 (mm hr-1), 1.0 (mm hr-1)
+ - probability_of_rainfall_rate_in_vicinity; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
+ - probability_of_rainfall_rate; thresholds: 0.03 (mm hr-1), 0.1 (mm hr-1), 1.0 (mm hr-1)
+ - probability_of_lwe_snowfall_rate_in_vicinity; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
+ - probability_of_cloud_area_fraction; thresholds: 0.1875 (1), 0.8125 (1)
+ - probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl; thresholds: 0.85 (1)
+ - probability_of_visibility_in_air; thresholds: 1000.0 (m), 5000.0 (m)
 
 positional arguments:
-  PROBABILITY_OF_RAINFALL_RATE
-                        File path to a cube of probability_of_rainfall_rate at
-                        the points for which the weather symbols are being
-                        calculated.
-  PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY
-                        File path to a cube of
-                        probability_of_rainfall_rate_in_vicinity at the points
-                        for which the weather symbols are being calculated.
-  PROBABILITY_OF_LWE_SNOWFALL_RATE
-                        File path to a cube of
-                        probability_of_lwe_snowfall_rate at the points for
-                        which the weather symbols are being calculated.
-  PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_VICINITY
-                        File path to a cube of
-                        probability_of_lwe_snowfall_rate_in_vicinity at the
-                        points for which the weather symbols are being
-                        calculated.
-  PROBABILITY_OF_VISIBILITY_IN_AIR
-                        File path to a cube of
-                        probability_of_visibility_in_air at the points for
-                        which the weather symbols are being calculated.
-  PROBABILITY_OF_CLOUD_AREA_FRACTION
-                        File path to a cube of
-                        probability_of_cloud_area_fraction at the points for
-                        which the weather symbols are being calculated.
-  PROBABILITY_OF_CLOUD_AREA_FRACTION_BELOW_1000_FEET_ASL
-                        File path to a cube of probability_of_cloud_area_fract
-                        ion_assuming_only_consider_surface_to_1000_feet_asl at
-                        the points for which the weather symbols are being
-                        calculated.
-  OUTPUT_FILE           The output path for the processed NetCDF.
+  INPUT_FILES  Paths to files containing the required input cubes.
+  OUTPUT_FILE  The output path for the processed NetCDF.
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help   show this help message and exit
 __HELP__
   [[ "$output" == "$expected" ]]
 }

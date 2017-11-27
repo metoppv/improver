@@ -33,71 +33,60 @@
 
 import argparse
 import iris
+import numpy as np
+from argparse import RawTextHelpFormatter
 
 from improver.wxcode.weather_symbols import WeatherSymbols
+from improver.wxcode.wxcode_utilities import expand_nested_lists
+from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 
 
 def main():
     """Parser to accept input data and an output destination before invoking
-    the weather symbols plugin. """
+    the weather symbols plugin.
+    """
+
+    # Get current weather symbol decision tree and populate a list of
+    # required inputs for printing.
+    queries = wxcode_decision_tree()
+    requirements = {}
+
+    for query in queries.itervalues():
+        diagnostics = expand_nested_lists(query, 'diagnostic_fields')
+        for index, diagnostic in enumerate(diagnostics):
+            if diagnostic not in requirements:
+                requirements[diagnostic] = []
+            requirements[diagnostic].extend(
+                expand_nested_lists(query, 'diagnostic_thresholds')[index])
+
+    output = []
+    for requirement in requirements:
+        entries = np.array([entry for entry in requirements[requirement]])
+        _, thresholds = np.unique(np.array([item.points.item()
+                                            for item in entries]),
+                                  return_index=True)
+        output.append('{}; thresholds: {}'.format(
+                requirement, ', '.join([
+                        '{} ({})'.format(str(threshold.points.item()),
+                                         str(threshold.units))
+                        for threshold in entries[thresholds]])))
+    n_files = len(output)
+    dlist = (' - {}\n'*n_files)
+
     parser = argparse.ArgumentParser(
-        description='Calculate a cube of weather symbol codes.')
-    parser.add_argument('probability_of_rainfall_rate',
-                        metavar='PROBABILITY_OF_RAINFALL_RATE',
-                        help='File path to a cube of '
-                        'probability_of_rainfall_rate '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_rainfall_rate_in_vicinity',
-                        metavar='PROBABILITY_OF_RAINFALL_RATE_IN_VICINITY',
-                        help='File path to a cube of '
-                        'probability_of_rainfall_rate_in_vicinity '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_lwe_snowfall_rate',
-                        metavar='PROBABILITY_OF_LWE_SNOWFALL_RATE',
-                        help='File path to a cube of '
-                        'probability_of_lwe_snowfall_rate '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_lwe_snowfall_rate_in_vicinity',
-                        metavar='PROBABILITY_OF_LWE_SNOWFALL_RATE_IN_'
-                        'VICINITY',
-                        help='File path to a cube of '
-                        'probability_of_lwe_snowfall_rate_in_vicinity '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_visibility_in_air',
-                        metavar='PROBABILITY_OF_VISIBILITY_IN_AIR',
-                        help='File path to a cube of '
-                        'probability_of_visibility_in_air '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_cloud_area_fraction',
-                        metavar='PROBABILITY_OF_CLOUD_AREA_FRACTION',
-                        help='File path to a cube of '
-                        'probability_of_cloud_area_fraction '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
-    parser.add_argument('probability_of_cloud_area_fraction_'
-                        'below_1000_feet_asl',
-                        metavar='PROBABILITY_OF_CLOUD_AREA_FRACTION'
-                                '_BELOW_1000_FEET_ASL',
-                        help='File path to a cube of '
-                        'probability_of_cloud_area_fraction_assuming_'
-                        'only_consider_surface_to_1000_feet_asl '
-                        'at the points for which the weather symbols '
-                        'are being calculated.')
+        description='Calculate a cube of weather symbol codes.\nThis plugin '
+        'requires a specific set of input cubes:\n' +
+        dlist.format(*output),
+        formatter_class=RawTextHelpFormatter)
+
+    parser.add_argument(
+        'input_filepaths', metavar='INPUT_FILES', nargs=n_files,
+        help='Paths to files containing the required input cubes.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
     args = parser.parse_args()
-
-    input_filepaths = []
-    for name, path in args.__dict__.iteritems():
-        if name is not 'output_filepath':
-            input_filepaths.append(path)
-    cubes = iris.load(input_filepaths)
+    cubes = iris.load(args.input_filepaths)
 
     result = (WeatherSymbols().process(cubes))
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
