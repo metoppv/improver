@@ -439,15 +439,14 @@ class WeightedBlendAcrossWholeDimension(object):
 
         # Check that the points within the time coordinate are equal
         # if the coordinate being blended is forecast_reference_time.
-        if self.coord in ["forecast_reference_time", "forecast_period"]:
+        if self.coord == "forecast_reference_time":
             if cube.coords("time"):
                 time_points = cube.coord("time").points
-                if not np.all(time_points == time_points[0]):
+                if len(np.unique(time_points)) > 1:
                     msg = ("For blending using the forecast_reference_time "
-                           "or forecast_period coordinate, the points within "
-                           "the time coordinate need to be the same. "
-                           "The time points within the input cube are "
-                           "{}".format(time_points))
+                           "coordinate, the points within the time coordinate "
+                           "need to be the same. The time points within the "
+                           "input cube are {}".format(time_points))
                     raise ValueError(msg)
 
         # Check to see if the data is percentile data
