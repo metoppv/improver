@@ -45,7 +45,8 @@ from datetime import datetime as dt
 
 class SpotDatabase(object):
     """
-    Class to create a Database table from a SpotData iris.cube.
+    Create a Database table from spotdata Iris Cubes.
+
 
     """
 
@@ -57,11 +58,35 @@ class SpotDatabase(object):
                  pivot_map=None,
                  column_dims=None,
                  column_maps=None):
+        """
+        Args:
+            output (str):
+                Some filetype to output, currently 'sqlite' or 'csv' are valid.
+            outfile (str):
+                The path to the file to be output to.
+            tablename (str):
+                Name of the SQL table to create, if required.
+            primary_dim (str):
+                The dimension to use as the first index in the table.
+            coord_to_slice_over (str):
+                Some coordinate over which to take slices over the cubes.
+            primary_map (None or list):
+                The column names to use in place of the primary dimension.
+            primary_func (None or list):
+                Any fucntions to apply to the primary_dim to produce the values
+                in each of the primary_map columns.
+            pivot_dim (None or str):
+                A dimension to pivot into multiple columns
+            pivot_map (None or function):
+                A function to map to the values of the columns, which become
+                the column names.
+            column_dims (None or list):
+                Any further dimensions or to be mapped from the cube.
+            column_maps (None or list):
+                A new name for each column_dim in the table to be output.
 
         """
-        Initialise class.
 
-        """
         self.primary_dim = primary_dim
         self.primary_map = primary_map
         self.primary_func = primary_func
@@ -90,6 +115,38 @@ class SpotDatabase(object):
                  'column_maps={column_maps}>'
         return result.format(**self.__dict__)
 
+    def to_dataframe(self, cubelist):
+        """
+        Turns the cubelist into a Pandas DatafFame.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                A Cubelist to populate the table.
+
+        """
+
+        for cube in cubelist:
+            for c in cube.slices_over(self.coord_to_slice_over):
+                self.check_input_dimensions(c)
+                df = DataFrame(c.data,
+                               index=c.coord(self.primary_dim).points,
+                               columns=['values'])
+                if self.pivot_dim:
+                    # Reshape data based on column values
+                    df = self.pivot_table(c, df)
+
+                if self.primary_map:
+                    self.map_primary_index(df)
+
+                if self.column_dims and self.column_maps:
+                    for dim, col in itertools.izip_longest(self.column_dims,
+                                                           self.column_maps):
+                        self.insert_extra_mapped_column(df, c, dim, col)
+                try:
+                    self.df = self.df.combine_first(df)
+                except AttributeError:
+                    self.df = df
+
     def check_input_dimensions(self, cube):
         """
         Check that the input cube has the correct dimsions after being sliced
@@ -103,6 +160,7 @@ class SpotDatabase(object):
         Raises:
             ValueError: If the cube has the wrong dimensions and cannot be
                 convertered to a table using this function.
+
         """
         shape = cube.shape
         pivot_axis = None
@@ -122,27 +180,60 @@ class SpotDatabase(object):
                     cube.coord(dimensions=i, dim_coords=True).name())
                 raise ValueError(message)
 
-    def pivot_table(self, cube, df):
-        """Pivots the table based on the """
+    def pivot_table(self, cube, dataframe):
+        """
+        Produces a 'pivot' table by inserting the coords of the pivot dimension
+        and pivoting on that column, to produce columns of names mapped
+        from the cube's dimension coords.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube to used to determine the coords.
+            dataframe (pandas.DataFrame):
+                The dataframe to modify.
+        Returns:
+            dataframe (pandas.DataFrame):
+                The modified dataframe.
+
+        """
         coords = cube.coord(self.pivot_dim).points
         col_names = map(self.pivot_map, coords)
-        df.insert(1, self.pivot_dim, col_names)
-        df = df.pivot(columns=self.pivot_dim, values='values')
-        return df
+        dataframe.insert(1, self.pivot_dim, col_names)
+        dataframe = dataframe.pivot(columns=self.pivot_dim, values='values')
+        return dataframe
 
-    def map_primary_index(self, df):
-        """Place holder docstring"""
-        # Switch the index out for a map if specified
-        # Has to have "time" as index if time is primary index.
+    def map_primary_index(self, dataframe):
+        """
+        Insert into the dataframe columns mapped from the primary index.
+
+        Args:
+            dataframe (pandas.DataFrame):
+                The dataframe to modify.
+
+        """
+
         for mapping, function in zip(self.primary_map,
                                      self.primary_func):
-            df.insert(0, mapping, map(function, df.index))
-        # Takes significant time if a multi-index
-        df.set_index(self.primary_map, inplace=True)
+            dataframe.insert(0, mapping, map(function, dataframe.index))
+        dataframe.set_index(self.primary_map, inplace=True)
 
     @staticmethod
-    def insert_extra_mapped_columns(df, cube, dim, col):
-        """Place holder docstring"""
+    def insert_extra_mapped_column(df, cube, dim, col):
+        """
+        Insert into the dataframe an extra column mapped from the cube.
+
+        Args:
+            df (pandas.DataFrame):
+                The dataframe to modify.
+            cube (iris.cube.Cube):
+                The cube to used to determine the coords.
+            dim (str):
+                The name of the dimension, attribute or constant to use for
+                values of the column.
+            col (str):
+                The name of the column to insert.
+
+        """
         if dim in df.columns:
             return
         # Check if dim is a coordinate on the cube, and use this coordinate for
@@ -169,40 +260,18 @@ class SpotDatabase(object):
         df.insert(1, column_name, column_data)
         df.set_index(column_name, append=True, inplace=True)
 
-    def to_dataframe(self, cubelist):
-        """
-        Turn the input cubes into a 2-dimensional DataFrame object
-
-        """
-
-        for cube in cubelist:
-            for c in cube.slices_over(self.coord_to_slice_over):
-                self.check_input_dimensions(c)
-                df = DataFrame(c.data,
-                               index=c.coord(self.primary_dim).points,
-                               columns=['values'])
-                if self.pivot_dim:
-                    # Reshape data based on column values
-                    df = self.pivot_table(c, df)
-
-                if self.primary_map:
-                    self.map_primary_index(df)
-
-                if self.column_dims and self.column_maps:
-                    for dim, col in itertools.izip_longest(self.column_dims,
-                                                           self.column_maps):
-                        self.insert_extra_mapped_columns(df, c, dim, col)
-                try:
-                    self.df = self.df.combine_first(df)
-                except AttributeError:
-                    self.df = df
-
     def determine_schema(self, table):
         """
-        Method to determine the schema of the database.
-
+        Determine the schema of the SQLite database table.
         Primary keys and datatypes are determined from the indexed columns and
         the datatypes in the DataFrame.
+
+        Args:
+            table (pandas.DataFrame):
+                The name of the table's schema to create.
+        Returns:
+            schema (str):
+                The schema definition.
 
         """
 
@@ -217,7 +286,13 @@ class SpotDatabase(object):
 
     def create_table(self, outfile, table):
         """
-        Method to first create a the SQL datafile table.
+        Create a SQLite datafile table.
+
+        Args:
+            outfile (str):
+                The path to the database file.
+            table (str):
+                The name of the table to create.
 
         """
 
@@ -227,7 +302,15 @@ class SpotDatabase(object):
 
     def to_sql(self, outfile, table):
         """
-        Output the dataframe to SQL database file.
+        Output the DataFrame to SQLite database file.
+        If the Database does not exist, it is created, if the table exists, it
+        is appended to.
+
+        Args:
+            outfile (str):
+                The path to the database file.
+            table (str):
+                The name of the table.
 
         """
         if not os.path.isfile(self.outfile):
@@ -238,7 +321,11 @@ class SpotDatabase(object):
 
     def process(self, cubelist):
         """
-        Method to perform the table creation and output to file.
+        Turn the cubelist into a table, creating any required output.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                A Cubelist to populate the table.
 
         """
 
@@ -262,13 +349,13 @@ class VerificationTable(SpotDatabase):
 
     """
 
-    def __init__(self, output, outfile, tablename, experiment_ID,
+    def __init__(self, output, outfile, tablename, experiment_id,
                  max_forecast_lead_time):
         self.output = output
         self.outfile = outfile
         self.tablename = tablename
-        self.primary_dim = "time"
 
+        self.primary_dim = "time"
         self.primary_map = ['validity_date', 'validity_time']
         self.primary_func = [lambda x: dt.utcfromtimestamp(x).date(),
                              lambda x: dt.utcfromtimestamp(x).hour*100]
@@ -279,11 +366,10 @@ class VerificationTable(SpotDatabase):
         self.column_dims = ['wmo_site', 'name']
         self.column_maps = ['station_id', 'cf_name']
         self.coord_to_slice_over = "index"
+        self.experiment_id = experiment_id
 
-        self.experiment_ID = experiment_ID
-
-        if experiment_ID:
-            self.column_dims = self.column_dims + [self.experiment_ID]
+        if experiment_id:
+            self.column_dims = self.column_dims + [self.experiment_id]
             self.column_maps = self.column_maps + ["exp_id"]
         self.max_forecast_lead_time = max_forecast_lead_time
 
@@ -293,13 +379,17 @@ class VerificationTable(SpotDatabase):
 
         """
         result = '<VerificationTable: {output}, {outfile}, {tablename}, '\
-                 '{experiment_ID}, {max_forecast_lead_time}>'
+                 '{experiment_id}, {max_forecast_lead_time}>'
         return result.format(**self.__dict__)
 
     def ensure_all_pivot_columns(self, dataframe):
         """
         Method to ensure all pivot columns exist in the dataframe, adding any
         that do not.
+
+        Args:
+            dataframe (pandas.DataFrame):
+                The DataFrame to modify.
 
         """
 
@@ -309,7 +399,14 @@ class VerificationTable(SpotDatabase):
                     dataframe[self.pivot_map(pivot_val)] = np.nan
 
     def to_dataframe(self, cubelist):
-        """Add an extra method call to the to_dataframe above"""
+        """
+        Turn the cubelist into a verification table.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                A Cubelist to populate the table.
+
+        """
         super(VerificationTable, self).to_dataframe(cubelist)
         self.ensure_all_pivot_columns(self.df)
         self.df.sort_index(axis=1, inplace=True)

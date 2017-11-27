@@ -325,8 +325,8 @@ class Test_map_primary_index(IrisTest):
         assert_frame_equal(expected_df, input_df)
 
 
-class Test_insert_extra_mapped_columns(IrisTest):
-    """Test the insert_extra_mapped_columns method"""
+class Test_insert_extra_mapped_column(IrisTest):
+    """Test the insert_extra_mapped_column method"""
     def setUp(self):
         """Set up the plugin and dataframe needed for these tests"""
         self.cube = set_up_spot_cube(280, number_of_sites=1)
@@ -344,7 +344,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
         columns = ["time", "values"]
         expected_df = pd.DataFrame(data, columns=columns)
         # Call the method.
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, self.cube, "values", [380.])
         assert_frame_equal(self.input_df, expected_df)
 
@@ -355,7 +355,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
         expected_df = pd.DataFrame(data, columns=columns)
         expected_df.set_index(["altitude_of_site"], append=True, inplace=True)
         # Call the method.
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, self.cube, "altitude", "altitude_of_site")
         assert_frame_equal(self.input_df, expected_df)
 
@@ -375,7 +375,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
                 [1487311200, 280.]]
         columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, cube, "altitude", "altitude_of_site")
         assert_frame_equal(self.input_df, expected_df)
 
@@ -386,7 +386,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
         expected_df = pd.DataFrame(data, columns=columns)
         expected_df.set_index(["name_of_cube"], append=True, inplace=True)
         # Call the method.
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, self.cube, "name", "name_of_cube")
         assert_frame_equal(self.input_df, expected_df)
 
@@ -397,7 +397,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
         expected_df = pd.DataFrame(data, columns=columns)
         expected_df.set_index(["cube_units"], append=True, inplace=True)
         # Call the method.
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, self.cube, "units", "cube_units")
         assert_frame_equal(self.input_df, expected_df)
 
@@ -410,7 +410,7 @@ class Test_insert_extra_mapped_columns(IrisTest):
         expected_df.set_index(["experiment_id"], append=True, inplace=True)
         # Call the method.
         self.cube.attributes["source_grid"] = "ukvx"
-        self.plugin.insert_extra_mapped_columns(
+        self.plugin.insert_extra_mapped_column(
             self.input_df, self.cube, "IMPRO_nbhood", "experiment_id")
         assert_frame_equal(self.input_df, expected_df)
 
