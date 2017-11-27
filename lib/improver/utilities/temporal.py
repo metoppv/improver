@@ -33,6 +33,8 @@
 import cf_units as unit
 from datetime import datetime
 
+import numpy as np
+
 from iris.exceptions import CoordinateNotFoundError
 
 
@@ -142,6 +144,15 @@ def find_required_lead_times(
             required_lead_times = (
                 cube.coord("time").points -
                 cube.coord("forecast_reference_time").points)
+            if np.any(required_lead_times < 0):
+                msg = ("The values for the time {} and "
+                       "forecast_reference_time {} coordinates from the "
+                       "input cube have produced negative values for the "
+                       "forecast_period. A forecast does not generate "
+                       "values in the past.").format(
+                           cube.coord("time").points,
+                           cube.coord("forecast_reference_time").points)
+                raise ValueError(msg)
         else:
             msg = ("The forecast period coordinate is not available "
                    "within {}."

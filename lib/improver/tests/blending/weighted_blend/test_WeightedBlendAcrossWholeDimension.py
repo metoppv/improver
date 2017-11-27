@@ -221,6 +221,16 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
         self.assertAlmostEquals(result.coord(coord).points, [402193.5])
 
+    def test_forecast_reference_time_exception(self):
+        """Test that a ValueError is raised if the coordinate to be blended
+        is forecast_reference_time and the points on the time coordinate are
+        not equal."""
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        msg = ('For blending using the forecast_reference_time')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(self.cube)
+
     def test_scalar_coord(self):
         """Test it works on scalar coordinate
            and check that a warning has been raised
@@ -338,7 +348,7 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2, 2))*0.4
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_weighted_max_non_equal_weights_arrray(self):
+    def test_weighted_max_non_equal_weights_array(self):
         """Test it works for weighted_max with weights [0.2, 0.8]
            given as a array."""
         coord = "time"

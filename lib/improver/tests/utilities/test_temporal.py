@@ -182,7 +182,7 @@ class Test_find_required_lead_times(IrisTest):
         """
         Test that the data within the numpy array is as expected, when
         the time coordinates within the input cube are converted into the
-        desired units of seconds since 1970-01-01 00:00:00 to that the
+        desired units of seconds since 1970-01-01 00:00:00 so that the
         resulting forecast_periods are in the expected units.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
@@ -216,6 +216,21 @@ class Test_find_required_lead_times(IrisTest):
         cube.remove_coord("forecast_period")
         cube.coord("forecast_reference_time").units = Unit("Celsius")
         msg = "For time/forecast_reference_time"
+        with self.assertRaisesRegexp(ValueError, msg):
+            find_required_lead_times(cube)
+
+    def test_negative_forecast_periods_exception(self):
+        """
+        Test that a ValueError exception is raised if the point within the
+        time coordinate is prior to the point within the
+        forecast_reference_time, and therefore the forecast_period values that
+        have been generated are negative.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.remove_coord("forecast_period")
+        cube.coord("forecast_reference_time").points = 402295.0
+        cube.coord("time").points = 402192.5
+        msg = "The values for the time"
         with self.assertRaisesRegexp(ValueError, msg):
             find_required_lead_times(cube)
 
