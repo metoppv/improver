@@ -38,14 +38,16 @@ usage: improver-wxcode [-h]
                        INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE
 
 Calculate a cube of weather symbol codes.
-This plugin requires a specific set of input cubes:
- - probability_of_lwe_snowfall_rate; thresholds: 0.03 (mm hr-1), 0.1 (mm hr-1), 1.0 (mm hr-1)
- - probability_of_rainfall_rate_in_vicinity; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
- - probability_of_rainfall_rate; thresholds: 0.03 (mm hr-1), 0.1 (mm hr-1), 1.0 (mm hr-1)
- - probability_of_lwe_snowfall_rate_in_vicinity; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
- - probability_of_cloud_area_fraction; thresholds: 0.1875 (1), 0.8125 (1)
- - probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl; thresholds: 0.85 (1)
- - probability_of_visibility_in_air; thresholds: 1000.0 (m), 5000.0 (m)
+This plugin requires a specific set of input cubes, where data
+may be in any units to which the thresholds given below can
+be converted:
+ - probability_of_lwe_snowfall_rate; thresholds: above 0.03 (mm hr-1), above 0.1 (mm hr-1), above 1.0 (mm hr-1)
+ - probability_of_rainfall_rate_in_vicinity; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
+ - probability_of_rainfall_rate; thresholds: above 0.03 (mm hr-1), above 0.1 (mm hr-1), above 1.0 (mm hr-1)
+ - probability_of_lwe_snowfall_rate_in_vicinity; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
+ - probability_of_cloud_area_fraction; thresholds: above 0.1875 (1), above 0.8125 (1)
+ - probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl; thresholds: above 0.85 (1)
+ - probability_of_visibility_in_air; thresholds: below 1000.0 (m), below 5000.0 (m)
 
 positional arguments:
   INPUT_FILES  Paths to files containing the required input cubes.
