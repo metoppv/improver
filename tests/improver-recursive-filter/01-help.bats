@@ -39,11 +39,11 @@ usage: improver-recursive-filter [-h] [--input_filepath_alphas_x ALPHAS_X]
                                  [--iterations ITERATIONS]
                                  INPUT_FILE OUTPUT_FILE
 
-Run a recursive filter to convert a square neighbourhood into a Gaussian like
+Run a recursive filter to convert a square neighbourhood into a Gaussian-like
 kernel or smooth over short distances. The filter uses an alpha parameter
 (0>=alpha<1) to control what proportion of the probability is passed onto the
-next grid square in the x and y directions. The alpha parameter can be set on
-a grid square by grid square basis (using an array of alpha parameters of the
+next grid-square in the x and y directions. The alpha parameter can be set on
+a grid-square by grid-square basis (using an array of alpha parameters of the
 same dimensionality as the domain). Alternatively a single alpha value can be
 set for each of the x and y directions.
 
