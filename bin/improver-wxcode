@@ -41,14 +41,15 @@ from improver.wxcode.wxcode_utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 
 
-def interogate_decision_tree():
+def interrogate_decision_tree():
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a list of the diagnostic names, the thresholds needed,
-    and whether they are thresholded above of below these values.
+    and whether they are thresholded above or below these values. This output
+    is used to create the CLI help, informing the user of the necessary inputs.
 
     Returns:
-        list:
+        output (list of str):
             Returns a list of strings, an entry for each diagnostic required,
             including threshold details.
     """
@@ -56,7 +57,10 @@ def interogate_decision_tree():
     # Get current weather symbol decision tree and populate a list of
     # required inputs for printing.
     queries = wxcode_decision_tree()
+
+    # Diagnostic names and threshold values.
     requirements = {}
+    # How the data has been thresholded relative to these thresholds.
     relative = {}
 
     for query in queries.itervalues():
@@ -70,6 +74,8 @@ def interogate_decision_tree():
             relative[diagnostic].append(
                 expand_nested_lists(query, 'diagnostic_conditions')[index])
 
+    # Create a list of formatted strings that will be printed as part of the
+    # CLI help.
     output = []
     for requirement in requirements:
         entries = np.array([entry for entry in requirements[requirement]])
@@ -92,7 +98,7 @@ def main():
     the weather symbols plugin.
     """
 
-    diagnostics = interogate_decision_tree()
+    diagnostics = interrogate_decision_tree()
     n_files = len(diagnostics)
     dlist = (' - {}\n'*n_files)
 
