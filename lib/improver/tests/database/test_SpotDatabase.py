@@ -251,8 +251,8 @@ class Test_pivot_table(IrisTest):
         assert_frame_equal(expected_df, result)
 
     def test_extra_columns(self):
-        """Test with an extra collumn in the input dataframe.
-           In this cas the extra collumn gets removed when the tabel
+        """Test with an extra column in the input dataframe.
+           In this case the extra column gets removed when the table
            is pivoted.
         """
         # Set up expected dataframe.

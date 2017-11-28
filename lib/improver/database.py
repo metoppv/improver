@@ -70,6 +70,8 @@ class SpotDatabase(object):
                 The dimension to use as the first index in the table.
             coord_to_slice_over (str):
                 Some coordinate over which to take slices over the cubes.
+
+        Keyword Args:
             primary_map (None or list):
                 The column names to use in place of the primary dimension.
             primary_func (None or list):
@@ -126,14 +128,14 @@ class SpotDatabase(object):
         """
 
         for cube in cubelist:
-            for c in cube.slices_over(self.coord_to_slice_over):
-                self.check_input_dimensions(c)
-                df = DataFrame(c.data,
-                               index=c.coord(self.primary_dim).points,
+            for cube_slice in cube.slices_over(self.coord_to_slice_over):
+                self.check_input_dimensions(cube_slice)
+                df = DataFrame(cube_slice.data,
+                               index=cube_slice.coord(self.primary_dim).points,
                                columns=['values'])
                 if self.pivot_dim:
                     # Reshape data based on column values
-                    df = self.pivot_table(c, df)
+                    df = self.pivot_table(cube_slice, df)
 
                 if self.primary_map:
                     self.map_primary_index(df)
@@ -141,7 +143,8 @@ class SpotDatabase(object):
                 if self.column_dims and self.column_maps:
                     for dim, col in itertools.izip_longest(self.column_dims,
                                                            self.column_maps):
-                        self.insert_extra_mapped_column(df, c, dim, col)
+                        self.insert_extra_mapped_column(df, cube_slice, dim,
+                                                        col)
                 try:
                     self.df = self.df.combine_first(df)
                 except AttributeError:
@@ -150,7 +153,7 @@ class SpotDatabase(object):
     def check_input_dimensions(self, cube):
         """
         Check that the input cube has the correct dimsions after being sliced
-        along the coord_to_slice_over. In the input cube only a the dimension
+        along the coord_to_slice_over. In the input cube only the dimension
         we are slicing over and the pivot dimension can have multiple points
         in.
 
@@ -167,8 +170,8 @@ class SpotDatabase(object):
         if self.pivot_dim:
             pivot_axis = cube.coord_dims(self.pivot_dim)[0]
 
-        for i, dim_length in enumerate(shape):
-            if pivot_axis is not None and i == pivot_axis:
+        for index, dim_length in enumerate(shape):
+            if pivot_axis is not None and index == pivot_axis:
                 continue
             elif dim_length is not 1:
                 message = ("Dimensions that are not described by the pivot_dim"
@@ -176,8 +179,8 @@ class SpotDatabase(object):
                            "in. Dimension '{}' has length '{}' and "
                            "is associated with the '{}' coordinate.")
                 message = message.format(
-                    i, dim_length,
-                    cube.coord(dimensions=i, dim_coords=True).name())
+                    index, dim_length,
+                    cube.coord(dimensions=index, dim_coords=True).name())
                 raise ValueError(message)
 
     def pivot_table(self, cube, dataframe):
@@ -211,7 +214,6 @@ class SpotDatabase(object):
                 The dataframe to modify.
 
         """
-
         for mapping, function in zip(self.primary_map,
                                      self.primary_func):
             dataframe.insert(0, mapping, map(function, dataframe.index))
@@ -274,7 +276,6 @@ class SpotDatabase(object):
                 The schema definition.
 
         """
-
         # Remove the current index, and use the indexed columns for for db keys
         new_df = self.df.reset_index()
         # Find the number of columns which were indexes to index primary keys
@@ -295,7 +296,6 @@ class SpotDatabase(object):
                 The name of the table to create.
 
         """
-
         schema = self.determine_schema(table)
         with sqlite3.connect(outfile) as db:
             db.execute(schema)
@@ -328,7 +328,6 @@ class SpotDatabase(object):
                 A Cubelist to populate the table.
 
         """
-
         self.to_dataframe(cubelist)
 
         if self.output not in ["sqlite", "csv"]:
@@ -392,7 +391,6 @@ class VerificationTable(SpotDatabase):
                 The DataFrame to modify.
 
         """
-
         if self.pivot_dim and self.max_forecast_lead_time:
             for pivot_val in range(self.max_forecast_lead_time+1):
                 if not self.pivot_map(pivot_val) in dataframe.columns:
