@@ -106,6 +106,7 @@ class Test_RecursiveFilter(IrisTest):
                                             'longitude', units='degrees'), 1)
         self.alphas_cube2 = alphas_cube2
 
+
 class Test__init__(Test_RecursiveFilter):
 
     """Test plugin initialisation."""
