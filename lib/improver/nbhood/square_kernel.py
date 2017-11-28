@@ -551,7 +551,7 @@ class SquareNeighbourhood(object):
             with np.errstate(invalid='ignore', divide='ignore'):
                 divided_data = np.true_divide(
                     neighbourhood_averaged_cube.data, mask_cube.data)
-                divided_data[~np.isfinite(divided_data)] = 0
+                divided_data[~np.isfinite(divided_data)] = np.nan
                 neighbourhood_averaged_cube.data = divided_data
             if self.re_mask:
                 original_mask_cube, = (
