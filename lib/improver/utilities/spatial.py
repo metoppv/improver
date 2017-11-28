@@ -328,6 +328,8 @@ class OccurrenceWithinVicinity(object):
         grid_cells = (2 * grid_cell_y) + 1
 
         max_cube = cube.copy()
+        # The following command finds the maximum value for each grid point
+        # from within a square of length "size"
         max_cube.data = (
             scipy.ndimage.filters.maximum_filter(cube.data, size=grid_cells))
         return max_cube
@@ -347,13 +349,9 @@ class OccurrenceWithinVicinity(object):
                 xy 2d slice, which have been merged back together.
 
         """
-        slices_over_realization = (
-            self.find_slices_over_coordinate(cube, "realization"))
 
         max_cubes = CubeList([])
-        for realization_slice in slices_over_realization:
-            slices_over_time = (
-                self.find_slices_over_coordinate(realization_slice, "time"))
-            for time_slice in slices_over_time:
-                max_cubes.append(self.maximum_within_vicinity(time_slice))
+        for cube_slice in cube.slices([cube.coord(axis='y'),
+                                       cube.coord(axis='x')]):
+            max_cubes.append(self.maximum_within_vicinity(cube_slice))
         return max_cubes.merge_cube()
