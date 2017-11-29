@@ -70,7 +70,6 @@ class RecursiveFilter(object):
                         that iterations is not >= 1
 
         """
-
         if alpha_x is not None:
             if not 0 <= alpha_x < 1:
                 raise ValueError(
@@ -290,6 +289,7 @@ class RecursiveFilter(object):
                 when applying the recursive filter in a specific direction.
 
         Raises:
+            ValueError: If both alphas_cube and alpha are provided.
             ValueError: If alpha and alphas_cube are both set to None
             ValueError: If dimension of alphas array is less than dimension
                         of data array
@@ -301,6 +301,11 @@ class RecursiveFilter(object):
                 Cube containing a padded array of alpha values
                 for the specified direction.
         """
+        if alpha is not None and alphas_cube is not None:
+            emsg = ("A cube of alpha values and a single float value for alpha"
+                    " have both been provded. Only one of these options can be"
+                    " set.")
+            raise ValueError(emsg)
 
         if alphas_cube is None:
             if alpha is None:
