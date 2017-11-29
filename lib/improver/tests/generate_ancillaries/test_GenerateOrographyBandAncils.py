@@ -167,6 +167,19 @@ class Test_gen_orography_masks(IrisTest):
             GenOrogMasks().gen_orography_masks(
                 self.orography, self.landmask, key, threshold)
 
+    def test_all_land_points(self):
+        """Test that a correct mask is produced when the landsea mask only has
+           land points in it."""
+        land_mask_cube = self.landmask.copy()
+        land_mask_cube.data = np.ones((3, 3))
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, land_mask_cube, self.land_key,
+            self.valley_threshold)
+        expected_data = np.array([[[1.0, 1.0, 1.0],
+                                   [0.0, 0.0, 0.0],
+                                   [0.0, 0.0, 0.0]]])
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
 
 class Test_process(IrisTest):
     """
