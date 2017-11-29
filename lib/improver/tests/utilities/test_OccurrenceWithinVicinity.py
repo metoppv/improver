@@ -87,29 +87,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_find_slices_over_coordinate(IrisTest):
-
-    """Test the find_slices_over_coordinate."""
-
-    def setUp(self):
-        """Set up the cube."""
-        self.distance = 2000
-        self.cube = set_up_thresholded_cube()
-
-    def test_basic(self):
-        """Test that a _SliceIterator is returned for iterating."""
-        result = OccurrenceWithinVicinity(
-                     self.distance).find_slices_over_coordinate(
-                         self.cube, "realization")
-        self.assertIsInstance(result, iris.cube._SliceIterator)
-
-    def test_missing_coord(self):
-        """Test that a CubeList is returned for iterating."""
-        result = OccurrenceWithinVicinity(
-            self.distance).find_slices_over_coordinate(self.cube, "foo")
-        self.assertIsInstance(result, CubeList)
-
-
 class Test_maximum_within_vicinity(IrisTest):
 
     """Test the maximum_within_vicinity method."""

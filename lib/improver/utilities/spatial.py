@@ -272,30 +272,6 @@ class OccurrenceWithinVicinity(object):
         result = ('<OccurrenceWithinVicinity: distance: {}>')
         return result.format(self.distance)
 
-    @staticmethod
-    def find_slices_over_coordinate(cube, coord_name):
-        """
-        Try slicing over the given coordinate. If the requested coordinate is
-        not a dimension coordinate then still return an iterable.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube to be sliced.
-            coord_name (String):
-                Name of the coordinate to be used for slicing.
-
-        Returns:
-            slices_over_coord (iris.cube._SliceIterator or iris.cube.CubeList):
-                Iterable returned to slice over the requested coordinate, or
-                a CubeList.
-        """
-        try:
-            cube.coord(coord_name, dim_coords=True)
-            slices_over_coord = cube.slices_over(coord_name)
-        except CoordinateNotFoundError:
-            slices_over_coord = CubeList([cube])
-        return slices_over_coord
-
     def maximum_within_vicinity(self, cube):
         """
         Find grid points where a phenomenon occurs within a defined distance.
