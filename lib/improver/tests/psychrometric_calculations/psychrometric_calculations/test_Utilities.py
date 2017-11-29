@@ -152,7 +152,6 @@ class Test_saturation_vapour_pressure_goff_gratch(Test_Utilities):
         """Basic calculation of some saturated vapour pressures."""
         result = Utilities.saturation_vapour_pressure_goff_gratch(
             self.temperature)
-        print result
         expected = [195.64190713, 469.67078994, 990.94206073]
 
         np.testing.assert_allclose(result.data, expected, rtol=1.e-5)

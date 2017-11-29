@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for psychrometric_calculations WetBulbTemperatureIntegral."""
+"""Unit tests for psychrometric_calculations FallingSnowLevel."""
 
 import unittest
 
@@ -39,7 +39,7 @@ import iris
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperatureIntegral)
+    FallingSnowLevel)
 from improver.tests.psychrometric_calculations.psychrometric_calculations.\
     test_WetBulbTemperature import set_up_cubes_for_wet_bulb_temperature
 from improver.tests.utilities.test_mathematical_operations import (
@@ -52,19 +52,15 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(WetBulbTemperatureIntegral())
-        msg = ('<WetBulbTemperatureIntegral: <WetBulbTemperature: '
-               'precision: 0.005>, <Integration: coord_name_to_integrate: '
-               'height, start_point: None, end_point: None, '
-               'direction_of_integration: negative>>')
+        result = str(FallingSnowLevel())
+        msg = ('<FallingSnowLevel: '
+               'precision:0.005, falling_level_threshold:90.0>')
         self.assertEqual(result, msg)
 
 
 class Test_process(IrisTest):
 
-    """Test the calculation of the wet bulb temperature integral from
-    temperature, pressure, and relative humidity information using the
-    process function. Integration is calculated in the vertical."""
+    """Test the FallingSnowLevel processing works"""
 
     def setUp(self):
         """Set up cubes."""
@@ -77,27 +73,26 @@ class Test_process(IrisTest):
             set_up_height_cube(self.height_points, cube=relative_humidity))
         self.pressure_cube = set_up_height_cube(
             self.height_points, cube=pressure)
+        self.orog = self.temperature_cube[0]
+        self.orog = iris.util.new_axis(self.orog)
 
     def test_basic(self):
-        """Test that the wet bulb temperature integral returns a cube
-        with the expected name."""
-        result = WetBulbTemperatureIntegral().process(
+        """Test that process returns a cube with the right name and units."""
+        result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
-            self.pressure_cube)
+            self.pressure_cube, self.orog)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "wet_bulb_temperature_integral")
-        self.assertEqual(result.units, Unit('K m'))
+        self.assertEqual(result.name(), "falling_snow_level_asl")
+        self.assertEqual(result.units, Unit('m'))
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
         expected = np.array(
-            [[0.0, 0.0, 608.106507],
-             [0.0, 0.0, 912.159761]])
-        result = WetBulbTemperatureIntegral().process(
+            [0.0, 0.0, 0.0])
+        result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
-            self.pressure_cube)
-        print result.data
+            self.pressure_cube, self.orog)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

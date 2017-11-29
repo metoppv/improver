@@ -35,6 +35,7 @@ from cf_units import Unit
 import improver.constants as cc
 import numpy as np
 import iris
+from monty.vinterp import interpolate
 
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -580,6 +581,8 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature = (
             self.wet_bulb_temperature_plugin.process(
                 temperature, relative_humidity, pressure))
+        # Convert to Celsius
+        wet_bulb_temperature.convert_units('celsius')
         # Integrate.
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
@@ -589,3 +592,87 @@ class WetBulbTemperatureIntegral(object):
             wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
         wet_bulb_temperature_integral.units = Unit(units_string)
         return wet_bulb_temperature_integral
+
+
+class FallingSnowLevel(object):
+    """Calculate  a field of continuous falling snow level."""
+
+    def __init__(self, precision=0.005, falling_level_threshold=90.0):
+        """
+        Initialise class.
+
+        Keyword Args:
+            precision (float):
+                The precision to which the Newton iterator must converge
+                before returning wet bulb temperatures.
+            falling_level_threshold (float):
+                The cutoff threshold for the Wet-bulb integral used
+                to calculate the falling snow level.
+
+        """
+        self.precision = precision
+        self.wet_bulb_integral_plugin = (
+            WetBulbTemperatureIntegral(precision=precision))
+        self.falling_level_threshold = falling_level_threshold
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<FallingSnowLevel: precision:'
+                  '{}, falling_level_threshold:{}>'.format(
+                      self.precision,
+                      self.falling_level_threshold))
+        return result
+
+    def process(self, temperature, relative_humidity, pressure, orog):
+        """
+        Calculate the wet bulb temperature integral by firstly calculating
+        the wet bulb temperature from the inputs provided, and then
+        calculating the vertical integral of the wet bulb temperature.
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures (K).
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities (%, converted to fractional).
+            pressure (iris.cube.Cube):
+                Cube of air pressures (Pa).
+            orog (iris.cube.Cube):
+                Cube of orography (m).
+
+        Returns:
+            falling_snow_level (iris.cube.Cube):
+                Cube of Falling Snow Level.
+        """
+        # Calculate wet-bulb temperature integral.
+        wet_bulb_integral = (
+            self.wet_bulb_integral_plugin.process(
+                temperature, relative_humidity, pressure))
+        axis = wet_bulb_integral.coord_dims('height')[0]
+
+        # Create cube of heights above sea level for each height in
+        # the wet bulb integral cube.
+        asl = wet_bulb_integral.copy()
+        asl.rename('Height above sea level')
+        asl.units = orog.units
+        height_points = wet_bulb_integral.coord('height').points
+        for i, height in enumerate(height_points):
+            asl.data[i, ::] = orog.data[0, ::] + height
+
+        # Calculate falling snow level above sea level using
+        # monty.vinterp.interpolate.
+        falling_snow_level = wet_bulb_integral[0]
+        falling_snow_level.rename('falling_snow_level_asl')
+        falling_snow_level.units = 'm'
+        falling_snow_level.remove_coord('height')
+        req_threshold = np.array([self.falling_level_threshold])
+        falling_snow_level.data = interpolate(req_threshold,
+                                              wet_bulb_integral.data,
+                                              asl.data,
+                                              axis=axis)[0]
+        # Set missing data to 0.0 for now
+        # We need to replace this by some sort of interpolation across
+        # the orography.
+        index = np.where(np.isnan(falling_snow_level.data))
+        falling_snow_level.data[index] = 0.0
+
+        return falling_snow_level
