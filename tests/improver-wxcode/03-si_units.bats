@@ -35,7 +35,7 @@
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run wind-gust-diagnostic processing and check it passes.
+  # Run wxcode processing and check it passes.
   run improver wxcode \
       "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_rainfall_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/si_units/probability_of_rainfall_rate_in_vicinity.nc" \
