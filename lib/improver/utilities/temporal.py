@@ -32,9 +32,11 @@
 
 import cf_units as unit
 from datetime import datetime
+import warnings
 
 import numpy as np
 
+import iris
 from iris.exceptions import CoordinateNotFoundError
 
 
@@ -91,7 +93,6 @@ def cycletime_to_number(
 
 def find_required_lead_times(
         cube, time_units="hours since 1970-01-01 00:00:00",
-        forecast_reference_time_units="hours since 1970-01-01 00:00:00",
         force_lead_time_calculation=False):
     """
     Determine the lead times within a cube, either by reading the
@@ -108,9 +109,6 @@ def find_required_lead_times(
 
     Keyword Args:
         time_units (string):
-            String to describe the units of time to convert to.
-            Default is "hours since 1970-01-01 00:00:00".
-        forecast_reference_time_units (string):
             String to describe the units of time to convert to.
             Default is "hours since 1970-01-01 00:00:00".
         force_lead_time_calculation (bool):
@@ -132,18 +130,31 @@ def find_required_lead_times(
             msg = "For forecast_period: {}".format(err)
             raise ValueError(msg)
         required_lead_times = cube.coord("forecast_period").points
+        required_lead_times_units = cube.coord("forecast_period").units
     else:
         if cube.coords("time") and cube.coords("forecast_reference_time"):
             try:
                 cube.coord("time").convert_units(time_units)
                 cube.coord("forecast_reference_time").convert_units(
-                    forecast_reference_time_units)
+                    time_units)
             except ValueError as err:
                 msg = "For time/forecast_reference_time: {}".format(err)
                 raise ValueError(msg)
+            with iris.FUTURE.context(cell_datetime_objects=True):
+                time_point = [c.point for c in cube.coord("time").cells()][0]
+                forecast_reference_time_point = (
+                    [c.point for c in
+                     cube.coord("forecast_reference_time").cells()])[0]
             required_lead_times = (
-                cube.coord("time").points -
-                cube.coord("forecast_reference_time").points)
+                time_point - forecast_reference_time_point)
+            required_lead_times = required_lead_times.total_seconds()
+            required_lead_times_units = "seconds"
+            if "hours" in str(cube.coord("time").units):
+                required_lead_times = required_lead_times/3600
+                required_lead_times_units = "hours"
+            elif "minutes" in str(cube.coord("time").units):
+                required_lead_times = required_lead_times/60
+                required_lead_times_units = "minutes"
             if np.any(required_lead_times < 0):
                 msg = ("The values for the time {} and "
                        "forecast_reference_time {} coordinates from the "
@@ -152,7 +163,7 @@ def find_required_lead_times(
                        "values in the past.").format(
                            cube.coord("time").points,
                            cube.coord("forecast_reference_time").points)
-                raise ValueError(msg)
+                warnings.warn(msg)
         else:
             msg = ("The forecast period coordinate is not available "
                    "within {}."
@@ -160,4 +171,4 @@ def find_required_lead_times(
                    "coordinate were also not available for calculating "
                    "the forecast_period.".format(cube))
             raise CoordinateNotFoundError(msg)
-    return required_lead_times
+    return required_lead_times, required_lead_times_units

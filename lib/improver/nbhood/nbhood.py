@@ -228,7 +228,7 @@ class BaseNeighbourhoodProcessing(object):
                 cube_new = self.neighbourhood_method.run(
                     cube_realization, radius, mask_cube=mask_cube)
             else:
-                cube_lead_times = (
+                cube_lead_times, _ = (
                     find_required_lead_times(cube_realization))
                 # Interpolate to find the radius at each required lead time.
                 required_radii = (

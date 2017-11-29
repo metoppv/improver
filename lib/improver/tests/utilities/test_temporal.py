@@ -32,6 +32,7 @@
 
 import datetime
 import unittest
+import warnings
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -117,86 +118,90 @@ class Test_find_required_lead_times(IrisTest):
         """Test that a numpy array is returned."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         result = find_required_lead_times(cube)
-        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(result[0], np.ndarray)
+        self.assertIsInstance(result[1], Unit)
 
     def test_check_coordinate(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the input cube has a forecast_period coordinate.
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the input cube has a forecast_period coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points
+        expected_points = cube.coord("forecast_period").points
+        expected_units = str(cube.coord("forecast_period").units)
         result = find_required_lead_times(cube)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_coordinate_force_lead_time_calculation(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the input cube has a forecast_period coordinate.
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the input cube has a forecast_period coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points
+        expected_points = cube.coord("forecast_period").points
+        expected_units = cube.coord("forecast_period").units
         result = find_required_lead_times(
             cube, force_lead_time_calculation=True)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_coordinate_without_forecast_period(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the input cube has a time coordinate and a forecast_reference_time
-        coordinate.
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the input cube has a time coordinate and a
+        forecast_reference_time coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         cube.remove_coord("forecast_period")
-        expected_result = (
+        expected_points = (
             cube.coord("time").points -
             cube.coord("forecast_reference_time").points)
+        expected_units = "hours"
         result = find_required_lead_times(cube)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_forecast_period_unit_conversion(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the input cube has a forecast_period coordinate with units
-        other than the desired units of hours.
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the input cube has a forecast_period coordinate
+        with units other than the desired units of hours.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points.copy()
+        expected_points = cube.coord("forecast_period").points.copy()
         cube.coord("forecast_period").convert_units("seconds")
+        expected_units = "hours"
         result = find_required_lead_times(cube)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_time_unit_conversion(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the input cube has a time coordinate with units
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the input cube has a time coordinate with units
         other than the desired units of hours since 1970-01-01 00:00:00.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points.copy()
+        expected_points = cube.coord("forecast_period").points.copy()
         cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
+        expected_units = cube.coord("forecast_period").units
         result = find_required_lead_times(cube)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_time_intentionally_convert_units(self):
-        """
-        Test that the data within the numpy array is as expected, when
-        the time coordinates within the input cube are converted into the
-        desired units of seconds since 1970-01-01 00:00:00 so that the
-        resulting forecast_periods are in the expected units.
+        """Test that the data within the numpy array is as expected with the
+        expected units, when the time coordinates within the input cube are
+        converted into the desired units of seconds since 1970-01-01 00:00:00
+        so that the resulting forecast_periods are in the expected units.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").points.copy()
+        expected_points = cube.coord("forecast_period").points.copy()
+        expected_units = cube.coord("forecast_period").units
         time_units = "seconds since 1970-01-01 00:00:00"
-        forecast_reference_time_units = "seconds since 1970-01-01 00:00:00"
         result = find_required_lead_times(
-            cube, time_units=time_units,
-            forecast_reference_time_units=forecast_reference_time_units)
-        self.assertArrayAlmostEqual(result, expected_result)
+            cube, time_units=time_units)
+        self.assertArrayAlmostEqual(result[0], expected_points)
+        self.assertEqual(result[1], expected_units)
 
     def test_check_forecast_period_unit_conversion_exception(self):
-        """
-        Test that an exception is raised, when the input cube has a
+        """Test that an exception is raised, when the input cube has a
         forecast_period coordinate with units that can not be converted
         into hours.
         """
@@ -207,8 +212,7 @@ class Test_find_required_lead_times(IrisTest):
             find_required_lead_times(cube)
 
     def test_check_forecast_reference_time_unit_conversion_exception(self):
-        """
-        Test that an exception is raised, when the input cube has a
+        """Test that an exception is raised, when the input cube has a
         forecast_reference_time coordinate with units that can not be
         converted into hours.
         """
@@ -219,9 +223,8 @@ class Test_find_required_lead_times(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             find_required_lead_times(cube)
 
-    def test_negative_forecast_periods_exception(self):
-        """
-        Test that a ValueError exception is raised if the point within the
+    def test_negative_forecast_periods_warning(self):
+        """Test that a warning is raised if the point within the
         time coordinate is prior to the point within the
         forecast_reference_time, and therefore the forecast_period values that
         have been generated are negative.
@@ -231,12 +234,16 @@ class Test_find_required_lead_times(IrisTest):
         cube.coord("forecast_reference_time").points = 402295.0
         cube.coord("time").points = 402192.5
         msg = "The values for the time"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
             find_required_lead_times(cube)
+            self.assertTrue(len(warning_list) == 1)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue(msg in str(warning_list[0]))
 
     def test_exception_raised(self):
-        """
-        Test that a CoordinateNotFoundError exception is raised if the
+        """Test that a CoordinateNotFoundError exception is raised if the
         forecast_period, or the time and forecast_reference_time,
         are not present.
         """

@@ -44,9 +44,31 @@ from improver.utilities.temporal import (
 
 
 def conform_metadata(
-        cube, cube_orig, cycletime=None):
+        cube, cube_orig, coord, cycletime=None,
+        coords_for_bounds_removal=None):
     """Ensure that the metadata conforms after blending together across
     the chosen coordinate.
+
+    The metadata adjustments are:
+        - Forecast reference time: If a cycletime is not present, the
+          most recent available forecast_reference_time is used.
+          If a cycletime is present, the cycletime is used as the
+          forecast_reference_time instead.
+        - Forecast period: If a forecast_period coordinate is present,
+          and cycletime is not present, the lowest forecast_period is
+          used. If a forecast_period coordinate is present, and the
+          cycletime is present, forecast_periods are forceably calculated
+          from the time and forecast_reference_time coordinate. This is
+          because, if the cycletime is present, then the
+          forecast_reference_time will also have been just re-calculated, so
+          the forecast_period coordinate needs to be reset to match the
+          newly calculated forecast_reference_time.
+        - Forecast reference time and time: If forecast_reference_time and
+          time coordinates are present, then a forecast_period coordinate is
+          calculated and added to the cube.
+        - Model_id, model_realization and realization coordinates are removed.
+        - Remove bounds from the scalar coordinates, if the coordinates
+          are specified within the coords_for_bounds_removal argument.
 
     Args:
         cube (iris.cube.Cube):
@@ -54,65 +76,75 @@ def conform_metadata(
         cube_orig (iris.cube.Cube):
             Cube containing metadata that may be useful for adjusting
             metadata on the `cube` variable.
+        coord (str):
+            Coordinate that has been blended. This allows specific metadata
+            changes to be limited to whichever coordinate is being blended.
 
     Keyword Args:
         cycletime (str):
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+        coords_for_bounds_removal (None or list):
+            List of coordinates that are scalar and should have their bounds
+            removed.
 
     Returns:
         cube (iris.cube.Cube):
             Cube containing the adjusted metadata.
 
     """
-    if cube.coords("forecast_reference_time"):
-        if cycletime is None:
-            new_cycletime = (
-                np.max(cube_orig.coord("forecast_reference_time").points))
-        else:
-            cycletime_units = (
-                cube_orig.coord("forecast_reference_time").units.origin)
-            cycletime_calendar = (
-                cube.coord("forecast_reference_time").units.calendar)
-            new_cycletime = cycletime_to_number(
-                cycletime, time_unit=cycletime_units,
-                calendar=cycletime_calendar)
-        cube.coord("forecast_reference_time").points = new_cycletime
-        cube.coord("forecast_reference_time").bounds = None
+    if coord in ["forecast_reference_time"]:
+        if cube.coords("forecast_reference_time"):
+            if cycletime is None:
+                new_cycletime = (
+                    np.max(cube_orig.coord("forecast_reference_time").points))
+            else:
+                cycletime_units = (
+                    cube_orig.coord("forecast_reference_time").units.origin)
+                cycletime_calendar = (
+                    cube.coord("forecast_reference_time").units.calendar)
+                new_cycletime = cycletime_to_number(
+                    cycletime, time_unit=cycletime_units,
+                    calendar=cycletime_calendar)
+            cube.coord("forecast_reference_time").points = new_cycletime
+            cube.coord("forecast_reference_time").bounds = None
 
-    if cube.coords("forecast_period"):
-        if cycletime is None:
-            forecast_period = np.min(cube_orig.coord("forecast_period").points)
-        else:
+        if cube.coords("forecast_period"):
+            if cycletime is None:
+                forecast_period = (
+                    np.min(cube_orig.coord("forecast_period").points))
+                forecast_period_units = (
+                    cube_orig.coord("forecast_period").units)
+            else:
+                time_units = cube.coord("time").units
+                forecast_period, forecast_period_units = (
+                    find_required_lead_times(
+                        cube, time_units=time_units,
+                        force_lead_time_calculation=True))
+            cube.coord("forecast_period").points = forecast_period
+            cube.coord("forecast_period").bounds = None
+            cube.coord("forecast_period").units = forecast_period_units
+        elif cube.coords("forecast_reference_time") and cube.coords("time"):
             time_units = cube.coord("time").units
-            forecast_reference_time_units = (
-                cube.coord("forecast_reference_time").units)
-            forecast_period = find_required_lead_times(
-                cube, time_units=time_units,
-                forecast_reference_time_units=forecast_reference_time_units,
-                force_lead_time_calculation=True)
-        cube.coord("forecast_period").points = forecast_period
-        cube.coord("forecast_period").bounds = None
-    elif cube.coords("forecast_reference_time") and cube.coords("time"):
-        time_units = cube.coord("time").units
-        forecast_reference_time_units = (
-            cube.coord("forecast_reference_time").units)
-        forecast_period = np.min(
-            find_required_lead_times(
-                cube, time_units=time_units,
-                forecast_reference_time_units=forecast_reference_time_units))
-        ndim = cube.coord_dims("time")
-        cube.add_aux_coord(
-            iris.coords.AuxCoord(
-                forecast_period, standard_name="forecast_period"),
-            data_dims=ndim)
+            forecast_periods, forecast_period_units = (
+                find_required_lead_times(cube, time_units=time_units))
+            forecast_period = np.min(forecast_periods)
+            ndim = cube.coord_dims("time")
+            cube.add_aux_coord(
+                iris.coords.AuxCoord(
+                    forecast_period, standard_name="forecast_period",
+                    units=forecast_period_units), data_dims=ndim)
 
     for coord in ["model_id", "model_realization", "realization"]:
-        if cube.coords(coord):
+        if cube.coords(coord) and cube.coord(coord).shape == (1,):
             cube.remove_coord(coord)
 
+    if coords_for_bounds_removal is None:
+        coords_for_bounds_removal = []
+
     for coord in cube.coords():
-        if coord.shape == (1,) and coord.has_bounds():
-            coord.bounds = None
+        if coord.name() in coords_for_bounds_removal:
+            if coord.shape == (1,) and coord.has_bounds():
+                coord.bounds = None
     return cube
 
 
@@ -352,9 +384,7 @@ class WeightedBlendAcrossWholeDimension(object):
        the maximum of the weighted probabilities."""
 
     def __init__(self, coord, weighting_mode, coord_adjust=None,
-                 cycletime=None,
-                 cycletime_unit="hours since 1970-01-01 00:00:00",
-                 cycletime_calendar="gregorian"):
+                 cycletime=None, coords_for_bounds_removal=None):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -376,6 +406,9 @@ class WeightedBlendAcrossWholeDimension(object):
                     e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+            coords_for_bounds_removal (None or list):
+                List of coordinates that are scalar and should have their
+                bounds removed.
 
         Raises:
             ValueError : If an invalid weighting_mode is given.
@@ -388,6 +421,7 @@ class WeightedBlendAcrossWholeDimension(object):
         self.mode = weighting_mode
         self.coord_adjust = coord_adjust
         self.cycletime = cycletime
+        self.coords_for_bounds_removal = coords_for_bounds_removal
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -566,7 +600,9 @@ class WeightedBlendAcrossWholeDimension(object):
                                                     MAX_PROBABILITY,
                                                     arr_weights=weights)
                 cube_new = conform_metadata(
-                    cube_new, cube_thres, cycletime=self.cycletime)
+                    cube_new, cube_thres, coord=self.coord,
+                    cycletime=self.cycletime,
+                    coords_for_bounds_removal=self.coords_for_bounds_removal)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):

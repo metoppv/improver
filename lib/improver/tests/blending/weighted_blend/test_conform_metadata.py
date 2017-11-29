@@ -95,15 +95,18 @@ class Test_conform_metadata(IrisTest):
         self.cube_model = cube_orig_model.collapsed(
             "forecast_reference_time", iris.analysis.MEAN)
 
+        # Coordinate that is being blended.
+        self.coord = "forecast_reference_time"
+
     def test_basic(self):
         """Test that conform_metadata returns a cube."""
-        result = conform_metadata(self.cube, self.cube_orig)
+        result = conform_metadata(self.cube, self.cube_orig, self.coord)
         self.assertIsInstance(result, iris.cube.Cube)
 
     def test_with_forecast_period(self):
         """Test that a cube is dealt with correctly, if the cube contains
         a forecast_reference_time and forecast_period coordinate."""
-        result = conform_metadata(self.cube, self.cube_orig)
+        result = conform_metadata(self.cube, self.cube_orig, self.coord)
         self.assertEqual(
             result.coord("forecast_reference_time").points,
             np.max(self.cube_orig.coord("forecast_reference_time").points))
@@ -117,7 +120,7 @@ class Test_conform_metadata(IrisTest):
         """Test that a cube is dealt with correctly, if the cube contains a
         forecast_reference_time coordinate but not a forecast_period."""
         result = conform_metadata(
-            self.cube_without_fp, self.cube_orig_without_fp)
+            self.cube_without_fp, self.cube_orig_without_fp, self.coord)
         self.assertEqual(
             result.coord("forecast_reference_time").points,
             np.max(self.cube_orig.coord("forecast_reference_time").points))
@@ -134,7 +137,7 @@ class Test_conform_metadata(IrisTest):
         expected_forecast_reference_time = np.array([402294.])
         expected_forecast_period = np.array([1.])
         result = conform_metadata(
-            self.cube, self.cube_orig, cycletime="20151123T0600Z")
+            self.cube, self.cube_orig, self.coord, cycletime="20151123T0600Z")
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
             expected_forecast_reference_time)
@@ -152,7 +155,7 @@ class Test_conform_metadata(IrisTest):
         expected_forecast_reference_time = np.array([402294.])
         expected_forecast_period = np.array([1.])
         result = conform_metadata(
-            self.cube_without_fp, self.cube_orig_without_fp,
+            self.cube_without_fp, self.cube_orig_without_fp, self.coord,
             cycletime="20151123T0600Z")
         self.assertEqual(
             result.coord("forecast_reference_time").points,
@@ -165,7 +168,8 @@ class Test_conform_metadata(IrisTest):
     def test_with_model_model_id_and_model_realization(self):
         """Test that a cube is dealt with correctly, if the cube contains a
         model, model_id and model_realization coordinate."""
-        result = conform_metadata(self.cube_model, self.cube_orig_model)
+        coord = "model_id"
+        result = conform_metadata(self.cube_model, self.cube_orig_model, coord)
         self.assertFalse(result.coords("model_id"))
         self.assertFalse(result.coords("model_realization"))
 
@@ -176,7 +180,9 @@ class Test_conform_metadata(IrisTest):
         cube.add_aux_coord(
             AuxCoord([10.], standard_name="height", units="m",
                      bounds=np.array([5., 15.])))
-        result = conform_metadata(self.cube, self.cube_orig)
+        result = conform_metadata(
+            self.cube, self.cube_orig, self.coord,
+            coords_for_bounds_removal=["height"])
         self.assertFalse(result.coord("height").bounds)
 
 
