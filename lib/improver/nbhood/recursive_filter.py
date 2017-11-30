@@ -409,5 +409,4 @@ class RecursiveFilter(object):
         new_cube = recursed_cube.merge_cube()
         new_cube = check_cube_coordinates(cube, new_cube)
 
-
         return new_cube

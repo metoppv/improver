@@ -37,6 +37,8 @@ usage: improver-recursive-filter [-h] [--input_filepath_alphas_x ALPHAS_X]
                                  [--input_filepath_alphas_y ALPHAS_Y]
                                  [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
                                  [--iterations ITERATIONS]
+                                 [--input_mask_filepath INPUT_MASK_FILE]
+                                 [--re_mask]
                                  INPUT_FILE OUTPUT_FILE
 
 Run a recursive filter to convert a square neighbourhood into a Gaussian-like
@@ -65,6 +67,10 @@ optional arguments:
                         every grid square in the y direction.
   --iterations ITERATIONS
                         Number of cycles over which to apply the filter
+  --input_mask_filepath INPUT_MASK_FILE
+                        A path to an input mask NetCDF file to be used to mask
+                        the input file.
+  --re_mask             Re-apply mask to recursively filtered output.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
