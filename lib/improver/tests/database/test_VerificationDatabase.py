@@ -198,8 +198,8 @@ class Test_to_dataframe(IrisTest):
         assert_frame_equal(expected_df, result)
 
 
-class Test_ensure_all_pivot_columns(IrisTest):
-    """A set of tests for the ensure_all_pivot_collumns method"""
+class Test_ensure_ensure_all_forecast_columns(IrisTest):
+    """A set of tests for the ensure_all_forecast_collumns method"""
     @staticmethod
     def test_single_cube():
         """Basic test using one input cube."""
@@ -208,7 +208,7 @@ class Test_ensure_all_pivot_columns(IrisTest):
                                    "nbhood", 3600)
         test_dataframe = pd.DataFrame(data=np.array([280.0, 280.0, 280.0]),
                                       columns=["fcr_tplus000"])
-        plugin.ensure_all_pivot_columns(test_dataframe)
+        plugin.ensure_all_forecast_columns(test_dataframe)
         result = test_dataframe
         expected_dataframe = pd.DataFrame(data=np.array([[280.0, np.nan],
                                                          [280.0, np.nan],

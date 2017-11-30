@@ -45,8 +45,7 @@ from datetime import datetime as dt
 
 class SpotDatabase(object):
     """
-    Create a Database table from spotdata Iris Cubes.
-
+    Holds the Spotdata Database table configuration and mapping from Cubes.
 
     """
 
@@ -104,7 +103,7 @@ class SpotDatabase(object):
 
     def __repr__(self):
         """
-        Representation of the instance.
+        Representation of the pre-processed configuration of the SpotDatabase.
 
         """
         result = '<SpotDatabase: {output}, {outfile}, {tablename}, '\
@@ -120,6 +119,18 @@ class SpotDatabase(object):
     def to_dataframe(self, cubelist):
         """
         Turns the cubelist into a Pandas DatafFame.
+
+        The cube is sliced, over coord_to_slice_over, with primary_dim as an
+        initial index.
+
+        If pivot dim is provided, a column is added with pivot column names,
+        then the table is rotated (or pivoted) to create these columns.
+
+        If a primary map is provided, the index is mapped to these columns,
+        transforming the data using primary func.
+
+        If column dims are provided, each are added as columns to the
+        DataFrame, using the column map to determine the column names.
 
         Args:
             cubelist (iris.cube.CubeList):
@@ -207,7 +218,7 @@ class SpotDatabase(object):
 
     def map_primary_index(self, dataframe):
         """
-        Insert into the dataframe columns mapped from the primary index.
+        Insert into the DataFrame columns mapped from the primary index.
 
         Args:
             dataframe (pandas.DataFrame):
@@ -222,11 +233,11 @@ class SpotDatabase(object):
     @staticmethod
     def insert_extra_mapped_column(df, cube, dim, col):
         """
-        Insert into the dataframe an extra column mapped from the cube.
+        Insert into the DataFrame an extra column mapped from the cube.
 
         Args:
             df (pandas.DataFrame):
-                The dataframe to modify.
+                The DataFrame to modify.
             cube (iris.cube.Cube):
                 The cube to used to determine the coords.
             dim (str):
@@ -344,12 +355,15 @@ class SpotDatabase(object):
 
 class VerificationTable(SpotDatabase):
     """
-    Represents a single Verification database table
+    Represents a single Verification database table.
+
+    This class holds the configuration of a Verification table type and
+    the extra functions that need to be applied to produce the table.
 
     """
 
     def __init__(self, output, outfile, tablename, experiment_id,
-                 max_forecast_lead_time):
+                 max_forecast_leadtime):
         self.output = output
         self.outfile = outfile
         self.tablename = tablename
@@ -370,35 +384,40 @@ class VerificationTable(SpotDatabase):
         if experiment_id:
             self.column_dims = self.column_dims + [self.experiment_id]
             self.column_maps = self.column_maps + ["exp_id"]
-        self.max_forecast_lead_time = max_forecast_lead_time
+        self.max_forecast_leadtime = max_forecast_leadtime
 
     def __repr__(self):
         """
-        Representation of the instance.
+        Representation the pre-processed configuration of the VerificationTable
 
         """
         result = '<VerificationTable: {output}, {outfile}, {tablename}, '\
-                 '{experiment_id}, {max_forecast_lead_time}>'
+                 '{experiment_id}, {max_forecast_leadtime}>'
         return result.format(**self.__dict__)
 
-    def ensure_all_pivot_columns(self, dataframe):
+    def ensure_all_forecast_columns(self, dataframe):
         """
-        Method to ensure all pivot columns exist in the dataframe, adding any
-        that do not.
+        Method to ensure all forecast columns exist in the DataFrame, adding
+        any that do not. This is necessary to determine the correct schema.
 
         Args:
             dataframe (pandas.DataFrame):
                 The DataFrame to modify.
 
         """
-        if self.pivot_dim and self.max_forecast_lead_time:
-            for pivot_val in range(self.max_forecast_lead_time+1):
-                if not self.pivot_map(pivot_val) in dataframe.columns:
-                    dataframe[self.pivot_map(pivot_val)] = np.nan
+        for forecast_period in range(self.max_forecast_leadtime+1):
+            forecast_column_name = self.pivot_map(forecast_period)
+            if forecast_column_name not in dataframe.columns:
+                dataframe[forecast_column_name] = np.nan
+        dataframe.sort_index(axis=1, inplace=True)
 
     def to_dataframe(self, cubelist):
         """
         Turn the cubelist into a verification table.
+
+        An extension to the parent class's method (SpotData.to_dataframe)
+        ensuring that all forecast ranges that may occur are present in the
+        DataFrame, and that the columns are in the correct order.
 
         Args:
             cubelist (iris.cube.CubeList):
@@ -406,5 +425,4 @@ class VerificationTable(SpotDatabase):
 
         """
         super(VerificationTable, self).to_dataframe(cubelist)
-        self.ensure_all_pivot_columns(self.df)
-        self.df.sort_index(axis=1, inplace=True)
+        self.ensure_all_forecast_columns(self.df)
