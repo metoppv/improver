@@ -76,9 +76,20 @@ def main():
     parser.add_argument("--iterations", metavar="ITERATIONS",
                         default=1, type=int,
                         help="Number of cycles over which to apply the filter")
+    parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
+                        help='A path to an input mask NetCDF file to be '
+                        'used to mask the input file.')
+    parser.add_argument("--re_mask", action='store_true', default=False,
+                        help="Re-apply mask to recursively filtered output.")
 
     args = parser.parse_args()
+
     cube = iris.load_cube(args.input_filepath)
+    if args.input_mask_filepath:
+        mask_cube = iris.load_cube(args.input_mask_filepath)
+    else:
+        mask_cube = None
+
     alphas_x_cube = None
     alphas_y_cube = None
     if args.input_filepath_alphas_x is not None:
@@ -88,8 +99,9 @@ def main():
 
     result = RecursiveFilter(
         alpha_x=args.alpha_x, alpha_y=args.alpha_y,
-        iterations=args.iterations).process(
-            cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube)
+        iterations=args.iterations, re_mask=args.re_mask).process(
+            cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+            mask_cube=mask_cube)
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
