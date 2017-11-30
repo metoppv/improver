@@ -228,10 +228,11 @@ class GenerateOrographyBandAncils(object):
                 orog_band (numpy array):
                     The binary array to which the landmask will be applied.
             """
+            points_to_mask = np.logical_not(landmask)
             mask_data = np.ma.masked_where(
-                np.logical_not(landmask), orog_band)
+                points_to_mask, orog_band)
             sea_fillvalue = np.ma.default_fill_value(mask_data.data)
-            mask_data.data[mask_data.mask] = sea_fillvalue
+            mask_data.data[points_to_mask] = sea_fillvalue
             return mask_data
 
         coords = standard_orography.coords()
