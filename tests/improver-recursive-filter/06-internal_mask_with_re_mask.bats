@@ -37,7 +37,7 @@
 
   # Run recursive-filter processing and check it passes.
   run improver recursive-filter "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/input_masked.nc"\
-      "$TEST_DIR/output.nc" --alpha_x=0.8 --alpha_y=0.8 --iterations=5
+      "$TEST_DIR/output.nc" --alpha_x=0.8 --alpha_y=0.8 --iterations=5--re_mask
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

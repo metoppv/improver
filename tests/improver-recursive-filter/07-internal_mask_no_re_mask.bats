@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "improver-recursive-filter input output --alpha_x --alpha_y --iterations --re_mask" {
+@test "improver-recursive-filter input output --alpha_x --alpha_y --iterations " {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
@@ -42,7 +42,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/kgo_internal_mask_with_re_mask.nc"
+      "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/kgo_internal_mask_no_re_mask.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

@@ -43,7 +43,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/kgo_internal_mask_with_re_mask.nc"
+      "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/kgo_external_mask_with_re_mask.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
