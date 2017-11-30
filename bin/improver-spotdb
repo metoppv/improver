@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+"""Script to run spot database creation from spot data."""
+
+import iris
+import time
+import numpy as np
+
+from improver.database import VerificationTable
+from improver.argparser import ArgParser
+
+
+def main():
+    """
+    Load in the arguments and apply the requested variant of database creation.
+    """
+    parser = ArgParser(
+        description="Convert spot forecast cubes to a table and save in csv "
+                    "or as a sqlite database. For all the spot files provided "
+                    "it creates a table in memory and then saves it in the "
+                    "format specified by the user.")
+    parser.add_argument('input_filepath',  metavar='INPUT_FILES',
+                        help="A path (with wildcards if necessary) to input "
+                             "NetCDF files to be processed.")
+    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
+                        help='The output path for the processed database or '
+                             'csv file.')
+    parser.add_argument('--table_name', required=False,
+                        metavar='OUTPUT_TABLE_NAME', default="improver",
+                        help='The name of the table for the processed '
+                             'database. Default is "improver"')
+    parser.add_argument("--experiment_id", metavar="EXPERIMENT_ID",
+                        default="IMPRO",
+                        help="A name to provide as the experiment identifier, "
+                             "which refers to the post-processing stage the "
+                             "input data comes from. Default is \"IMPRO\"")
+    parser.add_argument("--max_forecast_leadtime", metavar="MAX_LEADTIME",
+                        default=54, type=int,
+                        help="The maximum forecast lead time in hours needed "
+                             "as a column in the verification table. The "
+                             "output table will contain columns for hourly "
+                             "forecast lead times up to this time. Default "
+                             "is 54 hours.")
+    # Different file formats (default to SQLite DB):
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--sqlite', default=False, action='store_true',
+                       help='Create or append to a SQLite Database file.')
+    group.add_argument('--csv', default=False, action='store_true',
+                       help='The option used to create a CSV file.')
+
+    args = parser.parse_args()
+
+    cubelist = iris.load(args.input_filepath)
+
+    if args.sqlite:
+        output = 'sqlite'
+    elif args.csv:
+        output = 'csv'
+
+    database_creator = VerificationTable(output, args.output_filepath,
+                                         args.table_name,
+                                         args.experiment_id,
+                                         args.max_forecast_leadtime*3600)
+    database_creator.process(cubelist)
+
+if __name__ == '__main__':
+    main()

@@ -65,13 +65,11 @@ class Test_write_output(IrisTest):
                     units="1")
         self.cube = cube
         self.data_directory = mkdtemp()
-        self.fnull = open(os.devnull, 'w')
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
         Call(['rm', '-f', self.data_directory + '/test_data.nc'])
         Call(['rmdir', self.data_directory])
-        self.fnull.close()
 
     def test_write_netcdf(self):
         """Test writing of iris.cube.Cube to netcdf file."""
