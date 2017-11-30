@@ -556,9 +556,9 @@ class SquareNeighbourhood(object):
             if self.re_mask:
                 original_mask_cube, = (
                     pre_neighbourhood_cubes.extract('mask_data'))
-                neighbourhood_averaged_cube.data = (
-                    neighbourhood_averaged_cube.data *
-                    original_mask_cube.data.squeeze())
+                neighbourhood_averaged_cube.data = np.ma.masked_array(
+                    neighbourhood_averaged_cube.data,
+                    mask=~original_mask_cube.data.squeeze().astype(bool))
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):
