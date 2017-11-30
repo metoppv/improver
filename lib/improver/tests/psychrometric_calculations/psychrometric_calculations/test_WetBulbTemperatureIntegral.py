@@ -97,7 +97,6 @@ class Test_process(IrisTest):
         result = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)
-        print result.data
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

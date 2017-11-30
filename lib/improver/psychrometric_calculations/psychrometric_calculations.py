@@ -31,15 +31,17 @@
 """Module to contain Psychrometric Calculations."""
 
 import warnings
-from cf_units import Unit
-import improver.constants as cc
+
 import numpy as np
 import iris
 from monty.vinterp import interpolate
+from scipy.interpolate import griddata
+from cf_units import Unit
 
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
+import improver.constants as cc
 
 
 class Utilities(object):
@@ -555,8 +557,8 @@ class WetBulbTemperatureIntegral(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<WetBulbTemperatureIntegral: {}, {}>'.format(
-                      self.wet_bulb_temperature_plugin,
-                      self.integration_plugin))
+            self.wet_bulb_temperature_plugin,
+            self.integration_plugin))
         return result
 
     def process(self, temperature, relative_humidity, pressure):
@@ -595,7 +597,7 @@ class WetBulbTemperatureIntegral(object):
 
 
 class FallingSnowLevel(object):
-    """Calculate  a field of continuous falling snow level."""
+    """Calculate a field of continuous falling snow level."""
 
     def __init__(self, precision=0.005, falling_level_threshold=90.0):
         """
@@ -623,6 +625,60 @@ class FallingSnowLevel(object):
                       self.falling_level_threshold))
         return result
 
+    def find_falling_level(self, wb_int_data, orog_data, height_points):
+        """
+        Find the falling snow level by finding the level of the wet-bulb
+        integral data at the required threshold.
+
+        Args:
+            wb_int_data (np.array):
+                Wet bulb integral data on heights
+            orog_data (np.array):
+                Orographic data
+            heights (np.array):
+                heights agl
+
+        Returns:
+            snow_level_data (np.array):
+                Falling snow level data asl.
+
+        """
+        # Create cube of heights above sea level for each height in
+        # the wet bulb integral cube.
+        asl = wb_int_data.copy()
+        for i, height in enumerate(height_points):
+            asl[i, ::] = orog_data + height
+
+        # Calculate falling snow level above sea level using
+        # monty.vinterp.interpolate.
+        # Interpolate returns a cube with height coord
+        #  for falling_level_threshold so we take the 0 index
+        snow_level_data = interpolate(np.array([self.falling_level_threshold]),
+                                      wb_int_data, asl, axis=0)[0]
+        return snow_level_data
+
+    @staticmethod
+    def fill_in_missing_data(snow_level_data):
+        """
+        Fill in missing data
+
+        Args:
+            snow_level_data (np.array):
+                Falling snow level data.
+
+        Returns:
+            snow_level_updated (np.array):
+                Falling snow level data with missing data added.
+
+        """
+        points = np.where(np.isfinite(snow_level_data))
+        values = snow_level_data[points]
+        ynum, xnum = snow_level_data.shape
+        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
+        snow_level_updated = griddata(points, values, (y_points, x_points),
+                                      method='linear', fill_value=0.0)
+        return snow_level_updated
+
     def process(self, temperature, relative_humidity, pressure, orog):
         """
         Calculate the wet bulb temperature integral by firstly calculating
@@ -647,32 +703,35 @@ class FallingSnowLevel(object):
         wet_bulb_integral = (
             self.wet_bulb_integral_plugin.process(
                 temperature, relative_humidity, pressure))
-        axis = wet_bulb_integral.coord_dims('height')[0]
 
-        # Create cube of heights above sea level for each height in
-        # the wet bulb integral cube.
-        asl = wet_bulb_integral.copy()
-        asl.rename('Height above sea level')
-        asl.units = orog.units
-        height_points = wet_bulb_integral.coord('height').points
-        for i, height in enumerate(height_points):
-            asl.data[i, ::] = orog.data[0, ::] + height
+        # Firstly we need to slice over height, x and y
+        dim_coords = wet_bulb_integral.dim_coords
+        x_coord = dim_coords[-1].name()
+        y_coord = dim_coords[-2].name()
+        for orog_cube in orog.slices([y_coord, x_coord]):
+            orog_data = orog_cube.data
 
-        # Calculate falling snow level above sea level using
-        # monty.vinterp.interpolate.
-        falling_snow_level = wet_bulb_integral[0]
-        falling_snow_level.rename('falling_snow_level_asl')
-        falling_snow_level.units = 'm'
-        falling_snow_level.remove_coord('height')
-        req_threshold = np.array([self.falling_level_threshold])
-        falling_snow_level.data = interpolate(req_threshold,
-                                              wet_bulb_integral.data,
-                                              asl.data,
-                                              axis=axis)[0]
-        # Set missing data to 0.0 for now
-        # We need to replace this by some sort of interpolation across
-        # the orography.
-        index = np.where(np.isnan(falling_snow_level.data))
-        falling_snow_level.data[index] = 0.0
+        snow = iris.cube.CubeList([])
+        slice_list = ['height', y_coord, x_coord]
+        for wb_integral in wet_bulb_integral.slices(slice_list):
 
+            height_points = wb_integral.coord('height').points
+            # Calculate falling snow level above sea level using
+            # monty.vinterp.interpolate.
+            snow_cube = wb_integral[0]
+            snow_cube.rename('falling_snow_level_asl')
+            snow_cube.units = 'm'
+            snow_cube.remove_coord('height')
+
+            # Interpolate returns a cube with height coord
+            # or req_threshold so we take the 0 index
+            snow_cube.data = self.find_falling_level(wb_integral.data,
+                                                     orog_data,
+                                                     height_points)
+            # Interpolate missing data
+            snow_cube.data = self.fill_in_missing_data(snow_cube.data)
+
+            snow.append(snow_cube)
+
+        falling_snow_level = snow.merge_cube()
         return falling_snow_level

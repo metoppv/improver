@@ -40,8 +40,8 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     FallingSnowLevel)
-from improver.tests.psychrometric_calculations.psychrometric_calculations.\
-    test_WetBulbTemperature import set_up_cubes_for_wet_bulb_temperature
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import set_up_cube
 from improver.tests.utilities.test_mathematical_operations import (
     set_up_height_cube)
 
@@ -58,23 +58,98 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
+class Test_find_falling_level(IrisTest):
+
+    """Test the find_falling_level method."""
+
+    def setUp(self):
+        """Set up arrays."""
+        self.wb_int_data = np.array([[[80.0, 80.0], [70.0, 50.0]],
+                                     [[90.0, 100.0], [80.0, 60.0]],
+                                     [[100.0, 110.0], [90.0, 100.0]]])
+
+        self.orog_data = np.array([[0.0, 0.0], [5.0, 3.0]])
+        self.height_points = np.array([5.0, 10.0, 20.0])
+
+    def test_basic(self):
+        """Test method returns an array with correct data"""
+        plugin = FallingSnowLevel()
+        expected = np.array([[10.0, 7.5], [25.0, 20.5]])
+        result = plugin.find_falling_level(
+            self.wb_int_data, self.orog_data, self.height_points)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
+    def test_outside_range(self):
+        """Test method returns an nan if data outside range"""
+        plugin = FallingSnowLevel()
+        wb_int_data = self.wb_int_data
+        wb_int_data[2, 1, 1] = 70.0
+        result = plugin.find_falling_level(
+            wb_int_data, self.orog_data, self.height_points)
+        self.assertTrue(np.isnan(result[1, 1]))
+
+
+class Test_fill_in_missing_data(IrisTest):
+
+    """Test the fill_in_missing_data method."""
+
+    def test_basic(self):
+        """Test method returns an array with correct data"""
+        plugin = FallingSnowLevel()
+        snow_level_data = np.array([[1.0, 1.0, 2.0],
+                                    [1.0, np.nan, 2.0],
+                                    [1.0, 2.0, 2.0]])
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, 1.5, 2.0],
+                             [1.0, 2.0, 2.0]])
+        result = plugin.fill_in_missing_data(snow_level_data)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
+
 class Test_process(IrisTest):
 
     """Test the FallingSnowLevel processing works"""
 
     def setUp(self):
         """Set up cubes."""
-        temperature, pressure, relative_humidity, _ = (
-            set_up_cubes_for_wet_bulb_temperature())
-        self.height_points = np.array([5., 10., 20.])
+
+        temp_vals = [278.0, 280.0, 285.0, 286.0]
+        pressure_vals = [93856.0, 95034.0, 96216.0, 97410.0]
+
+        data = np.ones((2, 1, 3, 3))
+        relh_data = np.ones((2, 1, 3, 3)) * 0.65
+
+        temperature = set_up_cube(data, 'air_temperature', 'K',
+                                  realizations=np.array([0, 1]))
+        relative_humidity = set_up_cube(relh_data,
+                                        'relative_humidity', '%',
+                                        realizations=np.array([0, 1]))
+        pressure = set_up_cube(data, 'air_pressure', 'Pa',
+                               realizations=np.array([0, 1]))
+        self.height_points = np.array([5., 195., 200.])
         self.temperature_cube = set_up_height_cube(
             self.height_points, cube=temperature)
         self.relative_humidity_cube = (
             set_up_height_cube(self.height_points, cube=relative_humidity))
         self.pressure_cube = set_up_height_cube(
             self.height_points, cube=pressure)
-        self.orog = self.temperature_cube[0]
-        self.orog = iris.util.new_axis(self.orog)
+        for i in range(0, 3):
+            self.temperature_cube.data[i, ::] = temp_vals[i+1]
+            self.pressure_cube.data[i, ::] = pressure_vals[i+1]
+            # Add hole in middle of data.
+            self.temperature_cube.data[i, :, :, 1, 1] = temp_vals[i]
+            self.pressure_cube.data[i, :, :, 1, 1] = pressure_vals[i]
+
+        self.orog = iris.cube.Cube(np.zeros((3, 3)),
+                                   standard_name='surface_altitude', units='m')
+        self.orog.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
+                                 'latitude', units='degrees'), 0)
+        self.orog.add_dim_coord(iris.coords.DimCoord(np.linspace(120, 180, 3),
+                                                     'longitude',
+                                                     units='degrees'), 1)
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
@@ -88,8 +163,7 @@ class Test_process(IrisTest):
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
-        expected = np.array(
-            [0.0, 0.0, 0.0])
+        expected = np.ones((2, 3, 3)) * 65.88732723
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube, self.orog)
