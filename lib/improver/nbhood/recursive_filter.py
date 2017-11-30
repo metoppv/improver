@@ -35,6 +35,7 @@ import numpy as np
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.nbhood.square_kernel import SquareNeighbourhood
 
 
 class RecursiveFilter(object):
@@ -44,7 +45,7 @@ class RecursiveFilter(object):
     """
 
     def __init__(self, alpha_x=None, alpha_y=None, iterations=None,
-                 edge_width=1):
+                 edge_width=1, re_mask=False):
         """
         Initialise the class.
 
@@ -62,6 +63,13 @@ class RecursiveFilter(object):
             edge_width (integer):
                 The width of the padding applied to the grid cells
                 when adding the SquareNeighbourhood halo.
+            re_mask (boolean):
+                If re_mask is True, the original un-recursively filtered
+                mask is applied to mask out the recursively filtered cube.
+                If re_mask is False, the original un-recursively filtered
+                mask is not applied. Therefore, the recursive filtering
+                may result in values being present in areas that were
+                originally masked.
 
         Raises:
             ValueError: If alpha_x is not set such that 0 <= alpha_x < 1
@@ -92,6 +100,7 @@ class RecursiveFilter(object):
         self.alpha_y = alpha_y
         self.iterations = iterations
         self.edge_width = edge_width
+        self.re_mask = re_mask
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -326,7 +335,7 @@ class RecursiveFilter(object):
             alphas_cube, self.edge_width, self.edge_width)
         return alphas_cube
 
-    def process(self, cube, alphas_x=None, alphas_y=None):
+    def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
         """
         Set up the alpha parameters and run the recursive filter.
 
@@ -359,21 +368,33 @@ class RecursiveFilter(object):
             alphas_y (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the y-axis.
+            mask_cube (Iris.cube.Cube or None):
+                Cube containing an external mask to apply to the cube before
+                applying the recursive filter.
 
         Returns:
             new_cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
         """
-
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
         alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
         alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
 
+        # Extract mask if present on input cube or provided separately.
+        try:
+            mask, = SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                cube, mask_cube).extract('mask_data')
+            mask = mask.data
+        except ValueError:
+            mask = np.ones((cube_format.data.shape))
+
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
+
+            output.data = output.data * mask
 
             padded_cube = SquareNeighbourhood().pad_cube_with_halo(
                 output, self.edge_width, self.edge_width)
@@ -381,8 +402,12 @@ class RecursiveFilter(object):
                                           self.iterations)
             new_cube = SquareNeighbourhood().remove_halo_from_cube(
                 new_cube, self.edge_width, self.edge_width)
+            if self.re_mask:
+                new_cube.data = new_cube.data * mask
             recursed_cube.append(new_cube)
 
         new_cube = recursed_cube.merge_cube()
         new_cube = check_cube_coordinates(cube, new_cube)
+
+
         return new_cube
