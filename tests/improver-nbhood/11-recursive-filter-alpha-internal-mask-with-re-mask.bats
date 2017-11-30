@@ -31,20 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x --alpha_y --iterations" {
+@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x --alpha_y --iterations" --re_mask {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run square neighbourhood processing, apply recursive filter and check it passes.
   run improver nbhood 'probabilities' 'square' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_square.nc" \
-      "$TEST_DIR/kgo_recursive_alpha.nc" --apply-recursive-filter \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input_masked.nc" \
+      "$TEST_DIR/kgo_internal_mask_re_masked_recursive_alpha.nc" --apply-recursive-filter --re_mask \
       --alpha_x=0.8 --alpha_y=0.8 --iterations=5
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/kgo_recursive_alpha.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_recursive_alpha.nc"
-  rm "$TEST_DIR/kgo_recursive_alpha.nc"
+  improver_compare_output "$TEST_DIR/kgo_internal_mask_re_masked_recursive_alpha.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_internal_mask_re_masked_recursive_alpha.nc"
+  rm "$TEST_DIR/kgo_internal_mask_re_masked_recursive_alpha.nc"
   rmdir "$TEST_DIR"
 }
