@@ -35,7 +35,6 @@ import numpy as np
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.nbhood.square_kernel import SquareNeighbourhood
 
 
 class RecursiveFilter(object):
