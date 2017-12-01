@@ -91,8 +91,8 @@ def cycletime_to_number(
     return unit.date2num(dt, time_unit, calendar)
 
 
-def find_required_lead_times(
-        cube, time_units="hours since 1970-01-01 00:00:00",
+def forecast_period_coord(
+        cube,
         force_lead_time_calculation=False):
     """
     Determine the lead times within a cube, either by reading the
@@ -108,9 +108,6 @@ def find_required_lead_times(
             Cube from which the lead times will be determined.
 
     Keyword Args:
-        time_units (string):
-            String to describe the units of time to convert to.
-            Default is "hours since 1970-01-01 00:00:00".
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if the
@@ -118,19 +115,21 @@ def find_required_lead_times(
             Default is False.
 
     Returns:
-        required_lead_times (Numpy array):
-            Array containing the lead times, at which the radii need to be
-            calculated.
+        coord (iris.coords.AuxCoord or DimCoord):
+            Describing the points and their units for 'forecast_period'.
+            A DimCoord is returned if the forecast_period coord is already
+            present in the cube as a DimCoord and this coord does not need
+            changing, otherwise it will be an AuxCoord
 
     """
+    time_units = cube.coord("time").units
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         try:
             cube.coord("forecast_period").convert_units("hours")
         except ValueError as err:
             msg = "For forecast_period: {}".format(err)
             raise ValueError(msg)
-        required_lead_times = cube.coord("forecast_period").points
-        required_lead_times_units = cube.coord("forecast_period").units
+        result_coord = cube.coord("forecast_period")
     else:
         if cube.coords("time") and cube.coords("forecast_reference_time"):
             try:
@@ -141,21 +140,26 @@ def find_required_lead_times(
                 msg = "For time/forecast_reference_time: {}".format(err)
                 raise ValueError(msg)
             with iris.FUTURE.context(cell_datetime_objects=True):
-                time_point = [c.point for c in cube.coord("time").cells()][0]
-                forecast_reference_time_point = (
+                time_points = np.array(
+                    [c.point for c in cube.coord("time").cells()])
+                forecast_reference_time_points = np.array(
                     [c.point for c in
-                     cube.coord("forecast_reference_time").cells()])[0]
+                        cube.coord("forecast_reference_time").cells()])
             required_lead_times = (
-                time_point - forecast_reference_time_point)
-            required_lead_times = required_lead_times.total_seconds()
-            required_lead_times_units = "seconds"
-            if "hours" in str(cube.coord("time").units):
-                required_lead_times = required_lead_times/3600
-                required_lead_times_units = "hours"
-            elif "minutes" in str(cube.coord("time").units):
-                required_lead_times = required_lead_times/60
-                required_lead_times_units = "minutes"
-            if np.any(required_lead_times < 0):
+                time_points - forecast_reference_time_points)
+            required_lead_times = [x.total_seconds() for x in
+                                   required_lead_times]
+            result_coord = iris.coords.AuxCoord(
+                required_lead_times,
+                standard_name='forecast_period',
+                units='seconds')
+            try:
+                unitstr = str(cube.coord("time").units).split(' ')[0]
+                result_coord.convert_units(unitstr)
+            except ValueError:
+                # Failed to make units consistent - carry on anyway.
+                pass
+            if np.any(result_coord.points < 0):
                 msg = ("The values for the time {} and "
                        "forecast_reference_time {} coordinates from the "
                        "input cube have produced negative values for the "
@@ -171,4 +175,4 @@ def find_required_lead_times(
                    "coordinate were also not available for calculating "
                    "the forecast_period.".format(cube))
             raise CoordinateNotFoundError(msg)
-    return required_lead_times, required_lead_times_units
+    return result_coord

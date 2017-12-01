@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import add_renamed_cell_method
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.temporal import (
-    cycletime_to_number, find_required_lead_times)
+    cycletime_to_number, forecast_period_coord)
 
 
 def conform_metadata(
@@ -109,30 +109,16 @@ def conform_metadata(
             cube.coord("forecast_reference_time").bounds = None
 
         if cube.coords("forecast_period"):
-            if cycletime is None:
-                forecast_period = (
-                    np.min(cube_orig.coord("forecast_period").points))
-                forecast_period_units = (
-                    cube_orig.coord("forecast_period").units)
-            else:
-                time_units = cube.coord("time").units
-                forecast_period, forecast_period_units = (
-                    find_required_lead_times(
-                        cube, time_units=time_units,
-                        force_lead_time_calculation=True))
-            cube.coord("forecast_period").points = forecast_period
-            cube.coord("forecast_period").bounds = None
-            cube.coord("forecast_period").units = forecast_period_units
+            forecast_period = (
+                forecast_period_coord(cube,
+                                      force_lead_time_calculation=True))
+            forecast_period.bounds = None
+            cube.replace_coord(forecast_period)
         elif cube.coords("forecast_reference_time") and cube.coords("time"):
-            time_units = cube.coord("time").units
-            forecast_periods, forecast_period_units = (
-                find_required_lead_times(cube, time_units=time_units))
-            forecast_period = np.min(forecast_periods)
+            forecast_period = (
+                forecast_period_coord(cube))
             ndim = cube.coord_dims("time")
-            cube.add_aux_coord(
-                iris.coords.AuxCoord(
-                    forecast_period, standard_name="forecast_period",
-                    units=forecast_period_units), data_dims=ndim)
+            cube.add_aux_coord(forecast_period, data_dims=ndim)
 
     for coord in ["model_id", "model_realization", "realization"]:
         if cube.coords(coord) and cube.coord(coord).shape == (1,):
