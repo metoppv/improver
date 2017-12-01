@@ -147,12 +147,20 @@ def forecast_period_coord(
                         cube.coord("forecast_reference_time").cells()])
             required_lead_times = (
                 time_points - forecast_reference_time_points)
-            required_lead_times = [x.total_seconds() for x in
-                                   required_lead_times]
-            result_coord = iris.coords.AuxCoord(
-                required_lead_times,
-                standard_name='forecast_period',
-                units='seconds')
+            required_lead_times = np.array(
+                [x.total_seconds() for x in required_lead_times])
+            try:
+                # If possible, reuse as much of the original coord as possible
+                result_coord = cube.coord('forecast_period').copy()
+                result_coord.convert_units('seconds')
+                result_coord.points = required_lead_times
+                result_coord.bounds = None
+            except iris.exceptions.CoordinateNotFoundError:
+                # Otherwise, create a coord.
+                result_coord = iris.coords.AuxCoord(
+                    required_lead_times,
+                    standard_name='forecast_period',
+                    units='seconds')
             try:
                 unitstr = str(cube.coord("time").units).split(' ')[0]
                 result_coord.convert_units(unitstr)

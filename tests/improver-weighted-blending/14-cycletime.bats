@@ -36,8 +36,8 @@
   improver_check_skip_acceptance
 
   # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --cycletime '20171022T2200Z'\
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/multiple_probabilities_temperature_*H.nc" \
+  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_mean' --cycletime '20171129T0900Z'\
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
