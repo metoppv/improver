@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "improver-recursive-filter input output --alpha_x --alpha_y --iterations --input_mask_filepath --re_mask" {
+@test "improver-recursive-filter input output --alpha_x --alpha_y --iterations --input_mask_filepath" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run recursive-filter processing and check it passes.
-  run improver recursive-filter "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/input_masked.nc"\
+  run improver recursive-filter "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/input.nc"\
       "$TEST_DIR/output.nc" --alpha_x=0.8 --alpha_y=0.8 --iterations=5 \
       --input_mask_filepath="$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/mask.nc"
   [[ "$status" -eq 0 ]]
