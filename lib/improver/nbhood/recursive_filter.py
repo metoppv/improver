@@ -403,7 +403,7 @@ class RecursiveFilter(object):
                 new_cube, self.edge_width, self.edge_width)
             if self.re_mask:
                 new_cube.data = np.ma.masked_array(new_cube.data,
-                                                   mask=~mask.astype(bool))
+                                                   mask=np.logical_not(mask))
             recursed_cube.append(new_cube)
 
         new_cube = recursed_cube.merge_cube()

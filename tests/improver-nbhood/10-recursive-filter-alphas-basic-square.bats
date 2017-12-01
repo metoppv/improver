@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --input_filepath_alphas_x_cube --input_filepath_alphas_y_cube --iterations" {
+@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --input_filepath_alphas_x_cube --input_filepath_alphas_y_cube --iterations 5" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
