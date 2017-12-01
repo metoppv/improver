@@ -34,7 +34,7 @@ import warnings
 
 import numpy as np
 import iris
-from monty.vinterp import interpolate
+from stratify import interpolate
 from scipy.interpolate import griddata
 from cf_units import Unit
 
