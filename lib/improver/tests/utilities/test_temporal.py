@@ -123,6 +123,7 @@ class Test_forecast_period_coord(IrisTest):
     def test_basic_AuxCoord(self):
         """Test that an iris.coord.AuxCoord is returned."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.remove_coord('forecast_period')
         result = forecast_period_coord(cube, force_lead_time_calculation=True)
         self.assertIsInstance(result, iris.coords.AuxCoord)
 
