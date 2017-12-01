@@ -589,8 +589,7 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
-        units_string = "{} {}".format(
-            wet_bulb_temperature.units,
+        units_string = "K {}".format(
             wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
         wet_bulb_temperature_integral.units = Unit(units_string)
         return wet_bulb_temperature_integral
@@ -609,7 +608,10 @@ class FallingSnowLevel(object):
                 before returning wet bulb temperatures.
             falling_level_threshold (float):
                 The cutoff threshold for the Wet-bulb integral used
-                to calculate the falling snow level.
+                to calculate the falling snow level.We are integrating to the
+                threshold that is presumed to indicate
+                the level at which snow has melted back to rain. Above
+                this level we should have falling snow.
 
         """
         self.precision = precision
@@ -649,9 +651,9 @@ class FallingSnowLevel(object):
         for i, height in enumerate(height_points):
             asl[i, ::] = orog_data + height
 
-        # Calculate falling snow level above sea level using
-        # monty.vinterp.interpolate.
-        # Interpolate returns a cube with height coord
+        # Calculate falling snow level above sea level by
+        # finding the level corresponding to the falling_level_threshold.
+        # Interpolate returns an array with height indice
         #  for falling_level_threshold so we take the 0 index
         snow_level_data = interpolate(np.array([self.falling_level_threshold]),
                                       wb_int_data, asl, axis=0)[0]
@@ -697,7 +699,7 @@ class FallingSnowLevel(object):
 
         Returns:
             falling_snow_level (iris.cube.Cube):
-                Cube of Falling Snow Level.
+                Cube of Falling Snow Level above sea level (asl).
         """
         # Calculate wet-bulb temperature integral.
         wet_bulb_integral = (
@@ -705,9 +707,8 @@ class FallingSnowLevel(object):
                 temperature, relative_humidity, pressure))
 
         # Firstly we need to slice over height, x and y
-        dim_coords = wet_bulb_integral.dim_coords
-        x_coord = dim_coords[-1].name()
-        y_coord = dim_coords[-2].name()
+        x_coord = wet_bulb_integral.coord(axis='x').name()
+        y_coord = wet_bulb_integral.coord(axis='y').name()
         for orog_cube in orog.slices([y_coord, x_coord]):
             orog_data = orog_cube.data
 
@@ -716,15 +717,12 @@ class FallingSnowLevel(object):
         for wb_integral in wet_bulb_integral.slices(slice_list):
 
             height_points = wb_integral.coord('height').points
-            # Calculate falling snow level above sea level using
-            # monty.vinterp.interpolate.
+            # Calculate falling snow level above sea level.
             snow_cube = wb_integral[0]
             snow_cube.rename('falling_snow_level_asl')
             snow_cube.units = 'm'
             snow_cube.remove_coord('height')
 
-            # Interpolate returns a cube with height coord
-            # or req_threshold so we take the 0 index
             snow_cube.data = self.find_falling_level(wb_integral.data,
                                                      orog_data,
                                                      height_points)

@@ -161,7 +161,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.units, Unit('m'))
 
     def test_data(self):
-        """Test that the wet bulb temperature integral returns a cube
+        """Test that the falling snow level process returns a cube
         containing the expected data."""
         expected = np.ones((2, 3, 3)) * 65.88732723
         result = FallingSnowLevel().process(
