@@ -272,30 +272,6 @@ class OccurrenceWithinVicinity(object):
         result = ('<OccurrenceWithinVicinity: distance: {}>')
         return result.format(self.distance)
 
-    @staticmethod
-    def find_slices_over_coordinate(cube, coord_name):
-        """
-        Try slicing over the given coordinate. If the requested coordinate is
-        not a dimension coordinate then still return an iterable.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube to be sliced.
-            coord_name (String):
-                Name of the coordinate to be used for slicing.
-
-        Returns:
-            slices_over_coord (iris.cube._SliceIterator or iris.cube.CubeList):
-                Iterable returned to slice over the requested coordinate, or
-                a CubeList.
-        """
-        try:
-            cube.coord(coord_name, dim_coords=True)
-            slices_over_coord = cube.slices_over(coord_name)
-        except CoordinateNotFoundError:
-            slices_over_coord = CubeList([cube])
-        return slices_over_coord
-
     def maximum_within_vicinity(self, cube):
         """
         Find grid points where a phenomenon occurs within a defined distance.
@@ -328,6 +304,8 @@ class OccurrenceWithinVicinity(object):
         grid_cells = (2 * grid_cell_y) + 1
 
         max_cube = cube.copy()
+        # The following command finds the maximum value for each grid point
+        # from within a square of length "size"
         max_cube.data = (
             scipy.ndimage.filters.maximum_filter(cube.data, size=grid_cells))
         return max_cube
@@ -347,13 +325,9 @@ class OccurrenceWithinVicinity(object):
                 xy 2d slice, which have been merged back together.
 
         """
-        slices_over_realization = (
-            self.find_slices_over_coordinate(cube, "realization"))
 
         max_cubes = CubeList([])
-        for realization_slice in slices_over_realization:
-            slices_over_time = (
-                self.find_slices_over_coordinate(realization_slice, "time"))
-            for time_slice in slices_over_time:
-                max_cubes.append(self.maximum_within_vicinity(time_slice))
+        for cube_slice in cube.slices([cube.coord(axis='y'),
+                                       cube.coord(axis='x')]):
+            max_cubes.append(self.maximum_within_vicinity(cube_slice))
         return max_cubes.merge_cube()
