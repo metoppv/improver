@@ -43,7 +43,7 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.temporal import find_required_lead_times
+from improver.utilities.temporal import forecast_period_coord
 
 
 class BaseNeighbourhoodProcessing(object):
@@ -228,12 +228,11 @@ class BaseNeighbourhoodProcessing(object):
                 cube_new = self.neighbourhood_method.run(
                     cube_realization, radius, mask_cube=mask_cube)
             else:
-                cube_lead_times = (
-                    find_required_lead_times(cube_realization))
                 # Interpolate to find the radius at each required lead time.
-                required_radii = (
-                    self._find_radii(num_ens,
-                                     cube_lead_times=cube_lead_times))
+                required_radii = (self._find_radii(
+                    num_ens,
+                    cube_lead_times=forecast_period_coord(
+                        cube_realization).points))
 
                 cubes = iris.cube.CubeList([])
                 # Find the number of grid cells required for creating the

@@ -73,7 +73,7 @@ def main():
     parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
                         default='hours since 1970-01-01 00:00:00',
                         help='Units for time coordinate. Default= '
-                             'hours since 1970-01-01 00:00:00.')
+                             'hours since 1970-01-01 00:00:00')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         help='Calendar for time coordinate. Default=gregorian')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
@@ -131,6 +131,15 @@ def main():
                              'the forecasts that are available. '
                              '"proportional": redistribute weights using the '
                              'original weighting function.')
+    parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
+                        help='The forecast_reference_time to be used after '
+                             'blending has been applied in the format '
+                             'YYYYMMDDTHHMMZ.')
+    parser.add_argument('--coords_for_bounds_removal',
+                        metavar='COORDS_FOR_BOUNDS_REMOVAL', nargs="+",
+                        help='The forecast_reference_time to be used after '
+                             'blending has been applied in the format '
+                             'YYYYMMDDTHHMMZ.')
     args = parser.parse_args()
     # Fix default values for slope and cval. The argparser default value isn't
     # used for this, because it would make it impossible to tell whether a
@@ -172,7 +181,9 @@ def main():
             args.wts_redistrib_method)
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            args.coordinate, args.weighting_mode, args.coord_adj)
+            args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,
+            cycletime=args.cycletime,
+            coords_for_bounds_removal=args.coords_for_bounds_removal)
     result = BlendingPlugin.process(cube, weights)
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

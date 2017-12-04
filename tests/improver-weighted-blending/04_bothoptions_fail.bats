@@ -45,6 +45,8 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
+                                  [--cycletime CYCLETIME]
+                                  [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE

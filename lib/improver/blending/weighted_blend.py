@@ -39,6 +39,99 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import add_renamed_cell_method
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.temporal import (
+    cycletime_to_number, forecast_period_coord)
+
+
+def conform_metadata(
+        cube, cube_orig, coord, cycletime=None,
+        coords_for_bounds_removal=None):
+    """Ensure that the metadata conforms after blending together across
+    the chosen coordinate.
+
+    The metadata adjustments are:
+        - Forecast reference time: If a cycletime is not present, the
+          most recent available forecast_reference_time is used.
+          If a cycletime is present, the cycletime is used as the
+          forecast_reference_time instead.
+        - Forecast period: If a forecast_period coordinate is present,
+          and cycletime is not present, the lowest forecast_period is
+          used. If a forecast_period coordinate is present, and the
+          cycletime is present, forecast_periods are forceably calculated
+          from the time and forecast_reference_time coordinate. This is
+          because, if the cycletime is present, then the
+          forecast_reference_time will also have been just re-calculated, so
+          the forecast_period coordinate needs to be reset to match the
+          newly calculated forecast_reference_time.
+        - Forecast reference time and time: If forecast_reference_time and
+          time coordinates are present, then a forecast_period coordinate is
+          calculated and added to the cube.
+        - Model_id, model_realization and realization coordinates are removed.
+        - Remove bounds from the scalar coordinates, if the coordinates
+          are specified within the coords_for_bounds_removal argument.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing the metadata to be adjusted.
+        cube_orig (iris.cube.Cube):
+            Cube containing metadata that may be useful for adjusting
+            metadata on the `cube` variable.
+        coord (str):
+            Coordinate that has been blended. This allows specific metadata
+            changes to be limited to whichever coordinate is being blended.
+
+    Keyword Args:
+        cycletime (str):
+            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+        coords_for_bounds_removal (None or list):
+            List of coordinates that are scalar and should have their bounds
+            removed.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube containing the adjusted metadata.
+
+    """
+    if coord in ["forecast_reference_time"]:
+        if cube.coords("forecast_reference_time"):
+            if cycletime is None:
+                new_cycletime = (
+                    np.max(cube_orig.coord("forecast_reference_time").points))
+            else:
+                cycletime_units = (
+                    cube_orig.coord("forecast_reference_time").units.origin)
+                cycletime_calendar = (
+                    cube.coord("forecast_reference_time").units.calendar)
+                new_cycletime = cycletime_to_number(
+                    cycletime, time_unit=cycletime_units,
+                    calendar=cycletime_calendar)
+            cube.coord("forecast_reference_time").points = new_cycletime
+            cube.coord("forecast_reference_time").bounds = None
+
+        if cube.coords("forecast_period"):
+            forecast_period = (
+                forecast_period_coord(cube,
+                                      force_lead_time_calculation=True))
+            forecast_period.bounds = None
+            cube.replace_coord(forecast_period)
+        elif cube.coords("forecast_reference_time") and cube.coords("time"):
+            forecast_period = (
+                forecast_period_coord(cube))
+            ndim = cube.coord_dims("time")
+            cube.add_aux_coord(forecast_period, data_dims=ndim)
+
+    for coord in ["model_id", "model_realization", "realization"]:
+        if cube.coords(coord) and cube.coord(coord).shape == (1,):
+            cube.remove_coord(coord)
+
+    if coords_for_bounds_removal is None:
+        coords_for_bounds_removal = []
+
+    for coord in cube.coords():
+        if coord.name() in coords_for_bounds_removal:
+            if coord.shape == (1,) and coord.has_bounds():
+                coord.bounds = None
+    return cube
 
 
 class PercentileBlendingAggregator(object):
@@ -276,7 +369,8 @@ class WeightedBlendAcrossWholeDimension(object):
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, weighting_mode, coord_adjust=None):
+    def __init__(self, coord, weighting_mode, coord_adjust=None,
+                 cycletime=None, coords_for_bounds_removal=None):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -288,12 +382,20 @@ class WeightedBlendAcrossWholeDimension(object):
                    of interest.
                  - Weighted_maximum: the points in the coordinate of interest
                    are multiplied by the weights and then the maximum is taken.
+
+        Keyword Args:
             coord_adjust (function):
                 Function to apply to the coordinate after collapsing the cube
                 to correct the values, for example for time windowing and
                 cycle averaging the follow function would adjust the time
                 coordinates.
                     e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+            cycletime (str):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+            coords_for_bounds_removal (None or list):
+                List of coordinates that are scalar and should have their
+                bounds removed.
+
         Raises:
             ValueError : If an invalid weighting_mode is given.
         """
@@ -304,6 +406,8 @@ class WeightedBlendAcrossWholeDimension(object):
             raise ValueError(msg)
         self.mode = weighting_mode
         self.coord_adjust = coord_adjust
+        self.cycletime = cycletime
+        self.coords_for_bounds_removal = coords_for_bounds_removal
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -353,8 +457,19 @@ class WeightedBlendAcrossWholeDimension(object):
                    ' {0:s}.'.format(type(cube)))
             raise TypeError(msg)
 
-        # Check to see if the data is percentile data
+        # Check that the points within the time coordinate are equal
+        # if the coordinate being blended is forecast_reference_time.
+        if self.coord == "forecast_reference_time":
+            if cube.coords("time"):
+                time_points = cube.coord("time").points
+                if len(np.unique(time_points)) > 1:
+                    msg = ("For blending using the forecast_reference_time "
+                           "coordinate, the points within the time coordinate "
+                           "need to be the same. The time points within the "
+                           "input cube are {}".format(time_points))
+                    raise ValueError(msg)
 
+        # Check to see if the data is percentile data
         try:
             perc_coord = find_percentile_coordinate(cube)
             perc_dim = cube.coord_dims(perc_coord.name())
@@ -470,6 +585,10 @@ class WeightedBlendAcrossWholeDimension(object):
                     cube_new = cube_thres.collapsed(self.coord,
                                                     MAX_PROBABILITY,
                                                     arr_weights=weights)
+                cube_new = conform_metadata(
+                    cube_new, cube_thres, coord=self.coord,
+                    cycletime=self.cycletime,
+                    coords_for_bounds_removal=self.coords_for_bounds_removal)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
