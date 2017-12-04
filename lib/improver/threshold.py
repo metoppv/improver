@@ -47,34 +47,6 @@ class BasicThreshold(object):
     threshold dimension coordinate.
 
     Can operate on multiple time sequences within a cube.
-
-    Args:
-        thresholds (list of floats or float):
-            The threshold points for 'significant' datapoints.
-
-    Keyword Args:
-        fuzzy_factor (float):
-            Specifies lower bound for fuzzy membership value when multiplied
-            by each threshold. Upper bound is equivalent linear distance above
-            threshold.
-            If None, no fuzzy_factor is applied.
-        fuzzy_bounds (list of tuples):
-            Lower and upper bounds for fuzziness.
-            List should be of same length as thresholds.
-            Each entry in list should be a tuple of two floats
-            representing the lower and upper bounds respectively.
-            If None, no fuzzy_bounds are applied.
-        below_thresh_ok (boolean):
-            True to count points as significant if *below* the threshold,
-            False to count points as significant if *above* the threshold.
-
-    Raises:
-        ValueError: If a threshold of 0.0 is requested when using a fuzzy
-                    factor.
-        ValueError: If the fuzzy_factor is not greater than 0 and less
-                    than 1.
-        ValueError: If both fuzzy_factor and fuzzy_bounds are set
-                    as this is ambiguous.
     """
 
     def __init__(self, thresholds, fuzzy_factor=None,
@@ -82,6 +54,34 @@ class BasicThreshold(object):
                  below_thresh_ok=False):
         """
         Set up for processing an in-or-out of threshold field.
+
+        Args:
+            thresholds (list of floats or float):
+                The threshold points for 'significant' datapoints.
+
+        Keyword Args:
+            fuzzy_factor (float):
+                Specifies lower bound for fuzzy membership value when
+                multiplied by each threshold. Upper bound is equivalent linear
+                distance above threshold.
+                If None, no fuzzy_factor is applied.
+            fuzzy_bounds (list of tuples):
+                Lower and upper bounds for fuzziness.
+                List should be of same length as thresholds.
+                Each entry in list should be a tuple of two floats
+                representing the lower and upper bounds respectively.
+                If None, no fuzzy_bounds are applied.
+            below_thresh_ok (boolean):
+                True to count points as significant if *below* the threshold,
+                False to count points as significant if *above* the threshold.
+
+        Raises:
+            ValueError: If a threshold of 0.0 is requested when using a fuzzy
+                        factor.
+            ValueError: If the fuzzy_factor is not greater than 0 and less
+                        than 1.
+            ValueError: If both fuzzy_factor and fuzzy_bounds are set
+                        as this is ambiguous.
         """
         # Ensure iterable threshold list provided, even if it's a single value.
         self.thresholds = thresholds
