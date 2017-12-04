@@ -113,6 +113,8 @@ def conform_metadata(
                 forecast_period_coord(cube,
                                       force_lead_time_calculation=True))
             forecast_period.bounds = None
+            forecast_period.convert_units(cube.coord("forecast_period").units)
+            forecast_period.var_name = cube.coord("forecast_period").var_name
             cube.replace_coord(forecast_period)
         elif cube.coords("forecast_reference_time") and cube.coords("time"):
             forecast_period = (

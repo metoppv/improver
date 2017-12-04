@@ -121,13 +121,15 @@ class Test_conform_metadata(IrisTest):
         forecast_reference_time coordinate but not a forecast_period."""
         result = conform_metadata(
             self.cube_without_fp, self.cube_orig_without_fp, self.coord)
+        fp_coord = self.cube_orig.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
         self.assertEqual(
             result.coord("forecast_reference_time").points,
             np.max(self.cube_orig.coord("forecast_reference_time").points))
         self.assertFalse(result.coord("forecast_reference_time").bounds)
         self.assertEqual(
             result.coord("forecast_period").points,
-            np.min(self.cube_orig.coord("forecast_period").points))
+            np.min(fp_coord.points))
         self.assertFalse(result.coord("forecast_period").bounds)
 
     def test_with_forecast_period_and_cycletime(self):
@@ -135,7 +137,7 @@ class Test_conform_metadata(IrisTest):
         a forecast_reference_time and forecast_period coordinate and a
         cycletime is specified."""
         expected_forecast_reference_time = np.array([402294.])
-        expected_forecast_period = np.array([1.])
+        expected_forecast_period = np.array([1.])  # 1 hour.
         result = conform_metadata(
             self.cube, self.cube_orig, self.coord, cycletime="20151123T0600Z")
         self.assertArrayAlmostEqual(
@@ -153,7 +155,7 @@ class Test_conform_metadata(IrisTest):
         be created compared to when the when the input cube has a forecast
         period coordinate."""
         expected_forecast_reference_time = np.array([402294.])
-        expected_forecast_period = np.array([1.])
+        expected_forecast_period = np.array([3600.])
         result = conform_metadata(
             self.cube_without_fp, self.cube_orig_without_fp, self.coord,
             cycletime="20151123T0600Z")

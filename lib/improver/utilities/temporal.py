@@ -95,13 +95,15 @@ def forecast_period_coord(
         cube,
         force_lead_time_calculation=False):
     """
-    Determine the lead times within a cube, either by reading the
-    forecast_period coordinate, or by calculating the difference between
-    the time and the forecast_reference_time. If the forecast_period
-    coordinate is present, the points are assumed to represent the
-    desired lead times with the bounds not being considered. The units of
-    the forecast_period, time and forecast_reference_time coordinates are
-    converted, if required.
+    Return or calculate the lead time coordinate (forecast_period)
+    within a cube, either by reading the forecast_period coordinate,
+    or by calculating the difference between the time and the
+    forecast_reference_time. If the forecast_period coordinate is
+    present, the points are assumed to represent the desired lead times
+    with the bounds not being considered. The units of the
+    forecast_period, time and forecast_reference_time coordinates are
+    converted, if required. The final coordinate will have units of
+    seconds.
 
     Args:
         cube (Iris.cube.Cube):
@@ -110,77 +112,73 @@ def forecast_period_coord(
     Keyword Args:
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
-            forecast_reference_time and the time coordinate, even if the
-            forecast_period coordinate exists.
+            forecast_reference_time and the time coordinate, even if
+            the forecast_period coordinate exists.
             Default is False.
 
     Returns:
         coord (iris.coords.AuxCoord or DimCoord):
-            Describing the points and their units for 'forecast_period'.
-            A DimCoord is returned if the forecast_period coord is already
-            present in the cube as a DimCoord and this coord does not need
-            changing, otherwise it will be an AuxCoord
+            Describing the points and their units for
+            'forecast_period'. A DimCoord is returned if the
+            forecast_period coord is already present in the cube as a
+            DimCoord and this coord does not need changing, otherwise
+            it will be an AuxCoord. Units are seconds.
 
     """
-    time_units = cube.coord("time").units
+    result_units = "seconds"
+    # Try to return forecast period coordinate in hours.
     if cube.coords("forecast_period") and not force_lead_time_calculation:
+        fp_coord = cube.coord("forecast_period").copy()
         try:
-            cube.coord("forecast_period").convert_units("hours")
+            fp_coord.convert_units(result_units)
         except ValueError as err:
             msg = "For forecast_period: {}".format(err)
             raise ValueError(msg)
-        result_coord = cube.coord("forecast_period")
-    else:
-        if cube.coords("time") and cube.coords("forecast_reference_time"):
-            try:
-                cube.coord("time").convert_units(time_units)
-                cube.coord("forecast_reference_time").convert_units(
-                    time_units)
-            except ValueError as err:
-                msg = "For time/forecast_reference_time: {}".format(err)
-                raise ValueError(msg)
-            with iris.FUTURE.context(cell_datetime_objects=True):
-                time_points = np.array(
-                    [c.point for c in cube.coord("time").cells()])
-                forecast_reference_time_points = np.array(
-                    [c.point for c in
-                        cube.coord("forecast_reference_time").cells()])
-            required_lead_times = (
-                time_points - forecast_reference_time_points)
-            required_lead_times = np.array(
-                [x.total_seconds() for x in required_lead_times])
-            try:
-                # If possible, reuse as much of the original coord as possible
-                result_coord = cube.coord('forecast_period').copy()
-                result_coord.convert_units('seconds')
-                result_coord.points = required_lead_times
-                result_coord.bounds = None
-            except iris.exceptions.CoordinateNotFoundError:
-                # Otherwise, create a coord.
-                result_coord = iris.coords.AuxCoord(
-                    required_lead_times,
-                    standard_name='forecast_period',
-                    units='seconds')
-            try:
-                unitstr = str(cube.coord("time").units).split(' ')[0]
-                result_coord.convert_units(unitstr)
-            except ValueError:
-                # Failed to make units consistent - carry on anyway.
-                pass
-            if np.any(result_coord.points < 0):
-                msg = ("The values for the time {} and "
-                       "forecast_reference_time {} coordinates from the "
-                       "input cube have produced negative values for the "
-                       "forecast_period. A forecast does not generate "
-                       "values in the past.").format(
-                           cube.coord("time").points,
-                           cube.coord("forecast_reference_time").points)
-                warnings.warn(msg)
-        else:
-            msg = ("The forecast period coordinate is not available "
-                   "within {}."
-                   "The time coordinate and forecast_reference_time "
-                   "coordinate were also not available for calculating "
-                   "the forecast_period.".format(cube))
-            raise CoordinateNotFoundError(msg)
-    return result_coord
+        return fp_coord
+
+    # Try to return forecast_reference_time - time coordinate.
+    if cube.coords("time") and cube.coords("forecast_reference_time"):
+        time_units = cube.coord("time").units
+        t_coord = cube.coord("time")
+        fr_coord = cube.coord("forecast_reference_time")
+        try:
+            fr_coord.convert_units(time_units)
+        except ValueError as err:
+            msg = "For forecast_reference_time: {}".format(err)
+            raise ValueError(msg)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            time_points = np.array(
+                [c.point for c in t_coord.cells()])
+            forecast_reference_time_points = np.array(
+                [c.point for c in fr_coord.cells()])
+        required_lead_times = (
+            time_points - forecast_reference_time_points)
+        # Convert the timedeltas to a total in seconds.
+        required_lead_times = np.array(
+            [x.total_seconds() for x in required_lead_times])
+        coord_type = iris.coords.AuxCoord
+        if cube.coords("forecast_period"):
+            if isinstance(
+                    cube.coord("forecast_period"), iris.coords.DimCoord):
+                coord_type = iris.coords.DimCoord
+        result_coord = coord_type(
+            required_lead_times,
+            standard_name='forecast_period',
+            units="seconds")
+        result_coord.convert_units(result_units)
+        if np.any(result_coord.points < 0):
+            msg = ("The values for the time {} and "
+                   "forecast_reference_time {} coordinates from the "
+                   "input cube have produced negative values for the "
+                   "forecast_period. A forecast does not generate "
+                   "values in the past.").format(
+                       cube.coord("time").points,
+                       cube.coord("forecast_reference_time").points)
+            warnings.warn(msg)
+        return result_coord
+    msg = ("The forecast period coordinate is not available "
+           "within {}."
+           "The time coordinate and forecast_reference_time "
+           "coordinate were also not available for calculating "
+           "the forecast_period.".format(cube))
+    raise CoordinateNotFoundError(msg)
