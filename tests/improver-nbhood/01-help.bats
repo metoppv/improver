@@ -40,8 +40,8 @@ usage: improver-nbhood [-h]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        [--apply-recursive-filter]
-                       [--input_filepath_alphas_x_cube ALPHAS_X]
-                       [--input_filepath_alphas_y_cube ALPHAS_Y]
+                       [--input_filepath_alphas_x_cube ALPHAS_X_FILE]
+                       [--input_filepath_alphas_y_cube ALPHAS_Y_FILE]
                        [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
                        [--iterations ITERATIONS]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
@@ -115,32 +115,34 @@ optional arguments:
                         Option to apply the recursive filter to a square
                         neighbourhooded output cube, converting it into a
                         Gaussian-like kernel or smooth over short distances.
-                        The filter uses an alpha parameter (0>=alpha<1) to
+                        The filter uses an alpha parameter (0 < alpha < 1) to
                         control what proportion of the probability is passed
                         onto the next grid-square in the x and y directions.
                         The alpha parameter can be set on a grid-square by
-                        grid-square basis (using an array of alpha parameters
-                        of the same dimensionality as the domain).
-                        Alternatively a single alpha value can be set for each
-                        of the x and y directions. The recursive filter cannot
-                        be applied to a circular kernel
-  --input_filepath_alphas_x_cube ALPHAS_X
+                        grid-square basis for the x and y directions
+                        separately (using two arrays of alpha parameters of
+                        the same dimensionality as the domain). Alternatively
+                        a single alpha value can be set for each of the x and
+                        y directions. These methods can be mixed, e.g. a cube
+                        for the x direction and a float for the y direction
+                        and vice versa. The recursive filter cannot be applied
+                        to a circular kernel
+  --input_filepath_alphas_x_cube ALPHAS_X_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the x direction when
                         applying the recursive filter
-  --input_filepath_alphas_y_cube ALPHAS_Y
+  --input_filepath_alphas_y_cube ALPHAS_Y_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the y direction when
                         applying the recursive filter
-  --alpha_x ALPHA_X     A single alpha factor (0>=alpha_x<1) to be applied to
-                        every grid square in the x direction when applying the
-                        recursive filter
-  --alpha_y ALPHA_Y     A single alpha factor (0>=alpha_y<1) to be applied to
-                        every grid square in the y direction when applying the
-                        recursive filter.
+  --alpha_x ALPHA_X     A single alpha factor (0 < alpha_x < 1) to be applied
+                        to every grid square in the x direction when applying
+                        the recursive filter
+  --alpha_y ALPHA_Y     A single alpha factor (0 < alpha_y < 1) to be applied
+                        to every grid square in the y direction when applying
+                        the recursive filter.
   --iterations ITERATIONS
-                        Number of cycles over which to apply the recursive
-                        filter
+                        Number of times to apply the filter (typically < 5)
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -52,11 +52,11 @@ class RecursiveFilter(object):
             alpha_x (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
-                that 0 <= alpha_x < 1.0
+                that 0 < alpha_x < 1.0
             alpha_y (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
-                that 0 <= alpha_y < 1.0
+                that 0 < alpha_y < 1.0
             iterations (integer or None):
                 The number of iterations of the recursive filter.
             edge_width (integer):
@@ -71,22 +71,22 @@ class RecursiveFilter(object):
                 originally masked.
 
         Raises:
-            ValueError: If alpha_x is not set such that 0 <= alpha_x < 1
-            ValueError: If alpha_y is not set such that 0 <= alpha_y < 1
+            ValueError: If alpha_x is not set such that 0 < alpha_x < 1
+            ValueError: If alpha_y is not set such that 0 < alpha_y < 1
             ValueError: If number of iterations is not None and is set such
                         that iterations is not >= 1
 
         """
         if alpha_x is not None:
-            if not 0 <= alpha_x < 1:
+            if not 0 < alpha_x < 1:
                 raise ValueError(
-                    "Invalid alpha_x: must be >= 0 and < 1: {}".format(
+                    "Invalid alpha_x: must be > 0 and < 1: {}".format(
                         alpha_x))
 
         if alpha_y is not None:
-            if not 0 <= alpha_y < 1:
+            if not 0 < alpha_y < 1:
                 raise ValueError(
-                    "Invalid alpha_y: must be >= 0 and < 1: {}".format(
+                    "Invalid alpha_y: must be > 0 and < 1: {}".format(
                         alpha_y))
 
         if iterations is not None:
@@ -291,7 +291,7 @@ class RecursiveFilter(object):
                 will be applied.
             alpha (Float):
                 The constant used to weight the recursive filter in that
-                direction: Defined such that 0.0 <= alpha <= 1.0
+                direction: Defined such that 0.0 < alpha < 1.0
             alphas_cube (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter in a specific direction.

@@ -33,8 +33,9 @@
   run improver recursive-filter -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-recursive-filter [-h] [--input_filepath_alphas_x ALPHAS_X]
-                                 [--input_filepath_alphas_y ALPHAS_Y]
+usage: improver-recursive-filter [-h]
+                                 [--input_filepath_alphas_x ALPHAS_X_FILE]
+                                 [--input_filepath_alphas_y ALPHAS_Y_FILE]
                                  [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
                                  [--iterations ITERATIONS]
                                  [--input_mask_filepath INPUT_MASK_FILE]
@@ -42,12 +43,14 @@ usage: improver-recursive-filter [-h] [--input_filepath_alphas_x ALPHAS_X]
                                  INPUT_FILE OUTPUT_FILE
 
 Run a recursive filter to convert a square neighbourhood into a Gaussian-like
-kernel or smooth over short distances. The filter uses an alpha parameter
-(0>=alpha<1) to control what proportion of the probability is passed onto the
+kernel or smooth over short distances. The filter uses an alpha parameter (0 <
+alpha < 1) to control what proportion of the probability is passed onto the
 next grid-square in the x and y directions. The alpha parameter can be set on
-a grid-square by grid-square basis (using an array of alpha parameters of the
-same dimensionality as the domain). Alternatively a single alpha value can be
-set for each of the x and y directions.
+a grid-square by grid-square basis for the x and y directions separately
+(using two arrays of alpha parameters of the same dimensionality as the
+domain). Alternatively a single alpha value can be set for each of the x and y
+directions. These methods can be mixed, e.g. a cube for the x direction and a
+float for the y direction and vice versa.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed
@@ -55,18 +58,18 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --input_filepath_alphas_x ALPHAS_X
+  --input_filepath_alphas_x ALPHAS_X_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the x direction
-  --input_filepath_alphas_y ALPHAS_Y
+  --input_filepath_alphas_y ALPHAS_Y_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the y direction
-  --alpha_x ALPHA_X     A single alpha factor (0>=alpha_x<1) to be applied to
-                        every grid square in the x direction.
-  --alpha_y ALPHA_Y     A single alpha factor (0>=alpha_y<1) to be applied to
-                        every grid square in the y direction.
+  --alpha_x ALPHA_X     A single alpha factor (0 < alpha_x < 1) to be applied
+                        to every grid square in the x direction.
+  --alpha_y ALPHA_Y     A single alpha factor (0 < alpha_y < 1) to be applied
+                        to every grid square in the y direction.
   --iterations ITERATIONS
-                        Number of cycles over which to apply the filter
+                        Number of times to apply the filter, (typically < 5)
   --input_mask_filepath INPUT_MASK_FILE
                         A path to an input mask NetCDF file to be used to mask
                         the input file.
