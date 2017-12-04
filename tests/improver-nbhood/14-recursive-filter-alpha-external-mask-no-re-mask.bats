@@ -38,14 +38,14 @@
   # Run square neighbourhood processing, apply recursive filter and check it passes.
   run improver nbhood 'probabilities' 'square' --radius=20000 \
       "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
-      "$TEST_DIR/kgo_external_mask_no_re_mask_recursive_alpha.nc" --apply-recursive-filter \
+      "$TEST_DIR/output.nc" --apply-recursive-filter \
       --alpha_x=0.8 --alpha_y=0.8 --iterations=5 \
       --input_mask_filepath="$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/kgo_external_mask_no_re_mask_recursive_alpha.nc" \
+  improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_external_mask_no_re_mask_recursive_alpha.nc"
-  rm "$TEST_DIR/kgo_external_mask_no_re_mask_recursive_alpha.nc"
+  rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

@@ -38,14 +38,14 @@
   # Run square neighbourhood processing, apply recursive filter and check it passes.
   run improver nbhood 'probabilities' 'square' --radius=20000 \
       "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_square.nc" \
-      "$TEST_DIR/kgo_recursive_alphas.nc" --apply-recursive-filter \
+      "$TEST_DIR/output.nc" --apply-recursive-filter \
       --input_filepath_alphas_x_cube="$IMPROVER_ACC_TEST_DIR/nbhood/recursive/alphasx.nc" \
       --input_filepath_alphas_y_cube="$IMPROVER_ACC_TEST_DIR/nbhood/recursive/alphasy.nc" --iterations=5
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/kgo_recursive_alphas.nc" \
+  improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_recursive_alphas.nc"
-  rm "$TEST_DIR/kgo_recursive_alphas.nc"
+  rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
