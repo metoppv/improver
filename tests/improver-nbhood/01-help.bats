@@ -142,7 +142,8 @@ optional arguments:
                         to every grid square in the y direction when applying
                         the recursive filter.
   --iterations ITERATIONS
-                        Number of times to apply the filter (typically < 5)
+                        Number of times to apply the filter, default=1
+                        (typically < 5)
 __HELP__
   [[ "$output" == "$expected" ]]
 }

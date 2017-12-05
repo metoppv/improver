@@ -393,7 +393,10 @@ class RecursiveFilter(object):
         for output in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
 
+            # Use mask to zero masked areas.
             output.data = output.data * mask
+            # Zero any remaining NaN values not covered by mask.
+            output.data = np.nan_to_num(output.data)
 
             padded_cube = SquareNeighbourhood().pad_cube_with_halo(
                 output, self.edge_width, self.edge_width)

@@ -69,7 +69,8 @@ optional arguments:
   --alpha_y ALPHA_Y     A single alpha factor (0 < alpha_y < 1) to be applied
                         to every grid square in the y direction.
   --iterations ITERATIONS
-                        Number of times to apply the filter, (typically < 5)
+                        Number of times to apply the filter, default=1
+                        (typically < 5)
   --input_mask_filepath INPUT_MASK_FILE
                         A path to an input mask NetCDF file to be used to mask
                         the input file.

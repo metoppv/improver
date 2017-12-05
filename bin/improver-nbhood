@@ -166,7 +166,7 @@ def main():
                              'direction when applying the recursive filter.')
     parser.add_argument('--iterations', metavar='ITERATIONS',
                         default=1, type=int,
-                        help='Number of times to apply the filter '
+                        help='Number of times to apply the filter, default=1 '
                         '(typically < 5)')
 
     args = parser.parse_args()
