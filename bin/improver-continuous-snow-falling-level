@@ -75,18 +75,20 @@ def main():
 
     args = parser.parse_args()
 
-    options = {}
-    if args.precision:
-        options['precision'] = args.precision
-    if args.falling_level_threshold:
-        options['falling_level_threshold'] = args.falling_level_threshold
+    precision = args.precision
+    falling_level_threshold = args.falling_level_threshold
 
-    input_cubes = {'temperature': args.temperature,
-                   'relative_humidity': args.relative_humidity,
-                   'pressure': args.pressure,
-                   'orog': args.orography}
+    temperature = iris.load(args.temperature)
+    relative_humidity = iris.load(args.relative_humidity)
+    pressure = iris.load(args.pressure)
+    orog = iris.load(args.orography)
 
-    result = FallingSnowLevel(**options).process(**input_cubes)
+    result = FallingSnowLevel(precision,
+                              falling_level_threshold).process(
+                                  temperature,
+                                  relative_humidity,
+                                  pressure,
+                                  orog)
 
     iris.save(result, args.output_filepath)
 
