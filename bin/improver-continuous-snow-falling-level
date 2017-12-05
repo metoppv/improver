@@ -43,17 +43,17 @@ def main():
     parser = argparse.ArgumentParser(
         description="Calculate the continuous falling snow level ")
     parser.add_argument("temperature", metavar="TEMPERATURE",
-                        help="File path to a cube of air temperatures at the "
-                        "the points for for which the continuous falling"
-                        " snow level is being calculated.")
+                        help="File path to a cube of air temperatures at"
+                        " heights (m) at the points for which the continuous "
+                        "falling snow level is being calculated.")
     parser.add_argument("relative_humidity", metavar="RELATIVE_HUMIDITY",
-                        help="File path to a cube of relative humidities at "
-                        "the points for for which the continuous falling"
-                        " snow level is being calculated.")
+                        help="File path to a cube of relative_humidities at"
+                        " heights (m) at the points for which the continuous "
+                        "falling snow level is being calculated.")
     parser.add_argument("pressure", metavar="PRESSURE",
-                        help="File path to a cube of air pressures at the "
-                        "points for for which the continuous falling snow "
-                        "level is being calculated.")
+                        help="File path to a cube of air pressures at"
+                        " heights (m) at the points for which the continuous "
+                        "falling snow level is being calculated.")
     parser.add_argument("orography", metavar="OROGRAPHY",
                         help="A path to an input NetCDF file containing "
                         "a cube with the orography in m of the terrain "
@@ -62,13 +62,13 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("--precison", metavar="NEWTON_PRECISION",
-                        default=None, type=float,
+                        default=0.0005, type=float,
                         help="Precision to which the wet bulb temperature "
                         "is required: This is used by the Newton iteration "
                         "default value is 0.0005")
     parser.add_argument("--falling_level_threshold",
                         metavar="FALLING_LEVEL_THRESHOLD",
-                        default=None, type=float,
+                        default=90.0, type=float,
                         help="Cutoff threshold for the wet-bulb integral used "
                         "to calculate the falling snow level.  "
                         "Default Value is 90.0")
@@ -78,17 +78,18 @@ def main():
     precision = args.precision
     falling_level_threshold = args.falling_level_threshold
 
-    temperature = iris.load(args.temperature)
-    relative_humidity = iris.load(args.relative_humidity)
-    pressure = iris.load(args.pressure)
-    orog = iris.load(args.orography)
+    temperature = iris.load_cube(args.temperature)
+    relative_humidity = iris.load_cube(args.relative_humidity)
+    pressure = iris.load_cube(args.pressure)
+    orog = iris.load_cube(args.orography)
 
-    result = FallingSnowLevel(precision,
-                              falling_level_threshold).process(
-                                  temperature,
-                                  relative_humidity,
-                                  pressure,
-                                  orog)
+    result = FallingSnowLevel(
+        precision=precision,
+        falling_level_threshold=falling_level_threshold).process(
+            temperature,
+            relative_humidity,
+            pressure,
+            orog)
 
     iris.save(result, args.output_filepath)
 
