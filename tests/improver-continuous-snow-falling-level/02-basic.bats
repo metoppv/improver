@@ -35,8 +35,8 @@
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run continuous-snowfall-level processing and check it passes.
-  run improver continuous-snowfall-level \
+  # Run continuous-snow-falling-level processing and check it passes.
+  run improver continuous-snow-falling-level \
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/temperature.nc" \
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/relative_humidity.nc" \
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/pressure.nc" \

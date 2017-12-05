@@ -33,7 +33,7 @@
   run improver continuous-snow-falling-level
   [[ "$status" -eq 2 ]]
   expected="usage: improver-continuous-snow-falling-level [-h]
-                                              [--precison NEWTON_PRECISION]
+                                              [--precision NEWTON_PRECISION]
                                               [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                               TEMPERATURE RELATIVE_HUMIDITY
                                               PRESSURE OROGRAPHY OUTPUT_FILE

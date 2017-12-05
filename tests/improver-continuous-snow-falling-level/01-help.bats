@@ -34,7 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-continuous-snow-falling-level [-h]
-                                              [--precison NEWTON_PRECISION]
+                                              [--precision NEWTON_PRECISION]
                                               [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                               TEMPERATURE RELATIVE_HUMIDITY
                                               PRESSURE OROGRAPHY OUTPUT_FILE
@@ -58,10 +58,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --precison NEWTON_PRECISION
+  --precision NEWTON_PRECISION
                         Precision to which the wet bulb temperature is
                         required: This is used by the Newton iteration default
-                        value is 0.0005
+                        value is 0.005
   --falling_level_threshold FALLING_LEVEL_THRESHOLD
                         Cutoff threshold for the wet-bulb integral used to
                         calculate the falling snow level. Default Value is
