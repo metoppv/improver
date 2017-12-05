@@ -240,8 +240,14 @@ class Integration(object):
                     if lower_bound < self.end_point:
                         continue
             stride = np.abs(upper_bound - lower_bound)
-            upper_half_of_stride = upper_bounds_slice.data * 0.5 * stride
-            lower_half_of_stride = lower_bounds_slice.data * 0.5 * stride
+            upper_half_of_stride = upper_bounds_slice.data * 0.0
+            uindex = np.where(upper_bounds_slice.data > 0)
+            upper_half_of_stride[uindex] = (upper_bounds_slice.data[uindex] *
+                                            0.5 * stride)
+            lindex = np.where(lower_bounds_slice.data > 0)
+            lower_half_of_stride = lower_bounds_slice.data * 0.0
+            lower_half_of_stride[lindex] = (lower_bounds_slice.data[lindex] *
+                                            0.5 * stride)
             stride_sum += lower_half_of_stride + upper_half_of_stride
             integrated_slice.data = stride_sum
             integrated_cubelist.append(integrated_slice.copy())

@@ -92,8 +92,8 @@ class Test_process(IrisTest):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
         expected = np.array(
-            [[1831.500000, 2598.830545, 3339.606507],
-             [2747.250000, 3898.245818, 5009.409761]])
+            [[0.0, 0.0, 608.106507],
+             [0.0, 0.0, 912.159761]])
         result = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)

@@ -31,14 +31,17 @@
 """Module to contain Psychrometric Calculations."""
 
 import warnings
-from cf_units import Unit
-import improver.constants as cc
+
 import numpy as np
 import iris
+from stratify import interpolate
+from scipy.interpolate import griddata
+from cf_units import Unit
 
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
+import improver.constants as cc
 
 
 class Utilities(object):
@@ -554,8 +557,8 @@ class WetBulbTemperatureIntegral(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<WetBulbTemperatureIntegral: {}, {}>'.format(
-                      self.wet_bulb_temperature_plugin,
-                      self.integration_plugin))
+            self.wet_bulb_temperature_plugin,
+            self.integration_plugin))
         return result
 
     def process(self, temperature, relative_humidity, pressure):
@@ -580,12 +583,227 @@ class WetBulbTemperatureIntegral(object):
         wet_bulb_temperature = (
             self.wet_bulb_temperature_plugin.process(
                 temperature, relative_humidity, pressure))
+        # Convert to Celsius
+        wet_bulb_temperature.convert_units('celsius')
         # Integrate.
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
-        units_string = "{} {}".format(
-            wet_bulb_temperature.units,
+        units_string = "K {}".format(
             wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
         wet_bulb_temperature_integral.units = Unit(units_string)
         return wet_bulb_temperature_integral
+
+
+class FallingSnowLevel(object):
+    """Calculate a field of continuous falling snow level."""
+
+    def __init__(self, precision=0.005, falling_level_threshold=90.0):
+        """
+        Initialise class.
+
+        Keyword Args:
+            precision (float):
+                The precision to which the Newton iterator must converge
+                before returning wet bulb temperatures.
+            falling_level_threshold (float):
+                The cutoff threshold for the Wet-bulb integral used
+                to calculate the falling snow level.We are integrating to the
+                threshold that is presumed to indicate
+                the level at which snow has melted back to rain. Above
+                this level we should have falling snow.
+
+        """
+        self.precision = precision
+        self.wet_bulb_integral_plugin = (
+            WetBulbTemperatureIntegral(precision=precision))
+        self.falling_level_threshold = falling_level_threshold
+        self.missing_data = -300.0
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<FallingSnowLevel: precision:'
+                  '{}, falling_level_threshold:{}>'.format(
+                      self.precision,
+                      self.falling_level_threshold))
+        return result
+
+    def find_falling_level(self, wb_int_data, orog_data, height_points):
+        """
+        Find the falling snow level by finding the level of the wet-bulb
+        integral data at the required threshold. Wet-bulb integral data
+        is only available above ground level and there may be an insufficient
+        number of levels in the input data, in which case the required
+        threshold may lie outside the Wet-bulb integral data and the value
+        at that point will be set to np.nan.
+
+        Args:
+            wb_int_data (np.array):
+                Wet bulb integral data on heights
+            orog_data (np.array):
+                Orographic data
+            heights (np.array):
+                heights agl
+
+        Returns:
+            snow_level_data (np.array):
+                Falling snow level data asl.
+
+        """
+        # Create cube of heights above sea level for each height in
+        # the wet bulb integral cube.
+        asl = wb_int_data.copy()
+        for i, height in enumerate(height_points):
+            asl[i, ::] = orog_data + height
+
+        # Calculate falling snow level above sea level by
+        # finding the level corresponding to the falling_level_threshold.
+        # Interpolate returns an array with height indice
+        #  for falling_level_threshold so we take the 0 index
+        snow_level_data = interpolate(np.array([self.falling_level_threshold]),
+                                      wb_int_data, asl, axis=0)[0]
+
+        return snow_level_data
+
+    def fill_in_missing_data(self, snow_level_data, orog_data,
+                             highest_wb_int_data, highest_height):
+        """
+        Fill in missing data. Wet-bulb integral data
+        is only available above ground level and there may be an insufficient
+        number of levels in the input data, in which case the falling_level
+        will have been set to np.nan.
+
+        This function fills in the missing data by firstly setting
+        sea-level points where all integral values are already above
+        the falling_level_threshold to the highest_height.
+        Any remaining missing sea_points are set to 0.
+
+        The data are then interpolated linearly across the grid.
+
+        For any remaining missing points we check to see if they
+        are already above the falling_level_threshold. If they are
+        we set them to orography + highest_height
+
+        For the remaining points we are not sure what exactly to do with
+        them so we set them to missing_data (value less than 0) for now.
+        We will need to look at better ways to deal with this data later.
+
+        Args:
+            snow_level_data (np.array):
+                Falling snow level data (m).
+            orog_data (np.array):
+                Orographic data (m)
+            highest_wb_int_data (np.array):
+                Wet bulb integral data on highest level (K m).
+            highest_height (float):
+                Highest height at which the integral starts (m).
+
+        Returns:
+            snow_level_updated (np.array):
+                Falling snow level data with missing data added.
+
+        """
+        # Firstly find sea_points where all integral values
+        # are already above the falling_level_threshold
+        # Set these to highest_height
+        sea_points_not_freezing = np.where(
+            np.isnan(snow_level_data) &
+            (orog_data == 0.0) &
+            (highest_wb_int_data >
+             self.falling_level_threshold))
+        snow_level_data[sea_points_not_freezing] = highest_height
+        # Now find any remaining sea_points and set these to 0
+        sea_points = np.where(np.isnan(snow_level_data) &
+                              (orog_data == 0.0))
+        snow_level_data[sea_points] = 0.0
+        # Interpolate linearly across the remaining points
+        points = np.where(np.isfinite(snow_level_data))
+        values = snow_level_data[points]
+        ynum, xnum = snow_level_data.shape
+        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
+        snow_level_updated = griddata(points, values, (y_points, x_points),
+                                      method='linear')
+        # For any remaining missing points check to see if they
+        # are already above the falling_level_threshold. If they are
+        # set them to orography + highest_height
+        above_freezing_points = np.where(
+            np.isnan(snow_level_updated) &
+            (highest_wb_int_data >
+             self.falling_level_threshold))
+        snow_level_updated[above_freezing_points] = (
+            orog_data[above_freezing_points] +
+            highest_height)
+        # For any remaining points we are not sure what to do so
+        # will set them to missing_data (value less than 0) for now.
+        # We will need to look at better ways to deal with this data later.
+        remaining_points = np.where(np.isnan(snow_level_updated))
+        snow_level_updated[remaining_points] = self.missing_data
+        return snow_level_updated
+
+    def process(self, temperature, relative_humidity, pressure, orog):
+        """
+        Calculate the wet bulb temperature integral by firstly calculating
+        the wet bulb temperature from the inputs provided, and then
+        calculating the vertical integral of the wet bulb temperature.
+        Find the falling_snow_level by finding the height above sea level
+        correspoinding to the falling_level_threshold in the integral data.
+        Fill in missing data appropriately.
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures (K).
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities (%, converted to fractional).
+            pressure (iris.cube.Cube):
+                Cube of air pressures (Pa).
+            orog (iris.cube.Cube):
+                Cube of orography (m).
+
+        Returns:
+            falling_snow_level (iris.cube.Cube):
+                Cube of Falling Snow Level above sea level (asl).
+        """
+
+        # Calculate wet-bulb temperature integral.
+        wet_bulb_integral = (
+            self.wet_bulb_integral_plugin.process(
+                temperature, relative_humidity, pressure))
+        # Find highest height from height bounds.
+        # If these are set to None then use the heights in temperature.
+        height_bounds = wet_bulb_integral.coord('height').bounds
+        if height_bounds is None:
+            heights = temperature.coord('height').points
+            highest_height = heights[-1]
+        else:
+            highest_height = height_bounds[0][-1]
+
+        # Firstly we need to slice over height, x and y
+        x_coord = wet_bulb_integral.coord(axis='x').name()
+        y_coord = wet_bulb_integral.coord(axis='y').name()
+        for orog_cube in orog.slices([y_coord, x_coord]):
+            orog_data = orog_cube.data
+
+        snow = iris.cube.CubeList([])
+        slice_list = ['height', y_coord, x_coord]
+        for wb_integral in wet_bulb_integral.slices(slice_list):
+
+            height_points = wb_integral.coord('height').points
+            # Calculate falling snow level above sea level.
+            snow_cube = wb_integral[0]
+            snow_cube.rename('falling_snow_level_asl')
+            snow_cube.units = 'm'
+            snow_cube.remove_coord('height')
+
+            snow_cube.data = self.find_falling_level(wb_integral.data,
+                                                     orog_data,
+                                                     height_points)
+            # Interpolate missing data
+            snow_cube.data = self.fill_in_missing_data(snow_cube.data,
+                                                       orog_data,
+                                                       wb_integral.data[0, ::],
+                                                       highest_height)
+
+            snow.append(snow_cube)
+
+        falling_snow_level = snow.merge_cube()
+        return falling_snow_level
