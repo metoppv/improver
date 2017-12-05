@@ -41,44 +41,56 @@ def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
         description="Run a recursive filter to convert a square neighbourhood "
-                    "into a Gaussian-like kernel or smooth over short "
-                    "distances. "
-                    "The filter uses an alpha parameter (0>=alpha<1) to "
-                    "control what proportion of the probability is passed "
-                    "onto the next grid-square in the x and y directions. "
-                    "The alpha parameter can be set on a grid-square "
-                    "by grid-square basis (using an array of alpha parameters "
-                    "of the same dimensionality as the domain). Alternatively "
-                    "a single alpha value can be set for each of the x and y "
-                    "directions. ")
+        "into a Gaussian-like kernel or smooth over short "
+        "distances. The filter uses an alpha parameter (0 < alpha < 1) to "
+        "control what proportion of the probability is passed onto the next "
+        "grid-square in the x and y directions. The alpha parameter can be "
+        "set on a grid-square by grid-square basis for the x and y directions "
+        "separately (using two arrays of alpha parameters of the same "
+        "dimensionality as the domain). Alternatively a single alpha value "
+        "can be set for each of the x and y directions. These methods can be "
+        "mixed, e.g. a cube for the x direction and a float for the y "
+        "direction and vice versa.")
     parser.add_argument("input_filepath", metavar="INPUT_FILE",
                         help="A path to an input NetCDF file to be processed")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--input_filepath_alphas_x", metavar="ALPHAS_X",
+    parser.add_argument("--input_filepath_alphas_x", metavar="ALPHAS_X_FILE",
                         help="A path to a NetCDF file describing the alpha "
-                             "factors to be used for smoothing in the x "
-                             "direction")
-    parser.add_argument("--input_filepath_alphas_y", metavar="ALPHAS_Y",
+                        "factors to be used for smoothing in the x "
+                        "direction")
+    parser.add_argument("--input_filepath_alphas_y", metavar="ALPHAS_Y_FILE",
                         help="A path to a NetCDF file describing the alpha "
-                             "factors to be used for smoothing in the y "
-                             "direction")
+                        "factors to be used for smoothing in the y "
+                        "direction")
     parser.add_argument("--alpha_x", metavar="ALPHA_X",
                         default=None, type=float,
-                        help="A single alpha factor (0>=alpha_x<1) to be "
-                             "applied to every grid square in the x "
-                             "direction.")
+                        help="A single alpha factor (0 < alpha_x < 1) to be "
+                        "applied to every grid square in the x "
+                        "direction.")
     parser.add_argument("--alpha_y", metavar="ALPHA_Y",
                         default=None, type=float,
-                        help="A single alpha factor (0>=alpha_y<1) to be "
-                             "applied to every grid square in the y "
-                             "direction.")
+                        help="A single alpha factor (0 < alpha_y < 1) to be "
+                        "applied to every grid square in the y "
+                        "direction.")
     parser.add_argument("--iterations", metavar="ITERATIONS",
                         default=1, type=int,
-                        help="Number of cycles over which to apply the filter")
+                        help="Number of times to apply the filter, default=1 "
+                        "(typically < 5)")
+    parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
+                        help='A path to an input mask NetCDF file to be '
+                        'used to mask the input file.')
+    parser.add_argument("--re_mask", action='store_true', default=False,
+                        help="Re-apply mask to recursively filtered output.")
 
     args = parser.parse_args()
+
     cube = iris.load_cube(args.input_filepath)
+    if args.input_mask_filepath:
+        mask_cube = iris.load_cube(args.input_mask_filepath)
+    else:
+        mask_cube = None
+
     alphas_x_cube = None
     alphas_y_cube = None
     if args.input_filepath_alphas_x is not None:
@@ -88,8 +100,9 @@ def main():
 
     result = RecursiveFilter(
         alpha_x=args.alpha_x, alpha_y=args.alpha_y,
-        iterations=args.iterations).process(
-            cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube)
+        iterations=args.iterations, re_mask=args.re_mask).process(
+            cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+            mask_cube=mask_cube)
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

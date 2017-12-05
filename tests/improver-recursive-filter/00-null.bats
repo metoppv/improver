@@ -33,12 +33,14 @@
   run improver recursive-filter
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-recursive-filter [-h] [--input_filepath_alphas_x ALPHAS_X]
-                                 [--input_filepath_alphas_y ALPHAS_Y]
+usage: improver-recursive-filter [-h]
+                                 [--input_filepath_alphas_x ALPHAS_X_FILE]
+                                 [--input_filepath_alphas_y ALPHAS_Y_FILE]
                                  [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
                                  [--iterations ITERATIONS]
+                                 [--input_mask_filepath INPUT_MASK_FILE]
+                                 [--re_mask]
                                  INPUT_FILE OUTPUT_FILE
-
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

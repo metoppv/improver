@@ -29,23 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood [-h]
-                       [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--ens_factor ENS_FACTOR] [--weighted_mode]
-                       [--sum_or_fraction {sum,fraction}] [--re_mask]
-                       [--percentiles PERCENTILES [PERCENTILES ...]]
-                       [--input_mask_filepath INPUT_MASK_FILE]
-                       [--apply-recursive-filter]
-                       [--input_filepath_alphas_x_cube ALPHAS_X_FILE]
-                       [--input_filepath_alphas_y_cube ALPHAS_Y_FILE]
-                       [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
-                       [--iterations ITERATIONS]
-                       NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
-                       OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "improver-recursive-filter input output --alpha_x --alpha_y --iterations --re_mask" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run recursive-filter processing and check it passes.
+  run improver recursive-filter "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/input_masked.nc" \
+      "$TEST_DIR/output.nc" --alpha_x=0.8 --alpha_y=0.8 --iterations=5 --re_mask
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/recursive-filter/masked_input/kgo_internal_mask_with_re_mask.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

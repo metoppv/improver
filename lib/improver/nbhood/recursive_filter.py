@@ -44,7 +44,7 @@ class RecursiveFilter(object):
     """
 
     def __init__(self, alpha_x=None, alpha_y=None, iterations=None,
-                 edge_width=1):
+                 edge_width=1, re_mask=False):
         """
         Initialise the class.
 
@@ -52,34 +52,41 @@ class RecursiveFilter(object):
             alpha_x (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
-                that 0 <= alpha_x < 1.0
+                that 0 < alpha_x < 1.0
             alpha_y (Float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
-                that 0 <= alpha_y < 1.0
+                that 0 < alpha_y < 1.0
             iterations (integer or None):
                 The number of iterations of the recursive filter.
             edge_width (integer):
                 The width of the padding applied to the grid cells
                 when adding the SquareNeighbourhood halo.
+            re_mask (boolean):
+                If re_mask is True, the original un-recursively filtered
+                mask is applied to mask out the recursively filtered cube.
+                If re_mask is False, the original un-recursively filtered
+                mask is not applied. Therefore, the recursive filtering
+                may result in values being present in areas that were
+                originally masked.
 
         Raises:
-            ValueError: If alpha_x is not set such that 0 <= alpha_x < 1
-            ValueError: If alpha_y is not set such that 0 <= alpha_y < 1
+            ValueError: If alpha_x is not set such that 0 < alpha_x < 1
+            ValueError: If alpha_y is not set such that 0 < alpha_y < 1
             ValueError: If number of iterations is not None and is set such
                         that iterations is not >= 1
 
         """
         if alpha_x is not None:
-            if not 0 <= alpha_x < 1:
+            if not 0 < alpha_x < 1:
                 raise ValueError(
-                    "Invalid alpha_x: must be >= 0 and < 1: {}".format(
+                    "Invalid alpha_x: must be > 0 and < 1: {}".format(
                         alpha_x))
 
         if alpha_y is not None:
-            if not 0 <= alpha_y < 1:
+            if not 0 < alpha_y < 1:
                 raise ValueError(
-                    "Invalid alpha_y: must be >= 0 and < 1: {}".format(
+                    "Invalid alpha_y: must be > 0 and < 1: {}".format(
                         alpha_y))
 
         if iterations is not None:
@@ -92,6 +99,7 @@ class RecursiveFilter(object):
         self.alpha_y = alpha_y
         self.iterations = iterations
         self.edge_width = edge_width
+        self.re_mask = re_mask
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -283,7 +291,7 @@ class RecursiveFilter(object):
                 will be applied.
             alpha (Float):
                 The constant used to weight the recursive filter in that
-                direction: Defined such that 0.0 <= alpha <= 1.0
+                direction: Defined such that 0.0 < alpha < 1.0
             alphas_cube (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter in a specific direction.
@@ -326,7 +334,7 @@ class RecursiveFilter(object):
             alphas_cube, self.edge_width, self.edge_width)
         return alphas_cube
 
-    def process(self, cube, alphas_x=None, alphas_y=None):
+    def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
         """
         Set up the alpha parameters and run the recursive filter.
 
@@ -359,21 +367,36 @@ class RecursiveFilter(object):
             alphas_y (Iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the y-axis.
+            mask_cube (Iris.cube.Cube or None):
+                Cube containing an external mask to apply to the cube before
+                applying the recursive filter.
 
         Returns:
             new_cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
         """
-
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
         alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
         alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
 
+        # Extract mask if present on input cube or provided separately.
+        try:
+            mask, = SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                cube, mask_cube).extract('mask_data')
+            mask = mask.data.squeeze()
+        except ValueError:
+            mask = np.ones((cube_format.data.shape))
+
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
+
+            # Use mask to zero masked areas.
+            output.data = output.data * mask
+            # Zero any remaining NaN values not covered by mask.
+            output.data = np.nan_to_num(output.data)
 
             padded_cube = SquareNeighbourhood().pad_cube_with_halo(
                 output, self.edge_width, self.edge_width)
@@ -381,8 +404,12 @@ class RecursiveFilter(object):
                                           self.iterations)
             new_cube = SquareNeighbourhood().remove_halo_from_cube(
                 new_cube, self.edge_width, self.edge_width)
+            if self.re_mask:
+                new_cube.data = np.ma.masked_array(new_cube.data,
+                                                   mask=np.logical_not(mask))
             recursed_cube.append(new_cube)
 
         new_cube = recursed_cube.merge_cube()
         new_cube = check_cube_coordinates(cube, new_cube)
+
         return new_cube
