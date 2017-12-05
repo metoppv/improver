@@ -29,13 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "continuous-snowfall-level no arguments" {
-  run improver continuous-snowfall-level
+@test "continuous-snow-falling-level no arguments" {
+  run improver continuous-snow-falling-level
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-continuous-snowfall-level [-h] [--precison NEWTON_PRECISION]
-                                          [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                          TEMPERATURE RELATIVE_HUMIDITY
-                                          PRESSURE OROGRAPHY OUTPUT_FILE
-improver-continuous-snowfall-level: error: too few arguments"
+  expected="usage: improver-continuous-snow-falling-level [-h]
+                                              [--precison NEWTON_PRECISION]
+                                              [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
+                                              TEMPERATURE RELATIVE_HUMIDITY
+                                              PRESSURE OROGRAPHY OUTPUT_FILE
+improver-continuous-snow-falling-level: error: too few arguments"
   [[ "$output" =~ "$expected" ]]
 }

@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 @test "continuous-snowfall-level -h" {
-  run improver continuous-snowfall-level -h
+  run improver continuous-snow-falling-level -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-continuous-snowfall-level [-h] [--precison NEWTON_PRECISION]
-                                          [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                          TEMPERATURE RELATIVE_HUMIDITY
-                                          PRESSURE OROGRAPHY OUTPUT_FILE
+usage: improver-continuous-snow-falling-level [-h]
+                                              [--precison NEWTON_PRECISION]
+                                              [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
+                                              TEMPERATURE RELATIVE_HUMIDITY
+                                              PRESSURE OROGRAPHY OUTPUT_FILE
 
 Calculate the continuous falling snow level
 

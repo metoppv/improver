@@ -31,25 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wxcode <input files - decision tree units>" {
+@test "continuous-snowfall-level with data" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
-  # Run wxcode processing and check it passes.
-  run improver wxcode \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_in_vicinity.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_visibility_in_air.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
+  # Run continuous-snowfall-level processing and check it passes.
+  run improver continuous-snowfall-level \
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/relative_humidity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/pressure.nc" \
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/orog.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
