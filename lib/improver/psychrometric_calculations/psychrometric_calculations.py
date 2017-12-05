@@ -632,7 +632,7 @@ class FallingSnowLevel(object):
         """
         Find the falling snow level by finding the level of the wet-bulb
         integral data at the required threshold. Wet-bulb integral data
-        is only available above ground level and there may be sn insufficient
+        is only available above ground level and there may be an insufficient
         number of levels in the input data, in which case the required
         threshold may lie outside the Wet-bulb integral data and the value
         at that point will be set to np.nan.
@@ -669,20 +669,34 @@ class FallingSnowLevel(object):
                              highest_wb_int_data, highest_height):
         """
         Fill in missing data. Wet-bulb integral data
-        is only available above ground level and there may be sn insufficient
+        is only available above ground level and there may be an insufficient
         number of levels in the input data, in which case the falling_level
-        will have been set to np.nan. This function fills in the missing
-        data by firstly setting sea-level points.
+        will have been set to np.nan.
+
+        This function fills in the missing data by firstly setting
+        sea-level points where all integral values are already above
+        the falling_level_threshold to the highest_height.
+        Any remaining missing sea_points are set to 0.
+
+        The data are then interpolated linearly across the grid.
+
+        For any remaining missing points we check to see if they
+        are already above the falling_level_threshold. If they are
+        we set them to orography + highest_height
+
+        For the remaining points we are not sure what exactly to do with
+        them so we set them to missing_data (value less than 0) for now.
+        We will need to look at better ways to deal with this data later.
 
         Args:
             snow_level_data (np.array):
-                Falling snow level data.
+                Falling snow level data (m).
             orog_data (np.array):
-                Orographic data
+                Orographic data (m)
             highest_wb_int_data (np.array):
-                Wet bulb integral data on highest level.
+                Wet bulb integral data on highest level (K m).
             highest_height (float):
-                Highest height at which the integral starts.
+                Highest height at which the integral starts (m).
 
         Returns:
             snow_level_updated (np.array):
@@ -710,7 +724,7 @@ class FallingSnowLevel(object):
         snow_level_updated = griddata(points, values, (y_points, x_points),
                                       method='linear')
         # For any remaining missing points check to see if they
-        # are alreay above the falling_level_threshold. If they are
+        # are already above the falling_level_threshold. If they are
         # set them to orography + highest_height
         above_freezing_points = np.where(
             np.isnan(snow_level_updated) &
@@ -719,7 +733,7 @@ class FallingSnowLevel(object):
         snow_level_updated[above_freezing_points] = (
             orog_data[above_freezing_points] +
             highest_height)
-        # Any remaining points we are not sure what to do with so
+        # For any remaining points we are not sure what to do so
         # will set them to missing_data (value less than 0) for now.
         # We will need to look at better ways to deal with this data later.
         remaining_points = np.where(np.isnan(snow_level_updated))
