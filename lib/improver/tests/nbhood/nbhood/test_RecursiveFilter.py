@@ -319,6 +319,43 @@ class Test_process(Test_RecursiveFilter):
         expected = 0.13382206
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
+    def test_alpha_floats_nan_in_data(self):
+        """Test that the RecursiveFilter plugin returns the correct data
+        when using float alpha values and the data contains nans."""
+        plugin = RecursiveFilter(alpha_x=self.alpha_x, alpha_y=self.alpha_y,
+                                 iterations=self.iterations)
+        self.cube.data[0][3][2] = np.nan
+        result = plugin.process(self.cube, alphas_x=None, alphas_y=None)
+        expected = 0.11979733
+        self.assertAlmostEqual(result.data[0][2][2], expected)
+
+    def test_alpha_floats_nan_in_masked_data(self):
+        """Test that the RecursiveFilter plugin returns the correct data
+        when using float alpha values, the data contains nans and the data
+        is masked (but not the nan value)."""
+        plugin = RecursiveFilter(alpha_x=self.alpha_x, alpha_y=self.alpha_y,
+                                 iterations=self.iterations)
+        self.cube.data[0][3][2] = np.nan
+        mask = np.zeros((self.cube.data.shape))
+        mask[0][1][2] = 1
+        self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
+        result = plugin.process(self.cube, alphas_x=None, alphas_y=None)
+        expected = 0.105854129
+        self.assertAlmostEqual(result.data[0][2][2], expected)
+
+    def test_alpha_cubes_masked_data(self):
+        """Test that the RecursiveFilter plugin returns the correct data
+        when using alpha cubes and a masked data cube."""
+        plugin = RecursiveFilter(alpha_x=None, alpha_y=None,
+                                 iterations=self.iterations)
+        mask = np.zeros((self.cube.data.shape))
+        mask[0][3][2] = 1
+        self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
+        result = plugin.process(self.cube, alphas_x=self.alphas_cube1,
+                                alphas_y=self.alphas_cube1)
+        expected = 0.11979733
+        self.assertAlmostEqual(result.data[0][2][2], expected)
+
     def test_dimensions_of_output_array_is_as_expected(self):
         """Test that the RecursiveFilter plugin returns a data array with
            the correct dimensions"""
