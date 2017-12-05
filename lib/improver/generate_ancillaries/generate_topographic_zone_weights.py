@@ -32,6 +32,7 @@
 
 from cf_units import Unit
 import numpy as np
+from scipy import interpolate
 import iris
 
 from improver.generate_ancillaries.generate_ancillary import (
@@ -47,23 +48,9 @@ class GenerateTopographicZoneWeights(object):
         """Initialise the class."""
         pass
 
-    def find_band_number(self, point, bands):
-        """Find which band the point falls in.
-        bands has the form [[0,1],[1,2],[2,3]].
-
-        Args:
-            point (float):
-                Point to use for determining which band the point is within.
-            bands (list):
-                List of lists defining the bands to search to determine
-                which band the point is within.
-        """
-        for i, band in enumerate(bands):
-            if point > band[0] and point <= band[1]:
-                return i
-
-    def add_weight_to_adjacent_band(
-            self, point, midpoint, band_no, weight, max_band_no):
+    def add_weight_to_upper_adjacent_band(
+            self, orography_band, midpoint, band_number, weights,
+            max_band_number):
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band above or below,
         depending on the altitude of the point.
@@ -73,90 +60,98 @@ class GenerateTopographicZoneWeights(object):
         The same principle is applied to the top band.
 
         Args:
-            point (float):
-                The altitude of the point of interest.
+            orography_band (float):
+                All points within the orography band of interest.
             midpoint (float):
                 The midpoint of the band the point is in.
-            band_no (float):
+            band_number (float):
                 The index that corrresponds to the band in a cube with
                 multiple topography bands.
-            weight (float):
-                The weight we have already calculated at the point of interest.
-            max_band_no (float):
+            weights (float):
+                The weight we have already calculated for the points within the
+                orography band.
+            max_band_number (float):
                 The highest index for the bands coordinate in the weights.
 
         Returns:
             (tuple):
 
         """
-        if point < midpoint:
-            if band_no == 0:
-                weight = 1.0
-                adjacent_band_number = band_no
-            else:
-                weight = 1 - weight
-                adjacent_band_number = band_no-1
-        elif point > midpoint:
-            if band_no == max_band_no:
-                weight = 1.0
-                adjacent_band_number = band_no
-            else:
-                weight = 1 - weight
-                adjacent_band_number = band_no+1
-        return weight, adjacent_band_number
+        print "original weights = ", weights
+        print "band_number = ", band_number
+        weights_for_adjacent_band = np.full(weights.shape, np.nan)
 
+        # For points above the midpoint.
+        mask_y, mask_x = np.where(orography_band > midpoint)
+        if band_number == max_band_number:
+            weights_for_adjacent_band[mask_y, mask_x] = 1.0
+            adjacent_band_number = band_number
+        else:
+            weights_for_adjacent_band[mask_y, mask_x] = (
+                1 - weights[mask_y, mask_x])
+            adjacent_band_number = band_number+1
+        return weights_for_adjacent_band, adjacent_band_number
 
-    def calculate_weights(self, point, midpoint, band):
-        """
+    def add_weight_to_lower_adjacent_band(
+            self, orography_band, midpoint, band_number, weights,
+            max_band_number):
+        """Once we have found the weight for a point in one band,
+        we need to add 1-weight to the band above or below,
+        depending on the altitude of the point.
+        If the point is in the lowest band and below the midpoint of this
+        band then we need to put a weight of one at this point in the
+        lowest band as there is no other band to weight with.
+        The same principle is applied to the top band.
 
         Args:
-            point (float):
-                e.g. 125.
+            orography_band (float):
+                All points within the orography band of interest.
             midpoint (float):
-                e.g. 150.
+                The midpoint of the band the point is in.
+            band_number (float):
+                The index that corrresponds to the band in a cube with
+                multiple topography bands.
+            weights (float):
+                The weight we have already calculated for the points within the
+                orography band.
+            max_band_number (float):
+                The highest index for the bands coordinate in the weights.
+
+        Returns:
+            (tuple):
+
+        """
+        print "original weights = ", weights
+        print "band_number = ", band_number
+        weights_for_adjacent_band = np.full(weights.shape, np.nan)
+
+        # For points below the midpoint.
+        mask_y, mask_x = np.where(orography_band < midpoint)
+        if band_number == 0:
+            weights_for_adjacent_band[mask_y, mask_x] = 1.0
+            adjacent_band_number = band_number
+        else:
+            weights_for_adjacent_band[mask_y, mask_x] = (
+                1 - weights[mask_y, mask_x])
+            adjacent_band_number = band_number-1
+        return weights_for_adjacent_band, adjacent_band_number
+
+    def calculate_weights(self, points, midpoint, band):
+        """Calculate weights
+
+        Args:
+            points (float or numpy array):
+                e.g. 125 or np.array([125, 140]).
             band (list):
                 e.g. [100., 200.]
         """
         weights = [0.5, 1.0, 0.5]
-        points = [band[0], midpoint, band[1]]
-        weight = np.interp(point, points, weights)
-        return weight
-
-    def calculate_weights_array(self, orography_slice, bands, midpoints):
-        """Fill in the weights array based on the topography bands and the
-           input orography.
-
-        Args:
-            orography_slice (iris.cube.Cube):
-                The orography data array.
-            bands
-                The bounds from the topographic bands coordinate of the
-                mask or neighbourhooded cube.
-            midpoints
-                The points from the topographic bands coordinate of the
-                mask or neighbourhooded cube.
-
-        Returns:
-            weights (numpy array)
-                The weights array to be filled in, dimensions
-               (no of bands, x, y).
-            band_numbers ():
-                The band numbers.
-        """
-        print "orography_slice = ", orography_slice
-        print "orography_slice.data = ", orography_slice.data
-        point = orography_slice.data
-        band_no = self.find_band_number(point, bands)
-        weight = self.calculate_weights(
-            point, midpoints[band_no], bands[band_no])
-        weight_in_adjacent_band, adjacent_band_number = (
-            self.add_weight_to_adjacent_band(
-                point, midpoints[band_no], band_no, weight, len(bands)-1))
-        weights = [weight, weight_in_adjacent_band]
-        band_numbers = [band_no, adjacent_band_number]
-        print "weights = ", weights
-        print "band_numbers = ", band_numbers
-        return weights, band_numbers
+        band_points = [band[0], midpoint, band[1]]
+        interpolation_function = interpolate.interp1d(
+            band_points, weights, fill_value="extrapolate")
+        interpolated_weights = interpolation_function(points)
+        print "interpolated_weights = ", interpolated_weights
+        return interpolated_weights
 
     def process(self, orography, landmask, thresholds_dict):
         """Calculate the weights depending upon where the orography point is
@@ -189,42 +184,50 @@ class GenerateTopographicZoneWeights(object):
             raise InvalidCubeError(msg)
 
         print "landmask = ", landmask
+        print "landmask = ", landmask.data
         print "orography = ", orography
         #landmask = landmask[:2, :2]
         #orography = orography[:2, :2]
 
         # Create a cube into which values can be inserted.
         mask_data = GenerateOrographyBandAncils().sea_mask(
-            landmask.data, orography.data)
+            landmask.data, np.zeros(orography.shape))
         print "mask_data = ", mask_data
 
         # Find bands and midpoints from bounds
         bands = thresholds_dict["land"]["bounds"]
-        midpoints = np.mean(bands, axis=1)
         print "bands = ", bands
 
-        # Create topographic_zone_cube
+        # Create topographic_zone_cube first, so that a cube is created for
+        # each band. This will allow the data for neighbouring bands to be
+        # put into the cube. 
         topographic_zone_cubes = iris.cube.CubeList([])
         for band in bands:
-            topographic_zone_cubes.append(
+            topographic_zone_cube = (
                 _make_mask_cube(mask_data, "land", orography.coords(), band))
+            topographic_zone_cubes.append(topographic_zone_cube)
         topographic_zone_cube = topographic_zone_cubes.concatenate_cube()
 
-        print "topographic_zone_cube = ", topographic_zone_cube
+        # Insert the appropriate weights into the topographic zone cube.
+        for band_number, band in enumerate(bands):
+            print "Looping for band = ", band
+            mask_y, mask_x = (
+                np.where((orography.data > band[0]) & (orography.data <= band[1])))
+            orography_band = np.full(orography.shape, np.nan)
+            orography_band[mask_y, mask_x] = orography.data[mask_y, mask_x]
+            midpoint = np.mean(band)
+            weights = self.calculate_weights(orography_band, midpoint, band)
+            topographic_zone_cube.data[band_number, ...] = weights
 
-        # Create 2d orography slices.
-        orography_slices = orography.slices([])
-        topographic_zone_slices = (
-            topographic_zone_cube.slices(["topographic_zone"]))
+            weights_in_adjacent_band, adjacent_band_number = (
+                self.add_weight_to_lower_adjacent_band(
+                    orography_band, midpoint, band_number, weights, len(bands)-1))
+            topographic_zone_cube.data[adjacent_band_number, ...] = weights_in_adjacent_band
 
-        topographic_zone_cubes = iris.cube.CubeList([])
-        for orography_slice, topographic_zone_slice in zip(orography_slices, topographic_zone_slices):
-            print "orography"
-            weights, band_numbers = self.calculate_weights_array(
-                orography_slice, bands, midpoints)
-            topographic_zone_slice[band_numbers].data = weights
-            topographic_zone_cubes.append(topographic_zone_slice)
-        topographic_zone_cube = topographic_zone_cubes.merge_cube()
+            weights_in_adjacent_band, adjacent_band_number = (
+                self.add_weight_to_upper_adjacent_band(
+                    orography_band, midpoint, band_number, weights, len(bands)-1))
+            topographic_zone_cube.data[band_number, ...] = weights_in_adjacent_band
 
         topographic_zone_cube.rename("Topographic_zone_weights")
         topographic_zone_cube.units = Unit("1")
