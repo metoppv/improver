@@ -32,6 +32,7 @@
 
 import unittest
 
+from iris.analysis import MEAN
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -94,10 +95,15 @@ class Test_process(IrisTest):
         distance = 2000
         neighbourhood_method = "square"
         radii = 2000
+        expected_cube_for_shape = self.cube.copy()
+        expected_cube_for_shape = expected_cube_for_shape.collapsed(
+            "realization", MEAN)
+        orig_shape = expected_cube_for_shape.data.copy().shape
         result = (
             ProbabilityOfOccurrence(
                 distance, neighbourhood_method, radii).process(self.cube))
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_without_realization(self):
@@ -113,10 +119,12 @@ class Test_process(IrisTest):
         distance = 2000
         neighbourhood_method = "square"
         radii = 2000
+        orig_shape = cube.data.copy().shape
         result = (
             ProbabilityOfOccurrence(
                 distance, neighbourhood_method, radii).process(self.cube))
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_additional_arguments(self):
@@ -148,6 +156,10 @@ class Test_process(IrisTest):
             lead_times, "forecast_period", units="hours"), 1)
         weighted_mode = False
         ens_factor = 0.9
+        expected_cube_for_shape = cube.copy()
+        expected_cube_for_shape = expected_cube_for_shape.collapsed(
+            "realization", MEAN)
+        orig_shape = expected_cube_for_shape.data.copy().shape
         result = (
             ProbabilityOfOccurrence(
                 distance, neighbourhood_method, radii, lead_times=lead_times,
@@ -155,6 +167,8 @@ class Test_process(IrisTest):
                 ).process(cube))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
+        self.assertEqual(result.data.shape, orig_shape)
+        self.assertEqual(result.coord("forecast_period").units, "hours")
 
 
 if __name__ == '__main__':

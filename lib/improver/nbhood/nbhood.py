@@ -198,10 +198,8 @@ class BaseNeighbourhoodProcessing(object):
                        self.neighbourhood_method))
             raise ValueError(msg)
 
-        # Check if the realization coordinate exists. If there are multiple
-        # values for the realization, then an exception is raised. Otherwise,
-        # the cube is sliced, so that the realization becomes a scalar
-        # coordinate.
+        # Check if a dimensional realization coordinate exists. If so, the
+        # cube is sliced, so that it becomes a scalar coordinate.
         try:
             realiz_coord = cube.coord('realization', dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
@@ -221,7 +219,7 @@ class BaseNeighbourhoodProcessing(object):
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        cubelist = []
+        cubes_real = []
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
                 radius = self._find_radii(num_ens)
@@ -236,7 +234,7 @@ class BaseNeighbourhoodProcessing(object):
                     cube_lead_times=fp_coord.points
                 )
 
-                cubes = iris.cube.CubeList([])
+                cubes_time = iris.cube.CubeList([])
                 # Find the number of grid cells required for creating the
                 # neighbourhood, and then apply the neighbourhood
                 # processing method to smooth the field.
@@ -245,16 +243,16 @@ class BaseNeighbourhoodProcessing(object):
                             required_radii)):
                     cube_slice = self.neighbourhood_method.run(
                         cube_slice, radius, mask_cube=mask_cube)
-                    cubes.append(cube_slice)
+                    cubes_time.append(cube_slice)
 
                 cube_new = concatenate_cubes(
-                    cubes, coords_to_slice_over=["time"])
-            cubelist.append(cube_new)
-        if len(cubelist) > 1:
+                    cubes_time, coords_to_slice_over=["time"])
+            cubes_real.append(cube_new)
+        if len(cubes_real) > 1:
             combined_cube = concatenate_cubes(
-                cubelist, coords_to_slice_over=["realization"])
+                cubes_real, coords_to_slice_over=["realization"])
         else:
-            combined_cube = cubelist[0]
+            combined_cube = cubes_real[0]
 
         # Promote dimensional coordinates that used to be present.
         exception_coordinates = (
