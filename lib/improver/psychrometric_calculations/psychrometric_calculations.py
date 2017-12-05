@@ -618,6 +618,7 @@ class FallingSnowLevel(object):
         self.wet_bulb_integral_plugin = (
             WetBulbTemperatureIntegral(precision=precision))
         self.falling_level_threshold = falling_level_threshold
+        self.missing_data = -300.0
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -630,7 +631,11 @@ class FallingSnowLevel(object):
     def find_falling_level(self, wb_int_data, orog_data, height_points):
         """
         Find the falling snow level by finding the level of the wet-bulb
-        integral data at the required threshold.
+        integral data at the required threshold. Wet-bulb integral data
+        is only available above ground level and there may be sn insufficient
+        number of levels in the input data, in which case the required
+        threshold may lie outside the Wet-bulb integral data and the value
+        at that point will be set to np.nan.
 
         Args:
             wb_int_data (np.array):
@@ -657,28 +662,68 @@ class FallingSnowLevel(object):
         #  for falling_level_threshold so we take the 0 index
         snow_level_data = interpolate(np.array([self.falling_level_threshold]),
                                       wb_int_data, asl, axis=0)[0]
+
         return snow_level_data
 
-    @staticmethod
-    def fill_in_missing_data(snow_level_data):
+    def fill_in_missing_data(self, snow_level_data, orog_data,
+                             highest_wb_int_data, highest_height):
         """
-        Fill in missing data
+        Fill in missing data. Wet-bulb integral data
+        is only available above ground level and there may be sn insufficient
+        number of levels in the input data, in which case the falling_level
+        will have been set to np.nan. This function fills in the missing
+        data by firstly setting sea-level points.
 
         Args:
             snow_level_data (np.array):
                 Falling snow level data.
+            orog_data (np.array):
+                Orographic data
+            highest_wb_int_data (np.array):
+                Wet bulb integral data on highest level.
+            highest_height (float):
+                Highest height at which the integral starts.
 
         Returns:
             snow_level_updated (np.array):
                 Falling snow level data with missing data added.
 
         """
+        # Firstly find sea_points where all integral values
+        # are already above the falling_level_threshold
+        # Set these to highest_height
+        sea_points_not_freezing = np.where(
+            np.isnan(snow_level_data) &
+            (orog_data == 0.0) &
+            (highest_wb_int_data >
+             self.falling_level_threshold))
+        snow_level_data[sea_points_not_freezing] = highest_height
+        # Now find any remaining sea_points and set these to 0
+        sea_points = np.where(np.isnan(snow_level_data) &
+                              (orog_data == 0.0))
+        snow_level_data[sea_points] = 0.0
+        # Interpolate linearly across the remaining points
         points = np.where(np.isfinite(snow_level_data))
         values = snow_level_data[points]
         ynum, xnum = snow_level_data.shape
         (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
         snow_level_updated = griddata(points, values, (y_points, x_points),
-                                      method='linear', fill_value=0.0)
+                                      method='linear')
+        # For any remaining missing points check to see if they
+        # are alreay above the falling_level_threshold. If they are
+        # set them to orography + highest_height
+        above_freezing_points = np.where(
+            np.isnan(snow_level_updated) &
+            (highest_wb_int_data >
+             self.falling_level_threshold))
+        snow_level_updated[above_freezing_points] = (
+            orog_data[above_freezing_points] +
+            highest_height)
+        # Any remaining points we are not sure what to do with so
+        # will set them to missing_data (value less than 0) for now.
+        # We will need to look at better ways to deal with this data later.
+        remaining_points = np.where(np.isnan(snow_level_updated))
+        snow_level_updated[remaining_points] = self.missing_data
         return snow_level_updated
 
     def process(self, temperature, relative_humidity, pressure, orog):
@@ -686,6 +731,9 @@ class FallingSnowLevel(object):
         Calculate the wet bulb temperature integral by firstly calculating
         the wet bulb temperature from the inputs provided, and then
         calculating the vertical integral of the wet bulb temperature.
+        Find the falling_snow_level by finding the height above sea level
+        correspoinding to the falling_level_threshold in the integral data.
+        Fill in missing data appropriately.
 
         Args:
             temperature (iris.cube.Cube):
@@ -701,10 +749,19 @@ class FallingSnowLevel(object):
             falling_snow_level (iris.cube.Cube):
                 Cube of Falling Snow Level above sea level (asl).
         """
+
         # Calculate wet-bulb temperature integral.
         wet_bulb_integral = (
             self.wet_bulb_integral_plugin.process(
                 temperature, relative_humidity, pressure))
+        # Find highest height from height bounds.
+        # If these are set to None then use the heights in temperature.
+        height_bounds = wet_bulb_integral.coord('height').bounds
+        if height_bounds is None:
+            heights = temperature.coord('height').points
+            highest_height = heights[-1]
+        else:
+            highest_height = height_bounds[0][-1]
 
         # Firstly we need to slice over height, x and y
         x_coord = wet_bulb_integral.coord(axis='x').name()
@@ -727,7 +784,10 @@ class FallingSnowLevel(object):
                                                      orog_data,
                                                      height_points)
             # Interpolate missing data
-            snow_cube.data = self.fill_in_missing_data(snow_cube.data)
+            snow_cube.data = self.fill_in_missing_data(snow_cube.data,
+                                                       orog_data,
+                                                       wb_integral.data[0, ::],
+                                                       highest_height)
 
             snow.append(snow_cube)
 
