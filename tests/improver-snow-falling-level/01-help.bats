@@ -29,15 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "continuous-snowfall-level -h" {
-  run improver continuous-snow-falling-level -h
+@test "snowfall-level -h" {
+  run improver snow-falling-level -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-continuous-snow-falling-level [-h]
-                                              [--precision NEWTON_PRECISION]
-                                              [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                              TEMPERATURE RELATIVE_HUMIDITY
-                                              PRESSURE OROGRAPHY OUTPUT_FILE
+usage: improver-snow-falling-level [-h] [--precision NEWTON_PRECISION]
+                                   [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
+                                   TEMPERATURE RELATIVE_HUMIDITY PRESSURE
+                                   OROGRAPHY OUTPUT_FILE
 
 Calculate the continuous falling snow level
 

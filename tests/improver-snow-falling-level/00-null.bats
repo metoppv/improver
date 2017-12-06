@@ -29,13 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "continuous-snow-falling-level no arguments" {
-  run improver continuous-snow-falling-level
+@test "snow-falling-level no arguments" {
+  run improver snow-falling-level
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-continuous-snow-falling-level [-h]
-                                              [--precision NEWTON_PRECISION]
-                                              [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                              TEMPERATURE RELATIVE_HUMIDITY
-                                              PRESSURE OROGRAPHY OUTPUT_FILE"
+  expected="usage: improver-snow-falling-level [-h] [--precision NEWTON_PRECISION]
+                                   [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
+                                   TEMPERATURE RELATIVE_HUMIDITY PRESSURE
+                                   OROGRAPHY OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }
