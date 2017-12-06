@@ -244,9 +244,11 @@ class BaseNeighbourhoodProcessing(object):
                     cube_slice = self.neighbourhood_method.run(
                         cube_slice, radius, mask_cube=mask_cube)
                     cubes_time.append(cube_slice)
-
-                cube_new = concatenate_cubes(
-                    cubes_time, coords_to_slice_over=["time"])
+                if len(cubes_time) > 1:
+                    cube_new = concatenate_cubes(
+                        cubes_time, coords_to_slice_over=["time"])
+                else:
+                    cube_new = cubes_time[0]
             cubes_real.append(cube_new)
         if len(cubes_real) > 1:
             combined_cube = concatenate_cubes(
