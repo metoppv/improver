@@ -36,7 +36,6 @@
                                               [--precision NEWTON_PRECISION]
                                               [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                               TEMPERATURE RELATIVE_HUMIDITY
-                                              PRESSURE OROGRAPHY OUTPUT_FILE
-improver-continuous-snow-falling-level: error: too few arguments"
+                                              PRESSURE OROGRAPHY OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }

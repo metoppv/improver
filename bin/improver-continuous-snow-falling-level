@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to apply thresholding to a cube."""
+"""Script to calculate continuous snow falling level."""
 
 import argparse
 import iris
@@ -57,7 +57,7 @@ def main():
     parser.add_argument("orography", metavar="OROGRAPHY",
                         help="A path to an input NetCDF file containing "
                         "a cube with the orography in m of the terrain "
-                        "that the continuous falling snow level is being"
+                        "over which the continuous falling snow level is being"
                         "calculated.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
@@ -69,14 +69,13 @@ def main():
     parser.add_argument("--falling_level_threshold",
                         metavar="FALLING_LEVEL_THRESHOLD",
                         default=90.0, type=float,
-                        help="Cutoff threshold for the wet-bulb integral used "
-                        "to calculate the falling snow level.  "
-                        "Default Value is 90.0")
-
+                        help=("Cutoff threshold for the wet-bulb integral used"
+                              " to calculate the falling snow level. This "
+                              "threshold indicates the level at which falling "
+                              "snow is deemed to have melted to become rain. "
+                              "The default value is 90.0, an empirically "
+                              "derived value."))
     args = parser.parse_args()
-
-    precision = args.precision
-    falling_level_threshold = args.falling_level_threshold
 
     temperature = iris.load_cube(args.temperature)
     relative_humidity = iris.load_cube(args.relative_humidity)
@@ -84,14 +83,14 @@ def main():
     orog = iris.load_cube(args.orography)
 
     result = FallingSnowLevel(
-        precision=precision,
-        falling_level_threshold=falling_level_threshold).process(
+        precision=args.precision,
+        falling_level_threshold=args.falling_level_threshold).process(
             temperature,
             relative_humidity,
             pressure,
             orog)
 
-    iris.save(result, args.output_filepath)
+    iris.save(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":

@@ -52,8 +52,8 @@ positional arguments:
                         the points for which the continuous falling snow level
                         is being calculated.
   OROGRAPHY             A path to an input NetCDF file containing a cube with
-                        the orography in m of the terrain that the continuous
-                        falling snow level is beingcalculated.
+                        the orography in m of the terrain over which the
+                        continuous falling snow level is beingcalculated.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
@@ -64,9 +64,10 @@ optional arguments:
                         value is 0.005
   --falling_level_threshold FALLING_LEVEL_THRESHOLD
                         Cutoff threshold for the wet-bulb integral used to
-                        calculate the falling snow level. Default Value is
-                        90.0
-
+                        calculate the falling snow level. This threshold
+                        indicates the level at which falling snow is deemed to
+                        have melted to become rain. The default value is 90.0,
+                        an empirically derived value.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
