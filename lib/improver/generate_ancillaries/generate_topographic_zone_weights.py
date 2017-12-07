@@ -49,9 +49,10 @@ class GenerateTopographicZoneWeights(object):
         """Initialise the class."""
         pass
 
+    @staticmethod
     def add_weight_to_upper_adjacent_band(
-            self, topographic_zone_weights, orography_band, midpoint,
-            band_number, max_band_number):
+            topographic_zone_weights, orography_band, midpoint, band_number,
+            max_band_number):
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band above for points that are above
         the midpoint, unless the band being processed is the uppermost band.
@@ -93,9 +94,9 @@ class GenerateTopographicZoneWeights(object):
             weights_in_adjacent_band[mask_y, mask_x])
         return topographic_zone_weights
 
+    @staticmethod
     def add_weight_to_lower_adjacent_band(
-            self, topographic_zone_weights, orography_band, midpoint,
-            band_number):
+            topographic_zone_weights, orography_band, midpoint, band_number):
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band below for points that are below
         the midpoint, unless the band being processed is the lowest band.
@@ -135,7 +136,8 @@ class GenerateTopographicZoneWeights(object):
             weights_in_adjacent_band[mask_y, mask_x])
         return topographic_zone_weights
 
-    def calculate_weights(self, points, band):
+    @staticmethod
+    def calculate_weights(points, band):
         """Calculate weights where the weight at the midpoint of a band is 1.0
         and the weights at the edge of the band is 0.5. The midpoint is
         assumed to be in the middle of the band.

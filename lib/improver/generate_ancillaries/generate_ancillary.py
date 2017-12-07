@@ -168,7 +168,8 @@ class GenerateOrographyBandAncils(object):
         result = ('<GenerateOrographyBandAncils>')
         return result
 
-    def sea_mask(self, landmask, orog_band):
+    @staticmethod
+    def sea_mask(landmask, orog_band):
         """
         Function to mask sea points and substitute the default numpy
         fill value behind this mask_cube.
