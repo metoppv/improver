@@ -132,8 +132,10 @@ class Test_forecast_period_coord(IrisTest):
         expected units, when the input cube has a forecast_period coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_points = cube.coord("forecast_period").points
-        expected_units = str(cube.coord("forecast_period").units)
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_points = fp_coord.points
+        expected_units = str(fp_coord.units)
         result = forecast_period_coord(cube)
         self.assertArrayAlmostEqual(result.points, expected_points)
         self.assertEqual(str(result.units), expected_units)
@@ -143,8 +145,10 @@ class Test_forecast_period_coord(IrisTest):
         expected units, when the input cube has a forecast_period coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_points = cube.coord("forecast_period").points
-        expected_units = cube.coord("forecast_period").units
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_points = fp_coord.points
+        expected_units = str(fp_coord.units)
         result = forecast_period_coord(
             cube, force_lead_time_calculation=True)
         self.assertArrayAlmostEqual(result.points, expected_points)
@@ -156,7 +160,9 @@ class Test_forecast_period_coord(IrisTest):
         forecast_reference_time coordinate.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").copy()
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_result = fp_coord
         cube.remove_coord("forecast_period")
         result = forecast_period_coord(cube)
         self.assertEqual(result, expected_result)
@@ -164,11 +170,12 @@ class Test_forecast_period_coord(IrisTest):
     def test_check_time_unit_conversion(self):
         """Test that the data within the coord is as expected with the
         expected units, when the input cube has a time coordinate with units
-        other than the desired units of hours since 1970-01-01 00:00:00.
+        other than the usual units of hours since 1970-01-01 00:00:00.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
-        expected_result = cube.coord("forecast_period").copy()
-        expected_result.convert_units('seconds')
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_result = fp_coord
         cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
         result = forecast_period_coord(cube, force_lead_time_calculation=True)
         self.assertEqual(result, expected_result)

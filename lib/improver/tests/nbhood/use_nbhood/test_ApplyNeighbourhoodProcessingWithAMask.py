@@ -136,25 +136,29 @@ class Test_process(IrisTest):
         """Test that the expected result is returned, when the
         topographic_zone coordinate is iterated over."""
         expected = np.array(
-            [[[[1.00, 1.00, 1.00, np.nan, np.nan],
-               [1.00, 1.00, 1.00, np.nan, np.nan],
-               [1.00, 1.00, 1.00, np.nan, np.nan],
-               [1.00, 1.00, 1.00, np.nan, np.nan],
-               [np.nan, np.nan, np.nan, np.nan, np.nan]]],
-             [[[np.nan, 1.00, 1.00, 1.00, 1.00],
-               [np.nan, 0.50, 0.75, 0.75, 1.00],
-               [np.nan, 0.50, 0.75, 0.75, 1.00],
-               [np.nan, 0.00, 0.50, 0.50, 1.00],
-               [np.nan, np.nan, np.nan, np.nan, np.nan]]],
-             [[[np.nan, np.nan, np.nan, np.nan, np.nan],
-               [np.nan, np.nan, np.nan, np.nan, np.nan],
-               [np.nan, np.nan, 1.00, 1.00, 1.00],
-               [np.nan, np.nan, 1.00, 1.00, 1.00],
-               [np.nan, np.nan, 1.00, 1.00, 1.00]]]])
+            [[[1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan, np.nan]],
+             [[np.nan, 1.00, 1.00, 1.00, 1.00],
+              [np.nan, 0.50, 0.75, 0.75, 1.00],
+              [np.nan, 0.50, 0.75, 0.75, 1.00],
+              [np.nan, 0.00, 0.50, 0.50, 1.00],
+              [np.nan, np.nan, np.nan, np.nan, np.nan]],
+             [[np.nan, np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, 1.00, 1.00, 1.00],
+              [np.nan, np.nan, 1.00, 1.00, 1.00],
+              [np.nan, np.nan, 1.00, 1.00, 1.00]]])
         coord_for_masking = "topographic_zone"
         radii = 2000
+        num_zones = len(self.mask_cube.coord(coord_for_masking).points)
+        expected_shape = tuple(
+            [num_zones] + list(self.cube.data.shape))
         result = ApplyNeighbourhoodProcessingWithAMask(
             coord_for_masking, radii).process(self.cube, self.mask_cube)
+        self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
 

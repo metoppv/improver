@@ -197,22 +197,24 @@ class Test_process(IrisTest):
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            timesteps=np.array([402192.5, 402195.5]),
                            realizations=np.array([0, 1]))
+        orig_shape = cube.data.copy().shape
         result = OccurrenceWithinVicinity(self.distance).process(cube)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_with_multiple_realizations(self):
         """Test for multiple realizations, so that multiple
         iterations will be required within the process method."""
         expected = np.array(
-            [[[0., 0., 0., 0.],
-              [1., 1., 1., 0.],
-              [1., 1., 1., 0.],
-              [1., 1., 1., 0.]],
-             [[0., 0., 1., 1.],
-              [0., 0., 1., 1.],
-              [0., 0., 1., 1.],
-              [0., 0., 0., 0.]]])
+            [[[[0., 0., 0., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.]]],
+             [[[0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 0., 0.]]]])
         data = np.zeros((2, 1, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[1, 0, 1, 3] = 1.0
@@ -226,21 +228,23 @@ class Test_process(IrisTest):
         """Test for multiple times, so that multiple
         iterations will be required within the process method."""
         expected = np.array(
-            [[[0., 0., 0., 0.],
+           [[[[0., 0., 0., 0.],
               [1., 1., 1., 0.],
               [1., 1., 1., 0.],
               [1., 1., 1., 0.]],
              [[0., 0., 1., 1.],
               [0., 0., 1., 1.],
               [0., 0., 1., 1.],
-              [0., 0., 0., 0.]]])
+              [0., 0., 0., 0.]]]])
         data = np.zeros((1, 2, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[0, 1, 1, 3] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            timesteps=np.array([402192.5, 402195.5]))
+        orig_shape = cube.data.shape
         result = OccurrenceWithinVicinity(self.distance).process(cube)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_no_realization_or_time(self):
@@ -256,8 +260,10 @@ class Test_process(IrisTest):
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            realizations=np.array([0]))
         cube = iris.util.squeeze(cube)
+        orig_shape = cube.data.shape
         result = OccurrenceWithinVicinity(self.distance).process(cube)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
 

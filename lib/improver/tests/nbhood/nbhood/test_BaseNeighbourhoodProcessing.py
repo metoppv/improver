@@ -540,6 +540,26 @@ class Test_process(IrisTest):
         plugin = NBHood(neighbourhood_method, radii, lead_times)
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(cube.coord("forecast_period").units, "hours")
+
+    def test_radii_varying_with_lead_time_fp_seconds(self):
+        """
+        Test that a cube fp coord is unchanged by the lead time calculation.
+        """
+        cube = set_up_cube(num_time_points=3)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
+        time_points = cube.coord("time").points
+        fp_points = [2, 3, 4]
+        cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=fp_points)
+        cube.coord("forecast_period").convert_units("seconds")
+        radii = [10000, 20000, 30000]
+        lead_times = [2, 3, 4]
+        neighbourhood_method = CircularNeighbourhood()
+        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        result = plugin.process(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(cube.coord("forecast_period").units, "seconds")
 
     def test_radii_varying_with_lead_time_check_data(self):
         """

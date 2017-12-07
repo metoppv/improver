@@ -198,12 +198,10 @@ class BaseNeighbourhoodProcessing(object):
                        self.neighbourhood_method))
             raise ValueError(msg)
 
-        # Check if the realization coordinate exists. If there are multiple
-        # values for the realization, then an exception is raised. Otherwise,
-        # the cube is sliced, so that the realization becomes a scalar
-        # coordinate.
+        # Check if a dimensional realization coordinate exists. If so, the
+        # cube is sliced, so that it becomes a scalar coordinate.
         try:
-            realiz_coord = cube.coord('realization')
+            realiz_coord = cube.coord('realization', dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
             if 'source_realizations' in cube.attributes:
                 num_ens = len(cube.attributes['source_realizations'])
@@ -221,7 +219,7 @@ class BaseNeighbourhoodProcessing(object):
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        cubelist = iris.cube.CubeList([])
+        cubes_real = []
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
                 radius = self._find_radii(num_ens)
@@ -229,12 +227,14 @@ class BaseNeighbourhoodProcessing(object):
                     cube_realization, radius, mask_cube=mask_cube)
             else:
                 # Interpolate to find the radius at each required lead time.
-                required_radii = (self._find_radii(
+                fp_coord = forecast_period_coord(cube_realization)
+                fp_coord.convert_units("hours")
+                required_radii = self._find_radii(
                     num_ens,
-                    cube_lead_times=forecast_period_coord(
-                        cube_realization).points))
+                    cube_lead_times=fp_coord.points
+                )
 
-                cubes = iris.cube.CubeList([])
+                cubes_time = iris.cube.CubeList([])
                 # Find the number of grid cells required for creating the
                 # neighbourhood, and then apply the neighbourhood
                 # processing method to smooth the field.
@@ -243,15 +243,20 @@ class BaseNeighbourhoodProcessing(object):
                             required_radii)):
                     cube_slice = self.neighbourhood_method.run(
                         cube_slice, radius, mask_cube=mask_cube)
-                    cube_slice = iris.util.new_axis(cube_slice, "time")
-                    cubes.append(cube_slice)
-                cube_new = concatenate_cubes(cubes,
-                                             coords_to_slice_over=["time"])
-            if cube_new.coords("realization", dim_coords=False):
-                cube_new = iris.util.new_axis(cube_new, "realization")
-            cubelist.append(cube_new)
-        combined_cube = cubelist.concatenate_cube()
-        # Promote dimensional coordinates that have been demoted to scalars.
+                    cubes_time.append(cube_slice)
+                if len(cubes_time) > 1:
+                    cube_new = concatenate_cubes(
+                        cubes_time, coords_to_slice_over=["time"])
+                else:
+                    cube_new = cubes_time[0]
+            cubes_real.append(cube_new)
+        if len(cubes_real) > 1:
+            combined_cube = concatenate_cubes(
+                cubes_real, coords_to_slice_over=["realization"])
+        else:
+            combined_cube = cubes_real[0]
+
+        # Promote dimensional coordinates that used to be present.
         exception_coordinates = (
             find_dimension_coordinate_mismatch(
                 cube, combined_cube, two_way_mismatch=False))
