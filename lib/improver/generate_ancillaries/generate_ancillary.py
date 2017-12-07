@@ -52,7 +52,8 @@ def _make_mask_cube(
         topographic_bounds(list):
             List containing the lower and upper thresholds defining the mask
         topographic_units (string):
-            Name of the topographic units.
+            Name of the units of the topographic zone coordinate of the output
+            cube.
 
     Returns:
         mask_cube (cube):
