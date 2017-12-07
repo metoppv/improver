@@ -119,7 +119,7 @@ def _check_coord_type(cube, coord):
            coord (iris.coords.DimCoord or iris.coords.AuxCoord):
                Cube coordinate to check
     '''
-    coord_scalar = False
+    coord_scalar = True
     coord_aux = False
     cube_summary = cube.summary()
     aux_ind = cube_summary.find("Auxiliary")
@@ -241,6 +241,26 @@ class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
             _associate_any_coordinate_with_master_coordinate(
                 cube1, master_coord="time",
                 coordinates=["forecast_reference_time", "forecast_period"])
+
+    def test_scalar_time_coordinate(self):
+        """Test that the retains scalar coordinates for the time,
+        forecast_period and forecast_reference_time coordinates, if these
+        coordinates are scalar within the input cube."""
+        cube = self.cube
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        cube.add_aux_coord(
+            DimCoord([402192.5], "forecast_reference_time", units=tunit))
+        cube.add_aux_coord(
+            DimCoord([0], "forecast_period", units="hours"))
+        cube = cube[:, 0, ...]
+        result = _associate_any_coordinate_with_master_coordinate(
+            cube, coordinates=["forecast_reference_time", "forecast_period"])
+        self.assertTrue(result.coords("time", dimensions=[]))
+        self.assertTrue(result.coords("forecast_period", dimensions=[]))
+        self.assertTrue(
+            result.coords("forecast_reference_time", dimensions=[]))
 
 
 class Test__slice_over_coordinate(IrisTest):

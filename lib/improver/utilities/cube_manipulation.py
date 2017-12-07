@@ -62,12 +62,26 @@ def _associate_any_coordinate_with_master_coordinate(
             cube as auxiliary coordinates and associated with the desired
             master coordinate.
 
+    Raises:
+        ValueError: If the master coordinate is not present on the cube.
+
     """
     if coordinates is None:
         coordinates = []
-    for coord in coordinates:
-        if cube.coords(coord):
-            if cube.coords(master_coord):
+
+    if not cube.coords(master_coord):
+        msg = (
+            "The master coordinate for associating other " +
+            "coordinates with is not present: " +
+            "master_coord: {}, other coordinates: {}".format(
+                master_coord, coordinates))
+        raise ValueError(msg)
+
+    # If the master_coord is not a dimension coordinate, then the other
+    # coordinates cannot be associated with it.
+    if len(cube.coords(master_coord, dim_coords=True)) > 0:
+        for coord in coordinates:
+            if cube.coords(coord):
                 temp_coord = cube.coord(coord)
                 cube.remove_coord(coord)
                 temp_aux_coord = (
@@ -80,13 +94,6 @@ def _associate_any_coordinate_with_master_coordinate(
                 cube.add_aux_coord(
                     temp_aux_coord,
                     data_dims=coord_names.index(master_coord))
-            else:
-                msg = (
-                    "The master coordinate for associating other " +
-                    "coordinates with is not present: " +
-                    "master_coord: {}, other coordinates: {}".format(
-                        master_coord, coordinates))
-                raise ValueError(msg)
     return cube
 
 
@@ -161,7 +168,7 @@ def concatenate_cubes(
             Cubes to be concatenated.
         coords_to_slice_over (List):
             Coordinates to be sliced over.
-        master_coord (String):
+        master_coord (String or None):
             Coordinate that the other coordinates will be associated with.
         coordinates_for_association (List):
             List of coordinates to be associated with the master_coord.
