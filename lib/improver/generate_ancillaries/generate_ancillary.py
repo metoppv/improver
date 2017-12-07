@@ -242,6 +242,8 @@ class GenerateOrographyBandAncils(object):
         Raises:
             KeyError: if the key does not match any in THRESHOLD_DICT.
         """
+        thresholds = Unit(units).convert(
+            np.array(thresholds), standard_orography.units)
         coords = standard_orography.coords()
         if key == 'land':  # regular topographical bands above land
             lower_threshold, upper_threshold = thresholds
@@ -255,7 +257,7 @@ class GenerateOrographyBandAncils(object):
             mask_data = self.sea_mask(standard_landmask.data, orog_band)
             mask_cube = _make_mask_cube(
                 mask_data, key, coords, topographic_bounds=thresholds,
-                topographic_units=units)
+                topographic_units=standard_orography.units)
         else:
             msg = 'Unknown threshold_dict key: {}'
             raise KeyError(msg.format(key))

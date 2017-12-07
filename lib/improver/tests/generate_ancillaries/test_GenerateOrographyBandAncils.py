@@ -31,6 +31,8 @@
 """Unit tests for the generate_ancillary.GenerateOrogBandAncils plugin."""
 
 import unittest
+
+from cf_units import Unit
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
@@ -46,7 +48,7 @@ def set_up_landmask_cube(landmask_data=None):
         landmask_data = np.array([[1, 0, 0],
                                   [1, 0, 0],
                                   [1, 1, 1]])
-    return Cube(landmask_data, long_name='test land')
+    return Cube(landmask_data, long_name='test land', units="1")
 
 
 def set_up_orography_cube(orog_data=None):
@@ -55,7 +57,7 @@ def set_up_orography_cube(orog_data=None):
         orog_data = np.array([[10., 0., 0.],
                               [20., 100., 15.],
                               [-10., 100., 40.]])
-    return Cube(orog_data, long_name='test orog')
+    return Cube(orog_data, long_name='test orog', units="m")
 
 
 class Test_sea_mask(IrisTest):
@@ -230,6 +232,16 @@ class Test_gen_orography_masks(IrisTest):
                                    [0.0, 0.0, 0.0]]])
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_unit_conversion_for_landband_data(self):
+        """test correct mask is produced for land bands > 0m"""
+        land_threshold = [0, 0.05]
+        threshold_units = "km"
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.land_key,
+            land_threshold, units=threshold_units)
+        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
+        self.assertEqual(result.coord("topographic_zone").units, Unit("m"))
+
 
 class Test_process(IrisTest):
     """
@@ -238,14 +250,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """setting up test input and output data sets"""
-        landmask_data = np.array([[1, 0, 0],
-                                  [1, 0, 0],
-                                  [1, 1, 1]])
-        self.landmask = Cube(landmask_data, long_name='test land')
-        orog_data = np.array([[10., 0., 0.],
-                              [20., 100., 15.],
-                              [-10., 100., 40.]])
-        self.orography = Cube(orog_data, long_name='test orog')
+        self.landmask = set_up_landmask_cube()
+        self.orography = set_up_orography_cube()
         self.threshold_dict = {'land': {'bounds': [[-10, 0], [0, 50]],
                                         'units': 'm'}}
 
