@@ -243,7 +243,7 @@ class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
                 coordinates=["forecast_reference_time", "forecast_period"])
 
     def test_scalar_time_coordinate(self):
-        """Test that the retains scalar coordinates for the time,
+        """Test that the output cube retains scalar coordinates for the time,
         forecast_period and forecast_reference_time coordinates, if these
         coordinates are scalar within the input cube."""
         cube = self.cube

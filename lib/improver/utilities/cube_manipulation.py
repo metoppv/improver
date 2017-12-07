@@ -168,7 +168,7 @@ def concatenate_cubes(
             Cubes to be concatenated.
         coords_to_slice_over (List):
             Coordinates to be sliced over.
-        master_coord (String or None):
+        master_coord (String):
             Coordinate that the other coordinates will be associated with.
         coordinates_for_association (List):
             List of coordinates to be associated with the master_coord.
