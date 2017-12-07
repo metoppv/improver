@@ -79,9 +79,9 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
                                      [[0.0, 0.0],
                                       [0.25, 0.5]]])
         topographic_zone_weights = np.array([[[1.0, 1.0],
-                                            [0.75, 0.5]],
-                                           [[0.0, 0.0],
-                                            [0.0, 0.0]]])
+                                              [0.75, 0.5]],
+                                             [[0.0, 0.0],
+                                              [0.0, 0.0]]])
         orography_band = np.array([[25., 50.],
                                    [75., 100.]])
         midpoint = 50.
@@ -125,9 +125,9 @@ class Test_add_weight_to_upper_adjacent_band(IrisTest):
                                      [[0.25, 0.3],
                                       [0.4, 0.45]]])
         topographic_zone_weights = np.array([[[0.75, 0.7],
-                                            [0.6, 0.55]],
-                                           [[0.0, 0.0],
-                                            [0.0, 0.0]]])
+                                              [0.6, 0.55]],
+                                             [[0.0, 0.0],
+                                              [0.0, 0.0]]])
         orography_band = np.array([[75., 80.],
                                    [90., 95.]])
         midpoint = 50.
@@ -174,9 +174,9 @@ class Test_add_weight_to_lower_adjacent_band(IrisTest):
                                      [[0.75, 1.0],
                                       [1.0, 1.0]]])
         topographic_zone_weights = np.array([[[0.0, 0.0],
-                                            [0.0, 0.0]],
-                                           [[0.75, 1.0],
-                                            [1.0, 1.0]]])
+                                              [0.0, 0.0]],
+                                             [[0.75, 1.0],
+                                              [1.0, 1.0]]])
         orography_band = np.array([[25., 50.],
                                    [75., 100.]])
         midpoint = 50.

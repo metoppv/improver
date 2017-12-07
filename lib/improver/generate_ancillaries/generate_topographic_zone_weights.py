@@ -30,11 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating the weights for topographic zones."""
 
+import warnings
+
 from cf_units import Unit
-import numpy as np
 import iris
 from iris.exceptions import InvalidCubeError
-import warnings
+import numpy as np
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils, _make_mask_cube)
