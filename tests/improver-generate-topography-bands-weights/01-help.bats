@@ -1,17 +1,21 @@
 #!/usr/bin/env bats
 
 @test "generate-topographybands-ancillary -h" {
-  run improver generate-topographybands-ancillary -h
+  run improver generate-topography-bands-mask -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-generate-topographybands-ancillary [-h] [--force]
-                                                   [--thresholds_filepath THRESHOLDS_FILEPATH]
-                                                   INPUT_FILE_STANDARD_OROGRAPHY
-                                                   INPUT_FILE_LAND OUTPUT_FILE
+usage: improver-generate-topography-bands-weights [-h] [--force]
+                                                  [--thresholds_filepath THRESHOLDS_FILEPATH]
+                                                  INPUT_FILE_STANDARD_OROGRAPHY
+                                                  INPUT_FILE_LAND OUTPUT_FILE
 
-Read input orography and landmask fields. Return a a cube of masks, where each
-mask excludes data below or equal to the lower threshold, and excludes data
-above the upper threshold.
+Read input orography and landmask fields. Return a a cube of topographic zone
+weights to indicate where an orography point sits within the defined
+topographic bands. If the orography point is in the centre of a topographic
+band, then a single band will have a weight of 1.0. If the orography point is
+at the edge of a topographic band, then the upper band will have a 0.5 weight
+whilst the lower band will also have a 0.5 weight. Otherwise, the weight will
+vary linearly between the centre of a topographic band and the edge.
 
 positional arguments:
   INPUT_FILE_STANDARD_OROGRAPHY
