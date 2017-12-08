@@ -209,7 +209,8 @@ class GenerateTopographicZoneWeights(object):
             orography.units)
 
         # Read bands from cube, now that they can be guaranteed to be in the
-        # same units as the orography.
+        # same units as the orography. The bands are converted to a list, so
+        # that they can be iterated through.
         bands = list(topographic_zone_weights.coord("topographic_zone").bounds)
         midpoints = topographic_zone_weights.coord("topographic_zone").points
 
