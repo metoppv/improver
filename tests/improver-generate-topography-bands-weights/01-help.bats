@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 @test "generate-topographybands-ancillary -h" {
-  run improver generate-topography-bands-mask -h
+  run improver generate-topography-bands-weights -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-generate-topography-bands-weights [-h] [--force]

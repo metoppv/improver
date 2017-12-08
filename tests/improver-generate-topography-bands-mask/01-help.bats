@@ -8,12 +8,6 @@ usage: improver-generate-topography-bands-mask [-h] [--force]
                                                [--thresholds_filepath THRESHOLDS_FILEPATH]
                                                INPUT_FILE_STANDARD_OROGRAPHY
                                                INPUT_FILE_LAND OUTPUT_FILE
-improver-generate-topography-bands-mask: error: too few arguments
-bash-4.1$ improver-generate-topography-bands-mask -h
-usage: improver-generate-topography-bands-mask [-h] [--force]
-                                               [--thresholds_filepath THRESHOLDS_FILEPATH]
-                                               INPUT_FILE_STANDARD_OROGRAPHY
-                                               INPUT_FILE_LAND OUTPUT_FILE
 
 Read input orography and landmask fields. Return a a cube of masks, where each
 mask excludes data below or equal to the lower threshold, and excludes data
