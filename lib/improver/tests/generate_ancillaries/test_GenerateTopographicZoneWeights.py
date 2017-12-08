@@ -311,7 +311,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.orography, self.landmask, self.thresholds_dict)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "Topographic_zone_weights")
+        self.assertEqual(result.name(), "topographic_zone_weights")
         self.assertEqual(result.units, Unit("1"))
         self.assertTrue(result.coord("topographic_zone"))
         self.assertEqual(result.coord("topographic_zone").units, Unit("m"))
