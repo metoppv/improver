@@ -262,7 +262,7 @@ class GenerateTopographicZoneWeights(object):
                     len(bands)-1))
 
         # Metadata updates
-        topographic_zone_weights.rename("Topographic_zone_weights")
+        topographic_zone_weights.rename("topographic_zone_weights")
         topographic_zone_weights.units = Unit("1")
 
         # Mask output weights using a land-sea mask.
