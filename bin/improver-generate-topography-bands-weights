@@ -114,7 +114,6 @@ def main():
         landmask = find_standard_ancil(args.input_filepath_landmask, msg)
         result = GenerateTopographicZoneWeights().process(
             orography, landmask, thresholds_dict)
-        print "result = ", result
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
