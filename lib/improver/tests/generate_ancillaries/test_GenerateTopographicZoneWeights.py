@@ -369,6 +369,42 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.data, expected_weights_data, decimal=2)
 
+    def test_data_no_mask_three_bands(self):
+        """Test that the result data is as expected, when none of the points
+        are masked and there are three bands defined."""
+        orography_data = np.array([[[[10., 40., 45],
+                                     [70., 80., 95],
+                                     [115., 135., 145]]]])
+        orography = set_up_cube(
+            orography_data, "altitude", "m", realizations=np.array([0]),
+            y_dimension_length=3, x_dimension_length=3)
+        orography = orography[0, 0, ...]
+        orography.remove_coord("realization")
+        orography.remove_coord("time")
+
+        landmask_data = np.array([[1, 1, 1],
+                                  [1, 1, 1],
+                                  [1, 1, 1]])
+        landmask = orography.copy(data=landmask_data)
+        landmask.rename("land_binary_mask")
+        landmask.units = Unit("1")
+
+        thresholds_dict = {'land': {'bounds': [[0, 50], [50, 100], [100, 150]],
+                                    'units': 'm'}}
+        expected_weights_data = np.array([[[1.0, 0.7, 0.6],
+                                           [0.1, 0.0, 0.0],
+                                           [0.0, 0.0, 0.0]],
+                                          [[0.0, 0.3, 0.4],
+                                           [0.9, 0.9, 0.6],
+                                           [0.2, 0.0, 0.0]],
+                                          [[0.0, 0.0, 0.0],
+                                           [0.0, 0.1, 0.4],
+                                           [0.8, 1.0, 1.0]]])
+        result = self.plugin.process(orography, landmask, thresholds_dict)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result.data, expected_weights_data, decimal=2)
+
     def test_different_band_units(self):
         """Test for if the thresholds are specified in a different unit to
         the orography. The thresholds are converted to match the units of the

@@ -80,19 +80,18 @@ class GenerateTopographicZoneWeights(object):
 
         """
         weights = topographic_zone_weights[band_number]
-        weights_in_adjacent_band = np.zeros(weights.shape)
 
         # For points above the midpoint.
-        mask_y, mask_x = np.where(orography_band > midpoint)
+        with np.errstate(invalid='ignore'):
+            mask_y, mask_x = np.where(orography_band > midpoint)
         if band_number == max_band_number:
-            weights_in_adjacent_band[mask_y, mask_x] = 1.0
             adjacent_band_number = band_number
+            topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
+                1.0)
         else:
-            weights_in_adjacent_band[mask_y, mask_x] = (
-                1 - weights[mask_y, mask_x])
             adjacent_band_number = band_number+1
-        topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
-            weights_in_adjacent_band[mask_y, mask_x])
+            topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
+                1 - weights[mask_y, mask_x])
         return topographic_zone_weights
 
     @staticmethod
@@ -106,7 +105,7 @@ class GenerateTopographicZoneWeights(object):
             topographic_zone_weights (np.ndarray):
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (float):
+            orography_band (np.ndarray):
                 All points within the orography band of interest.
             midpoint (float):
                 The midpoint of the band the point is in.
@@ -122,19 +121,18 @@ class GenerateTopographicZoneWeights(object):
 
         """
         weights = topographic_zone_weights[band_number]
-        weights_in_adjacent_band = np.zeros(weights.shape)
 
         # For points below the midpoint.
-        mask_y, mask_x = np.where(orography_band < midpoint)
+        with np.errstate(invalid='ignore'):
+            mask_y, mask_x = np.where(orography_band < midpoint)
         if band_number == 0:
-            weights_in_adjacent_band[mask_y, mask_x] = 1.0
             adjacent_band_number = band_number
+            topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
+                1.0)
         else:
-            weights_in_adjacent_band[mask_y, mask_x] = (
-                1 - weights[mask_y, mask_x])
             adjacent_band_number = band_number-1
-        topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
-            weights_in_adjacent_band[mask_y, mask_x])
+            topographic_zone_weights[adjacent_band_number, mask_y, mask_x] = (
+                1 - weights[mask_y, mask_x])
         return topographic_zone_weights
 
     @staticmethod
@@ -211,8 +209,7 @@ class GenerateTopographicZoneWeights(object):
             orography.units)
 
         # Read bands from cube, now that they can be guaranteed to be in the
-        # same units as the orography. The bands are converted to a list, so
-        # that they can be iterated through.
+        # same units as the orography.
         bands = list(topographic_zone_weights.coord("topographic_zone").bounds)
         midpoints = topographic_zone_weights.coord("topographic_zone").points
 
@@ -238,11 +235,13 @@ class GenerateTopographicZoneWeights(object):
             mask_y, mask_x = (
                 np.where((orography.data > band[0]) &
                          (orography.data <= band[1])))
+            orography_band = np.full(orography.shape, np.nan)
+            orography_band[mask_y, mask_x] = orography.data[mask_y, mask_x]
 
             # Calculate the weights. This involves calculating the
             # weights for all the orography but only inserting weights
             # that are within the band into the topographic_zone_weights cube.
-            weights = self.calculate_weights(orography.data, band)
+            weights = self.calculate_weights(orography_band, band)
             topographic_zone_weights.data[band_number, mask_y, mask_x] = (
                 weights[mask_y, mask_x])
 
@@ -250,14 +249,14 @@ class GenerateTopographicZoneWeights(object):
             # lower band.
             topographic_zone_weights.data = (
                 self.add_weight_to_lower_adjacent_band(
-                    topographic_zone_weights.data, orography.data,
+                    topographic_zone_weights.data, orography_band,
                     midpoints[band_number], band_number))
 
             # Calculate the contribution to the weights from the adjacent
             # upper band.
             topographic_zone_weights.data = (
                 self.add_weight_to_upper_adjacent_band(
-                    topographic_zone_weights.data, orography.data,
+                    topographic_zone_weights.data, orography_band,
                     midpoints[band_number], band_number,
                     len(bands)-1))
 
