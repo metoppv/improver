@@ -59,8 +59,8 @@ bounds_for_ecdf = {
     "cloud_area_fraction": bounds((0, 1.0), "1"),
     "low_type_cloud_area_fraction": bounds((0, 1.0), "1"),
     "rainfall_rate": bounds((0, 0.00003), "m s-1"),
-    "lwe_rainfall_rate": bounds((0, 0.00003), "m s-1"),
-    "snowfall_rate": bounds((0, 0.00001), "m s-1"),
+    "rainfall_rate_in_vicinity": bounds((0, 0.00003), "m s-1"),
     "lwe_snowfall_rate": bounds((0, 0.00001), "m s-1"),
+    "lwe_snowfall_rate_in_vicinity": bounds((0, 0.00001), "m s-1"),
     "visibility_in_air": bounds((0, 10000), "m")
 }
