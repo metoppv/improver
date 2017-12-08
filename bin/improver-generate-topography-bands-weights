@@ -34,13 +34,14 @@
 import argparse
 import os
 import iris
-iris.FUTURE.netcdf_promote = True
 import json
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
 from improver.generate_ancillaries.generate_ancillary import (
     find_standard_ancil)
+
+iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
 #    above/below sea level for which masks are required.
