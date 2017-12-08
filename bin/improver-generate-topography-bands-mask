@@ -41,6 +41,8 @@ from improver.generate_ancillaries.generate_ancillary import (
 from improver.generate_ancillaries.generate_ancillary import (
     find_standard_ancil)
 
+iris.FUTURE.netcdf_promote = True
+
 # The following dictionary defines the orography altitude bands in metres
 #    above/below sea level for which masks are required.
 #   'land': land points outside the altitude band are set to 0 and those
