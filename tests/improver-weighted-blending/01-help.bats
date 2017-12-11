@@ -45,7 +45,8 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
+                                  WEIGHTED_BLEND_MODE INPUT_FILES
+                                  [INPUT_FILES ...] OUTPUT_FILE
 
 Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
@@ -67,7 +68,7 @@ positional arguments:
                         across the coordinate. "weighted_maximum": multiplies
                         the values in the coordinate by the weights, and then
                         takes the maximum.
-  INPUT_FILE            A path to an input NetCDF file to be processed.
+  INPUT_FILES           Paths to input files to be blended.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:

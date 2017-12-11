@@ -45,7 +45,8 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILE OUTPUT_FILE
+                                  WEIGHTED_BLEND_MODE INPUT_FILES
+                                  [INPUT_FILES ...] OUTPUT_FILE
 improver-weighted-blending: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
