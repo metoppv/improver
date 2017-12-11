@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
+from collections import OrderedDict
+
 import iris
 
 
@@ -53,6 +55,8 @@ def load(filepath, constraints=None):
     cube = enforce_coordinate_order(
         cube, ["realization", "percentile_over", "probability"])
     # Ensure the y and x dimension are last.
+    y_name = cube.coord(axis="y").name()
+    x_name = cube.coord(axis="x").name()
     cube = enforce_coordinate_order(
-        cube, {"y": "axis", "x": "axis"}, anchor="end")
+        cube, [y_name, x_name], anchor="end")
     return cube
