@@ -58,7 +58,7 @@ from improver.utilities.cube_manipulation import (
     compare_coords,
     build_coordinate,
     add_renamed_cell_method,
-    sort_coord_in_cube)
+    sort_coord_in_cube, ensure_coordinate_ordering)
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
@@ -1537,6 +1537,69 @@ class Test_sort_coord_in_cube(IrisTest):
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
             self.assertIsInstance(result, iris.cube.Cube)
+
+
+class Test_ensure_dimension_is_the_zeroth_dimension(IrisTest):
+
+    """
+    Test the ensure_dimension_is_the_zeroth_dimension
+    utility.
+    """
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the function returns an iris.cube.Cube."""
+        result = (
+            ensure_dimension_is_the_zeroth_dimension(self.cube, "realization"))
+        self.assertIsInstance(result, Cube)
+
+    def test_if_probabilistic_dimension_is_first(self):
+        """
+        Test that a cube with the expected data contents is returned when
+        the probabilistic dimension is the first dimension coordinate.
+        """
+        result = (
+            ensure_dimension_is_the_zeroth_dimension(self.cube, "realization"))
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+
+    def test_if_probabilistic_dimension_is_not_first(self):
+        """
+        Test that a cube with the expected data contents is returned when
+        the probabilistic dimension is a dimension coordinate but it is
+        not the first dimension coordinate,.
+        """
+        expected = self.cube.copy()
+        expected.transpose([0, 3, 2, 1])
+
+        cube = self.cube.copy()
+        cube.transpose([3, 2, 1, 0])
+        result = (
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization"))
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_if_probabilistic_dimension_is_scalar(self):
+        """
+        Test that a cube with the expected data contents is returned when
+        the probabilistic dimension is a scalar coordinate.
+        """
+        cube = self.cube[0, :, :, :]
+        result = (
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization"))
+        self.assertArrayAlmostEqual(result.data, [cube.data])
+
+    def test_if_probabilistic_dimension_not_available(self):
+        """
+        Test that the expected error message is raised when the required
+        probabilistic dimension is not available in the cube.
+        """
+        cube = self.cube[0, :, :, :]
+        cube.remove_coord("realization")
+        msg = "not a dimension coordinate"
+        with self.assertRaisesRegexp(ValueError, msg):
+            ensure_dimension_is_the_zeroth_dimension(cube, "realization")
 
 
 if __name__ == '__main__':

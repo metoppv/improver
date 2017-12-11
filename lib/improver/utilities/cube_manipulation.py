@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for cube manipulation."""
 
+from collections import OrderedDict
 import warnings
 import numpy as np
 
@@ -685,3 +686,103 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     elif coord in ["height"] and order == "descending":
         cube.coord(coord).attributes["positive"] = "down"
     return cube[tuple(index)]
+
+
+def ensure_coordinate_ordering(
+        cube, coord_definitions, anchor="start", desired_ordering=None,
+        raise_exception=True):
+    """
+    Function to ensure that the requested coordinate within the cube is
+    the first dimension within the cube.
+
+    If the requested dimension coordinate exists, the cube is transposed.
+    If the requested coordinate exists, but it is not a dimension coordinate
+    i.e. a scalar coordinate, then a new axis is created with the scalar
+    coordinate becoming a dimension coordinate.
+    If the coordinate is not present on the cube, then an error is raised.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube where the requirement for the required dimension to be the
+            first dimension will be enforced.
+        coord_definitions (list or dict):
+            List of the names of the coordinates to order.
+        anchor (str):
+            String to define where within the range of possible dimensions
+            the specified coordinates should be located. This could be either:
+            "start" or "end".
+        desired_ordering (list or None):
+
+        raise_exception (bool):
+
+    """
+    if isinstance(coord_definitions, list):
+        name_list = ["name"] * len(coord_definitions)
+        coord_definitions = OrderedDict(zip(coord_definitions, name_list))
+
+    if anchor not in ["start", "end"]:
+        msg = ("The value for the anchor must be either 'start' or 'end'."
+               "The value specified for the anchor was {}".format(anchor))
+        raise ValueError(msg)
+
+    #if desired_ordering:
+        #if len(coord_definitions) != len(desired_ordering):
+            #msg = ("The number of coordinates: {} is not equal to the number of "
+                   #"values provided for the ordering.: {} The number of "
+                   #"coordinates must equal the number of values provided "
+                   #"for the ordering.".format(coord_definitions, desired_ordering))
+            #raise ValueError(msg)
+
+    coord_indices = np.array(range(len(coord_definitions.keys())))
+    if anchor == "end":
+        coord_indices = sorted(len(cube.dim_coords) - coord_indices)
+
+    for coord_index, coord_identifier in zip(
+            coord_indices, coord_definitions.keys()):
+        # Deal with the coord_name being a partial match to the actual
+        # coordinate name.
+        if coord_definitions[coord_identifier] == "name":
+            coord_name = [c for c in cube.coords if coord_name in c]
+            coord_definitions[coord_identifier] = coord_name
+        elif coord_definitions[coord_identifier] == "axis":
+            coord_name = cube.coords(axis=coord_identifier).name()
+
+        if cube.coords(coord_name, dim_coords=True):
+            if cube.coord_dims(coord_name)[0] != coord_index:
+                remaining_coords = []
+                for acoord in cube.coords(dim_coords=True):
+                    if acoord.name() not in [coords]:
+                        remaining_coords.append(cube.coord_dims(acoord)[0])
+            remaining_coords = list(set(remaining_coords))
+        elif cube.coords(coord, dim_coords=False):
+            cube = iris.util.new_axis(cube, coord)
+        elif raise_exception:
+            msg = ("The coordinate {} is not a dimension coordinate "
+                  "in the cube: {}".format(coord, cube))
+            raise ValueError(msg)
+
+    coord_dims = []
+    for coord in enumerate(coords):
+        if cube.coords(coord, dim_coords=True):
+            coord_dims.append(cube.coord_dims(coord)[0])
+
+    if anchor == "start":
+        cube.transpose(coord_dims+remaining_coords)
+    elif anchor == "end":
+        cube.transpose(remaining_coords+coord_dims)
+
+    #if desired_ordering:
+        #if len(coords) == len(cube.dim_coords):
+            #cube.transpose(desired_ordering)
+        #else:
+            #coords_ordering = {zip(coords, desired_ordering)}
+            #cube_coords = range(len(cube.dim_coords))
+            #for coord in cube.dim_coords:
+                #if coord.name() in coords:
+                    #coord_dim = coords_ordering[coord.name()]
+                #else:
+                    #if
+                    #coord_dim = cube.coord_dims(coord)[0]
+                #cube_coords.append(coord_dim)
+        #cube.transpose(cube_coords)
+    return cube
