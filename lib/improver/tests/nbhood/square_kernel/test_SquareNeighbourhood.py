@@ -362,9 +362,9 @@ class Test__create_cube_with_new_data(IrisTest):
         """Test that a cube is created with the expected order for coordinates
         within the output cube, if the input cube has dimensions of
         realization, projection_y_coordinate and projection_x_coordinate."""
-        for sliced_cube in self.cube.slices(
-            ["realization", "projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["realization",
+                                             "projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
@@ -383,9 +383,8 @@ class Test__create_cube_with_new_data(IrisTest):
         within the output cube, if the input cube has dimensions of
         projection_y_coordinate and projection_x_coordinate, and where the
         input cube also has a forecast_period coordinate."""
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         fp_coord = DimCoord(np.array([10]), standard_name="forecast_period")
         sliced_cube.add_aux_coord(fp_coord)
@@ -433,9 +432,8 @@ class Test_pad_cube_with_halo(IrisTest):
     def test_basic(self):
         """Test that padding the data in a cube with a halo has worked as
         intended."""
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1., 1., 1.],
@@ -449,16 +447,15 @@ class Test_pad_cube_with_halo(IrisTest):
              [1., 1., 1., 1., 1., 1., 1., 1., 1.]])
         width_x = width_y = 1
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
     def test_different_widths(self):
         """Test that padding the data in a cube with different widths has
         worked as intended."""
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1., 1., 1.],
@@ -477,16 +474,15 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 1
         width_y = 2
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
     def test_zero_width(self):
         """Test that padding the data in a cube with a width of zero has
         worked as intended."""
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array(
             [[1., 1., 1., 1., 1.],
@@ -505,7 +501,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 0
         width_y = 2
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -523,14 +519,13 @@ class Test_remove_halo_from_cube(IrisTest):
     def test_basic(self):
         """Test that removing a halo of points from the data on a cube
         has worked as intended."""
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array([[0.]])
         width_x = width_y = 1
         padded_cube = SquareNeighbourhood().remove_halo_from_cube(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -540,9 +535,8 @@ class Test_remove_halo_from_cube(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 5, 5),), num_time_points=1,
             num_grid_points=10)
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array(
             [[1., 1., 1., 1., 1., 1.],
@@ -550,7 +544,7 @@ class Test_remove_halo_from_cube(IrisTest):
         width_x = 1
         width_y = 2
         padded_cube = SquareNeighbourhood().remove_halo_from_cube(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -560,9 +554,8 @@ class Test_remove_halo_from_cube(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 5, 5),), num_time_points=1,
             num_grid_points=10)
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
@@ -570,7 +563,7 @@ class Test_remove_halo_from_cube(IrisTest):
         width_x = 0
         width_y = 2
         padded_cube = SquareNeighbourhood().remove_halo_from_cube(
-                          sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -760,9 +753,8 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
             num_grid_points=3)
-        for sliced_cube in self.cube.slices(
-            ["projection_y_coordinate",
-             "projection_x_coordinate"]):
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
             break
         sliced_cube.remove_coord("realization")
         sliced_cube.remove_coord("time")
@@ -786,7 +778,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
              [-1.22222222, -1.22222222, 1., 1., 1.,
               1., -2.11111111],
              [-2.88888889, -3.66666667, -1.22222222, -1.22222222, -1.22222222,
-              -1.33333333,  1.66666667]])
+              -1.33333333, 1.66666667]])
         grid_cells_x = grid_cells_y = 1
         cubes = CubeList([self.cube])
         nbcubes = (
@@ -814,7 +806,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
              [-1.22222222, -1.22222222, 1., 1., 1.,
               1., -2.11111111],
              [-2.88888889, -3.66666667, -1.22222222, -1.22222222, -1.22222222,
-              -1.33333333,  1.66666667]])
+              -1.33333333, 1.66666667]])
         expected_mask = np.array(
             [[0.55555556, 0.77777778, -0.11111111, -0.44444444, -0.77777778,
               -1., 0.44444444],
@@ -1216,7 +1208,7 @@ class Test_run(IrisTest):
         for multiple times and for when nans are present."""
         expected_1 = np.array(
             [[np.nan, 0.666667, 0.88888889, 0.88888889, 1.],
-             [0.777778, 0.66666667, 0.77777778, 0.77777778,  1.],
+             [0.777778, 0.66666667, 0.77777778, 0.77777778, 1.],
              [1., 0.77777778, 0.77777778, 0.77777778, 1.],
              [1., 0.88888889, 0.88888889, 0.88888889, 1.],
              [1., 1., 1., 1., 1.]])

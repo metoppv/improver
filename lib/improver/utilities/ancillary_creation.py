@@ -42,28 +42,28 @@ class SaturatedVapourPressureTable(object):
     Plugin to create a saturated vapour pressure lookup table.
     """
 
-    def __init__(self, T_min=183.15, T_max=338.15, T_increment=0.1):
+    def __init__(self, t_min=183.15, t_max=338.15, t_increment=0.1):
         """
         Initialise class.
 
         Args:
-            T_min : float
+            t_min : float
                 The minimum temperature for the range.
-            T_max : float
+            t_max : float
                 The maximum temperature for the range.
-            T_increment : float
+            t_increment : float
                 The temperature increment at which to create values for the
-                saturated vapour pressure between T_min and T_max.
+                saturated vapour pressure between t_min and t_max.
         """
-        self.T_min = T_min
-        self.T_max = T_max
-        self.T_increment = T_increment
+        self.t_min = t_min
+        self.t_max = t_max
+        self.t_increment = t_increment
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SaturatedVapourPressureTable: T_min: {}; T_max: {}; '
-                  'T_increment: {}>'.format(self.T_min, self.T_max,
-                                            self.T_increment))
+        result = ('<SaturatedVapourPressureTable: t_min: {}; t_max: {}; '
+                  't_increment: {}>'.format(self.t_min, self.t_max,
+                                            self.t_increment))
         return result
 
     def process(self):
@@ -75,10 +75,10 @@ class SaturatedVapourPressureTable(object):
         Returns:
             svp : iris.cube.Cube
                A cube of saturated vapour pressure values at temperature
-               points defined by T_min, T_max, and T_increment (defined above).
+               points defined by t_min, t_max, and t_increment (defined above).
         """
-        temperatures = np.arange(self.T_min, self.T_max + 0.5*self.T_increment,
-                                 self.T_increment)
+        temperatures = np.arange(self.t_min, self.t_max + 0.5*self.t_increment,
+                                 self.t_increment)
         temperature = iris.cube.Cube(temperatures, 'air_temperature',
                                      units='K')
 
@@ -88,8 +88,8 @@ class SaturatedVapourPressureTable(object):
             temperature.data, 'air_temperature', units='K')
 
         svp.add_dim_coord(temperature_coord, 0)
-        svp.attributes['minimum_temperature'] = self.T_min
-        svp.attributes['maximum_temperature'] = self.T_max
-        svp.attributes['temperature_increment'] = self.T_increment
+        svp.attributes['minimum_temperature'] = self.t_min
+        svp.attributes['maximum_temperature'] = self.t_max
+        svp.attributes['temperature_increment'] = self.t_increment
 
         return svp

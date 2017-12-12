@@ -34,8 +34,8 @@ from collections import namedtuple
 
 from improver.constants import ABSOLUTE_ZERO
 
-# Define a namedtuple for use in the bounds_for_ecdf dictionary.
-bounds = namedtuple("bounds", "value units")
+# Define a namedtuple class for use in the bounds_for_ecdf dictionary.
+Bounds = namedtuple("bounds", "value units")
 
 # For the creation of an empirical cumulative distribution function,
 # the following dictionary specifies the end points of the distribution,
@@ -49,18 +49,18 @@ bounds = namedtuple("bounds", "value units")
 
 # 0.00003 ms-1 ~ 100 mm hr-1 for rainfall. Divided by 3 as a guess for snow!
 
-bounds_for_ecdf = {
+BOUNDS_FOR_ECDF = {
     "air_temperature": (
-        bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
-    "wind_speed": bounds((0, 50), "m s^-1"),
-    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa"),
+        Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
+    "wind_speed": Bounds((0, 50), "m s^-1"),
+    "air_pressure_at_sea_level": Bounds((94000, 107000), "Pa"),
     ("cloud_base_altitude_assuming_only_consider_cloud_area" +
-     "_fraction_greater_than_2p5_oktas"): bounds((-300, 20000), "m"),
-    "cloud_area_fraction": bounds((0, 1.0), "1"),
-    "low_type_cloud_area_fraction": bounds((0, 1.0), "1"),
-    "rainfall_rate": bounds((0, 0.00003), "m s-1"),
-    "rainfall_rate_in_vicinity": bounds((0, 0.00003), "m s-1"),
-    "lwe_snowfall_rate": bounds((0, 0.00001), "m s-1"),
-    "lwe_snowfall_rate_in_vicinity": bounds((0, 0.00001), "m s-1"),
-    "visibility_in_air": bounds((0, 100000), "m")
+     "_fraction_greater_than_2p5_oktas"): Bounds((-300, 20000), "m"),
+    "cloud_area_fraction": Bounds((0, 1.0), "1"),
+    "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
+    "rainfall_rate": Bounds((0, 0.00003), "m s-1"),
+    "rainfall_rate_in_vicinity": Bounds((0, 0.00003), "m s-1"),
+    "lwe_snowfall_rate": Bounds((0, 0.00001), "m s-1"),
+    "lwe_snowfall_rate_in_vicinity": Bounds((0, 0.00001), "m s-1"),
+    "visibility_in_air": Bounds((0, 100000), "m")
 }

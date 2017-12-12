@@ -42,7 +42,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import bounds_for_ecdf
+    import BOUNDS_FOR_ECDF
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
@@ -197,12 +197,12 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
     bounds_pairing to the desired_units.
 
     This method gets the bounds values and units from the imported
-    dictionaries: bounds_for_ecdf and units_of_bounds_for_ecdf.
+    dictionaries: BOUNDS_FOR_ECDF and units_of_BOUNDS_FOR_ECDF.
     The units of the bounds are converted to be the desired units.
 
     Args:
         bounds_pairing_key (String):
-            Name of key to be used for the bounds_for_ecdf dictionary, in order
+            Name of key to be used for the BOUNDS_FOR_ECDF dictionary, in order
             to get the desired bounds_pairing.
         desired_units (cf_units.Unit):
             Units to which the bounds_pairing will be converted.
@@ -216,13 +216,13 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
     """
     # Extract bounds from dictionary of constants.
     try:
-        bounds_pairing = bounds_for_ecdf[bounds_pairing_key].value
-        bounds_pairing_units = bounds_for_ecdf[bounds_pairing_key].units
+        bounds_pairing = BOUNDS_FOR_ECDF[bounds_pairing_key].value
+        bounds_pairing_units = BOUNDS_FOR_ECDF[bounds_pairing_key].units
     except KeyError as err:
         msg = ("The bounds_pairing_key: {} is not recognised "
-               "within bounds_for_ecdf {}. \n"
+               "within BOUNDS_FOR_ECDF {}. \n"
                "Error: {}".format(
-                   bounds_pairing_key, bounds_for_ecdf, err))
+                   bounds_pairing_key, BOUNDS_FOR_ECDF, err))
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(

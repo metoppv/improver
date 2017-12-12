@@ -5,3 +5,12 @@ extension-pkg-whitelist=numpy,scipy
 ignored-classes=data,list,tuple,WeightedAggregator,MaskedArray,PercentileAggregator
 ignored-modules=numpy,scipy,scipy.stats,cartopy.crs
 
+[BASIC]
+good-names=i,j,k,x,y,z,dx,dy,dz,dt,_
+class-rgx=((Test_[a-zA-Z0-9_]+)|([A-Z_][a-zA-Z0-9_]{2,30}))$
+method-rgx=((test_[a-zA-Z0-9_]+)|([a-z_][a-z0-9_]{2,30}))$
+module-rgx=(test_[a-zA-Z0-9]+)$|([a-z_][a-z0-9_]*)$|([A-Z][a-zA-Z0-9]+)$
+
+[DESIGN]
+max-args=12
+max-locals=20

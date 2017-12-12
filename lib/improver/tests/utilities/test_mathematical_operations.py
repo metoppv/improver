@@ -277,9 +277,9 @@ class Test_perform_integration(IrisTest):
             Integration(
                 coord_name, direction_of_integration=direction
                 ).perform_integration(
-                      self.negative_upper_bounds_cube,
-                      self.negative_lower_bounds_cube,
-                      self.negative_integrated_cube))
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5., 10.]))
@@ -300,9 +300,9 @@ class Test_perform_integration(IrisTest):
             Integration(
                 coord_name, direction_of_integration=direction
                 ).perform_integration(
-                      self.negative_upper_bounds_cube,
-                      self.negative_lower_bounds_cube,
-                      self.negative_integrated_cube))
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5., 10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -326,9 +326,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.positive_upper_bounds_cube,
-                      self.positive_lower_bounds_cube,
-                      self.positive_integrated_cube))
+                    self.positive_upper_bounds_cube,
+                    self.positive_lower_bounds_cube,
+                    self.positive_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -352,9 +352,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.negative_upper_bounds_cube,
-                      self.negative_lower_bounds_cube,
-                      self.negative_integrated_cube))
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -378,9 +378,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, end_point=end_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.positive_upper_bounds_cube,
-                      self.positive_lower_bounds_cube,
-                      self.positive_integrated_cube))
+                    self.positive_upper_bounds_cube,
+                    self.positive_lower_bounds_cube,
+                    self.positive_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -404,9 +404,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, end_point=end_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.negative_upper_bounds_cube,
-                      self.negative_lower_bounds_cube,
-                      self.negative_integrated_cube))
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -437,9 +437,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.positive_upper_bounds_cube,
-                      self.positive_lower_bounds_cube,
-                      self.positive_integrated_cube))
+                    self.positive_upper_bounds_cube,
+                    self.positive_lower_bounds_cube,
+                    self.positive_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -469,9 +469,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, end_point=end_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.negative_upper_bounds_cube,
-                      self.negative_lower_bounds_cube,
-                      self.negative_integrated_cube))
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -490,9 +490,9 @@ class Test_perform_integration(IrisTest):
                 coord_name, start_point=start_point,
                 direction_of_integration=direction
                 ).perform_integration(
-                      self.positive_upper_bounds_cube,
-                      self.positive_lower_bounds_cube,
-                      self.positive_integrated_cube)
+                    self.positive_upper_bounds_cube,
+                    self.positive_lower_bounds_cube,
+                    self.positive_integrated_cube)
 
 
 class Test_process(IrisTest):

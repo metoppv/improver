@@ -1069,8 +1069,8 @@ class EnsembleCalibration(object):
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 
         if (format_calibration_method(self.calibration_method) in
-            ["ensemble model output statistics",
-             "nonhomogeneous gaussian regression"]):
+                ["ensemble model output statistics",
+                 "nonhomogeneous gaussian regression"]):
             if (format_calibration_method(self.distribution) in
                     ["gaussian", "truncated gaussian"]):
                 ec = EstimateCoefficientsForEnsembleCalibration(
