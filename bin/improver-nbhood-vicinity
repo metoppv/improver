@@ -117,12 +117,12 @@ def main():
         lead_times = args.radii_by_lead_time[1].split(",")
 
     result = (
-            ProbabilityOfOccurrence(
-                args.vicinity_distance,
-                args.neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times, ens_factor=args.ens_factor,
-                weighted_mode=args.weighted_mode
-                ).process(cube))
+        ProbabilityOfOccurrence(
+            args.vicinity_distance,
+            args.neighbourhood_shape, radius_or_radii,
+            lead_times=lead_times, ens_factor=args.ens_factor,
+            weighted_mode=args.weighted_mode
+            ).process(cube))
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

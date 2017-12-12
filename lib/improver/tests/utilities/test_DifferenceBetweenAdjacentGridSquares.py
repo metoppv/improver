@@ -207,8 +207,8 @@ class Test_process(IrisTest):
         """Test that differences are calculated along both the x and
         y dimensions and returned as separate cubes."""
         expected_x = np.array([[1, 1],
-                              [2, 2],
-                              [5, 5]])
+                               [2, 2],
+                               [5, 5]])
         expected_y = np.array([[1, 2, 3],
                                [3, 6, 9]])
         result = self.plugin.process(self.cube)

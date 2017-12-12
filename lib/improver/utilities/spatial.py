@@ -31,7 +31,7 @@
 """ Provides support utilities."""
 
 import copy
-from iris.coords import CellMethod, DimCoord
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -67,15 +67,15 @@ def check_if_grid_is_equal_area(cube):
                        'projection_y_coordinate']:
         if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
             msg = ("Intervals between points along the {} axis vary."
-                   "Therefore the grid is not an equal area grid."
-                   ).format(coord_name)
+                   "Therefore the grid is not an equal area grid.")
+            msg = msg.format(coord_name)
             raise ValueError(msg)
     x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
     y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
     if abs(x_diff) != abs(y_diff):
         msg = ("The size of the intervals along the x and y axis "
-               "should be equal. x axis interval: {}, y axis interval: {}"
-               ).format(x_diff, y_diff)
+               "should be equal. x axis interval: {}, y axis interval: {}")
+        msg = msg.format(x_diff, y_diff)
         raise ValueError(msg)
 
 
@@ -118,7 +118,7 @@ def convert_distance_into_number_of_grid_cells(
     if distance > max_distance_of_domain:
         raise ValueError(
             ("Distance of {0}m exceeds max domain distance of {1}m".format(
-                 distance, max_distance_of_domain)))
+                distance, max_distance_of_domain)))
     d_north_metres = y_coord.points[1] - y_coord.points[0]
     d_east_metres = x_coord.points[1] - x_coord.points[0]
     grid_cells_y = int(distance / abs(d_north_metres))

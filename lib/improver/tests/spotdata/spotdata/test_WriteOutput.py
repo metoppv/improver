@@ -32,7 +32,6 @@
 
 
 import unittest
-import os
 import numpy as np
 from tempfile import mkdtemp
 from subprocess import call as Call

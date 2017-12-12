@@ -84,12 +84,12 @@ def interrogate_decision_tree():
                                             for item in entries]),
                                   return_index=True)
         output.append('{}; thresholds: {}'.format(
-                requirement, ', '.join([
-                        '{} {} ({})'.format(str(relation),
-                                            str(threshold.points.item()),
-                                            str(threshold.units))
-                        for threshold, relation in
-                        zip(entries[thresholds], relations[thresholds])])))
+            requirement, ', '.join([
+                '{} {} ({})'.format(str(relation),
+                                    str(threshold.points.item()),
+                                    str(threshold.units))
+                for threshold, relation in
+                zip(entries[thresholds], relations[thresholds])])))
     return output
 
 

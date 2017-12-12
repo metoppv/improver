@@ -47,8 +47,6 @@ Bounds = namedtuple("bounds", "value units")
 # Calibrated ensemble reliability whilst preserving spatial structure.
 # Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
 
-# 0.00003 ms-1 ~ 100 mm hr-1 for rainfall. Divided by 3 as a guess for snow!
-
 BOUNDS_FOR_ECDF = {
     "air_temperature": (
         Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),

@@ -34,7 +34,6 @@
 import unittest
 
 from iris.tests import IrisTest
-import iris
 import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsNonLinear \

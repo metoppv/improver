@@ -282,7 +282,7 @@ class Test_process_coord(IrisTest):
         exp_coord_vals = '402191.5, 402192.5, 402193.5'
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(
-            self.cube, self.coordinate, exp_coord_vals)
+             self.cube, self.coordinate, exp_coord_vals)
         self.assertAlmostEquals(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 
