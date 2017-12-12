@@ -52,6 +52,7 @@ STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
     ellipsoid=ELLIPSOID
     )
 
+
 def _make_ukvx_grid():
     """
     Create a two-dimensional Cube that represents the UK model standard
@@ -85,6 +86,7 @@ def _make_ukvx_grid():
     cube.add_dim_coord(y_coord, 0)
     cube.add_dim_coord(x_coord, 1)
     return cube
+
 
 def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
                 data=None, name=None, unit=None, height=None):
