@@ -362,4 +362,8 @@ class Test_process(IrisTest):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore",
+                                "Collapsing a non-contiguous coordinate.",
+                                UserWarning)
+        unittest.main()
