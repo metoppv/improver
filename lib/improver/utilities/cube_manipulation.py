@@ -249,11 +249,6 @@ def equalise_cubes(cubes_in, merging=True):
             Merging can only create new coords not add
             to existing mismatching coords.
     """
-    # Additional processing to deal with differences
-    # between cubes e.g. different cell_methods
-    # will probably need to be added but this function is
-    # mainly here to provide the structure for where
-    # these changes can be added.
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
