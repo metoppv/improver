@@ -1261,6 +1261,18 @@ class Test_build_coordinate(IrisTest):
             [1.0], long_name="realization", custom_function=divide_data)
         self.assertArrayAlmostEqual(result.points, np.array([0.5]))
 
+    def test_build_latitude_coordinate(self):
+        """Test building a latitude coordinate."""
+        latitudes = np.linspace(-90, 90, 20)
+        coord_system = iris.coord_systems.GeogCS(6371229.0)
+        result = build_coordinate(latitudes, long_name='latitude',
+                                  units='degrees',
+                                  coord_system=coord_system)
+        self.assertArrayEqual(result.points, latitudes)
+        self.assertEqual(result.name(), 'latitude')
+        self.assertIsInstance(result, DimCoord)
+        self.assertEqual(result.units, 'degrees')
+
 
 class Test_add_renamed_cell_method(IrisTest):
     """Class to test the add_renamed_cell_method function"""
