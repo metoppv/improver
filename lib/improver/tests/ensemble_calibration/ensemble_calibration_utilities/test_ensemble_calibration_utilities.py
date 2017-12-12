@@ -41,8 +41,8 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension,
-    rename_coordinate, _renamer, check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, rename_coordinate, _renamer,
+    check_predictor_of_mean_flag)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 

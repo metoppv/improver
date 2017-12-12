@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
-from collections import OrderedDict
-
 import iris
+
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+iris.FUTURE.netcdf_promote = True
 
 
 def load(filepath, constraints=None):
@@ -50,13 +52,12 @@ def load(filepath, constraints=None):
             constraints provided.
     """
     cube = iris.load_cube(filepath, constraints)
-
     # Ensure the probabilistic dimensions are first.
-    cube = enforce_coordinate_order(
+    cube = enforce_coordinate_ordering(
         cube, ["realization", "percentile_over", "probability"])
-    # Ensure the y and x dimension are last.
+    # Ensure the y and x dimensions are the last dimensions within the cube.
     y_name = cube.coord(axis="y").name()
     x_name = cube.coord(axis="x").name()
-    cube = enforce_coordinate_order(
+    cube = enforce_coordinate_ordering(
         cube, [y_name, x_name], anchor="end")
     return cube

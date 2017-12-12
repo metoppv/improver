@@ -288,8 +288,8 @@ def restore_non_probabilistic_dimensions(
         else:
             msg = ("The {} coordinate is a dimension coordinate but is not "
                    "the first dimension coordinate in the cube: {}.\n"
-                   "The ensure_dimension_is_the_first_dimension function "
-                   "may be useful. ".format(
+                   "The enforce_coordinate_ordering function may be "
+                   "useful. ".format(
                        input_probabilistic_dimension_name, original_cube))
             raise ValueError(msg)
     elif original_cube.coords(
