@@ -218,8 +218,7 @@ class ExtractData(object):
                              'custom_function': np.nan_to_num},
                 'wmo_site': {'data_type': int, 'coord_type': AuxCoord},
                 'utc_offset': {'units': 'hours', 'data_type': float,
-                               'coord_type': AuxCoord}
-                }
+                               'coord_type': AuxCoord}}
 
     @staticmethod
     def make_stat_coordinate_first(cube):
@@ -253,7 +252,7 @@ class ExtractData(object):
             if len(stat_coord) > 1:
                 msg = ('More than one statistical coordinate found. Promoting '
                        'the first found, {}, to the leading dimension.'.format(
-                        stat_coord))
+                           stat_coord))
                 warnings.warn(msg)
 
             stat_index = cube_dimension_order[stat_coord[0]]

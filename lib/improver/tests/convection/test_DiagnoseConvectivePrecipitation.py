@@ -374,7 +374,7 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii
             ).absolute_differences_between_adjacent_grid_squares(
-                self.cube, self.higher_threshold)
+                self.cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertArrayAlmostEqual(result[0].data, expected_x)
         self.assertArrayAlmostEqual(result[1].data, expected_y)

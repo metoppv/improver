@@ -116,8 +116,7 @@ class Test_main(IrisTest):
                              'longitude': 0,
                              'altitude': 10,
                              'utc_offset': 0,
-                             'wmo_site': 0
-                             }
+                             'wmo_site': 0}
 
         self.config_constants = {}
 

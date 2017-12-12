@@ -33,8 +33,6 @@
 """Script to run spot database creation from spot data."""
 
 import iris
-import time
-import numpy as np
 
 from improver.database import VerificationTable
 from improver.argparser import ArgParser
@@ -49,7 +47,7 @@ def main():
                     "or as a sqlite database. For all the spot files provided "
                     "it creates a table in memory and then saves it in the "
                     "format specified by the user.")
-    parser.add_argument('input_filepath',  metavar='INPUT_FILES',
+    parser.add_argument('input_filepath', metavar='INPUT_FILES',
                         help="A path (with wildcards if necessary) to input "
                              "NetCDF files to be processed.")
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',

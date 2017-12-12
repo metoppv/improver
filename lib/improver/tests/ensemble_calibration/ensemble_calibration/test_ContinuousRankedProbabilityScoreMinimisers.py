@@ -57,10 +57,8 @@ class Test_normal_crps_minimiser(IrisTest):
     the predictors.
     """
     def test_basic_mean_predictor(self):
-        """
-        Test that the plugin returns a numpy float value with
-        mean as predictor.
-        """
+        """Test that the plugin returns a numpy float value with
+        mean as predictor."""
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -90,10 +88,8 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertAlmostEqual(result, 16.6076833546)
 
     def test_basic_members_predictor(self):
-        """
-        Test that the plugin returns a numpy float array with ensemble members
-        as predictor.
-        """
+        """Test that the plugin returns a numpy float array with ensemble
+        members as predictor."""
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -123,12 +119,10 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertAlmostEqual(result, 4886.94724835)
 
     def test_basic_mean_predictor_bad_value(self):
-        """
-        Test that the plugin returns a numpy float64 value
+        """Test that the plugin returns a numpy float64 value
         and that the value matches the BAD_VALUE, when the appropriate
         condition is found.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         initial_guess = [1e65, 1e65, 1e65, 1e65]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -166,10 +160,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
     the predictors.
     """
     def test_basic_mean_predictor(self):
-        """
-        Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
-        """
+        """Test that the plugin returns a numpy float value.
+        The ensemble mean is the predictor."""
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_wind_speed_cube()
@@ -199,10 +191,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertAlmostEqual(result, 13.1827829517)
 
     def test_basic_members_predictor(self):
-        """
-        Test that the plugin returns a numpy array.
-        The ensemble members are the predictor.
-        """
+        """Test that the plugin returns a numpy array.
+        The ensemble members are the predictor."""
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_wind_speed_cube()
@@ -232,12 +222,10 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertAlmostEqual(result, 533.487612959)
 
     def test_basic_mean_predictor_bad_value(self):
-        """
-        Test that the plugin returns a numpy float64 value
+        """Test that the plugin returns a numpy float64 value
         and that the value matches the BAD_VALUE, when the appropriate
         condition is found.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         initial_guess = [1e65, 1e65, 1e65, 1e65]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_wind_speed_cube()
@@ -275,10 +263,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
     the predictors.
     """
     def test_basic_normal_mean_predictor(self):
-        """
-        Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
-        """
+        """Test that the plugin returns a numpy float value.
+        The ensemble mean is the predictor."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -301,10 +287,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
     def test_basic_normal_members_predictor(self):
-        """
-        Test that the plugin returns a numpy array.
-        The ensemble members are the predictor.
-        """
+        """Test that the plugin returns a numpy array.
+        The ensemble members are the predictor."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -328,11 +312,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
                      5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
 
     def test_normal_mean_predictor_keyerror(self):
-        """
-        Test that the minimisation has resulted in a KeyError, if the
+        """Test that the minimisation has resulted in a KeyError, if the
         distribution that has been requested was not within the dictionary
-        containing the minimisation functions.
-        """
+        containing the minimisation functions."""
         warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
@@ -355,14 +337,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     def test_normal_mean_predictor_max_iterations(self):
-        """
-        Test that the plugin returns a list of coefficients
+        """Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a normal distribution and the value specified for the
         MAX_ITERATIONS is overriden. The coefficients are calculated by
         minimising the CRPS and using a set default value for the
-        initial guess.
-        """
+        initial guess."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -385,14 +365,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     def test_normal_members_predictor_max_iterations(self):
-        """
-        Test that the plugin returns a list of coefficients
+        """Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble members are the predictor
         assuming a truncated normal distribution and the value specified
         for the MAX_ITERATIONS is overriden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
-        the initial guess.
-        """
+        the initial guess."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -416,11 +394,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
                      1.934232e-01, 5.540603e-01, 8.115994e-01])
 
     def test_normal_catch_warnings(self):
-        """
-        Test that a warning is generated if the minimisation
+        """Test that a warning is generated if the minimisation
         does not result in a convergence.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -437,7 +413,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.crps_minimiser_wrapper(
+            plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 1)
@@ -447,14 +423,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
                             in str(warning_list[0]))
 
     def test_normal_catch_warnings_percentage_change(self):
-        """
-        Test that two warnings are generated if the minimisation
+        """Test that two warnings are generated if the minimisation
         does not result in a convergence. The first warning reports a that
         the minimisation did not result in convergence, whilst the second
         warning reports that the percentage change in the final iteration was
         greater than the tolerated value.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         warnings.simplefilter("always")
         initial_guess = [500, 100, 0, 100]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -471,7 +445,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.crps_minimiser_wrapper(
+            plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 2)
@@ -482,12 +456,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
             self.assertTrue("The final iteration resulted in a percentage "
                             "change" in str(warning_list[1]))
 
-    """Test minimising the CRPS for a truncated_normal distribution."""
     def test_basic_truncated_normal_mean_predictor(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -510,7 +482,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
     def test_basic_truncated_normal_members_predictor(self):
-        """Test that the plugin returns a numpy array."""
+        """Test minimising the CRPS for a truncated_normal distribution.
+        Test that the plugin returns a numpy array."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -534,11 +507,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
                      5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
 
     def test_truncated_normal_mean_predictor_keyerror(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that the minimisation has resulted in a successful convergence,
         and that the object returned is an OptimizeResult object, when the
-        ensemble mean is the predictor.
-        """
+        ensemble mean is the predictor."""
         warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
@@ -561,11 +533,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     def test_truncated_normal_members_predictor_keyerror(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that the minimisation has resulted in a successful convergence,
         and that the object returned is an OptimizeResult object, when the
-        ensemble members are the predictor.
-        """
+        ensemble members are the predictor."""
         warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
@@ -588,14 +559,13 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     def test_truncated_normal_mean_predictor_max_iterations(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a truncated normal distribution and the value specified
         for the MAX_ITERATIONS is overriden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
-        the initial guess.
-        """
+        the initial guess."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -618,14 +588,13 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     def test_truncated_normal_members_predictor_max_iterations(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble members are the predictor
         assuming a truncated normal distribution and the value specified
         for the MAX_ITERATIONS is overriden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
-        the initial guess.
-        """
+        the initial guess."""
         warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -649,11 +618,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
                      0.193423, 0.55406, 0.811599])
 
     def test_truncated_normal_catch_warnings(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that a warning is generated if the minimisation
         does not result in a convergence.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -669,7 +637,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.crps_minimiser_wrapper(
+            plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 1)
@@ -679,14 +647,13 @@ class Test_crps_minimiser_wrapper(IrisTest):
                             in str(warning_list[0]))
 
     def test_truncated_normal_catch_warnings_percentage_change(self):
-        """
+        """Test minimising the CRPS for a truncated_normal distribution.
         Test that two warnings are generated if the minimisation
         does not result in a convergence. The first warning reports a that
         the minimisation did not result in convergence, whilst the second
         warning reports that the percentage change in the final iteration was
         greater than the tolerated value.
-        The ensemble mean is the predictor.
-        """
+        The ensemble mean is the predictor."""
         initial_guess = [5000, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -702,7 +669,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.crps_minimiser_wrapper(
+            plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 2)
