@@ -180,8 +180,7 @@ class ExtractData(object):
                              'custom_function': np.nan_to_num},
                 'wmo_site': {'data_type': int, 'coord_type': AuxCoord},
                 'utc_offset': {'units': 'hours', 'data_type': float,
-                               'coord_type': AuxCoord}
-               }
+                               'coord_type': AuxCoord}}
 
     @staticmethod
     def make_stat_coordinate_first(cube):
