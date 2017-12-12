@@ -37,16 +37,58 @@ from cf_units import Unit
 import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
+from iris.coord_systems import (LambertAzimuthalEqualArea,
+                                GeogCS)
 import numpy as np
-
-from improver.grids.osgb import OSGBGRID
 from improver.constants import RMDI
 from improver.wind_downscaling import RoughnessCorrection
 
+ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
+                   semi_minor_axis=6356752.314140356)
+STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
+    latitude_of_projection_origin=54.9,
+    longitude_of_projection_origin=-2.5,
+    false_easting=0.0, false_northing=0.0,
+    ellipsoid=ELLIPSOID
+    )
+
+def _make_ukvx_grid():
+    """
+    Create a two-dimensional Cube that represents the UK model standard
+    grid (UKVX).
+
+    Returns
+    -------
+    iris.cube.Cube instance
+        Cube mapped to the UKVX grid.
+
+    """
+
+    # Grid resolution
+    num_x, num_y = 1042, 970
+
+    data = np.zeros([num_y, num_x])
+
+    # Grid extents / m
+    north, south = 902000, -1036000
+    east, west = 924000, -1158000
+
+    x_coord = iris.coords.DimCoord(np.linspace(west, east, num_x),
+                                   'projection_x_coordinate',
+                                   units='m', coord_system=STANDARD_GRID_CCRS)
+    y_coord = iris.coords.DimCoord(np.linspace(south, north, num_y),
+                                   'projection_y_coordinate',
+                                   units='m', coord_system=STANDARD_GRID_CCRS)
+    x_coord.guess_bounds()
+    y_coord.guess_bounds()
+    cube = iris.cube.Cube(data)
+    cube.add_dim_coord(y_coord, 0)
+    cube.add_dim_coord(x_coord, 1)
+    return cube
 
 def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
                 data=None, name=None, unit=None, height=None):
-    """Set up a normal OSGB UK National Grid cube."""
+    """Set up a UK model standard grid (UKVX) cube."""
     cubel = iris.cube.CubeList()
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     t_0 = 402192.5
@@ -58,7 +100,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
     for i_idx in range(num_height_levels):
         cubel1 = iris.cube.CubeList()
         for j_idx in range(num_time_points):
-            cube = OSGBGRID
+            cube = _make_ukvx_grid()
             cube = cube[:num_grid_points_x, :num_grid_points_y]
             cube.add_aux_coord(AuxCoord(t_0 + j_idx, "time", units=tunit))
             if height is None:
