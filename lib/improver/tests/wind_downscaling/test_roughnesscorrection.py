@@ -40,8 +40,7 @@ import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    STANDARD_GRID_CCRS)
+from improver.grids import STANDARD_GRID_CCRS
 from improver.constants import RMDI
 from improver.wind_downscaling import RoughnessCorrection
 

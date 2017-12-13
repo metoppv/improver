@@ -38,8 +38,6 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coord_systems import (LambertAzimuthalEqualArea,
-                                GeogCS)
 import numpy as np
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
@@ -47,7 +45,7 @@ from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
-
+from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
     [0.992, 0.968, 0.96, 0.968, 0.992],
@@ -102,15 +100,6 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array([
     [1.0, 1.0, 0.99486125, 0.99177801, 0.99075026, 0.99177801,
      0.99486125, 1.0, 1.0]
 ])
-
-ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
-                   semi_minor_axis=6356752.314140356)
-STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
-    latitude_of_projection_origin=54.9,
-    longitude_of_projection_origin=-2.5,
-    false_easting=0.0, false_northing=0.0,
-    ellipsoid=ELLIPSOID
-    )
 
 
 def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
