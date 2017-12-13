@@ -46,7 +46,6 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 from iris.exceptions import ConstraintMismatchError
 
-from improver.spotdata.read_input import Load as Plugin
 from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
 
@@ -175,58 +174,6 @@ class Test_read_input(IrisTest):
         for a_file in self.made_files:
             Call(['rm', a_file])
         Call(['rmdir', self.data_directory])
-
-
-class Test_Load(Test_read_input):
-    """Test function used for loading data cubes."""
-
-    def test_single_file(self):
-        """Test loading of a single file as an iris.cube.Cube."""
-
-        expected = self.cube
-        result = Plugin('single_file').process(self.cube_file,
-                                               self.cube.name())
-        self.assertArrayEqual(expected.data, result.data)
-        for ex_coord, re_coord in zip(expected.dim_coords, result.dim_coords):
-            self.assertEqual(ex_coord, re_coord)
-
-    def test_multi_file(self):
-        """Test loading of multiple files as an iris.cube.CubeList."""
-
-        expected = CubeList([self.cube, self.cube2])
-        result = Plugin('multi_file').process(
-            [self.cube_file, self.cube_file2], 'air_temperature')
-
-        for ex, re in zip(expected, result):
-            self.assertEqual(ex.name(), re.name())
-            self.assertArrayEqual(ex.data, re.data)
-
-    def test_invalid_method(self):
-        """Test attempting to load data with an invalid method."""
-
-        method = 'not_a_valid_method'
-        msg = 'Unknown method ".*" passed to .*'
-        with self.assertRaisesRegexp(AttributeError, msg):
-            Plugin(method).process(self.cube_file, self.cube.name())
-
-    def test_single_file_invalid_diagnostic(self):
-        """Test attempt to load a diagnostic cube from a file within which it
-        cannot be found."""
-
-        diagnostic = 'not_a_valid_diagnostic'
-        msg = 'no cubes found'
-        with self.assertRaisesRegexp(ConstraintMismatchError, msg):
-            Plugin('single_file').process(self.cube_file, diagnostic)
-
-    def test_multi_file_invalid_diagnostic(self):
-        """Test attempt to load diagnostic cubes from files within which they
-        cannot be found."""
-
-        diagnostic = 'not_a_valid_diagnostic'
-        msg = 'no cubes found'
-        with self.assertRaisesRegexp(ConstraintMismatchError, msg):
-            Plugin('single_file').process([self.cube_file, self.cube_file2],
-                                          diagnostic)
 
 
 class Test_get_method_prerequisites(Test_read_input):

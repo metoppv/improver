@@ -37,9 +37,10 @@ import os
 
 from improver.spotdata.ancillaries import get_ancillary_data
 from improver.spotdata.main import run_spotdata
-from improver.spotdata.read_input import get_method_prerequisites, Load
+from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.site_data import ImportSiteData
 from improver.spotdata.write_output import WriteOutput
+from improver.utilities.load import load_cubelist
 
 
 def valid_latitude(value):
@@ -241,8 +242,7 @@ def main():
             raise IOError('No relevant data files found in {} for {}.'.format(
                 args.data_path, diagnostic_name_in_filename))
         # Load cubes into an iris.cube.CubeList.
-        diagnostics[diagnostic_key]["data"] = (
-            Load('multi_file').process(files_to_read))
+        diagnostics[diagnostic_key]["data"] = load_cubelist(files_to_read)
         # Check if additional diagnostics are needed (e.g. multi-level data).
         # If required, load into the additional_diagnostics dictionary.
         diagnostics[diagnostic_key]["additional_data"] = (

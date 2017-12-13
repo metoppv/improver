@@ -39,6 +39,7 @@ from cf_units import Unit
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
 from improver.argparser import ArgParser
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -91,7 +92,7 @@ def main():
 
     width = float(args.width)
 
-    cube = iris.load_cube(args.input_filepath)
+    cube = load_cube(args.input_filepath)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
             args.coordinate, width, parameter_unit, args.weighting_mode)

@@ -690,7 +690,8 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
 
 def enforce_coordinate_ordering(
-        cube, coord_names, anchor="start", raise_exception=False):
+        cube, coord_names, anchor="start", promote_scalar=False,
+        raise_exception=False):
     """
     Function to ensure that the requested coordinate within the cube are in
     the desired position.
@@ -711,6 +712,11 @@ def enforce_coordinate_ordering(
             String to define where within the range of possible dimensions
             the specified coordinates should be located. This could be either:
             "start" or "end".
+        promote_scalar (bool):
+            If True, any coordinates that are matched and are not dimension
+            coordinates are promoted to dimension coordinates.
+            If False, any coordinates that are matched and are not dimension
+            coordinates will not be considered in the reordering.
         raise_exception (bool):
             Option as to whether an exception should be raised, if the
             requested coordinate is not present.
@@ -723,9 +729,9 @@ def enforce_coordinate_ordering(
     Raises:
         ValueError: The anchor argument must have a value of either start or
             end.
-       CoordinateNotFoundError: The requested coordinate is not available on
-           the cube.
-       ValueError: Multiple coordinates match the partial name provided.
+        CoordinateNotFoundError: The requested coordinate is not available on
+            the cube.
+        ValueError: Multiple coordinates match the partial name provided.
 
     """
     if isinstance(coord_names, unicode):
@@ -776,7 +782,10 @@ def enforce_coordinate_ordering(
         # If the requested coordinate is not a dimension coordinate, make it
         # a dimension coordinate.
         if cube.coords(full_coord_name, dim_coords=False):
-            cube = iris.util.new_axis(cube, full_coord_name)
+            if promote_scalar:
+                cube = iris.util.new_axis(cube, full_coord_name)
+            else:
+                coord_dict.pop(full_coord_name, None)
 
     # Get the dimensions for the coordinates that have not been requested.
     remaining_coords = []

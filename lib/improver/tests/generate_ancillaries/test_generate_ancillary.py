@@ -42,8 +42,7 @@ from iris import save
 import numpy as np
 from cf_units import Unit
 
-from improver.generate_ancillaries.generate_ancillary import (
-    _make_mask_cube, find_standard_ancil)
+from improver.generate_ancillaries.generate_ancillary import _make_mask_cube
 
 
 def _make_test_cube(long_name):
@@ -111,44 +110,6 @@ class Test__make_mask_cube(IrisTest):
                          np.mean([self.lower, self.upper]))
         self.assertEqual(result.coord('topographic_zone').units, Unit('m'))
 
-
-class Test_find_standard_ancil(IrisTest):
-    """Test function to find input for ancillary generation."""
-
-    def setUp(self):
-        """setting up test dir and test files"""
-        self.test_dir = './anciltest/'
-        self.stage = self.test_dir + 'stage.nc'
-        os.mkdir(self.test_dir)
-        save(_make_test_cube('stage test'), self.stage)
-
-    def tearDown(self):
-        """"remove test directories and files"""
-        if os.path.exists(self.test_dir):
-            files = glob(self.test_dir + '*')
-            for f in files:
-                os.remove(f)
-            os.rmdir(self.test_dir)
-
-    def test_findstage(self):
-        """test case where stage file is present and read"""
-        result = find_standard_ancil(self.stage)
-        self.assertIsInstance(result, Cube)
-
-    def test_findstage_fail(self):
-        """test the correct exception is raised when stage ancillaries
-           are not found"""
-        os.remove(self.stage)
-        with self.assertRaisesRegexp(IOError, 'Cannot find input ancillary'):
-            find_standard_ancil(self.stage)
-
-    def test_custom_msg_fail(self):
-        """test the correct exception is raised when the optional msg
-           argument is passed in and the file cannot be found"""
-        os.remove(self.stage)
-        msg = "That file doesn't exist"
-        with self.assertRaisesRegexp(IOError, msg):
-            find_standard_ancil(self.stage, msg)
 
 if __name__ == "__main__":
     unittest.main()

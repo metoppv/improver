@@ -37,6 +37,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import wind_downscaling
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -80,18 +81,18 @@ def main():
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
     args = parser.parse_args()
-    wind_speed = iris.load_cube(args.wind_speed_filepath)
-    silhouette_roughness_filepath = iris.load_cube(
+    wind_speed = load_cube(args.wind_speed_filepath)
+    silhouette_roughness_filepath = load_cube(
         args.silhouette_roughness_filepath)
-    sigma = iris.load_cube(args.sigma_filepath)
-    target_orog = iris.load_cube(args.target_orog_filepath)
-    standard_orog = iris.load_cube(args.standard_orog_filepath)
+    sigma = load_cube(args.sigma_filepath)
+    target_orog = load_cube(args.target_orog_filepath)
+    standard_orog = load_cube(args.standard_orog_filepath)
     if args.height_levels_filepath:
-        height_levels = iris.load_cube(args.height_levels_filepath)
+        height_levels = load_cube(args.height_levels_filepath)
     else:
         height_levels = None
     if args.veg_roughness_filepath:
-        veg_roughness_cube = iris.load_cube(args.veg_roughness_filepath)
+        veg_roughness_cube = load_cube(args.veg_roughness_filepath)
     else:
         veg_roughness_cube = None
     try:

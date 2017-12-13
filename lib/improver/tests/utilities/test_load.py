@@ -38,7 +38,7 @@ import iris
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.load import load
+from improver.utilities.load import load_cube, load_cubelist
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
@@ -46,7 +46,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 iris.FUTURE.netcdf_no_unlimited = True
 
 
-class Test_load(IrisTest):
+class Test_load_cube(IrisTest):
 
     """Test the load function."""
     def setUp(self):
@@ -55,7 +55,7 @@ class Test_load(IrisTest):
         self.cube = set_up_temperature_cube()
         iris.save(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
-        self.time_points = np.array(402192.5)
+        self.time_points = np.array([402192.5])
         self.latitude_points = np.array([-45., 0., 45.])
         self.longitude_points = np.array([120., 150., 180.])
 
@@ -67,7 +67,21 @@ class Test_load(IrisTest):
     def test_filepath_only(self):
         """Test that the loading works correctly, if only the filepath is
         provided."""
-        result = load(self.filepath)
+        result = load_cube(self.filepath)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, self.realization_points)
+        self.assertArrayAlmostEqual(
+            result.coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.longitude_points)
+
+    def test_filepath_as_list(self):
+        """Test that the loading works correctly, if only the filepath is
+        provided as a list."""
+        result = load_cube([self.filepath])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, self.realization_points)
@@ -83,7 +97,7 @@ class Test_load(IrisTest):
         specified."""
         realization_points = np.array([0])
         constr = iris.Constraint(realization=0)
-        result = load(self.filepath, constraints=constr)
+        result = load_cube(self.filepath, constraints=constr)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, realization_points)
@@ -102,7 +116,7 @@ class Test_load(IrisTest):
         constr1 = iris.Constraint(realization=0)
         constr2 = iris.Constraint(latitude=lambda cell: -0.1 < cell < 0.1)
         constr = constr1 & constr2
-        result = load(self.filepath, constraints=constr)
+        result = load_cube(self.filepath, constraints=constr)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, realization_points)
@@ -120,7 +134,7 @@ class Test_load(IrisTest):
         cube = set_up_temperature_cube()
         cube.transpose([3, 2, 1, 0])
         iris.save(cube, filepath)
-        result = load(filepath)
+        result = load_cube(filepath)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, self.realization_points)
@@ -134,6 +148,69 @@ class Test_load(IrisTest):
         self.assertEqual(result.coord_dims("time")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
+
+
+class Test_load_cubelist(IrisTest):
+
+    """Test the load function."""
+    def setUp(self):
+        self.directory = mkdtemp()
+        self.filepath = self.directory+"temp.nc"
+        self.cube = set_up_temperature_cube()
+        iris.save(self.cube, self.filepath)
+        self.realization_points = np.array([0, 1, 2])
+        self.time_points = np.array(402192.5)
+        self.latitude_points = np.array([-45., 0., 45.])
+        self.longitude_points = np.array([120., 150., 180.])
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        Call(['rm', '-f', self.filepath])
+        Call(['rmdir', self.directory])
+
+    def test_single_file(self):
+        """Test that the loading works correctly, if only the filepath is
+        provided."""
+        result = load_cubelist(self.filepath)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(
+            result[0].coord("realization").points, self.realization_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("longitude").points, self.longitude_points)
+
+    def test_wildcard_files(self):
+        """Test that the loading works correctly, if a wildcarded filepath is
+        provided."""
+        filepath = self.directory+"*.nc"
+        result = load_cubelist(self.filepath)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(
+            result[0].coord("realization").points, self.realization_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("longitude").points, self.longitude_points)
+
+    def test_multiple_files(self):
+        """Test that the loading works correctly, if a path to multiple files
+        is provided."""
+        result = load_cubelist([self.filepath, self.filepath])
+        self.assertIsInstance(result, iris.cube.CubeList)
+        for cube in result:
+            self.assertArrayAlmostEqual(
+                cube.coord("realization").points, self.realization_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("time").points, self.time_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("latitude").points, self.latitude_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("longitude").points, self.longitude_points)
 
 
 if __name__ == '__main__':

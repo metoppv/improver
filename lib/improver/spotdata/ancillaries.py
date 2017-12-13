@@ -35,7 +35,7 @@ land masks.
 
 """
 
-from improver.spotdata.read_input import Load
+from improver.utilities.load import load_cube
 
 
 def get_ancillary_data(diagnostics, ancillary_path):
@@ -65,8 +65,9 @@ def get_ancillary_data(diagnostics, ancillary_path):
     ancillary_data = {}
 
     try:
-        orography = Load('single_file').process(
-            ancillary_path + '/highres_orog.nc', diagnostic='surface_altitude')
+        orography = load_cube(
+            ancillary_path + '/highres_orog.nc',
+            constraints='surface_altitude')
     except:
         raise IOError('Orography file not found.')
 
@@ -76,9 +77,9 @@ def get_ancillary_data(diagnostics, ancillary_path):
     if any([(diagnostics[key]['neighbour_finding']['land_constraint'])
             for key in diagnostics.keys()]):
         try:
-            land = Load('single_file').process(
+            land = load_cube(
                 ancillary_path + '/land_mask.nc',
-                diagnostic='land_binary_mask')
+                constraints='land_binary_mask')
         except:
             raise IOError('Land mask file not found.')
 

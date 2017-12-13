@@ -38,6 +38,7 @@ import iris
 import cf_units
 
 from improver.threshold import BasicThreshold
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -103,7 +104,7 @@ def main():
         raise parser.error("--threshold_config option is not compatible "
                            "with --fuzzy_factor option.")
 
-    cube = iris.load_cube(args.input_filepath)
+    cube = load_cube(args.input_filepath)
 
     if args.threshold_config:
         try:

@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
+import glob
+
 import iris
 
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -37,8 +39,8 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 iris.FUTURE.netcdf_promote = True
 
 
-def load(filepath, constraints=None):
-    """Load the filepath provided using Iris.
+def load_cube(filepath, constraints=None):
+    """Load the filepath provided using Iris into a cube.
 
     Args:
         filepath (str):
@@ -52,7 +54,7 @@ def load(filepath, constraints=None):
             constraints provided.
     """
     cube = iris.load_cube(filepath, constraints)
-    # Ensure the probabilistic dimensions are first.
+    # Ensure the coordinates are ordered as required.
     cube = enforce_coordinate_ordering(
         cube, ["realization", "percentile_over", "probability"])
     # Ensure the y and x dimensions are the last dimensions within the cube.
@@ -61,3 +63,29 @@ def load(filepath, constraints=None):
     cube = enforce_coordinate_ordering(
         cube, [y_name, x_name], anchor="end")
     return cube
+
+
+def load_cubelist(filepath, constraints=None):
+    """Load the filepath(s) provided using Iris into a cubelist.
+
+    Args:
+        filepath (str or list):
+            Filepath(s) that will be loaded.
+        constraints (iris.Constraint or None):
+            Iris constraint to be applied when loading from the input filepath.
+
+    Returns:
+        cubelist (iris.cube.CubeList):
+            CubeList that has been created from the input filepath given the
+            constraints provided.
+    """
+    if isinstance(filepath, str):
+        filepaths = glob.glob(filepath)
+    else:
+        filepaths = filepath
+    # Ensure the coordinates are ordered as required.
+    cubelist = iris.cube.CubeList([])
+    for filepath in filepaths:
+        cube = load_cube(filepath, constraints=constraints)
+        cubelist.append(cube)
+    return cubelist
