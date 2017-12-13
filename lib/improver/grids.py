@@ -28,48 +28,19 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module providing the OSGB Ordance Survey UK National Grid."""
+"""Module to contain standard grid projection definitions."""
 
-import iris.coord_systems
-import iris.coords
-import iris.cube
-import numpy as np
+from iris.coord_systems import (LambertAzimuthalEqualArea,
+                                GeogCS)
 
+# Reference ellipsoid for Earth's geoid
+ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
+                   semi_minor_axis=6356752.314140356)
 
-def _make_osgb_grid():
-    """
-    Create a two-dimensional Cube that represents the standard UK grid with
-    a given spacing (~2km).
-
-    Returns
-    -------
-    iris.cube.Cube instance
-        Cube mapped to the standard UK PP grid.
-
-    """
-    # Grid resolution
-    nx, ny = 548, 704
-
-    # Grid extents / m
-    north, south = 1223000, -185000
-    east, west = 857000, -239000
-
-    data = np.zeros([ny, nx])
-
-    cs = iris.coord_systems.OSGB()
-    x_coord = iris.coords.DimCoord(np.linspace(west, east, nx),
-                                   'projection_x_coordinate',
-                                   units='m', coord_system=cs)
-    y_coord = iris.coords.DimCoord(np.linspace(south, north, ny),
-                                   'projection_y_coordinate',
-                                   units='m', coord_system=cs)
-    x_coord.guess_bounds()
-    y_coord.guess_bounds()
-    cube = iris.cube.Cube(data)
-    cube.add_dim_coord(y_coord, 0)
-    cube.add_dim_coord(x_coord, 1)
-    return cube
-
-
-# OSGB UK grid
-OSGBGRID = _make_osgb_grid()
+# Projection settings for UKVX standard grid
+STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
+    latitude_of_projection_origin=54.9,
+    longitude_of_projection_origin=-2.5,
+    false_easting=0.0, false_northing=0.0,
+    ellipsoid=ELLIPSOID
+    )
