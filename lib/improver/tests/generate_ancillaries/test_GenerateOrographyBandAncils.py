@@ -30,14 +30,72 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the generate_ancillary.GenerateOrogBandAncils plugin."""
 
-
 import unittest
+
+from cf_units import Unit
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
+
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils as GenOrogMasks)
+
+
+def set_up_landmask_cube(landmask_data=None):
+    """Set up a basic landmask cube."""
+    if landmask_data is None:
+        landmask_data = np.array([[1, 0, 0],
+                                  [1, 0, 0],
+                                  [1, 1, 1]])
+    return Cube(landmask_data, long_name='test land', units="1")
+
+
+def set_up_orography_cube(orog_data=None):
+    """Set up a basic orography cube."""
+    if orog_data is None:
+        orog_data = np.array([[10., 0., 0.],
+                              [20., 100., 15.],
+                              [-10., 100., 40.]])
+    return Cube(orog_data, long_name='test orog', units="m")
+
+
+class Test_sea_mask(IrisTest):
+    """Test the masking out of sea points with the sea_mask method."""
+
+    def setUp(self):
+        """Set up for tests."""
+        self.landmask = set_up_landmask_cube()
+        self.orography = set_up_orography_cube()
+
+    def test_basic(self):
+        """Test that the expected data is returned when the landmask specifies
+        a mix of land and sea points."""
+        expected_data = np.array([[10., 1e20, 1e20],
+                                  [20., 1e20, 1e20],
+                                  [-10, 100., 40]])
+        expected_mask = np.array([[False, True, True],
+                                  [False, True, True],
+                                  [False, False, False]])
+        result = GenOrogMasks().sea_mask(
+            self.landmask.data, self.orography.data)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.mask, expected_mask)
+
+    def test_all_land_points(self):
+        """Test that the expected data is returned when the landmask specifies
+        only land points."""
+        expected = np.array([[10., 0., 0.],
+                             [20., 100., 15.],
+                             [-10., 100., 40.]])
+        landmask_data = np.array([[1, 1, 1],
+                                  [1, 1, 1],
+                                  [1, 1, 1]])
+        landmask = set_up_landmask_cube(landmask_data=landmask_data)
+        result = GenOrogMasks().sea_mask(landmask.data, self.orography.data)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_gen_orography_masks(IrisTest):
@@ -47,14 +105,8 @@ class Test_gen_orography_masks(IrisTest):
     """
     def setUp(self):
         """setting up test input and output data sets"""
-        landmask_data = np.array([[1, 0, 0],
-                                  [1, 0, 0],
-                                  [1, 1, 1]])
-        self.landmask = Cube(landmask_data, long_name='test land')
-        orog_data = np.array([[10., 0., 0.],
-                              [20., 100., 15.],
-                              [-10., 100., 40.]])
-        self.orography = Cube(orog_data, long_name='test orog')
+        self.landmask = set_up_landmask_cube()
+        self.orography = set_up_orography_cube()
         self.valley_key = 'land'
         self.valley_threshold = [-10, 10]
         self.exp_valleymask = np.array([[[1, 999999, 999999],
@@ -180,6 +232,16 @@ class Test_gen_orography_masks(IrisTest):
                                    [0.0, 0.0, 0.0]]])
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_unit_conversion_for_landband_data(self):
+        """test correct mask is produced for land bands > 0m"""
+        land_threshold = [0, 0.05]
+        threshold_units = "km"
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, self.landmask, self.land_key,
+            land_threshold, units=threshold_units)
+        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
+        self.assertEqual(result.coord("topographic_zone").units, Unit("m"))
+
 
 class Test_process(IrisTest):
     """
@@ -188,14 +250,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """setting up test input and output data sets"""
-        landmask_data = np.array([[1, 0, 0],
-                                  [1, 0, 0],
-                                  [1, 1, 1]])
-        self.landmask = Cube(landmask_data, long_name='test land')
-        orog_data = np.array([[10., 0., 0.],
-                              [20., 100., 15.],
-                              [-10., 100., 40.]])
-        self.orography = Cube(orog_data, long_name='test orog')
+        self.landmask = set_up_landmask_cube()
+        self.orography = set_up_orography_cube()
         self.threshold_dict = {'land': {'bounds': [[-10, 0], [0, 50]],
                                         'units': 'm'}}
 

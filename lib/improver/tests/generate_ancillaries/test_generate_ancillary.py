@@ -46,7 +46,7 @@ from improver.generate_ancillaries.generate_ancillary import (
     _make_mask_cube, find_standard_ancil)
 
 
-def _make_test_cube(long_name, stash=None):
+def _make_test_cube(long_name):
     """Make a cube to run tests upon"""
     cs = GeogCS(EARTH_RADIUS)
     data = np.array([[1., 1., 1.],
@@ -59,8 +59,6 @@ def _make_test_cube(long_name, stash=None):
                        units='degrees', coord_system=cs)
     cube.add_dim_coord(x_coord, 0)
     cube.add_dim_coord(y_coord, 1)
-    if stash is not None:
-        cube.attributes['STASH'] = stash
     return cube
 
 
@@ -79,18 +77,19 @@ class Test__make_mask_cube(IrisTest):
         self.coords = [self.x_coord, self.y_coord]
         self.upper = 100.
         self.lower = 0.
+        self.units = "m"
 
     def test_wrong_number_of_bounds(self):
         """test checking that an exception is raised when the _make_mask_cube
         method is called with an incorrect number of bounds."""
         emsg = "should have only an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
-            _make_mask_cube(self.mask, self.key, self.coords, [0])
+            _make_mask_cube(self.mask, self.key, self.coords, [0], self.units)
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask,
                             self.key,
                             self.coords,
-                            [0, 2, 4])
+                            [0, 2, 4], self.units)
 
     def test_upperbound_fails(self):
         """test checking that an exception is raised when the _make_mask_cube
@@ -98,12 +97,12 @@ class Test__make_mask_cube(IrisTest):
         emsg = "should have both an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask, self.key, self.coords,
-                            topographic_bounds=[None, self.upper])
+                            [None, self.upper], self.units)
 
     def test_bothbounds(self):
         """test creating cube with both thresholds set"""
         result = _make_mask_cube(self.mask, self.key, self.coords,
-                                 topographic_bounds=[self.lower, self.upper])
+                                 [self.lower, self.upper], self.units)
         self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.upper)
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],
