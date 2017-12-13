@@ -36,6 +36,8 @@ import numpy as np
 import json
 from collections import OrderedDict
 
+from improver.utilities.temporal import set_utc_offset
+
 
 class ImportSiteData(object):
     """
@@ -218,21 +220,3 @@ class ImportSiteData(object):
                 }
 
         return sites
-
-
-def set_utc_offset(longitudes):
-    """
-    Simplistic timezone setting for unset sites that uses 15 degree bins
-    centred on 0 degrees longitude. Used for on the fly site generation
-    when no more rigorous source of timeszone information is provided.
-
-    Args:
-        longitudes (List):
-            List of longitudes.
-
-    Returns:
-        utc_offsets (List):
-            List of utc_offsets calculated using longitude.
-
-    """
-    return np.floor((np.array(longitudes) + 7.5)/15.)
