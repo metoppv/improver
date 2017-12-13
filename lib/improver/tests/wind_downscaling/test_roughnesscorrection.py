@@ -34,23 +34,16 @@
 import unittest
 
 from cf_units import Unit
+import numpy as np
+
 import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
-from iris.coord_systems import (LambertAzimuthalEqualArea,
-                                GeogCS)
-import numpy as np
+
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+    STANDARD_GRID_CCRS)
 from improver.constants import RMDI
 from improver.wind_downscaling import RoughnessCorrection
-
-ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
-                   semi_minor_axis=6356752.314140356)
-STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
-    latitude_of_projection_origin=54.9,
-    longitude_of_projection_origin=-2.5,
-    false_easting=0.0, false_northing=0.0,
-    ellipsoid=ELLIPSOID
-    )
 
 
 def _make_ukvx_grid():
