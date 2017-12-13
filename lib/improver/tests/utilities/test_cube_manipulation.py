@@ -1623,7 +1623,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def test_full_reordering(self):
         """Test that a cube with the expected data contents is returned when
-        the all the coordinates within the cube are reordered into the order
+        all the coordinates within the cube are reordered into the order
         specified by the names within the input list."""
         expected = self.cube.copy()
         expected.transpose([2, 0, 3, 1])
@@ -1638,8 +1638,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def test_partial_names(self):
         """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a dimension coordinate but it is
-        not the first dimension coordinate."""
+        the names provided are partial matches of the names of the coordinates
+        within the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
         cube = self.cube.copy()
@@ -1649,9 +1649,9 @@ class Test_enforce_coordinate_ordering(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_partial_names_multiple_matches_exception(self):
-        """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a dimension coordinate but it is
-        not the first dimension coordinate."""
+        """Test that the expected exception is raised when the names provided
+        are partial matches of the names of multiple coordinates within the
+        cube."""
         expected = self.cube.copy()
         expected.transpose([2, 3, 0, 1])
         cube = self.cube.copy()
@@ -1661,8 +1661,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def test_include_extra_coordinates(self):
         """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a dimension coordinate but it is
-        not the first dimension coordinate."""
+        extra coordinates are passed in for reordering but these coordinates
+        are not present within the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
         cube = self.cube.copy()
@@ -1674,8 +1674,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def test_force_promotion_of_scalar(self):
         """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a scalar coordinate, where the scalar
-        coordinate is promoted to a dimension coordinate."""
+        the probabilistic dimension is a scalar coordinate, which is promoted
+        to a dimension coordinate."""
         cube = self.cube[0, :, :, :]
         result = enforce_coordinate_ordering(
             cube, "realization", promote_scalar=True)
@@ -1684,8 +1684,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def test_do_not_promote_scalar(self):
         """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a scalar coordinate, where the scalar
-        coordinate is not promoted to a dimension coordinate."""
+        the probabilistic dimension is a scalar coordinate, which is not
+        promoted to a dimension coordinate."""
         cube = self.cube[0, :, :, :]
         result = enforce_coordinate_ordering(cube, "realization")
         self.assertFalse(result.coord_dims("realization"))

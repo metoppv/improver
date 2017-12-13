@@ -45,23 +45,26 @@ def load_cube(filepath, constraints=None):
     Args:
         filepath (str):
             Filepath that will be loaded.
-        constraints (iris.Constraint or None):
-            Iris constraint to be applied when loading from the input filepath.
+        constraints (iris.Constraint, str or None):
+            Constraint to be applied when loading from the input filepath.
+            This can be in the form of an iris.Constraint or could be a string
+            that is intended to match the name of the cube.
+            The default is None.
 
     Returns:
         cube (iris.cube.Cube):
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
-    cube = iris.load_cube(filepath, constraints)
-    # Ensure the coordinates are ordered as required.
+    cube = iris.load_cube(filepath, constraint=constraints)
+    # Ensure the probabilistic coordinates are the first coordinates within a
+    # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
         cube, ["realization", "percentile_over", "probability"])
     # Ensure the y and x dimensions are the last dimensions within the cube.
     y_name = cube.coord(axis="y").name()
     x_name = cube.coord(axis="x").name()
-    cube = enforce_coordinate_ordering(
-        cube, [y_name, x_name], anchor="end")
+    cube = enforce_coordinate_ordering(cube, [y_name, x_name], anchor="end")
     return cube
 
 
@@ -71,19 +74,24 @@ def load_cubelist(filepath, constraints=None):
     Args:
         filepath (str or list):
             Filepath(s) that will be loaded.
-        constraints (iris.Constraint or None):
-            Iris constraint to be applied when loading from the input filepath.
+        constraints (iris.Constraint, str or None):
+            Constraint to be applied when loading from the input filepath.
+            This can be in the form of an iris.Constraint or could be a string
+            that is intended to match the name of the cube.
+            The default is None.
 
     Returns:
         cubelist (iris.cube.CubeList):
             CubeList that has been created from the input filepath given the
             constraints provided.
     """
+    # If the filepath is a string, then use glob, in case the str contains
+    # wildcards.
     if isinstance(filepath, str):
         filepaths = glob.glob(filepath)
     else:
         filepaths = filepath
-    # Ensure the coordinates are ordered as required.
+    # Constuct a cubelist using the load_cube function.
     cubelist = iris.cube.CubeList([])
     for filepath in filepaths:
         cube = load_cube(filepath, constraints=constraints)
