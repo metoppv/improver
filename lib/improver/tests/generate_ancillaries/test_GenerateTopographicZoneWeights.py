@@ -372,9 +372,9 @@ class Test_process(IrisTest):
     def test_data_no_mask_three_bands(self):
         """Test that the result data is as expected, when none of the points
         are masked and there are three bands defined."""
-        orography_data = np.array([[[[10., 40., 45],
-                                     [70., 80., 95],
-                                     [115., 135., 145]]]])
+        orography_data = np.array([[[[10., 40., 45.],
+                                     [70., 80., 95.],
+                                     [115., 135., 145.]]]])
         orography = set_up_cube(
             orography_data, "altitude", "m", realizations=np.array([0]),
             y_dimension_length=3, x_dimension_length=3)
