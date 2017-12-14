@@ -685,3 +685,46 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     elif coord in ["height"] and order == "descending":
         cube.coord(coord).attributes["positive"] = "down"
     return cube[tuple(index)]
+
+
+def make_stat_coordinate_first(cube):
+    """
+    Reorder cube dimension coordinates to ensure the statistical
+    coordinate is first.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube to be reordered.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube with the statistical coordinate moved to be first.
+
+    Raises:
+        Warning if more than one statistical dimension is found. Then
+        promotes the first found to become the leading dimension.
+
+    """
+    stat_coordinates = ['realization', 'percentile_over']
+    cube_dimension_order = {
+        coord.name(): cube.coord_dims(coord.name())[0]
+        for coord in cube.dim_coords}
+
+    stat_coord = []
+    for crd in stat_coordinates:
+        stat_coord += [coord for coord in cube_dimension_order.keys()
+                       if crd in coord]
+    if len(stat_coord) >= 1:
+        if len(stat_coord) > 1:
+            msg = ('More than one statistical coordinate found. Promoting '
+                   'the first found, {}, to '
+                   'the leading dimension.'.format(stat_coord))
+            warnings.warn(msg)
+
+        stat_index = cube_dimension_order[stat_coord[0]]
+        new_order = range(len(cube_dimension_order))
+        new_order.pop(stat_index)
+        new_order.insert(0, stat_index)
+        cube.transpose(new_order)
+
+    return cube

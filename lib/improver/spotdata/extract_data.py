@@ -39,6 +39,8 @@ from numpy.linalg import lstsq
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+
+from improver.utilities.cube_manipulation import make_stat_coordinate_first
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
 from improver.constants import (R_DRY_AIR,
@@ -221,49 +223,6 @@ class ExtractData(object):
                                'coord_type': AuxCoord}
                 }
 
-    @staticmethod
-    def make_stat_coordinate_first(cube):
-        """
-        Reorder cube dimension coordinates to ensure the statistical
-        coordinate is first.
-
-        Args:
-            cube (iris.cube.Cube):
-                The cube to be reordered.
-
-        Returns:
-            cube (iris.cube.Cube):
-                Cube with the statistical coordinate moved to be first.
-
-        Raises:
-            Warning if more than one statistical dimension is found. Then
-            promotes the first found to become the leading dimension.
-
-        """
-        stat_coordinates = ['realization', 'percentile_over']
-        cube_dimension_order = {
-            coord.name(): cube.coord_dims(coord.name())[0]
-            for coord in cube.dim_coords}
-
-        stat_coord = []
-        for crd in stat_coordinates:
-            stat_coord += [coord for coord in cube_dimension_order.keys()
-                           if crd in coord]
-        if len(stat_coord) >= 1:
-            if len(stat_coord) > 1:
-                msg = ('More than one statistical coordinate found. Promoting '
-                       'the first found, {}, to the leading dimension.'.format(
-                        stat_coord))
-                warnings.warn(msg)
-
-            stat_index = cube_dimension_order[stat_coord[0]]
-            new_order = range(len(cube_dimension_order))
-            new_order.pop(stat_index)
-            new_order.insert(0, stat_index)
-            cube.transpose(new_order)
-
-        return cube
-
     def make_cube(self, cube, data, sites):
         """
         Construct and return a cube containing the data extracted from the
@@ -360,7 +319,7 @@ class ExtractData(object):
         result_cube.rename(cube.name())
 
         # Promote any statistical coordinates to be first.
-        result_cube = self.make_stat_coordinate_first(result_cube)
+        result_cube = make_stat_coordinate_first(result_cube)
         return result_cube
 
     def use_nearest(self, cube, sites, neighbours):
