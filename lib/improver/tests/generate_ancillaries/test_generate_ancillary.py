@@ -31,14 +31,11 @@
 """Unit tests for the the stand alone functions in generate_ancillary.py"""
 
 import unittest
-from glob import glob
-import os
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.coords import DimCoord
 from iris.coord_systems import GeogCS
 from iris.fileformats.pp import EARTH_RADIUS
-from iris import save
 import numpy as np
 from cf_units import Unit
 

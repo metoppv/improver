@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing ancillary generation utilities for Improver"""
 
-from glob import glob
-
 from cf_units import Unit
 import iris
 import numpy as np

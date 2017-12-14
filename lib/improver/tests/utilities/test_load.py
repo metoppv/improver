@@ -50,6 +50,7 @@ class Test_load_cube(IrisTest):
 
     """Test the load function."""
     def setUp(self):
+        """Set up variables for use in testing."""
         self.directory = mkdtemp()
         self.filepath = self.directory+"temp.nc"
         self.cube = set_up_temperature_cube()
@@ -186,7 +187,7 @@ class Test_load_cubelist(IrisTest):
         """Test that the loading works correctly, if a wildcarded filepath is
         provided."""
         filepath = self.directory+"*.nc"
-        result = load_cubelist(self.filepath)
+        result = load_cubelist(filepath)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertArrayAlmostEqual(
             result[0].coord("realization").points, self.realization_points)
