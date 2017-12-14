@@ -33,7 +33,7 @@
 import re
 
 from datetime import datetime
-from datetime import time
+from datetime import time as dt_time
 from datetime import timedelta
 from time import mktime
 import warnings
@@ -192,12 +192,12 @@ def forecast_period_coord(
     raise CoordinateNotFoundError(msg)
 
 
-def iris_time_to_datetime(time):
+def iris_time_to_datetime(time_coord):
     """
     Convert iris time to python datetime object. Working in UTC.
 
     Args:
-        time (iris.coord.Coord):
+        time_coord (iris.coord.Coord):
             Iris time coordinate element(s).
 
     Returns:
@@ -205,8 +205,8 @@ def iris_time_to_datetime(time):
             The time element(s) recast as a python datetime object.
 
     """
-    time.convert_units('seconds since 1970-01-01 00:00:00')
-    return [datetime.utcfromtimestamp(value) for value in time.points]
+    time_coord.convert_units('seconds since 1970-01-01 00:00:00')
+    return [datetime.utcfromtimestamp(value) for value in time_coord.points]
 
 
 def dt_to_utc_hours(dt_in):
@@ -353,10 +353,10 @@ def get_forecast_times(forecast_length, forecast_date=None,
         # If no start hour provided, go back to the nearest multiple of 6
         # hours (e.g. utcnow = 11Z --> 06Z).
         forecast_start_time = datetime.combine(
-            start_date, time(divmod(datetime.utcnow().hour, 6)[0]*6))
+            start_date, dt_time(divmod(datetime.utcnow().hour, 6)[0]*6))
     else:
         forecast_start_time = datetime.combine(start_date,
-                                               time(forecast_time))
+                                               dt_time(forecast_time))
 
     # Generate forecast times. Hourly to T+48, 3 hourly to T+forecast_length.
     forecast_times = [forecast_start_time + timedelta(hours=x) for x in
