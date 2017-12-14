@@ -279,7 +279,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy float value.
         The ensemble mean is the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -305,7 +305,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy array.
         The ensemble members are the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -333,7 +333,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution that has been requested was not within the dictionary
         containing the minimisation functions.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -363,7 +363,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         minimising the CRPS and using a set default value for the
         initial guess.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -393,7 +393,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -421,7 +421,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         does not result in a convergence.
         The ensemble mean is the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -436,10 +436,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
+            #print "\n\nWarning list\n"
+            #print [str(item) for item in warning_list]
+            #print "\n"
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -455,7 +457,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         greater than the tolerated value.
         The ensemble mean is the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [500, 100, 0, 100]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -470,10 +472,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
+            warning_list
             self.assertTrue(len(warning_list) == 2)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -488,7 +490,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy float value.
         The ensemble mean is the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -511,7 +513,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     def test_basic_truncated_normal_members_predictor(self):
         """Test that the plugin returns a numpy array."""
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -539,7 +541,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         and that the object returned is an OptimizeResult object, when the
         ensemble mean is the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -566,7 +568,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         and that the object returned is an OptimizeResult object, when the
         ensemble members are the predictor.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -596,7 +598,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -626,7 +628,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        warnings.simplefilter("always")
+        #warnings.simplefilter("always")
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -668,10 +670,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
+            #print "\n\nWarning list\n"
+            #print [str(item) for item in warning_list]
+            #print "\n"
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -701,10 +705,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
+            #print "\n\nWarning list\n"
+            #print [str(item) for item in warning_list]
+            #print "\n"
             self.assertTrue(len(warning_list) == 2)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))

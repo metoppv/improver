@@ -34,6 +34,7 @@ Unit tests for the
 
 """
 import unittest
+import warnings
 
 import iris
 from iris.cube import Cube, CubeList
@@ -79,10 +80,14 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
                            [300.89853804, 312.14853804, 323.39853804]]]])
 
         cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "Collapsing a non-contiguous coordinate.",
+                UserWarning)
+            current_forecast_predictor = cube.collapsed(
+                "realization", iris.analysis.MEAN)
+            current_forecast_variance = cube.collapsed(
+                "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._mean_and_variance_to_percentiles(

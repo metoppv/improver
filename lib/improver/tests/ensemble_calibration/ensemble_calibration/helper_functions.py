@@ -32,7 +32,7 @@
 Functions for use within unit tests for `ensemble_calibration` plugins.
 
 """
-
+import warnings
 from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
@@ -268,7 +268,11 @@ def _create_truth(cube):
         temp_cube.coord("time").points = temp_cube.coord("time").points - index
         temp_cube.coord("forecast_period").points = 0
         temp_cube.data -= 3
-        temp_cube = temp_cube.collapsed("realization", iris.analysis.MAX)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "Collapsing a non-contiguous coordinate.",
+                UserWarning)
+            temp_cube = temp_cube.collapsed("realization", iris.analysis.MAX)
         temp_cube.remove_coord("realization")
         temp_cube.cell_methods = {}
         truth.append(temp_cube)
