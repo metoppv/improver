@@ -164,9 +164,9 @@ class Test__calculate_convective_ratio(IrisTest):
         the output array works as intended."""
         expected = np.array(
             [[[[np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan]]]])
+               [np.nan, np.nan, np.nan, np.nan],
+               [np.nan, np.nan, np.nan, np.nan],
+               [np.nan, np.nan, np.nan, np.nan]]]])
         data = np.zeros((1, 1, 4, 4))
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1")
         cubelist = lower_higher_threshold_cubelist(
@@ -185,22 +185,22 @@ class Test__calculate_convective_ratio(IrisTest):
         arguments. Make sure that the output is a cube with the expected
         data."""
         expected = np.array(
-            [[[[0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.]],
-              [[0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.]]],
-             [[[0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.],
-               [0., 0.,  0., 0.]],
-              [[0.66666667, 0.33333333,  0., 0.],
-               [0.66666667, 0.33333333,  0., 0.],
-               [0.66666667, 0.33333333,  0., 0.],
-               [0.66666667, 0.33333333,  0., 0.]]]])
+            [[[[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]],
+              [[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]]],
+             [[[0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.],
+               [0., 0., 0., 0.]],
+              [[0.66666667, 0.33333333, 0., 0.],
+               [0.66666667, 0.33333333, 0., 0.],
+               [0.66666667, 0.33333333, 0., 0.],
+               [0.66666667, 0.33333333, 0., 0.]]]])
         data = np.full((2, 2, 4, 4), 1.0 * mm_hr_to_m_s)
         data[1, 1, :, 0] = 20.0 * mm_hr_to_m_s
         radii = 4000.0

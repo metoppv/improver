@@ -47,7 +47,7 @@ class Test_svp_table(IrisTest):
     def check_svp_table(t_min, t_max, t_increment, expected):
         """Recreate part of table and compare with expected values."""
         result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+            t_min=t_min, t_max=t_max, t_increment=t_increment).process()
         np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
 
     def test_cube_values_bottom(self):

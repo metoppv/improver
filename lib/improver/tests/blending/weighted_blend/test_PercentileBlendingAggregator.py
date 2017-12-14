@@ -224,7 +224,7 @@ class Test_blend_percentiles(IrisTest):
         percentiles = np.array([0., 10., 20., 30., 40., 50.,
                                 60., 70., 80., 90., 100.])
         result = PercentileBlendingAggregator.blend_percentiles(
-                    PERCENTILE_VALUES, percentiles, weights)
+            PERCENTILE_VALUES, percentiles, weights)
         expected_result_array = np.array([12.70237152, 16.65161847,
                                           17.97408712, 18.86356829,
                                           19.84089805, 20.77406153,
@@ -240,7 +240,7 @@ class Test_blend_percentiles(IrisTest):
         percentiles = np.array([30., 60.])
         percentile_values = np.array([[5.0, 8.0], [6.0, 7.0]])
         result = PercentileBlendingAggregator.blend_percentiles(
-                    percentile_values, percentiles, weights)
+            percentile_values, percentiles, weights)
         expected_result = np.array([5.0, 8.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -251,7 +251,7 @@ class Test_blend_percentiles(IrisTest):
         percentiles = np.array([20.0, 50.0, 80.0])
         percentile_values = np.array([[5.0, 6.0, 7.0], [5.0, 6.5, 7.0]])
         result = PercentileBlendingAggregator.blend_percentiles(
-                    percentile_values, percentiles, weights)
+            percentile_values, percentiles, weights)
         expected_result = np.array([5.0, 6.2, 7.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -262,7 +262,7 @@ class Test_blend_percentiles(IrisTest):
         percentiles = np.array([20.0, 50.0, 80.0])
         percentile_values = np.array([[5.0, 6.0, 7.0]])
         result = PercentileBlendingAggregator.blend_percentiles(
-                    percentile_values, percentiles, weights)
+            percentile_values, percentiles, weights)
         expected_result = np.array([5.0, 6.0, 7.0])
         self.assertArrayAlmostEqual(result, expected_result)
 

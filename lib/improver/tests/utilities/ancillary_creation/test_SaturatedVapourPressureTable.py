@@ -47,8 +47,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(SaturatedVapourPressureTable())
-        msg = ('<SaturatedVapourPressureTable: T_min: {}; T_max: {}; '
-               'T_increment: {}>'.format(183.15, 338.15, 0.1))
+        msg = ('<SaturatedVapourPressureTable: t_min: {}; t_max: {}; '
+               't_increment: {}>'.format(183.15, 338.15, 0.1))
         self.assertEqual(result, msg)
 
 
@@ -60,7 +60,7 @@ class Test_process(IrisTest):
         """Test that returned cube has appropriate attributes."""
         t_min, t_max, t_increment = 200.15, 220.15, 10.
         result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+            t_min=t_min, t_max=t_max, t_increment=t_increment).process()
         self.assertEqual(result.attributes['minimum_temperature'], t_min)
         self.assertEqual(result.attributes['maximum_temperature'], t_max)
         self.assertEqual(result.attributes['temperature_increment'],
@@ -75,7 +75,7 @@ class Test_process(IrisTest):
                     610.6359361, 1227.0888425, 2337.0801979, 4242.7259947,
                     7377.3294046, 12338.9996048, 19925.4362844]
         result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+            t_min=t_min, t_max=t_max, t_increment=t_increment).process()
 
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -85,7 +85,7 @@ class Test_process(IrisTest):
         t_min, t_max, t_increment = 183.15, 338.15, 10.
         expected = np.arange(t_min, t_max, t_increment)
         result = SaturatedVapourPressureTable(
-            T_min=t_min, T_max=t_max, T_increment=t_increment).process()
+            t_min=t_min, t_max=t_max, t_increment=t_increment).process()
 
         self.assertArrayAlmostEqual(result.coord('air_temperature').points,
                                     expected)
