@@ -62,5 +62,5 @@ bounds_for_ecdf = {
     "rainfall_rate_in_vicinity": bounds((0, 0.00003), "m s-1"),
     "lwe_snowfall_rate": bounds((0, 0.00001), "m s-1"),
     "lwe_snowfall_rate_in_vicinity": bounds((0, 0.00001), "m s-1"),
-    "visibility_in_air": bounds((0, 10000), "m")
+    "visibility_in_air": bounds((0, 100000), "m")
 }
