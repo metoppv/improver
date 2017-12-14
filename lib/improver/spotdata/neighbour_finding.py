@@ -32,10 +32,12 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import numpy as np
+from improver.utilities.spatial import (
+    get_nearest_coords, lat_lon_determine, lat_lon_transform)
 from improver.spotdata.common_functions import (
-    ConditionalListExtract, nearest_n_neighbours, get_nearest_coords,
+    ConditionalListExtract, nearest_n_neighbours,
     index_of_minimum_difference, list_entry_from_index, node_edge_check,
-    apply_bias, xy_determine, xy_transform)
+    apply_bias)
 
 
 class PointSelection(object):
@@ -173,7 +175,7 @@ class PointSelection(object):
                                                  ('edgepoint', 'bool_')])
 
         # Check cube coords are lat/lon, else transform lookup coordinates.
-        trg_crs = xy_determine(cube)
+        trg_crs = lat_lon_determine(cube)
 
         imax = cube.coord(axis='y').shape[0]
         jmax = cube.coord(axis='x').shape[0]
@@ -185,7 +187,8 @@ class PointSelection(object):
                                              site['longitude'],
                                              site['altitude'])
 
-            longitude, latitude = xy_transform(trg_crs, latitude, longitude)
+            longitude, latitude = lat_lon_transform(trg_crs,
+                                                    latitude, longitude)
             i_latitude, j_longitude = get_nearest_coords(
                 cube, latitude, longitude, iname, jname)
             dz_site_grid = 0.

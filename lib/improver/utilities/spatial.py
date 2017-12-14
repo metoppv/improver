@@ -36,6 +36,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import scipy.ndimage
+import cartopy.crs as ccrs
 
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -117,8 +118,8 @@ def convert_distance_into_number_of_grid_cells(
         (y_coord.points.max() - y_coord.points.min())**2)
     if distance > max_distance_of_domain:
         raise ValueError(
-            ("Distance of {0}m exceeds max domain distance of {1}m".format(
-                distance, max_distance_of_domain)))
+            ("Distance of {0}m exceeds max domain"
+             " distance of {1}m".format(distance, max_distance_of_domain)))
     d_north_metres = y_coord.points[1] - y_coord.points[0]
     d_east_metres = x_coord.points[1] - x_coord.points[0]
     grid_cells_y = int(distance / abs(d_north_metres))
@@ -339,3 +340,79 @@ class OccurrenceWithinVicinity(object):
         result_cube = check_cube_coordinates(cube, result_cube)
 
         return result_cube
+
+
+def lat_lon_determine(cube):
+    """
+    Test whether a diagnostic cube is on a latitude/longitude grid or uses an
+    alternative projection.
+
+    Args:
+        cube (iris.cube.Cube):
+            A diagnostic cube to examine for coordinate system.
+
+    Returns:
+        trg_crs (cartopy.crs/None):
+            Coordinate system of the diagnostic cube in a cartopy format unless
+            it is already a latitude/longitude grid, in which case None is
+            returned.
+
+    """
+    trg_crs = None
+    if (not cube.coord(axis='x').name() == 'longitude' or
+            not cube.coord(axis='y').name() == 'latitude'):
+        trg_crs = cube.coord_system().as_cartopy_crs()
+    return trg_crs
+
+
+def lat_lon_transform(trg_crs, latitude, longitude):
+    """
+    Transforms latitude/longitude coordinate pairs from a latitude/longitude
+    grid into an alternative projection defined by trg_crs.
+
+    Args:
+        trg_crs (cartopy.crs/None):
+            Target coordinate system in cartopy format or None.
+
+        latitude (float):
+            Latitude coordinate.
+
+        longitude (float):
+            Longitude coordinate.
+
+    Returns:
+        x, y (floats):
+            Longitude and latitude transformed into the target coordinate
+            system.
+
+    """
+    if trg_crs is None:
+        return longitude, latitude
+    else:
+        return trg_crs.transform_point(longitude, latitude,
+                                       ccrs.PlateCarree())
+
+
+def get_nearest_coords(cube, latitude, longitude, iname, jname):
+    """
+    Uses the iris cube method nearest_neighbour_index to find the nearest grid
+    points to a given latitude-longitude position.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing a representative grid.
+
+        latitude/longitude (floats):
+            Latitude/longitude coordinates of spot data site of interest.
+
+        iname/jname (strings):
+            Strings giving the names of the y/x coordinates to be searched.
+
+    Returns:
+        i_latitude/j_latitude (int):
+            Grid coordinates of the nearest grid point to the spot data site.
+
+    """
+    i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
+    j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
+    return i_latitude, j_longitude
