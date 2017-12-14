@@ -307,7 +307,7 @@ class DiagnoseConvectivePrecipitation(object):
             for threshold in threshold_list:
                 diff_cubelist = (
                     self.absolute_differences_between_adjacent_grid_squares(
-                        cube, threshold))
+                        cube))
                 thresholded_cubes = self.iterate_over_threshold(
                     diff_cubelist, threshold)
                 cubelist.append(
