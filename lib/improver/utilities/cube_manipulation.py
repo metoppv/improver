@@ -31,6 +31,7 @@
 """ Provides support utilities for cube manipulation."""
 
 import operator
+import six
 import warnings
 import numpy as np
 
@@ -701,17 +702,30 @@ def enforce_coordinate_ordering(
     all the dimension coordinates can be reordered by specifying the coordinate
     names in the desired order.
 
+    Note that the input cube is used as the output cube apart from if
+    promote_scalar = True when a new cube instance is generated with an extra
+    leading dimension.
+
     Args:
         cube (iris.cube.Cube):
             Cube where the ordering will be enforced to match the order within
-            the coord_names.
+            the coord_names. This input cube will be modified as part of this
+            function.
         coord_names (list or str):
             List of the names of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
         anchor (str):
             String to define where within the range of possible dimensions
-            the specified coordinates should be located. This could be either:
-            "start" or "end".
+            the specified coordinates should be located. If all the names
+            of all the dimension coordinates are specified within the
+            coord_names argument then this argument effectively does nothing.
+            The options are either: "start" or "end". "start" indicates that
+            the coordinates are inserted as the first coordinates within the
+            cube. "end" indicates that the coordinates are inserted as the
+            last coordinates within the cube. For example, if the specified
+            coordinate names are ["time", "realization"] then "realization"
+            will be the last coordinate within the cube, whilst "time" will be
+            the last but one coordinate within the cube.
         promote_scalar (bool):
             If True, any coordinates that are matched and are not dimension
             coordinates are promoted to dimension coordinates.
@@ -734,7 +748,7 @@ def enforce_coordinate_ordering(
         ValueError: Multiple coordinates match the partial name provided.
 
     """
-    if isinstance(coord_names, unicode):
+    if isinstance(coord_names, six.string_types):
         coord_names = str(coord_names)
     if isinstance(coord_names, str):
         coord_names = [coord_names]
@@ -758,7 +772,8 @@ def enforce_coordinate_ordering(
         if cube.coords(coord_name):
             full_coord_name = coord_name
         else:
-            coord = [c for c in cube.coords() if coord_name in c.name()]
+            coord = [coord for coord in cube.coords()
+                     if coord_name in coord.name()]
             # If the coordinate is desired, raise an exception
             # if the coordinate is missing.
             if len(coord) == 0:
@@ -785,7 +800,12 @@ def enforce_coordinate_ordering(
             if promote_scalar:
                 cube = iris.util.new_axis(cube, full_coord_name)
             else:
-                coord_dict.pop(full_coord_name, None)
+                if raise_exception:
+                    msg = ("The {} coordinate cannot be reordered as it "
+                           "is a scalar coordinate.".format(full_coord_name))
+                    raise ValueError(msg)
+                else:
+                    coord_dict.pop(full_coord_name, None)
 
     # Get the dimensions for the coordinates that have not been requested.
     remaining_coords = []

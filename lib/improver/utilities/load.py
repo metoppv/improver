@@ -33,6 +33,7 @@
 import glob
 
 import iris
+from iris.exceptions import ConstraintMismatchError
 
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -91,9 +92,13 @@ def load_cubelist(filepath, constraints=None):
         filepaths = glob.glob(filepath)
     else:
         filepaths = filepath
+
     # Constuct a cubelist using the load_cube function.
     cubelist = iris.cube.CubeList([])
     for filepath in filepaths:
-        cube = load_cube(filepath, constraints=constraints)
+        try:
+            cube = load_cube(filepath, constraints=constraints)
+        except ConstraintMismatchError:
+            continue
         cubelist.append(cube)
     return cubelist

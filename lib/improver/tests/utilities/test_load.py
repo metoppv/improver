@@ -214,6 +214,33 @@ class Test_load_cubelist(IrisTest):
             self.assertArrayAlmostEqual(
                 cube.coord("longitude").points, self.longitude_points)
 
+    def test_wildcard_files_with_constraint(self):
+        """Test that the loading works correctly, if a wildcarded filepath is
+        provided and a constraint is provide that is only valid for a subset
+        of the available files."""
+        filepath = self.directory+"*.nc"
+        low_cloud_cube = self.cube.copy()
+        low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_filepath = self.directory+"low_cloud.nc"
+        iris.save(low_cloud_cube, low_cloud_filepath)
+        medium_cloud_cube = self.cube.copy()
+        medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_filepath = self.directory+"medium_cloud.nc"
+        iris.save(medium_cloud_cube, medium_cloud_filepath)
+        constr = iris.Constraint("low_type_cloud_area_fraction")
+        result = load_cubelist(
+            [low_cloud_filepath, medium_cloud_filepath], constraints=constr)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 1)
+        self.assertArrayAlmostEqual(
+            result[0].coord("realization").points, self.realization_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result[0].coord("longitude").points, self.longitude_points)
+
 
 if __name__ == '__main__':
     unittest.main()
