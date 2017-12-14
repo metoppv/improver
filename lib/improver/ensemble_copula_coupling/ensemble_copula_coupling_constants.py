@@ -47,8 +47,20 @@ bounds = namedtuple("bounds", "value units")
 # Calibrated ensemble reliability whilst preserving spatial structure.
 # Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
 
+# 0.00003 ms-1 ~ 100 mm hr-1 for rainfall. Divided by 3 as a guess for snow!
+
 bounds_for_ecdf = {
     "air_temperature": (
         bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
     "wind_speed": bounds((0, 50), "m s^-1"),
-    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa")}
+    "air_pressure_at_sea_level": bounds((94000, 107000), "Pa"),
+    ("cloud_base_altitude_assuming_only_consider_cloud_area" +
+     "_fraction_greater_than_2p5_oktas"): bounds((-300, 20000), "m"),
+    "cloud_area_fraction": bounds((0, 1.0), "1"),
+    "low_type_cloud_area_fraction": bounds((0, 1.0), "1"),
+    "rainfall_rate": bounds((0, 0.00003), "m s-1"),
+    "rainfall_rate_in_vicinity": bounds((0, 0.00003), "m s-1"),
+    "lwe_snowfall_rate": bounds((0, 0.00001), "m s-1"),
+    "lwe_snowfall_rate_in_vicinity": bounds((0, 0.00001), "m s-1"),
+    "visibility_in_air": bounds((0, 100000), "m")
+}
