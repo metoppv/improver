@@ -37,6 +37,7 @@ from iris import FUTURE
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.warnings_handler import ManageWarnings
 
 FUTURE.netcdf_promote = True
 
@@ -168,6 +169,8 @@ class WindGustDiagnostic(object):
             raise ValueError(msg)
         return result, perc_coord
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def process(self, cube_gust, cube_ws):
         """
         Create a cube containing the wind_gust diagnostic.

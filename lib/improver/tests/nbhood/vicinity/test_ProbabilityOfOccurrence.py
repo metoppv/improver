@@ -31,6 +31,7 @@
 """Unit tests for the vicinity_nbhood.ProbabilityOfOccurrence plugin."""
 
 import unittest
+import warnings
 
 from iris.analysis import MEAN
 from iris.coords import AuxCoord
@@ -41,6 +42,7 @@ import numpy as np
 from improver.nbhood.vicinity import ProbabilityOfOccurrence
 from improver.tests.utilities.test_OccurrenceWithinVicinity import (
     set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -83,7 +85,8 @@ class Test_process(IrisTest):
         self.cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                                 y_dimension_values=y_dimension_values,
                                 x_dimension_values=y_dimension_values)
-
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_with_realization(self):
         """Test when a realization coordinate is present."""
         expected = np.array(
@@ -127,6 +130,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_additional_arguments(self):
         """Test when all keyword arguments are passed in."""
         expected = np.array(
@@ -172,4 +177,8 @@ class Test_process(IrisTest):
 
 
 if __name__ == '__main__':
+    #with warnings.catch_warnings():
+        #warnings.filterwarnings("ignore",
+                                #"Collapsing a non-contiguous coordinate.",
+                                #UserWarning)
     unittest.main()

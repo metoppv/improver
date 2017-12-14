@@ -35,6 +35,7 @@ import iris
 
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class ProbabilityOfOccurrence(object):
@@ -108,6 +109,8 @@ class ProbabilityOfOccurrence(object):
             self.distance, self.neighbourhood_method, self.radii,
             self.lead_times, self.weighted_mode, self.ens_factor)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def process(self, cube):
         """
         Identify the probability of having a phenomenon occur within a
