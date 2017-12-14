@@ -29,25 +29,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run topographic bands ancillary generation."""
+"""Script to run topographic bands weights generation."""
 
 import argparse
 import os
 import iris
 import json
 
-from improver.generate_ancillaries.generate_ancillary import (
-    GenerateOrographyBandAncils)
+from improver.generate_ancillaries.generate_topographic_zone_weights import (
+    GenerateTopographicZoneWeights)
 from improver.generate_ancillaries.generate_ancillary import (
     find_standard_ancil)
+
+iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
 #    above/below sea level for which masks are required.
 #   'land': land points outside the altitude band are set to 0 and those
 #           within the band are set to 1.
-#   'max_land_threshold': land points above the altitude threshold are set to
-#            0 and those above the threshold are set to 1.
-#   In both cases, sea points are masked and set to the default fill_value
+#   Sea points are masked and set to the default fill_value
 
 THRESHOLDS_DICT = {'land': {'bounds': [[-500., 0.], [0., 50.],
                                        [50., 100.], [100., 150.],
@@ -61,9 +61,15 @@ def main():
     """Load in arguments and get going."""
     parser = argparse.ArgumentParser(
         description=('Read input orography and landmask fields. Return a '
-                     'a cube of masks, where each mask excludes data below '
-                     'or equal to the lower threshold, and excludes data above'
-                     ' the upper threshold.'))
+                     'a cube of topographic zone weights to indicate '
+                     'where an orography point sits within the defined '
+                     'topographic bands. If the orography point is in the '
+                     'centre of a topographic band, then a single band will '
+                     'have a weight of 1.0. If the orography point is at the '
+                     'edge of a topographic band, then the upper band will '
+                     'have a 0.5 weight whilst the lower band will also have '
+                     'a 0.5 weight. Otherwise, the weight will vary linearly '
+                     'between the centre of a topographic band and the edge.'))
     parser.add_argument('input_filepath_standard_orography',
                         metavar='INPUT_FILE_STANDARD_OROGRAPHY',
                         help=('A path to an input NetCDF orography file to '
@@ -106,9 +112,8 @@ def main():
                'improver-generate-landmask-ancillary first.').format(
                    args.input_filepath_landmask)
         landmask = find_standard_ancil(args.input_filepath_landmask, msg)
-        result = GenerateOrographyBandAncils().process(
+        result = GenerateTopographicZoneWeights().process(
             orography, landmask, thresholds_dict)
-        result = result.concatenate_cube()
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
