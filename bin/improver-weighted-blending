@@ -39,6 +39,7 @@ from cf_units import Unit
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.utilities.cube_manipulation import merge_cubes
 from improver.argparser import ArgParser
 
 
@@ -84,8 +85,9 @@ def main():
                              '"weighted_maximum": multiplies the values in the'
                              ' coordinate by the weights, and then takes the'
                              ' maximum.')
-    parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('input_filepaths', metavar='INPUT_FILES',
+                        nargs="+",
+                        help='Paths to input files to be blended.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
@@ -168,7 +170,16 @@ def main():
     else:
         coord_unit = 'no_unit'
 
-    cube = iris.load_cube(args.input_filepath)
+    # Read in cubes and merge together if more than one found.
+    cubelist = iris.cube.CubeList([])
+    for ifile in args.input_filepaths:
+        cube_in = iris.load_cube(ifile)
+        cubelist.append(cube_in)
+    if len(cubelist) == 1:
+        cube = cubelist[0]
+    else:
+        cube = merge_cubes(cubelist)
+
     if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(
@@ -181,9 +192,9 @@ def main():
             args.wts_redistrib_method)
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,
-            cycletime=args.cycletime,
-            coords_for_bounds_removal=args.coords_for_bounds_removal)
+        args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,
+        cycletime=args.cycletime,
+        coords_for_bounds_removal=args.coords_for_bounds_removal)
     result = BlendingPlugin.process(cube, weights)
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

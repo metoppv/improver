@@ -249,11 +249,6 @@ def equalise_cubes(cubes_in, merging=True):
             Merging can only create new coords not add
             to existing mismatching coords.
     """
-    # Additional processing to deal with differences
-    # between cubes e.g. different cell_methods
-    # will probably need to be added but this function is
-    # mainly here to provide the structure for where
-    # these changes can be added.
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
@@ -261,6 +256,7 @@ def equalise_cubes(cubes_in, merging=True):
     _strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)
+        cubelist = _equalise_cell_methods(cubelist)
     else:
         cubelist = cubes
     return cubelist
@@ -412,6 +408,37 @@ def _equalise_cube_coords(cubes):
             else:
                 cubelist.append(cube)
 
+    return cubelist
+
+
+def _equalise_cell_methods(cubes):
+    """
+    Function to equalise cell methods that do not match.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            List of cubes to check the cell methods and revise.
+    Returns:
+        cubelist (iris.cube.CubeList):
+            List of cubes with revised cell methods.
+            Currently the cell methods are simply deleted if
+            they do not match.
+    Warns:
+        Warning: If only a single cube.
+.
+    """
+    if len(cubes) == 1:
+        msg = ('Only a single cube so no differences will be found '
+               'in cell methods')
+        warnings.warn(msg)
+        cubelist = cubes
+    else:
+        cell_methods = cubes[0].cell_methods
+        for cube in cubes[1:]:
+            cell_methods = list(set(cell_methods) & set(cube.cell_methods))
+        cubelist = cubes
+        for cube in cubelist:
+            cube.cell_methods = tuple(cell_methods)
     return cubelist
 
 

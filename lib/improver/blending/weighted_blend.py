@@ -92,7 +92,7 @@ def conform_metadata(
             Cube containing the adjusted metadata.
 
     """
-    if coord in ["forecast_reference_time"]:
+    if coord in ["forecast_reference_time", "model"]:
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
                 new_cycletime = (
