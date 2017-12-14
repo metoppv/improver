@@ -57,8 +57,11 @@ from improver.utilities.cube_manipulation import (
     compare_coords,
     build_coordinate,
     add_renamed_cell_method,
-    sort_coord_in_cube)
+    sort_coord_in_cube,
+    make_stat_coordinate_first)
 
+from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+    set_up_cube)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
         set_up_temperature_cube,
@@ -1486,6 +1489,62 @@ class Test_sort_coord_in_cube(IrisTest):
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
             self.assertIsInstance(result, iris.cube.Cube)
+
+
+class Test_make_stat_coordinate_first(IrisTest):
+    """Test the function to reorder a cube to ensure the statistical coordinate
+    is the first dimension."""
+
+    def test_cube_reorder_realization(self):
+        """Test reordering a cube with a realization coordinate to make it come
+        first."""
+
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+        incorrect_cube = cube.copy()
+        incorrect_cube.transpose([1, 2, 0, 3])
+        result = make_stat_coordinate_first(incorrect_cube)
+        self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
+        self.assertEqual(cube.coords(), result.coords())
+
+    def test_cube_reorder_percentile(self):
+        """Test reordering a cube with a percentile coordinate to make it come
+        first."""
+
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+        cube.coords()[0].rename('percentile_over_time')
+        incorrect_cube = cube.copy()
+        incorrect_cube.transpose([1, 2, 0, 3])
+        result = make_stat_coordinate_first(incorrect_cube)
+        self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
+        self.assertEqual(cube.coords(), result.coords())
+
+    def test_cube_reorder_percentile_and_realization(self):
+        """Test reordering a cube with a percentile and a realization
+        coordinate. Should produce a warning and promote the first statistical
+        coordinate that is found."""
+
+        cube = set_up_cube(
+            zero_point_indices=(
+                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
+            num_time_points=2, num_grid_points=5, num_realization_points=2)
+        realization = cube.coords()[0][0].copy()
+        cube.coords()[0].rename('percentile_over_time')
+        cube.add_aux_coord(realization)
+        cube = iris.util.new_axis(cube, 'realization')
+        incorrect_cube = cube.copy()
+        incorrect_cube.transpose([2, 1, 0, 3, 4])
+        with warnings.catch_warnings(record=True) as w_messages:
+            result = make_stat_coordinate_first(incorrect_cube)
+            self.assertEqual(len(w_messages), 1)
+            self.assertTrue(issubclass(w_messages[0].category, UserWarning))
+            self.assertTrue("More than one statistical" in str(w_messages[0]))
+        self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
 
 
 if __name__ == '__main__':
