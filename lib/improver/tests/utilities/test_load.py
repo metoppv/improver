@@ -155,6 +155,7 @@ class Test_load_cubelist(IrisTest):
 
     """Test the load function."""
     def setUp(self):
+        """Set up variables for use in testing."""
         self.directory = mkdtemp()
         self.filepath = self.directory+"temp.nc"
         self.cube = set_up_temperature_cube()
