@@ -413,7 +413,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            plugin.crps_minimiser_wrapper(
+            result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 1)
@@ -445,7 +445,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            plugin.crps_minimiser_wrapper(
+            result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 2)
@@ -637,7 +637,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            plugin.crps_minimiser_wrapper(
+            result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 1)
@@ -669,7 +669,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            plugin.crps_minimiser_wrapper(
+            result = plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
             self.assertTrue(len(warning_list) == 2)
