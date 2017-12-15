@@ -41,7 +41,6 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.grids import STANDARD_GRID_CCRS
-from improver.constants import RMDI
 from improver.wind_downscaling import RoughnessCorrection
 
 
@@ -68,10 +67,10 @@ def _make_ukvx_grid():
 
     x_coord = iris.coords.DimCoord(np.linspace(west, east, num_x),
                                    'projection_x_coordinate',
-                                   units='m', coord_system=STANDARD_GRID_CCRS)
+                                   units='m', coord_system='STANDARD_GRID_CCRS')
     y_coord = iris.coords.DimCoord(np.linspace(south, north, num_y),
                                    'projection_y_coordinate',
-                                   units='m', coord_system=STANDARD_GRID_CCRS)
+                                   units='m', coord_system='STANDARD_GRID_CCRS')
     x_coord.guess_bounds()
     y_coord.guess_bounds()
     cube = iris.cube.Cube(data)
@@ -359,14 +358,14 @@ class Test1D(IrisTest):
 
     """Class to test 1 x-y point cubes.
 
-    This class tests the correct behaviour if np.nan or RMDI are
+    This class tests the correct behaviour if np.nan is
     passed, as well as testing the general behaviour of points that
     should not have a height corretion (equal height in model and pp
     orography) and the correct behaviour of doing roughness correction,
     depending on whether or not a vegetative roughness (z_0) cube is
     provided.
 
-    Section 0 are tests where RMDI or np.nan values are passed.
+    Section 0 are tests where np.nan values are passed.
     Section 1 are sensible single point tests.
 
     """
@@ -374,14 +373,6 @@ class Test1D(IrisTest):
     hls = [0.2, 3, 13, 33, 133, 333, 1133]
 
     def test_section0a(self):
-        """Test AoS is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=RMDI, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.,
-            heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
-
-    def test_section0b(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             AoS=np.nan, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.,
@@ -389,15 +380,7 @@ class Test1D(IrisTest):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0c(self):
-        """Test Sigma is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=RMDI, z_0=0.2, pporog=250., modelorog=230.,
-            heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
-
-    def test_section0d(self):
+    def test_section0b(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=np.nan, z_0=0.2, pporog=250., modelorog=230.,
@@ -405,63 +388,17 @@ class Test1D(IrisTest):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0e(self):
-        """Test z_0 is RMDI, point should not do RC.
-
-        modeloro = pporo, so point should not do HC, uin = uout.
-
-        """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=RMDI, pporog=230., modelorog=230.,
-            heightlevels=self.hls
-        )
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
-
-    def test_section0f(self):
+    def test_section0c(self):
         """Test z_0 is np.nan, point should not do RC.
-
         modeloro = pporo, so point should not do HC, uin = uout.
-
         """
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=np.nan, pporog=230., modelorog=230.,
-            heightlevels=self.hls
-        )
+            heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-    def test_section0g(self):
-        """Test z_0 is RMDI, point should not do RC.
-
-        modeloro < pporo, so point should do positive HC, uin < uout.
-
-        """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=RMDI, pporog=250., modelorog=230.,
-            heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.failUnless((land_hc_rc.data >
-                         landpointtests_hc_rc.w_cube.data).all())
-
-    def test_section0h(self):
-        """Test pporog is RMDI (QUESTION: or should this fail???)
-
-        RC could be done for this point, HC cannot.
-        uin >= uout
-        and since z_0=height[0]
-        uout[0] = 0
-
-        """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=RMDI, modelorog=230.,
-            heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.failUnless((land_hc_rc.data <=
-                         landpointtests_hc_rc.w_cube.data).all() and
-                        land_hc_rc.data[0] == 0)
-
-    def test_section0i(self):
+    def test_section0d(self):
         """Test pporog is np.nan (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
@@ -472,45 +409,13 @@ class Test1D(IrisTest):
         """
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=np.nan, modelorog=230.,
-            heightlevels=self.hls
-        )
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.failUnless((land_hc_rc.data <=
-                         landpointtests_hc_rc.w_cube.data).all() and
-                        land_hc_rc.data[0] == 0)
-
-    def test_section0j(self):
-        """Test modelorog is RMDI (QUESTION: or should this fail???).
-
-        RC could be done for this point, HC cannot.
-        uin >= uout
-        and since z_0=height[0]
-        uout[0] = 0
-
-        """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250., modelorog=RMDI,
             heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         land_hc_rc.data[0] == 0)
 
-    def test_section0k(self):
-        """Test fail for RMDI in height grid.
-
-        height grid is RMDI at that location somewhere in z-direction,
-        should fail with ValueError.
-
-        """
-        hls = [0.2, 3, 13, RMDI, 133, 333, 1133]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
-            heightlevels=hls)
-        with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.run_hc_rc(self.uin)
-
-    def test_section0l(self):
+    def test_section0e(self):
         """Test fail for np.nan in height grid.
 
         height grid is np.nan at that location somewhere in z-direction,
@@ -524,22 +429,7 @@ class Test1D(IrisTest):
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
-    def test_section0m(self):
-        """Test fail for RMDI in uin.
-
-        uin is RMDI at that location somewhere in z-direction,
-        should fail with ValueError.
-
-        """
-        uin = [20., 20., 20., RMDI, RMDI, 20., 0.]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
-            heightlevels=self.hls
-        )
-        with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.run_hc_rc(uin)
-
-    def test_section0n(self):
+    def test_section0f(self):
         """Test fail for np.nan in uin.
 
         uin is np.nan at that location somewhere in z-direction,
