@@ -45,6 +45,7 @@ class DiagnoseConvectivePrecipitation(object):
     precipitation. Convective precipitation features would be anticipated
     to have sharp features compared with broader (less sharp) features for
     stratiform precipitation.
+
     """
 
     def __init__(
