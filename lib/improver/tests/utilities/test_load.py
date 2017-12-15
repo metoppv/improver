@@ -218,7 +218,6 @@ class Test_load_cubelist(IrisTest):
         """Test that the loading works correctly, if a wildcarded filepath is
         provided and a constraint is provide that is only valid for a subset
         of the available files."""
-        filepath = self.directory+"*.nc"
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
         low_cloud_filepath = self.directory+"low_cloud.nc"
