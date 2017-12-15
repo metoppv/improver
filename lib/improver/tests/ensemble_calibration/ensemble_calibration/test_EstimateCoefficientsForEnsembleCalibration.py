@@ -100,7 +100,6 @@ class Test__init__(IrisTest):
         Test that the plugin raises the desired warning if the statsmodels
         module is not found for when the predictor is the ensemble members.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -128,6 +127,7 @@ class Test__init__(IrisTest):
 
         if not statsmodels_found:
             with warnings.catch_warnings(record=True) as warning_list:
+                warnings.simplefilter("always")
                 plugin = Plugin(distribution, desired_units,
                                 predictor_of_mean_flag=predictor_of_mean_flag)
                 self.assertTrue(len(warning_list) == 1)

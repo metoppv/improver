@@ -410,6 +410,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
+        plugin.MAX_ITERATIONS = 2
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
@@ -442,6 +443,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
+        plugin.MAX_ITERATIONS = 2
         distribution = "gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
@@ -634,6 +636,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
+        plugin.MAX_ITERATIONS = 2
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
@@ -666,6 +669,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
+        plugin.MAX_ITERATIONS = 2
         distribution = "truncated gaussian"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
