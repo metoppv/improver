@@ -86,7 +86,7 @@ def wxcode_decision_tree():
 
         'heavy_precipitation': {
             'succeed': 'heavy_precipitation_cloud',
-            'fail': 'light_precipitation',
+            'fail': 'precipitation_in_vicinity',
             'probability_thresholds': [0.5, 0.5],
             'threshold_condition': '>=',
             'condition_combination': 'OR',
@@ -266,7 +266,7 @@ def wxcode_decision_tree():
 
         'drizzle_cloud': {
             'succeed': 11,
-            'fail': 'no_precipitation_cloud',
+            'fail': 'precipitation_in_vicinity',
             'probability_thresholds': [0.5, 0.5],
             'threshold_condition': '>=',
             'condition_combination': 'AND',
@@ -311,7 +311,7 @@ def wxcode_decision_tree():
             'diagnostic_conditions': ['above']},
 
         'any_precipitation': {
-            'succeed': 'precipitation_in_vicinity',
+            'succeed': 'light_precipitation',
             'fail': 'mist_conditions',
             'probability_thresholds': [0.05, 0.05],
             'threshold_condition': '>=',
