@@ -355,7 +355,6 @@ class RoughnessCorrectionUtilities(object):
         ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
                                  mask).calc_ustar()
         unew = np.copy(uold)
-        mhref = self.h_ref
         cond = hgrid < self.h_ref[:, :, np.newaxis]
         unew[cond] = (
             ustar[:, :, np.newaxis]*np.ones(unew.shape)
@@ -824,7 +823,7 @@ class RoughnessCorrection(object):
                 representing the height grid.
 
         """
-        hld = wind.coord(self.z_name).points          
+        hld = wind.coord(self.z_name).points
         return hld
 
     def check_wind_ancil(self, xwp, ywp):

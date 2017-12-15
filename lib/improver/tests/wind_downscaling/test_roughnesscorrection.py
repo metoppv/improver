@@ -67,10 +67,10 @@ def _make_ukvx_grid():
 
     x_coord = iris.coords.DimCoord(np.linspace(west, east, num_x),
                                    'projection_x_coordinate',
-                                   units='m', coord_system='STANDARD_GRID_CCRS')
+                                   units='m', coord_system=STANDARD_GRID_CCRS)
     y_coord = iris.coords.DimCoord(np.linspace(south, north, num_y),
                                    'projection_y_coordinate',
-                                   units='m', coord_system='STANDARD_GRID_CCRS')
+                                   units='m', coord_system=STANDARD_GRID_CCRS)
     x_coord.guess_bounds()
     y_coord.guess_bounds()
     cube = iris.cube.Cube(data)
