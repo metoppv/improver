@@ -38,8 +38,7 @@ import json
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
-from improver.generate_ancillaries.generate_ancillary import (
-    find_standard_ancil)
+from improver.utilities.load import load_cube
 
 iris.FUTURE.netcdf_promote = True
 
@@ -107,11 +106,11 @@ def main():
         thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:
-        orography = find_standard_ancil(args.input_filepath_standard_orography)
+        orography = load_cube(args.input_filepath_standard_orography)
         msg = ('Cannot locate land mask at {}; run '
                'improver-generate-landmask-ancillary first.').format(
                    args.input_filepath_landmask)
-        landmask = find_standard_ancil(args.input_filepath_landmask, msg)
+        landmask = load_cube(args.input_filepath_landmask, msg)
         result = GenerateTopographicZoneWeights().process(
             orography, landmask, thresholds_dict)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
