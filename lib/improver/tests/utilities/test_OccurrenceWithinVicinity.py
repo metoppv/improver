@@ -35,7 +35,7 @@ import unittest
 from cf_units import Unit
 import iris
 from iris.coords import DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.tests import IrisTest
 
 import numpy as np
@@ -228,14 +228,14 @@ class Test_process(IrisTest):
         """Test for multiple times, so that multiple
         iterations will be required within the process method."""
         expected = np.array(
-           [[[[0., 0., 0., 0.],
-              [1., 1., 1., 0.],
-              [1., 1., 1., 0.],
-              [1., 1., 1., 0.]],
-             [[0., 0., 1., 1.],
-              [0., 0., 1., 1.],
-              [0., 0., 1., 1.],
-              [0., 0., 0., 0.]]]])
+            [[[[0., 0., 0., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.],
+               [1., 1., 1., 0.]],
+              [[0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 1., 1.],
+               [0., 0., 0., 0.]]]])
         data = np.zeros((1, 2, 4, 4))
         data[0, 0, 2, 1] = 1.0
         data[0, 1, 1, 3] = 1.0

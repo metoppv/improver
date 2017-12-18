@@ -113,10 +113,12 @@ class Test_process(IrisTest):
         cube.add_dim_coord(DimCoord([402192.5, 402193.5],
                                     "time", units=tunit), 0)
         cube.add_aux_coord(AuxCoord([402190.0, 402191.0],
-                           "forecast_reference_time", units=tunit),
+                                    "forecast_reference_time",
+                                    units=tunit),
                            data_dims=0)
         cube.add_aux_coord(AuxCoord([3.0, 4.0],
-                           "forecast_period", units=tunit),
+                                    "forecast_period",
+                                    units=tunit),
                            data_dims=0)
 
         self.cube = cube
@@ -132,10 +134,10 @@ class Test_process(IrisTest):
         cube_threshold = Cube(data_threshold,
                               long_name="probability_of_precipitation_amount")
         cube_threshold.add_dim_coord(DimCoord([0.4, 1.0],
-                                     long_name="threshold",
-                                     units="kg m^-2 s^-1"), 0)
+                                              long_name="threshold",
+                                              units="kg m^-2 s^-1"), 0)
         cube_threshold.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                     "time", units=tunit), 1)
+                                              "time", units=tunit), 1)
         cube_threshold.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
                                               'latitude',
                                               units='degrees'), 2)

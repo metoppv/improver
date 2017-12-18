@@ -194,7 +194,7 @@ class DiagnoseConvectivePrecipitation(object):
         return convective_ratio
 
     @staticmethod
-    def absolute_differences_between_adjacent_grid_squares(cube, threshold):
+    def absolute_differences_between_adjacent_grid_squares(cube):
         """
         Compute the absolute differences between grid squares and put the
         resulting cubes into a cubelist.
@@ -203,8 +203,6 @@ class DiagnoseConvectivePrecipitation(object):
             cube (Iris.cube.Cube):
                 The cube from which adjacent grid square differences will be
                 calculated.
-            threshold (float):
-                The threshold that will be applied.
 
         Returns:
             cubelist (Iris.cube.CubeList):
@@ -309,7 +307,7 @@ class DiagnoseConvectivePrecipitation(object):
             for threshold in threshold_list:
                 diff_cubelist = (
                     self.absolute_differences_between_adjacent_grid_squares(
-                        cube, threshold))
+                        cube))
                 thresholded_cubes = self.iterate_over_threshold(
                     diff_cubelist, threshold)
                 cubelist.append(

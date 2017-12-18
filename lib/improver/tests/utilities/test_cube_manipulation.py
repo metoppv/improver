@@ -81,31 +81,32 @@ def set_up_percentile_cube(data, phenomenon_standard_name, phenomenon_units,
                 units=phenomenon_units)
     coord_long_name = "percentile_over_realization"
     cube.add_dim_coord(
-       DimCoord(percentiles, long_name=coord_long_name,
-                units='%'), 0)
+        DimCoord(percentiles,
+                 long_name=coord_long_name,
+                 units='%'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
     cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
-                       "time", units=tunit), 1)
+                                "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
-                       "latitude", units="degrees"), 2)
+                                "latitude", units="degrees"), 2)
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
-                       "longitude", units="degrees"), 3)
+                                "longitude", units="degrees"), 3)
     return cube
 
 
 def set_up_percentile_temperature_cube():
     """ Create a cube with metadata and values suitable for air temperature."""
     data = np.array([[[[0.1, 0.1, 0.1],
-                      [0.2, 0.2, 0.2],
-                      [0.5, 0.5, 0.5]]],
+                       [0.2, 0.2, 0.2],
+                       [0.5, 0.5, 0.5]]],
                      [[[1.0, 1.0, 1.0],
-                      [0.5, 0.5, 0.5],
-                      [0.5, 0.5, 0.5]]],
+                       [0.5, 0.5, 0.5],
+                       [0.5, 0.5, 0.5]]],
                      [[[2.0, 3.0, 4.0],
-                      [0.8, 1.2, 1.6],
-                      [1.5, 2.0, 3.0]]]])
+                       [0.8, 1.2, 1.6],
+                       [1.5, 2.0, 3.0]]]])
     return (
         set_up_percentile_cube(data, "air_temperature", "K"))
 
