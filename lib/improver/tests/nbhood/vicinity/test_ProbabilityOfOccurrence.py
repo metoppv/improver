@@ -31,7 +31,6 @@
 """Unit tests for the vicinity_nbhood.ProbabilityOfOccurrence plugin."""
 
 import unittest
-import warnings
 
 from iris.analysis import MEAN
 from iris.coords import AuxCoord
