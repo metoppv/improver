@@ -615,7 +615,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             # Make sure inputs have the same units.
             historic_forecast_cube.convert_units(self.desired_units)
             truth_cube.convert_units(self.desired_units)
-
             if self.predictor_of_mean_flag.lower() in ["mean"]:
                 no_of_members = None
                 forecast_predictor = historic_forecast_cube.collapsed(
@@ -808,7 +807,6 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
 
         current_forecast_cubes = concatenate_cubes(
             self.current_forecast)
-
         if self.predictor_of_mean_flag.lower() in ["mean"]:
             forecast_predictors = current_forecast_cubes.collapsed(
                 "realization", iris.analysis.MEAN)

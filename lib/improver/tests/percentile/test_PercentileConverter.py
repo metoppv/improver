@@ -66,11 +66,12 @@ class Test_process(IrisTest):
         time = DimCoord([402192.5], standard_name='time',
                         units=Unit('hours since 1970-01-01 00:00:00',
                                    calendar='gregorian'))
-        latitude = DimCoord(np.linspace(-90, 90, 11),
+        latitude = DimCoord(np.linspace(-80, 80, 11),
                             standard_name='latitude', units='degrees')
-        longitude = DimCoord(np.linspace(-180, 180, 11),
+        longitude = DimCoord(np.linspace(-160, 160, 11),
                              standard_name='longitude', units='degrees')
-
+        latitude.guess_bounds()
+        longitude.guess_bounds()
         cube = Cube(data, standard_name="air_temperature",
                     dim_coords_and_dims=[(realization, 0),
                                          (time, 1),
@@ -109,7 +110,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, (15, 3, 1, 11))
         # Check demoted longitude coordinate exists as scalar with bounds.
         self.assertArrayEqual(result.coord('longitude').bounds,
-                              [[-180., 180.]])
+                              [[-176., 176.]])
 
     def test_valid_multi_coord_string_list(self):
         """
@@ -137,8 +138,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, (15, 3, 1))
         # Check demoted dimension coordinates exists as scalars with bounds.
         self.assertArrayEqual(result.coord('longitude').bounds,
-                              [[-180., 180.]])
-        self.assertArrayEqual(result.coord('latitude').bounds, [[-90., 90.]])
+                              [[-176., 176.]])
+        self.assertArrayEqual(result.coord('latitude').bounds, [[-88., 88.]])
 
     def test_unavailable_collapse_coord(self):
         """

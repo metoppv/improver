@@ -63,13 +63,13 @@ class Test__init__(IrisTest):
         Test that the plugin raises no warnings if the statsmodels module
         is not found for when the predictor is the ensemble mean.
         """
-        warnings.simplefilter("always")
-        import imp
-        try:
-            statsmodels_found = imp.find_module('statsmodels')
-            statsmodels_found = True
-        except ImportError:
-            statsmodels_found = False
+        with warnings.catch_warnings():
+            import imp
+            try:
+                statsmodels_found = imp.find_module('statsmodels')
+                statsmodels_found = True
+            except ImportError:
+                statsmodels_found = False
 
         cube = self.cube
 
@@ -100,13 +100,13 @@ class Test__init__(IrisTest):
         Test that the plugin raises the desired warning if the statsmodels
         module is not found for when the predictor is the ensemble members.
         """
-        warnings.simplefilter("always")
-        import imp
-        try:
-            statsmodels_found = imp.find_module('statsmodels')
-            statsmodels_found = True
-        except ImportError:
-            statsmodels_found = False
+        with warnings.catch_warnings():
+            import imp
+            try:
+                statsmodels_found = imp.find_module('statsmodels')
+                statsmodels_found = True
+            except ImportError:
+                statsmodels_found = False
 
         cube = self.cube
 
@@ -130,6 +130,9 @@ class Test__init__(IrisTest):
             with warnings.catch_warnings(record=True) as warning_list:
                 plugin = Plugin(distribution, desired_units,
                                 predictor_of_mean_flag=predictor_of_mean_flag)
+                #print "\n\nWarning list\n"
+                #print [str(item) for item in warning_list]
+                #print "\n"
                 self.assertTrue(len(warning_list) == 1)
                 self.assertTrue(any(item.category == UserWarning
                                     for item in warning_list))
@@ -272,7 +275,6 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -677,7 +679,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
@@ -703,9 +704,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
+            #print "\n\nWarning list\n"
+            #print [str(item) for item in warning_list]
+            #print "\n"
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -729,9 +732,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
+            #print "\n\nWarning list\n"
+            #print [str(item) for item in warning_list]
+            #print "\n"
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
@@ -755,7 +760,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
@@ -781,7 +785,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
@@ -807,7 +810,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
@@ -834,7 +836,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
 
         with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
             result = plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
