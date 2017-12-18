@@ -612,6 +612,9 @@ def build_coordinate(data, long_name=None,
                              coord_system=coord_system_out,
                              bounds=bounds_out)
 
+    if std_name_out is None and var_name_out is None:
+        crd_out.rename(long_name_out)
+
     return crd_out
 
 

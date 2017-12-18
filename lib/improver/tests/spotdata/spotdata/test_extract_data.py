@@ -317,22 +317,6 @@ class Test_ExtractData(Test_setup):
                            **self.kwargs)
 
 
-class Test__build_coordinate(Test_setup):
-    """Test the _build_coordinate function."""
-
-    def test_build_latitude_coordinate(self):
-        """Test building a latitude coordinate."""
-
-        plugin = Plugin()._build_coordinate
-        coord_system = iris.coord_systems.GeogCS(6371229.0)
-        result = plugin(self.latitudes, 'latitude', units='degrees',
-                        coord_system=coord_system)
-        self.assertArrayEqual(result.points, self.latitudes)
-        self.assertEqual(result.name(), 'latitude')
-        self.assertIsInstance(result, DimCoord)
-        self.assertEqual(result.units, 'degrees')
-
-
 class Test_make_stat_coordinate_first(Test_setup):
     """Test the function to reorder a cube to ensure the statistical coordinate
     is the first dimension."""

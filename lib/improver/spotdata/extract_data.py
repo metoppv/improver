@@ -31,18 +31,21 @@
 
 """Gridded data extraction for the Improver site specific process chain."""
 
-import numpy as np
-import iris
 import warnings
 import copy
+
+import numpy as np
 from numpy.linalg import lstsq
-from iris.coords import AuxCoord, DimCoord
+import iris
+from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+
 from improver.spotdata.common_functions import (nearest_n_neighbours,
                                                 node_edge_check)
 from improver.constants import (R_DRY_AIR,
                                 CP_DRY_AIR)
+from improver.utilities.cube_manipulation import build_coordinate
 
 
 class ExtractData(object):
@@ -158,47 +161,6 @@ class ExtractData(object):
             self.method, self.__class__.__name__))
 
     @staticmethod
-    def _build_coordinate(data, coordinate, coord_type=DimCoord,
-                          data_type=float, units='1', bounds=None,
-                          coord_system=None, custom_function=None):
-        """
-        Construct an iris.coord.Dim/Auxcoord using the provided options.
-
-        Args:
-            data (number/list/np.array):
-                List or array of values to populate the coordinate points.
-            coordinate (str):
-                Name of the coordinate to be built.
-            coord_type (iris.coord.AuxCoord or iris.coord.DimCoord (optional)):
-                Selection between Dim and Aux coord.
-            data_type (<type> (optional)):
-                The data type of the coordinate points, e.g. int
-            units (str (optional)):
-                String defining the coordinate units.
-            bounds (np.array (optional)):
-                A (len(data), 2) array that defines coordinate bounds.
-            coord_system(iris.coord_systems.<coord_system> (optional)):
-                A coordinate system in which the dimension coordinates are
-                defined.
-            custom_function (function (optional)):
-                A function to apply to the data values before constructing the
-                coordinate, e.g. np.nan_to_num.
-
-        Returns:
-            iris coordinate:
-                Dim or Auxcoord as chosen.
-
-        """
-        data = np.array(data, data_type)
-        if custom_function is not None:
-            data = custom_function(data)
-
-        crd_out = coord_type(data, long_name=coordinate, units=units,
-                             coord_system=coord_system, bounds=bounds)
-        crd_out.rename(coordinate)
-        return crd_out
-
-    @staticmethod
     def _aux_coords_to_make():
         """
         Define coordinates that need to be made for the cube to be produced.
@@ -218,8 +180,7 @@ class ExtractData(object):
                              'custom_function': np.nan_to_num},
                 'wmo_site': {'data_type': int, 'coord_type': AuxCoord},
                 'utc_offset': {'units': 'hours', 'data_type': float,
-                               'coord_type': AuxCoord}
-                }
+                               'coord_type': AuxCoord}}
 
     @staticmethod
     def make_stat_coordinate_first(cube):
@@ -253,7 +214,7 @@ class ExtractData(object):
             if len(stat_coord) > 1:
                 msg = ('More than one statistical coordinate found. Promoting '
                        'the first found, {}, to the leading dimension.'.format(
-                        stat_coord))
+                           stat_coord))
                 warnings.warn(msg)
 
             stat_index = cube_dimension_order[stat_coord[0]]
@@ -306,8 +267,8 @@ class ExtractData(object):
         dim_coords = [coord for coord in non_spatial_dimcoords]
 
         # Add an index coordinate as a dimension coordinate.
-        indices = self._build_coordinate(np.arange(len(sites)), 'index',
-                                         data_type=int)
+        indices = build_coordinate(np.arange(len(sites)), long_name='index',
+                                   data_type=int)
         dim_coords.append(indices)
 
         # Record existing scalar coordinates on source cube. Aux coords
@@ -322,15 +283,15 @@ class ExtractData(object):
         # Build a forecast_period dimension.
         forecast_periods = (cube.coord('time').points -
                             cube.coord('forecast_reference_time').points)
-        forecast_period = self._build_coordinate(
-            forecast_periods, 'forecast_period', units='seconds')
+        forecast_period = build_coordinate(
+            forecast_periods, long_name='forecast_period', units='seconds')
 
         # Build the new auxiliary coordinates.
         crds = self._aux_coords_to_make()
         aux_crds = []
         for key, kwargs in zip(crds.keys(), crds.itervalues()):
             aux_data = np.array([entry[key] for entry in sites.itervalues()])
-            crd = self._build_coordinate(aux_data, key, **kwargs)
+            crd = build_coordinate(aux_data, long_name=key, **kwargs)
             aux_crds.append(crd)
 
         # Construct zipped lists of coordinates and indices. New aux coords are
