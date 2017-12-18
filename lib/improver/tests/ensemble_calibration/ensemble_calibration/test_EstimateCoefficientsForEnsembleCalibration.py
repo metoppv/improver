@@ -48,6 +48,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
                              add_forecast_reference_time_and_forecast_period,
                              _create_historic_forecasts, _create_truth)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -58,12 +59,13 @@ class Test__init__(IrisTest):
         """Set up cube for testing."""
         self.cube = set_up_temperature_cube()
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_statsmodels_mean(self):
         """
         Test that the plugin raises no warnings if the statsmodels module
         is not found for when the predictor is the ensemble mean.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -95,12 +97,13 @@ class Test__init__(IrisTest):
                                 predictor_of_mean_flag=predictor_of_mean_flag)
                 self.assertTrue(len(warning_list) == 0)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_statsmodels_members(self):
         """
         Test that the plugin raises the desired warning if the statsmodels
         module is not found for when the predictor is the ensemble members.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -145,6 +148,8 @@ class Test_compute_initial_guess(IrisTest):
         """Use temperature cube to test with."""
         self.cube = set_up_temperature_cube()
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a list containing the initial guess
@@ -167,6 +172,8 @@ class Test_compute_initial_guess(IrisTest):
             estimate_coefficients_from_linear_model_flag)
         self.assertIsInstance(result, list)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a list containing the initial guess
@@ -190,6 +197,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertIsInstance(result, list)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_basic_mean_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -215,6 +224,8 @@ class Test_compute_initial_guess(IrisTest):
             estimate_coefficients_from_linear_model_flag)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_basic_members_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -241,6 +252,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_mean_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -266,13 +279,14 @@ class Test_compute_initial_guess(IrisTest):
 
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_members_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -303,6 +317,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_mean_predictor_estimate_coefficients_nans(self):
         """
         Test that the plugin returns the expected values for the initial guess
