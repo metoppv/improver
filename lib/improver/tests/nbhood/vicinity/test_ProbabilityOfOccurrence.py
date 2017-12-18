@@ -85,6 +85,7 @@ class Test_process(IrisTest):
         self.cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                                 y_dimension_values=y_dimension_values,
                                 x_dimension_values=y_dimension_values)
+
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_with_realization(self):
@@ -177,8 +178,4 @@ class Test_process(IrisTest):
 
 
 if __name__ == '__main__':
-    #with warnings.catch_warnings():
-        #warnings.filterwarnings("ignore",
-                                #"Collapsing a non-contiguous coordinate.",
-                                #UserWarning)
     unittest.main()

@@ -49,6 +49,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
+
 class Test_normal_crps_minimiser(IrisTest):
 
     """
@@ -287,7 +288,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
     the predictors.
     """
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_basic_normal_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -314,7 +316,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_basic_normal_members_predictor(self):
         """
         Test that the plugin returns a numpy array.
@@ -370,7 +373,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_normal_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -401,7 +405,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_normal_members_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -502,7 +507,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_basic_truncated_normal_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -528,6 +534,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
         self.assertArrayAlmostEqual(
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_basic_truncated_normal_members_predictor(self):
         """Test that the plugin returns a numpy array."""
         initial_guess = [5, 1, 0, 1, 1, 1]
@@ -608,7 +617,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_truncated_normal_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -639,7 +649,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence"])
     def test_truncated_normal_members_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients

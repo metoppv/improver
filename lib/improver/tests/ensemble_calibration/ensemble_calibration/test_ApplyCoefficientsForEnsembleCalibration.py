@@ -816,7 +816,9 @@ class Test__apply_params(IrisTest):
 
         self.assertArrayAlmostEqual(result[0][0].data, data)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."],record=True)#"Collapsing a non-contiguous coordinate. Metadata may not be fully descriptive for 'realization'."],record=True)
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],
+        record=True)
     def test_missing_date_catch_warning(self, warning_list=None):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -824,17 +826,6 @@ class Test__apply_params(IrisTest):
         dictionary of coefficients. In this situation, the raw forecasts are
         returned.
         """
-        #print "test_missing_date_catch_warning"
-        #msg = "Collapsing a non-contiguous coordinate. Metadata may not be fully descriptive for 'realization'."
-        #warnings.warn(msg)
-        #warnings.warn(msg)
-        #msg = "Ensemble calibration not available for forecasts with start time of 201511230700. Coefficients not available"
-        #warnings.warn(msg)
-        ##msg =
-        #print warning_list
-        #for warning in warning_list:
-            #print str(warning)
-
         data = np.array([[229.48333333, 240.73333333, 251.98333333],
                         [263.23333333, 274.48333333, 285.73333333],
                         [296.98333333, 308.23333333, 319.48333333]])
@@ -854,9 +845,7 @@ class Test__apply_params(IrisTest):
         result = plugin._apply_params(
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
-        #print warning_list
-        #for warning in warning_list:
-            #print str(warning)
+        # Test the contents of the resulting warning_list
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))

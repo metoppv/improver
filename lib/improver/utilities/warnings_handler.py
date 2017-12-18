@@ -34,13 +34,15 @@ Classes and functions for managing warnings in the IMPROVER code.
 import warnings
 import sys
 
+
 class ManageWarnings(object):
     """
     A decorator use to manage the warnings that are raised by a function.
     Ignore a selection of warnings, and either raise any remaining warnings
     to standard error or record them in a list of warning objects.
     """
-    def __init__(self, ignored_messages=None, warning_types=None, record=False):
+    def __init__(self, ignored_messages=None, warning_types=None,
+                 record=False):
         """
         Set up a decorator with the warnings we want to ignore and what
         we want to do with the any remaining warnings.
@@ -91,13 +93,14 @@ class ManageWarnings(object):
             the warning_list if needed.
             """
             with warnings.catch_warnings(record=self.record) as warning_list:
-                #warnings.resetwarnings()
                 warnings.filterwarnings("always")
                 if self.messages is not None:
                     for message, warning_type in zip(self.messages,
                                                      self.warning_types):
                         warnings.filterwarnings("ignore", message,
                                                 warning_type)
+                    # Clears the hidden __warningregistry__ attribute from
+                    # all imported modules
                     for mod in sys.modules.values():
                         if hasattr(mod, '__warningregistry__'):
                             mod.__warningregistry__.clear()
