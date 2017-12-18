@@ -34,7 +34,6 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-wind-downscaling [-h]
-                                 [--height_levels_filepath HEIGHT_LEVELS_FILE]
                                  [--veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE]
                                  WIND_SPEED_FILE AOS_FILE SIGMA_FILE
                                  TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE
@@ -63,9 +62,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --height_levels_filepath HEIGHT_LEVELS_FILE
-                        Location of file containing height levels coincident
-                        with wind speed field.
   --veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE
                         Location of vegetative roughness length file. Units of
                         field: m

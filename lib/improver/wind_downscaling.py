@@ -595,8 +595,7 @@ class RoughnessCorrection(object):
     tcoordnames = ["time", "forecast_time"]
 
     def __init__(self, a_over_s_cube, sigma_cube, pporo_cube,
-                 modoro_cube, modres, z0_cube=None,
-                 height_levels_cube=None):
+                 modoro_cube, modres, z0_cube=None):
         """Initialise the RoughnessCorrection instance.
 
         Args:
@@ -611,8 +610,6 @@ class RoughnessCorrection(object):
             model orography interpolated on pp grid. In m
         modres (float):
             original average model resolution in m
-        height_levels_cube (3D or 1D cube):
-            height of input velocity field. Can be position dependent
         z0_cube (2D cube):
             vegetative roughness length in m. If not given, do not do
             any RC
@@ -808,24 +805,6 @@ class RoughnessCorrection(object):
                 positions[coord_index], = mcube.coord_dims(coord_name)
         return positions
 
-    def find_heightgrid(self, wind):
-        """Setup the height grid.
-
-        Setup the height grid from the z-axis information
-        from the wind grid.
-
-        Args:
-            wind (3D or 4D iris cube):
-                representing the wind data.
-
-        Returns:
-            hld (1D np.array):
-                representing the height grid.
-
-        """
-        hld = wind.coord(self.z_name).points
-        return hld
-
     def check_wind_ancil(self, xwp, ywp):
         """Check wind vs ancillary file grids.
 
@@ -883,7 +862,7 @@ class RoughnessCorrection(object):
             self.a_over_s.data, self.sigma.data, z0_data, self.pp_oro.data,
             self.model_oro.data, self.ppres, self.modres)
         self.check_wind_ancil(xwp, ywp)
-        hld = self.find_heightgrid(input_cube)
+        hld = input_cube.coord(self.z_name).points
         for time_slice in input_cube.slices_over("time"):
             if np.isnan(time_slice.data).any() or (time_slice.data < 0.).any():
                 msg = ('{} has invalid wind data')

@@ -112,28 +112,28 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
         try:
             data = np.array(data)
             cube.data = data.reshape(cube.data.shape)
-        except ValueError as ex:
-            if ex.message == "total size of new array must be unchanged":
+        except ValueError as error_x:
+            if error_x.message == "total size of new array must be unchanged":
                 msg = ("supplied data does not fit the cube."
                        "cube dimensions: {} vs. supplied data {}")
                 raise ValueError(msg.format(cube.shape, data.shape))
             else:
-                raise ValueError(ex)
+                raise ValueError(error_x)
 
     if name is not None:
         try:
             cube.standard_name = name
-        except ValueError as ex:
+        except ValueError as _error:
             msg = "error trying to set the supplied name as cube data name: "
-            raise ValueError(msg + ex.message)
-        except TypeError as ex:
+            raise ValueError(msg + error_x.message)
+        except TypeError as _error:
             msg = ("error trying to set the supplied name as cube data name: "
                    "the name should be string and have a valid variable name ")
-            raise ValueError(msg + ex.message)
+            raise ValueError(msg + _error.message)
     if unit is not None:
         try:
             cube.units = Unit(unit)
-        except ValueError as ex:
+        except ValueError as error_x:
             msg = "error trying to set Units to cube. supplied unit: {}"
             raise ValueError(msg.format(unit))
     return cube
@@ -349,7 +349,7 @@ class TestSinglePoint(object):
                                   height=height)
         plugin = RoughnessCorrection(
             self.aos_cube, self.s_cube, self.poro_cube, self.moro_cube,
-            1500., self.z0_cube, self.hl_cube
+            1500., self.z0_cube
         )
         return plugin.process(self.w_cube)
 
@@ -370,35 +370,22 @@ class Test1D(IrisTest):
 
     """
     uin = [20., 20., 20., 20., 20., 20., 20.]
-    hls = [0.2, 3, 13, 33, 133, 333, 1133]
 
     def test_section0a(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=np.nan, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.,
-            heightlevels=self.hls)
+            AoS=np.nan, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=np.nan, z_0=0.2, pporog=250., modelorog=230.,
-            heightlevels=self.hls)
+            AoS=0.2, Sigma=np.nan, z_0=0.2, pporog=250., modelorog=230.)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
-        """Test z_0 is np.nan, point should not do RC.
-        modeloro = pporo, so point should not do HC, uin = uout.
-        """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=np.nan, pporog=230., modelorog=230.,
-            heightlevels=self.hls)
-        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
-
-    def test_section0d(self):
         """Test pporog is np.nan (QUESTION: or should this fail???)
 
         RC could be done for this point, HC cannot.
@@ -408,28 +395,13 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=np.nan, modelorog=230.,
-            heightlevels=self.hls)
+            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=np.nan, modelorog=230.)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.failUnless((land_hc_rc.data <=
                          landpointtests_hc_rc.w_cube.data).all() and
                         land_hc_rc.data[0] == 0)
 
-    def test_section0e(self):
-        """Test fail for np.nan in height grid.
-
-        height grid is np.nan at that location somewhere in z-direction,
-        should fail with ValueError.
-
-        """
-        hls = [0.2, 3, 13, np.nan, 133, 333, 1133]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
-            heightlevels=hls)
-        with self.assertRaises(ValueError):
-            _ = landpointtests_hc_rc.run_hc_rc(self.uin)
-
-    def test_section0f(self):
+    def test_section0d(self):
         """Test fail for np.nan in uin.
 
         uin is np.nan at that location somewhere in z-direction,
@@ -438,9 +410,7 @@ class Test1D(IrisTest):
         """
         uin = [20., 20., 20., np.nan, 20., 20., 20.]
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
-            heightlevels=self.hls
-        )
+            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230)
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(uin)
 
