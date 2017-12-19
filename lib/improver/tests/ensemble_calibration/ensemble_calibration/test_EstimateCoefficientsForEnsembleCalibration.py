@@ -425,8 +425,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["\nThe final iteration resulted in a percentage "\
-                          "change that is greater than the accepted",
+        ignored_messages=[("\nThe final iteration resulted in a percentage "
+                           "change that is greater than the accepted"),
                           "Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """
@@ -841,7 +841,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-      # Check the contents of the warning_list.
+        # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -868,7 +868,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-      # Check the contents of the warning_list.
+        # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
