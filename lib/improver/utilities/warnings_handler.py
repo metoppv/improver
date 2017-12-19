@@ -61,6 +61,10 @@ class ManageWarnings(object):
                 standard error. When set to True the warnings are recorded
                 in a warning list which is passed to the function being
                 decorated.
+
+        Raises:
+            ValueError :Raise error if both ignored messages and warning_types
+                        are given and they are not the same length.
         """
         self.messages = ignored_messages
         if warning_types is None and self.messages is not None:
@@ -68,6 +72,12 @@ class ManageWarnings(object):
         else:
             self.warning_types = warning_types
         self.record = record
+        if len(self.warning_types) != len(self.messages):
+            message = "Length of warning_types ({}) does not equal length of "
+                       "warning messages ({})"
+            message = message.format(len(self.warning_types),
+                                     len(self.messages))
+            raise ValueError(message)
 
     def __call__(self, func):
         """
