@@ -96,8 +96,8 @@ def main():
             wind_downscaling.RoughnessCorrection(
                 silhouette_roughness_filepath, sigma, target_orog,
                 standard_orog, float(args.model_resolution),
-                z0_cube=veg_roughness_cube,
-                    ).process(wind_speed_slice))
+                z0_cube=veg_roughness_cube
+                ).process(wind_speed_slice))
         wind_speed_list.append(result)
     wind_speed = wind_speed_list.merge_cube()
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]

@@ -391,7 +391,6 @@ class RoughnessCorrectionUtilities(object):
         # Ignores the height at the position where u_in is RMDI,"hops over"
         hhere = np.ma.masked_less(hhere, 0.0)
         upidx = np.argmax(h_in > hhere[:, :, np.newaxis], axis=2)
-#        loidx = np.maximum(upidx-1, 0) #if RMDI, need below
         loidx = np.argmin(np.ma.masked_less(hhere[:, :, np.newaxis] -
                                             h_in, 0.0), axis=2)
 

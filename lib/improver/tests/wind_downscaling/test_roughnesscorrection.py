@@ -112,20 +112,20 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
         try:
             data = np.array(data)
             cube.data = data.reshape(cube.data.shape)
-        except ValueError as error_x:
-            if error_x.message == "total size of new array must be unchanged":
+        except ValueError as _error:
+            if _error.message == "total size of new array must be unchanged":
                 msg = ("supplied data does not fit the cube."
                        "cube dimensions: {} vs. supplied data {}")
                 raise ValueError(msg.format(cube.shape, data.shape))
             else:
-                raise ValueError(error_x)
+                raise ValueError(_error)
 
     if name is not None:
         try:
             cube.standard_name = name
         except ValueError as _error:
             msg = "error trying to set the supplied name as cube data name: "
-            raise ValueError(msg + error_x.message)
+            raise ValueError(msg + _error.message)
         except TypeError as _error:
             msg = ("error trying to set the supplied name as cube data name: "
                    "the name should be string and have a valid variable name ")
@@ -133,7 +133,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
     if unit is not None:
         try:
             cube.units = Unit(unit)
-        except ValueError as error_x:
+        except ValueError:
             msg = "error trying to set Units to cube. supplied unit: {}"
             raise ValueError(msg.format(unit))
     return cube
