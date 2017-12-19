@@ -41,6 +41,7 @@ from improver.blending.weights import (
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.argparser import ArgParser
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -173,7 +174,7 @@ def main():
     # Read in cubes and merge together if more than one found.
     cubelist = iris.cube.CubeList([])
     for ifile in args.input_filepaths:
-        cube_in = iris.load_cube(ifile)
+        cube_in = load_cube(ifile)
         cubelist.append(cube_in)
     if len(cubelist) == 1:
         cube = cubelist[0]

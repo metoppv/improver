@@ -37,6 +37,7 @@ import iris
 import warnings
 
 from improver.wind_gust_diagnostic import WindGustDiagnostic
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -83,8 +84,8 @@ def main():
                         " Default=95.0", type=float)
 
     args = parser.parse_args()
-    cube_wg = iris.load_cube(args.input_filegust)
-    cube_ws = iris.load_cube(args.input_filews)
+    cube_wg = load_cube(args.input_filegust)
+    cube_ws = load_cube(args.input_filews)
     result = (
         WindGustDiagnostic(args.percentile_gust,
                            args.percentile_ws).process(cube_wg, cube_ws))

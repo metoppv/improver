@@ -39,6 +39,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance, EnsembleReordering)
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -123,9 +124,9 @@ def main():
                         'ensemble.')
     args = parser.parse_args()
 
-    current_forecast = iris.load_cube(args.input_filepath)
-    historic_forecast = iris.load(args.historic_filepath)
-    truth = iris.load(args.truth_filepath)
+    current_forecast = load_cube(args.input_filepath)
+    historic_forecast = load_cube(args.historic_filepath)
+    truth = load_cube(args.truth_filepath)
     # Default number of ensemble members is the number in the raw forecast.
     if not args.num_members:
         args.num_members = len(current_forecast.coord('realization').points)

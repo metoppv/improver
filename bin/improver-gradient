@@ -35,6 +35,7 @@ import argparse
 import os
 import iris
 
+from improver.utilities.load import load_cube
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
@@ -57,7 +58,7 @@ def main():
     args = parser.parse_args()
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
-        input_field = iris.load_cube(args.input_filepath)
+        input_field = load_cube(args.input_filepath)
         gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
         iris.save(gradients, args.output_filepath, unlimited_dimensions=[])
     else:

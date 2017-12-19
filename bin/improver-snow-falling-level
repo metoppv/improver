@@ -36,6 +36,7 @@ import iris
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     FallingSnowLevel)
+from improver.utilities.load import load_cube
 
 
 def main():
@@ -77,10 +78,10 @@ def main():
                               "derived value."))
     args = parser.parse_args()
 
-    temperature = iris.load_cube(args.temperature)
-    relative_humidity = iris.load_cube(args.relative_humidity)
-    pressure = iris.load_cube(args.pressure)
-    orog = iris.load_cube(args.orography)
+    temperature = load_cube(args.temperature)
+    relative_humidity = load_cube(args.relative_humidity)
+    pressure = load_cube(args.pressure)
+    orog = load_cube(args.orography)
 
     result = FallingSnowLevel(
         precision=args.precision,

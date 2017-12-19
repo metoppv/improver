@@ -42,9 +42,9 @@ import cf_units as unit
 import iris
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension,
-    rename_coordinate, check_predictor_of_mean_flag)
-from improver.utilities.cube_manipulation import concatenate_cubes
+    convert_cube_data_to_2d, rename_coordinate, check_predictor_of_mean_flag)
+from improver.utilities.cube_manipulation import (
+    concatenate_cubes, enforce_coordinate_ordering)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -161,7 +161,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         elif predictor_of_mean_flag.lower() in ["members"]:
             truth_data = truth.data.flatten()
             forecast_predictor = (
-                ensure_dimension_is_the_zeroth_dimension(
+                enforce_coordinate_ordering(
                     forecast_predictor, "realization"))
             forecast_predictor_data = convert_cube_data_to_2d(
                 forecast_predictor)
@@ -436,7 +436,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
                     forecast_predictor = (
-                        ensure_dimension_is_the_zeroth_dimension(
+                        enforce_coordinate_ordering(
                             forecast_predictor, "realization"))
                     forecast_data = np.array(
                         convert_cube_data_to_2d(
@@ -939,7 +939,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                         [[optimised_coeffs_at_date["a"]],
                          optimised_coeffs_at_date["beta"]**2])
                     forecast_predictor = (
-                        ensure_dimension_is_the_zeroth_dimension(
+                        enforce_coordinate_ordering(
                             forecast_predictor, "realization"))
                     forecast_predictor_flat = (
                         convert_cube_data_to_2d(

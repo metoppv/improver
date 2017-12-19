@@ -40,14 +40,15 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, ensure_dimension_is_the_zeroth_dimension)
+    convert_cube_data_to_2d)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (concatenate_2d_array_with_2d_array_endpoints,
             create_cube_with_percentiles, choose_set_of_percentiles,
             get_bounds_of_distribution,
             insert_lower_and_upper_endpoint_to_1d_array,
             restore_non_probabilistic_dimensions)
-from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.cube_manipulation import (
+    concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.cube_checker import find_percentile_coordinate
 
 
@@ -189,7 +190,7 @@ class ResamplePercentiles(object):
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_at_percentiles = (
-            ensure_dimension_is_the_zeroth_dimension(
+            enforce_coordinate_ordering(
                 forecast_at_percentiles, percentile_coord))
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
             forecast_at_percentiles, coord=percentile_coord)
@@ -380,7 +381,7 @@ class GeneratePercentilesFromProbabilities(object):
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         forecast_probabilities = (
-            ensure_dimension_is_the_zeroth_dimension(
+            enforce_coordinate_ordering(
                 forecast_probabilities, threshold_coord.name()))
         prob_slices = convert_cube_data_to_2d(
             forecast_probabilities, coord=threshold_coord.name())
@@ -573,10 +574,10 @@ class GeneratePercentilesFromMeanAndVariance(object):
 
         """
         calibrated_forecast_predictor = (
-            ensure_dimension_is_the_zeroth_dimension(
+            enforce_coordinate_ordering(
                 calibrated_forecast_predictor, "realization"))
         calibrated_forecast_variance = (
-            ensure_dimension_is_the_zeroth_dimension(
+            enforce_coordinate_ordering(
                 calibrated_forecast_variance, "realization"))
 
         calibrated_forecast_predictor_data = (
@@ -853,11 +854,10 @@ class EnsembleReordering(object):
             post_processed_forecast,
             coords_to_slice_over=[percentile_coord, "time"])
         post_processed_forecast_percentiles = (
-            ensure_dimension_is_the_zeroth_dimension(
-                post_processed_forecast_percentiles,
-                percentile_coord))
+            enforce_coordinate_ordering(
+                post_processed_forecast_percentiles, percentile_coord))
         raw_forecast_members = concatenate_cubes(raw_forecast)
-        raw_forecast_members = ensure_dimension_is_the_zeroth_dimension(
+        raw_forecast_members = enforce_coordinate_ordering(
             raw_forecast_members, "realization")
         raw_forecast_members = (
             self._recycle_raw_ensemble_members(
@@ -872,7 +872,6 @@ class EnsembleReordering(object):
                 post_processed_forecast_members))
 
         post_processed_forecast_members = (
-            ensure_dimension_is_the_zeroth_dimension(
-                post_processed_forecast_members,
-                "realization"))
+            enforce_coordinate_ordering(
+                post_processed_forecast_members, "realization"))
         return post_processed_forecast_members

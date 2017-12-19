@@ -36,75 +36,7 @@ For reading data processed by IMPROVER, and site specification input.
 """
 import os
 import iris
-from iris import load_cube, load
-
-
-class Load(object):
-
-    """Plugin for loading data."""
-
-    def __init__(self, method):
-        """
-        Simple function that currently takes a filename and loads a netCDF
-        file.
-
-        Args:
-            method (string):
-                A string representing the method of loading, be it a
-                'single_file' that is loaded as an iris.cube.Cube, or
-                'multi_file' that causes an iris.cube.CubeList to be returned
-                containing all the cubes.
-
-        """
-        self.method = method
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<Load: method: {}>')
-        return result.format(self.method)
-
-    def process(self, filepath, diagnostic=None):
-        """
-        Simple wrapper for using iris load on a supplied netCDF file.
-
-        Args:
-            filepath (string):
-                Path to the input data files.
-
-            diagnostic (string):
-                The name of the desired diagnostic to be loaded.
-
-        Returns:
-            iris.cube.Cube or iris.cube.CubeList:
-                An iris.cube.Cube or CubeList containing the data from the
-                netCDF file(s).
-
-        """
-        try:
-            function = getattr(self, self.method)
-        except:
-            raise AttributeError('Unknown method "{}" passed to {}.'.format(
-                self.method, self.__class__.__name__))
-
-        return function(filepath, diagnostic)
-
-    @staticmethod
-    def single_file(filepath, diagnostic=None):
-        """ Load and return a single iris.cube.Cube """
-        if diagnostic:
-            cube = load_cube(filepath, diagnostic)
-        else:
-            cube = load_cube(filepath)
-        return cube
-
-    @staticmethod
-    def multi_file(filepath, diagnostic=None):
-        """ Load multiple cubes and return a iris.cube.CubeList """
-        if diagnostic:
-            cubes = load(filepath, diagnostic)
-        else:
-            cubes = load(filepath)
-        return cubes
+from improver.utilities.load import load_cubelist
 
 
 def get_method_prerequisites(method, diagnostic_data_path):
@@ -177,7 +109,7 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
                       'as an additional diagnostic is not available '
                       'in {}.'.format(
                           diagnostic_name, diagnostic_data_path))
-    cubes = Load('multi_file').process(files_to_read, None)
+    cubes = load_cubelist(files_to_read)
 
     if time_extract is not None:
         with iris.FUTURE.context(cell_datetime_objects=True):

@@ -38,6 +38,7 @@ import numpy as np
 
 from improver.database import VerificationTable
 from improver.argparser import ArgParser
+from improver.utilities.load import load_cubelist
 
 
 def main():
@@ -80,7 +81,7 @@ def main():
 
     args = parser.parse_args()
 
-    cubelist = iris.load(args.input_filepath)
+    cubelist = load_cubelist(args.input_filepath)
 
     if args.sqlite:
         output = 'sqlite'

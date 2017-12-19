@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing ancillary generation utilities for Improver"""
 
-from glob import glob
-
 from cf_units import Unit
 import iris
 import numpy as np
@@ -89,35 +87,6 @@ def _make_mask_cube(
             mask_cube.add_aux_coord(coord)
     mask_cube = iris.util.new_axis(mask_cube, scalar_coord=coord_name)
     return mask_cube
-
-
-def find_standard_ancil(standard_ancil_glob, msg=None):
-    """
-    Reads standard ancillary or raises exception.
-
-    Args:
-        standard_ancil_glob (string):
-          Location of input ancillaries
-
-        msg (str):
-          Optional custom message.
-
-    Returns:
-        standard_ancil (cube):
-            Cube containing standard ancillary data.
-
-    Raises:
-        IOError: if input ancillary cannot be found in the directory provided.
-    """
-    standard_ancil_file = glob(standard_ancil_glob)
-    if len(standard_ancil_file) > 0:
-        standard_ancil = iris.load_cube(standard_ancil_file[0])
-    else:
-        if msg is None:
-            msg = ('Cannot find input ancillary. Tried directory: '
-                   '{}'.format(standard_ancil_glob))
-        raise IOError(msg)
-    return standard_ancil
 
 
 class CorrectLandSeaMask(object):
