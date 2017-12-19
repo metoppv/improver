@@ -148,10 +148,10 @@ class Integration(object):
             lower_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
 
         upper_bounds_cube = (
-             cube.extract(
-                 iris.Constraint(
-                     coord_values={self.coord_name_to_integrate:
-                                   upper_bounds})))
+            cube.extract(
+                iris.Constraint(
+                    coord_values={self.coord_name_to_integrate:
+                                  upper_bounds})))
         lower_bounds_cube = (
             cube.extract(
                 iris.Constraint(

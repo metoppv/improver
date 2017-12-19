@@ -297,7 +297,7 @@ def restore_non_probabilistic_dimensions(
         pass
     else:
         msg = ("A {} coordinate is not available on the {} cube.".format(
-               input_probabilistic_dimension_name, original_cube))
+            input_probabilistic_dimension_name, original_cube))
         raise CoordinateNotFoundError(msg)
     shape_to_reshape_to = (
         [output_probabilistic_dimension_length] + shape_to_reshape_to)

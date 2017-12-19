@@ -37,10 +37,6 @@ import warnings
 import iris
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
-from iris.cube import Cube
-import numpy as np
-
-from cf_units import Unit
 
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord)

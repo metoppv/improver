@@ -235,8 +235,8 @@ def main():
         result = RecursiveFilter(
             alpha_x=args.alpha_x, alpha_y=args.alpha_y,
             iterations=args.iterations, re_mask=args.re_mask).process(
-            result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
-            mask_cube=mask_cube)
+                result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+                mask_cube=mask_cube)
 
     elif args.neighbourhood_shape == 'circular' and \
             args.apply_recursive_filter:
