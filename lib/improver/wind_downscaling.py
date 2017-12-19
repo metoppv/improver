@@ -545,7 +545,8 @@ class RoughnessCorrectionUtilities(object):
                 height difference, ppgrid-model
 
         """
-        delt_z = np.ones(self.pporo.shape)
+        delt_z = np.empty(self.pporo.shape)
+        delt_z[:]  = np.nan
         delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
         return delt_z
 
