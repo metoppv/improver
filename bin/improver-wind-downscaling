@@ -71,10 +71,6 @@ def main():
                              ' Units of field: m')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    parser.add_argument('--height_levels_filepath',
-                        metavar='HEIGHT_LEVELS_FILE',
-                        help='Location of file containing height levels '
-                             'coincident with wind speed field.')
     parser.add_argument('--veg_roughness_filepath',
                         metavar='VEGETATIVE_ROUGHNESS_LENGTH_FILE',
                         help='Location of vegetative roughness length file.'
@@ -86,10 +82,6 @@ def main():
     sigma = iris.load_cube(args.sigma_filepath)
     target_orog = iris.load_cube(args.target_orog_filepath)
     standard_orog = iris.load_cube(args.standard_orog_filepath)
-    if args.height_levels_filepath:
-        height_levels = iris.load_cube(args.height_levels_filepath)
-    else:
-        height_levels = None
     if args.veg_roughness_filepath:
         veg_roughness_cube = iris.load_cube(args.veg_roughness_filepath)
     else:
@@ -104,8 +96,8 @@ def main():
             wind_downscaling.RoughnessCorrection(
                 silhouette_roughness_filepath, sigma, target_orog,
                 standard_orog, float(args.model_resolution),
-                z0_cube=veg_roughness_cube,
-                height_levels_cube=height_levels).process(wind_speed_slice))
+                z0_cube=veg_roughness_cube
+                ).process(wind_speed_slice))
         wind_speed_list.append(result)
     wind_speed = wind_speed_list.merge_cube()
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]

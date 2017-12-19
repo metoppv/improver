@@ -34,7 +34,6 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-wind-downscaling [-h]
-                                 [--height_levels_filepath HEIGHT_LEVELS_FILE]
                                  [--veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE]
                                  WIND_SPEED_FILE AOS_FILE SIGMA_FILE
                                  TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE

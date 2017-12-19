@@ -39,8 +39,6 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
-from improver.constants import RMDI
-
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04
@@ -104,7 +102,7 @@ class FrictionVelocity(object):
                 friction velocity
 
         """
-        ustar = np.full(self.u_href.shape, RMDI)
+        ustar = np.full(self.u_href.shape, np.nan)
         ustar[self.mask] = (
             VONKARMAN * (
                 self.u_href[self.mask] /
@@ -177,7 +175,7 @@ class RoughnessCorrectionUtilities(object):
         self.h_at0 = self._delta_height()  # pp orography - model orography
 
     def _refinemask(self):
-        """Remask over RMDI and NaN orography.
+        """Remask over NaN orography.
 
         The mask for HC needs to be False where either of the
         orographies (model or pp) has an invalid number. This cannot be
@@ -186,8 +184,6 @@ class RoughnessCorrectionUtilities(object):
         where h_over_2 and a_over_s is a valid number.
 
         """
-        self.hcmask[self.pporo == RMDI] = False
-        self.hcmask[self.modoro == RMDI] = False
         self.hcmask[np.isnan(self.pporo)] = False
         self.hcmask[np.isnan(self.modoro)] = False
 
@@ -196,7 +192,7 @@ class RoughnessCorrectionUtilities(object):
 
         Create a mask that is basically a land-sea mask:
         Both, the standard deviation and the silouette roughness, are 0
-        over the sea. A standard deviation of 0 results in a RMDI for
+        over the sea. A standard deviation of 0 results in NaN for
         h_over_2.
 
         Returns:
@@ -241,10 +237,10 @@ class RoughnessCorrectionUtilities(object):
 
         Comments:
             Points that had sigma = 0 (i.e. sea points) are set to
-            RMDI.
+            NaN.
 
         """
-        h_o_2 = np.full(sigma.shape, RMDI)
+        h_o_2 = np.full(sigma.shape, np.nan)
         h_o_2[sigma > 0] = sigma[sigma > 0] * np.sqrt(2.0)
         return h_o_2
 
@@ -280,13 +276,13 @@ class RoughnessCorrectionUtilities(object):
                 wavenumber in units of inverse units of supplied h_over_2.
 
         """
-        wavn = np.full(self.a_over_s.shape, RMDI)
+        wavn = np.full(self.a_over_s.shape, np.nan)
         wavn[self.hcmask] = (
             (self.a_over_s[self.hcmask] * np.pi) /
             self.h_over_2[self.hcmask]
         )
         wavn[wavn > np.pi/self.dx_min] = np.pi/self.dx_min
-        wavn[self.h_over_2 == 0] = RMDI
+        wavn[self.h_over_2 == 0] = np.nan
         wavn[abs(wavn) < np.pi/self.dx_max] = np.pi/self.dx_max
         return wavn
 
@@ -316,8 +312,8 @@ class RoughnessCorrectionUtilities(object):
 
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
-        tunable_param = np.full(self.wavenum.shape, RMDI)
-        h_ref = np.full(self.wavenum.shape, RMDI)
+        tunable_param = np.full(self.wavenum.shape, np.nan)
+        h_ref = np.full(self.wavenum.shape, np.nan)
         tunable_param[self.hcmask] = (
             alpha + np.log(self.wavenum[self.hcmask] *
                            self.h_over_2[self.hcmask])
@@ -359,8 +355,6 @@ class RoughnessCorrectionUtilities(object):
         ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
                                  mask).calc_ustar()
         unew = np.copy(uold)
-        mhref = self.h_ref
-        mhref[~mask] = RMDI
         cond = hgrid < self.h_ref[:, :, np.newaxis]
         unew[cond] = (
             ustar[:, :, np.newaxis]*np.ones(unew.shape)
@@ -397,7 +391,6 @@ class RoughnessCorrectionUtilities(object):
         # Ignores the height at the position where u_in is RMDI,"hops over"
         hhere = np.ma.masked_less(hhere, 0.0)
         upidx = np.argmax(h_in > hhere[:, :, np.newaxis], axis=2)
-        # loidx = np.maximum(upidx-1, 0) #if RMDI, need below
         loidx = np.argmin(np.ma.masked_less(hhere[:, :, np.newaxis] -
                                             h_in, 0.0), axis=2)
 
@@ -416,7 +409,7 @@ class RoughnessCorrectionUtilities(object):
         ulow = u_in.take(loidx.flatten()+np.arange(0, loidx.size*u_in.shape[2],
                                                    u_in.shape[2]))
         mask = mask.flatten()
-        uath = np.full(mask.shape, RMDI, dtype=float)
+        uath = np.full(mask.shape, np.nan, dtype=float)
         if dolog:
             uath[mask] = self._interpolate_log(hup[mask], hlow[mask],
                                                hhere.flatten()[mask],
@@ -449,7 +442,7 @@ class RoughnessCorrectionUtilities(object):
                 y(at_x) assuming a lin function between xlow and xup
 
         """
-        interp = np.full(xup.shape, RMDI, dtype=float)
+        interp = np.full(xup.shape, np.nan, dtype=float)
         diffs = (xup - xlow)
         interp[diffs != 0] = (
             ylow[diffs != 0]+((at_x[diffs != 0]-xlow[diffs != 0]) /
@@ -480,8 +473,8 @@ class RoughnessCorrectionUtilities(object):
                 y(at_x) assuming a log function between xlow and xup
 
         """
-        ain = np.full(xup.shape, RMDI, dtype=float)
-        loginterp = np.full(xup.shape, RMDI, dtype=float)
+        ain = np.full(xup.shape, np.nan, dtype=float)
+        loginterp = np.full(xup.shape, np.nan, dtype=float)
         mfrac = xup/xlow
         mtest = (xup/xlow != 1) & (at_x != xup)
         ain[mtest] = (yup[mtest] - ylow[mtest])/np.log(mfrac[mtest])
@@ -552,7 +545,8 @@ class RoughnessCorrectionUtilities(object):
                 height difference, ppgrid-model
 
         """
-        delt_z = np.ones(self.pporo.shape) * RMDI
+        delt_z = np.empty(self.pporo.shape)
+        delt_z[:]  = np.nan
         delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
         return delt_z
 
@@ -574,14 +568,8 @@ class RoughnessCorrectionUtilities(object):
         Wind Downscaling Program (Internal Met Office Report)
 
         """
-        if hgrid.ndim == 3:
-            condition1 = ((hgrid == RMDI).any(axis=2))
-            self.hcmask[condition1] = False
-            self.rcmask[condition1] = False
         mask_rc = np.copy(self.rcmask)
-        mask_rc[(uorig == RMDI).any(axis=2)] = False
         mask_hc = np.copy(self.hcmask)
-        mask_hc[(uorig == RMDI).any(axis=2)] = False
         if self.z_0 is not None:
             unew = self.calc_roughness_correction(hgrid, uorig, mask_rc)
         else:
@@ -607,8 +595,7 @@ class RoughnessCorrection(object):
     tcoordnames = ["time", "forecast_time"]
 
     def __init__(self, a_over_s_cube, sigma_cube, pporo_cube,
-                 modoro_cube, modres, z0_cube=None,
-                 height_levels_cube=None):
+                 modoro_cube, modres, z0_cube=None):
         """Initialise the RoughnessCorrection instance.
 
         Args:
@@ -623,8 +610,6 @@ class RoughnessCorrection(object):
             model orography interpolated on pp grid. In m
         modres (float):
             original average model resolution in m
-        height_levels_cube (3D or 1D cube):
-            height of input velocity field. Can be position dependent
         z0_cube (2D cube):
             vegetative roughness length in m. If not given, do not do
             any RC
@@ -646,7 +631,6 @@ class RoughnessCorrection(object):
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))
         self.ppres = self.calc_av_ppgrid_res(pporo_cube)
         self.modres = modres
-        self.height_levels = height_levels_cube
         self.x_name = None
         self.y_name = None
         self.z_name = None
@@ -821,46 +805,6 @@ class RoughnessCorrection(object):
                 positions[coord_index], = mcube.coord_dims(coord_name)
         return positions
 
-    def find_heightgrid(self, wind):
-        """Setup the height grid.
-
-        Setup the height grid either from the 1D or 3D height grid
-        that was supplied to the plugin or from the z-axis information
-        from the wind grid.
-
-        Args:
-            wind (3D or 4D iris cube):
-                representing the wind data.
-
-        Returns:
-            hld (1D or 3D np.array):
-                representing the height grid.
-
-        """
-        if self.height_levels is None:
-            hld = wind.coord(self.z_name).points
-        else:
-            hld = iris.util.squeeze(self.height_levels)
-            if np.isnan(hld.data).any() or (hld.data == RMDI).any():
-                raise ValueError("height grid contains invalid points")
-            if hld.ndim == 3:
-                try:
-                    xap, yap, zap, _ = self.find_coord_order(hld)
-                    hld.transpose([yap, xap, zap])
-                except KeyError:
-                    raise ValueError("height grid different from wind grid")
-            elif hld.ndim == 1:
-                try:
-                    hld = next(hld.slices([self.z_name]))
-                except CoordinateNotFoundError:
-                    raise ValueError("height z coordinate differs from wind z")
-            else:
-                raise ValueError("hld must have a dimension length of "
-                                 "either 3 or 1"
-                                 "hld.ndim is {}".format(hld.ndim))
-            hld = hld.data
-        return hld
-
     def check_wind_ancil(self, xwp, ywp):
         """Check wind vs ancillary file grids.
 
@@ -918,7 +862,7 @@ class RoughnessCorrection(object):
             self.a_over_s.data, self.sigma.data, z0_data, self.pp_oro.data,
             self.model_oro.data, self.ppres, self.modres)
         self.check_wind_ancil(xwp, ywp)
-        hld = self.find_heightgrid(input_cube)
+        hld = input_cube.coord(self.z_name).points
         for time_slice in input_cube.slices_over("time"):
             if np.isnan(time_slice.data).any() or (time_slice.data < 0.).any():
                 msg = ('{} has invalid wind data')
