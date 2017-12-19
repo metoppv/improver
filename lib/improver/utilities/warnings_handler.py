@@ -72,9 +72,9 @@ class ManageWarnings(object):
         else:
             self.warning_types = warning_types
         self.record = record
-        if len(self.warning_types) != len(self.messages):
-            message = "Length of warning_types ({}) does not equal length of "
-                       "warning messages ({})"
+        if self.messages and (len(self.warning_types) != len(self.messages)):
+            message = "Length of warning_types ({}) does not equal length " \
+                       "of warning messages ({})"
             message = message.format(len(self.warning_types),
                                      len(self.messages))
             raise ValueError(message)
