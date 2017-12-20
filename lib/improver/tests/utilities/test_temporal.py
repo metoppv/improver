@@ -31,19 +31,28 @@
 """Unit tests for temporal utilities."""
 
 import datetime
+from datetime import time
+from datetime import timedelta
 import unittest
 import warnings
+import numpy as np
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
+from iris.cube import Cube, CubeList
+from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, forecast_period_coord)
+    cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
+    iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
+    extract_cube_at_time, set_utc_offset, get_forecast_times)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
+from improver.tests.spotdata.spotdata.test_common_functions import (
+    Test_common_functions)
 
 
 class Test_cycletime_to_datetime(IrisTest):
@@ -204,6 +213,209 @@ class Test_forecast_period_coord(IrisTest):
         msg = "The forecast period coordinate is not available"
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             forecast_period_coord(cube)
+
+
+class Test_iris_time_to_datetime(Test_common_functions):
+    """ Test iris_time_to_datetime """
+    def test_basic(self):
+        """Test iris_time_to_datetime returns list of datetime """
+        result = iris_time_to_datetime(self.cube.coord('time'))
+        self.assertIsInstance(result, list)
+        self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
+
+
+class Test_dt_to_utc_hours(IrisTest):
+    """ Test dt_to_utc_hours """
+    def test_basic(self):
+        """Test dt_to_utc_hours returns float with expected value """
+        dt_in = datetime.datetime(2017, 2, 17, 6, 0)
+        result = dt_to_utc_hours(dt_in)
+        expected = 413142.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+
+class Test_datetime_constraint(Test_common_functions):
+    """
+    Test construction of an iris.Constraint from a python.datetime.datetime
+    object.
+    """
+
+    def test_constraint_equality(self):
+        """Check constraint is as expected."""
+        plugin = datetime_constraint
+        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
+        self.assertEqual(self.time_extract._coord_values,
+                         dt_constraint._coord_values)
+
+    def test_constraint_list_equality(self):
+        """Check a list of constraints is as expected."""
+        plugin = datetime_constraint
+        time_start = datetime.datetime(2017, 2, 17, 6, 0)
+        time_limit = datetime.datetime(2017, 2, 17, 18, 0)
+        expected_times = range(1487311200, 1487354400, 3600)
+        dt_constraint = plugin(time_start, time_max=time_limit)
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.long_cube.extract(dt_constraint)
+        self.assertEqual(result.shape, (12, 12, 12))
+        self.assertArrayEqual(result.coord('time').points,
+                              expected_times)
+
+    def test_constraint_type(self):
+        """Check type is iris.Constraint."""
+        plugin = datetime_constraint
+        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
+        self.assertIsInstance(dt_constraint, iris.Constraint)
+
+    def test_valid_constraint(self):
+        """Test use of constraint at a time valid within the cube."""
+        plugin = datetime_constraint
+        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.cube.extract(dt_constraint)
+        self.assertIsInstance(result, Cube)
+
+    def test_invalid_constraint(self):
+        """Test use of constraint at a time invalid within the cube."""
+        plugin = datetime_constraint
+        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 18, 0))
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            result = self.cube.extract(dt_constraint)
+        self.assertNotIsInstance(result, Cube)
+
+
+class Test_extract_cube_at_time(Test_common_functions):
+    """
+    Test wrapper for iris cube extraction at desired times.
+
+    """
+
+    def test_valid_time(self):
+        """Case for a time that is available within the diagnostic cube."""
+        plugin = extract_cube_at_time
+        cubes = CubeList([self.cube])
+        result = plugin(cubes, self.time_dt, self.time_extract)
+        self.assertIsInstance(result, Cube)
+
+    def test_invalid_time(self):
+        """Case for a time that is unavailable within the diagnostic cube."""
+        plugin = extract_cube_at_time
+        time_dt = datetime.datetime(2017, 2, 18, 6, 0)
+        time_extract = iris.Constraint(time=PartialDateTime(
+            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+        cubes = CubeList([self.cube])
+        with warnings.catch_warnings(record=True) as w_messages:
+            plugin(cubes, time_dt, time_extract)
+            self.assertTrue(len(w_messages), 1)
+            self.assertTrue(issubclass(w_messages[0].category, UserWarning))
+            self.assertTrue("Forecast time" in str(w_messages[0]))
+
+
+class Test_set_utc_offset(IrisTest):
+    """
+    Test setting of UTC_offsets with longitudes using crude 15 degree bins.
+
+    """
+
+    def test_output(self):
+        """
+        Test full span of crude timezones from UTC-12 to UTC+12. Note the
+        degeneracy at +-180.
+
+        """
+        longitudes = np.arange(-180, 185, 15)
+        expected = np.arange(-12, 13, 1)
+        result = set_utc_offset(longitudes)
+        self.assertArrayEqual(expected, result)
+
+
+class Test_get_forecast_times(IrisTest):
+
+    """Test the generation of forecast time using the function."""
+
+    def test_all_data_provided(self):
+        """Test setting up a forecast range when start date, start hour and
+        forecast length are all provided."""
+
+        forecast_start = datetime.datetime(2017, 6, 1, 9, 0)
+        forecast_date = forecast_start.strftime("%Y%m%d")
+        forecast_time = int(forecast_start.strftime("%H"))
+        forecast_length = 300
+        forecast_end = forecast_start + timedelta(hours=forecast_length)
+        result = get_forecast_times(forecast_length,
+                                    forecast_date=forecast_date,
+                                    forecast_time=forecast_time)
+        self.assertEqual(forecast_start, result[0])
+        self.assertEqual(forecast_end, result[-1])
+        self.assertEqual(timedelta(hours=1), result[1] - result[0])
+        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
+
+    def test_no_data_provided(self):
+        """Test setting up a forecast range when no data is provided. Expect a
+        range of times starting from last hour before now that was an interval
+        of 6 hours. Length set to 7 days (168 hours).
+
+        Note: this could fail if time between forecast_start being set and
+        reaching the get_forecast_times call bridges a 6-hour time
+        (00, 06, 12, 18). As such it is allowed two goes before
+        reporting a failure (slightly unconventional I'm afraid)."""
+
+        second_chance = 0
+        while second_chance < 2:
+            forecast_start = datetime.datetime.utcnow()
+            expected_date = forecast_start.date()
+            expected_hour = time(divmod(forecast_start.hour, 6)[0]*6)
+            forecast_date = None
+            forecast_time = None
+            forecast_length = 168
+            result = get_forecast_times(forecast_length,
+                                        forecast_date=forecast_date,
+                                        forecast_time=forecast_time)
+
+            check1 = (expected_date == result[0].date())
+            check2 = (expected_hour.hour == result[0].hour)
+            check3 = (timedelta(hours=168) == (result[-1] - result[0]))
+
+            if not all([check1, check2, check3]):
+                second_chance += 1
+                continue
+            else:
+                break
+
+        self.assertTrue(check1)
+        self.assertTrue(check2)
+        self.assertTrue(check3)
+
+    def test_partial_data_provided(self):
+        """Test setting up a forecast range when start hour and forecast length
+        are both provided, but no start date."""
+
+        forecast_start = datetime.datetime(2017, 6, 1, 15, 0)
+        forecast_date = None
+        forecast_time = int(forecast_start.strftime("%H"))
+        forecast_length = 144
+        expected_date = datetime.datetime.utcnow().date()
+        expected_start = datetime.datetime.combine(expected_date,
+                                                   time(forecast_time))
+        expected_end = expected_start + timedelta(hours=144)
+        result = get_forecast_times(forecast_length,
+                                    forecast_date=forecast_date,
+                                    forecast_time=forecast_time)
+
+        self.assertEqual(expected_start, result[0])
+        self.assertEqual(expected_end, result[-1])
+        self.assertEqual(timedelta(hours=1), result[1] - result[0])
+        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
+
+    def test_invalid_date_format(self):
+        """Test error is raised when a date is provided in an unexpected
+        format."""
+
+        forecast_date = '17MARCH2017'
+        msg = 'Date .* is in unexpected format'
+        with self.assertRaisesRegexp(ValueError, msg):
+            get_forecast_times(144, forecast_date=forecast_date,
+                               forecast_time=6)
 
 
 if __name__ == '__main__':

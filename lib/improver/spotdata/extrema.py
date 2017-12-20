@@ -37,9 +37,9 @@ from datetime import datetime as dt
 import iris
 from iris.cube import Cube, CubeList
 from iris.coords import DimCoord
-from improver.spotdata.common_functions import (iris_time_to_datetime,
-                                                datetime_constraint,
-                                                dt_to_utc_hours)
+from improver.utilities.temporal import (iris_time_to_datetime,
+                                         datetime_constraint,
+                                         dt_to_utc_hours)
 
 
 class ExtractExtrema(object):

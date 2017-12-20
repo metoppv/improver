@@ -38,7 +38,6 @@ from tempfile import mkdtemp
 from iris.tests import IrisTest
 
 from improver.spotdata.site_data import ImportSiteData as Plugin
-from improver.spotdata.site_data import set_utc_offset
 
 
 class Test_ImportSiteData(IrisTest):
@@ -266,23 +265,6 @@ class Test_runtime_list(Test_ImportSiteData):
             expected_wmo_sites,
             np.array([result[index]['wmo_site'] for index in result]))
 
-
-class Test_set_utc_offset(IrisTest):
-    """
-    Test setting of UTC_offsets with longitudes using crude 15 degree bins.
-
-    """
-
-    def test_output(self):
-        """
-        Test full span of crude timezones from UTC-12 to UTC+12. Note the
-        degeneracy at +-180.
-
-        """
-        longitudes = np.arange(-180, 185, 15)
-        expected = np.arange(-12, 13, 1)
-        result = set_utc_offset(longitudes)
-        self.assertArrayEqual(expected, result)
 
 if __name__ == '__main__':
     unittest.main()

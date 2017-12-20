@@ -30,13 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for making temporal calculations."""
 
-import cf_units as unit
+import re
+
 from datetime import datetime
+from datetime import time as dt_time
+from datetime import timedelta
+from time import mktime
 import warnings
 
 import numpy as np
 
+import cf_units as unit
 import iris
+from iris import Constraint
+from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
 
@@ -87,8 +94,9 @@ def cycletime_to_number(
             A numeric value to represent the datetime using assumed choices
             for the unit of time and the calendar.
     """
-    dt = cycletime_to_datetime(cycletime, cycletime_format=cycletime_format)
-    return unit.date2num(dt, time_unit, calendar)
+    dtval = cycletime_to_datetime(cycletime,
+                                  cycletime_format=cycletime_format)
+    return unit.date2num(dtval, time_unit, calendar)
 
 
 def forecast_period_coord(
@@ -182,3 +190,179 @@ def forecast_period_coord(
            "coordinate were also not available for calculating "
            "the forecast_period.".format(cube))
     raise CoordinateNotFoundError(msg)
+
+
+def iris_time_to_datetime(time_coord):
+    """
+    Convert iris time to python datetime object. Working in UTC.
+
+    Args:
+        time_coord (iris.coord.Coord):
+            Iris time coordinate element(s).
+
+    Returns:
+        list of datetime.datetime objects
+            The time element(s) recast as a python datetime object.
+
+    """
+    time_coord.convert_units('seconds since 1970-01-01 00:00:00')
+    return [datetime.utcfromtimestamp(value) for value in time_coord.points]
+
+
+def dt_to_utc_hours(dt_in):
+    """
+    Convert python datetime.datetime into hours since 1970-01-01 00Z.
+
+    Args:
+        dt_in (datetime.datetime object):
+            Time to be converted.
+    Returns:
+        float:
+            hours since epoch
+
+    """
+    utc_seconds = mktime(dt_in.utctimetuple())
+    return utc_seconds/3600.
+
+
+def datetime_constraint(time_in, time_max=None):
+    """
+    Constructs an iris equivalence constraint from a python datetime object.
+
+    Args:
+        time_in (datetime.datetime object):
+            The time to be used to build an iris constraint.
+        time_max (datetime.datetime object):
+            Optional max time, which if provided leads to a range constraint
+            being returned up to < time_max.
+
+    Returns:
+        time_extract (iris.Constraint):
+            An iris constraint to be used in extracting data at the given time
+            from a cube.
+
+    """
+    time_start = PartialDateTime(
+        time_in.year, time_in.month, time_in.day, time_in.hour)
+
+    if time_max is None:
+        time_extract = Constraint(time=time_start)
+    else:
+        time_limit = PartialDateTime(
+            time_max.year, time_max.month, time_max.day, time_max.hour)
+        time_extract = Constraint(
+            time=lambda cell: time_start <= cell < time_limit)
+    return time_extract
+
+
+def extract_cube_at_time(cubes, time, time_extract):
+    """
+    Extract a single cube at a given time from a cubelist.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            CubeList of a given diagnostic over several times.
+
+        time (datetime.datetime object):
+            Time at which forecast data is needed.
+
+        time_extract (iris.Constraint):
+            Iris constraint for the desired time.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube of data at the desired time.
+
+    Raises:
+        ValueError if the desired time is not available within the cubelist.
+
+    """
+    try:
+        with iris.FUTURE.context(cell_datetime_objects=True):
+            cube_in, = cubes.extract(time_extract)
+        return cube_in
+    except ValueError:
+        msg = ('Forecast time {} not found within data cubes.'.format(
+            time.strftime("%Y-%m-%d:%H:%M")))
+        warnings.warn(msg)
+        return None
+
+
+def set_utc_offset(longitudes):
+    """
+    Simplistic timezone setting for unset sites that uses 15 degree bins
+    centred on 0 degrees longitude. Used for on the fly site generation
+    when no more rigorous source of timeszone information is provided.
+
+    Args:
+        longitudes (List):
+            List of longitudes.
+
+    Returns:
+        utc_offsets (List):
+            List of utc_offsets calculated using longitude.
+
+    """
+    return np.floor((np.array(longitudes) + 7.5)/15.)
+
+
+def get_forecast_times(forecast_length, forecast_date=None,
+                       forecast_time=None):
+    """
+    Generate a list of python datetime objects specifying the desired forecast
+    times. This list will be created from input specifications if provided.
+    Otherwise defaults are to start today at the most recent 6-hourly interval
+    (00, 06, 12, 18) and to run out to T+144 hours.
+
+    Args:
+        forecast_length (int):
+            An integer giving the desired length of the forecast output in
+            hours (e.g. 48 for a two day forecast period).
+
+        forecast_date (string (YYYYMMDD)):
+            A string of format YYYYMMDD defining the start date for which
+            forecasts are required. If unset it defaults to today in UTC.
+
+        forecast_time (int):
+            An integer giving the hour on the forecast_date at which to start
+            the forecast output; 24hr clock such that 17 = 17Z for example. If
+            unset it defaults to the latest 6 hour cycle as a start time.
+
+    Returns:
+        forecast_times (list of datetime.datetime objects):
+            A list of python datetime.datetime objects that represent the
+            times at which diagnostic data should be extracted.
+
+    Raises:
+        ValueError : raised if the input date is not in the expected format.
+
+    """
+    date_format = re.compile('[0-9]{8}')
+
+    if forecast_date is None:
+        start_date = datetime.utcnow().date()
+    else:
+        if date_format.match(forecast_date) and len(forecast_date) == 8:
+            start_date = datetime.strptime(forecast_date,
+                                           "%Y%m%d").date()
+        else:
+            raise ValueError('Date {} is in unexpected format; should be '
+                             'YYYYMMDD.'.format(forecast_date))
+
+    if forecast_time is None:
+        # If no start hour provided, go back to the nearest multiple of 6
+        # hours (e.g. utcnow = 11Z --> 06Z).
+        forecast_start_time = datetime.combine(
+            start_date, dt_time(divmod(datetime.utcnow().hour, 6)[0]*6))
+    else:
+        forecast_start_time = datetime.combine(start_date,
+                                               dt_time(forecast_time))
+
+    # Generate forecast times. Hourly to T+48, 3 hourly to T+forecast_length.
+    forecast_times = [forecast_start_time + timedelta(hours=x) for x in
+                      range(min(forecast_length, 49))]
+    forecast_times = (forecast_times +
+                      [forecast_start_time + timedelta(hours=x) for x in
+                       range(51, forecast_length+1, 3)])
+
+    return forecast_times

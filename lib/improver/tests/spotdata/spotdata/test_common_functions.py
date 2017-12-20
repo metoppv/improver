@@ -32,10 +32,10 @@
 
 
 import unittest
-import cf_units
+import warnings
 from datetime import datetime as dt
 
-import iris
+import cf_units
 from iris.coords import (DimCoord,
                          AuxCoord)
 from iris import coord_systems
@@ -47,7 +47,11 @@ from iris.time import PartialDateTime
 import cartopy.crs as ccrs
 import numpy as np
 
-from improver.spotdata.common_functions import *
+from improver.spotdata.common_functions import (
+    ConditionalListExtract, nearest_n_neighbours,
+    node_edge_check, get_nearest_coords, index_of_minimum_difference,
+    list_entry_from_index, construct_neighbour_hash,
+    apply_bias, xy_determine, xy_transform, extract_ad_at_time)
 
 
 class Test_common_functions(IrisTest):
@@ -127,9 +131,9 @@ class Test_common_functions(IrisTest):
         ancillary_data['orography'] = orography
 
         additional_data = {}
-        ad = CubeList()
-        ad.append(cube)
-        additional_data['air_temperature'] = ad
+        adlist = CubeList()
+        adlist.append(cube)
+        additional_data['air_temperature'] = adlist
 
         data_indices = [list(data.nonzero()[0]),
                         list(data.nonzero()[1])]
@@ -456,56 +460,6 @@ class Test_list_entry_from_index(Test_common_functions):
         self.assertEqual(expected, result)
 
 
-class Test_datetime_constraint(Test_common_functions):
-    """
-    Test construction of an iris.Constraint from a python.datetime.datetime
-    object.
-
-    """
-
-    def test_constraint_equality(self):
-        """Check constraint is as expected."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
-        self.assertEqual(self.time_extract._coord_values,
-                         dt_constraint._coord_values)
-
-    def test_constraint_list_equality(self):
-        """Check a list of constraints is as expected."""
-        plugin = datetime_constraint
-        time_start = dt(2017, 2, 17, 6, 0)
-        time_limit = dt(2017, 2, 17, 18, 0)
-        expected_times = range(1487311200, 1487354400, 3600)
-        dt_constraint = plugin(time_start, time_max=time_limit)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.long_cube.extract(dt_constraint)
-        self.assertEqual(result.shape, (12, 12, 12))
-        self.assertArrayEqual(result.coord('time').points,
-                              expected_times)
-
-    def test_constraint_type(self):
-        """Check type is iris.Constraint."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
-        self.assertIsInstance(dt_constraint, Constraint)
-
-    def test_valid_constraint(self):
-        """Test use of constraint at a time valid within the cube."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 2, 17, 6, 0))
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.cube.extract(dt_constraint)
-        self.assertIsInstance(result, Cube)
-
-    def test_invalid_constraint(self):
-        """Test use of constraint at a time invalid within the cube."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(dt(2017, 2, 17, 18, 0))
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.cube.extract(dt_constraint)
-        self.assertNotIsInstance(result, Cube)
-
-
 class Test_apply_bias(Test_common_functions):
     """
     Test subsetting of an array to extract the indices of positive or negative
@@ -605,33 +559,6 @@ class Test_xy_transform(Test_common_functions):
         result_x, result_y = plugin(trg_crs, 10, 50)
         self.assertAlmostEqual(expected_x, result_x)
         self.assertAlmostEqual(expected_y, result_y)
-
-
-class Test_extract_cube_at_time(Test_common_functions):
-    """
-    Test wrapper for iris cube extraction at desired times.
-
-    """
-
-    def test_valid_time(self):
-        """Case for a time that is available within the diagnostic cube."""
-        plugin = extract_cube_at_time
-        cubes = CubeList([self.cube])
-        result = plugin(cubes, self.time_dt, self.time_extract)
-        self.assertIsInstance(result, Cube)
-
-    def test_invalid_time(self):
-        """Case for a time that is unavailable within the diagnostic cube."""
-        plugin = extract_cube_at_time
-        time_dt = dt(2017, 2, 18, 6, 0)
-        time_extract = Constraint(time=PartialDateTime(
-            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
-        cubes = CubeList([self.cube])
-        with warnings.catch_warnings(record=True) as w_messages:
-            plugin(cubes, time_dt, time_extract)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "Forecast time" in str(w_messages[0])
 
 
 class Test_extract_ad_at_time(Test_common_functions):

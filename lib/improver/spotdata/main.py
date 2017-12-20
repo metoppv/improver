@@ -39,9 +39,9 @@ from improver.spotdata.neighbour_finding import PointSelection
 from improver.spotdata.extract_data import ExtractData
 from improver.spotdata.extrema import ExtractExtrema
 from improver.spotdata.common_functions import (construct_neighbour_hash,
-                                                datetime_constraint,
-                                                extract_cube_at_time,
                                                 extract_ad_at_time)
+from improver.utilities.temporal import (datetime_constraint,
+                                         extract_cube_at_time)
 
 
 def run_spotdata(diagnostics, ancillary_data, sites, config_constants,

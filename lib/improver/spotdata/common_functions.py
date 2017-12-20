@@ -35,12 +35,11 @@ Plugins written for the Improver site specific process chain.
 
 import warnings
 import numpy as np
-from datetime import datetime as dt
-from time import mktime
+
 import iris
-from iris import Constraint
-from iris.time import PartialDateTime
 import cartopy.crs as ccrs
+
+from improver.utilities.temporal import extract_cube_at_time
 
 
 class ConditionalListExtract(object):
@@ -294,35 +293,6 @@ def list_entry_from_index(list_in, index_in):
     return list(zip(*list_in)[index_in])
 
 
-def datetime_constraint(time_in, time_max=None):
-    """
-    Constructs an iris equivalence constraint from a python datetime object.
-
-    Args:
-        time_in (datetime.datetime object):
-            The time to be used to build an iris constraint.
-        time_max (datetime.datetime object):
-            Optional max time, which if provided leads to a range constraint
-            being returned up to < time_max.
-
-    Returns:
-        iris.Constraint:
-            An iris constraint to be used in extracting data at the given time
-            from a cube.
-
-    """
-    time_start = PartialDateTime(
-        time_in.year, time_in.month, time_in.day, time_in.hour)
-
-    if time_max is None:
-        return Constraint(time=time_start)
-
-    time_limit = PartialDateTime(
-        time_max.year, time_max.month, time_max.day, time_max.hour)
-
-    return Constraint(time=lambda cell: time_start <= cell < time_limit)
-
-
 def construct_neighbour_hash(neighbour_finding):
     """
     Constructs a hash from the various neighbour finding options. This is used
@@ -427,39 +397,6 @@ def xy_transform(trg_crs, latitude, longitude):
                                        ccrs.PlateCarree())
 
 
-def extract_cube_at_time(cubes, time, time_extract):
-    """
-    Extract a single cube at a given time from a cubelist.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            CubeList of a given diagnostic over several times.
-
-        time (datetime.datetime object):
-            Time at which forecast data is needed.
-
-        time_extract (iris.Constraint):
-            Iris constraint for the desired time.
-
-    Returns:
-        cube (iris.cube.Cube):
-            Cube of data at the desired time.
-
-    Raises:
-        ValueError if the desired time is not available within the cubelist.
-
-    """
-    try:
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube_in, = cubes.extract(time_extract)
-        return cube_in
-    except ValueError:
-        msg = ('Forecast time {} not found within data cubes.'.format(
-            time.strftime("%Y-%m-%d:%H:%M")))
-        warnings.warn(msg)
-        return None
-
-
 def extract_ad_at_time(additional_diagnostics, time, time_extract):
     """
     Extracts additional diagnostics at the required time.
@@ -486,36 +423,3 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
         cubes = additional_diagnostics[key]
         ad_extracted[key] = extract_cube_at_time(cubes, time, time_extract)
     return ad_extracted
-
-
-def iris_time_to_datetime(time):
-    """
-    Convert iris time to python datetime object. Working in UTC.
-
-    Args:
-        time (iris.coord.Coord):
-            Iris time coordinate element(s).
-
-    Returns:
-        list of datetime.datetime objects
-            The time element(s) recast as a python datetime object.
-
-    """
-    time.convert_units('seconds since 1970-01-01 00:00:00')
-    return [dt.utcfromtimestamp(value) for value in time.points]
-
-
-def dt_to_utc_hours(dt_in):
-    """
-    Convert python datetime.datetime into hours since 1970-01-01 00Z.
-
-    Args:
-        dt_in (datetime.datetime object):
-            Time to be converted.
-    Returns:
-        float:
-            hours since epoch
-
-    """
-    utc_seconds = mktime(dt_in.utctimetuple())
-    return utc_seconds/3600.
