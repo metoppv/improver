@@ -319,7 +319,7 @@ class WeatherSymbols(object):
                 e.g. {<node_name>: [<succeed_name>, <fail_name>]}
             start (string):
                 The node name of the tree root (currently always
-                significant_precipitation).
+                heavy_precipitation).
             end (int):
                 The weather symbol code to which we are tracing all routes.
             route (list):
@@ -409,8 +409,8 @@ class WeatherSymbols(object):
         # Loop over possible symbols
         for symbol_code in defined_symbols:
             # In current decision tree
-            # start node is significant_precipitation
-            routes = self.find_all_routes(graph, 'significant_precipitation',
+            # start node is heavy_precipitation
+            routes = self.find_all_routes(graph, 'heavy_precipitation',
                                           symbol_code)
 
             # Loop over possible routes from root to leaf
