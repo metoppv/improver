@@ -287,8 +287,7 @@ class TestSinglePoint(object):
     """
 
     def __init__(self, AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250.,
-                 modelorog=230., heightlevels=np.array([0.2, 3., 13., 33.,
-                                                        133., 333., 1133.])):
+                 modelorog=230.):
         """Set up the single point test for RoughnessCorrection.
 
         Keyword Args:
@@ -317,13 +316,8 @@ class TestSinglePoint(object):
                                      unit="m")
         self.moro_cube = set_up_cube(1, 1, 1, data=modelorog, name=None,
                                      unit="m")
-        if heightlevels is not None:
-            self.hl_cube = set_up_cube(1, 1, len(heightlevels),
-                                       data=heightlevels)
-        else:
-            self.hl_cube = None
 
-    def run_hc_rc(self, wind, height=None):
+    def run_hc_rc(self, wind, height=[0.2, 3, 13, 33, 133, 333, 1133]):
         """Test single point height correction and roughness correction.
 
         Make an iris cube of the supplied wind and set up the height
@@ -335,8 +329,7 @@ class TestSinglePoint(object):
 
         Keyword Args:
             height (float):
-                Value for height in metres for zeroth slice of wind,
-                default None.
+                Value for height in metres for each level in the wind cube
         """
         wind = np.array(wind)
         if wind.ndim == 1:
@@ -347,6 +340,7 @@ class TestSinglePoint(object):
                                   data=np.rollaxis(wind, 2, start=0),
                                   name="wind_speed", unit="m s-1",
                                   height=height)
+        #print self.w_cube
         plugin = RoughnessCorrection(
             self.aos_cube, self.s_cube, self.poro_cube, self.moro_cube,
             1500., self.z0_cube
@@ -370,7 +364,7 @@ class Test1D(IrisTest):
 
     """
     uin = [20., 20., 20., 20., 20., 20., 20.]
-
+    
     def test_section0a(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
