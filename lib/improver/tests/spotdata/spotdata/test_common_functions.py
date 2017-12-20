@@ -46,9 +46,9 @@ import numpy as np
 
 from improver.spotdata.common_functions import (
     ConditionalListExtract, nearest_n_neighbours,
-    node_edge_check, get_nearest_coords, index_of_minimum_difference,
+    node_edge_check, index_of_minimum_difference,
     list_entry_from_index, construct_neighbour_hash,
-    apply_bias, xy_determine, xy_transform, extract_ad_at_time)
+    apply_bias, extract_ad_at_time)
 
 
 class Test_common_functions(IrisTest):
@@ -485,33 +485,6 @@ class Test_apply_bias(Test_common_functions):
         expected = [0, 1, 2, 3, 4]
         result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
-
-
-class Test_extract_cube_at_time(Test_common_functions):
-    """
-    Test wrapper for iris cube extraction at desired times.
-
-    """
-
-    def test_valid_time(self):
-        """Case for a time that is available within the diagnostic cube."""
-        plugin = extract_cube_at_time
-        cubes = CubeList([self.cube])
-        result = plugin(cubes, self.time_dt, self.time_extract)
-        self.assertIsInstance(result, Cube)
-
-    def test_invalid_time(self):
-        """Case for a time that is unavailable within the diagnostic cube."""
-        plugin = extract_cube_at_time
-        time_dt = dt(2017, 2, 18, 6, 0)
-        time_extract = Constraint(time=PartialDateTime(
-            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
-        cubes = CubeList([self.cube])
-        with warnings.catch_warnings(record=True) as w_messages:
-            plugin(cubes, time_dt, time_extract)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "Forecast time" in str(w_messages[0])
 
 
 class Test_extract_ad_at_time(Test_common_functions):

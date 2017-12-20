@@ -322,39 +322,6 @@ def apply_bias(vertical_bias, dzs):
     return dz_subset
 
 
-def extract_cube_at_time(cubes, time, time_extract):
-    """
-    Extract a single cube at a given time from a cubelist.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            CubeList of a given diagnostic over several times.
-
-        time (datetime.datetime object):
-            Time at which forecast data is needed.
-
-        time_extract (iris.Constraint):
-            Iris constraint for the desired time.
-
-    Returns:
-        cube (iris.cube.Cube):
-            Cube of data at the desired time.
-
-    Raises:
-        ValueError if the desired time is not available within the cubelist.
-
-    """
-    try:
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube_in, = cubes.extract(time_extract)
-        return cube_in
-    except ValueError:
-        msg = ('Forecast time {} not found within data cubes.'.format(
-            time.strftime("%Y-%m-%d:%H:%M")))
-        warnings.warn(msg)
-        return None
-
-
 def extract_ad_at_time(additional_diagnostics, time, time_extract):
     """
     Extracts additional diagnostics at the required time.
