@@ -317,7 +317,7 @@ class TestSinglePoint(object):
         self.moro_cube = set_up_cube(1, 1, 1, data=modelorog, name=None,
                                      unit="m")
 
-    def run_hc_rc(self, wind, height=[0.2, 3, 13, 33, 133, 333, 1133]):
+    def run_hc_rc(self, wind, height=None):
         """Test single point height correction and roughness correction.
 
         Make an iris cube of the supplied wind and set up the height
@@ -331,6 +331,8 @@ class TestSinglePoint(object):
             height (float):
                 Value for height in metres for each level in the wind cube
         """
+        if height is None:
+            height=[0.2, 3, 13, 33, 133, 333, 1133]
         wind = np.array(wind)
         if wind.ndim == 1:
             wind = wind.reshape([1, 1, wind.shape[0]])
@@ -340,7 +342,6 @@ class TestSinglePoint(object):
                                   data=np.rollaxis(wind, 2, start=0),
                                   name="wind_speed", unit="m s-1",
                                   height=height)
-        #print self.w_cube
         plugin = RoughnessCorrection(
             self.aos_cube, self.s_cube, self.poro_cube, self.moro_cube,
             1500., self.z0_cube
@@ -364,9 +365,10 @@ class Test1D(IrisTest):
 
     """
     uin = [20., 20., 20., 20., 20., 20., 20.]
-    
+
     def test_section0a(self):
-        """Test AoS is np.nan, point should not do anything, uin = uout."""
+        """Test AoS is np.nan, point should not do anything, uin = uout.
+        AS is Silhouette roughness field"""
         landpointtests_hc_rc = TestSinglePoint(
             AoS=np.nan, Sigma=20.0, z_0=0.2, pporog=250., modelorog=230.)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
