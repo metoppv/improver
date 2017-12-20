@@ -37,8 +37,6 @@ import warnings
 import numpy as np
 
 import iris
-from iris import Constraint
-from iris.time import PartialDateTime
 
 from improver.utilities.temporal import extract_cube_at_time
 
