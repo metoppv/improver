@@ -678,7 +678,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -704,7 +704,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -730,7 +730,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -756,7 +756,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -782,7 +782,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -808,7 +808,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning
@@ -835,7 +835,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin.estimate_coefficients_for_ngr(
+            plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == UserWarning

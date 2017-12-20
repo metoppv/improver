@@ -37,7 +37,6 @@ import unittest
 
 from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 import numpy as np
 

@@ -128,7 +128,7 @@ class WeightsUtilities(object):
             msg = ('Arrays weights and forecast_present not the same size'
                    ' weights is len {0:}'.format(len(weights)) +
                    ' forecast_present is len {0:}'.format(
-                      len(forecast_present)))
+                       len(forecast_present)))
             raise ValueError(msg)
 
         num_forecasts_present = forecast_present.sum()
@@ -204,7 +204,7 @@ class WeightsUtilities(object):
                        'than requested coord, '
                        'len coord points = {0:d} '.format(len(coord_values)) +
                        'len cube points = {0:d}'.format(
-                          len(cube_coord.points)))
+                           len(cube_coord.points)))
                 raise ValueError(msg)
             else:
                 exp_coord = iris.coords.AuxCoord(coord_values,
@@ -231,7 +231,7 @@ class WeightsUtilities(object):
                                '= {0:s}'.format(str(cube_coord.units)))
                         raise ValueError(msg)
             exp_forecast_found = np.array([int(x in cube_coord.points)
-                                          for x in exp_coord.points])
+                                           for x in exp_coord.points])
         else:
             exp_forecast_found = np.ones(exp_coord_len)
         return (exp_coord_len, exp_forecast_found)
@@ -348,7 +348,7 @@ class ChooseDefaultWeightsLinear(object):
 
         (num_of_weights,
          exp_coord_found) = WeightsUtilities.process_coord(
-            cube, coord_name, coord_vals, coord_unit)
+             cube, coord_name, coord_vals, coord_unit)
 
         weights_in = self.linear_weights(num_of_weights)
 
@@ -442,7 +442,7 @@ class ChooseDefaultWeightsNonLinear(object):
 
         (num_of_weights,
          exp_coord_found) = WeightsUtilities.process_coord(
-            cube, coord_name, coord_vals, coord_unit)
+             cube, coord_name, coord_vals, coord_unit)
 
         weights_in = self.nonlinear_weights(num_of_weights)
 
