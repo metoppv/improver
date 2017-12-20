@@ -35,11 +35,18 @@ import unittest
 import numpy as np
 
 from iris.tests import IrisTest
+from iris.coords import AuxCoord
+from iris import coord_systems
+from iris.cube import Cube
+import cartopy.crs as ccrs
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
+    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells,
+    lat_lon_determine, lat_lon_transform, get_nearest_coords)
+from improver.tests.spotdata.spotdata.test_common_functions import (
+    Test_common_functions)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
@@ -160,6 +167,76 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
+
+class Test_lat_lon_determine(Test_common_functions):
+    """Test function that tests projections used in diagnostic cubes."""
+
+    def test_projection_test(self):
+        """Test identification of non-lat/lon projections."""
+        src_crs = ccrs.PlateCarree()
+        trg_crs = ccrs.LambertConformal(central_longitude=50,
+                                        central_latitude=10)
+        trg_crs_iris = coord_systems.LambertConformal(
+            central_lon=50, central_lat=10)
+        lons = self.cube.coord('longitude').points
+        lats = self.cube.coord('latitude').points
+        xvals, yvals = [], []
+        for lon, lat in zip(lons, lats):
+            x_trg, y_trg = trg_crs.transform_point(lon, lat, src_crs)
+            xvals.append(x_trg)
+            yvals.append(y_trg)
+
+        new_x = AuxCoord(xvals, standard_name='projection_x_coordinate',
+                         units='m', coord_system=trg_crs_iris)
+        new_y = AuxCoord(yvals, standard_name='projection_y_coordinate',
+                         units='m', coord_system=trg_crs_iris)
+
+        cube = Cube(self.cube.data,
+                    long_name="air_temperature",
+                    dim_coords_and_dims=[(self.cube.coord('time'), 0)],
+                    aux_coords_and_dims=[(new_y, 1), (new_x, 2)],
+                    units="K")
+
+        plugin = lat_lon_determine
+        expected = trg_crs
+        result = plugin(cube)
+        self.assertEqual(expected, result)
+
+
+class Test_lat_lon_transform(Test_common_functions):
+    """
+    Test function that transforms the lookup latitude and longitude into the
+    projection used in a diagnostic cube.
+
+    """
+    def test_projection_transform(self):
+        """
+        Test transformation of lookup coordinates to the projections in
+        which the diagnostic is provided.
+
+        """
+        trg_crs = ccrs.LambertConformal(central_longitude=50,
+                                        central_latitude=10)
+
+        plugin = lat_lon_transform
+        expected_x, expected_y = 0., 0.
+        result_x, result_y = plugin(trg_crs, 10, 50)
+        self.assertAlmostEqual(expected_x, result_x)
+        self.assertAlmostEqual(expected_y, result_y)
+
+
+class Test_get_nearest_coords(Test_common_functions):
+    """Test wrapper for iris.cube.Cube.nearest_neighbour_index."""
+
+    def test_nearest_coords(self):
+        """Test correct indices are returned."""
+        plugin = get_nearest_coords
+        longitude = 80
+        latitude = -25
+        expected = (4, 8)
+        result = plugin(self.cube, latitude, longitude,
+                        'latitude', 'longitude')
+        self.assertEqual(expected, result)
 
 if __name__ == '__main__':
     unittest.main()

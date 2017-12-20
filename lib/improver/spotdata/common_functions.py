@@ -37,7 +37,6 @@ import warnings
 import numpy as np
 
 import iris
-import cartopy.crs as ccrs
 
 from improver.utilities.temporal import extract_cube_at_time
 
@@ -223,31 +222,6 @@ def node_edge_check(node_list, cube):
     return node_list.tolist()
 
 
-def get_nearest_coords(cube, latitude, longitude, iname, jname):
-    """
-    Uses the iris cube method nearest_neighbour_index to find the nearest grid
-    points to a given latitude-longitude position.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing a representative grid.
-
-        latitude/longitude (floats):
-            Latitude/longitude coordinates of spot data site of interest.
-
-        iname/jname (strings):
-            Strings giving the names of the y/x coordinates to be searched.
-
-    Returns:
-        i_latitude/j_latitude (int):
-            Grid coordinates of the nearest grid point to the spot data site.
-
-    """
-    i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
-    j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
-    return i_latitude, j_longitude
-
-
 def index_of_minimum_difference(whole_list, subset_list=None):
     """
     Returns the index of the minimum value in a list.
@@ -344,57 +318,6 @@ def apply_bias(vertical_bias, dzs):
         dz_subset = np.arange(len(dzs))
 
     return dz_subset
-
-
-def xy_determine(cube):
-    """
-    Test whether a diagnostic cube is on a latitude/longitude grid or uses an
-    alternative projection.
-
-    Args:
-        cube (iris.cube.Cube):
-            A diagnostic cube to examine for coordinate system.
-
-    Returns:
-        trg_crs (cartopy.crs/None):
-            Coordinate system of the diagnostic cube in a cartopy format unless
-            it is already a latitude/longitude grid, in which case None is
-            returned.
-
-    """
-    trg_crs = None
-    if (not cube.coord(axis='x').name() == 'longitude' or
-            not cube.coord(axis='y').name() == 'latitude'):
-        trg_crs = cube.coord_system().as_cartopy_crs()
-    return trg_crs
-
-
-def xy_transform(trg_crs, latitude, longitude):
-    """
-    Transforms latitude/longitude coordinate pairs from a latitude/longitude
-    grid into an alternative projection defined by trg_crs.
-
-    Args:
-        trg_crs (cartopy.crs/None):
-            Target coordinate system in cartopy format or None.
-
-        latitude (float):
-            Latitude coordinate.
-
-        longitude (float):
-            Longitude coordinate.
-
-    Returns:
-        x, y (floats):
-            Longitude and latitude transformed into the target coordinate
-            system.
-
-    """
-    if trg_crs is None:
-        return longitude, latitude
-    else:
-        return trg_crs.transform_point(longitude, latitude,
-                                       ccrs.PlateCarree())
 
 
 def extract_ad_at_time(additional_diagnostics, time, time_extract):

@@ -36,22 +36,19 @@ import warnings
 from datetime import datetime as dt
 
 import cf_units
-from iris.coords import (DimCoord,
-                         AuxCoord)
-from iris import coord_systems
+from iris.coords import DimCoord
 from iris.coord_systems import GeogCS
 from iris import Constraint
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-import cartopy.crs as ccrs
 import numpy as np
 
 from improver.spotdata.common_functions import (
     ConditionalListExtract, nearest_n_neighbours,
-    node_edge_check, get_nearest_coords, index_of_minimum_difference,
+    node_edge_check, index_of_minimum_difference,
     list_entry_from_index, construct_neighbour_hash,
-    apply_bias, xy_determine, xy_transform, extract_ad_at_time)
+    apply_bias, extract_ad_at_time)
 
 
 class Test_common_functions(IrisTest):
@@ -380,20 +377,6 @@ class Test_node_edge_check(Test_common_functions):
         self.assertArrayEqual(expected, result)
 
 
-class Test_get_nearest_coords(Test_common_functions):
-    """Test wrapper for iris.cube.Cube.nearest_neighbour_index."""
-
-    def test_nearest_coords(self):
-        """Test correct indices are returned."""
-        plugin = get_nearest_coords
-        longitude = 80
-        latitude = -25
-        expected = (4, 8)
-        result = plugin(self.cube, latitude, longitude,
-                        'latitude', 'longitude')
-        self.assertEqual(expected, result)
-
-
 class Test_index_of_minimum_difference(Test_common_functions):
     """
     Test ability to identify the index of a minimum value in an array,
@@ -502,63 +485,6 @@ class Test_apply_bias(Test_common_functions):
         expected = [0, 1, 2, 3, 4]
         result = plugin(bias, np.array(dzs))
         self.assertArrayEqual(expected, result)
-
-
-class Test_xy_determine(Test_common_functions):
-    """Test function that tests projections used in diagnostic cubes."""
-
-    def test_projection_test(self):
-        """Test identification of non-lat/lon projections."""
-        src_crs = ccrs.PlateCarree()
-        trg_crs = ccrs.LambertConformal(central_longitude=50,
-                                        central_latitude=10)
-        trg_crs_iris = coord_systems.LambertConformal(
-            central_lon=50, central_lat=10)
-        lons = self.cube.coord('longitude').points
-        lats = self.cube.coord('latitude').points
-        x, y = [], []
-        for lon, lat in zip(lons, lats):
-            x_trg, y_trg = trg_crs.transform_point(lon, lat, src_crs)
-            x.append(x_trg)
-            y.append(y_trg)
-
-        new_x = AuxCoord(x, standard_name='projection_x_coordinate',
-                         units='m', coord_system=trg_crs_iris)
-        new_y = AuxCoord(y, standard_name='projection_y_coordinate',
-                         units='m', coord_system=trg_crs_iris)
-
-        cube = Cube(self.cube.data,
-                    long_name="air_temperature",
-                    dim_coords_and_dims=[(self.cube.coord('time'), 0)],
-                    aux_coords_and_dims=[(new_y, 1), (new_x, 2)],
-                    units="K")
-
-        plugin = xy_determine
-        expected = trg_crs
-        result = plugin(cube)
-        self.assertEqual(expected, result)
-
-
-class Test_xy_transform(Test_common_functions):
-    """
-    Test function that transforms the lookup latitude and longitude into the
-    projection used in a diagnostic cube.
-
-    """
-    def test_projection_transform(self):
-        """
-        Test transformation of lookup coordinates to the projections in
-        which the diagnostic is provided.
-
-        """
-        trg_crs = ccrs.LambertConformal(central_longitude=50,
-                                        central_latitude=10)
-
-        plugin = xy_transform
-        expected_x, expected_y = 0., 0.
-        result_x, result_y = plugin(trg_crs, 10, 50)
-        self.assertAlmostEqual(expected_x, result_x)
-        self.assertAlmostEqual(expected_y, result_y)
 
 
 class Test_extract_ad_at_time(Test_common_functions):
