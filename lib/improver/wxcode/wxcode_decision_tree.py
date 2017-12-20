@@ -72,21 +72,10 @@ def wxcode_decision_tree():
             tree.
     """
     queries = {
-        'significant_precipitation': {
-            'succeed': 'heavy_precipitation',
-            'fail': 'any_precipitation',
-            'probability_thresholds': [0.5, 0.5],
-            'threshold_condition': '>=',
-            'condition_combination': 'OR',
-            'diagnostic_fields': ['probability_of_rainfall_rate',
-                                  'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
-                                      AuxCoord(0.03, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
 
         'heavy_precipitation': {
             'succeed': 'heavy_precipitation_cloud',
-            'fail': 'light_precipitation',
+            'fail': 'precipitation_in_vicinity',
             'probability_thresholds': [0.5, 0.5],
             'threshold_condition': '>=',
             'condition_combination': 'OR',
@@ -266,7 +255,7 @@ def wxcode_decision_tree():
 
         'drizzle_cloud': {
             'succeed': 11,
-            'fail': 'no_precipitation_cloud',
+            'fail': 'mist_conditions',
             'probability_thresholds': [0.5, 0.5],
             'threshold_condition': '>=',
             'condition_combination': 'AND',
@@ -310,21 +299,9 @@ def wxcode_decision_tree():
             'diagnostic_thresholds': [AuxCoord(0.1875, units=1)],
             'diagnostic_conditions': ['above']},
 
-        'any_precipitation': {
-            'succeed': 'precipitation_in_vicinity',
-            'fail': 'mist_conditions',
-            'probability_thresholds': [0.05, 0.05],
-            'threshold_condition': '>=',
-            'condition_combination': 'OR',
-            'diagnostic_fields': ['probability_of_rainfall_rate',
-                                  'probability_of_lwe_snowfall_rate'],
-            'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
-                                      AuxCoord(0.03, units='mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
-
         'precipitation_in_vicinity': {
             'succeed': 'sleet_in_vicinity',
-            'fail': 'mist_conditions',
+            'fail': 'light_precipitation',
             'probability_thresholds': [0.5, 0.5],
             'threshold_condition': '>=',
             'condition_combination': 'OR',

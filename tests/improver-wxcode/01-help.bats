@@ -41,7 +41,7 @@ Calculate a cube of weather symbol codes.
 This plugin requires a specific set of input cubes, where data
 may be in any units to which the thresholds given below can
 be converted:
- - probability_of_lwe_snowfall_rate; thresholds: above 0.03 (mm hr-1), above 0.1 (mm hr-1), above 1.0 (mm hr-1)
+ - probability_of_lwe_snowfall_rate; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
  - probability_of_rainfall_rate_in_vicinity; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
  - probability_of_rainfall_rate; thresholds: above 0.03 (mm hr-1), above 0.1 (mm hr-1), above 1.0 (mm hr-1)
  - probability_of_lwe_snowfall_rate_in_vicinity; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
