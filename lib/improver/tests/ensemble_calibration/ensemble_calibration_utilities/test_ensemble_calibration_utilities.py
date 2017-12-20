@@ -233,7 +233,7 @@ class Test__renamer(IrisTest):
         Test that the utility returns an iris.cube.Cube with an
         ensemble_member_id coordinate following renaming.
         """
-        rename_coordinate(
+        _renamer(
             self.cube, "realization", "ensemble_member_id")
         self.assertTrue(self.cube.coord("ensemble_member_id"))
 
@@ -243,7 +243,7 @@ class Test__renamer(IrisTest):
         was not successful, as the original coordinate was not found in
         the cube.
         """
-        rename_coordinate(
+        _renamer(
             self.cube, "fake", "ensemble_member_id")
         self.assertFalse(self.cube.coords("ensemble_member_id"))
 

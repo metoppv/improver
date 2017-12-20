@@ -40,7 +40,7 @@ import unittest
 from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
 import warnings
@@ -54,6 +54,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 
 
 def datetime_from_timestamp(timestamp):
+    """Wrapper for timestamp to return a datetime object"""
     return datetime.datetime.utcfromtimestamp(timestamp*3600)
 
 
@@ -136,13 +137,17 @@ class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
 
     def test_basic_aux_coord_and_dim_coord(self):
         """Test that the plugin returns a list."""
-        length_one_coords = [DimCoord(
-            np.array([402193]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), DimCoord(
-            np.array([402190]), standard_name='forecast_reference_time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian'))]
+        length_one_coords = [
+            DimCoord(
+                np.array([402193]),
+                standard_name='time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            DimCoord(
+                np.array([402190]),
+                standard_name='forecast_reference_time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian'))]
         result = self.plugin._separate_length_one_coords_into_aux_and_dim(
             length_one_coords)
         for aresult in result:
@@ -152,43 +157,53 @@ class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
         """
         Test that the plugin returns a list containing no auxiliary
         coordinates and some dimension coordinates."""
-        length_one_coords = [DimCoord(
-            np.array([402193]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), DimCoord(
-            np.array([402190]), standard_name='forecast_reference_time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian'))]
+        length_one_coords = [
+            DimCoord(
+                np.array([402193]),
+                standard_name='time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            DimCoord(
+                np.array([402190]),
+                standard_name='forecast_reference_time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian'))]
         result = self.plugin._separate_length_one_coords_into_aux_and_dim(
             length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        length_one_coords_for_aux_coords = result[0]
-        length_one_coords_for_dim_coords = result[1]
-        self.assertFalse(length_one_coords_for_aux_coords)
-        self.assertTrue(length_one_coords_for_dim_coords)
-        for coord in length_one_coords_for_dim_coords:
+        len_one_coords_for_aux_coords = result[0]
+        len_one_coords_for_dim_coords = result[1]
+        self.assertFalse(len_one_coords_for_aux_coords)
+        self.assertTrue(len_one_coords_for_dim_coords)
+        for coord in len_one_coords_for_dim_coords:
             self.assertIsInstance(coord, DimCoord)
 
     def test_multiple_aux_coord_and_dim_coord(self):
         """
         Test that the plugin returns a list containing no auxiliary
         coordinates and some dimension coordinates."""
-        length_one_coords = [DimCoord(
-            np.array([402193]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), DimCoord(
-            np.array([402190]), standard_name='forecast_reference_time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), AuxCoord(
-            np.array([402187]), standard_name='forecast_period',
-            units=Unit('hours'))]
+        length_one_coords = [
+            DimCoord(
+                np.array([402193]),
+                standard_name='time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            DimCoord(
+                np.array([402190]),
+                standard_name='forecast_reference_time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            AuxCoord(
+                np.array([402187]),
+                standard_name='forecast_period',
+                units=Unit('hours'))]
         result = self.plugin._separate_length_one_coords_into_aux_and_dim(
             length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        length_one_coords_for_aux_coords = result[0]
-        length_one_coords_for_dim_coords = result[1]
-        self.assertTrue(length_one_coords_for_dim_coords)
-        for coord in length_one_coords_for_aux_coords:
+        len_one_coords_for_aux_coords = result[0]
+        len_one_coords_for_dim_coords = result[1]
+        self.assertTrue(len_one_coords_for_dim_coords)
+        for coord in len_one_coords_for_aux_coords:
             self.assertIsInstance(coord, AuxCoord)
-        for coord in length_one_coords_for_dim_coords:
+        for coord in len_one_coords_for_dim_coords:
             self.assertIsInstance(coord, DimCoord)
 
     def test_check_coord_names(self):
@@ -197,15 +212,21 @@ class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
         within the auxiliary coordinate list and the dimension coordinate
         within the dimension coordinate list.
         """
-        length_one_coords = [DimCoord(
-            np.array([402193]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), DimCoord(
-            np.array([402190]), standard_name='forecast_reference_time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), AuxCoord(
-            np.array([402187]), standard_name='forecast_period',
-            units=Unit('hours'))]
+        length_one_coords = [
+            DimCoord(
+                np.array([402193]),
+                standard_name='time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            DimCoord(
+                np.array([402190]),
+                standard_name='forecast_reference_time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            AuxCoord(
+                np.array([402187]),
+                standard_name='forecast_period',
+                units=Unit('hours'))]
         result = self.plugin._separate_length_one_coords_into_aux_and_dim(
             length_one_coords, dim_coords=["time", "forecast_reference_time"])
         aux_coords = result[0]
@@ -219,20 +240,26 @@ class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
 
     def test_check_coord_names_tuple(self):
         """
-        Test that the plugin returns a list with the auxiliary coordinates
+        Test that the plugin returns a list wi th the auxiliary coordinates
         within the auxiliary coordinate list and the dimension coordinate
         within the dimension coordinate list. In this test, the returned
         value for the dimension coordinates is a tuple.
         """
-        length_one_coords = [(DimCoord(
-            np.array([402193]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), 0), DimCoord(
-            np.array([402190]), standard_name='forecast_reference_time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian')), AuxCoord(
-            np.array([402187]), standard_name='forecast_period',
-            units=Unit('hours'))]
+        length_one_coords = [
+            (DimCoord(
+                np.array([402193]),
+                standard_name='time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')), 0),
+            DimCoord(
+                np.array([402190]),
+                standard_name='forecast_reference_time',
+                units=Unit('hours since 1970-01-01 00:00:00',
+                           calendar='gregorian')),
+            AuxCoord(
+                np.array([402187]),
+                standard_name='forecast_period',
+                units=Unit('hours'))]
         result = self.plugin._separate_length_one_coords_into_aux_and_dim(
             length_one_coords, dim_coords=["time", "forecast_reference_time"])
         aux_coords = result[0]
@@ -355,8 +382,8 @@ class Test_apply_params_entry(IrisTest):
         plugin = Plugin(cube, optimised_coeffs,
                         self.coeff_names)
         forecast_predictor, _, _ = plugin.apply_params_entry()
-        for cm in forecast_predictor[0].cell_methods:
-            self.assertEqual(cm.method, "mean")
+        for cell_method in forecast_predictor[0].cell_methods:
+            self.assertEqual(cell_method.method, "mean")
 
     def test_output_is_variance(self):
         """
@@ -371,8 +398,8 @@ class Test_apply_params_entry(IrisTest):
         plugin = Plugin(cube, optimised_coeffs,
                         self.coeff_names)
         _, forecast_variance, _ = plugin.apply_params_entry()
-        for cm in forecast_variance[0].cell_methods:
-            self.assertEqual(cm.method, "variance")
+        for cell_method in forecast_variance[0].cell_methods:
+            self.assertEqual(cell_method.method, "variance")
 
     def test_output_coefficients(self):
         """
@@ -711,7 +738,6 @@ class Test__apply_params(IrisTest):
         Test that the plugin returns values for the coefficients,
         which match the expected values.
         """
-        data = np.array([4.55819380e-06])
 
         cube = self.current_temperature_forecast_cube
         cube1 = cube.copy()
@@ -738,7 +764,7 @@ class Test__apply_params(IrisTest):
                         coeff_names)
         msg = "Number of coefficient names"
         with self.assertRaisesRegexp(ValueError, msg):
-            result = plugin._apply_params(
+            dummy_result = plugin._apply_params(
                 predictor_cube, variance_cube, optimised_coeffs,
                 coeff_names, predictor_of_mean_flag)
 
@@ -780,9 +806,6 @@ class Test__apply_params(IrisTest):
         dictionary of coefficients. In this situation, the raw forecasts are
         returned.
         """
-        data = np.array([[229.48333333, 240.73333333, 251.98333333],
-                         [263.23333333, 274.48333333, 285.73333333],
-                         [296.98333333, 308.23333333, 319.48333333]])
 
         cube = self.current_temperature_forecast_cube
         optimised_coeffs = {}
@@ -799,7 +822,7 @@ class Test__apply_params(IrisTest):
 
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            result = plugin._apply_params(
+            dummy_result = plugin._apply_params(
                 predictor_cube, variance_cube, optimised_coeffs,
                 self.coeff_names, predictor_of_mean_flag)
             self.assertTrue(len(warning_list) == 1)
