@@ -68,7 +68,7 @@ function improver_test_cli {
                 PROVE_VERBOSE_OPT='-v'
             fi
             prove $PROVE_VERBOSE_OPT --directives -r \
-                -e "bats --tap" --ext ".bats" $test_dir
+                -e "bats --tap" --ext ".bats" --timer $test_dir
         else
             bats $(find $test_dir -name "*.bats")
         fi
