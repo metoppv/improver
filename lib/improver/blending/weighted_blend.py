@@ -105,6 +105,9 @@ def conform_metadata(
                 new_cycletime = cycletime_to_number(
                     cycletime, time_unit=cycletime_units,
                     calendar=cycletime_calendar)
+                # Preserve the data type to avoid converting ints to floats.
+                fr_type = cube.coord("forecast_reference_time").dtype
+                new_cycletime = np.round(new_cycletime).astype(fr_type)
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
