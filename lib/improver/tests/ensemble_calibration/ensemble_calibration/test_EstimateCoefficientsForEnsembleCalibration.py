@@ -732,7 +732,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
@@ -758,7 +758,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
@@ -785,7 +785,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
@@ -812,7 +812,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
@@ -838,7 +838,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
@@ -865,7 +865,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        result = plugin.estimate_coefficients_for_ngr(
+        plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         # Check the contents of the warning_list.
         self.assertTrue(len(warning_list) == 1)
