@@ -825,10 +825,6 @@ class Test__apply_params(IrisTest):
         dictionary of coefficients. In this situation, the raw forecasts are
         returned.
         """
-        data = np.array([[229.48333333, 240.73333333, 251.98333333],
-                        [263.23333333, 274.48333333, 285.73333333],
-                        [296.98333333, 308.23333333, 319.48333333]])
-
         cube = self.current_temperature_forecast_cube
         optimised_coeffs = {}
         the_date = datetime_from_timestamp(cube.coord("time").points+3)
@@ -841,7 +837,7 @@ class Test__apply_params(IrisTest):
 
         plugin = Plugin(cube, optimised_coeffs,
                         self.coeff_names)
-        result = plugin._apply_params(
+        plugin._apply_params(
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
         # Test the contents of the resulting warning_list
