@@ -149,6 +149,7 @@ def forecast_period_coord(
         time_units = cube.coord("time").units
         t_coord = cube.coord("time")
         fr_coord = cube.coord("forecast_reference_time")
+        fr_type = fr_coord.dtype
         try:
             fr_coord.convert_units(time_units)
         except ValueError as err:
@@ -163,7 +164,7 @@ def forecast_period_coord(
             time_points - forecast_reference_time_points)
         # Convert the timedeltas to a total in seconds.
         required_lead_times = np.array(
-            [x.total_seconds() for x in required_lead_times])
+            [x.total_seconds() for x in required_lead_times]).astype(fr_type)
         coord_type = iris.coords.AuxCoord
         if cube.coords("forecast_period"):
             if isinstance(
