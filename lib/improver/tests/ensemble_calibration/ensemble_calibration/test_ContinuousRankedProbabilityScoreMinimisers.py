@@ -39,7 +39,6 @@ import unittest
 import iris
 from iris.tests import IrisTest
 import numpy as np
-import warnings
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin)

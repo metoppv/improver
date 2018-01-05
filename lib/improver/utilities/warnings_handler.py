@@ -37,7 +37,7 @@ import sys
 
 class ManageWarnings(object):
     """
-    A decorator use to manage the warnings that are raised by a function.
+    A decorator used to manage the warnings that are raised by a function.
     Ignore a selection of warnings, and either raise any remaining warnings
     to standard error or record them in a list of warning objects.
     """
@@ -47,7 +47,7 @@ class ManageWarnings(object):
         Set up a decorator with the warnings we want to ignore and what
         we want to do with the any remaining warnings.
 
-        Keyword Aguements:
+        Keyword Args:
             ignored_messages (List of strings):
                 A list of messages, one for each warning message we want
                 to ignore.

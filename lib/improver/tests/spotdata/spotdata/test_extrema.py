@@ -32,7 +32,6 @@
 
 
 import unittest
-import warnings
 import numpy as np
 import cf_units
 from iris import Constraint
