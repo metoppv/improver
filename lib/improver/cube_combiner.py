@@ -151,6 +151,15 @@ class CubeCombiner(object):
         # resulting cube will be based on the first cube.
         data_type = cube_list[0].dtype
         result = cube_list[0].copy()
+        
+        # !!!! PUT SOME LOGIC IN TO CHECK IF TIME IS PRESENT !!!!
+        # Add somthing a little more optional for point is mean or max of bounds
+        bounds = ([cube.coord('time').bounds for cube in cube_list])
+        new_lower_bound = np.min(bounds)
+        new_upper_bound = np.max(bounds)
+        result.coord('time').bounds = [[new_lower_bound, new_upper_bound]]
+        
+        
 
         for ind in range(1, len(cube_list)):
             cube1, cube2 = (
@@ -170,5 +179,6 @@ class CubeCombiner(object):
                                 revised_coords,
                                 revised_attributes,
                                 warnings_on=self.warnings_on)
+        print result
 
         return result
