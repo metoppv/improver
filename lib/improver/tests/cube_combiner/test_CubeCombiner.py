@@ -116,6 +116,24 @@ class Test_expand_bounds(IrisTest):
             units=Unit('hours since 1970-01-01 00:00:00',
                        calendar='gregorian'))
         self.assertEqual(result.coord('time'), expected_result)
+        
+    def test_basic_no_time_bounds(self):
+        """ Test that it fails if there are no time bounds """
+        cl=self.cubelist       
+        for cube in cl:
+            cube.coord('time').bounds = None
+        result = CubeCombiner.expand_bounds(self.cubelist[0],
+                                            self.cubelist,
+                                            'time',
+                                            'mid')
+        print result.coord('time')
+        expected_result = iris.coords.DimCoord(
+            [402194],
+            bounds=[[402193, 402195]],
+            standard_name='time',
+            units=Unit('hours since 1970-01-01 00:00:00',
+                       calendar='gregorian'))
+        self.assertEqual(result.coord('time'), expected_result)
 
 
 class Test_combine(IrisTest):
