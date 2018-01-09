@@ -48,12 +48,17 @@ class WeightsUtilities(object):
         return result
 
     @staticmethod
-    def normalise_weights(weights):
+    def normalise_weights(weights, axis=None):
         """Ensures all weights add up to one.
 
             Args:
                 weights (numpy.array):
                     array of weights
+
+            Keyword Args:
+                axis (int):
+                    The axis that we want to normalise along for a multiple
+                    dimensional array.
 
             Returns:
                 normalised_weights (numpy.array):
@@ -63,13 +68,13 @@ class WeightsUtilities(object):
                 ValueError: any negative weights are found in input.
                 ValueError: sum of weights in the input is 0.
         """
-        if weights.min() < 0.0:
+        if np.any(weights.min(axis=axis) < 0.0):
             msg = ('Weights must be positive. The weights have at least one '
                    'value < 0.0: {}'.format(weights))
             raise ValueError(msg)
 
-        sumval = weights.sum()
-        if sumval == 0:
+        sumval = weights.sum(axis=axis, keepdims=True)
+        if np.any(sumval == 0):
             msg = 'Sum of weights must be > 0.0'
             raise ValueError(msg)
 
