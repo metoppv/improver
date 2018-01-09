@@ -110,6 +110,7 @@ def main():
                 new_attr = new_metadata['attributes']
             if 'expanded_coord' in new_metadata:
                 expanded_coord = new_metadata['expanded_coord']
+                print expanded_coord
 
     result = (
         CubeCombiner(args.operation, warnings_on=args.warnings_on).process(
