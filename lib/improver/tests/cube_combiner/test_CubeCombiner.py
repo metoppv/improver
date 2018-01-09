@@ -223,7 +223,6 @@ class Test_process(IrisTest):
         """Test that the plugin returns a Cube. """
         plugin = CubeCombiner('+')
         cubelist = iris.cube.CubeList([self.cube1, self.cube1])
-        print self.cube1
         result = plugin.process(cubelist, 'new_cube_name')
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')

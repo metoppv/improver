@@ -192,10 +192,11 @@ class CubeCombiner(object):
 
         # If cube has coord bounds that we want to expand
         if expanded_coord:
-            result = self.expand_bounds(result,
-                                        cube_list,
-                                        coord=expanded_coord['coord'],
-                                        point=expanded_coord['point'])
+            for coord, treatment in expanded_coord.iteritems():
+                result = self.expand_bounds(result,
+                                            cube_list,
+                                            coord=coord,
+                                            point=treatment)
 
         for ind in range(1, len(cube_list)):
             cube1, cube2 = (
@@ -215,6 +216,5 @@ class CubeCombiner(object):
                                 revised_coords,
                                 revised_attributes,
                                 warnings_on=self.warnings_on)
-        print result
 
         return result
