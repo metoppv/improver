@@ -33,6 +33,7 @@ import unittest
 
 import warnings
 import numpy as np
+from cf_units import Unit
 
 import iris
 from iris.tests import IrisTest
@@ -41,6 +42,8 @@ from iris.cube import Cube
 from improver.cube_combiner import CubeCombiner
 from improver.tests.utilities.test_cube_metadata import (
     create_cube_with_threshold)
+from improver.tests.utilities.test_cube_manipulation import (
+    set_up_percentile_temperature_cube)
 
 
 class Test__init__(IrisTest):
@@ -68,6 +71,51 @@ class Test__repr__(IrisTest):
         result = str(CubeCombiner('+'))
         msg = '<CubeCombiner: operation=+, warnings_on = False>'
         self.assertEqual(result, msg)
+
+
+class Test_expand_bounds(IrisTest):
+
+    """Test expand_bounds method"""
+
+    def setUp(self):
+        """Set up a cubelist for testing"""
+        list_of_cubes = []
+        for time in range(402193, 402196):
+            cube = set_up_percentile_temperature_cube()[0]
+            cube.coord('time').points = [time]
+            cube.coord('time').bounds = [[time-1, time]]
+            list_of_cubes.append(cube)
+        self.cubelist = iris.cube.CubeList(list_of_cubes)
+
+    def test_basic_time_mid(self):
+        """Test that expand_bound produces sensible bounds
+        when given arg 'mid'"""
+        result = CubeCombiner.expand_bounds(self.cubelist[0],
+                                            self.cubelist,
+                                            'time',
+                                            'mid')
+        expected_result = iris.coords.DimCoord(
+            [402193.5],
+            bounds=[[402192, 402195]],
+            standard_name='time',
+            units=Unit('hours since 1970-01-01 00:00:00',
+                       calendar='gregorian'))
+        self.assertEqual(result.coord('time'), expected_result)
+
+    def test_basic_time_upper(self):
+        """Test that expand_bound produces sensible bounds
+        when given arg 'upper'"""
+        result = CubeCombiner.expand_bounds(self.cubelist[0],
+                                            self.cubelist,
+                                            'time',
+                                            'upper')
+        expected_result = iris.coords.DimCoord(
+            [402195],
+            bounds=[[402192, 402195]],
+            standard_name='time',
+            units=Unit('hours since 1970-01-01 00:00:00',
+                       calendar='gregorian'))
+        self.assertEqual(result.coord('time'), expected_result)
 
 
 class Test_combine(IrisTest):
@@ -175,6 +223,7 @@ class Test_process(IrisTest):
         """Test that the plugin returns a Cube. """
         plugin = CubeCombiner('+')
         cubelist = iris.cube.CubeList([self.cube1, self.cube1])
+        print self.cube1
         result = plugin.process(cubelist, 'new_cube_name')
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
