@@ -112,7 +112,17 @@ def main():
                              're-masking is applied to the neighbourhood '
                              'processed output. Therefore, the neighbourhood '
                              'processing may result in values being present '
-                             'in areas that were originally masked. ')
+                             'in areas that were originally masked. This '
+                             'allows the the values in adjacent bands to be'
+                             'weighted together if the additional dimension'
+                             'from the masking process is collapsed.')
+    parser.add_argument('--collapse_dimension', action='store_true',
+                        help='')
+    parser.add_argument('--weights_for_collaping_dim', metavar='WEIGHTS',
+                        default=None,
+                        help='')
+    parser.add_argument('--intermediate_filepath', default=None,
+                        help='')
 
     args = parser.parse_args()
 
@@ -130,6 +140,16 @@ def main():
         args.coord_for_masking, radius_or_radii, lead_times=lead_times,
         ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
         re_mask=args.re_mask).process(cube, mask_cube)
+    if args.intermediate_filepath is not None:
+        iris.save(result, args.intermediate_filepath)
+    # Collapse with the masking dimension.
+    if args.collapse_dimension:
+        if args.weights_for_collaping_dim is not None:
+            weights = load_cube(args.weights_for_collaping_dim)
+        else:
+            weights = None
+        result = CollapseMaskedNeighbourhoodCoordinate(
+            args.coord_for_masking, weights=weights).process(result)
     iris.save(result, args.output_filepath)
 
 

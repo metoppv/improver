@@ -58,7 +58,8 @@ class WeightsUtilities(object):
             Keyword Args:
                 axis (int):
                     The axis that we want to normalise along for a multiple
-                    dimensional array.
+                    dimensional array. Defaults to None, meaning the whole
+                    array is used for the normalisation. 
 
             Returns:
                 normalised_weights (numpy.array):

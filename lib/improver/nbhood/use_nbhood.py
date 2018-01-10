@@ -189,7 +189,7 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
     weighting.
     """
 
-    def __init__(self, coord_masked, weights):
+    def __init__(self, coord_masked, weights=None):
         """
         Initialise the class.
 
@@ -197,6 +197,8 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
             coord_masked (string):
                 String matching the name of the coordinate that has been used
                 for masking.
+
+        Keyword Args:
             weights (cube):
                 A cube from an ancillary file containing the weights for each
                 point in the coord_masked at each grid point. Only two points
@@ -204,6 +206,8 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
                 i.e. we are only weighting between two adjacent bands in the
                 neighbourhood output for each gridpoint.
                 Should have the coordinates coord_masked, and x and y.
+                Default is None which equal weights for each band in the mean
+                used to collapse the chosen coordinate.
 .
         """
         self.coord_masked = coord_masked
@@ -249,11 +253,17 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
                 collapsing the chosen coordinate.
 
         """
-        self.reweight_weights(cube, self.weights)
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
         cube.data = ma.masked_invalid(cube.data)
+        # Take into account the case that the weights might be None and not
+        # a cube.
+        if isinstance(self.weights, iris.cube.Cube):
+            self.reweight_weights(cube, self.weights)
+            weights = self.weights.data
+        else:
+            weights = self.weights
         result = cube.collapsed(self.coord_masked, iris.analysis.MEAN,
-                                weights=self.weights.data)
+                                weights=weights)
         # TODO fix any metadata problems here.
         return result
