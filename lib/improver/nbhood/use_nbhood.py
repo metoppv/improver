@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for using neighbourhood processing."""
 
+import numpy as np
+import numpy.ma as ma
 
 import iris
 
@@ -183,10 +185,11 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
 
     Takes into account the result from the neighbourhood processing to
     adjust the weights between the bands in the coordinate for the points
-    where the were no points within a neighbourhood for and a non-zero weighting.
+    where the were no points within a neighbourhood for and a non-zero
+    weighting.
     """
 
-    def __init__(topographic_zone_weights):
+    def __init__(self, coord_masked, weights):
         """
         Initialise the class.
 
@@ -209,11 +212,11 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ApplyNeighbourhoodProcessingWithAMask: '
-                  'coord_masked: {}, topographic_zone_weights: {}>')
+                  'coord_masked: {}, weights: {}>')
         return result.format(self.coord_masked,
-                             self.topographic_zone_weights)
+                             self.weights)
 
-    def reweight_weights(nbhood_cube, weights):
+    def reweight_weights(self, nbhood_cube, weights):
         """
         Reweight the weights taking into account where there are NaNs in the
         result from neighbourhood.
@@ -222,9 +225,10 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         with a mask are set to zero and then the weights are renormalized along
         the axis corresponding to the coordinate we want to collapse.
         """
-        weights.data[np.isnan(nbhood_cube)] = 0.0
+        weights.data[np.isnan(nbhood_cube.data)] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
-        weights.data = WeightsUtilities.normalise(weights.data, axis=axis)
+        weights.data = WeightsUtilities.normalise_weights(weights.data,
+                                                          axis=axis)
 
     def process(self, cube):
         """
@@ -245,8 +249,11 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
                 collapsing the chosen coordinate.
 
         """
-        reweight_weights(cube, self.topographic_zoneweights)
-        result = result.collapsed(self.coord_masked, iris.analysis.MEAN,
-                                  weights=weights.data)
+        self.reweight_weights(cube, self.weights)
+        # Mask out any NaNs in the neighbourhood data so that Iris ignores
+        # them when calculating the weighted mean.
+        cube.data = ma.masked_invalid(cube.data)
+        result = cube.collapsed(self.coord_masked, iris.analysis.MEAN,
+                                weights=self.weights.data)
         # TODO fix any metadata problems here.
         return result
