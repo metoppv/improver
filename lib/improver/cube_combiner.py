@@ -114,7 +114,7 @@ class CubeCombiner(object):
             new_low_bound = np.min(bounds)
             new_top_bound = np.max(bounds)
         result_cube.coord(coord).bounds = [[new_low_bound, new_top_bound]]
-        
+
         if point == 'mid':
             result_cube.coord(coord).points = [((new_top_bound -
                                                  new_low_bound) / 2.) +
