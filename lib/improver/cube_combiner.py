@@ -104,6 +104,8 @@ class CubeCombiner(object):
         Returns
             result (iris.cube.Cube):
                 Cube with coord expanded.
+                n.b. If argument point == 'mid' then python will convert
+                result.coord('coord').points[0] to a float.
         """
         bounds = ([cube.coord(coord).bounds for cube in cubelist])
         if None in bounds:
