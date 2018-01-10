@@ -31,6 +31,8 @@
 """Module to contain statistical operations."""
 
 import numpy as np
+import iris
+from iris.exceptions import CoordinateNotFoundError
 
 
 class ProbabilitiesFromPercentiles2D(object):
@@ -59,15 +61,13 @@ class ProbabilitiesFromPercentiles2D(object):
             000m --/---\----------  0th Percentile snow fall level
             ______/     \_________ Orogaphy
 
-
         The orography heights are compared against the heights that
         correspond with percentile values to find the band in which they
-        fall; this diagram hides the 2-dimensional variability of the
-        snow fall level. The percentile values are then interpolated to
-        the height of the point being considered. This constructs a
+        fall; this diagram hides the 2-dimensional variability of the snow
+        fall level. The percentile values are then interpolated to the
+        height of the point being considered. This constructs a
         2-dimensional field of probabilities that snow will be falling at
-        each point in the orography
-        field.
+        each point in the orography field.
     """
 
     def __init__(self, reference_cube, output_name, inverse_ordering=False):
@@ -105,12 +105,20 @@ class ProbabilitiesFromPercentiles2D(object):
             probability_cube (iris.cube.Cube):
                 The new cube with suitable metadata.
         """
-        probabilities = cube.copy(data=np.full(cube.shape, 1., dtype=float))
+        cube_format = next(cube.slices([cube.coord(axis='y'),
+                                        cube.coord(axis='x')]))
+        probabilities = cube_format.copy(data=np.full(cube_format.shape, 1.,
+                                                      dtype=float))
+        percentile_coordinate, = [coord.name() for coord in
+                                  cube_format.coords()
+                                  if 'percentile' in coord.name()]
+        if percentile_coordinate:
+            probabilities.remove_coord(percentile_coordinate)
         probabilities.units = 1
         probabilities.rename(self.output_name)
         return probabilities
 
-    def process(self, cube):
+    def percentile_interpolation(self, cube, reference_cube):
         """
         Perform the percentile interpolation to construct the probability
         field.
@@ -123,12 +131,9 @@ class ProbabilitiesFromPercentiles2D(object):
         Returns:
             probabilities (iris.cube.Cube):
                 A cube of probabilities obtained by interpolating the
-                Percentile values.
+                percentile values.
         """
-        # Create an array to contain integer indices that indicate which
-        # percentile band the orography height falls in.
-
-        probabilities = self.create_probability_cube(cube)
+        probabilities = self.create_probability_cube(reference_cube)
 
         array_shape = list(cube.shape)
         array_shape.insert(0, 2)
@@ -137,12 +142,11 @@ class ProbabilitiesFromPercentiles2D(object):
         height_bounds = np.full(array_shape, -1001., dtype=float)
         height_bounds[1] = -1.
 
-        percentile_coordinate, = [coord for coord in
-                                  self.reference_cube.coords()
+        percentile_coordinate, = [coord for coord in reference_cube.coords()
                                   if 'percentiles' in coord.name()]
         percentiles = percentile_coordinate.points
 
-        for index, pslice in enumerate(self.reference_cube.slices_over(
+        for index, pslice in enumerate(reference_cube.slices_over(
                 percentile_coordinate)):
             indices = (cube.data < pslice.data if self.inverse_ordering else
                        cube.data > pslice.data)
@@ -152,8 +156,8 @@ class ProbabilitiesFromPercentiles2D(object):
                 # Usual behaviour where the orography falls between heights
                 # corresponding to percentiles.
                 percentile_bounds[1, indices] = percentiles[index + 1]
-                height_bounds[1, indices] = (
-                    self.reference_cube[index+1].data[indices])
+                height_bounds[1, indices] = reference_cube[index+1].data[
+                    indices]
             except IndexError:
                 # Invoked if we have reached the top of the available heights.
                 percentile_bounds[1, indices] = percentiles[index]
@@ -174,3 +178,36 @@ class ProbabilitiesFromPercentiles2D(object):
         probabilities.data[above_top_band] = 1.
 
         return probabilities
+
+    def process(self, cube):
+        """
+        Slice the cube over realization if present and call the percentile
+        interpolation method.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube of values, that effectively behave as thresholds, for
+                which it is desired to obtain probability values from a
+                percentiled reference cube.
+        Returns:
+            output_cubes (iris.cube.Cube):
+                A cube of probabilities obtained by interpolating the
+                percentile values.
+        """
+        try:
+            self.reference_cube.coord_dims('realization')
+        except CoordinateNotFoundError:
+            cube_slices = [self.reference_cube]
+        else:
+            cube_slices = self.reference_cube.slices_over('realization')
+
+        output_cubes = iris.cube.CubeList()
+        for cube_slice in cube_slices:
+            output_cube = self.percentile_interpolation(cube, cube_slice)
+            output_cubes.append(output_cube)
+        if len(output_cubes) > 1:
+            output_cubes = output_cubes.merge_cube()
+        else:
+            output_cubes = output_cubes[0]
+
+        return output_cubes
