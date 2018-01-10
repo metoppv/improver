@@ -37,15 +37,16 @@
 
   # Run cube-combiner processing and check it passes.
   run improver combine \
-      --operation='max' \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc" \
-       "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0100Z-PT0001H-rainfall_accumulation.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0200Z-PT0002H-rainfall_accumulation.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0300Z-PT0003H-rainfall_accumulation.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/kgo_accum.nc"
+      "$IMPROVER_ACC_TEST_DIR/combine/accum/kgo_accum.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
