@@ -39,7 +39,9 @@
   run improver combine \
       --operation='min' \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_min.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0100Z-PT0001H-temperature_at_screen_level_min.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0200Z-PT0002H-temperature_at_screen_level_min.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0300Z-PT0003H-temperature_at_screen_level_min.nc" \
        "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
