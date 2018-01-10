@@ -99,6 +99,7 @@ def main():
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
+    expanded_coord = None
     if args.metadata_jsonfile:
         # Read in extraction recipes for all diagnostics.
         with open(args.metadata_jsonfile, 'r') as input_file:
