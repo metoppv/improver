@@ -213,7 +213,6 @@ class PercentileBlendingAggregator(object):
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
         data = np.moveaxis(data, [perc_dim, axis], [1, 0])
-
         # Determine the rest of the shape
         shape = data.shape[2:]
         input_shape = [data.shape[0],
@@ -536,6 +535,11 @@ class WeightedBlendAcrossWholeDimension(object):
                 if perc_coord and self.mode == "weighted_mean":
                     percentiles = np.array(perc_coord.points, dtype=float)
                     perc_dim, = cube_thres.coord_dims(perc_coord.name())
+                    # The Iris aggregate method moves the collapse coordinate
+                    # to index=-1, so we must adjust perc_dim if moving the
+                    # collapse coordinate moves the perc_dim as well.
+                    if cube_thres.coord_dims(self.coord)[0] < perc_dim:
+                        perc_dim -= 1
                     # Set equal weights if none are provided
                     if weights is None:
                         num = len(cube_thres.coord(self.coord).points)
@@ -544,7 +548,6 @@ class WeightedBlendAcrossWholeDimension(object):
                     PERCENTILE_BLEND = (Aggregator(
                         'weighted_mean',
                         PercentileBlendingAggregator.aggregate))
-
                     cube_new = cube_thres.collapsed(self.coord,
                                                     PERCENTILE_BLEND,
                                                     arr_percent=percentiles,
