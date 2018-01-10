@@ -59,7 +59,7 @@ class WeightsUtilities(object):
                 axis (int):
                     The axis that we want to normalise along for a multiple
                     dimensional array. Defaults to None, meaning the whole
-                    array is used for the normalisation. 
+                    array is used for the normalisation.
 
             Returns:
                 normalised_weights (numpy.array):
@@ -74,7 +74,7 @@ class WeightsUtilities(object):
                    'value < 0.0: {}'.format(weights))
             raise ValueError(msg)
 
-        sumval = weights.sum(axis=axis, keepdims=True)
+        sumval = np.sum(weights, axis=axis, keepdims=True)
         if np.any(sumval == 0):
             msg = 'Sum of weights must be > 0.0'
             raise ValueError(msg)
