@@ -77,7 +77,11 @@ class ProbabilitiesFromPercentiles2D(object):
         Args:
             reference_cube (iris.cube.Cube):
                 The percentiled field from which probabilities will be obtained
-                using the input cube.
+                using the input cube. This cube should contain a percentiles
+                dimension, with fields of values that correspond to these
+                percentiles. The cube passed to the process method will contain
+                values of the same diagnostic (e.g. height) as this reference
+                cube.
             output_name (str):
                 The name of the cube being created,
                 e.g.'probability_of_snowfall'.
@@ -92,6 +96,14 @@ class ProbabilitiesFromPercentiles2D(object):
         self.reference_cube = reference_cube
         self.output_name = output_name
         self.inverse_ordering = inverse_ordering
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ProbabilitiesFromPercentiles2D: reference_cube: {}, '
+                  'output_name: {}, inverse_ordering: {}'.format(
+                      self.reference_cube, self.output_name,
+                      self.inverse_ordering))
+        return result
 
     def create_probability_cube(self, cube):
         """
