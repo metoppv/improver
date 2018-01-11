@@ -32,12 +32,12 @@
 
 import numpy as np
 import iris
-from iris.exceptions import CoordinateNotFoundError
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class ProbabilitiesFromPercentiles2D(object):
     """
-    Generate a 2-dimensional field of probabilties by interpolating a
+    Generate a 2-dimensional field of probabilities by interpolating a
     percentiled cube of data to required points.
 
     Examples:
@@ -70,12 +70,12 @@ class ProbabilitiesFromPercentiles2D(object):
         each point in the orography field.
     """
 
-    def __init__(self, reference_cube, output_name, inverse_ordering=False):
+    def __init__(self, percentiles_cube, output_name=None, inverse_ordering=False):
         """
         Initialise class.
 
         Args:
-            reference_cube (iris.cube.Cube):
+            percentiles_cube (iris.cube.Cube):
                 The percentiled field from which probabilities will be obtained
                 using the input cube. This cube should contain a percentiles
                 dimension, with fields of values that correspond to these
@@ -91,116 +91,88 @@ class ProbabilitiesFromPercentiles2D(object):
                 sense to the percentile coordinate.
                 e.g.  0th Percentile - Value = 10
                      10th Percentile - Value = 5
-                     20th Percenitle - Value = 0
+                     20th Percentile - Value = 0
         """
-        self.reference_cube = reference_cube
-        self.output_name = output_name
+        self.percentiles_cube = percentiles_cube
+        if output_name is not None:
+            self.output_name = output_name
+        else:
+            self.output_name = "probability of {}".percentiles_cube.name()
         self.inverse_ordering = inverse_ordering
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ProbabilitiesFromPercentiles2D: reference_cube: {}, '
+        result = ('<ProbabilitiesFromPercentiles2D: percentiles_cube: {}, '
                   'output_name: {}, inverse_ordering: {}'.format(
-                      self.reference_cube, self.output_name,
+                      self.percentiles_cube, self.output_name,
                       self.inverse_ordering))
         return result
 
     def create_probability_cube(self, cube):
         """
-        Create a probability cube in which to store the calculated
-        probabilities.
+        Create a 2-dimensional probability cube in which to store the
+        calculated probabilities.
 
         Args:
             cube (iris.cube.Cube):
-                The input cube to be used as a template.
+                Template for the output probability cube.
         Returns:
             probability_cube (iris.cube.Cube):
-                The new cube with suitable metadata.
+                A new 2-dimensional probability cube with suitable metadata.
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
-        probabilities = cube_format.copy(data=np.full(cube_format.shape, 1.,
-                                                      dtype=float))
-        try:
-            percentile_coordinate, = [coord.name() for coord in
-                                      cube_format.coords()
-                                      if 'percentile' in coord.name()]
-        except ValueError:
-            # thrown if there is no percentile coordinate: no values to unpack
-            pass
-        else:
-            probabilities.remove_coord(percentile_coordinate)
+        probabilities = cube_format.copy(data=np.full(cube_format.shape,
+                                                      np.nan, dtype=float))
         probabilities.units = 1
         probabilities.rename(self.output_name)
         return probabilities
 
-    def percentile_interpolation(self, cube, reference_cube):
+    def percentile_interpolation(self, threshold_cube, percentiles_cube):
         """
-        Perform the percentile interpolation to construct the probability
-        field.
+        Perform the interpolation between 2-dimensional percentile fields to
+        construct the probability field for a given set of thresholds.
 
         Args:
-            reference_cube (iris.cube.Cube):
-                A cube of values on several different percentile levels.
-            cube (iris.cube.Cube):
-                A cube of values, that effectively behave as thresholds, for
-                which it is desired to obtain probability values from the
-                percentiled reference cube.
+            threshold_cube (iris.cube.Cube):
+                A 2-dimensional cube of "threshold" values for which it is
+                desired to obtain probability values from the percentiled
+                reference cube.
+            percentiles_cube (iris.cube.Cube):
+                A cube of 2-dimensional fields on several different percentile
+                levels.
         Returns:
             probabilities (iris.cube.Cube):
-                A cube of probabilities obtained by interpolating the
-                percentile values.
+                A 2-dimensional cube of probabilities obtained by interpolating
+                between percentile values.
         """
-        probabilities = self.create_probability_cube(reference_cube)
+        probabilities = self.create_probability_cube(percentiles_cube)
 
-        array_shape = list(cube.shape)
-        array_shape.insert(0, 2)
-        array_shape = tuple(array_shape)
-        percentile_bounds = np.full(array_shape, -1, dtype=float)
-        height_bounds = np.full(array_shape, -1001., dtype=float)
-        height_bounds[1] = -1.
-
-        percentile_coordinate, = [coord for coord in reference_cube.coords()
-                                  if 'percentiles' in coord.name()]
+        percentile_coordinate = find_percentile_coordinate(percentiles_cube)
         percentiles = percentile_coordinate.points
 
-        for index, pslice in enumerate(reference_cube.slices_over(
-                percentile_coordinate)):
-            indices = (cube.data < pslice.data if self.inverse_ordering else
-                       cube.data > pslice.data)
-            percentile_bounds[0, indices] = percentiles[index]
-            height_bounds[0, indices] = pslice.data[indices]
-            try:
-                # Usual behaviour where the orography falls between heights
-                # corresponding to percentiles.
-                percentile_bounds[1, indices] = percentiles[index + 1]
-                height_bounds[1, indices] = reference_cube[index+1].data[
-                    indices]
-            except IndexError:
-                # Invoked if we have reached the top of the available heights.
-                percentile_bounds[1, indices] = percentiles[index]
-                height_bounds[1, indices] = pslice.data[indices]
+        threshold_heights = threshold_cube.data.flatten()
+        pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
 
-        with np.errstate(divide='ignore'):
-            interpolants, = ((cube.data - height_bounds[0]) /
-                             np.diff(height_bounds, n=1, axis=0))
+        percentile_point_list = []
+        for cube in percentiles_cube.slices(percentile_coordinate):
+            percentile_point_list.append(cube.data.flatten())
 
-        with np.errstate(invalid='ignore'):
-            probabilities.data, = (percentile_bounds[0] + interpolants *
-                                   np.diff(percentile_bounds, n=1, axis=0))
-        probabilities.data = probabilities.data/100.
-
-        above_top_band = np.isinf(interpolants)
-        below_bottom_band = height_bounds[0] < -1000
-        probabilities.data[below_bottom_band] = 0.
-        probabilities.data[above_top_band] = 1.
-
+        # loop over spatial points in 2D field
+        for index, (percentile_heights, threshold_height) in enumerate(
+                zip(percentile_point_list, threshold_heights)):
+            pdata[index] = 0.01*np.interp(threshold_height,
+                                          percentile_heights, percentiles)
+        pdata[np.where(pdata < 0)] = 0.
+        pdata[np.where(pdata > 1)] = 1.
+        probabilities.data = pdata.reshape(threshold_cube.shape)
         return probabilities
 
-    def process(self, cube):
+    def process(self, threshold_cube):
         """
-        Slice the cube over realization if present and call the percentile
-        interpolation method.
+        Slice the percentiles cube over any non-spatial coordinates
+        (realization, time, etc) if present, and call the percentile
+        interpolation method for each resulting cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -209,19 +181,21 @@ class ProbabilitiesFromPercentiles2D(object):
                 percentiled reference cube.
         Returns:
             output_cubes (iris.cube.Cube):
-                A cube of probabilities obtained by interpolating the
-                percentile values.
+                A cube of probabilities obtained by interpolating between
+                percentile values at the "threshold" level.
         """
-        try:
-            self.reference_cube.coord_dims('realization')
-        except CoordinateNotFoundError:
-            cube_slices = [self.reference_cube]
-        else:
-            cube_slices = self.reference_cube.slices_over('realization')
+        percentile_coordinate = find_percentile_coordinate(percentiles_cube)
+        cube_slices = self.percentiles_cube.slices([percentile_coordinate,
+                                                    cube.coord(axis='y'),
+                                                    cube.coord(axis='x')])
+
+        if threshold_cube.units != self.percentiles_cube.units:
+            threshold_cube.convert_units(self.percentiles_cube.units)
 
         output_cubes = iris.cube.CubeList()
         for cube_slice in cube_slices:
-            output_cube = self.percentile_interpolation(cube, cube_slice)
+            output_cube = self.percentile_interpolation(threshold_cube,
+                                                        cube_slice)
             output_cubes.append(output_cube)
         if len(output_cubes) > 1:
             output_cubes = output_cubes.merge_cube()
