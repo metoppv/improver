@@ -322,6 +322,26 @@ class Test_process(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def test_percentiles_different_coordinate_orders(self):
+        """Test the result of the percentile aggregation is the same
+        regardless of the coordinate order in the input cube. Most
+        importantly, the result should be the same regardless of on which
+        side of the collapsing coordinate the percentile coordinate falls."""
+        coord = "time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = None
+        percentile_leading = percentile_cube()
+        time_leading = percentile_cube()
+        time_leading.transpose([1, 0, 2, 3])
+        result_percentile_leading = plugin.process(percentile_leading, weights)
+        result_time_leading = plugin.process(time_leading, weights)
+        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA1,
+                                           (6, 2, 2))
+        self.assertArrayAlmostEqual(result_percentile_leading.data,
+                                    expected_result_array)
+        self.assertArrayAlmostEqual(result_time_leading.data,
+                                    expected_result_array)
+
     def test_weighted_max_weights_none(self):
         """Test it works for weighted max with weights set to None."""
         coord = "time"
