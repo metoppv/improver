@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "combine --metadata_jsonfile" {
+@test "combine --metadata_jsonfile accum" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 

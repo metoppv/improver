@@ -216,7 +216,9 @@ class CubeCombiner(object):
                                   self.operation)
 
         if self.operation == 'mean':
-            result = result / len(cube_list)
+            result.data = result.data / len(cube_list)
+            print result
+
 
         result = amend_metadata(result,
                                 new_diagnostic_name,

@@ -47,7 +47,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/kgo_min_temp.nc"
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/new_kgo_min.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
