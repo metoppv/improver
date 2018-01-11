@@ -38,7 +38,9 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 
@@ -79,13 +81,65 @@ def set_up_threshold_cube():
     return test_cube
 
 
+def set_reference_array():
+    """
+    Define a linear array of probabilities correct for the percentile and
+    threshold cubes above, in all but shape.
+    """
+    reference_array = np.zeros(shape=(100,))
+    reference_array[:25] = 0.
+    reference_array[25:75] = np.arange(0., 1., 0.02)
+    reference_array[75:] = 1.
+    return reference_array
+
+
+def set_reference_probabilities():
+    """
+    Define the array of probabilities correct for the percentile and threshold
+    cubes above.
+    """
+    reference_array = set_reference_array()
+    return reference_array.reshape(10, 10)
+
+
+def set_up_percentiles_cube_2():
+    """ Set up 3D cube with some percentiles at the same height """
+
+    test_data = np.full((5, 10, 10), -1)
+    test_data[0].fill(750)
+    test_data[1].fill(750)
+    test_data[2].fill(1000)
+    test_data[3].fill(1250)
+    test_data[4].fill(1500)
+
+    percentiles = DimCoord(np.linspace(0, 100, 5), long_name="percentiles",
+                           units="%")
+    grid_x = DimCoord(np.arange(10), standard_name="projection_x_coordinate",
+                      units="km")
+    grid_y = DimCoord(np.arange(10), standard_name="projection_y_coordinate",
+                      units="km")
+    test_cube = iris.cube.Cube(test_data, long_name="test data", units="m",
+                               dim_coords_and_dims=[(percentiles, 0),
+                                                    (grid_y, 1), (grid_x, 2)])
+    return test_cube
+
+def set_reference_probabilities_2():
+    """
+    Define the array of probabilities correct for a modified percentile cube
+    where the 0th and 25th percentiles are colocated at 750 m.
+    """
+    reference_array = set_reference_array()
+    reference_array[np.where(reference_array < 0.25)] = 0.
+    return reference_array.reshape(10, 10)
+
+
 class Test__init__(IrisTest):
     """ Test initialisation of the ProbabilitiesFromPercentiles2D class """
 
     def setUp(self):
         """ Set up test cube """
         self.test_cube = set_up_percentiles_cube()
-        self.new_name = "ingested data"
+        self.new_name = "probability"
 
     def test_basic(self):
         """ Test name and default ordering are correctly set """
@@ -108,10 +162,10 @@ class Test__repr__(IrisTest):
     def setUp(self):
         """ Set up test cube """
         self.test_cube = set_up_percentiles_cube()
-        self.new_name = "ingested data"
+        self.new_name = "probability"
         self.pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
                                                            self.new_name)
-        self.reference_repr = ('<ProbabilitiesFromPercentiles2D: reference_'
+        self.reference_repr = ('<ProbabilitiesFromPercentiles2D: percentiles_'
                                'cube: {}, output_name: {}, inverse_ordering: '
                                '{}'.format(self.test_cube, self.new_name,
                                            False))
@@ -144,11 +198,10 @@ class Test_create_probability_cube(IrisTest):
         self.assertEqual(self.probability_cube.name(), self.new_name)
 
     def test_coordinate_collapse(self):
-        """ Test any "percentiles" coordinate is successfully removed """
-        percentile_coordinate = [coord.name() for coord in
-                                 self.probability_cube.coords()
-                                 if 'percentiles' in coord.name()]
-        self.assertEqual(len(percentile_coordinate), 0)
+        """ Test any "percentile" coordinate is successfully removed """
+        with self.assertRaises(CoordinateNotFoundError):
+            percentile_coordinate = \
+                find_percentile_coordinate(self.probability_cube)
 
 
 class Test_percentile_interpolation(IrisTest):
@@ -156,28 +209,35 @@ class Test_percentile_interpolation(IrisTest):
     def setUp(self):
         """ Set up a probability cube from percentiles and orography """
         self.percentiles_cube = set_up_percentiles_cube()
-        new_name = "probability"
-        self.pfp_instance = \
-             ProbabilitiesFromPercentiles2D(self.percentiles_cube, new_name)
+        self.new_name = "probability"
         self.orography_cube = set_up_threshold_cube()
-        self.probability_cube = \
-             self.pfp_instance.percentile_interpolation(self.orography_cube,
-                                                        self.percentiles_cube)
-        # see datasets in reference cubes
-        reference_array = np.zeros(shape=(100,))
-        reference_array[:25] = 0.
-        reference_array[25:75] = np.arange(0., 1., 0.02)
-        reference_array[75:] = 1.
-        self.reference_probabilities = reference_array.reshape(10, 10)
 
     def test_values(self):
         """
         Test that interpolated probabilities at given topography heights are
         sensible.  Includes out-of-range values (P=0 and P=1).
         """
-        self.assertArrayAlmostEqual(self.probability_cube.data,
-                                    self.reference_probabilities)
+        percentiles_cube = set_up_percentiles_cube()
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube, 
+                                                      self.new_name)
+        probability_cube = \
+            pfp_instance.percentile_interpolation(self.orography_cube,
+                                                  percentiles_cube)
+        self.assertArrayAlmostEqual(probability_cube.data,
+                                    set_reference_probabilities())
 
+    def test_equal_percentiles(self):
+        """
+        Test for sensible behaviour when some percentile levels are equal.
+        """
+        percentiles_cube = set_up_percentiles_cube_2()
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube,
+                                                      self.new_name)
+        probability_cube = \
+            pfp_instance.percentile_interpolation(self.orography_cube,
+                                                  percentiles_cube)
+        self.assertArrayAlmostEqual(probability_cube.data,
+                                    set_reference_probabilities_2())
 
 
 if __name__ == '__main__':
