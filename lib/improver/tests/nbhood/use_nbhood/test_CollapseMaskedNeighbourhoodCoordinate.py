@@ -101,14 +101,14 @@ class Test_reweight_weights(IrisTest):
         self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
                                                             self.weights_cube)
 
-    def test_no_NaNs_in_nhbooded_cube(self):
+    def test_no_NaNs_in_nbhooded_cube(self):
         """No NaNs in the neighbourhood cube, so no reweighting is needed"""
         nbhooded_cube = self.weights_cube.copy()
         expected_weights = self.weights_cube.data.copy()
         self.plugin.reweight_weights(nbhooded_cube, self.weights_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
-    def test_some_NaNs_in_nhbooded_cube(self):
+    def test_some_NaNs_in_nbhooded_cube(self):
         """Some NaNs in the neighbourhood cube, so reweighting is needed"""
         nbhood_data = np.ones((3, 5, 5))
         nbhood_data[0, 0:2, 0] = np.nan
@@ -231,7 +231,7 @@ class Test_process(IrisTest):
         self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
                                                             self.weights_cube)
 
-    def test_no_NaNs_in_nhbooded_cube(self):
+    def test_no_NaNs_in_nbhooded_cube(self):
         """No NaNs in the neighbourhood cube, so no reweighting is needed.
            The neighbourhood data has all values of 0.1 for the top and bottom
            bands and 0.2 for points in the middle band. The weights are used
@@ -251,7 +251,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
-    def test_some_NaNs_in_nhbooded_cube(self):
+    def test_some_NaNs_in_nbhooded_cube(self):
         """Some NaNs in the neighbourhood cube, so reweighting is needed.
            The neighbourhood data has all values of 0.1 for the top and bottom
            bands and 0.2 for points in the middle band. The weights are used
@@ -274,7 +274,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
-    # def test_some_NaNs_in_nhbooded_cube(self):
+    # def test_some_NaNs_in_nbhooded_cube(self):
         # """landsea mask"""
 
 

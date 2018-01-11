@@ -37,7 +37,9 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--ens_factor ENS_FACTOR]
                                          [--sum_or_fraction {sum,fraction}]
-                                         [--re_mask]
+                                         [--re_mask] [--collapse_dimension]
+                                         [--weights_for_collapsing_dim WEIGHTS]
+                                         [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                          COORD_FOR_MASKING INPUT_FILE
                                          INPUT_MASK_FILE OUTPUT_FILE
 
@@ -51,7 +53,8 @@ separately. These masked cubes are concatenated together in the output cube,
 resulting in a cube that has been processed using multiple masks having gained
 the extra dimension from the cube. There is also an option to re-mask the
 output cube, so that after neighbourhood processing, non-zero values are only
-present for unmasked grid points.
+present for unmasked grid points. There is an exta option of collapsing the
+dimension wegain using this processing using a weighted average.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the
@@ -94,7 +97,22 @@ optional arguments:
                         False and no re-masking is applied to the
                         neighbourhood processed output. Therefore, the
                         neighbourhood processing may result in values being
-                        present in areas that were originally masked.
+                        present in areas that were originally masked. This
+                        allows the the values in adjacent bands to beweighted
+                        together if the additional dimensionfrom the masking
+                        process is collapsed.
+  --collapse_dimension  Collapse the dimension from the mask, by doing a
+                        weighted mean using the weights provided.
+  --weights_for_collapsing_dim WEIGHTS
+                        A path to an weights NetCDF file containing the
+                        weights which are used for collapsing the dimension
+                        gained through masking. If they are not provided they
+                        default to equal weights.
+  --intermediate_filepath INTERMEDIATE_FILEPATH
+                        If provided the result after neighbourhooding, before
+                        collapsing the extra dimension is saved in the given
+                        filepath.
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -202,10 +202,10 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
             weights (cube):
                 A cube from an ancillary file containing the weights for each
                 point in the coord_masked at each grid point. Only two points
-                in the coord_masked have a non-zero weight for each grid-point,
+                in coord_masked can have a non-zero weight for each grid-point,
                 i.e. we are only weighting between two adjacent bands in the
                 neighbourhood output for each gridpoint.
-                Should have the coordinates coord_masked, and x and y.
+                Should have the coordinates coord_masked, x and y.
                 Default is None which equal weights for each band in the mean
                 used to collapse the chosen coordinate.
 .
@@ -236,10 +236,10 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
 
     def process(self, cube):
         """
-        Collapse the chosen coordinates with the given weights. The result of
-        the neighbourhood processing is taken into account to reweight any
+        Collapse the chosen coordinates with the available weights. The result
+        of the neighbourhood processing is taken into account to reweight any
         weights corresponding to a NaN in the result from neighbourhooding. In
-        this case the weights are re-normalized so that we do not loss
+        this case the weights are re-normalized so that we do not lose
         probability.
 
         Args:

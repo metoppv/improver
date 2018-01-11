@@ -125,9 +125,10 @@ def main():
                              'a weighted mean using the weights provided.')
     parser.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
                         default=None,
-                        help='The weights used for collapsing the dimension '
-                             'gained through masking. If they are not '
-                             'provided they default to equal weights.')
+                        help='A path to an weights NetCDF file containing the '
+                             'weights which are used for collapsing the '
+                             'dimension gained through masking. If they are '
+                             'not provided they default to equal weights.')
     parser.add_argument('--intermediate_filepath', default=None,
                         help='If provided the result after neighbourhooding, '
                              'before collapsing the extra dimension is saved '
