@@ -38,7 +38,7 @@ from improver.utilities.cube_checker import find_percentile_coordinate
 
 class ProbabilitiesFromPercentiles2D(object):
     """
-    Generate a 2-dimensional field of probabilties by interpolating a
+    Generate a 2-dimensional field of probabilities by interpolating a
     percentiled cube of data to required points.
 
     Examples:

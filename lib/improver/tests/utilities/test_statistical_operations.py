@@ -208,7 +208,6 @@ class Test_percentile_interpolation(IrisTest):
 
     def setUp(self):
         """ Set up a probability cube from percentiles and orography """
-        self.percentiles_cube = set_up_percentiles_cube()
         self.new_name = "probability"
         self.orography_cube = set_up_threshold_cube()
 
