@@ -121,10 +121,14 @@ class ProbabilitiesFromPercentiles2D(object):
                                         cube.coord(axis='x')]))
         probabilities = cube_format.copy(data=np.full(cube_format.shape, 1.,
                                                       dtype=float))
-        percentile_coordinate, = [coord.name() for coord in
-                                  cube_format.coords()
-                                  if 'percentile' in coord.name()]
-        if percentile_coordinate:
+        try:
+            percentile_coordinate, = [coord.name() for coord in
+                                      cube_format.coords()
+                                      if 'percentile' in coord.name()]
+        except ValueError:
+            # thrown if there is no percentile coordinate: no values to unpack
+            pass
+        else:
             probabilities.remove_coord(percentile_coordinate)
         probabilities.units = 1
         probabilities.rename(self.output_name)
@@ -136,9 +140,11 @@ class ProbabilitiesFromPercentiles2D(object):
         field.
 
         Args:
+            reference_cube (iris.cube.Cube):
+                A cube of values on several different percentile levels.
             cube (iris.cube.Cube):
                 A cube of values, that effectively behave as thresholds, for
-                which it is desired to obtain probability values from a
+                which it is desired to obtain probability values from the
                 percentiled reference cube.
         Returns:
             probabilities (iris.cube.Cube):
