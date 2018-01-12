@@ -111,15 +111,15 @@ class ProbabilitiesFromPercentiles2D(object):
 
     def create_probability_cube(self, cube):
         """
-        Create a probability cube in which to store the calculated
-        probabilities.
+        Create a 2-dimensional probability cube in which to store the
+        calculated probabilities.
 
         Args:
             cube (iris.cube.Cube):
                 Template for the output probability cube.
         Returns:
             probability_cube (iris.cube.Cube):
-                A new 2D probability cube with suitable metadata.
+                A new 2-dimensional probability cube with suitable metadata.
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
@@ -139,20 +139,21 @@ class ProbabilitiesFromPercentiles2D(object):
 
     def percentile_interpolation(self, threshold_cube, percentiles_cube):
         """
-        Perform the interpolation between 2D percentile fields to construct
-        the probability field for a given set of thresholds.
+        Perform the interpolation between 2-dimensional percentile fields to
+        construct the probability field for a given set of thresholds.
 
         Args:
             threshold_cube (iris.cube.Cube):
-                A 2D cube of values, that effectively behave as thresholds, for
-                which it is desired to obtain probability values from the
-                percentiled reference cube.
+                A 2-dimensional cube of "threshold" values for which it is
+                desired to obtain probability values from the percentiled
+                reference cube.
             percentiles_cube (iris.cube.Cube):
-                A 3D cube of values on several different percentile levels.
+                A cube of 2-dimensional fields on several different percentile
+                levels.
         Returns:
             probabilities (iris.cube.Cube):
-                A cube of probabilities obtained by interpolating the
-                percentile values.
+                A 2-dimensional cube of probabilities obtained by interpolating
+                between percentile values.
         """
         probabilities = self.create_probability_cube(percentiles_cube)
 
@@ -220,6 +221,10 @@ class ProbabilitiesFromPercentiles2D(object):
         cube_slices = self.percentiles_cube.slices([percentile_coordinate,
                                                     cube.coord(axis='y'),
                                                     cube.coord(axis='x')])
+
+        if cube.units != self.percentiles_cube.units:
+            cube.convert_units(self.percentiles_cube.units)
+
         output_cubes = iris.cube.CubeList()
         for cube_slice in cube_slices:
             output_cube = self.percentile_interpolation(cube, cube_slice)
