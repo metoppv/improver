@@ -33,6 +33,7 @@ Unit tests for the
 `ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
 
 """
+import warnings
 import numpy as np
 import unittest
 
@@ -323,7 +324,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 
     def test_probabilities_not_monotonically_increasing(self):
         """
-        Test that the plugin raises a ValueError when the probabilities
+        Test that the plugin raises a Warning when the probabilities
         of the Cumulative Distribution Function are not monotonically
         increasing.
         """
@@ -340,10 +341,12 @@ class Test__probabilities_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        msg = "The probability values used to construct the"
-        with self.assertRaisesRegexp(ValueError, msg):
-            plugin._probabilities_to_percentiles(
-                cube, percentiles, bounds_pairing)
+        warning_msg = "The probability values used to construct the"
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
