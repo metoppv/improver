@@ -198,7 +198,7 @@ class Test_create_probability_cube(IrisTest):
         self.assertEqual(self.probability_cube.name(), self.new_name)
 
     def test_coordinate_collapse(self):
-        """ Test any "percentile" coordinate is successfully removed """
+        """ Test probability cube has no percentile coordinate """
         with self.assertRaises(CoordinateNotFoundError):
             percentile_coordinate = \
                 find_percentile_coordinate(self.probability_cube)

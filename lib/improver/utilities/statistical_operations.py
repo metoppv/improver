@@ -125,14 +125,6 @@ class ProbabilitiesFromPercentiles2D(object):
                                         cube.coord(axis='x')]))
         probabilities = cube_format.copy(data=np.full(cube_format.shape,
                                                       np.nan, dtype=float))
-
-        try:
-            percentile_coordinate = find_percentile_coordinate(cube_format)
-        except CoordinateNotFoundError:
-            pass
-        else:
-            probabilities.remove_coord(percentile_coordinate)
-        
         probabilities.units = 1
         probabilities.rename(self.output_name)
         return probabilities
@@ -201,11 +193,11 @@ class ProbabilitiesFromPercentiles2D(object):
 
         return probabilities
 
-    def process(self, cube):
+    def process(self, threshold_cube):
         """
         Slice the percentiles cube over any non-spatial coordinates
         (realization, time, etc) if present, and call the percentile
-        interpolation method.
+        interpolation method for each resulting cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -222,12 +214,13 @@ class ProbabilitiesFromPercentiles2D(object):
                                                     cube.coord(axis='y'),
                                                     cube.coord(axis='x')])
 
-        if cube.units != self.percentiles_cube.units:
-            cube.convert_units(self.percentiles_cube.units)
+        if threshold_cube.units != self.percentiles_cube.units:
+            threshold_cube.convert_units(self.percentiles_cube.units)
 
         output_cubes = iris.cube.CubeList()
         for cube_slice in cube_slices:
-            output_cube = self.percentile_interpolation(cube, cube_slice)
+            output_cube = self.percentile_interpolation(threshold_cube,
+                                                        cube_slice)
             output_cubes.append(output_cube)
         if len(output_cubes) > 1:
             output_cubes = output_cubes.merge_cube()
