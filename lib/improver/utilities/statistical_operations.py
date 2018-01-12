@@ -70,7 +70,8 @@ class ProbabilitiesFromPercentiles2D(object):
         each point in the orography field.
     """
 
-    def __init__(self, percentiles_cube, output_name=None, inverse_ordering=False):
+    def __init__(self, percentiles_cube, output_name=None,
+                 inverse_ordering=False):
         """
         Initialise class.
 
@@ -175,7 +176,7 @@ class ProbabilitiesFromPercentiles2D(object):
         interpolation method for each resulting cube.
 
         Args:
-            cube (iris.cube.Cube):
+            threshold_cube (iris.cube.Cube):
                 A cube of values, that effectively behave as thresholds, for
                 which it is desired to obtain probability values from a
                 percentiled reference cube.
@@ -184,10 +185,11 @@ class ProbabilitiesFromPercentiles2D(object):
                 A cube of probabilities obtained by interpolating between
                 percentile values at the "threshold" level.
         """
-        percentile_coordinate = find_percentile_coordinate(percentiles_cube)
+        percentile_coordinate = find_percentile_coordinate(
+            self.percentiles_cube)
         cube_slices = self.percentiles_cube.slices([percentile_coordinate,
-                                                    cube.coord(axis='y'),
-                                                    cube.coord(axis='x')])
+                                                    threshold_cube.coord(axis='y'),
+                                                    threshold_cube.coord(axis='x')])
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)

@@ -160,11 +160,11 @@ class Test_create_probability_cube(IrisTest):
         """ Set up a probability cube from percentiles and orography """
         self.percentiles_cube = set_up_percentiles_cube()
         self.new_name = "probability"
-        self.pfp_instance = ProbabilitiesFromPercentiles2D(self.percentiles_cube,
-                                                           self.new_name)
+        self.pfp_instance = ProbabilitiesFromPercentiles2D(
+            self.percentiles_cube, self.new_name)
         self.orography_cube = set_up_threshold_cube()
         self.probability_cube = \
-             self.pfp_instance.create_probability_cube(self.orography_cube)
+            self.pfp_instance.create_probability_cube(self.orography_cube)
 
     def test_attributes(self):
         """ Test name and units are correctly set """
@@ -219,4 +219,3 @@ class Test_percentile_interpolation(IrisTest):
 
 if __name__ == '__main__':
     unittest.main()
-
