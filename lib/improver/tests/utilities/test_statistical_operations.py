@@ -154,7 +154,7 @@ class Test__init__(IrisTest):
                                                       self.new_name,
                                                       inverse_ordering=True)
         self.assertTrue(pfp_instance.inverse_ordering)
-    
+
 
 class Test__repr__(IrisTest):
     """ Test string representation """
@@ -174,7 +174,7 @@ class Test__repr__(IrisTest):
         """ Compare __repr__ string with expectation """
         result = str(self.pfp_instance)
         self.assertEqual(result, self.reference_repr)
-        
+
 
 class Test_create_probability_cube(IrisTest):
     """
@@ -205,6 +205,10 @@ class Test_create_probability_cube(IrisTest):
 
 
 class Test_percentile_interpolation(IrisTest):
+    """
+    Metadata and quantitative tests of function that performs the percentile
+    interpolation.
+    """
 
     def setUp(self):
         """ Set up a probability cube from percentiles and orography """
@@ -217,7 +221,7 @@ class Test_percentile_interpolation(IrisTest):
         sensible.  Includes out-of-range values (P=0 and P=1).
         """
         percentiles_cube = set_up_percentiles_cube()
-        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube, 
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube,
                                                       self.new_name)
         probability_cube = \
             pfp_instance.percentile_interpolation(self.orography_cube,

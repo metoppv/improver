@@ -161,7 +161,7 @@ class ProbabilitiesFromPercentiles2D(object):
 
         for index, pslice in enumerate(percentiles_cube.slices_over(
                 percentile_coordinate)):
-            indices = (threshold_cube.data < pslice.data if 
+            indices = (threshold_cube.data < pslice.data if
                        self.inverse_ordering else
                        threshold_cube.data > pslice.data)
             percentile_bounds[0, indices] = percentiles[index]
