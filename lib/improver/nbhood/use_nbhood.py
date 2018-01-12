@@ -283,9 +283,8 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
             # Loop over any extra dimensions
-            collapsed_slice = slice_3d.collapsed(self.coord_masked,
-                iris.analysis.MEAN,weights=weights)
+            collapsed_slice = slice_3d.collapsed(
+                self.coord_masked, iris.analysis.MEAN, weights=weights)
             cubelist.append(collapsed_slice)
-        return cubelist.merge_cube()
         # TODO fix any metadata problems here.
-        return result
+        return cubelist.merge_cube()

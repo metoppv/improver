@@ -37,7 +37,7 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--ens_factor ENS_FACTOR]
                                          [--sum_or_fraction {sum,fraction}]
-                                         [--re_mask] [--collapse_dimension]
+                                         [--re_mask | --collapse_dimension]
                                          [--weights_for_collapsing_dim WEIGHTS]
                                          [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                          COORD_FOR_MASKING INPUT_FILE
@@ -102,7 +102,10 @@ optional arguments:
                         together if the additional dimensionfrom the masking
                         process is collapsed.
   --collapse_dimension  Collapse the dimension from the mask, by doing a
-                        weighted mean using the weights provided.
+                        weighted mean using the weights provided. This is only
+                        suitable when the result is is left unmasked, so there
+                        is data to weight between the points in coordinate we
+                        are collapsing.
   --weights_for_collapsing_dim WEIGHTS
                         A path to an weights NetCDF file containing the
                         weights which are used for collapsing the dimension

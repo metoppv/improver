@@ -109,23 +109,23 @@ class Test_gen_orography_masks(IrisTest):
         self.orography = set_up_orography_cube()
         self.valley_key = 'land'
         self.valley_threshold = [-10, 10]
-        self.exp_valleymask = np.array([[[1, 999999, 999999],
-                                         [0, 999999, 999999],
+        self.exp_valleymask = np.array([[[1, 0, 0],
+                                         [0, 0, 0],
                                          [0, 0, 0]]])
         self.land_key = 'land'
         self.land_threshold = [0, 50]
-        self.exp_landmask = np.array([[[1., 999999, 999999],
-                                       [1., 999999, 999999],
+        self.exp_landmask = np.array([[[1., 0, 0],
+                                       [1., 0, 0],
                                        [0., 0., 1.]]])
 
         self.nonzero_land_threshold = [30, 100]
-        self.exp_nonzero_landmask = np.array([[[0, 999999, 999999],
-                                               [0, 999999, 999999],
+        self.exp_nonzero_landmask = np.array([[[0, 0, 0],
+                                               [0, 0, 0],
                                                [0, 1, 1]]])
 
         self.high_land_threshold = [500, 600]
-        self.exp_high_landmask = np.array([[[0., 999999, 999999],
-                                            [0., 999999, 999999],
+        self.exp_high_landmask = np.array([[[0., 0, 0],
+                                            [0., 0, 0],
                                             [0., 0., 0.]]])
 
     def test_nonsensekey(self):
@@ -141,7 +141,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.valley_key,
             self.valley_threshold)
-        self.assertArrayAlmostEqual(result.data.data, self.exp_valleymask)
+        self.assertArrayAlmostEqual(result.data, self.exp_valleymask)
 
     def test_valleyband_cube(self):
         """test correct cube data is produced for land bands < 0m"""
@@ -161,7 +161,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_key,
             self.land_threshold)
-        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
+        self.assertArrayAlmostEqual(result.data, self.exp_landmask)
 
     def test_landband_cube(self):
         """test correct cube data is produced for land bands > 0m"""
@@ -182,7 +182,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_key,
             self.nonzero_land_threshold)
-        self.assertArrayAlmostEqual(result.data.data,
+        self.assertArrayAlmostEqual(result.data,
                                     self.exp_nonzero_landmask)
 
     def test_nonzero_landband_cube(self):
@@ -209,7 +209,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_key,
             self.high_land_threshold)
-        self.assertArrayAlmostEqual(result.data.data, self.exp_high_landmask)
+        self.assertArrayAlmostEqual(result.data, self.exp_high_landmask)
 
     def test_nothreshold(self):
         """test the correct exception is raised for key without threshold"""
@@ -239,7 +239,7 @@ class Test_gen_orography_masks(IrisTest):
         result = GenOrogMasks().gen_orography_masks(
             self.orography, self.landmask, self.land_key,
             land_threshold, units=threshold_units)
-        self.assertArrayAlmostEqual(result.data.data, self.exp_landmask)
+        self.assertArrayAlmostEqual(result.data, self.exp_landmask)
         self.assertEqual(result.coord("topographic_zone").units, Unit("m"))
 
 

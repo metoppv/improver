@@ -105,7 +105,8 @@ def main():
                              'fraction calculated by dividing the sum of the '
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
-    parser.add_argument('--re_mask', action='store_true',
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument('--re_mask', action='store_true',
                         help='If re_mask is set (i.e. True), the output cube '
                              'following neighbourhood processing is '
                              're-masked. This re-masking removes any values '
@@ -120,9 +121,13 @@ def main():
                              'allows the the values in adjacent bands to be'
                              'weighted together if the additional dimension'
                              'from the masking process is collapsed.')
-    parser.add_argument('--collapse_dimension', action='store_true',
+    group2.add_argument('--collapse_dimension', action='store_true',
                         help='Collapse the dimension from the mask, by doing '
-                             'a weighted mean using the weights provided.')
+                             'a weighted mean using the weights provided. '
+                             'This is only suitable when the result is is '
+                             'left unmasked, so there is data to weight '
+                             'between the points in coordinate we are '
+                             'collapsing.')
     parser.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
                         default=None,
                         help='A path to an weights NetCDF file containing the '
