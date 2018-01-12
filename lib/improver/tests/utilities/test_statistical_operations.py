@@ -49,11 +49,8 @@ def set_up_percentiles_cube():
     """ Set up 3D cube with percentiles of height """
 
     test_data = np.full((5, 10, 10), -1)
-    test_data[0].fill(500)
-    test_data[1].fill(750)
-    test_data[2].fill(1000)
-    test_data[3].fill(1250)
-    test_data[4].fill(1500)
+    for i in xrange(5):
+        test_data[i].fill(500+250*i)
 
     percentiles = DimCoord(np.linspace(0, 100, 5), long_name="percentiles",
                            units="%")
@@ -81,56 +78,33 @@ def set_up_threshold_cube():
     return test_cube
 
 
-def set_reference_array():
-    """
-    Define a linear array of probabilities correct for the percentile and
-    threshold cubes above, in all but shape.
-    """
-    reference_array = np.zeros(shape=(100,))
-    reference_array[:25] = 0.
-    reference_array[25:75] = np.arange(0., 1., 0.02)
-    reference_array[75:] = 1.
-    return reference_array
-
-
 def set_reference_probabilities():
     """
     Define the array of probabilities correct for the percentile and threshold
     cubes above.
     """
-    reference_array = set_reference_array()
+    reference_array = np.zeros(shape=(100,))
+    reference_array[:25] = 0.
+    reference_array[25:75] = np.arange(0., 1., 0.02)
+    reference_array[75:] = 1.
     return reference_array.reshape(10, 10)
 
 
 def set_up_percentiles_cube_2():
     """ Set up 3D cube with some percentiles at the same height """
-
-    test_data = np.full((5, 10, 10), -1)
-    test_data[0].fill(750)
-    test_data[1].fill(750)
-    test_data[2].fill(1000)
-    test_data[3].fill(1250)
-    test_data[4].fill(1500)
-
-    percentiles = DimCoord(np.linspace(0, 100, 5), long_name="percentiles",
-                           units="%")
-    grid_x = DimCoord(np.arange(10), standard_name="projection_x_coordinate",
-                      units="km")
-    grid_y = DimCoord(np.arange(10), standard_name="projection_y_coordinate",
-                      units="km")
-    test_cube = iris.cube.Cube(test_data, long_name="test data", units="m",
-                               dim_coords_and_dims=[(percentiles, 0),
-                                                    (grid_y, 1), (grid_x, 2)])
+    test_cube = set_up_percentiles_cube()
+    test_cube.data[0].fill(750)
     return test_cube
+
 
 def set_reference_probabilities_2():
     """
     Define the array of probabilities correct for a modified percentile cube
     where the 0th and 25th percentiles are colocated at 750 m.
     """
-    reference_array = set_reference_array()
-    reference_array[np.where(reference_array < 0.25)] = 0.
-    return reference_array.reshape(10, 10)
+    reference_probabilities = set_reference_probabilities()
+    reference_probabilities[np.where(reference_probabilities < 0.25)] = 0.
+    return reference_probabilities
 
 
 class Test__init__(IrisTest):
