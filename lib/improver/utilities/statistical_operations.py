@@ -159,10 +159,10 @@ class ProbabilitiesFromPercentiles2D(object):
             percentile_point_list.append(cube.data.flatten())
 
         # loop over spatial points in 2D field
-        for index, (percentile_heights, threshold_height) in enumerate(zip(percentile_point_list, threshold_heights)):
+        for index, (percentile_heights, threshold_height) in enumerate(
+                zip(percentile_point_list, threshold_heights)):
             pdata[index] = 0.01*np.interp(threshold_height,
                                           percentile_heights, percentiles)
-
         pdata[np.where(pdata < 0)] = 0.
         pdata[np.where(pdata > 1)] = 1.
         probabilities.data = pdata.reshape(threshold_cube.shape)
