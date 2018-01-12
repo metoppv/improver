@@ -155,15 +155,15 @@ class ProbabilitiesFromPercentiles2D(object):
         threshold_heights = threshold_cube.data.flatten()
         pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
 
-        percentile_point_list = []
+        percentile_point_heights_list = []
         for cube in percentiles_cube.slices(percentile_coordinate):
-            percentile_point_list.append(cube.data.flatten())
+            percentile_point_heights_list.append(cube.data.flatten())
 
         # loop over spatial points in 2D field
         for index, (percentile_heights, threshold_height) in enumerate(
-                zip(percentile_point_list, threshold_heights)):
-            pdata[index] = 0.01*np.interp(threshold_height,
-                                          percentile_heights, percentiles)
+                zip(percentile_point_heights_list, threshold_heights)):
+            pdata[index] = 0.01*np.interp(threshold_height, percentile_heights,
+                                          percentiles)
         pdata[np.where(pdata < 0)] = 0.
         pdata[np.where(pdata > 1)] = 1.
         probabilities.data = pdata.reshape(threshold_cube.shape)
@@ -187,9 +187,9 @@ class ProbabilitiesFromPercentiles2D(object):
         """
         percentile_coordinate = find_percentile_coordinate(
             self.percentiles_cube)
-        cube_slices = self.percentiles_cube.slices([percentile_coordinate,
-                                                    threshold_cube.coord(axis='y'),
-                                                    threshold_cube.coord(axis='x')])
+        cube_slices = self.percentiles_cube.slices(
+            [percentile_coordinate, self.percentiles_cube.coord(axis='y'),
+            self.percentiles_cube.coord(axis='x')])
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)
