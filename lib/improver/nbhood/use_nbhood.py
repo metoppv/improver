@@ -229,7 +229,12 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         with a mask are set to zero and then the weights are renormalized along
         the axis corresponding to the coordinate we want to collapse.
         """
-        weights.data[np.isnan(nbhood_cube.data)] = 0.0
+        # If the weights are masked we want to retain the mask.
+        if ma.is_masked(weights.data):
+            condition = np.isnan(nbhood_cube.data.data) & ~weights.data.mask
+        else:
+            condition = np.isnan(nbhood_cube.data)
+        weights.data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
         weights.data = WeightsUtilities.normalise_weights(weights.data,
                                                           axis=axis)
