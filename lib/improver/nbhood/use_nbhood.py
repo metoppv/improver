@@ -208,6 +208,8 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
                 Should have the coordinates coord_masked, x and y.
                 Default is None which equal weights for each band in the mean
                 used to collapse the chosen coordinate.
+                The weights cube can be masked, and this mask will be retained,
+                and will be present in the output.
 .
         """
         self.coord_masked = coord_masked
@@ -230,10 +232,10 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         the axis corresponding to the coordinate we want to collapse.
         """
         # If the weights are masked we want to retain the mask.
+        condition = np.isnan(nbhood_cube.data)
         if ma.is_masked(weights.data):
-            condition = np.isnan(nbhood_cube.data.data) & ~weights.data.mask
-        else:
-            condition = np.isnan(nbhood_cube.data)
+            condition = condition & ~weights.data.mask
+
         weights.data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
         weights.data = WeightsUtilities.normalise_weights(weights.data,
@@ -263,12 +265,27 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         cube.data = ma.masked_invalid(cube.data)
         # Take into account the case that the weights might be None and not
         # a cube.
+        yname = cube.coord(axis='y').name()
+        xname = cube.coord(axis='x').name()
+
         if isinstance(self.weights, iris.cube.Cube):
-            self.reweight_weights(cube, self.weights)
+            if self.weights.shape != cube.shape:
+                first_slice = next(
+                    cube.slices([self.coord_masked, yname, xname],
+                                ordered=False))
+                self.reweight_weights(first_slice, self.weights)
+            else:
+                self.reweight_weights(cube, self.weights)
             weights = self.weights.data
         else:
             weights = self.weights
-        result = cube.collapsed(self.coord_masked, iris.analysis.MEAN,
-                                weights=weights)
+
+        cubelist = iris.cube.CubeList([])
+        for slice_3d in cube.slices([self.coord_masked, yname, xname]):
+            # Loop over any extra dimensions
+            collapsed_slice = slice_3d.collapsed(self.coord_masked,
+                iris.analysis.MEAN,weights=weights)
+            cubelist.append(collapsed_slice)
+        return cubelist.merge_cube()
         # TODO fix any metadata problems here.
         return result
