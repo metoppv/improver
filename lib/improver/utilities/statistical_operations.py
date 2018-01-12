@@ -32,7 +32,6 @@
 
 import numpy as np
 import iris
-from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_checker import find_percentile_coordinate
 
 
@@ -149,48 +148,24 @@ class ProbabilitiesFromPercentiles2D(object):
         """
         probabilities = self.create_probability_cube(percentiles_cube)
 
-        array_shape = list(threshold_cube.shape)
-        array_shape.insert(0, 2)
-        array_shape = tuple(array_shape)
-        percentile_bounds = np.full(array_shape, -1, dtype=float)
-        height_bounds = np.full(array_shape, -1001., dtype=float)
-        height_bounds[1] = -1.
-
         percentile_coordinate = find_percentile_coordinate(percentiles_cube)
         percentiles = percentile_coordinate.points
 
-        for index, pslice in enumerate(percentiles_cube.slices_over(
-                percentile_coordinate)):
-            indices = (threshold_cube.data < pslice.data if
-                       self.inverse_ordering else
-                       threshold_cube.data > pslice.data)
-            percentile_bounds[0, indices] = percentiles[index]
-            height_bounds[0, indices] = pslice.data[indices]
-            try:
-                # Usual behaviour where the orography falls between heights
-                # corresponding to percentiles.
-                percentile_bounds[1, indices] = percentiles[index+1]
-                height_bounds[1, indices] = percentiles_cube[index+1].data[
-                    indices]
-            except IndexError:
-                # Invoked if we have reached the top of the available heights.
-                percentile_bounds[1, indices] = percentiles[index]
-                height_bounds[1, indices] = pslice.data[indices]
+        threshold_heights = threshold_cube.data.flatten()
+        pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
 
-        with np.errstate(divide='ignore'):
-            interpolants, = ((threshold_cube.data - height_bounds[0]) /
-                             np.diff(height_bounds, n=1, axis=0))
+        percentile_point_list = []
+        for cube in percentiles_cube.slices(percentile_coordinate):
+            percentile_point_list.append(cube.data.flatten())
 
-        with np.errstate(invalid='ignore'):
-            probabilities.data, = (percentile_bounds[0] + interpolants *
-                                   np.diff(percentile_bounds, n=1, axis=0))
-        probabilities.data = probabilities.data/100.
+        # loop over spatial points in 2D field
+        for index, (percentile_heights, threshold_height) in enumerate(zip(percentile_point_list, threshold_heights)):
+            pdata[index] = 0.01*np.interp(threshold_height,
+                                          percentile_heights, percentiles)
 
-        above_top_band = np.isinf(interpolants)
-        below_bottom_band = height_bounds[0] < -1000
-        probabilities.data[below_bottom_band] = 0.
-        probabilities.data[above_top_band] = 1.
-
+        pdata[np.where(pdata < 0)] = 0.
+        pdata[np.where(pdata > 1)] = 1.
+        probabilities.data = pdata.reshape(threshold_cube.shape)
         return probabilities
 
     def process(self, threshold_cube):
