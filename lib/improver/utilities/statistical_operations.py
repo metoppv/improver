@@ -70,8 +70,7 @@ class ProbabilitiesFromPercentiles2D(object):
         each point in the orography field.
     """
 
-    def __init__(self, percentiles_cube, output_name=None,
-                 inverse_ordering=False):
+    def __init__(self, percentiles_cube, output_name=None):
         """
         Initialise class.
 
@@ -86,27 +85,20 @@ class ProbabilitiesFromPercentiles2D(object):
             output_name (str):
                 The name of the cube being created,
                 e.g.'probability_of_snowfall'.
-        Keyword Args:
-            inverse_ordering (bool):
-                Set True if the percentiled data increases in the opposite
-                sense to the percentile coordinate.
-                e.g.  0th Percentile - Value = 10
-                     10th Percentile - Value = 5
-                     20th Percentile - Value = 0
+
         """
         self.percentiles_cube = percentiles_cube
         if output_name is not None:
             self.output_name = output_name
         else:
-            self.output_name = "probability of {}".percentiles_cube.name()
-        self.inverse_ordering = inverse_ordering
+            self.output_name = "probability_of_{}".format(
+                percentiles_cube.name())
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ProbabilitiesFromPercentiles2D: percentiles_cube: {}, '
-                  'output_name: {}, inverse_ordering: {}'.format(
-                      self.percentiles_cube, self.output_name,
-                      self.inverse_ordering))
+                  'output_name: {}'.format(self.percentiles_cube,
+                                           self.output_name))
         return result
 
     def create_probability_cube(self, cube):
@@ -189,7 +181,7 @@ class ProbabilitiesFromPercentiles2D(object):
             self.percentiles_cube)
         cube_slices = self.percentiles_cube.slices(
             [percentile_coordinate, self.percentiles_cube.coord(axis='y'),
-            self.percentiles_cube.coord(axis='x')])
+             self.percentiles_cube.coord(axis='x')])
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)
