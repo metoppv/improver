@@ -44,6 +44,8 @@ from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 
+# TODO make test arrays smaller
+
 
 def set_up_percentiles_cube():
     """ Set up 3D cube with percentiles of height """
@@ -225,6 +227,29 @@ class Test_process(IrisTest):
         self.assertEqual(type(probability_cube), iris.cube.Cube)
         self.assertSequenceEqual(probability_cube.shape,
                                  self.orography_cube.shape)
+
+    def test_threshold_dimensions(self):
+        """
+        Test threshold data is correctly sliced and processed if eg a 2-field
+        orography cube is passed into the "process" function
+        """
+        threshold_data_3D = np.broadcast_to(self.orography_cube.data,
+                                            (2, 10, 10))
+        grid_x = self.orography_cube.coord("projection_x_coordinate")
+        grid_y = self.orography_cube.coord("projection_y_coordinate")
+        realization = DimCoord(np.arange(2), standard_name="realization",
+                               units="1")
+        threshold_cube = iris.cube.Cube(threshold_data_3D,
+                                        long_name="topography", units="m",
+                                        dim_coords_and_dims=[(realization, 0),
+                                                             (grid_y, 1),
+                                                             (grid_x, 2)])
+
+        probability_cube = self.pfp_instance.process(threshold_cube)
+        self.assertSequenceEqual(probability_cube.shape,
+                                 self.orography_cube.shape)
+        self.assertArrayAlmostEqual(probability_cube.data,
+                                    set_reference_probabilities())
 
 
 if __name__ == '__main__':
