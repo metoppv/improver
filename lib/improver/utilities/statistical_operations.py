@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain statistical operations."""
 
-import numpy as np
 import iris
+import numpy as np
+import warnings
 from improver.utilities.cube_checker import find_percentile_coordinate
 
 
@@ -139,26 +140,40 @@ class ProbabilitiesFromPercentiles2D(object):
                 A 2-dimensional cube of probabilities obtained by interpolating
                 between percentile values.
         """
-        probabilities = self.create_probability_cube(percentiles_cube)
-
         percentile_coordinate = find_percentile_coordinate(percentiles_cube)
         percentiles = percentile_coordinate.points
+        pdata = np.full(threshold_cube.shape, np.nan, dtype=float)
 
-        threshold_heights = threshold_cube.data.flatten()
-        pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
+        flagme = False
+        iii = 0
+        for x in range(threshold_cube.shape[1]):
+            for y in range(threshold_cube.shape[0]):
+                temp = percentiles_cube.data[:, y, x]
+                if np.any(np.diff(temp) == 0):
+                    flagme = True
 
-        percentile_point_heights_list = []
-        for cube in percentiles_cube.slices(percentile_coordinate):
-            percentile_point_heights_list.append(cube.data.flatten())
+                pdata[y, x] = np.interp(threshold_cube.data[y, x],
+                                        percentiles_cube.data[:, y, x],
+                                        percentiles, left=0, right=100)
+                if flagme is True:
+                    if pdata[y, x] > 0.:
+                        print 'Percentiles', percentiles
+                        print 'Percentile heights', percentiles_cube.data[:, y, x]
+                        print 'Site Height', threshold_cube.data[y, x]
+                        print 'Interpolated', pdata[y, x]
+                        iii += 1
+                    if pdata[y, x] > 0. and threshold_cube.data[y, x] == 0.:
+                        pdata[y, x] = 0.
+                    flagme = False
 
-        # loop over spatial points in 2D field
-        for index, (percentile_heights, threshold_height) in enumerate(
-                zip(percentile_point_heights_list, threshold_heights)):
-            pdata[index] = 0.01*np.interp(threshold_height, percentile_heights,
-                                          percentiles)
-        pdata[np.where(pdata < 0)] = 0.
-        pdata[np.where(pdata > 1)] = 1.
-        probabilities.data = pdata.reshape(threshold_cube.shape)
+                if iii > 10:
+                    raise Exception('Nope')
+
+        print pdata.min()
+        print pdata.mean()
+        print pdata.max()
+        probabilities = self.create_probability_cube(percentiles_cube)
+        probabilities.data = 0.01*pdata
         return probabilities
 
     def process(self, threshold_cube):
@@ -182,6 +197,14 @@ class ProbabilitiesFromPercentiles2D(object):
         cube_slices = self.percentiles_cube.slices(
             [percentile_coordinate, self.percentiles_cube.coord(axis='y'),
              self.percentiles_cube.coord(axis='x')])
+
+        if threshold_cube.ndim != 2:
+            msg = ('threshold cube has too many ({} > 2) dimensions - slicing '
+                   'to x-y grid'.format(threshold_cube.ndim))
+            warnings.warn(msg)
+            threshold_cube = next(threshold_cube.slices([
+                threshold_cube.coord(axis='y'),
+                threshold_cube.coord(axis='x')]))
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)
