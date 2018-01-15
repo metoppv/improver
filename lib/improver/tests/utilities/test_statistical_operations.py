@@ -58,7 +58,7 @@ def set_up_percentiles_cube():
                       units="km")
     grid_y = DimCoord(np.arange(10), standard_name="projection_y_coordinate",
                       units="km")
-    test_cube = iris.cube.Cube(test_data, long_name="test data", units="m",
+    test_cube = iris.cube.Cube(test_data, long_name="snow_level", units="m",
                                dim_coords_and_dims=[(percentiles, 0),
                                                     (grid_y, 1), (grid_x, 2)])
     return test_cube
@@ -109,7 +109,6 @@ def set_reference_probabilities_2():
 
 class Test__init__(IrisTest):
     """ Test initialisation of the ProbabilitiesFromPercentiles2D class """
-
     def setUp(self):
         """ Set up test cube """
         self.test_cube = set_up_percentiles_cube()
@@ -120,19 +119,16 @@ class Test__init__(IrisTest):
         pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
                                                       self.new_name)
         self.assertEqual(pfp_instance.output_name, self.new_name)
-        self.assertFalse(pfp_instance.inverse_ordering)
 
-    def test_inverse_ordering(self):
-        """ Test set inverse ordering """
-        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
-                                                      self.new_name,
-                                                      inverse_ordering=True)
-        self.assertTrue(pfp_instance.inverse_ordering)
+    def test_naming(self):
+        """ Test default naming """
+        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+        self.assertEqual(pfp_instance.output_name,
+                         "probability_of_{}".format(self.test_cube.name()))
 
 
 class Test__repr__(IrisTest):
     """ Test string representation """
-
     def setUp(self):
         """ Set up test cube """
         self.test_cube = set_up_percentiles_cube()
@@ -140,9 +136,8 @@ class Test__repr__(IrisTest):
         self.pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
                                                            self.new_name)
         self.reference_repr = ('<ProbabilitiesFromPercentiles2D: percentiles_'
-                               'cube: {}, output_name: {}, inverse_ordering: '
-                               '{}'.format(self.test_cube, self.new_name,
-                                           False))
+                               'cube: {}, output_name: {}'.format(
+                                    self.test_cube, self.new_name))
 
     def test_basic(self):
         """ Compare __repr__ string with expectation """
@@ -155,7 +150,6 @@ class Test_create_probability_cube(IrisTest):
     Test creation of new probability cube based on percentile and orography
     input cubes
     """
-
     def setUp(self):
         """ Set up a probability cube from percentiles and orography """
         self.percentiles_cube = set_up_percentiles_cube()
@@ -174,19 +168,16 @@ class Test_create_probability_cube(IrisTest):
     def test_coordinate_collapse(self):
         """ Test probability cube has no percentile coordinate """
         with self.assertRaises(CoordinateNotFoundError):
-            percentile_coordinate = \
-                find_percentile_coordinate(self.probability_cube)
+            find_percentile_coordinate(self.probability_cube)
 
 
 class Test_percentile_interpolation(IrisTest):
     """
     Metadata and quantitative tests of function that performs the percentile
-    interpolation.
+    interpolation
     """
-
     def setUp(self):
-        """ Set up a probability cube from percentiles and orography """
-        self.new_name = "probability"
+        """ Set up orography cube """
         self.orography_cube = set_up_threshold_cube()
 
     def test_values(self):
@@ -195,8 +186,7 @@ class Test_percentile_interpolation(IrisTest):
         sensible.  Includes out-of-range values (P=0 and P=1).
         """
         percentiles_cube = set_up_percentiles_cube()
-        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube,
-                                                      self.new_name)
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
         probability_cube = \
             pfp_instance.percentile_interpolation(self.orography_cube,
                                                   percentiles_cube)
@@ -205,16 +195,36 @@ class Test_percentile_interpolation(IrisTest):
 
     def test_equal_percentiles(self):
         """
-        Test for sensible behaviour when some percentile levels are equal.
+        Test for sensible behaviour when some percentile levels are equal
         """
         percentiles_cube = set_up_percentiles_cube_2()
-        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube,
-                                                      self.new_name)
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
         probability_cube = \
             pfp_instance.percentile_interpolation(self.orography_cube,
                                                   percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data,
                                     set_reference_probabilities_2())
+
+
+class Test_process(IrisTest):
+    """
+    Test top level processing function that calls percentile_interpolation()
+    """
+    def setUp(self):
+        """ Set up class instance and orography cube """
+        percentiles_cube = set_up_percentiles_cube()
+        self.pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.orography_cube = set_up_threshold_cube()
+
+    def test_basic(self):
+        """
+        Test the "process" function returns a single cube whose shape matches
+        that of the input threshold (orography) field
+        """
+        probability_cube = self.pfp_instance.process(self.orography_cube)
+        self.assertEqual(type(probability_cube), iris.cube.Cube)
+        self.assertSequenceEqual(probability_cube.shape,
+                                 self.orography_cube.shape)
 
 
 if __name__ == '__main__':
