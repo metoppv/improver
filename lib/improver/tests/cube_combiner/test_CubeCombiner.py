@@ -119,8 +119,8 @@ class Test_expand_bounds(IrisTest):
 
     def test_basic_no_time_bounds(self):
         """ Test that it fails if there are no time bounds """
-        cl = self.cubelist
-        for cube in cl:
+        c_list = self.cubelist
+        for cube in c_list:
             cube.coord('time').bounds = None
         result = CubeCombiner.expand_bounds(self.cubelist[0],
                                             self.cubelist,
@@ -134,6 +134,16 @@ class Test_expand_bounds(IrisTest):
             units=Unit('hours since 1970-01-01 00:00:00',
                        calendar='gregorian'))
         self.assertEqual(result.coord('time'), expected_result)
+
+    def test_fails_with_multi_point_coord(self):
+        """Test that if an error is raised if a coordinate with more than
+        one point is given"""
+        emsg = 'the expand bounds function should only be used on a'
+        with self.assertRaisesRegexp(ValueError, emsg):
+            CubeCombiner.expand_bounds(self.cubelist[0],
+                                       self.cubelist,
+                                       'latitude',
+                                       'mid')
 
 
 class Test_combine(IrisTest):

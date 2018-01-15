@@ -89,7 +89,7 @@ class CubeCombiner(object):
         bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
         have bounds of [0000Z,0200Z]
 
-        Args
+        Args:
             result_cube (iris.cube.Cube):
                 A cube with metadata for the results.
             cubelist (iris.cube.CubeList):
@@ -101,12 +101,27 @@ class CubeCombiner(object):
                 Currently accepts:
                     'mid' - halfway between the bounds
                     'upper' - equal to the upper bound
-        Returns
+        Returns:
             result (iris.cube.Cube):
                 Cube with coord expanded.
+
                 n.b. If argument point == 'mid' then python will convert
                 result.coord('coord').points[0] to a float.
+
+                This is to ensure that midpoints are not accidentally
+                rounded down by Python's default integer divide behavour:
+                For example if you combined cubes for accumulation for three
+                hours the midpoint should be 1.5 hours into the period.
+                Integer behaviour would give 3 / 2 = 1
         """
+        if len(result_cube.coord(coord).points) != 1:
+            emsg = ('the expand bounds function should only be used on a'
+                    'coordinate with a single point. The coordinate \"{}\" '
+                    'has {} points.')
+            raise ValueError(emsg.format(
+                coord,
+                len(result_cube.coord(coord).points)))
+
         bounds = ([cube.coord(coord).bounds for cube in cubelist])
         if None in bounds:
             points = ([cube.coord(coord).points for cube in cubelist])
@@ -198,14 +213,6 @@ class CubeCombiner(object):
         data_type = cube_list[0].dtype
         result = cube_list[0].copy()
 
-        # If cube has coord bounds that we want to expand
-        if expanded_coord:
-            for coord, treatment in expanded_coord.iteritems():
-                result = self.expand_bounds(result,
-                                            cube_list,
-                                            coord=coord,
-                                            point=treatment)
-
         for ind in range(1, len(cube_list)):
             cube1, cube2 = (
                 resolve_metadata_diff(result.copy(),
@@ -217,8 +224,14 @@ class CubeCombiner(object):
 
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
-            print result
 
+        # If cube has coord bounds that we want to expand
+        if expanded_coord:
+            for coord, treatment in expanded_coord.iteritems():
+                result = self.expand_bounds(result,
+                                            cube_list,
+                                            coord=coord,
+                                            point=treatment)
 
         result = amend_metadata(result,
                                 new_diagnostic_name,

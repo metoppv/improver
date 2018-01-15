@@ -31,16 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "combine --metadata_jsonfile accum" {
+@test "combine accumulation" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0100Z-PT0001H-rainfall_accumulation.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0200Z-PT0002H-rainfall_accumulation.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/20180101T0300Z-PT0003H-rainfall_accumulation.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

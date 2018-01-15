@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "combine --metadata_jsonfile" {
+@test "combine maximum value" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
@@ -39,15 +39,13 @@
   run improver combine \
       --operation='max' \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0100Z-PT0001H-temperature_at_screen_level_max.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0200Z-PT0002H-temperature_at_screen_level_max.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0300Z-PT0003H-temperature_at_screen_level_max.nc" \
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc" \
        "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/new_kgo_max.nc"
+      "$IMPROVER_ACC_TEST_DIR/combine/bounds/kgo_max.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
