@@ -83,6 +83,18 @@ class Test_sea_mask(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayAlmostEqual(result.mask, expected_mask)
 
+    def test_basic_sea_fillvalue(self):
+        """Test that the expected data is returned when the landmask specifies
+        a mix of land and sea points and a fill value is given."""
+        expected_data = np.array([[10., 0, 0],
+                                  [20., 0, 0],
+                                  [-10, 100., 40]])
+        result = GenOrogMasks().sea_mask(
+            self.landmask.data, self.orography.data, sea_fillvalue=0)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_data)
+        self.assertEqual(np.ma.is_masked(result), False)
+
     def test_all_land_points(self):
         """Test that the expected data is returned when the landmask specifies
         only land points."""

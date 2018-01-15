@@ -61,7 +61,7 @@ def main():
                     'an option to re-mask the output cube, so that after '
                     'neighbourhood processing, non-zero values are only '
                     'present for unmasked grid points. '
-                    'There is an exta option of collapsing the dimension we'
+                    'There is an exta option of collapsing the dimension we '
                     'gain using this processing using a weighted average.')
     parser.add_argument('coord_for_masking', metavar='COORD_FOR_MASKING',
                         help='Coordinate to iterate over when applying a mask '

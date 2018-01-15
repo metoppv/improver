@@ -151,9 +151,17 @@ class GenerateOrographyBandAncils(object):
             orog_band (numpy array):
                 The binary array to which the landmask will be applied.
 
+        Keyword Args:
+            sea_fillvalue (float):
+                A fillvalue to set sea points to and leave the output unmasked,
+                rather than the default behaviour of returning a masked array
+                with a default fill value.
+
         Returns:
             mask_data (numpy array):
-                An array where the sea points have been masked out.
+                An array where the sea points have been masked out and filled
+                with a default fill value, or just filled with the given
+                sea_fillvalue and not masked.
         """
         points_to_mask = np.logical_not(landmask)
         if sea_fillvalue is None:
@@ -171,9 +179,8 @@ class GenerateOrographyBandAncils(object):
         """
         Function to generate topographical band masks.
 
-        For each threshold defined in 'thresholds', a cube containing an
-        array will be generated. This array will be 0 over sea points and
-        will have values of 1 on land points within the topography band.
+        For each threshold defined in 'thresholds', a cube with 0 over sea
+        points and 1 for land points within the topography band.
         The lower threshold is exclusive to the band whilst the upper
         threshold is inclusive i.e:
         lower_threshold < band <= upper_threshold
@@ -188,8 +195,8 @@ class GenerateOrographyBandAncils(object):
         the resultant array will be::
 
                      [[0 0 1]
-                      [0  1  1]
-                      [0  0  0]]
+                      [0 1 1]
+                      [0 0 0]]
 
         Args:
             standard_orography (iris.cube.Cube):

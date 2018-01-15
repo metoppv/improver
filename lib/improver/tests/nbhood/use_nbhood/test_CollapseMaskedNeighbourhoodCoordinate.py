@@ -71,6 +71,21 @@ class Test_reweight_weights(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
+        self.mask = np.array([[[1, 1, 1., 0, 0],
+                               [1, 1, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 1, 1, 1, 1]],
+                              [[1, 1, 1, 0, 0],
+                               [1, 1, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 1, 1, 1, 1]],
+                              [[1, 1, 1, 0, 0],
+                               [1, 1, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 0, 0, 0, 0],
+                               [1, 1, 1, 1, 1]]])
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         self.cube = iris.util.squeeze(self.cube)
@@ -106,31 +121,17 @@ class Test_reweight_weights(IrisTest):
         """No NaNs in the neighbourhood cube, so no reweighting is needed"""
         nbhooded_cube = self.weights_cube.copy()
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+        self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
     def test_no_NaNs_in_nbhooded_cube_and_masked_weights(self):
         """No NaNs in the neighbourhood cube, but masked weights."""
         nbhooded_cube = self.weights_cube.copy()
-        mask = np.array([[[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]]])
+
         self.weights_cube.data = np.ma.masked_array(self.weights_cube.data,
-                                                    mask=mask)
+                                                    mask=self.mask)
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+        self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights.data,
                                     self.weights_cube.data.data)
         self.assertArrayAlmostEqual(expected_weights.mask,
@@ -158,7 +159,7 @@ class Test_reweight_weights(IrisTest):
                                       [0, 0, 0, 0.1, 0.0],
                                       [0, 0, 0, 0.4, 0.8]]])
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
-        self.plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+        self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
     def test_some_NaNs_in_nbhooded_cube_and_masked_weights(self):
@@ -169,25 +170,10 @@ class Test_reweight_weights(IrisTest):
         nbhood_data[0, 0:2, 0] = np.nan
         nbhood_data[2, 2:4, 4] = np.nan
         nbhooded_cube = self.weights_cube.copy()
-        mask = np.array([[[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
-                          [1, 1, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 0, 0, 0, 0],
-                          [1, 1, 1, 1, 1]]])
         self.weights_cube.data = np.ma.masked_array(self.weights_cube.data,
-                                                    mask=mask)
+                                                    mask=self.mask)
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+        self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights.data,
                                     self.weights_cube.data.data)
         self.assertArrayAlmostEqual(expected_weights.mask,
@@ -200,7 +186,7 @@ class Test_reweight_weights(IrisTest):
                                                        self.weights_cube)
         message = "Expected to find exactly 1  coordinate, but found none."
         with self.assertRaisesRegexp(CoordinateNotFoundError, message):
-            plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+            plugin.reweight_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis_with_error(self):
         """Normalizing along another axis, when raises error.
@@ -211,7 +197,7 @@ class Test_reweight_weights(IrisTest):
             "projection_x_coordinate", self.weights_cube)
         message = "Sum of weights must be > 0.0"
         with self.assertRaisesRegexp(ValueError, message):
-            plugin.reweight_weights(nbhooded_cube, self.weights_cube)
+            plugin.reweight_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis(self):
         """Normalizing along another axis, when this is a valid thing to do.
@@ -250,7 +236,7 @@ class Test_reweight_weights(IrisTest):
         nbhooded_cube = self.weights_cube.copy()
         plugin = CollapseMaskedNeighbourhoodCoordinate(
             "projection_x_coordinate", weights_cube)
-        plugin.reweight_weights(nbhooded_cube, weights_cube)
+        plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
 
@@ -374,17 +360,17 @@ class Test_process(IrisTest):
         nbhood_data[0, 0:2, 0] = np.nan
         nbhood_data[2, 2:4, 4] = np.nan
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
-        mask = np.array([[[1, 1, 1., 0, 0],
+        mask = np.array([[[1, 1, 1, 0, 0],
                           [1, 1, 0, 0, 0],
                           [1, 0, 0, 0, 0],
                           [1, 0, 0, 0, 0],
                           [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
+                         [[1, 1, 1, 0, 0],
                           [1, 1, 0, 0, 0],
                           [1, 0, 0, 0, 0],
                           [1, 0, 0, 0, 0],
                           [1, 1, 1, 1, 1]],
-                         [[1, 1, 1., 0, 0],
+                         [[1, 1, 1, 0, 0],
                           [1, 1, 0, 0, 0],
                           [1, 0, 0, 0, 0],
                           [1, 0, 0, 0, 0],
@@ -407,6 +393,8 @@ class Test_process(IrisTest):
 
         self.assertArrayAlmostEqual(expected_result, result.data.data)
         self.assertArrayAlmostEqual(expected_mask, result.data.mask)
+        self.assertEqual(expected_mask.dtype, bool)
+        self.assertIsInstance(expected_result, np.ndarray)
 
     def test_multidemensional_neighbourhood_input(self):
         """Test that we can collapse the right dimension when there arel

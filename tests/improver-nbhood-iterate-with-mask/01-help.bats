@@ -54,7 +54,7 @@ resulting in a cube that has been processed using multiple masks having gained
 the extra dimension from the cube. There is also an option to re-mask the
 output cube, so that after neighbourhood processing, non-zero values are only
 present for unmasked grid points. There is an exta option of collapsing the
-dimension wegain using this processing using a weighted average.
+dimension we gain using this processing using a weighted average.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the

@@ -222,7 +222,7 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         return result.format(self.coord_masked,
                              self.weights)
 
-    def reweight_weights(self, nbhood_cube, weights):
+    def reweight_weights(self, nbhood_cube):
         """
         Reweight the weights taking into account where there are NaNs in the
         result from neighbourhood.
@@ -230,16 +230,22 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         The weights corresponding to NaNs in the result from neighbourhooding
         with a mask are set to zero and then the weights are renormalized along
         the axis corresponding to the coordinate we want to collapse.
+
+        Args:
+            nbhood_cube (iris.cube.Cube):
+                The cube that has been through masked neighbourhood processing
+                and has the dimension we wish to collapse. Must have the same
+                dimensions of the cube.
         """
         # If the weights are masked we want to retain the mask.
         condition = np.isnan(nbhood_cube.data)
-        if ma.is_masked(weights.data):
-            condition = condition & ~weights.data.mask
+        if ma.is_masked(self.weights.data):
+            condition = condition & ~self.weights.data.mask
 
-        weights.data[condition] = 0.0
+        self.weights.data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
-        weights.data = WeightsUtilities.normalise_weights(weights.data,
-                                                          axis=axis)
+        self.weights.data = WeightsUtilities.normalise_weights(
+            self.weights.data, axis=axis)
 
     def process(self, cube):
         """
@@ -273,9 +279,9 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
                 first_slice = next(
                     cube.slices([self.coord_masked, yname, xname],
                                 ordered=False))
-                self.reweight_weights(first_slice, self.weights)
+                self.reweight_weights(first_slice)
             else:
-                self.reweight_weights(cube, self.weights)
+                self.reweight_weights(cube)
             weights = self.weights.data
         else:
             weights = self.weights
