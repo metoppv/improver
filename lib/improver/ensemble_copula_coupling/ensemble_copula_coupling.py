@@ -32,6 +32,7 @@
 This module defines the plugins required for Ensemble Copula Coupling.
 
 """
+import warnings
 import numpy as np
 from scipy.stats import norm
 
@@ -413,7 +414,7 @@ class GeneratePercentilesFromProbabilities(object):
                    "must be ascending i.e. in order to yield "
                    "a monotonically increasing CDF."
                    "The probabilities are {}".format(probabilities_for_cdf))
-            raise ValueError(msg)
+            warnings.warn(msg)
 
         # Convert percentiles into fractions.
         percentiles = [x/100.0 for x in percentiles]
