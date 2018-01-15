@@ -42,8 +42,8 @@ from iris.cube import Cube
 from improver.cube_combiner import CubeCombiner
 from improver.tests.utilities.test_cube_metadata import (
     create_cube_with_threshold)
-from improver.tests.utilities.test_cube_manipulation import (
-    set_up_percentile_temperature_cube)
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import set_up_temperature_cube
 
 
 class Test__init__(IrisTest):
@@ -81,7 +81,7 @@ class Test_expand_bounds(IrisTest):
         """Set up a cubelist for testing"""
         list_of_cubes = []
         for time in range(402193, 402196):
-            cube = set_up_percentile_temperature_cube()[0]
+            cube = set_up_temperature_cube()[0]
             cube.coord('time').points = [time]
             cube.coord('time').bounds = [[time-1, time]]
             list_of_cubes.append(cube)
