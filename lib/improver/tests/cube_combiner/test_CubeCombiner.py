@@ -126,7 +126,6 @@ class Test_expand_bounds(IrisTest):
                                             self.cubelist,
                                             'time',
                                             'mid')
-        print result.coord('time')
         expected_result = iris.coords.DimCoord(
             [402194],
             bounds=[[402193, 402195]],
