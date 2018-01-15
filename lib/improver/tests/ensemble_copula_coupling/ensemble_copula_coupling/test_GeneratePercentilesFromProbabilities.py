@@ -344,7 +344,8 @@ class Test__probabilities_to_percentiles(IrisTest):
         warning_msg = "The probability values used to construct the"
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+            plugin._probabilities_to_percentiles(
+                cube, percentiles, bounds_pairing)
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
 
