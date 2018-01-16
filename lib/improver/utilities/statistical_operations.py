@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain statistical operations."""
 
-import numpy as np
 import iris
+import numpy as np
+import warnings
 from improver.utilities.cube_checker import find_percentile_coordinate
 
 
@@ -182,6 +183,14 @@ class ProbabilitiesFromPercentiles2D(object):
         cube_slices = self.percentiles_cube.slices(
             [percentile_coordinate, self.percentiles_cube.coord(axis='y'),
              self.percentiles_cube.coord(axis='x')])
+
+        if threshold_cube.ndim != 2:
+            msg = ('threshold cube has too many ({} > 2) dimensions - slicing '
+                   'to x-y grid'.format(threshold_cube.ndim))
+            warnings.warn(msg)
+            threshold_cube = next(threshold_cube.slices([
+                threshold_cube.coord(axis='y'),
+                threshold_cube.coord(axis='x')]))
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)
