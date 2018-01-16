@@ -321,7 +321,7 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
     for coord in unmatching_coords[0]:
         if coord not in unmatching_coords[1]:
             if len(result1.coord(coord).points) == 1:
-                if result1.coord_dims(coord) is not None:
+                if len(result1.coord_dims(coord)) > 0:
                     coord_dict = dict()
                     coord_dict['points'] = result1.coord(coord).points
                     coord_dict['bounds'] = result1.coord(coord).bounds

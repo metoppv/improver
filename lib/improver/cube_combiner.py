@@ -66,6 +66,7 @@ class CubeCombiner(object):
                                '-', 'subtract',
                                '*', 'multiply',
                                'max', 'min', 'mean']
+
         if operation in possible_operations:
             self.operation = operation
         else:
@@ -165,7 +166,7 @@ class CubeCombiner(object):
             result.data = cube1.data + cube2.data
         elif operation == '-' or operation == 'subtract':
             result.data = cube1.data - cube2.data
-        elif operation == '*' or operation == 'multiple':
+        elif operation == '*' or operation == 'multiply':
             result.data = cube1.data * cube2.data
         elif operation == 'min':
             result.data = np.minimum(cube1.data, cube2.data)
