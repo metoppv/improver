@@ -36,6 +36,7 @@ import argparse
 import iris
 import json
 import warnings
+from glob import glob
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.load import load_cube
@@ -82,7 +83,11 @@ def main():
     # Load the cubes
     cubes = iris.cube.CubeList([])
     new_cube_name = args.new_name
-    for filename in args.input_filenames:
+    input_filenames = []
+    for filename_globlist in args.input_filenames:
+        for filename in glob(filename_globlist):
+            input_filenames.append(filename)
+    for filename in input_filenames:
         new_cube = load_cube(filename)
         cubes.append(new_cube)
         if new_cube_name is None:
@@ -99,6 +104,7 @@ def main():
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
+    expanded_coord = None
     if args.metadata_jsonfile:
         # Read in extraction recipes for all diagnostics.
         with open(args.metadata_jsonfile, 'r') as input_file:
@@ -107,13 +113,16 @@ def main():
                 new_coords = new_metadata['coordinates']
             if 'attributes' in new_metadata:
                 new_attr = new_metadata['attributes']
+            if 'expanded_coord' in new_metadata:
+                expanded_coord = new_metadata['expanded_coord']
 
     result = (
         CubeCombiner(args.operation, warnings_on=args.warnings_on).process(
             cubes,
             new_cube_name,
             revised_coords=new_coords,
-            revised_attributes=new_attr))
+            revised_attributes=new_attr,
+            expanded_coord=expanded_coord))
 
     iris.save(result, args.output_filepath, unlimited_dimensions=[])
 

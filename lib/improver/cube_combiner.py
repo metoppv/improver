@@ -81,6 +81,66 @@ class CubeCombiner(object):
         return desc
 
     @staticmethod
+    def expand_bounds(result_cube, cubelist, coord, point):
+        """Alter a coord such that bounds are expanded to cover
+        the entire range of the input cubes.
+
+        For example, in the case of time cubes if the input cubes have
+        bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
+        have bounds of [0000Z,0200Z]
+
+        Args:
+            result_cube (iris.cube.Cube):
+                A cube with metadata for the results.
+            cubelist (iris.cube.CubeList):
+                The list of cubes with coordinates to be combined
+            coord (str):
+                The coordinate to be combined.
+            point (str):
+                The method of calculating the new point for the coordinate.
+                Currently accepts:
+                    'mid' - halfway between the bounds
+                    'upper' - equal to the upper bound
+        Returns:
+            result (iris.cube.Cube):
+                Cube with coord expanded.
+
+                n.b. If argument point == 'mid' then python will convert
+                result.coord('coord').points[0] to a float.
+
+                This is to ensure that midpoints are not accidentally
+                rounded down by Python's default integer divide behavour:
+                For example if you combined cubes for accumulation for three
+                hours the midpoint should be 1.5 hours into the period.
+                Integer behaviour would give 3 / 2 = 1
+        """
+        if len(result_cube.coord(coord).points) != 1:
+            emsg = ('the expand bounds function should only be used on a'
+                    'coordinate with a single point. The coordinate \"{}\" '
+                    'has {} points.')
+            raise ValueError(emsg.format(
+                coord,
+                len(result_cube.coord(coord).points)))
+
+        bounds = ([cube.coord(coord).bounds for cube in cubelist])
+        if None in bounds:
+            points = ([cube.coord(coord).points for cube in cubelist])
+            new_low_bound = np.min(points)
+            new_top_bound = np.max(points)
+        else:
+            new_low_bound = np.min(bounds)
+            new_top_bound = np.max(bounds)
+        result_cube.coord(coord).bounds = [[new_low_bound, new_top_bound]]
+
+        if point == 'mid':
+            result_cube.coord(coord).points = [((new_top_bound -
+                                                 new_low_bound) / 2.) +
+                                               new_low_bound]
+        elif point == 'upper':
+            result_cube.coord(coord).points = [new_top_bound]
+        return result_cube
+
+    @staticmethod
     def combine(cube1, cube2, operation):
         """
         Combine cube data
@@ -119,7 +179,8 @@ class CubeCombiner(object):
 
     def process(self, cube_list, new_diagnostic_name,
                 revised_coords=None,
-                revised_attributes=None):
+                revised_attributes=None,
+                expanded_coord=None):
         """
         Create a combined cube.
 
@@ -162,7 +223,15 @@ class CubeCombiner(object):
                                   self.operation)
 
         if self.operation == 'mean':
-            result = result / len(cube_list)
+            result.data = result.data / len(cube_list)
+
+        # If cube has coord bounds that we want to expand
+        if expanded_coord:
+            for coord, treatment in expanded_coord.iteritems():
+                result = self.expand_bounds(result,
+                                            cube_list,
+                                            coord=coord,
+                                            point=treatment)
 
         result = amend_metadata(result,
                                 new_diagnostic_name,
