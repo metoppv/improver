@@ -117,12 +117,27 @@ class Test_reweight_weights(IrisTest):
         self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
                                                             self.weights_cube)
 
+    def test_basic(self):
+        """Test that a cube is modified by this function"""
+        nbhooded_cube = self.weights_cube.copy()
+        self.plugin.reweight_weights(nbhooded_cube)
+        self.assertIsInstance(self.weights_cube, iris.cube.Cube)
+
     def test_no_NaNs_in_nbhooded_cube(self):
         """No NaNs in the neighbourhood cube, so no reweighting is needed"""
         nbhooded_cube = self.weights_cube.copy()
         expected_weights = self.weights_cube.data.copy()
         self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
+
+    def test_all_NaNs_in_nbhooded_cube(self):
+        """No NaNs in the neighbourhood cube, so no reweighting is needed"""
+        nbhood_data = np.empty(self.weights_cube.data.shape)
+        nbhood_data[:] = np.nan
+        nbhooded_cube = self.weights_cube.copy(nbhood_data)
+        message = "Sum of weights must be > 0.0"
+        with self.assertRaisesRegexp(ValueError, message):
+            self.plugin.reweight_weights(nbhooded_cube)
 
     def test_no_NaNs_in_nbhooded_cube_and_masked_weights(self):
         """No NaNs in the neighbourhood cube, but masked weights."""
@@ -277,6 +292,12 @@ class Test_process(IrisTest):
         self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
                                                             self.weights_cube)
 
+    def test_basic(self):
+        """Test that a cube is returned from the process method"""
+        nbhooded_cube = self.weights_cube.copy()
+        result = self.plugin.process(nbhooded_cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+
     def test_no_NaNs_in_nbhooded_cube(self):
         """No NaNs in the neighbourhood cube, so no reweighting is needed.
            The neighbourhood data has all values of 0.1 for the top and bottom
@@ -428,6 +449,37 @@ class Test_process(IrisTest):
                                      [0.2, 0.2, 0.2, 0.16, 0.12]]])
         result = self.plugin.process(nbhood_cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
+
+    def test_preserve_dimsensions_input(self):
+        """Test that the dimsensions on the output cube are the same as the
+           input cube, appart from the collapsed dimension.
+           Add threshold and realization coordinates and check they are in the
+           right place after collapsing the topographic_zone coordinate."""
+        nbhood_cube = self.weights_cube.copy()
+        nbhood_cube.remove_coord("realization")
+        nbhood_cubes = iris.cube.CubeList()
+        for i in range(3):
+            threshold_coord = DimCoord([i], long_name="threshold")
+            threshold_cube = iris.util.new_axis(nbhood_cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            nbhood_cubes.append(threshold_cube)
+        nbhood_cube = nbhood_cubes.concatenate_cube()
+        nbhood_cubes = iris.cube.CubeList()
+        for i in range(4):
+            threshold_coord = DimCoord([i], long_name="realization")
+            threshold_cube = iris.util.new_axis(nbhood_cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            nbhood_cubes.append(threshold_cube)
+        nbhood_cube = nbhood_cubes.concatenate_cube()
+        result = self.plugin.process(nbhood_cube)
+        expected_dims = [coord for coord in nbhood_cube.dim_coords
+                         if coord.long_name is not "topographic_zone"]
+        self.assertEqual(result.dim_coords, tuple(expected_dims))
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertEqual(result.coord_dims("threshold"), (1,))
+        self.assertEqual(result.coord_dims("projection_y_coordinate"), (2,))
+        self.assertEqual(result.coord_dims("projection_x_coordinate"), (3,))
+
 
 if __name__ == '__main__':
     unittest.main()
