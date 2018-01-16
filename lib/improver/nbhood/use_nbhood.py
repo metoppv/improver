@@ -304,5 +304,4 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         new_cell_methods = [cell_method for cell_method in result.cell_methods
                             if cell_method.coord_names != (self.coord_masked,)]
         result.cell_methods = tuple(new_cell_methods)
-        # TODO fix any metadata problems here.
         return result

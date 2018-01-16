@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for nbhood.ApplyNeighbourhoodProcessingWithAMask."""
+"""Unit tests for nbhood.CollapseMaskedNeighbourhoodCoordinate."""
 
 
 import unittest
@@ -454,7 +454,7 @@ class Test_process(IrisTest):
 
     def test_preserve_dimsensions_input(self):
         """Test that the dimsensions on the output cube are the same as the
-           input cube, appart from the collapsed dimension.
+           input cube, apart from the collapsed dimension.
            Add threshold and realization coordinates and check they are in the
            right place after collapsing the topographic_zone coordinate."""
         nbhood_cube = self.weights_cube.copy()

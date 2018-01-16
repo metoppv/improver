@@ -40,8 +40,10 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          [--re_mask | --collapse_dimension]
                                          [--weights_for_collapsing_dim WEIGHTS]
                                          [--intermediate_filepath INTERMEDIATE_FILEPATH]
+                                         [--no_clip]
                                          COORD_FOR_MASKING INPUT_FILE
                                          INPUT_MASK_FILE OUTPUT_FILE
+
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
