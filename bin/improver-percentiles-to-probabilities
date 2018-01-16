@@ -38,11 +38,11 @@ import warnings
 
 from improver.utilities.load import load_cube
 from improver.utilities.statistical_operations import \
-    PercentilesToProbabilities2D
+    ProbabilitiesFromPercentiles2D
 
 
 def main():
-    """ Load arguments and run PercentilesToProbabilities plugin """
+    """ Load arguments and run ProbabilitiesFromPercentiles plugin """
     parser = argparse.ArgumentParser(
         description="Calculate probability from a percentiled field at a "
         "2D threshold level.  Eg for 2D percentile levels at different "
@@ -67,7 +67,7 @@ def main():
     threshold_cube = load_cube(args.threshold_filepath)
     percentiles_cube = load_cube(args.percentiles_filepath)
 
-    result = PercentilesToProbabilities2D(percentiles_cube, args.new_name)
+    result = ProbabilitiesFromPercentiles2D(percentiles_cube, args.new_name)
     probability_cube = result.process(threshold_cube)
 
     iris.save(probability_cube, args.output_filepath)

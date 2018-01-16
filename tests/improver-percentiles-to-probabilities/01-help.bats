@@ -36,24 +36,23 @@
 usage: improver-percentiles-to-probabilities [-h] [--new_name NEW_NAME]
                                              PERCENTILES_FILE THRESHOLD_FILE
                                              OUTPUT_FILE
-Calculate probability from a percentiled field at a 2D threshold level.  Eg
-for 2D percentile levels at different heights, calculate probability that
-height is at ground level, where the threshold file contains a 2D topography
-field.
 
-positional_arguments:
-  PERCENTILES_FILE      A path to an input NetCDF file containing a
-                        percentiled field
-  THRESHOLD_FILE        A path to an input NetCDF file containing a
-                        threshold value at which probabilities should be
-                        calculated.
-  OUTPUT_FILE           The output path for the processed NetCDF.
+Calculate probability from a percentiled field at a 2D threshold level. Eg for
+2D percentile levels at different heights, calculate probability that height
+is at ground level, where the threshold file contains a 2D topography field.
+
+positional arguments:
+  PERCENTILES_FILE     A path to an input NetCDF file containing a percentiled
+                       field
+  THRESHOLD_FILE       A path to an input NetCDF file containing a threshold
+                       value at which probabilities should be calculated.
+  OUTPUT_FILE          The output path for the processed NetCDF
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --new-name NEW_NAME   Name for data in output cube.  Defaults to
-                        'probability_of_X', where X is the percentiles cube
-                        data name
+  -h, --help           show this help message and exit
+  --new_name NEW_NAME  Name for data in output cube. Defaults to
+                       'probability_of_X', where X is the percentiles cube
+                       data name
 __HELP__
   [[ "$output" == "$expected" ]]
 }
