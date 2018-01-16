@@ -71,7 +71,7 @@ class Test_reweight_weights(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.mask = np.array([[[1, 1, 1., 0, 0],
+        self.mask = np.array([[[1, 1, 1, 0, 0],
                                [1, 1, 0, 0, 0],
                                [1, 0, 0, 0, 0],
                                [1, 0, 0, 0, 0],
@@ -89,21 +89,21 @@ class Test_reweight_weights(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         self.cube = iris.util.squeeze(self.cube)
-        weights_data = np.array([[[0.8, 0.7, 0., 0, 0],
-                                  [0.7, 0.3, 0, 0, 0],
-                                  [0.3, 0.1, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0]],
-                                 [[0.2, 0.3, 1, 1, 1],
-                                  [0.3, 0.7, 1, 1, 1],
-                                  [0.7, 0.9, 1, 1, 1],
-                                  [1, 1, 1, 0.9, 0.5],
-                                  [1, 1, 1, 0.6, 0.2]],
-                                 [[0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0.1, 0.5],
-                                  [0, 0, 0, 0.4, 0.8]]])
+        weights_data = np.array([[[0.8, 0.7, 0.0, 0.0, 0.0],
+                                  [0.7, 0.3, 0.0, 0.0, 0.0],
+                                  [0.3, 0.1, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0]],
+                                 [[0.2, 0.3, 1.0, 1.0, 1.0],
+                                  [0.3, 0.7, 1.0, 1.0, 1.0],
+                                  [0.7, 0.9, 1.0, 1.0, 1.0],
+                                  [1.0, 1.0, 1.0, 0.9, 0.5],
+                                  [1.0, 1.0, 1.0, 0.6, 0.2]],
+                                 [[0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.1, 0.5],
+                                  [0.0, 0.0, 0.0, 0.4, 0.8]]])
         topographic_zone_points = [50, 150, 250]
         topographic_zone_bounds = [[0, 100], [100, 200], [200, 300]]
 
@@ -118,7 +118,7 @@ class Test_reweight_weights(IrisTest):
                                                             self.weights_cube)
 
     def test_basic(self):
-        """Test that a cube is modified by this function"""
+        """Test weights_cube is still a cube after the function call"""
         nbhooded_cube = self.weights_cube.copy()
         self.plugin.reweight_weights(nbhooded_cube)
         self.assertIsInstance(self.weights_cube, iris.cube.Cube)
@@ -131,7 +131,8 @@ class Test_reweight_weights(IrisTest):
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
     def test_all_NaNs_in_nbhooded_cube(self):
-        """No NaNs in the neighbourhood cube, so no reweighting is needed"""
+        """Test an error is raised when all NaNs in the nbhood cube so cannot
+           have any sensible weights."""
         nbhood_data = np.empty(self.weights_cube.data.shape)
         nbhood_data[:] = np.nan
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
@@ -158,21 +159,21 @@ class Test_reweight_weights(IrisTest):
         nbhood_data[0, 0:2, 0] = np.nan
         nbhood_data[2, 2:4, 4] = np.nan
 
-        expected_weights = np.array([[[0.0, 0.7, 0., 0, 0],
-                                      [0.0, 0.3, 0, 0, 0],
-                                      [0.3, 0.1, 0, 0, 0],
-                                      [0, 0, 0, 0, 0],
-                                      [0, 0, 0, 0, 0]],
-                                     [[1.0, 0.3, 1, 1, 1],
-                                      [1.0, 0.7, 1, 1, 1],
-                                      [0.7, 0.9, 1, 1, 1],
-                                      [1, 1, 1, 0.9, 1.0],
-                                      [1, 1, 1, 0.6, 0.2]],
-                                     [[0, 0, 0, 0, 0],
-                                      [0, 0, 0, 0, 0],
-                                      [0, 0, 0, 0, 0],
-                                      [0, 0, 0, 0.1, 0.0],
-                                      [0, 0, 0, 0.4, 0.8]]])
+        expected_weights = np.array([[[0.0, 0.7, 0.0, 0.0, 0.0],
+                                      [0.0, 0.3, 0.0, 0.0, 0.0],
+                                      [0.3, 0.1, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.0, 0.0]],
+                                     [[1.0, 0.3, 1.0, 1.0, 1.0],
+                                      [1.0, 0.7, 1.0, 1.0, 1.0],
+                                      [0.7, 0.9, 1.0, 1.0, 1.0],
+                                      [1.0, 1.0, 1.0, 0.9, 1.0],
+                                      [1.0, 1.0, 1.0, 0.6, 0.2]],
+                                     [[0.0, 0.0, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.1, 0.0],
+                                      [0.0, 0.0, 0.0, 0.4, 0.8]]])
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
         self.plugin.reweight_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
@@ -217,36 +218,37 @@ class Test_reweight_weights(IrisTest):
     def test_normalizing_along_another_axis(self):
         """Normalizing along another axis, when this is a valid thing to do.
            This is normalizing along the rows of the input weights."""
-        input_weights = np.array([[[0.0, 0.7, 0., 0, 0],
-                                   [0.0, 0.3, 0, 0, 0],
-                                   [0.3, 0.1, 0, 0, 0],
-                                   [0.2, 0, 0, 0, 0],
-                                   [0.1, 0, 0, 0, 0]],
-                                  [[1.0, 0, 1, 1, 1],
-                                   [1.0, 0, 1, 1, 1],
-                                   [0, 0, 1, 1, 1],
-                                   [0, 0, 0, 0.9, 0.1],
-                                   [1, 1, 1, 0, 0]],
-                                  [[0.2, 0, 0, 0, 0],
-                                   [0.3, 0, 0, 0, 0],
-                                   [0.1, 0, 0, 0, 0],
-                                   [0, 0, 0, 0.1, 0.0],
-                                   [0, 0, 0, 0.4, 0.8]]])
-        expected_weights = np.array([[[0.0, 1, 0., 0, 0],
-                                      [0.0, 1, 0, 0, 0],
-                                      [0.75, 0.25, 0, 0, 0],
-                                      [1, 0, 0, 0, 0],
-                                      [1, 0, 0, 0, 0]],
-                                     [[0.25, 0, 0.25, 0.25, 0.25],
-                                      [0.25, 0, 0.25, 0.25, 0.25],
-                                      [0, 0, 0.333333, 0.333333, 0.333333],
-                                      [0, 0, 0, 0.9, 0.1],
-                                      [0.333333, 0.333333, 0.333333, 0, 0]],
-                                     [[1, 0, 0, 0, 0],
-                                      [1, 0, 0, 0, 0],
-                                      [1, 0, 0, 0, 0],
-                                      [0, 0, 0, 1, 0.0],
-                                      [0, 0, 0, 0.333333, 0.666667]]])
+        input_weights = np.array([[[0.0, 0.7, 0.0, 0.0, 0.0],
+                                   [0.0, 0.3, 0.0, 0.0, 0.0],
+                                   [0.3, 0.1, 0.0, 0.0, 0.0],
+                                   [0.2, 0.0, 0.0, 0.0, 0.0],
+                                   [0.1, 0.0, 0.0, 0.0, 0.0]],
+                                  [[1.0, 0.0, 1.0, 1.0, 1.0],
+                                   [1.0, 0.0, 1.0, 1.0, 1.0],
+                                   [0.0, 0.0, 1.0, 1.0, 1.0],
+                                   [0.0, 0.0, 0.0, 0.9, 0.1],
+                                   [1.0, 1.0, 1.0, 0.0, 0.0]],
+                                  [[0.2, 0.0, 0.0, 0.0, 0.0],
+                                   [0.3, 0.0, 0.0, 0.0, 0.0],
+                                   [0.1, 0.0, 0.0, 0.0, 0.0],
+                                   [0.0, 0.0, 0.0, 0.1, 0.0],
+                                   [0.0, 0.0, 0.0, 0.4, 0.8]]])
+        expected_weights = np.array([[[0.0, 1.0, 0.0, 0.0, 0.0],
+                                      [0.0, 1.0, 0.0, 0.0, 0.0],
+                                      [0.75, 0.25, 0.0, 0.0, 0.0],
+                                      [1.0, 0.0, 0.0, 0.0, 0.0],
+                                      [1.0, 0.0, 0.0, 0.0, 0.0]],
+                                     [[0.25, 0.0, 0.25, 0.25, 0.25],
+                                      [0.25, 0.0, 0.25, 0.25, 0.25],
+                                      [0.0, 0.0, 0.333333, 0.333333, 0.333333],
+                                      [0.0, 0.0, 0.0, 0.9, 0.1],
+                                      [0.333333, 0.333333, 0.333333, 0.0, 0.0]
+                                      ],
+                                     [[1.0, 0.0, 0.0, 0.0, 0.0],
+                                      [1.0, 0.0, 0.0, 0.0, 0.0],
+                                      [1.0, 0.0, 0.0, 0.0, 0.0],
+                                      [0.0, 0.0, 0.0, 1.0, 0.0],
+                                      [0.0, 0.0, 0.0, 0.333333, 0.666667]]])
         weights_cube = self.weights_cube.copy(input_weights)
         nbhooded_cube = self.weights_cube.copy()
         plugin = CollapseMaskedNeighbourhoodCoordinate(
@@ -264,21 +266,21 @@ class Test_process(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         self.cube = iris.util.squeeze(self.cube)
-        weights_data = np.array([[[0.8, 0.7, 0., 0, 0],
-                                  [0.7, 0.3, 0, 0, 0],
-                                  [0.3, 0.1, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0]],
-                                 [[0.2, 0.3, 1, 1, 1],
-                                  [0.3, 0.7, 1, 1, 1],
-                                  [0.7, 0.9, 1, 1, 1],
-                                  [1, 1, 1, 0.9, 0.5],
-                                  [1, 1, 1, 0.6, 0.2]],
-                                 [[0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0, 0],
-                                  [0, 0, 0, 0.1, 0.5],
-                                  [0, 0, 0, 0.4, 0.8]]])
+        weights_data = np.array([[[0.8, 0.7, 0.0, 0.0, 0.0],
+                                  [0.7, 0.3, 0.0, 0.0, 0.0],
+                                  [0.3, 0.1, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0]],
+                                 [[0.2, 0.3, 1.0, 1.0, 1.0],
+                                  [0.3, 0.7, 1.0, 1.0, 1.0],
+                                  [0.7, 0.9, 1.0, 1.0, 1.0],
+                                  [1.0, 1.0, 1.0, 0.9, 0.5],
+                                  [1.0, 1.0, 1.0, 0.6, 0.2]],
+                                 [[0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.0, 0.0],
+                                  [0.0, 0.0, 0.0, 0.1, 0.5],
+                                  [0.0, 0.0, 0.0, 0.4, 0.8]]])
         topographic_zone_points = [50, 150, 250]
         topographic_zone_bounds = [[0, 100], [100, 200], [200, 300]]
 
@@ -345,21 +347,21 @@ class Test_process(IrisTest):
         """No weights are given so a mean without weighting should be used to
            collapse the coordinate."""
 
-        nbhood_data = np.array([[[0, 0, 0., 0, 0],
-                                 [0.6, 0.3, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0]],
-                                [[0.3, 0.3, 1, 1, 1],
-                                 [0, 0, 1, 1, 1],
-                                 [0.6, 0.9, 1, 1, 1],
-                                 [1, 1, 1, 0.9, 0.6],
-                                 [1, 1, 1, 0, 0]],
-                                [[0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0.3, 0.9]]])
+        nbhood_data = np.array([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.6, 0.3, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0]],
+                                [[0.3, 0.3, 1.0, 1.0, 1.0],
+                                 [0.0, 0.0, 1.0, 1.0, 1.0],
+                                 [0.6, 0.9, 1.0, 1.0, 1.0],
+                                 [1.0, 1.0, 1.0, 0.9, 0.6],
+                                 [1.0, 1.0, 1.0, 0.0, 0.0]],
+                                [[0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.3, 0.9]]])
 
         expected_result = np.array([[0.1, 0.1, 0.333333, 0.333333, 0.333333],
                                     [0.2, 0.1, 0.333333, 0.333333, 0.333333],
@@ -401,11 +403,11 @@ class Test_process(IrisTest):
         plugin = CollapseMaskedNeighbourhoodCoordinate(
             "topographic_zone", weights=self.weights_cube)
         result = plugin.process(nbhooded_cube)
-        expected_result = np.array([[0, 0, 0, 0.2, 0.2],
-                                    [0, 0, 0.2, 0.2, 0.2],
-                                    [0., 0.19, 0.2, 0.2, 0.2],
-                                    [0, 0.2, 0.2, 0.19, 0.2],
-                                    [0, 0, 0, 0, 0]])
+        expected_result = np.array([[0.0, 0.0, 0.0, 0.2, 0.2],
+                                    [0.0, 0.0, 0.2, 0.2, 0.2],
+                                    [0.0, 0.19, 0.2, 0.2, 0.2],
+                                    [0.0, 0.2, 0.2, 0.19, 0.2],
+                                    [0.0, 0.0, 0.0, 0.0, 0.0]])
         expected_mask = np.array([[True, True, True, False, False],
                                   [True, True, False, False, False],
                                   [True, False, False, False, False],
@@ -466,10 +468,10 @@ class Test_process(IrisTest):
         nbhood_cube = nbhood_cubes.concatenate_cube()
         nbhood_cubes = iris.cube.CubeList()
         for i in range(4):
-            threshold_coord = DimCoord([i], long_name="realization")
-            threshold_cube = iris.util.new_axis(nbhood_cube.copy())
-            threshold_cube.add_dim_coord(threshold_coord, 0)
-            nbhood_cubes.append(threshold_cube)
+            realization_coord = DimCoord([i], long_name="realization")
+            realization_cube = iris.util.new_axis(nbhood_cube.copy())
+            realization_cube.add_dim_coord(realization_coord, 0)
+            nbhood_cubes.append(realization_cube)
         nbhood_cube = nbhood_cubes.concatenate_cube()
         result = self.plugin.process(nbhood_cube)
         expected_dims = [coord for coord in nbhood_cube.dim_coords
@@ -479,6 +481,50 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord_dims("threshold"), (1,))
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (2,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (3,))
+
+    def test_preserve_dimsensions_with_single_point(self):
+        """Test that the dimsensions on the output cube are the same as the
+           input cube, appart from the collapsed dimension.
+           Add threshold and realization coordinates and check they are in the
+           right place after collapsing the topographic_zone coordinate.
+           Check that a dimension coordinate with a single point is preserved
+           and not demoted to a scalar coordinate."""
+        nbhood_cube = self.weights_cube.copy()
+        nbhood_cube.remove_coord("realization")
+        nbhood_cubes = iris.cube.CubeList()
+        for i in range(3):
+            threshold_coord = DimCoord([i], long_name="threshold")
+            threshold_cube = iris.util.new_axis(nbhood_cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            nbhood_cubes.append(threshold_cube)
+        nbhood_cube = nbhood_cubes.concatenate_cube()
+        nbhood_cubes = iris.cube.CubeList()
+        for i in range(1):
+            realization_coord = DimCoord([i], long_name="realization")
+            realization_cube = iris.util.new_axis(nbhood_cube.copy())
+            realization_cube.add_dim_coord(realization_coord, 0)
+            nbhood_cubes.append(realization_cube)
+        nbhood_cube = nbhood_cubes.concatenate_cube()
+        result = self.plugin.process(nbhood_cube)
+        expected_dims = [coord for coord in nbhood_cube.dim_coords
+                         if coord.long_name is not "topographic_zone"]
+        self.assertEqual(result.dim_coords, tuple(expected_dims))
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertEqual(result.coord_dims("threshold"), (1,))
+        self.assertEqual(result.coord_dims("projection_y_coordinate"), (2,))
+        self.assertEqual(result.coord_dims("projection_x_coordinate"), (3,))
+
+    def test_remove_topographic_zone_reference(self):
+        """Test that we are successfully removing topographic zone coordinate
+           and the cell method assocated with its collapse from the output
+           cube"""
+        nbhooded_cube = self.weights_cube.copy()
+        unrelated_cell_method = iris.coords.CellMethod(
+            "mean", coords="realization")
+        nbhooded_cube.cell_methods = (unrelated_cell_method,)
+        result = self.plugin.process(nbhooded_cube)
+        self.assertEqual((unrelated_cell_method,), result.cell_methods)
+        self.assertEqual(result.coords("topographic_zone"), [])
 
 
 if __name__ == '__main__':

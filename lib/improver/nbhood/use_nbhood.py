@@ -292,5 +292,17 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
             collapsed_slice = slice_3d.collapsed(
                 self.coord_masked, iris.analysis.MEAN, weights=weights)
             cubelist.append(collapsed_slice)
+        result = cubelist.merge_cube()
+        # Promote any scalar coordinates with one point back to dimension
+        # coordinates if they were dimensions in the input cube.
+        # Take a slice over the coordinate we are collapsing as we do not
+        # expect this in the output cube.
+        first_slice = next(cube.slices_over([self.coord_masked]))
+        result = check_cube_coordinates(first_slice, result)
+        # Remove any reference to the coordinate we have collapsed.
+        result.remove_coord(self.coord_masked)
+        new_cell_methods = [cell_method for cell_method in result.cell_methods
+                            if cell_method.coord_names != (self.coord_masked,)]
+        result.cell_methods = tuple(new_cell_methods)
         # TODO fix any metadata problems here.
-        return cubelist.merge_cube()
+        return result
