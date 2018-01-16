@@ -140,25 +140,43 @@ class ProbabilitiesFromPercentiles2D(object):
                 A 2-dimensional cube of probabilities obtained by interpolating
                 between percentile values.
         """
-        probabilities = self.create_probability_cube(percentiles_cube)
 
         percentile_coordinate = find_percentile_coordinate(percentiles_cube)
         percentiles = percentile_coordinate.points
 
-        threshold_heights = threshold_cube.data.flatten()
-        pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
-
         percentile_point_heights_list = []
         for cube in percentiles_cube.slices(percentile_coordinate):
             percentile_point_heights_list.append(cube.data.flatten())
+        pp_heights_array = np.array(percentile_point_heights_list)
 
-        # loop over spatial points in 2D field
-        for index, (percentile_heights, threshold_height) in enumerate(
-                zip(percentile_point_heights_list, threshold_heights)):
-            pdata[index] = 0.01*np.interp(threshold_height, percentile_heights,
-                                          percentiles)
-        pdata[np.where(pdata < 0)] = 0.
-        pdata[np.where(pdata > 1)] = 1.
+        threshold_heights = threshold_cube.data.flatten()
+        pdata = np.full(threshold_heights.shape, np.nan, dtype=float)
+
+        # Fill in zeros and ones
+        # TODO generalise constraint: should work for ANY percentile coord
+        zero_level = percentiles_cube.extract(iris.Constraint(percentiles=0))
+        one_level = percentiles_cube.extract(iris.Constraint(percentiles=100))
+
+        zero_data = zero_level.data.flatten()
+        one_data = one_level.data.flatten()
+
+        if sum(one_data - zero_data) < 0:
+            pdata[np.where(threshold_heights > zero_data)] = 0
+            pdata[np.where(threshold_heights < one_data)] = 1
+        else:
+            pdata[np.where(threshold_heights < zero_data)] = 0
+            pdata[np.where(threshold_heights > one_data)] = 1
+
+        # Interpolate between percentiles only at necessary spatial indices
+        indices = np.where(np.isnan(pdata))
+        pvals = [0.01*np.interp(threshold_height, percentile_heights,
+                                percentiles)
+                 for percentile_heights, threshold_height in zip(
+                     pp_heights_array[indices], threshold_heights[indices])]
+
+        pdata[indices] = pvals
+
+        probabilities = self.create_probability_cube(percentiles_cube)
         probabilities.data = pdata.reshape(threshold_cube.shape)
         return probabilities
 

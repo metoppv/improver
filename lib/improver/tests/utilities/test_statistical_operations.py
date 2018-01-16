@@ -44,6 +44,8 @@ from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 
+# TODO make test arrays smaller
+
 
 def set_up_percentiles_cube():
     """ Set up 3D cube with percentiles of height """
