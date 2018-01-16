@@ -48,16 +48,17 @@ def main():
         "2D threshold level.  Eg for 2D percentile levels at different "
         "heights, calculate probability that height is at ground level, where"
         " the threshold file contains a 2D topography field.")
-    parser.add_argument("percentiles_filepath", metavar="INPUT_FILE",
+    parser.add_argument("percentiles_filepath", metavar="PERCENTILES_FILE",
                         help="A path to an input NetCDF file containing a "
                         "percentiled field")
-    parser.add_argument("threshold_filepath", metavar="INPUT_FILE",
+    parser.add_argument("threshold_filepath", metavar="THRESHOLD_FILE",
                         help="A path to an input NetCDF file containing a "
                         "threshold value at which probabilities should be "
                         "calculated.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--output_cube_name", default=None, type=str,
+    parser.add_argument("--new_name", metavar="NEW_NAME", default=None,
+                        type=str,
                         help="Name for data in output cube.  Defaults to "
                         "'probability_of_X', where X is the percentiles cube "
                         "data name")
@@ -66,8 +67,7 @@ def main():
     threshold_cube = load_cube(args.threshold_filepath)
     percentiles_cube = load_cube(args.percentiles_filepath)
 
-    result = PercentilesToProbabilities2D(percentiles_cube,
-                                          args.output_cube_name)
+    result = PercentilesToProbabilities2D(percentiles_cube, args.new_name)
     probability_cube = result.process(threshold_cube)
 
     iris.save(probability_cube, args.output_filepath)
