@@ -100,8 +100,9 @@ class CubeCombiner(object):
             point (str):
                 The method of calculating the new point for the coordinate.
                 Currently accepts:
-                    'mid' - halfway between the bounds
-                    'upper' - equal to the upper bound
+
+                    | 'mid' - halfway between the bounds
+                    | 'upper' - equal to the upper bound
         Returns:
             result (iris.cube.Cube):
                 Cube with coord expanded.
