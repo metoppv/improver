@@ -135,24 +135,31 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 coordinates match the input cube.
 
         """
-        cube_slices = iris.cube.CubeList([])
-        for cube_slice in mask_cube.slices_over(self.coord_for_masking):
-            output_cube = NeighbourhoodProcessing(
-                self.neighbourhood_method, self.radii,
-                lead_times=self.lead_times,
-                weighted_mode=self.weighted_mode, ens_factor=self.ens_factor,
-                sum_or_fraction=self.sum_or_fraction, re_mask=self.re_mask
-                ).process(cube, mask_cube=cube_slice)
-            coord_object = cube_slice.coord(self.coord_for_masking).copy()
-            output_cube.add_aux_coord(coord_object)
-            output_cube = iris.util.new_axis(
-                output_cube, self.coord_for_masking)
-            cube_slices.append(output_cube)
-        concatenated_cube = cube_slices.concatenate_cube()
-        exception_coordinates = (
-            find_dimension_coordinate_mismatch(
-                cube, concatenated_cube, two_way_mismatch=False))
-        concatenated_cube = check_cube_coordinates(
-            cube, concatenated_cube,
-            exception_coordinates=exception_coordinates)
-        return concatenated_cube
+        yname = cube.coord(axis='y').name()
+        xname = cube.coord(axis='x').name()
+        result_slices = iris.cube.CubeList([])
+        for top_x_y_slice in cube.slices([yname, xname]):
+            cube_slices = iris.cube.CubeList([])
+            for cube_slice in mask_cube.slices_over(self.coord_for_masking):
+                output_cube = NeighbourhoodProcessing(
+                    self.neighbourhood_method, self.radii,
+                    lead_times=self.lead_times,
+                    weighted_mode=self.weighted_mode,
+                    ens_factor=self.ens_factor,
+                    sum_or_fraction=self.sum_or_fraction, re_mask=self.re_mask
+                    ).process(top_x_y_slice, mask_cube=cube_slice)
+                coord_object = cube_slice.coord(self.coord_for_masking).copy()
+                output_cube.add_aux_coord(coord_object)
+                output_cube = iris.util.new_axis(
+                    output_cube, self.coord_for_masking)
+                cube_slices.append(output_cube)
+            concatenated_cube = cube_slices.concatenate_cube()
+            exception_coordinates = (
+                find_dimension_coordinate_mismatch(
+                    top_x_y_slice, concatenated_cube, two_way_mismatch=False))
+            concatenated_cube = check_cube_coordinates(
+                top_x_y_slice, concatenated_cube,
+                exception_coordinates=exception_coordinates)
+            result_slices.append(concatenated_cube)
+        result = result_slices.merge_cube()
+        return result
