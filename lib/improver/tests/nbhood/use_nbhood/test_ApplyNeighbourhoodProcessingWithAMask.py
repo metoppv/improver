@@ -35,6 +35,7 @@ import unittest
 
 import iris
 from iris.tests import IrisTest
+from iris.coords import DimCoord
 import numpy as np
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
@@ -105,6 +106,11 @@ class Test_process(IrisTest):
         """Set up a cube."""
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+        # The neighbourhood code adds bounds to the coordinates if they are
+        # not present so add them now to make it easier to compare input and
+        # output from the plugin.
+        self.cube.coord("projection_x_coordinate").guess_bounds()
+        self.cube.coord("projection_y_coordinate").guess_bounds()
         self.cube = iris.util.squeeze(self.cube)
         mask_data = np.array([[[1, 0, 0, 0, 0],
                                [1, 1, 0, 0, 0],
@@ -160,6 +166,72 @@ class Test_process(IrisTest):
             coord_for_masking, radii).process(self.cube, self.mask_cube)
         self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_preserve_dimsensions_input(self):
+        """Test that the dimsensions on the output cube are the same as the
+           input cube, apart from the additional topographic zone coordinate.
+        """
+        self.cube.remove_coord("realization")
+        cubes = iris.cube.CubeList()
+        for i in range(3):
+            threshold_coord = DimCoord([i], long_name="threshold")
+            threshold_cube = iris.util.new_axis(self.cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            cubes.append(threshold_cube)
+        cube = cubes.concatenate_cube()
+        cubes = iris.cube.CubeList()
+        for i in range(4):
+            realization_coord = DimCoord([i], long_name="realization")
+            realization_cube = iris.util.new_axis(cube.copy())
+            realization_cube.add_dim_coord(realization_coord, 0)
+            cubes.append(realization_cube)
+        cube = cubes.concatenate_cube()
+        coord_for_masking = "topographic_zone"
+        radii = 2000
+        result = ApplyNeighbourhoodProcessingWithAMask(
+            coord_for_masking, radii).process(cube, self.mask_cube)
+        expected_dims = list(cube.dim_coords)
+        expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
+        self.assertEqual(result.dim_coords, tuple(expected_dims))
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertEqual(result.coord_dims("threshold"), (1,))
+        self.assertEqual(result.coord_dims("topographic_zone"), (2,))
+        self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
+        self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
+
+    def test_preserve_dimsensions_with_single_point(self):
+        """Test that the dimsensions on the output cube are the same as the
+           input cube, appart from the collapsed dimension.
+           Check that a dimension coordinate with a single point is preserved
+           and not demoted to a scalar coordinate."""
+        self.cube.remove_coord("realization")
+        cubes = iris.cube.CubeList()
+        for i in range(3):
+            threshold_coord = DimCoord([i], long_name="threshold")
+            threshold_cube = iris.util.new_axis(self.cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            cubes.append(threshold_cube)
+        cube = cubes.concatenate_cube()
+        cubes = iris.cube.CubeList()
+        for i in range(1):
+            realization_coord = DimCoord([i], long_name="realization")
+            realization_cube = iris.util.new_axis(cube.copy())
+            realization_cube.add_dim_coord(realization_coord, 0)
+            cubes.append(realization_cube)
+        cube = cubes.concatenate_cube()
+        coord_for_masking = "topographic_zone"
+        radii = 2000
+        result = ApplyNeighbourhoodProcessingWithAMask(
+            coord_for_masking, radii).process(cube, self.mask_cube)
+        expected_dims = list(cube.dim_coords)
+        expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
+
+        self.assertEqual(result.dim_coords, tuple(expected_dims))
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertEqual(result.coord_dims("threshold"), (1,))
+        self.assertEqual(result.coord_dims("topographic_zone"), (2,))
+        self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
+        self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
 
 
 if __name__ == '__main__':

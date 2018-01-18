@@ -162,4 +162,10 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 exception_coordinates=exception_coordinates)
             result_slices.append(concatenated_cube)
         result = result_slices.merge_cube()
+        exception_coordinates = (
+            find_dimension_coordinate_mismatch(
+                cube, result, two_way_mismatch=False))
+        result = check_cube_coordinates(
+            cube, result,
+            exception_coordinates=exception_coordinates)
         return result
