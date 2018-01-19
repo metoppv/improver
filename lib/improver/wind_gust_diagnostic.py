@@ -31,7 +31,7 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
-import numpy as np
+
 import iris
 from iris import FUTURE
 
