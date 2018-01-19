@@ -31,12 +31,13 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
-
+import numpy as np
 import iris
 from iris import FUTURE
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.cube_combiner import CubeCombiner
 
 FUTURE.netcdf_promote = True
 
@@ -201,18 +202,16 @@ class WindGustDiagnostic(object):
                    ' {0:s} {1:s}.'.format(perc_coord_gust.name(),
                                           perc_coord_ws.name()))
             raise ValueError(msg)
-        # Add metadata to both cubes
+
+        # Add metadata to gust cube
         req_cube_gust = self.add_metadata(req_cube_gust)
-        req_cube_ws = self.add_metadata(req_cube_ws)
-        # Merge cubes
-        merged_cube = merge_cubes(iris.cube.CubeList([req_cube_gust,
-                                                      req_cube_ws]))
-        # Calculate wind-gust diagnostic
-        cube_max = merged_cube.collapsed(perc_coord_gust.name(),
-                                         iris.analysis.MAX)
+
+        # Calculate wind-gust diagnostic using CubeCombiner
+        plugin = CubeCombiner('max')
+        result = plugin.combine(req_cube_gust, req_cube_ws, 'max')
 
         # Update metadata
-        result = self.update_metadata_after_max(cube_max,
+        result = self.update_metadata_after_max(result,
                                                 perc_coord_gust.name())
 
         return result
