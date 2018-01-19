@@ -142,14 +142,14 @@ class Test_create_probability_cube(IrisTest):
     def test_attributes(self):
         """ Test name and units are correctly set """
         result = self.pfp_instance.create_probability_cube(
-            self.percentiles_cube, self.percentile_coordinate)
+            self.percentiles_cube)
         self.assertEqual(result.units, "1")
         self.assertEqual(result.name(), self.new_name)
 
     def test_coordinate_collapse(self):
         """ Test probability cube has no percentile coordinate """
         result = self.pfp_instance.create_probability_cube(
-            self.percentiles_cube, self.percentile_coordinate)
+            self.percentiles_cube)
         with self.assertRaises(CoordinateNotFoundError):
             find_percentile_coordinate(result)
 
@@ -194,7 +194,7 @@ class Test_percentile_interpolation(IrisTest):
         expected = 1.0 - expected
 
         probability_cube = ProbabilitiesFromPercentiles2D(
-            percentiles_cube, inverse_ordering=True).percentile_interpolation(
+            percentiles_cube).percentile_interpolation(
                 self.orography_cube, percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
@@ -203,13 +203,30 @@ class Test_percentile_interpolation(IrisTest):
         Test for sensible behaviour when some percentile levels are equal
         """
         percentiles_cube = set_up_percentiles_cube()
-        percentiles_cube.data[0].fill(300)
+        percentiles_cube.data[0].fill(300.)
         expected = set_reference_probabilities()
-        expected[np.where(expected <= 0.25)] = 0.
+        expected[np.where(expected < 0.25)] = 0.
         probability_cube = ProbabilitiesFromPercentiles2D(
             percentiles_cube).percentile_interpolation(
                 self.orography_cube, percentiles_cube)
 
+        self.assertArrayAlmostEqual(probability_cube.data, expected)
+
+    def test_equal_percentiles_inverse_ordering(self):
+        """
+        Test for sensible behaviour when some percentile levels are equal
+        in the case of inverse ordering (as described above).
+        """
+        percentiles_cube = set_up_percentiles_cube()
+        percentiles_cube.data[0].fill(300.)
+        # Invert the values associated with the percentiles.
+        percentiles_cube.data = np.flipud(percentiles_cube.data)
+        expected = set_reference_probabilities()
+        expected[np.where(expected <= 0.25)] = 0.
+        expected = 1.0 - expected
+        probability_cube = ProbabilitiesFromPercentiles2D(
+            percentiles_cube).percentile_interpolation(
+                self.orography_cube, percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
 
@@ -251,7 +268,6 @@ class Test_process(IrisTest):
                                                              (grid_x, 2)])
 
         probability_cube = self.pfp_instance.process(threshold_cube)
-        print probability_cube
         self.assertSequenceEqual(probability_cube.shape,
                                  self.orography_cube.shape)
         self.assertArrayAlmostEqual(probability_cube.data,
