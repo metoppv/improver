@@ -70,7 +70,7 @@ class Test_reweight_weights(IrisTest):
     """Test the reweight_weights function."""
 
     def setUp(self):
-        """Set up a cube."""
+        """Set up a weights cube and default plugin instance."""
         self.mask = np.array([[[1, 1, 1, 0, 0],
                                [1, 1, 0, 0, 0],
                                [1, 0, 0, 0, 0],
@@ -420,7 +420,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(expected_result, np.ndarray)
 
     def test_multidemensional_neighbourhood_input(self):
-        """Test that we can collapse the right dimension when there arel
+        """Test that we can collapse the right dimension when there
            are additional leading dimensions like threshold."""
         nbhood_data = np.ones((3, 5, 5))
         nbhood_data[0] = nbhood_data[0]*0.1
@@ -499,11 +499,10 @@ class Test_process(IrisTest):
             nbhood_cubes.append(threshold_cube)
         nbhood_cube = nbhood_cubes.concatenate_cube()
         nbhood_cubes = iris.cube.CubeList()
-        for i in range(1):
-            realization_coord = DimCoord([i], long_name="realization")
-            realization_cube = iris.util.new_axis(nbhood_cube.copy())
-            realization_cube.add_dim_coord(realization_coord, 0)
-            nbhood_cubes.append(realization_cube)
+        realization_coord = DimCoord(0, long_name="realization")
+        realization_cube = iris.util.new_axis(nbhood_cube.copy())
+        realization_cube.add_dim_coord(realization_coord, 0)
+        nbhood_cubes.append(realization_cube)
         nbhood_cube = nbhood_cubes.concatenate_cube()
         result = self.plugin.process(nbhood_cube)
         expected_dims = [coord for coord in nbhood_cube.dim_coords

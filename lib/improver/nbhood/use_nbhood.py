@@ -262,7 +262,7 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
 
         Returns:
             result (Iris.cube.Cube):
-                Cube containing the weighted result from neighbourhood after
+                Cube containing the weighted mean from neighbourhood after
                 collapsing the chosen coordinate.
 
         """

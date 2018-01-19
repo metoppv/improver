@@ -141,7 +141,7 @@ class Test_normalise_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_returns_correct_values_2darray_axis0(self):
-        """Test normalizing along the collumns of the array."""
+        """Test normalizing along the columns of the array."""
         weights_in = np.array([[6.0, 3.0, 1.0],
                                [4.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=0)
@@ -159,7 +159,7 @@ class Test_normalise_weights(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_returns_correct_values_2darray_zero_weights(self):
-        """Test normalizing along the collumns of the array when there are
+        """Test normalizing along the columns of the array when there are
            zeros in the input array."""
         weights_in = np.array([[6.0, 3.0, 0.0],
                                [0.0, 1.0, 3.0]])

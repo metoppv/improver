@@ -140,7 +140,7 @@ class GenerateOrographyBandAncils(object):
         return result
 
     @staticmethod
-    def sea_mask(landmask, orog_band, sea_fillvalue=None):
+    def sea_mask(landmask, orog_band, sea_fill_value=None):
         """
         Function to mask sea points and substitute the default numpy
         fill value behind this mask_cube.
@@ -152,25 +152,25 @@ class GenerateOrographyBandAncils(object):
                 The binary array to which the landmask will be applied.
 
         Keyword Args:
-            sea_fillvalue (float):
-                A fillvalue to set sea points to and leave the output unmasked,
-                rather than the default behaviour of returning a masked array
-                with a default fill value.
+            sea_fill_value (float):
+                A fill value to set sea points to and leave the output
+                unmasked, rather than the default behaviour of returning a
+                masked array with a default fill value.
 
         Returns:
             mask_data (numpy array):
                 An array where the sea points have been masked out and filled
                 with a default fill value, or just filled with the given
-                sea_fillvalue and not masked.
+                sea_fill_value and not masked.
         """
         points_to_mask = np.logical_not(landmask)
-        if sea_fillvalue is None:
+        if sea_fill_value is None:
             mask_data = np.ma.masked_where(points_to_mask, orog_band)
-            sea_fillvalue = np.ma.default_fill_value(mask_data.data)
-            mask_data.data[points_to_mask] = sea_fillvalue
+            sea_fill_value = np.ma.default_fill_value(mask_data.data)
+            mask_data.data[points_to_mask] = sea_fill_value
         else:
             mask_data = orog_band
-            mask_data[points_to_mask] = sea_fillvalue
+            mask_data[points_to_mask] = sea_fill_value
         return mask_data
 
     def gen_orography_masks(
@@ -180,7 +180,8 @@ class GenerateOrographyBandAncils(object):
         Function to generate topographical band masks.
 
         For each threshold defined in 'thresholds', a cube with 0 over sea
-        points and 1 for land points within the topography band.
+        points and 1 for land points within the topography band will be
+        generated.
         The lower threshold is exclusive to the band whilst the upper
         threshold is inclusive i.e:
         lower_threshold < band <= upper_threshold
@@ -236,7 +237,7 @@ class GenerateOrographyBandAncils(object):
             if not isinstance(orog_band, np.ndarray):
                 orog_band = np.zeros(standard_orography.data.shape).astype(int)
             mask_data = self.sea_mask(standard_landmask.data, orog_band,
-                                      sea_fillvalue=0)
+                                      sea_fill_value=0)
             mask_cube = _make_mask_cube(
                 mask_data, key, coords, topographic_bounds=thresholds,
                 topographic_units=standard_orography.units)
