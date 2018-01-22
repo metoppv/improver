@@ -54,8 +54,8 @@ separately. These masked cubes are concatenated together in the output cube,
 resulting in a cube that has been processed using multiple masks having gained
 the extra dimension from the cube. There is also an option to re-mask the
 output cube, so that after neighbourhood processing, non-zero values are only
-present for unmasked grid points. There is an exta option of collapsing the
-dimension we gain using this processing using a weighted average.
+present for unmasked grid points. There is an alternative option of collapsing
+the dimension that we gain using this processing using a weighted average.
 
 positional arguments:
   COORD_FOR_MASKING     Coordinate to iterate over when applying a mask to the
@@ -110,8 +110,7 @@ optional arguments:
   --weights_for_collapsing_dim WEIGHTS
                         A path to an weights NetCDF file containing the
                         weights which are used for collapsing the dimension
-                        gained through masking. If they are not provided they
-                        default to equal weights.
+                        gained through masking.
   --intermediate_filepath INTERMEDIATE_FILEPATH
                         If provided the result after neighbourhooding, before
                         collapsing the extra dimension is saved in the given
@@ -122,6 +121,7 @@ optional arguments:
                         Once the neighbourhood code is fixed so it doesn't
                         produce values above or below the extremes in the
                         input data this option can be removed.
+
 
 __HELP__
   [[ "$output" == "$expected" ]]

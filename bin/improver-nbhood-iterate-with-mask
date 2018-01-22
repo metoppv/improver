@@ -134,8 +134,7 @@ def main():
                         default=None,
                         help='A path to an weights NetCDF file containing the '
                              'weights which are used for collapsing the '
-                             'dimension gained through masking. If they are '
-                             'not provided they default to equal weights.')
+                             'dimension gained through masking.')
     parser.add_argument('--intermediate_filepath', default=None,
                         help='If provided the result after neighbourhooding, '
                              'before collapsing the extra dimension is saved '
@@ -178,10 +177,7 @@ def main():
         iris.save(result, args.intermediate_filepath)
     # Collapse with the masking dimension.
     if args.collapse_dimension:
-        if args.weights_for_collapsing_dim is not None:
-            weights = load_cube(args.weights_for_collapsing_dim)
-        else:
-            weights = None
+        weights = load_cube(args.weights_for_collapsing_dim)
         result = CollapseMaskedNeighbourhoodCoordinate(
             args.coord_for_masking, weights=weights).process(result)
     iris.save(result, args.output_filepath)

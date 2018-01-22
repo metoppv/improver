@@ -343,36 +343,6 @@ class Test_process(IrisTest):
         result = self.plugin.process(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
-    def test_no_weights_given(self):
-        """No weights are given so a mean without weighting should be used to
-           collapse the coordinate."""
-
-        nbhood_data = np.array([[[0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.6, 0.3, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0]],
-                                [[0.3, 0.3, 1.0, 1.0, 1.0],
-                                 [0.0, 0.0, 1.0, 1.0, 1.0],
-                                 [0.6, 0.9, 1.0, 1.0, 1.0],
-                                 [1.0, 1.0, 1.0, 0.9, 0.6],
-                                 [1.0, 1.0, 1.0, 0.0, 0.0]],
-                                [[0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.0, 0.0],
-                                 [0.0, 0.0, 0.0, 0.3, 0.9]]])
-
-        expected_result = np.array([[0.1, 0.1, 0.333333, 0.333333, 0.333333],
-                                    [0.2, 0.1, 0.333333, 0.333333, 0.333333],
-                                    [0.2, 0.3, 0.333333, 0.333333, 0.333333],
-                                    [0.333333, 0.333333, 0.333333, 0.3, 0.2],
-                                    [0.333333, 0.333333, 0.333333, 0.1, 0.3]])
-        nbhooded_cube = self.weights_cube.copy(nbhood_data)
-        plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone")
-        result = plugin.process(nbhooded_cube)
-        self.assertArrayAlmostEqual(expected_result, result.data)
-
     def test_landsea_mask_in_weights(self):
         """Test that the final result from collapsing the nbhood retains the
            mask from weights input."""
