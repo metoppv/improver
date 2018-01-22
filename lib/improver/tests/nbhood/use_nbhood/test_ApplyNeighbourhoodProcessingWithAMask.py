@@ -43,6 +43,36 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 
 
+def add_dimensions_to_cube(cube, new_dims):
+    """
+    Add addtional dimensions to a cube by adding new axes to the input cube
+    and concatenating them.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube we want to add dimensions to.
+        new_dims (dictionary):
+            A dictionaly containing the names of the dimensions you want to
+            add and the number of points you want in that dimension.
+            e.g {"threshold": 3, "realization": 4}
+            Points in the additional dimension will be integers
+            counting up from 0.
+            The data will all be copies of the input cube's data.
+    Returns:
+        cube (iris.cube.Cube):
+            The iris cube with the additional dimensions added.
+    """
+    for dim_name, dim_size in new_dims.iteritems():
+        cubes = iris.cube.CubeList()
+        for i in range(dim_size):
+            threshold_coord = DimCoord([i], long_name=dim_name)
+            threshold_cube = iris.util.new_axis(cube.copy())
+            threshold_cube.add_dim_coord(threshold_coord, 0)
+            cubes.append(threshold_cube)
+        cube = cubes.concatenate_cube()
+    return cube
+
+
 def set_up_topographic_zone_cube(
         mask_data, topographic_zone_point, topographic_zone_bounds,
         num_time_points=1, num_grid_points=16, num_realization_points=1):
@@ -172,20 +202,8 @@ class Test_process(IrisTest):
            input cube, apart from the additional topographic zone coordinate.
         """
         self.cube.remove_coord("realization")
-        cubes = iris.cube.CubeList()
-        for i in range(3):
-            threshold_coord = DimCoord([i], long_name="threshold")
-            threshold_cube = iris.util.new_axis(self.cube.copy())
-            threshold_cube.add_dim_coord(threshold_coord, 0)
-            cubes.append(threshold_cube)
-        cube = cubes.concatenate_cube()
-        cubes = iris.cube.CubeList()
-        for i in range(4):
-            realization_coord = DimCoord([i], long_name="realization")
-            realization_cube = iris.util.new_axis(cube.copy())
-            realization_cube.add_dim_coord(realization_coord, 0)
-            cubes.append(realization_cube)
-        cube = cubes.concatenate_cube()
+        cube = add_dimensions_to_cube(self.cube,
+                                      {"realization": 4, "threshold": 3})
         coord_for_masking = "topographic_zone"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
@@ -206,19 +224,8 @@ class Test_process(IrisTest):
            and not demoted to a scalar coordinate."""
         self.cube.remove_coord("realization")
         cubes = iris.cube.CubeList()
-        for i in range(3):
-            threshold_coord = DimCoord([i], long_name="threshold")
-            threshold_cube = iris.util.new_axis(self.cube.copy())
-            threshold_cube.add_dim_coord(threshold_coord, 0)
-            cubes.append(threshold_cube)
-        cube = cubes.concatenate_cube()
-        cubes = iris.cube.CubeList()
-        for i in range(1):
-            realization_coord = DimCoord([i], long_name="realization")
-            realization_cube = iris.util.new_axis(cube.copy())
-            realization_cube.add_dim_coord(realization_coord, 0)
-            cubes.append(realization_cube)
-        cube = cubes.concatenate_cube()
+        cube = add_dimensions_to_cube(self.cube,
+                                      {"threshold": 4, "realization": 1})
         coord_for_masking = "topographic_zone"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
