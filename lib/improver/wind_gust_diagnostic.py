@@ -35,7 +35,6 @@ import warnings
 import iris
 from iris import FUTURE
 
-from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.cube_combiner import CubeCombiner
 
@@ -201,6 +200,20 @@ class WindGustDiagnostic(object):
                    'does not match coord of wind-speed data'
                    ' {0:s} {1:s}.'.format(perc_coord_gust.name(),
                                           perc_coord_ws.name()))
+            raise ValueError(msg)
+
+        # Check times are compatible.
+        msg = ('Could not match time coordinate')
+        try:
+            wg_time = req_cube_gust.coord('time')
+            ws_time = req_cube_ws.coord('time')
+            for i, point in enumerate(wg_time.points):
+                if point != ws_time.points[i]:
+                    if ws_time.points[i] < wg_time.bounds[i][0]:
+                        raise ValueError(msg)
+                    elif ws_time.points[i] > wg_time.bounds[i][1]:
+                        raise ValueError(msg)
+        except:
             raise ValueError(msg)
 
         # Add metadata to gust cube
