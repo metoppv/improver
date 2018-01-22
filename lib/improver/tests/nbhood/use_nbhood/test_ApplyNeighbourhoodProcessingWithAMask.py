@@ -223,7 +223,6 @@ class Test_process(IrisTest):
            Check that a dimension coordinate with a single point is preserved
            and not demoted to a scalar coordinate."""
         self.cube.remove_coord("realization")
-        cubes = iris.cube.CubeList()
         cube = add_dimensions_to_cube(self.cube,
                                       {"threshold": 4, "realization": 1})
         coord_for_masking = "topographic_zone"
