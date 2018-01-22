@@ -53,13 +53,14 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         neighbourhood. The most obvious example of this is to divide the
         points in your cube into bands of similar orographic height.
         ::
-                  ........................
+
+            ..............................
             Band 2        ---
-                  ......./...\.../\.......
+            ............./...\.../\.......
             Band 1      /     ---  \\
-                  ...../............\.....
+            .........../............\.....
             Band 0    /              --
-                  ..--.................\..
+            ........--.................\..
 
         In this case the mask cube that comes in has a "topographic_zone"
         coordinate and each slice along this dimension has a 2D mask,
@@ -225,6 +226,68 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
     adjust the weights between the bands in the coordinate for the points
     where the were no points within a neighbourhood for and a non-zero
     weighting.
+
+    Example:
+
+        This plugin is designed to work with
+        :class:`~improver.nbhood.use_nbhood.\
+ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the resulting
+        cube based on the masks that are applied. This most obvious example
+        of these masks are topographic bands which separate the points in the
+        field to be neighbourhooded into bands with points of similar
+        orographic height.
+        ::
+
+            ..............................
+            Band 3
+            ..............................
+            Band 2        ---
+            ............./...\.../\.......
+            Band 1      /     ---  \\
+            .........../............\.....
+            Band 0    /              --
+            ........--.................\..
+
+
+        The cube that is input into this plugin has had neighbourhooding
+        applied *n* times for the *n* bands. We now want to collapse this
+        new "topographic_zone" coordinate by weighting between adjacent bands.
+
+        For example below we have two points A and B. Say point A was halfway
+        between the midpoint and top of the lower band. We would want to
+        generate a final result by weighting 0.75 times to neighbourhooded
+        value from the bottom band and 0.25 times the neighbourhooded value in
+        the upper band. For point B we would take equal weightings between the
+        bands. There is a plugin to generate weights here:
+        :class:`~improver.generate_ancillaries.\
+generate_topographic_zone_weights.GenerateTopographicZoneWeights`
+        ::
+
+                        A             B
+                    ..........................
+            band 2
+
+                    ..................x.......
+                        x
+            band 1
+                    ..........................
+
+        We may need adjust the weights if there is missing data in the adjacent
+        band. If we look at the diagram with labelled bands, points that are
+        near the top of band 2 could be weighted with band 3, except there
+        are no nearby points in band 3. In this case the neighbourhood code
+        puts NaNs in band 3 and we want to take 100% of band 2. This can be
+        easily done by renormalization of the weights.
+
+        Once we have valid weights for adjacent bands for each point we can
+        collapse the "topographic_zone" coordinate using a weighted mean.
+
+        When this plugin is used alongside :class:`~improver.nbhood.use_nbhood.\
+ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the same
+        dimensions as the original cube, but the neighbourhood processing
+        has been applied using masks so that only similar points are used in
+        the neighbourhood.
+
     """
 
     def __init__(self, coord_masked, weights):
