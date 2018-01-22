@@ -36,7 +36,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 
 import numpy as np
 
@@ -86,9 +86,6 @@ class Test_renormalize_weights(IrisTest):
                                [1, 0, 0, 0, 0],
                                [1, 0, 0, 0, 0],
                                [1, 1, 1, 1, 1]]])
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
-        self.cube = iris.util.squeeze(self.cube)
         weights_data = np.array([[[0.8, 0.7, 0.0, 0.0, 0.0],
                                   [0.7, 0.3, 0.0, 0.0, 0.0],
                                   [0.3, 0.1, 0.0, 0.0, 0.0],
@@ -258,15 +255,52 @@ class Test_renormalize_weights(IrisTest):
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
 
+class Test_fix_metadata(IrisTest):
+
+    """Test the fix_metadata method of CollapseMaskedNeighbourhoodCoordinate"""
+
+    def setUp(self):
+        """Set up a basic cube and plugin instance to test with."""
+        self.cube = set_up_cube()
+        topographic_zone_coord = AuxCoord([1], long_name="topographic_zone")
+        self.cube.add_aux_coord(topographic_zone_coord)
+        self.unrelated_cell_method = iris.coords.CellMethod(
+            "mean", coords="realization")
+        self.topographic_zone_cell_method = iris.coords.CellMethod(
+            "mean", coords="topographic_zone")
+        self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
+                                                            self.cube.copy())
+
+    def test_basic(self):
+        """Test the input is still a cube."""
+        self.plugin.fix_metadata(self.cube)
+        self.assertIsInstance(self.cube, iris.cube.Cube)
+
+    def test_remove_topographic_zone_coord(self):
+        """Test that the topographic_zone cube is removed"""
+        self.plugin.fix_metadata(self.cube)
+        self.assertEqual(self.cube.coords("topographic_zone"), [])
+
+    def test_remove_cell_methods(self):
+        """Test it removes the correct cell method."""
+        self.cube.cell_methods = (self.unrelated_cell_method,
+                                  self.topographic_zone_cell_method)
+        self.plugin.fix_metadata(self.cube)
+        self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
+
+    def test_does_not_remove_cell_method(self):
+        """Test it doesn't change cell_methods if not necessary."""
+        self.cube.cell_methods = (self.unrelated_cell_method,)
+        self.plugin.fix_metadata(self.cube)
+        self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
+
+
 class Test_process(IrisTest):
 
     """Test the process method of CollapseMaskedNeighbourhoodCoordinate"""
 
     def setUp(self):
-        """Set up a cube."""
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
-        self.cube = iris.util.squeeze(self.cube)
+        """Set up a weights cube and default plugin to use in unittests."""
         weights_data = np.array([[[0.8, 0.7, 0.0, 0.0, 0.0],
                                   [0.7, 0.3, 0.0, 0.0, 0.0],
                                   [0.3, 0.1, 0.0, 0.0, 0.0],
@@ -483,18 +517,6 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord_dims("threshold"), (1,))
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (2,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (3,))
-
-    def test_remove_topographic_zone_reference(self):
-        """Test that we are successfully removing topographic zone coordinate
-           and the cell method assocated with its collapse from the output
-           cube"""
-        nbhooded_cube = self.weights_cube.copy()
-        unrelated_cell_method = iris.coords.CellMethod(
-            "mean", coords="realization")
-        nbhooded_cube.cell_methods = (unrelated_cell_method,)
-        result = self.plugin.process(nbhooded_cube)
-        self.assertEqual((unrelated_cell_method,), result.cell_methods)
-        self.assertEqual(result.coords("topographic_zone"), [])
 
 
 if __name__ == '__main__':

@@ -281,6 +281,25 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         self.weights.data = WeightsUtilities.normalise_weights(
             self.weights.data, axis=axis)
 
+    def fix_metadata(self, result_cube):
+        """
+        Remove references to the collapsed coordinate after processing.
+
+        Removes the collapsed coordinate and the cell method relating to it
+        on the provided cube, in place.
+
+        Args:
+            result_cube (iris.cube.Cube):
+                The collapsed cube whose metadata we want to change.
+        """
+        # Remove coordinate.
+        result_cube.remove_coord(self.coord_masked)
+        # Remove any cell methods associated with self.coord_masked.
+        new_cell_methods = [cell_method for
+                            cell_method in result_cube.cell_methods
+                            if cell_method.coord_names != (self.coord_masked,)]
+        result_cube.cell_methods = tuple(new_cell_methods)
+
     def process(self, cube):
         """
         Collapse the chosen coordinates with the available weights. The result
@@ -307,7 +326,7 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         xname = cube.coord(axis='x').name()
 
         if self.weights.shape != cube.shape:
-            # The input cube may have leading dimensions like time.
+            # The input cube may have leading dimensions.
             first_slice = next(
                 cube.slices([self.coord_masked, yname, xname],
                             ordered=False))
@@ -316,9 +335,9 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
             self.renormalize_weights(cube)
         weights = self.weights.data
 
+        # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-            # Loop over any extra dimensions
             collapsed_slice = slice_3d.collapsed(
                 self.coord_masked, iris.analysis.MEAN, weights=weights)
             cubelist.append(collapsed_slice)
@@ -329,9 +348,6 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         # expect this in the output cube.
         first_slice = next(cube.slices_over([self.coord_masked]))
         result = check_cube_coordinates(first_slice, result)
-        # Remove any reference to the coordinate we have collapsed.
-        result.remove_coord(self.coord_masked)
-        new_cell_methods = [cell_method for cell_method in result.cell_methods
-                            if cell_method.coord_names != (self.coord_masked,)]
-        result.cell_methods = tuple(new_cell_methods)
+        # Remove references to self.coord_masked in the result cube.
+        self.fix_metadata(result)
         return result
