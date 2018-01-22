@@ -65,9 +65,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_reweight_weights(IrisTest):
+class Test_renormalize_weights(IrisTest):
 
-    """Test the reweight_weights function."""
+    """Test the renormalize_weights function."""
 
     def setUp(self):
         """Set up a weights cube and default plugin instance."""
@@ -120,14 +120,15 @@ class Test_reweight_weights(IrisTest):
     def test_basic(self):
         """Test weights_cube is still a cube after the function call"""
         nbhooded_cube = self.weights_cube.copy()
-        self.plugin.reweight_weights(nbhooded_cube)
+        self.plugin.renormalize_weights(nbhooded_cube)
         self.assertIsInstance(self.weights_cube, iris.cube.Cube)
 
     def test_no_NaNs_in_nbhooded_cube(self):
-        """No NaNs in the neighbourhood cube, so no reweighting is needed"""
+        """No NaNs in the neighbourhood cube, so no renormalization is
+           needed"""
         nbhooded_cube = self.weights_cube.copy()
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube)
+        self.plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
     def test_all_NaNs_in_nbhooded_cube(self):
@@ -138,7 +139,7 @@ class Test_reweight_weights(IrisTest):
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
         message = "Sum of weights must be > 0.0"
         with self.assertRaisesRegexp(ValueError, message):
-            self.plugin.reweight_weights(nbhooded_cube)
+            self.plugin.renormalize_weights(nbhooded_cube)
 
     def test_no_NaNs_in_nbhooded_cube_and_masked_weights(self):
         """No NaNs in the neighbourhood cube, but masked weights."""
@@ -147,14 +148,14 @@ class Test_reweight_weights(IrisTest):
         self.weights_cube.data = np.ma.masked_array(self.weights_cube.data,
                                                     mask=self.mask)
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube)
+        self.plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights.data,
                                     self.weights_cube.data.data)
         self.assertArrayAlmostEqual(expected_weights.mask,
                                     self.weights_cube.data.mask)
 
     def test_some_NaNs_in_nbhooded_cube(self):
-        """Some NaNs in the neighbourhood cube, so reweighting is needed"""
+        """Some NaNs in the neighbourhood cube, so renormalization is needed"""
         nbhood_data = np.ones((3, 5, 5))
         nbhood_data[0, 0:2, 0] = np.nan
         nbhood_data[2, 2:4, 4] = np.nan
@@ -175,13 +176,13 @@ class Test_reweight_weights(IrisTest):
                                       [0.0, 0.0, 0.0, 0.1, 0.0],
                                       [0.0, 0.0, 0.0, 0.4, 0.8]]])
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
-        self.plugin.reweight_weights(nbhooded_cube)
+        self.plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, self.weights_cube.data)
 
     def test_some_NaNs_in_nbhooded_cube_and_masked_weights(self):
-        """Some NaNs in the neighbourhood cube, so reweighting is needed.
+        """Some NaNs in the neighbourhood cube, so renormalization is needed.
            As the points with NaNs in the neighbourhood cube are masked in the
-           weights cube then they are not reweighted."""
+           weights cube then they are not renormalizeed."""
         nbhood_data = np.ones((3, 5, 5))
         nbhood_data[0, 0:2, 0] = np.nan
         nbhood_data[2, 2:4, 4] = np.nan
@@ -189,7 +190,7 @@ class Test_reweight_weights(IrisTest):
         self.weights_cube.data = np.ma.masked_array(self.weights_cube.data,
                                                     mask=self.mask)
         expected_weights = self.weights_cube.data.copy()
-        self.plugin.reweight_weights(nbhooded_cube)
+        self.plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights.data,
                                     self.weights_cube.data.data)
         self.assertArrayAlmostEqual(expected_weights.mask,
@@ -202,7 +203,7 @@ class Test_reweight_weights(IrisTest):
                                                        self.weights_cube)
         message = "Expected to find exactly 1  coordinate, but found none."
         with self.assertRaisesRegexp(CoordinateNotFoundError, message):
-            plugin.reweight_weights(nbhooded_cube)
+            plugin.renormalize_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis_with_error(self):
         """Normalizing along another axis, when raises error.
@@ -213,7 +214,7 @@ class Test_reweight_weights(IrisTest):
             "projection_x_coordinate", self.weights_cube)
         message = "Sum of weights must be > 0.0"
         with self.assertRaisesRegexp(ValueError, message):
-            plugin.reweight_weights(nbhooded_cube)
+            plugin.renormalize_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis(self):
         """Normalizing along another axis, when this is a valid thing to do.
@@ -253,7 +254,7 @@ class Test_reweight_weights(IrisTest):
         nbhooded_cube = self.weights_cube.copy()
         plugin = CollapseMaskedNeighbourhoodCoordinate(
             "projection_x_coordinate", weights_cube)
-        plugin.reweight_weights(nbhooded_cube)
+        plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
 
@@ -301,7 +302,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
 
     def test_no_NaNs_in_nbhooded_cube(self):
-        """No NaNs in the neighbourhood cube, so no reweighting is needed.
+        """No NaNs in the neighbourhood cube, so no renormalization is needed.
            The neighbourhood data has all values of 0.1 for the top and bottom
            bands and 0.2 for points in the middle band. The weights are used
            to calculate the weighted average amongst the bands."""
@@ -321,7 +322,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(expected_result, result.data)
 
     def test_some_NaNs_in_nbhooded_cube(self):
-        """Some NaNs in the neighbourhood cube, so reweighting is needed.
+        """Some NaNs in the neighbourhood cube, so renormalizing is needed.
            The neighbourhood data has all values of 0.1 for the top and bottom
            bands and 0.2 for points in the middle band. The weights are used
            to calculate the weighted average amongst the bands. This is the
