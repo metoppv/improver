@@ -45,14 +45,14 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
 
 def add_dimensions_to_cube(cube, new_dims):
     """
-    Add addtional dimensions to a cube by adding new axes to the input cube
+    Add additional dimensions to a cube by adding new axes to the input cube
     and concatenating them.
 
     Args:
         cube (iris.cube.Cube):
             The cube we want to add dimensions to.
         new_dims (dictionary):
-            A dictionaly containing the names of the dimensions you want to
+            A dictionary containing the names of the dimensions you want to
             add and the number of points you want in that dimension.
             e.g {"threshold": 3, "realization": 4}
             Points in the additional dimension will be integers
@@ -197,8 +197,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_preserve_dimsensions_input(self):
-        """Test that the dimsensions on the output cube are the same as the
+    def test_preserve_dimensions_input(self):
+        """Test that the dimensions on the output cube are the same as the
            input cube, apart from the additional topographic zone coordinate.
         """
         self.cube.remove_coord("realization")
@@ -217,9 +217,9 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
 
-    def test_preserve_dimsensions_with_single_point(self):
-        """Test that the dimsensions on the output cube are the same as the
-           input cube, appart from the collapsed dimension.
+    def test_preserve_dimensions_with_single_point(self):
+        """Test that the dimensions on the output cube are the same as the
+           input cube, apart from the collapsed dimension.
            Check that a dimension coordinate with a single point is preserved
            and not demoted to a scalar coordinate."""
         self.cube.remove_coord("realization")
