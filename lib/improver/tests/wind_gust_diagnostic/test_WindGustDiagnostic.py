@@ -158,7 +158,7 @@ class Test_update_metadata_after_max(IrisTest):
             self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
 
     def test_basic(self):
-        """Test that the function returns a Cube AAAA. """
+        """Test that the function returns a Cube. """
         plugin = WindGustDiagnostic(50.0, 95.0)
         result = plugin.update_metadata_after_max(self.cube,
                                                   self.perc_coord)
