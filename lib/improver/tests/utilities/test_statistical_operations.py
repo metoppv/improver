@@ -33,6 +33,7 @@ Unit tests for the plugins and functions within statistical_operations.py
 """
 
 import unittest
+import warnings
 import numpy as np
 
 import iris
@@ -40,6 +41,7 @@ from iris.tests import IrisTest
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
@@ -109,6 +111,32 @@ class Test__init__(IrisTest):
         self.assertEqual(pfp_instance.output_name,
                          "probability_of_{}".format(self.test_cube.name()))
 
+    def test_inverse_order_false(self):
+        """ Test setting of inverse_order flag using percentiles_cube. In this
+        case the flag should be false as the values associated with the
+        percentiles increase in the same direction as the percentiles."""
+        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+        self.assertFalse(pfp_instance.inverse_ordering)
+
+    def test_inverse_order_true(self):
+        """ Test setting of inverse_order flag using percentiles_cube. In this
+        case the flag should be true as the values associated with the
+        percentiles increase in the opposite direction to the percentiles."""
+        percentiles_cube = self.test_cube.copy(
+            data=np.flipud(self.test_cube.data))
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.assertTrue(pfp_instance.inverse_ordering)
+
+    def test_single_percentile(self):
+        """
+        Test for sensible behaviour when a percentiles_cube containing a single
+        percentile is passed into the plugin."""
+        percentiles_cube = set_up_percentiles_cube()
+        percentiles_cube = percentiles_cube[0]
+        msg = "Percentile coordinate has only one value. Interpolation"
+        with self.assertRaisesRegexp(ValueError, msg):
+            ProbabilitiesFromPercentiles2D(percentiles_cube)
+
 
 class Test__repr__(IrisTest):
     """ Test string representation """
@@ -116,9 +144,10 @@ class Test__repr__(IrisTest):
         """ Compare __repr__ string with expectation """
         new_name = "probability"
         test_cube = set_up_percentiles_cube()
+        inverse_ordering = False
         expected = ('<ProbabilitiesFromPercentiles2D: percentiles_'
-                    'cube: {}, output_name: {}'.format(
-                        test_cube, new_name))
+                    'cube: {}, output_name: {}, inverse_ordering: {}'.format(
+                        test_cube, new_name, inverse_ordering))
         result = str(ProbabilitiesFromPercentiles2D(test_cube,
                                                     new_name))
         self.assertEqual(result, expected)
@@ -145,6 +174,16 @@ class Test_create_probability_cube(IrisTest):
             self.percentiles_cube)
         self.assertEqual(result.units, "1")
         self.assertEqual(result.name(), self.new_name)
+        self.assertEqual(result.attributes['relative_to_threshold'], 'below')
+
+    def test_attributes_inverse_ordering(self):
+        """Test relative_to_threshold attribute is suitable for the
+        inverse_ordering case, when it should be 'above'."""
+        self.percentiles_cube.data = np.flipud(self.percentiles_cube.data)
+        pfp_instance = ProbabilitiesFromPercentiles2D(self.percentiles_cube,
+                                                      self.new_name)
+        result = pfp_instance.create_probability_cube(self.percentiles_cube)
+        self.assertEqual(result.attributes['relative_to_threshold'], 'above')
 
     def test_coordinate_collapse(self):
         """ Test probability cube has no percentile coordinate """
@@ -250,10 +289,75 @@ class Test_process(IrisTest):
         self.assertSequenceEqual(probability_cube.shape,
                                  self.orography_cube.shape)
 
+    def test_unit_conversion_compatible(self):
+        """
+        Test the "process" function converts units appropriately if possible
+        when the input cubes are in different units."""
+        self.orography_cube.convert_units('ft')
+        probability_cube = self.pfp_instance.process(self.orography_cube)
+        self.assertIsInstance(probability_cube, iris.cube.Cube)
+        self.assertSequenceEqual(probability_cube.shape,
+                                 self.orography_cube.shape)
+
+    def test_unit_conversion_incompatible(self):
+        """
+        Test the "process" function raises an error when trying to convert
+        the units of cubes that have incompatible units."""
+        self.orography_cube.units = 'K'
+        msg = "Unable to convert from"
+        with self.assertRaisesRegexp(ValueError, msg):
+            self.pfp_instance.process(self.orography_cube)
+
+    def test_preservation_of_dimensions(self):
+        """
+        Test that if the pecentiles_cube has other dimension coordinates over
+        which slicing is performed, that these dimensions are properly restored
+        in the resulting probability cube."""
+        percentiles_cube = set_up_percentiles_cube()
+        test_data = np.array([percentiles_cube.data, percentiles_cube.data])
+        percentiles = percentiles_cube.coord('percentiles')
+        grid_x = percentiles_cube.coord('projection_x_coordinate')
+        grid_y = percentiles_cube.coord('projection_y_coordinate')
+
+        new_model_coord = build_coordinate([0, 1],
+                                           long_name='leading_coord',
+                                           coord_type=DimCoord,
+                                           data_type=int)
+        input_cube = iris.cube.Cube(
+            test_data, long_name="snow_level", units="m",
+            dim_coords_and_dims=[(new_model_coord, 0),
+                                 (percentiles, 1),
+                                 (grid_y, 2), (grid_x, 3)])
+
+        pfp_instance = ProbabilitiesFromPercentiles2D(input_cube)
+        probability_cube = pfp_instance.process(self.orography_cube)
+
+        self.assertEqual(input_cube.coords(dim_coords=True)[0],
+                         probability_cube.coords(dim_coords=True)[0])
+
+    def test_preservation_of_single_valued_dimension(self):
+        """Test that if the pecentiles_cube has a single value dimension
+        coordinate over which slicing is performed, that this coordinate is
+        restored as a dimension coordinate in the resulting probability
+        cube."""
+        percentiles_cube = set_up_percentiles_cube()
+        new_model_coord = build_coordinate([0],
+                                           long_name='leading_coord',
+                                           coord_type=DimCoord,
+                                           data_type=int)
+        percentiles_cube.add_aux_coord(new_model_coord)
+        percentiles_cube = iris.util.new_axis(percentiles_cube,
+                                              scalar_coord='leading_coord')
+        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        probability_cube = pfp_instance.process(self.orography_cube)
+        self.assertEqual(percentiles_cube.coords(dim_coords=True)[0],
+                         probability_cube.coords(dim_coords=True)[0])
+
     def test_threshold_dimensions(self):
         """
         Test threshold data is correctly sliced and processed if eg a 2-field
-        orography cube is passed into the "process" function
+        orography cube is passed into the "process" function. Ensure a warning
+        is raised.
         """
         threshold_data_3d = np.broadcast_to(self.orography_cube.data,
                                             (2, 4, 4))
@@ -267,7 +371,13 @@ class Test_process(IrisTest):
                                                              (grid_y, 1),
                                                              (grid_x, 2)])
 
-        probability_cube = self.pfp_instance.process(threshold_cube)
+        msg = 'threshold cube has too many'
+        with warnings.catch_warnings(record=True) as warning_list:
+            warnings.simplefilter("always")
+            probability_cube = self.pfp_instance.process(threshold_cube)
+            self.assertTrue(warning_list[0].category == UserWarning)
+            self.assertTrue(msg in str(warning_list[0]))
+
         self.assertSequenceEqual(probability_cube.shape,
                                  self.orography_cube.shape)
         self.assertArrayAlmostEqual(probability_cube.data,
