@@ -34,7 +34,8 @@ import iris
 import numpy as np
 import warnings
 from iris.exceptions import CoordinateNotFoundError
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_checker import (find_percentile_coordinate,
+                                             check_cube_coordinates)
 
 
 class ProbabilitiesFromPercentiles2D(object):
@@ -95,6 +96,11 @@ class ProbabilitiesFromPercentiles2D(object):
         """
         self.percentile_coordinate = find_percentile_coordinate(
             percentiles_cube)
+        if self.percentile_coordinate.points.shape[0] < 2:
+            msg = ("Percentile coordinate has only one value. Interpolation "
+                   "using ProbabilitiesFromPercentiles2D requires multiple "
+                   "values are provided.")
+            raise ValueError(msg)
         self.percentiles_cube = percentiles_cube
 
         if output_name is not None:
@@ -116,8 +122,9 @@ class ProbabilitiesFromPercentiles2D(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ProbabilitiesFromPercentiles2D: percentiles_cube: {}, '
-                  'output_name: {}'.format(self.percentiles_cube,
-                                           self.output_name))
+                  'output_name: {}, inverse_ordering: {}'.format(
+                      self.percentiles_cube, self.output_name,
+                      self.inverse_ordering))
         return result
 
     def create_probability_cube(self, cube):
@@ -143,6 +150,9 @@ class ProbabilitiesFromPercentiles2D(object):
 
         probabilities.units = 1
         probabilities.rename(self.output_name)
+        probabilities.attributes['relative_to_threshold'] = 'below'
+        if self.inverse_ordering is True:
+            probabilities.attributes['relative_to_threshold'] = 'above'
         return probabilities
 
     def percentile_interpolation(self, threshold_cube, percentiles_cube):
@@ -152,11 +162,165 @@ class ProbabilitiesFromPercentiles2D(object):
         distribution to obtain a probability. The point to which we interpolate
         is defined by the threshold_cube.
 
+        Note that the current implementation assumes that in cases of a
+        degenerate percentile distribution, the right most bin in which a
+        threshold value is found is chosen.
+
+        e.g.::
+
+            Percentile: 0 10 20 30 40 50 ...
+            Height (m): 0 0 0 15 30 40 ...
+
+            A height of 0m will be associated with a probabilty of 20%. This is
+            not correct, but nor is the approach of taking 0%. The percentile
+            approach is not suitable with these degenerate distributions, so be
+            wary of the returned probabilities.
+
+        Examples:
+
+            This simple linear interpolator works in the following way.
+
+            percentiles_cube::
+
+                [ [[2.0, 2.0, 2.0],
+                   [2.0, 2.0, 2.0],
+                   [2.0, 2.0, 2.0]],
+
+                  [[4.0, 4.0, 4.0],
+                   [4.0, 4.0, 4.0],
+                   [4.0, 4.0, 4.0]] ]
+
+            threshold_cube::
+
+                [ [1.0, 1.0, 1.0],
+                  [3.0, 3.0, 3.0],
+                  [5.0, 5.0, 5.0] ]
+
+            value_bounds::
+
+                [ [[np.nan, np.nan, np.nan],
+                   [np.nan, np.nan, np.nan],
+                   [np.nan, np.nan, np.nan]],
+
+                  [[np.nan, np.nan, np.nan],
+                   [np.nan, np.nan, np.nan],
+                   [np.nan, np.nan, np.nan]] ]
+
+            percentile_bounds::
+
+                [ [[-1, -1, -1],
+                   [-1, -1, -1],
+                   [-1, -1, -1]],
+
+                  [[-1, -1, -1],
+                   [-1, -1, -1],
+                   [-1, -1, -1]] ]
+
+
+            1. Create slices over each percentile, and using the correct
+               inequality (as determined by inverse_ordering) compare the
+               threshold values to the percentiles slice; here we assume
+               inverse_ordering is False, so we use >=. We then populate the
+               value_bounds and percentile_bounds arrays.
+
+               Slice 0 - 0th Percentile::
+
+                   [[1.0 >= 2.0, 1.0 >= 2.0, 1.0 >= 2.0],
+                    [3.0 >= 2.0, 3.0 >= 2.0, 3.0 >= 2.0],
+                    [5.0 >= 2.0, 5.0 >= 2.0, 5.0 >= 2.0]]
+
+                   [[False, False, False],
+                    [True, True, True],
+                    [True, True, True]]
+
+               The value_bounds array has a leading dimensions with 2 indices
+               to be associated with the lower [0] and upper bounds [1] about
+               the threshold being considered. The [0] index is populated with
+               the values in the slice of percentiles_cube at every True index.
+               The [1] index is populated with the values in the next slice of
+               percentiles_cube.::
+
+                   [ [[np.nan, np.nan, np.nan],
+                      [2.0, 2.0, 2.0],
+                      [2.0, 2.0, 2.0]],
+
+                     [[np.nan, np.nan, np.nan],
+                      [4.0, 4.0, 4.0],
+                      [4.0, 4.0, 4.0]] ]
+
+               The percentile_bounds array is also contains a leading dimension
+               associated with lower and upper bounds about the thresholds. The
+               lower bound array is populated at every True index with the
+               current percentile value (0 in this first slice), whilst the
+               upper bound array takes the percentile value from the next
+               slice.::
+
+                   [ [[-1, -1, -1],
+                      [0, 0, 0],
+                      [0, 0, 0]],
+
+                     [[-1, -1, -1],
+                      [50, 50, 50],
+                      [50, 50, 50]] ]
+
+               After the same process is applied to the next slice, the 50th
+               percentile, we end up with value_bounds::
+
+                   [ [[np.nan, np.nan, np.nan],
+                      [2.0, 2.0, 2.0],
+                      [4.0, 4.0, 4.0]],
+
+                     [[np.nan, np.nan, np.nan],
+                      [4.0, 4.0, 4.0],
+                      [4.0, 4.0, 4.0]] ]
+
+               And percentile bounds::
+
+                   [ [[-1, -1, -1],
+                      [0, 0, 0],
+                      [50, 50, 50]],
+
+                     [[-1, -1, -1],
+                      [50, 50, 50],
+                      [50, 50, 50]] ]
+
+               Note that where there is no availble +1 index in the
+               percentiles_cube the upper bound is set to be the same as the
+               lower_bound.
+
+            2. When all slices have been interated over, the interpolants are
+               calculated using the threshold values and the values_bounds.
+
+               (threshold_cube.data - lower_bound)/(upper_bound - lower_bound)
+
+               If the upper_bound and lower_bound are the same this leads to
+               a divide by 0 calculation, resulting in np.inf as the output.
+
+            3. The interpolants are used to calculate the percentile value at
+               each point in the array using the percentile_bounds.
+
+               lower_percentile_bound + interpolants *
+                   (upper_percentile_bounds - lower_percentile_bounds)
+
+               The percentiles are divided by 100 to give a fractional
+               probability.
+
+            5. Any probabilities that are calculated to be np.inf indicate that
+               the associated point has a threshold value that is above
+               the top percentile band. These points are given a probability
+               value of 1.
+
+            4. Any points for which the calculated probability is np.nan had
+               threshold values that were never found to fall within a
+               percentile band, and so must be below the lowest band. These
+               points are given a probability value of 0.
+
         Args:
             threshold_cube (iris.cube.Cube):
                 A 2-dimensional cube of "threshold" values for which it is
                 desired to obtain probability values from the percentiled
-                reference cube.
+                reference cube. This cube should have the same x and y
+                dimensions as percentiles_cube.
             percentiles_cube (iris.cube.Cube):
                 A 3-dimensional cube, 1 dimension describing the percentile
                 distributions, and 2-dimensions shared with the threshold_cube,
@@ -169,13 +333,15 @@ class ProbabilitiesFromPercentiles2D(object):
         percentiles = self.percentile_coordinate.points
         probabilities = self.create_probability_cube(percentiles_cube)
 
+        # Create array with additional 2 dimensions to contain upper and lower
+        # bounds.
         array_shape = [2] + list(threshold_cube.shape)
         percentile_bounds = np.full(array_shape, -1, dtype=float)
         value_bounds = np.full(array_shape, np.nan, dtype=float)
 
         for index, pslice in enumerate(percentiles_cube.slices_over(
                 self.percentile_coordinate)):
-            # Change to use < and > to force degernate percentile distributions
+            # Change to use < & > to force degenerate percentile distributions
             # to use the first percentile band that the threshold falls within.
             indices = (threshold_cube.data <= pslice.data
                        if self.inverse_ordering else
@@ -253,4 +419,9 @@ class ProbabilitiesFromPercentiles2D(object):
         else:
             probability_cube = output_cubes[0]
 
+        reference_cube = next(self.percentiles_cube.slices_over(
+            self.percentile_coordinate))
+
+        probability_cube = check_cube_coordinates(reference_cube,
+                                                  probability_cube)
         return probability_cube
