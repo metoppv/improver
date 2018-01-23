@@ -140,6 +140,34 @@ class Test_normalise_weights(IrisTest):
         expected_result = np.array([0.6, 0.3, 0.1])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_returns_correct_values_2darray_axis0(self):
+        """Test normalizing along the columns of the array."""
+        weights_in = np.array([[6.0, 3.0, 1.0],
+                               [4.0, 1.0, 3.0]])
+        result = WeightsUtilities.normalise_weights(weights_in, axis=0)
+        expected_result = np.array([[0.6, 0.75, 0.25],
+                                    [0.4, 0.25, 0.75]])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_returns_correct_values_2darray_axis1(self):
+        """Test normalizing along the rows of the array."""
+        weights_in = np.array([[6.0, 3.0, 1.0],
+                               [4.0, 1.0, 3.0]])
+        result = WeightsUtilities.normalise_weights(weights_in, axis=1)
+        expected_result = np.array([[0.6, 0.3, 0.1],
+                                    [0.5, 0.125, 0.375]])
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_returns_correct_values_2darray_zero_weights(self):
+        """Test normalizing along the columns of the array when there are
+           zeros in the input array."""
+        weights_in = np.array([[6.0, 3.0, 0.0],
+                               [0.0, 1.0, 3.0]])
+        result = WeightsUtilities.normalise_weights(weights_in, axis=0)
+        expected_result = np.array([[1.0, 0.75, 0.0],
+                                    [0.0, 0.25, 1.0]])
+        self.assertArrayAlmostEqual(result, expected_result)
+
 
 class Test_redistribute_weights(IrisTest):
     """Test the redistribute weights function. """
