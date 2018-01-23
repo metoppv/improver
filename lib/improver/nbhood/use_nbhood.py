@@ -282,7 +282,8 @@ generate_topographic_zone_weights.GenerateTopographicZoneWeights`
         Once we have valid weights for adjacent bands for each point we can
         collapse the "topographic_zone" coordinate using a weighted mean.
 
-        When this plugin is used alongside :class:`~improver.nbhood.use_nbhood.\
+        When this plugin is used alongside
+        :class:`~improver.nbhood.use_nbhood.\
 ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the same
         dimensions as the original cube, but the neighbourhood processing
         has been applied using masks so that only similar points are used in
