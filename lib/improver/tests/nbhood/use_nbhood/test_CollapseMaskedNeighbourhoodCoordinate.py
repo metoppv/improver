@@ -36,7 +36,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import AuxCoord
 
 import numpy as np
 
