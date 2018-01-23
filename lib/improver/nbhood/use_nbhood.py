@@ -344,7 +344,7 @@ ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the same
         self.weights.data = WeightsUtilities.normalise_weights(
             self.weights.data, axis=axis)
 
-    def fix_metadata(self, result_cube):
+    def remove_collapsed_coord_refs(self, result_cube):
         """
         Remove references to the collapsed coordinate after processing.
 
@@ -412,5 +412,5 @@ ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the same
         first_slice = next(cube.slices_over([self.coord_masked]))
         result = check_cube_coordinates(first_slice, result)
         # Remove references to self.coord_masked in the result cube.
-        self.fix_metadata(result)
+        self.remove_collapsed_coord_refs(result)
         return result

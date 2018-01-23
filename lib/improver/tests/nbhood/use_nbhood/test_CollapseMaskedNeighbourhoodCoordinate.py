@@ -255,9 +255,10 @@ class Test_renormalize_weights(IrisTest):
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
 
-class Test_fix_metadata(IrisTest):
+class Test_remove_collapsed_coord_refs(IrisTest):
 
-    """Test the fix_metadata method of CollapseMaskedNeighbourhoodCoordinate"""
+    """Test the remove_collapsed_coord_refs method of
+       CollapseMaskedNeighbourhoodCoordinate"""
 
     def setUp(self):
         """Set up a basic cube and plugin instance to test with."""
@@ -273,25 +274,25 @@ class Test_fix_metadata(IrisTest):
 
     def test_basic(self):
         """Test the input is still a cube."""
-        self.plugin.fix_metadata(self.cube)
+        self.plugin.remove_collapsed_coord_refs(self.cube)
         self.assertIsInstance(self.cube, iris.cube.Cube)
 
     def test_remove_topographic_zone_coord(self):
         """Test that the topographic_zone cube is removed"""
-        self.plugin.fix_metadata(self.cube)
+        self.plugin.remove_collapsed_coord_refs(self.cube)
         self.assertEqual(self.cube.coords("topographic_zone"), [])
 
     def test_remove_cell_methods(self):
         """Test it removes the correct cell method."""
         self.cube.cell_methods = (self.unrelated_cell_method,
                                   self.topographic_zone_cell_method)
-        self.plugin.fix_metadata(self.cube)
+        self.plugin.remove_collapsed_coord_refs(self.cube)
         self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
 
     def test_does_not_remove_cell_method(self):
         """Test it doesn't change cell_methods if not necessary."""
         self.cube.cell_methods = (self.unrelated_cell_method,)
-        self.plugin.fix_metadata(self.cube)
+        self.plugin.remove_collapsed_coord_refs(self.cube)
         self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
 
 
@@ -413,7 +414,7 @@ class Test_process(IrisTest):
         self.assertEqual(expected_mask.dtype, bool)
         self.assertIsInstance(expected_result, np.ndarray)
 
-    def test_multidemensional_neighbourhood_input(self):
+    def test_multidimensional_neighbourhood_input(self):
         """Test that we can collapse the right dimension when there
            are additional leading dimensions like threshold."""
         nbhooded_cube = add_dimensions_to_cube(self.nbhooded_cube,
@@ -436,8 +437,8 @@ class Test_process(IrisTest):
         result = self.plugin.process(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
-    def test_preserve_dimsensions_input(self):
-        """Test that the dimsensions on the output cube are the same as the
+    def test_preserve_dimensions_input(self):
+        """Test that the dimensions on the output cube are the same as the
            input cube, apart from the collapsed dimension.
            Add threshold and realization coordinates and check they are in the
            right place after collapsing the topographic_zone coordinate."""
@@ -454,8 +455,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (2,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (3,))
 
-    def test_preserve_dimsensions_with_single_point(self):
-        """Test that the dimsensions on the output cube are the same as the
+    def test_preserve_dimensions_with_single_point(self):
+        """Test that the dimensions on the output cube are the same as the
            input cube, appart from the collapsed dimension.
            Add threshold and realization coordinates and check they are in the
            right place after collapsing the topographic_zone coordinate.
