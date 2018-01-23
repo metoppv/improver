@@ -164,6 +164,7 @@ class GenerateOrographyBandAncils(object):
                 sea_fill_value and not masked.
         """
         points_to_mask = np.logical_not(landmask)
+
         if sea_fill_value is None:
             mask_data = np.ma.masked_where(points_to_mask, orog_band)
             sea_fill_value = np.ma.default_fill_value(mask_data.data)
@@ -227,19 +228,27 @@ class GenerateOrographyBandAncils(object):
         thresholds = Unit(units).convert(
             np.array(thresholds), standard_orography.units)
         coords = standard_orography.coords()
-        if key == 'land':  # regular topographical bands above land
-            lower_threshold, upper_threshold = thresholds
-            orog_band = np.ma.masked_where(
-                np.ma.logical_and(
-                    (standard_orography.data > lower_threshold),
-                    (standard_orography.data <= upper_threshold)),
-                standard_orography.data).mask.astype(int)
+
+        lower_threshold, upper_threshold = thresholds
+        orog_band = np.ma.masked_where(
+            np.ma.logical_and(
+                (standard_orography.data > lower_threshold),
+                (standard_orography.data <= upper_threshold)),
+            standard_orography.data).mask.astype(int)
+
+        if key == 'land':  # topographical bands above land only
+
             if not isinstance(orog_band, np.ndarray):
                 orog_band = np.zeros(standard_orography.data.shape).astype(int)
+
             mask_data = self.sea_mask(standard_landmask.data, orog_band,
                                       sea_fill_value=0)
             mask_cube = _make_mask_cube(
                 mask_data, key, coords, topographic_bounds=thresholds,
+                topographic_units=standard_orography.units)
+        elif key == 'any_surface_type':
+            mask_cube = _make_mask_cube(
+                orog_band, key, coords, topographic_bounds=thresholds,
                 topographic_units=standard_orography.units)
         else:
             msg = 'Unknown threshold_dict key: {}'
@@ -247,22 +256,23 @@ class GenerateOrographyBandAncils(object):
         mask_cube.units = Unit('1')
         return mask_cube
 
-    def process(self, orography, landmask, thresholds_dict):
+    def process(self, orography, thresholds_dict, landmask=None):
         """Loops over the supplied orographic bands, adding a cube
            for each band to the mask cubelist.
 
         Args:
-            orography (cube):
-              orography on standard grid.
-
-            landmask (cube):
-              land mask on standard grid.
+            orography (iris.cube.Cube):
+                orography on standard grid.
 
             threshold_dict (dictionary):
-              definition of orography bands required.
+                definition of orography bands required.
+
+        Keyword Args:
+            landmask (iris.cube.Cube):
+                land mask on standard grid.
 
         Returns:
-            cubelist (cubelist):
+            cubelist (iris.cube.CubeList):
               list of orographic band mask cubes.
         """
         cubelist = iris.cube.CubeList()
