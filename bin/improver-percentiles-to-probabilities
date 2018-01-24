@@ -32,9 +32,7 @@
 """Script to collapse cube coordinates and calculate percentiled data."""
 
 import argparse
-
 import iris
-import warnings
 
 from improver.utilities.load import load_cube
 from improver.utilities.statistical_operations import \
