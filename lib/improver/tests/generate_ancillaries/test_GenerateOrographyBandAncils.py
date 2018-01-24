@@ -142,7 +142,7 @@ class Test_gen_orography_masks(IrisTest):
 
     def test_nonsensekey(self):
         """test the correct exception is raised for unknown keys"""
-        exception_dict = {'nonsense': [[0, 10]]}
+        exception_dict = {'nonsense': [0, 10]}
         with self.assertRaisesRegexp(KeyError, 'Unknown threshold_dict key'):
             GenOrogMasks().gen_orography_masks(
                 self.orography, self.landmask, "nonsense",
@@ -244,6 +244,25 @@ class Test_gen_orography_masks(IrisTest):
                                    [0.0, 0.0, 0.0]]])
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_exception_for_land_key_with_no_land_mask(self):
+        """Test that an exception is raised when trying to generate a mask over
+           land points without a land mask being provided."""
+        with self.assertRaisesRegexp(IOError, 'To generate topography bands'):
+            GenOrogMasks().gen_orography_masks(
+                self.orography, None, self.land_key,
+                self.valley_threshold)
+
+    def test_any_surface_type_mask(self):
+        """Test that the correct mask is produced when no landsea mask is
+           provided. This is equivalent to the all_land_points test above."""
+        result = GenOrogMasks().gen_orography_masks(
+            self.orography, None, 'any_surface_type',
+            self.valley_threshold)
+        expected_data = np.array([[[1.0, 1.0, 1.0],
+                                   [0.0, 0.0, 0.0],
+                                   [0.0, 0.0, 0.0]]])
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
     def test_unit_conversion_for_landband_data(self):
         """test correct mask is produced for land bands > 0m"""
         land_threshold = [0, 0.05]
@@ -270,7 +289,7 @@ class Test_process(IrisTest):
     def test_thresholdset(self):
         """test the plugin produces correct number of cubes"""
         result = GenOrogMasks().process(
-            self.orography, self.landmask, self.threshold_dict)
+            self.orography, self.threshold_dict, landmask=self.landmask)
         self.assertEqual(len(result), 2)
 
 

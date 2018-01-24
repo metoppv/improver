@@ -237,6 +237,10 @@ class GenerateOrographyBandAncils(object):
             standard_orography.data).mask.astype(int)
 
         if key == 'land':  # topographical bands above land only
+            if standard_landmask is None:
+                msg = ('To generate topography bands only over land, a land '
+                       'mask must be provided as input')
+                raise IOError(msg)
 
             if not isinstance(orog_band, np.ndarray):
                 orog_band = np.zeros(standard_orography.data.shape).astype(int)
