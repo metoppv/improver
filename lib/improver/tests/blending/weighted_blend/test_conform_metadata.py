@@ -31,6 +31,7 @@
 """Module to test the conform_metadata function."""
 
 import unittest
+import warnings
 
 import numpy as np
 import iris
@@ -40,12 +41,15 @@ from iris.coords import AuxCoord
 from improver.blending.weighted_blend import conform_metadata
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period, set_up_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_conform_metadata(IrisTest):
 
     """Test the conform_metadata function."""
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def setUp(self):
         """Set up cubes for testing."""
         data = np.full((3, 1, 3, 3), 275.15, dtype=np.float)
@@ -92,8 +96,12 @@ class Test_conform_metadata(IrisTest):
         cube_orig_model.add_aux_coord(
             AuxCoord([0, 1], long_name="realization"), data_dims=0)
         self.cube_orig_model = cube_orig_model
-        self.cube_model = cube_orig_model.collapsed(
-            "forecast_reference_time", iris.analysis.MEAN)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    "Collapsing a non-contiguous coordinate.",
+                                    UserWarning)
+            self.cube_model = cube_orig_model.collapsed(
+                "forecast_reference_time", iris.analysis.MEAN)
 
         # Coordinate that is being blended.
         self.coord = "forecast_reference_time"

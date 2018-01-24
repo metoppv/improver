@@ -102,7 +102,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         cube = self.percentile_cube
         percentiles = cube.coord("percentile_over_realization").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
-        bounds_pairing = (-40, 50)
+        bounds_pairing = (-40.0, 50.0)
         lower_array = np.full(
             forecast_at_percentiles[:, 0].shape, bounds_pairing[0])
         upper_array = np.full(

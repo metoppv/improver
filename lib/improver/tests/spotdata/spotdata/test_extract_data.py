@@ -32,7 +32,6 @@
 
 import numpy as np
 import unittest
-import warnings
 
 from collections import OrderedDict
 from datetime import datetime as dt
@@ -53,6 +52,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 from improver.spotdata.extract_data import ExtractData as Plugin
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_setup(IrisTest):
@@ -352,7 +352,8 @@ class Test_make_stat_coordinate_first(Test_setup):
         self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
         self.assertEqual(cube.coords(), result.coords())
 
-    def test_cube_reorder_percentile_and_realization(self):
+    @ManageWarnings(record=True)
+    def test_cube_reorder_percentile_and_realization(self, warning_list=None):
         """Test reordering a cube with a percentile and a realization
         coordinate. Should produce a warning and promote the first statistical
         coordinate that is found."""
@@ -368,11 +369,11 @@ class Test_make_stat_coordinate_first(Test_setup):
         cube = iris.util.new_axis(cube, 'realization')
         incorrect_cube = cube.copy()
         incorrect_cube.transpose([2, 1, 0, 3, 4])
-        with warnings.catch_warnings(record=True) as w_messages:
-            result = plugin(incorrect_cube)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "More than one statistical" in str(w_messages[0])
+        w_messages = warning_list
+        result = plugin(incorrect_cube)
+        assert len(w_messages) == 1
+        assert issubclass(w_messages[0].category, UserWarning)
+        assert "More than one statistical" in str(w_messages[0])
         self.assertEqual(cube.coords()[0].name(), result.coords()[0].name())
 
 

@@ -40,6 +40,7 @@ from iris.coords import DimCoord
 from improver.utilities.temporal import (iris_time_to_datetime,
                                          datetime_constraint,
                                          dt_to_utc_hours)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class ExtractExtrema(object):
@@ -72,6 +73,8 @@ class ExtractExtrema(object):
         result = ('<ExtractExtrema: period: {}, start_hour: {}>')
         return result.format(self.period, self.start_hour)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def process(self, cube):
         """
         Calculate extrema values for diagnostic in cube over the period given

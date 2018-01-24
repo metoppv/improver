@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
-import warnings
 import numpy as np
 
 import iris
@@ -41,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from cf_units import Unit
 
 from improver.wind_gust_diagnostic import WindGustDiagnostic
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def create_cube_with_percentile_coord(data=None,
@@ -207,22 +207,22 @@ class Test_extract_percentile_data(IrisTest):
                                            self.wg_perc,
                                            "wind_speed_of_gust")
 
-    def test_warning_if_standard_names_do_not_match(self):
+    @ManageWarnings(record=True)
+    def test_warning_if_standard_names_do_not_match(self, warning_list=None):
         """Test it raises a warning if standard names do not match."""
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         warning_msg = ('Warning mismatching name for data expecting')
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result, perc_coord = (
-                plugin.extract_percentile_data(self.cube_wg,
-                                               self.wg_perc,
-                                               "wind_speed"))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, Cube)
-            self.assertIsInstance(perc_coord, iris.coords.Coord)
+        result, perc_coord = (
+            plugin.extract_percentile_data(self.cube_wg,
+                                           self.wg_perc,
+                                           "wind_speed"))
+        # Test resulting warnings in the warning_list
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
 
     def test_fails_if_req_percentile_not_in_cube(self):
         """Test it raises a Value Error if req_perc not in cube."""

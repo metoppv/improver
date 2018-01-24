@@ -43,7 +43,6 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
-import warnings
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
@@ -51,6 +50,7 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube,
                              add_forecast_reference_time_and_forecast_period)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def datetime_from_timestamp(timestamp):
@@ -457,6 +457,8 @@ class Test__apply_params(IrisTest):
         self.default_optimised_coeffs = [
             4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00]
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_basic(self):
         """Test that the plugin returns a tuple."""
         optimised_coeffs = {}
@@ -477,6 +479,8 @@ class Test__apply_params(IrisTest):
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_two_dates(self):
         """
         Test that the plugin returns a tuple when two dates are present
@@ -513,6 +517,8 @@ class Test__apply_params(IrisTest):
             self.assertEqual(len(result), 2)
         self.assertEqual(len(coefficients), 8)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_calibrated_predictor(self):
         """
         Test that the plugin returns values for the calibrated predictor (the
@@ -549,6 +555,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_predictor[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_calibrated_variance(self):
         """
         Test that the plugin returns values for the calibrated variance,
@@ -585,6 +593,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_variance[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_coefficients(self):
         """
         Test that the plugin returns values for the coefficients,
@@ -619,6 +629,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(coefficients[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_calibrated_predictor_members(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -733,6 +745,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(coefficients[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],)
     def test_too_many_coefficients(self):
         """
         Test that the plugin returns values for the coefficients,
@@ -768,6 +782,9 @@ class Test__apply_params(IrisTest):
                 predictor_cube, variance_cube, optimised_coeffs,
                 coeff_names, predictor_of_mean_flag)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Ensemble calibration not available for forecasts"])
     def test_missing_date(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -775,7 +792,6 @@ class Test__apply_params(IrisTest):
         dictionary of coefficients. In this situation, the raw forecasts are
         returned.
         """
-        warnings.simplefilter("always")
         data = np.array([[229.48333333, 240.73333333, 251.98333333],
                          [263.23333333, 274.48333333, 285.73333333],
                          [296.98333333, 308.23333333, 319.48333333]])
@@ -799,14 +815,16 @@ class Test__apply_params(IrisTest):
 
         self.assertArrayAlmostEqual(result[0][0].data, data)
 
-    def test_missing_date_catch_warning(self):
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],
+        record=True)
+    def test_missing_date_catch_warning(self, warning_list=None):
         """
         Test that the plugin returns values for the calibrated forecasts,
         if the date to be calibrated can not be found in the available
         dictionary of coefficients. In this situation, the raw forecasts are
         returned.
         """
-
         cube = self.current_temperature_forecast_cube
         optimised_coeffs = {}
         the_date = datetime_from_timestamp(cube.coord("time").points+3)
@@ -819,17 +837,15 @@ class Test__apply_params(IrisTest):
 
         plugin = Plugin(cube, optimised_coeffs,
                         self.coeff_names)
-
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            dummy_result = plugin._apply_params(
-                predictor_cube, variance_cube, optimised_coeffs,
-                self.coeff_names, predictor_of_mean_flag)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("Ensemble calibration not available"
-                            in str(warning_list[0]))
+        plugin._apply_params(
+            predictor_cube, variance_cube, optimised_coeffs,
+            self.coeff_names, predictor_of_mean_flag)
+        # Test the contents of the resulting warning_list
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("Ensemble calibration not available"
+                        in str(warning_list[0]))
 
 
 if __name__ == '__main__':
