@@ -40,7 +40,30 @@ from improver.utilities.statistical_operations import \
 
 
 def main():
-    """ Load arguments and run ProbabilitiesFromPercentiles plugin """
+    """
+    Load arguments and run ProbabilitiesFromPercentiles plugin.
+
+    Plugin generates probabilities at a fixed threshold (height) from a set of
+    (height) percentiles.
+
+    Example:
+
+        Snow-fall level::
+
+            Reference field: Percentiled snow fall level (m ASL)
+            Other field: Orography (m ASL)
+
+            300m ----------------- 30th Percentile snow fall level
+            200m ----_------------ 20th Percentile snow fall level
+            100m ---/-\----------- 10th Percentile snow fall level
+            000m --/---\----------  0th Percentile snow fall level
+            ______/     \_________ Orogaphy
+
+        The orography heights are compared against the heights that correspond
+        with percentile values to find the band in which they fall, then
+        interpolated linearly to obtain a probability of snow level at / below
+        the ground surface.
+    """
     parser = argparse.ArgumentParser(
         description="Calculate probability from a percentiled field at a "
         "2D threshold level.  Eg for 2D percentile levels at different "
