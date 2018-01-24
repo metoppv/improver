@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the plugins and functions within statistical_operations.py
+Unit tests for the plugin ProbabilitiesFromPercentiles2D
 """
 
 import unittest
@@ -50,7 +50,7 @@ from improver.utilities.statistical_operations import \
 def set_up_percentiles_cube():
     """ Set up 3D cube with percentiles of height """
 
-    test_data = np.full((5, 4, 4), -1)
+    test_data = np.full((5, 4, 4), -1, dtype=float)
     for i in xrange(5):
         test_data[i].fill(100*i + 200)
 
@@ -67,24 +67,22 @@ def set_up_percentiles_cube():
 
 
 def set_up_threshold_cube():
-    """
-    Set up 2D cube with "orography" data on which to threshold percentiles
-    """
+    """Set up 2D cube with "orography" data on which to threshold
+    percentiles"""
     test_data = 50*np.arange(16).reshape(4, 4)
     grid_x = DimCoord(np.arange(4), standard_name="projection_x_coordinate",
                       units="km")
     grid_y = DimCoord(np.arange(4), standard_name="projection_y_coordinate",
                       units="km")
-    test_cube = iris.cube.Cube(test_data, long_name="topography", units="m",
+    test_cube = iris.cube.Cube(test_data, long_name="surface_altitude",
+                               units="m",
                                dim_coords_and_dims=[(grid_y, 0), (grid_x, 1)])
     return test_cube
 
 
 def set_reference_probabilities():
-    """
-    Define the array of probabilities correct for the percentile and threshold
-    cubes above.
-    """
+    """Define the array of probabilities correct for the percentile and
+    threshold cubes above."""
     reference_array = np.zeros(shape=(16,))
     reference_array[:4] = 0.
     reference_array[4:12] = np.linspace(0., 0.875, 8)
@@ -100,23 +98,23 @@ class Test__init__(IrisTest):
         self.new_name = "probability"
 
     def test_basic(self):
-        """ Test name and default ordering are correctly set """
-        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
-                                                      self.new_name)
-        self.assertEqual(pfp_instance.output_name, self.new_name)
+        """ Test setting of a custom name """
+        plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube,
+                                                         self.new_name)
+        self.assertEqual(plugin_instance.output_name, self.new_name)
 
     def test_naming(self):
         """ Test default naming """
-        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
-        self.assertEqual(pfp_instance.output_name,
+        plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+        self.assertEqual(plugin_instance.output_name,
                          "probability_of_{}".format(self.test_cube.name()))
 
     def test_inverse_order_false(self):
         """ Test setting of inverse_order flag using percentiles_cube. In this
         case the flag should be false as the values associated with the
         percentiles increase in the same direction as the percentiles."""
-        pfp_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
-        self.assertFalse(pfp_instance.inverse_ordering)
+        plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+        self.assertFalse(plugin_instance.inverse_ordering)
 
     def test_inverse_order_true(self):
         """ Test setting of inverse_order flag using percentiles_cube. In this
@@ -124,13 +122,12 @@ class Test__init__(IrisTest):
         percentiles increase in the opposite direction to the percentiles."""
         percentiles_cube = self.test_cube.copy(
             data=np.flipud(self.test_cube.data))
-        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
-        self.assertTrue(pfp_instance.inverse_ordering)
+        plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.assertTrue(plugin_instance.inverse_ordering)
 
     def test_single_percentile(self):
-        """
-        Test for sensible behaviour when a percentiles_cube containing a single
-        percentile is passed into the plugin."""
+        """Test for sensible behaviour when a percentiles_cube containing a
+        single percentile is passed into the plugin."""
         percentiles_cube = set_up_percentiles_cube()
         percentiles_cube = percentiles_cube[0]
         msg = "Percentile coordinate has only one value. Interpolation"
@@ -154,165 +151,168 @@ class Test__repr__(IrisTest):
 
 
 class Test_create_probability_cube(IrisTest):
-    """
-    Test creation of new probability cube based on percentile and orography
-    input cubes
-    """
+
+    """Test creation of new probability cube based on percentile and orography
+    input cubes"""
+
     def setUp(self):
-        """ Set up a probability cube from percentiles and orography """
+        """ Set up a percentiles cube, plugin instance and orography cube """
         self.percentiles_cube = set_up_percentiles_cube()
         self.percentile_coordinate = find_percentile_coordinate(
             self.percentiles_cube)
         self.new_name = "probability"
-        self.pfp_instance = ProbabilitiesFromPercentiles2D(
+        self.plugin_instance = ProbabilitiesFromPercentiles2D(
             self.percentiles_cube, self.new_name)
         self.orography_cube = set_up_threshold_cube()
 
     def test_attributes(self):
-        """ Test name and units are correctly set """
-        result = self.pfp_instance.create_probability_cube(
-            self.percentiles_cube)
+        """ Test name, units and attributes are correctly set """
+        result = self.plugin_instance.create_probability_cube(
+            self.percentiles_cube, self.orography_cube)
         self.assertEqual(result.units, "1")
         self.assertEqual(result.name(), self.new_name)
         self.assertEqual(result.attributes['relative_to_threshold'], 'below')
+        self.assertEqual(result.attributes['thresholded_using'],
+                         'surface_altitude')
 
     def test_attributes_inverse_ordering(self):
         """Test relative_to_threshold attribute is suitable for the
         inverse_ordering case, when it should be 'above'."""
         self.percentiles_cube.data = np.flipud(self.percentiles_cube.data)
-        pfp_instance = ProbabilitiesFromPercentiles2D(self.percentiles_cube,
-                                                      self.new_name)
-        result = pfp_instance.create_probability_cube(self.percentiles_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(self.percentiles_cube,
+                                                         self.new_name)
+        result = plugin_instance.create_probability_cube(self.percentiles_cube,
+                                                         self.orography_cube)
         self.assertEqual(result.attributes['relative_to_threshold'], 'above')
 
     def test_coordinate_collapse(self):
         """ Test probability cube has no percentile coordinate """
-        result = self.pfp_instance.create_probability_cube(
-            self.percentiles_cube)
+        result = self.plugin_instance.create_probability_cube(
+            self.percentiles_cube, self.orography_cube)
         with self.assertRaises(CoordinateNotFoundError):
-            find_percentile_coordinate(result)
+            result.coord_dims(self.percentile_coordinate)
 
 
 class Test_percentile_interpolation(IrisTest):
-    """
-    Metadata and quantitative tests of function that performs the percentile
-    interpolation
-    """
+
+    """Metadata and quantitative tests of function that performs the percentile
+    interpolation"""
+
     def setUp(self):
         """ Set up orography cube """
         self.orography_cube = set_up_threshold_cube()
+        self.percentiles_cube = set_up_percentiles_cube()
 
     def test_values(self):
-        """
-        Test that interpolated probabilities at given topography heights are
-        sensible.  Includes out-of-range values (P=0 and P=1).
-        """
-        percentiles_cube = set_up_percentiles_cube()
+        """Test that interpolated probabilities at given topography heights are
+        sensible.  Includes out-of-range values (P=0 and P=1)."""
         expected = set_reference_probabilities()
 
         probability_cube = ProbabilitiesFromPercentiles2D(
-            percentiles_cube).percentile_interpolation(
-                self.orography_cube, percentiles_cube)
+            self.percentiles_cube).percentile_interpolation(
+                self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
     def test_values_inverse_ordering(self):
-        """
-        Test that interpolated probabilities at given topography heights are
+        """Test that interpolated probabilities at given topography heights are
         sensible when we use the inverse_ordering set to True. This is for
         situations in which the values associated with the percentiles increase
         in the opposite direction, e.g. 0 % = 100m, 20% = 50m, etc.
 
         In this situation we expect the lowest points to have a probability of
         1, and the highest points to have probabilities of 0. The probabilities
-        between should be the inverse of what is found in the usual case.
-        """
-        percentiles_cube = set_up_percentiles_cube()
+        between should be the inverse of what is found in the usual case."""
         # Invert the values associated with the percentiles.
-        percentiles_cube.data = np.flipud(percentiles_cube.data)
+        self.percentiles_cube.data = np.flipud(self.percentiles_cube.data)
         expected = set_reference_probabilities()
         expected = 1.0 - expected
 
         probability_cube = ProbabilitiesFromPercentiles2D(
-            percentiles_cube).percentile_interpolation(
-                self.orography_cube, percentiles_cube)
+            self.percentiles_cube).percentile_interpolation(
+                self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
     def test_equal_percentiles(self):
-        """
-        Test for sensible behaviour when some percentile levels are equal
-        """
-        percentiles_cube = set_up_percentiles_cube()
-        percentiles_cube.data[0].fill(300.)
+        """Test for sensible behaviour when some percentile levels are
+        equal."""
+        self.percentiles_cube.data[0].fill(300.)
         expected = set_reference_probabilities()
         expected[np.where(expected < 0.25)] = 0.
         probability_cube = ProbabilitiesFromPercentiles2D(
-            percentiles_cube).percentile_interpolation(
-                self.orography_cube, percentiles_cube)
+            self.percentiles_cube).percentile_interpolation(
+                self.orography_cube, self.percentiles_cube)
+
+        self.assertArrayAlmostEqual(probability_cube.data, expected)
+
+    def test_all_equal_percentiles(self):
+        """Test for sensible behaviour when all percentile levels are
+        equal at some points."""
+        self.percentiles_cube.data[:, :, 0:2].fill(300.)
+        expected = set_reference_probabilities()
+        expected[0:2, 0:2] = 0
+        expected[2:, 0:2] = 1
+        probability_cube = ProbabilitiesFromPercentiles2D(
+            self.percentiles_cube).percentile_interpolation(
+                self.orography_cube, self.percentiles_cube)
 
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
     def test_equal_percentiles_inverse_ordering(self):
-        """
-        Test for sensible behaviour when some percentile levels are equal
-        in the case of inverse ordering (as described above).
-        """
-        percentiles_cube = set_up_percentiles_cube()
-        percentiles_cube.data[0].fill(300.)
+        """Test for sensible behaviour when some percentile levels are equal
+        in the case of inverse ordering (as described above)."""
+        self.percentiles_cube.data[0].fill(300.)
         # Invert the values associated with the percentiles.
-        percentiles_cube.data = np.flipud(percentiles_cube.data)
+        self.percentiles_cube.data = np.flipud(self.percentiles_cube.data)
         expected = set_reference_probabilities()
         expected[np.where(expected <= 0.25)] = 0.
         expected = 1.0 - expected
         probability_cube = ProbabilitiesFromPercentiles2D(
-            percentiles_cube).percentile_interpolation(
-                self.orography_cube, percentiles_cube)
+            self.percentiles_cube).percentile_interpolation(
+                self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
 
 class Test_process(IrisTest):
-    """
-    Test top level processing function that calls percentile_interpolation()
-    """
+
+    """Test top level processing function that calls
+    percentile_interpolation()"""
+
     def setUp(self):
         """ Set up class instance and orography cube """
         percentiles_cube = set_up_percentiles_cube()
-        self.pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.reference_cube = percentiles_cube[0]
         self.orography_cube = set_up_threshold_cube()
 
     def test_basic(self):
-        """
-        Test the "process" function returns a single cube whose shape matches
-        that of the input threshold (orography) field
-        """
-        probability_cube = self.pfp_instance.process(self.orography_cube)
+        """Test the "process" function returns a single cube whose shape
+        matches that of the input threshold (orography) field."""
+        probability_cube = self.plugin_instance.process(self.orography_cube)
         self.assertIsInstance(probability_cube, iris.cube.Cube)
         self.assertSequenceEqual(probability_cube.shape,
-                                 self.orography_cube.shape)
+                                 self.reference_cube.shape)
 
     def test_unit_conversion_compatible(self):
-        """
-        Test the "process" function converts units appropriately if possible
+        """Test the "process" function converts units appropriately if possible
         when the input cubes are in different units."""
         self.orography_cube.convert_units('ft')
-        probability_cube = self.pfp_instance.process(self.orography_cube)
+        probability_cube = self.plugin_instance.process(self.orography_cube)
         self.assertIsInstance(probability_cube, iris.cube.Cube)
         self.assertSequenceEqual(probability_cube.shape,
-                                 self.orography_cube.shape)
+                                 self.reference_cube.shape)
 
     def test_unit_conversion_incompatible(self):
-        """
-        Test the "process" function raises an error when trying to convert
+        """Test the "process" function raises an error when trying to convert
         the units of cubes that have incompatible units."""
         self.orography_cube.units = 'K'
         msg = "Unable to convert from"
         with self.assertRaisesRegexp(ValueError, msg):
-            self.pfp_instance.process(self.orography_cube)
+            self.plugin_instance.process(self.orography_cube)
 
     def test_preservation_of_dimensions(self):
-        """
-        Test that if the pecentiles_cube has other dimension coordinates over
-        which slicing is performed, that these dimensions are properly restored
-        in the resulting probability cube."""
+        """Test that if the pecentiles_cube has other dimension coordinates
+        over which slicing is performed, that these dimensions are properly
+        restored in the resulting probability cube."""
         percentiles_cube = set_up_percentiles_cube()
         test_data = np.array([percentiles_cube.data, percentiles_cube.data])
         percentiles = percentiles_cube.coord('percentiles')
@@ -329,9 +329,8 @@ class Test_process(IrisTest):
                                  (percentiles, 1),
                                  (grid_y, 2), (grid_x, 3)])
 
-        pfp_instance = ProbabilitiesFromPercentiles2D(input_cube)
-        probability_cube = pfp_instance.process(self.orography_cube)
-
+        plugin_instance = ProbabilitiesFromPercentiles2D(input_cube)
+        probability_cube = plugin_instance.process(self.orography_cube)
         self.assertEqual(input_cube.coords(dim_coords=True)[0],
                          probability_cube.coords(dim_coords=True)[0])
 
@@ -348,17 +347,15 @@ class Test_process(IrisTest):
         percentiles_cube.add_aux_coord(new_model_coord)
         percentiles_cube = iris.util.new_axis(percentiles_cube,
                                               scalar_coord='leading_coord')
-        pfp_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
-        probability_cube = pfp_instance.process(self.orography_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        probability_cube = plugin_instance.process(self.orography_cube)
         self.assertEqual(percentiles_cube.coords(dim_coords=True)[0],
                          probability_cube.coords(dim_coords=True)[0])
 
     def test_threshold_dimensions(self):
-        """
-        Test threshold data is correctly sliced and processed if eg a 2-field
-        orography cube is passed into the "process" function. Ensure a warning
-        is raised.
-        """
+        """Test threshold data is correctly sliced and processed if eg a
+        2-field orography cube is passed into the "process" function. Ensure a
+        warning is raised."""
         threshold_data_3d = np.broadcast_to(self.orography_cube.data,
                                             (2, 4, 4))
         grid_x = self.orography_cube.coord("projection_x_coordinate")
@@ -374,12 +371,12 @@ class Test_process(IrisTest):
         msg = 'threshold cube has too many'
         with warnings.catch_warnings(record=True) as warning_list:
             warnings.simplefilter("always")
-            probability_cube = self.pfp_instance.process(threshold_cube)
+            probability_cube = self.plugin_instance.process(threshold_cube)
             self.assertTrue(warning_list[0].category == UserWarning)
             self.assertTrue(msg in str(warning_list[0]))
 
         self.assertSequenceEqual(probability_cube.shape,
-                                 self.orography_cube.shape)
+                                 self.reference_cube.shape)
         self.assertArrayAlmostEqual(probability_cube.data,
                                     set_reference_probabilities())
 

@@ -80,7 +80,7 @@ class ProbabilitiesFromPercentiles2D(object):
         percentile coordinate.
                 e.g.  0th Percentile - Value = 10
                      10th Percentile - Value = 5
-                     20th Percenitle - Value = 0
+                     20th Percentile - Value = 0
 
         Args:
             percentiles_cube (iris.cube.Cube):
@@ -127,14 +127,18 @@ class ProbabilitiesFromPercentiles2D(object):
                       self.inverse_ordering))
         return result
 
-    def create_probability_cube(self, cube):
+    def create_probability_cube(self, cube, threshold_cube):
         """
         Create a 2-dimensional probability cube in which to store the
         calculated probabilities.
 
         Args:
             cube (iris.cube.Cube):
-                Template for the output probability cube.
+                Template for the output probability cube. This is a slice
+                created in process, containing a percentile coordinate as well
+                as x and y coordinates. We keep all the metadata from this cube
+                but dispose of the percentile coordinate as we will be filling
+                the cube with probabilities.
         Returns:
             probability_cube (iris.cube.Cube):
                 A new 2-dimensional probability cube with suitable metadata.
@@ -150,6 +154,7 @@ class ProbabilitiesFromPercentiles2D(object):
 
         probabilities.units = 1
         probabilities.rename(self.output_name)
+        probabilities.attributes['thresholded_using'] = threshold_cube.name()
         probabilities.attributes['relative_to_threshold'] = 'below'
         if self.inverse_ordering is True:
             probabilities.attributes['relative_to_threshold'] = 'above'
@@ -166,15 +171,16 @@ class ProbabilitiesFromPercentiles2D(object):
         degenerate percentile distribution, the right most bin in which a
         threshold value is found is chosen.
 
-        e.g.::
+        e.g.
+        ::
 
             Percentile: 0 10 20 30 40 50 ...
             Height (m): 0 0 0 15 30 40 ...
 
-            A height of 0m will be associated with a probabilty of 20%. This is
-            not correct, but nor is the approach of taking 0%. The percentile
-            approach is not suitable with these degenerate distributions, so be
-            wary of the returned probabilities.
+        A height of 0m will be associated with a probabilty of 20%. This is
+        not correct, but nor is the approach of taking 0%. The percentile
+        approach is not suitable with these degenerate distributions, so be
+        wary of the returned probabilities.
 
         Examples:
 
@@ -238,7 +244,8 @@ class ProbabilitiesFromPercentiles2D(object):
                the threshold being considered. The [0] index is populated with
                the values in the slice of percentiles_cube at every True index.
                The [1] index is populated with the values in the next slice of
-               percentiles_cube.::
+               percentiles_cube.
+               ::
 
                    [ [[np.nan, np.nan, np.nan],
                       [2.0, 2.0, 2.0],
@@ -253,7 +260,8 @@ class ProbabilitiesFromPercentiles2D(object):
                lower bound array is populated at every True index with the
                current percentile value (0 in this first slice), whilst the
                upper bound array takes the percentile value from the next
-               slice.::
+               slice.
+               ::
 
                    [ [[-1, -1, -1],
                       [0, 0, 0],
@@ -290,6 +298,7 @@ class ProbabilitiesFromPercentiles2D(object):
 
             2. When all slices have been interated over, the interpolants are
                calculated using the threshold values and the values_bounds.
+               ::
 
                (threshold_cube.data - lower_bound)/(upper_bound - lower_bound)
 
@@ -298,9 +307,10 @@ class ProbabilitiesFromPercentiles2D(object):
 
             3. The interpolants are used to calculate the percentile value at
                each point in the array using the percentile_bounds.
+               ::
 
-               lower_percentile_bound + interpolants *
-                   (upper_percentile_bounds - lower_percentile_bounds)
+                   lower_percentile_bound + interpolants *
+                       (upper_percentile_bounds - lower_percentile_bounds)
 
                The percentiles are divided by 100 to give a fractional
                probability.
@@ -331,7 +341,8 @@ class ProbabilitiesFromPercentiles2D(object):
                 between percentile values.
         """
         percentiles = self.percentile_coordinate.points
-        probabilities = self.create_probability_cube(percentiles_cube)
+        probabilities = self.create_probability_cube(percentiles_cube,
+                                                     threshold_cube)
 
         # Create array with additional 2 dimensions to contain upper and lower
         # bounds.
@@ -359,7 +370,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 percentile_bounds[1, indices] = percentiles[index]
                 value_bounds[1, indices] = pslice.data[indices]
 
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide='ignore', invalid='ignore'):
             numerator = (threshold_cube.data - value_bounds[0])
             denominator = np.diff(value_bounds, n=1, axis=0)[0]
             interpolants = numerator/denominator
@@ -414,10 +425,7 @@ class ProbabilitiesFromPercentiles2D(object):
                                                         cube_slice)
             output_cubes.append(output_cube)
 
-        if len(output_cubes) > 1:
-            probability_cube = output_cubes.merge_cube()
-        else:
-            probability_cube = output_cubes[0]
+        probability_cube = output_cubes.merge_cube()
 
         reference_cube = next(self.percentiles_cube.slices_over(
             self.percentile_coordinate))
