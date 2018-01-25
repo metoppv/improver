@@ -66,6 +66,7 @@ class CubeCombiner(object):
                                '-', 'subtract',
                                '*', 'multiply',
                                'max', 'min', 'mean']
+
         if operation in possible_operations:
             self.operation = operation
         else:
@@ -99,8 +100,9 @@ class CubeCombiner(object):
             point (str):
                 The method of calculating the new point for the coordinate.
                 Currently accepts:
-                    'mid' - halfway between the bounds
-                    'upper' - equal to the upper bound
+
+                    | 'mid' - halfway between the bounds
+                    | 'upper' - equal to the upper bound
         Returns:
             result (iris.cube.Cube):
                 Cube with coord expanded.
@@ -165,7 +167,7 @@ class CubeCombiner(object):
             result.data = cube1.data + cube2.data
         elif operation == '-' or operation == 'subtract':
             result.data = cube1.data - cube2.data
-        elif operation == '*' or operation == 'multiple':
+        elif operation == '*' or operation == 'multiply':
             result.data = cube1.data * cube2.data
         elif operation == 'min':
             result.data = np.minimum(cube1.data, cube2.data)
