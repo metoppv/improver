@@ -35,8 +35,8 @@ import warnings
 import iris
 from iris import FUTURE
 
-from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.cube_combiner import CubeCombiner
 
 FUTURE.netcdf_promote = True
 
@@ -201,18 +201,39 @@ class WindGustDiagnostic(object):
                    ' {0:s} {1:s}.'.format(perc_coord_gust.name(),
                                           perc_coord_ws.name()))
             raise ValueError(msg)
-        # Add metadata to both cubes
+
+        # Check times are compatible.
+        msg = ('Could not match time coordinate')
+        wg_time = req_cube_gust.coords('time')
+        ws_time = req_cube_ws.coords('time')
+        if len(wg_time) == 0 or len(ws_time) == 0:
+            raise ValueError(msg)
+        wg_time = wg_time[0]
+        ws_time = ws_time[0]
+        for i, point in enumerate(wg_time.points):
+            if point != ws_time.points[i]:
+                if wg_time.bounds is None:
+                    raise ValueError(msg)
+                if len(wg_time.bounds) >= i:
+                    if len(wg_time.bounds[i]) == 2:
+                        if ws_time.points[i] < wg_time.bounds[i][0]:
+                            raise ValueError(msg)
+                        elif ws_time.points[i] > wg_time.bounds[i][1]:
+                            raise ValueError(msg)
+                    else:
+                        raise ValueError(msg)
+                else:
+                    raise ValueError(msg)
+
+        # Add metadata to gust cube
         req_cube_gust = self.add_metadata(req_cube_gust)
-        req_cube_ws = self.add_metadata(req_cube_ws)
-        # Merge cubes
-        merged_cube = merge_cubes(iris.cube.CubeList([req_cube_gust,
-                                                      req_cube_ws]))
-        # Calculate wind-gust diagnostic
-        cube_max = merged_cube.collapsed(perc_coord_gust.name(),
-                                         iris.analysis.MAX)
+
+        # Calculate wind-gust diagnostic using CubeCombiner
+        plugin = CubeCombiner('max')
+        result = plugin.combine(req_cube_gust, req_cube_ws, 'max')
 
         # Update metadata
-        result = self.update_metadata_after_max(cube_max,
+        result = self.update_metadata_after_max(result,
                                                 perc_coord_gust.name())
 
         return result

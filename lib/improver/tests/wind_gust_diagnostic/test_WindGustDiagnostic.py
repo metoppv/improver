@@ -154,7 +154,8 @@ class Test_update_metadata_after_max(IrisTest):
         self.perc_coord = DimCoord(percentile_values,
                                    long_name="percentile_over_nbhood",
                                    units="%")
-        self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
+        with warnings.catch_warnings(record=True):
+            self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
 
     def test_basic(self):
         """Test that the function returns a Cube. """
@@ -290,6 +291,58 @@ class Test_process(IrisTest):
                'does not match coord of wind-speed data')
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
+
+    def test_raises_error_for_no_time_coord(self):
+        """Test raises Value Error if cubes have no time coordinate """
+        cube_wg = self.cube_wg[:, 0, ::]
+        cube_ws = self.cube_ws[:, 0, ::]
+        cube_wg.remove_coord('time')
+        cube_wg = iris.util.squeeze(cube_wg)
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        msg = ('Could not match time coordinate')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(cube_wg, cube_ws)
+
+    def test_raises_error_points_mismatch_and_no_bounds(self):
+        """Test raises Value Error if points mismatch and no bounds """
+        cube_wg = self.cube_wg
+        cube_wg.coord('time').points = [402192.5, 402194.5]
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        msg = ('Could not match time coordinate')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(cube_wg, self.cube_ws)
+
+    def test_raises_error_points_mismatch_and_bounds(self):
+        """Test raises Value Error if both points and bounds mismatch """
+        cube_wg = self.cube_wg
+        cube_wg.coord('time').points = [402192.0, 402193.0]
+        cube_wg.coord('time').bounds = [[402191.0, 402192.0],
+                                        [402192.0, 402193.0]]
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        msg = ('Could not match time coordinate')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(cube_wg, self.cube_ws)
+
+    def test_raises_error_points_mismatch_and_invalid_bounds(self):
+        """Test raises Value Error if points mismatch and bounds are invalid"""
+        cube_wg = self.cube_wg
+        cube_wg.coord('time').points = [402192.0, 402193.0]
+        cube_wg.coord('time').bounds = [[402191.5], [402193.5]]
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        msg = ('Could not match time coordinate')
+        with self.assertRaisesRegexp(ValueError, msg):
+            plugin.process(cube_wg, self.cube_ws)
+
+    def test_no_raises_error_if_ws_point_in_bounds(self):
+        """Test raises no Value Error if wind-speed point in bounds """
+        cube_wg = self.cube_wg
+        cube_wg.coord('time').points = [402192.0, 402193.0]
+        cube_wg.coord('time').bounds = [[402191.5, 402192.5],
+                                        [402192.5, 402193.5]]
+
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        result = plugin.process(cube_wg, self.cube_ws)
+        self.assertIsInstance(result, Cube)
 
     def test_returns_wind_gust_diagnostic(self):
         """Test that the plugin returns a Cube. """
