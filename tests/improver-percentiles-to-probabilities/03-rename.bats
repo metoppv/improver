@@ -31,19 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-probabilities basic" {
+@test "percentiles-to-probabilities rename data" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   run improver percentiles-to-probabilities \
-      "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/snow_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/enukx_orography.nc" \
-      "$TEST_DIR/output.nc"
+    "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/snow_level.nc" \
+    "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/enukx_orography.nc" \
+    "$TEST_DIR/output.nc" --new_name="snow_prob"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/basic/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/rename/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
+
