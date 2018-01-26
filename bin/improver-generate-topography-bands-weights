@@ -48,12 +48,15 @@ iris.FUTURE.netcdf_promote = True
 #           within the band are set to 1.
 #   Sea points are masked and set to the default fill_value
 
-THRESHOLDS_DICT = {'land': {'bounds': [[-500., 0.], [0., 50.],
-                                       [50., 100.], [100., 150.],
-                                       [150., 200.], [200., 250.],
-                                       [250., 300.], [300., 400.],
-                                       [400., 500.], [500., 600.]],
-                            'units': 'm'}}
+THRESHOLDS_DICT = {'any_surface_type': {'bounds': [[-500., 0.], [0., 50.],
+                                                   [50., 100.], [100., 150.],
+                                                   [150., 200.], [200., 250.],
+                                                   [250., 300.], [300., 400.],
+                                                   [400., 500.], [500., 600.],
+                                                   [600., 800.], [800., 1000.],
+                                                   [1000., 2000.],
+                                                   [2000., 6000.]],
+                                        'units': 'm'}}
 
 
 def main():
@@ -73,11 +76,16 @@ def main():
                         metavar='INPUT_FILE_STANDARD_OROGRAPHY',
                         help=('A path to an input NetCDF orography file to '
                               'be processed'))
-    parser.add_argument('input_filepath_landmask', metavar='INPUT_FILE_LAND',
-                        help=('A path to an input NetCDF land mask file to be '
-                              'processed'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+    parser.add_argument('--input_filepath_landmask', metavar='INPUT_FILE_LAND',
+                        help=('A path to an input NetCDF land mask file to be '
+                              'processed. If provided, sea points will be '
+                              'masked and set to the default fill value. If '
+                              'no land mask is provided, weights will be '
+                              'generated for sea points as well as land. '
+                              'included in the appropriate topographic band.'))
+
     parser.add_argument('--force', dest='force', default=False,
                         action='store_true',
                         help=('If keyword is set (i.e. True), ancillaries '
@@ -107,15 +115,28 @@ def main():
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = load_cube(args.input_filepath_standard_orography)
-        try:
-            landmask = load_cube(args.input_filepath_landmask)
-        except IOError as err:
-            msg = ('Exception: {}. If the land mask can not be located at {}; '
-                   'run improver-generate-landmask-ancillary first.').format(
-                      err, args.input_filepath_landmask)
+
+        landmask = None
+        if args.input_filepath_landmask:
+            try:
+                landmask = load_cube(args.input_filepath_landmask)
+            except IOError as err:
+                msg = ("Loading land mask has been unsuccessful: {}. "
+                       "This may be because the land mask could not be "
+                       "located in {}; run "
+                       'improver-generate-landmask-ancillary first.').format(
+                           err, args.input_filepath_landmask)
+
+            if thresholds_dict == THRESHOLDS_DICT:
+                thresholds_dict['land'] = thresholds_dict.pop(
+                    'any_surface_type')
+        elif 'land' in thresholds_dict.keys():
+            msg = ('To generate topography bands only over land, a land '
+                   'mask must be provided as input')
             raise IOError(msg)
+
         result = GenerateTopographicZoneWeights().process(
-            orography, landmask, thresholds_dict)
+            orography, thresholds_dict, landmask)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath

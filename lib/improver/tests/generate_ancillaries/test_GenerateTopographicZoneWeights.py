@@ -309,7 +309,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the output is a cube with the expected format."""
         result = self.plugin.process(
-            self.orography, self.landmask, self.thresholds_dict)
+            self.orography, self.thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "topographic_zone_weights")
         self.assertEqual(result.units, Unit("1"))
@@ -326,15 +326,7 @@ class Test_process(IrisTest):
             y_dimension_length=2, x_dimension_length=2)
         msg = "The input orography cube should be two-dimensional"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            self.plugin.process(orography, self.landmask, self.thresholds_dict)
-
-    def test_invalid_bands(self):
-        """Test for if the thresholds_dict has an invalid key."""
-        thresholds_dict = {'invalid': {'bounds': [[0, 50], [50, 200]],
-                                       'units': 'm'}}
-        msg = "'land'"
-        with self.assertRaisesRegexp(KeyError, msg):
-            self.plugin.process(self.orography, self.landmask, thresholds_dict)
+            self.plugin.process(orography, self.thresholds_dict, self.landmask)
 
     def test_data(self):
         """Test that the result data and mask is as expected."""
@@ -347,7 +339,7 @@ class Test_process(IrisTest):
                                           [[True, False],
                                            [False, False]]])
         result = self.plugin.process(
-            self.orography, self.landmask, self.thresholds_dict)
+            self.orography, self.thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data.data, expected_weights_data, decimal=2)
@@ -364,7 +356,7 @@ class Test_process(IrisTest):
                                   [1, 1]])
         landmask = self.landmask.copy(landmask_data)
         result = self.plugin.process(
-            self.orography, landmask, self.thresholds_dict)
+            self.orography, self.thresholds_dict, landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data, expected_weights_data, decimal=2)
@@ -400,7 +392,7 @@ class Test_process(IrisTest):
                                           [[0.0, 0.0, 0.0],
                                            [0.0, 0.1, 0.4],
                                            [0.8, 1.0, 1.0]]])
-        result = self.plugin.process(orography, landmask, thresholds_dict)
+        result = self.plugin.process(orography, thresholds_dict, landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data, expected_weights_data, decimal=2)
@@ -420,7 +412,7 @@ class Test_process(IrisTest):
         thresholds_dict = {'land': {'bounds': [[0, 0.05], [0.05, 0.2]],
                                     'units': 'km'}}
         result = self.plugin.process(
-            self.orography, self.landmask, thresholds_dict)
+            self.orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data.data, expected_weights_data, decimal=2)
@@ -439,7 +431,7 @@ class Test_process(IrisTest):
         thresholds_dict = {'land': {'bounds': [[0, 50]],
                                     'units': 'm'}}
         result = self.plugin.process(
-            orography, self.landmask, thresholds_dict)
+            orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data.data, expected_weights_data, decimal=2)
@@ -455,7 +447,7 @@ class Test_process(IrisTest):
                                     'units': 'm'}}
         msg = "The maximum orography is greater than the uppermost band"
         with warnings.catch_warnings(record=True) as warning_list:
-            self.plugin.process(orography, self.landmask, thresholds_dict)
+            self.plugin.process(orography, thresholds_dict, self.landmask)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
             self.assertTrue(any(msg in str(item)
@@ -471,7 +463,7 @@ class Test_process(IrisTest):
                                     'units': 'm'}}
         msg = "The minimum orography is lower than the lowest band"
         with warnings.catch_warnings(record=True) as warning_list:
-            self.plugin.process(orography, self.landmask, thresholds_dict)
+            self.plugin.process(orography, thresholds_dict, self.landmask)
             self.assertTrue(any(item.category == UserWarning
                                 for item in warning_list))
             self.assertTrue(any(msg in str(item)

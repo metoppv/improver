@@ -35,10 +35,14 @@ optional arguments:
   --thresholds_filepath THRESHOLDS_FILEPATH
                         The path to a json file which can be used to set the
                         number and size of topographic bounds. If unset a
-                        default bounds dictionary will be used:{'land':
-                        {'bounds' : [[-500, 0], [0, 50], [50, 100], [100,
-                        150],[150, 200], [200, 250], [250, 300], [300, 400],
-                        [400, 500], [500, 600]],'units': 'm'}}
+                        default bounds dictionary will be used, where the
+                        primary key will be 'any_surface_type' unless a land
+                        mask is provided in which case it will be 'land'. The
+                        dictionary has the following form:
+                        {'any_surface_type': {'bounds' : [[-500, 0], [0, 50],
+                        [50, 100], [100, 150],[150, 200], [200, 250], [250,
+                        300], [300, 400], [400, 500], [500, 600]],'units':
+                        'm'}}
 __HELP__
   [[ "$output" == "$expected" ]]
 }

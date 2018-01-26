@@ -161,20 +161,20 @@ class GenerateTopographicZoneWeights(object):
         interpolated_weights = np.interp(points, band_points, weights)
         return interpolated_weights
 
-    def process(self, orography, landmask, thresholds_dict):
+    def process(self, orography, thresholds_dict, landmask=None):
         """Calculate the weights depending upon where the orography point is
         within the topographic zones.
 
         Args:
             orography (iris.cube.Cube):
                 Orography on standard grid.
-            landmask (iris.cube.Cube):
-                Land mask on standard grid.
             thresholds_dict (dict):
                 Definition of orography bands required.
                 The expected format of the dictionary is e.g.
                 `{'land': {'bounds': [[0, 50], [50, 200]], 'units': 'm'}}`
-
+        Keyword Args:
+            landmask (iris.cube.Cube):
+                Land mask on standard grid.
         Returns:
             topographic_zone_weights (iris.cube.Cube):
                 Cube containing the weights depending upon where the orography
@@ -188,8 +188,8 @@ class GenerateTopographicZoneWeights(object):
             raise InvalidCubeError(msg)
 
         # Find bands and midpoints from bounds.
-        bands = thresholds_dict["land"]["bounds"]
-        threshold_units = thresholds_dict["land"]["units"]
+        bands = thresholds_dict.values()[0]['bounds']
+        threshold_units = thresholds_dict.values()[0]["units"]
 
         # Create topographic_zone_cube first, so that a cube is created for
         # each band. This will allow the data for neighbouring bands to be
@@ -269,9 +269,10 @@ class GenerateTopographicZoneWeights(object):
         topographic_zone_masked_weights = iris.cube.CubeList([])
         for topographic_zone_slice in topographic_zone_weights.slices_over(
                 "topographic_zone"):
-            topographic_zone_slice.data = (
-                GenerateOrographyBandAncils().sea_mask(
-                    landmask.data, topographic_zone_slice.data))
+            if landmask:
+                topographic_zone_slice.data = (
+                    GenerateOrographyBandAncils().sea_mask(
+                        landmask.data, topographic_zone_slice.data))
             topographic_zone_masked_weights.append(topographic_zone_slice)
         topographic_zone_weights = topographic_zone_masked_weights.merge_cube()
         return topographic_zone_weights

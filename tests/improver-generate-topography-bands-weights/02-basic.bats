@@ -39,8 +39,8 @@
   # Run topography band weights generation and check it passes.
   run improver generate-topography-bands-weights \
       "$test_path/input_orog.nc" \
-      "$test_path/input_land.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --input_filepath_landmask "$test_path/input_land.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

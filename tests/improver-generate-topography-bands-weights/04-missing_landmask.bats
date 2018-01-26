@@ -39,12 +39,12 @@
   # Run topography band ancillary generation and check it passes.
   run improver generate-topography-bands-weights \
       "$test_path/input_orog.nc" \
-      "$test_path/missing_landmask" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --thresholds_filepath $test_path/bounds.json
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-Exception: One or more of the files specified did not exist
+IOError: To generate topography bands only over land, a land mask must be provided as input
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

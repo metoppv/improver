@@ -4,10 +4,12 @@
   run improver generate-topography-bands-weights -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-generate-topography-bands-weights [-h] [--force]
+usage: improver-generate-topography-bands-weights [-h]
+                                                  [--input_filepath_landmask INPUT_FILE_LAND]
+                                                  [--force]
                                                   [--thresholds_filepath THRESHOLDS_FILEPATH]
                                                   INPUT_FILE_STANDARD_OROGRAPHY
-                                                  INPUT_FILE_LAND OUTPUT_FILE
+                                                  OUTPUT_FILE
 
 Read input orography and landmask fields. Return a a cube of topographic zone
 weights to indicate where an orography point sits within the defined
@@ -21,12 +23,17 @@ positional arguments:
   INPUT_FILE_STANDARD_OROGRAPHY
                         A path to an input NetCDF orography file to be
                         processed
-  INPUT_FILE_LAND       A path to an input NetCDF land mask file to be
-                        processed
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --input_filepath_landmask INPUT_FILE_LAND
+                        A path to an input NetCDF land mask file to be
+                        processed. If provided, sea points will be masked and
+                        set to the default fill value. If no land mask is
+                        provided, weights will be generated for sea points as
+                        well as land. included in the appropriate topographic
+                        band.
   --force               If keyword is set (i.e. True), ancillaries will be
                         generated even if doing so will overwrite existing
                         files

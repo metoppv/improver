@@ -43,16 +43,26 @@ from improver.utilities.load import load_cube
 iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
-#    above/below sea level for which masks are required.
+# above/below sea level for which masks are required. The default case
+# does not differentiate between land and sea surface types:
+#
+#   'any_surface_type'
+#
+# If a land mask is provided, the key will change to become "land" and the
+# behaviour will become:
+#
 #   'land': land points outside the altitude band are set to 0 and those
-#           within the band are set to 1.
-#   Sea points are masked and set to the default fill_value
+#           within the band are set to 1. In this case sea points are masked
+#           and set to the default fill_value
 
 THRESHOLDS_DICT = {'any_surface_type': {'bounds': [[-500., 0.], [0., 50.],
                                                    [50., 100.], [100., 150.],
                                                    [150., 200.], [200., 250.],
                                                    [250., 300.], [300., 400.],
-                                                   [400., 500.], [500., 600.]],
+                                                   [400., 500.], [500., 600.],
+                                                   [600., 800.], [800., 1000.],
+                                                   [1000., 2000.],
+                                                   [2000., 6000.]],
                                         'units': 'm'}}
 
 
@@ -86,8 +96,11 @@ def main():
                         help=("The path to a json file which can be used "
                               "to set the number and size of topographic "
                               "bounds. If unset a default bounds dictionary"
-                              " will be used:"
-                              "{'land': {'bounds' : [[-500, 0]"
+                              " will be used, where the primary key will be"
+                              " 'any_surface_type' unless a land mask is "
+                              " provided in which case it will be 'land'. The "
+                              " dictionary has the following form: "
+                              "{'any_surface_type': {'bounds' : [[-500, 0]"
                               ", [0, 50], [50, 100], [100, 150],"
                               "[150, 200], [200, 250], [250, 300],"
                               " [300, 400], [400, 500], [500, 600]],"
@@ -115,6 +128,8 @@ def main():
                        "located in {}; run "
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
+            # If the user provides a land mask and uses the default dictionary
+            # change the key to "land" so the land mask is applied.
             if thresholds_dict == THRESHOLDS_DICT:
                 thresholds_dict['land'] = thresholds_dict.pop(
                     'any_surface_type')
