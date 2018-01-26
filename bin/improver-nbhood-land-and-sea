@@ -36,8 +36,8 @@ may also be employed, with the sea area being treated as a distinct zone."""
 import numpy as np
 
 import iris
-
 from improver.argparser import ArgParser
+
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
@@ -47,6 +47,15 @@ from improver.utilities.cube_manipulation import merge_cubes
 
 
 def apply_clipping(cube, result):
+    """A temporary fix to clip data values that are artificially enlarged
+    by the neighbourhooding process.
+
+    Args:
+       cube (iris.cube.Cube):
+          The cube that was passed to the CLI.
+       result (iris.cube.Cube):
+          The cube that has undergone neighbourhooding and is to be clipped.
+    """
     input_max = cube.data.max()
     input_min = cube.data.min()
     result.data = np.clip(result.data, input_min, input_max)
@@ -56,44 +65,45 @@ def main():
     """Load in arguments for applying neighbourhood processing when using a
     mask."""
     parser = ArgParser(
-        description='Apply the requested neighbourhood method via the '
-                    'ApplyNeighbourhoodProcessingWithAMask plugin to a file '
-                    'with one diagnostic cube in combination with a cube '
-                    'containing one or more masks. The cube containing the '
-                    'mask(s) may have an extra dimension compared to the '
-                    'input cube. In this case, the user specifies the name of '
-                    'the extra coordinate and this coordinate is iterated '
-                    'over so each mask is applied to the input cube '
-                    'separately. These masked cubes are concatenated '
-                    'together in the output cube, resulting in a cube that '
-                    'has been processed using multiple masks having gained '
-                    'the extra dimension from the cube. There is also '
-                    'an option to re-mask the output cube, so that after '
-                    'neighbourhood processing, non-zero values are only '
-                    'present for unmasked grid points. '
-                    'There is an alternative option of collapsing the '
-                    'dimension that we gain using this processing using a '
-                    'weighted average.')
+        description='Neighbourhood the input cube as two distinct regions of '
+        'land and sea, as defined by the mask (INPUT_MASK). The resulting '
+        'cube will include the two independently neighbourhooded regions '
+        'stitched back together. An optional secondary mask may be provided'
+        ' (ADDITIONAL_MASK) with an additional coordinate (e.g. topographic_'
+        'zone) over which to iterate. If provdided this CLI will neighbourhood'
+        ' the data in each of these masked regions over the "masked in" area '
+        'in the INPUT_MASK. These multiple regions of masking will be '
+        'collapsed using the weights provided, and any areas spreading beyond '
+        'the INPUT_MASK will be re-masked. Again, the sea area will finally '
+        'be stitched around the land area in the final output.')
 
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
-    parser.add_argument('input_landmask_filepath', metavar='INPUT_FILE_LAND',
+    parser.add_argument('input_mask_filepath', metavar='INPUT_MASK',
                         help=('A path to an input NetCDF land mask file.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
-    mask_group = parser.add_argument_group()
+    mask_group = parser.add_argument_group(
+        'Addtional Mask - All args are required to use an additional mask')
     mask_group.add_argument('--additional_mask_filepath',
-                            metavar='ADDITIONAL_MASK_FILE',
+                            metavar='ADDITIONAL_MASK',
                             help='A path to an additional input mask NetCDF '
                             'file to be used as well as the land-sea '
                             'discrimination provided by the land mask.')
-    mask_group.add_argument('coord_for_masking', metavar='COORD_FOR_MASKING',
+    mask_group.add_argument('--coord_for_masking', metavar='COORD_FOR_MASKING',
                             help='Coordinate to iterate over when applying '
                             'the additional mask to the neighbourhood '
                             'processing. ')
+    mask_group.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
+                            default=None,
+                            help='A path to an weights NetCDF file containing '
+                            'the weights which are used for collapsing the '
+                            'dimension gained through masking.')
 
-    group = parser.add_mutually_exclusive_group()
+    radius_group = parser.add_argument_group(
+        'Neighbourhooding Radius - Set only one of the options')
+    group = radius_group.add_mutually_exclusive_group()
     group.add_argument('--radius', metavar='RADIUS', type=float,
                        help='The radius (in m) for neighbourhood processing.')
     group.add_argument('--radii-by-lead-time',
@@ -126,40 +136,6 @@ def main():
                              'fraction calculated by dividing the sum of the '
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
-
-    group2 = parser.add_mutually_exclusive_group()
-    group2.add_argument('--re_mask', action='store_true',
-                        help='If re_mask is set (i.e. True), the output cube '
-                             'following neighbourhood processing is '
-                             're-masked. This re-masking removes any values '
-                             'that have been generated by neighbourhood '
-                             'processing at grid points that were '
-                             'originally masked. '
-                             'If not set, re_mask defaults to False and no '
-                             're-masking is applied to the neighbourhood '
-                             'processed output. Therefore, the neighbourhood '
-                             'processing may result in values being present '
-                             'in areas that were originally masked. This '
-                             'allows the the values in adjacent bands to be'
-                             'weighted together if the additional dimension'
-                             'from the masking process is collapsed.')
-    group2.add_argument('--collapse_dimension', action='store_true',
-                        help='Collapse the dimension from the mask, by doing '
-                             'a weighted mean using the weights provided. '
-                             'This is only suitable when the result is is '
-                             'left unmasked, so there is data to weight '
-                             'between the points in coordinate we are '
-                             'collapsing.')
-
-    parser.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
-                        default=None,
-                        help='A path to an weights NetCDF file containing the '
-                             'weights which are used for collapsing the '
-                             'dimension gained through masking.')
-    parser.add_argument('--intermediate_filepath', default=None,
-                        help='If provided the result after neighbourhooding, '
-                             'before collapsing the extra dimension is saved '
-                             'in the given filepath.')
     parser.add_argument('--no_clip', action='store_true', default=False,
                         help="By default the results of neighbourhooding will "
                              "be clipped to the extremes in the input data. "
@@ -175,9 +151,9 @@ def main():
     cube = load_cube(args.input_filepath)
     cube = cube[0]
 
-    landmask = load_cube(args.input_landmask_filepath)
+    landmask = load_cube(args.input_mask_filepath)
     # Create land and sea masks
-    land_only  = landmask.copy(data=landmask.data.astype(int))
+    land_only = landmask.copy(data=landmask.data.astype(int))
     sea_only = landmask.copy(data=np.logical_not(landmask.data).astype(int))
 
     if args.radius:
@@ -189,29 +165,31 @@ def main():
 
     if args.additional_mask_filepath:
         additional_mask = load_cube(args.additional_mask_filepath)
+        weights = load_cube(args.weights_for_collapsing_dim)
+
         mask_cube = iris.cube.CubeList()
         xy_slices = additional_mask.slices([cube.coord(axis='y'),
                                             cube.coord(axis='x')])
         for xy_slice in xy_slices:
             mask_cube.append(xy_slice.copy(data=np.logical_and(
-                        land_only.data, xy_slice.data).astype(int)))
+                land_only.data, xy_slice.data).astype(int)))
 
         mask_cube = merge_cubes(mask_cube)
 
         result_land = ApplyNeighbourhoodProcessingWithAMask(
             args.coord_for_masking, radius_or_radii, lead_times=lead_times,
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-            re_mask=args.re_mask).process(cube, mask_cube)
+            re_mask=True).process(cube, mask_cube)
     else:
         result_land = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-            re_mask=args.re_mask).process(cube, land_only)
+            re_mask=True).process(cube, land_only)
 
     result_sea = NeighbourhoodProcessing(
         'square', radius_or_radii, lead_times=lead_times,
         ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-        re_mask=args.re_mask).process(cube, sea_only)
+        re_mask=True).process(cube, sea_only)
 
     result_land.data = np.ma.masked_invalid(result_land.data)
     result_sea.data = np.ma.masked_invalid(result_sea.data)
@@ -225,19 +203,17 @@ def main():
         apply_clipping(cube, result_land)
         apply_clipping(cube, result_sea)
 
+    if args.additional_mask_filepath:
+        # Collapse with the masking dimension.
+        result_land = CollapseMaskedNeighbourhoodCoordinate(
+            args.coord_for_masking, weights=weights).process(result_land)
+
     # Recombine cubes to be a single output.
-    combined_data = np.ma.array(result_land.data.filled(1) * result_sea.data.filled(1),
-                                mask=(result_land.data.mask * result_sea.data.mask))
-    print 'MASKING', np.ma.is_masked(combined_data)
+    combined_data = np.ma.array(
+        result_land.data.filled(1) * result_sea.data.filled(1),
+        mask=(result_land.data.mask * result_sea.data.mask))
     result = result_land.copy(data=combined_data)
 
-    if args.intermediate_filepath is not None:
-        iris.save(result, args.intermediate_filepath)
-    # Collapse with the masking dimension.
-    if args.collapse_dimension:
-        weights = load_cube(args.weights_for_collapsing_dim)
-        result = CollapseMaskedNeighbourhoodCoordinate(
-            args.coord_for_masking, weights=weights).process(result)
     iris.save(result, args.output_filepath)
 
 
