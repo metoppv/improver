@@ -145,11 +145,14 @@ def main():
                              "doesn't produce values above or below the "
                              "extremes in the input data this option can be "
                              "removed.")
+    parser.add_argument('--intermediate_filepath', default=None,
+                        help='If provided the result after neighbourhooding, '
+                             'before collapsing the extra dimension is saved '
+                             'in the given filepath.')
 
     args = parser.parse_args()
 
     cube = load_cube(args.input_filepath)
-    cube = cube[0]
 
     landmask = load_cube(args.input_mask_filepath)
     # Create land and sea masks
@@ -179,7 +182,16 @@ def main():
         result_land = ApplyNeighbourhoodProcessingWithAMask(
             args.coord_for_masking, radius_or_radii, lead_times=lead_times,
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-            re_mask=True).process(cube, mask_cube)
+            re_mask=False).process(cube, mask_cube)
+
+        # Reapply land-mask to mask any data spread by neighbourhooding.
+        masked_data = iris.cube.CubeList()
+        for cslice in result_land.slices(
+                [cube.coord(axis='y'), cube.coord(axis='x')]):
+            cslice.data = np.ma.masked_array(cslice.data, mask=sea_only.data)
+            masked_data.append(cslice)
+        result_land = masked_data.concatenate()
+        result_land = result_land.merge_cube()
     else:
         result_land = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
@@ -191,17 +203,18 @@ def main():
         ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
         re_mask=True).process(cube, sea_only)
 
-    result_land.data = np.ma.masked_invalid(result_land.data)
-    result_sea.data = np.ma.masked_invalid(result_sea.data)
-    iris.save(result_land, 'land_result.nc')
-    iris.save(result_sea, 'sea_result.nc')
-
     # TODO: This clip should be removed once the neighbourhood code is fixed.
     # At the moment the neighbourhood code can produce values beyond extremes
     # in the input data.
     if not args.no_clip:
         apply_clipping(cube, result_land)
         apply_clipping(cube, result_sea)
+
+    if args.intermediate_filepath is not None:
+        iris.save(result_land, '{}_land.nc'.format(
+                args.intermediate_filepath.strip('.nc')))
+        iris.save(result_sea, '{}_sea.nc'.format(
+                args.intermediate_filepath.strip('.nc')))
 
     if args.additional_mask_filepath:
         # Collapse with the masking dimension.
