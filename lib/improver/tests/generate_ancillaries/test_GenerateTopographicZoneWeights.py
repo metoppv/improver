@@ -303,8 +303,7 @@ class Test_process(IrisTest):
         landmask.rename("land_binary_mask")
         landmask.units = Unit("1")
         self.landmask = landmask
-        self.thresholds_dict = {'land': {'bounds': [[0, 50], [50, 200]],
-                                         'units': 'm'}}
+        self.thresholds_dict = {'bounds': [[0, 50], [50, 200]], 'units': 'm'}
 
     def test_basic(self):
         """Test that the output is a cube with the expected format."""
@@ -381,8 +380,8 @@ class Test_process(IrisTest):
         landmask.rename("land_binary_mask")
         landmask.units = Unit("1")
 
-        thresholds_dict = {'land': {'bounds': [[0, 50], [50, 100], [100, 150]],
-                                    'units': 'm'}}
+        thresholds_dict = {'bounds': [[0, 50], [50, 100], [100, 150]],
+                           'units': 'm'}
         expected_weights_data = np.array([[[1.0, 0.7, 0.6],
                                            [0.1, 0.0, 0.0],
                                            [0.0, 0.0, 0.0]],
@@ -409,8 +408,8 @@ class Test_process(IrisTest):
                                            [False, False]],
                                           [[True, False],
                                            [False, False]]])
-        thresholds_dict = {'land': {'bounds': [[0, 0.05], [0.05, 0.2]],
-                                    'units': 'km'}}
+        thresholds_dict = {'bounds': [[0, 0.05], [0.05, 0.2]],
+                           'units': 'km'}
         result = self.plugin.process(
             self.orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -428,8 +427,7 @@ class Test_process(IrisTest):
         orography_data = np.array([[10., 20.],
                                    [30., 40.]])
         orography = self.orography.copy(data=orography_data)
-        thresholds_dict = {'land': {'bounds': [[0, 50]],
-                                    'units': 'm'}}
+        thresholds_dict = {'bounds': [[0, 50]], 'units': 'm'}
         result = self.plugin.process(
             orography, thresholds_dict, self.landmask)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -443,8 +441,7 @@ class Test_process(IrisTest):
         orography_data = np.array([[60., 70.],
                                    [80., 90.]])
         orography = self.orography.copy(data=orography_data)
-        thresholds_dict = {'land': {'bounds': [[0, 50]],
-                                    'units': 'm'}}
+        thresholds_dict = {'bounds': [[0, 50]], 'units': 'm'}
         msg = "The maximum orography is greater than the uppermost band"
         with warnings.catch_warnings(record=True) as warning_list:
             self.plugin.process(orography, thresholds_dict, self.landmask)
@@ -459,8 +456,7 @@ class Test_process(IrisTest):
         orography_data = np.array([[60., 70.],
                                    [80., 90.]])
         orography = self.orography.copy(data=orography_data)
-        thresholds_dict = {'land': {'bounds': [[100, 150]],
-                                    'units': 'm'}}
+        thresholds_dict = {'bounds': [[100, 150]], 'units': 'm'}
         msg = "The minimum orography is lower than the lowest band"
         with warnings.catch_warnings(record=True) as warning_list:
             self.plugin.process(orography, thresholds_dict, self.landmask)

@@ -188,8 +188,8 @@ class GenerateTopographicZoneWeights(object):
             raise InvalidCubeError(msg)
 
         # Find bands and midpoints from bounds.
-        bands = thresholds_dict.values()[0]['bounds']
-        threshold_units = thresholds_dict.values()[0]["units"]
+        bands = thresholds_dict['bounds']
+        threshold_units = thresholds_dict["units"]
 
         # Create topographic_zone_cube first, so that a cube is created for
         # each band. This will allow the data for neighbouring bands to be
@@ -199,7 +199,7 @@ class GenerateTopographicZoneWeights(object):
         for band in bands:
             topographic_zone_cube = (
                 _make_mask_cube(
-                    mask_data, "land", orography.coords(), band,
+                    mask_data, orography.coords(), band,
                     threshold_units))
             topographic_zone_cubes.append(topographic_zone_cube)
         topographic_zone_weights = topographic_zone_cubes.concatenate_cube()

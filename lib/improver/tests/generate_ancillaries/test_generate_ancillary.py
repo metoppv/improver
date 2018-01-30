@@ -67,7 +67,7 @@ class Test__make_mask_cube(IrisTest):
                             [0.5, 0., 1.5],
                             [0.2, 0., 0]])
         self.mask = np.ma.masked_where(premask > 1., premask)
-        self.key = 'test key'
+
         self.x_coord = DimCoord([1, 2, 3], long_name='longitude')
         self.y_coord = DimCoord([1, 2, 3], long_name='latitude')
         self.coords = [self.x_coord, self.y_coord]
@@ -80,10 +80,9 @@ class Test__make_mask_cube(IrisTest):
         method is called with an incorrect number of bounds."""
         emsg = "should have only an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
-            _make_mask_cube(self.mask, self.key, self.coords, [0], self.units)
+            _make_mask_cube(self.mask, self.coords, [0], self.units)
         with self.assertRaisesRegexp(TypeError, emsg):
             _make_mask_cube(self.mask,
-                            self.key,
                             self.coords,
                             [0, 2, 4], self.units)
 
@@ -92,12 +91,12 @@ class Test__make_mask_cube(IrisTest):
         method is called with only an upper bound."""
         emsg = "should have both an upper and lower limit"
         with self.assertRaisesRegexp(TypeError, emsg):
-            _make_mask_cube(self.mask, self.key, self.coords,
+            _make_mask_cube(self.mask,  self.coords,
                             [None, self.upper], self.units)
 
     def test_bothbounds(self):
         """test creating cube with both thresholds set"""
-        result = _make_mask_cube(self.mask, self.key, self.coords,
+        result = _make_mask_cube(self.mask, self.coords,
                                  [self.lower, self.upper], self.units)
         self.assertEqual(result.coord('topographic_zone').bounds[0][1],
                          self.upper)
@@ -106,6 +105,22 @@ class Test__make_mask_cube(IrisTest):
         self.assertEqual(result.coord('topographic_zone').points,
                          np.mean([self.lower, self.upper]))
         self.assertEqual(result.coord('topographic_zone').units, Unit('m'))
+
+    def test_new_attribute_no_seapoints(self):
+        """Test the new attribute is added to the cube."""
+        result = _make_mask_cube(self.mask, self.coords,
+                                 [self.lower, self.upper], self.units)
+        self.assertEqual(
+            result.attributes["topographic_zones_include_seapoints"], False)
+
+    def test_new_attribute_include_seapoints(self):
+        """Test the new attribute is added to the cube when seapoints
+           included."""
+        result = _make_mask_cube(self.mask, self.coords,
+                                 [self.lower, self.upper], self.units,
+                                 sea_points_included=True)
+        self.assertEqual(
+            result.attributes["topographic_zones_include_seapoints"], True)
 
 
 if __name__ == "__main__":
