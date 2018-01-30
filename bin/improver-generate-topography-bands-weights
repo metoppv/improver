@@ -43,20 +43,13 @@ from improver.utilities.load import load_cube
 iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
-#    above/below sea level for which masks are required.
-#   'land': land points outside the altitude band are set to 0 and those
-#           within the band are set to 1.
-#   Sea points are masked and set to the default fill_value
+# above/below sea level for which masks are required.
 
-THRESHOLDS_DICT = {'any_surface_type': {'bounds': [[-500., 0.], [0., 50.],
-                                                   [50., 100.], [100., 150.],
-                                                   [150., 200.], [200., 250.],
-                                                   [250., 300.], [300., 400.],
-                                                   [400., 500.], [500., 600.],
-                                                   [600., 800.], [800., 1000.],
-                                                   [1000., 2000.],
-                                                   [2000., 6000.]],
-                                        'units': 'm'}}
+THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
+                              [150., 200.], [200., 250.], [250., 300.],
+                              [300., 400.], [400., 500.], [500., 650.],
+                              [650., 800.], [800., 950.], [950., 6000.]],
+                   'units': 'm'}
 
 
 def main():
@@ -83,7 +76,7 @@ def main():
                               'processed. If provided, sea points will be '
                               'masked and set to the default fill value. If '
                               'no land mask is provided, weights will be '
-                              'generated for sea points as well as land. '
+                              'generated for sea points as well as land, '
                               'included in the appropriate topographic band.'))
 
     parser.add_argument('--force', dest='force', default=False,
@@ -98,13 +91,11 @@ def main():
                               "to set the number and size of topographic "
                               "bounds. If unset a default bounds dictionary"
                               " will be used:"
-                              "{'land': {'bounds' : [[-500, 0]"
-                              ", [0, 50], [50, 100], [100, 150],"
+                              "{'bounds' : [[-500, 0]"
+                              ", [0, 50], [50, 100], [100, 150], "
                               "[150, 200], [200, 250], [250, 300],"
                               " [300, 400], [400, 500], [500, 600]],"
-                              "'units': 'm'"
-                              "}"
-                              "}"))
+                              "'units': 'm'}"))
     args = parser.parse_args()
 
     if args.thresholds_filepath:
@@ -127,16 +118,8 @@ def main():
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
 
-            if thresholds_dict == THRESHOLDS_DICT:
-                thresholds_dict['land'] = thresholds_dict.pop(
-                    'any_surface_type')
-        elif 'land' in thresholds_dict.keys():
-            msg = ('To generate topography bands only over land, a land '
-                   'mask must be provided as input')
-            raise IOError(msg)
-
         result = GenerateTopographicZoneWeights().process(
-            orography, thresholds_dict, landmask)
+            orography, thresholds_dict, landmask=landmask)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath

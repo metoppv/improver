@@ -174,7 +174,8 @@ class GenerateTopographicZoneWeights(object):
                 `{'land': {'bounds': [[0, 50], [50, 200]], 'units': 'm'}}`
         Keyword Args:
             landmask (iris.cube.Cube):
-                Land mask on standard grid.
+                Land mask on standard grid. If provided sea points are masked
+                out in the output array.
         Returns:
             topographic_zone_weights (iris.cube.Cube):
                 Cube containing the weights depending upon where the orography

@@ -43,27 +43,13 @@ from improver.utilities.load import load_cube
 iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
-# above/below sea level for which masks are required. The default case
-# does not differentiate between land and sea surface types:
-#
-#   'any_surface_type'
-#
-# If a land mask is provided, the key will change to become "land" and the
-# behaviour will become:
-#
-#   'land': land points outside the altitude band are set to 0 and those
-#           within the band are set to 1. In this case sea points are masked
-#           and set to the default fill_value
+# above/below sea level for which masks are required.
 
-THRESHOLDS_DICT = {'any_surface_type': {'bounds': [[-500., 0.], [0., 50.],
-                                                   [50., 100.], [100., 150.],
-                                                   [150., 200.], [200., 250.],
-                                                   [250., 300.], [300., 400.],
-                                                   [400., 500.], [500., 600.],
-                                                   [600., 800.], [800., 1000.],
-                                                   [1000., 2000.],
-                                                   [2000., 6000.]],
-                                        'units': 'm'}}
+THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
+                              [150., 200.], [200., 250.], [250., 300.],
+                              [300., 400.], [400., 500.], [500., 650.],
+                              [650., 800.], [800., 950.], [950., 6000.]],
+                   'units': 'm'}
 
 
 def main():
@@ -82,7 +68,7 @@ def main():
     parser.add_argument('--input_filepath_landmask', metavar='INPUT_FILE_LAND',
                         help=('A path to an input NetCDF land mask file to be '
                               'processed. If provided, sea points will be '
-                              'masked and set to the default fill value. If '
+                              'set to zero in every band. If '
                               'no land mask is provided, sea points will be '
                               'included in the appropriate topographic band.'))
     parser.add_argument('--force', dest='force', default=False,
@@ -96,17 +82,13 @@ def main():
                         help=("The path to a json file which can be used "
                               "to set the number and size of topographic "
                               "bounds. If unset a default bounds dictionary"
-                              " will be used, where the primary key will be"
-                              " 'any_surface_type' unless a land mask is "
-                              " provided in which case it will be 'land'. The "
-                              " dictionary has the following form: "
-                              "{'any_surface_type': {'bounds' : [[-500, 0]"
+                              " will be used."
+                              "The dictionary has the following form: "
+                              "{'bounds' : [[-500, 0]"
                               ", [0, 50], [50, 100], [100, 150],"
                               "[150, 200], [200, 250], [250, 300],"
                               " [300, 400], [400, 500], [500, 600]],"
-                              "'units': 'm'"
-                              "}"
-                              "}"))
+                              "'units': 'm'}"))
     args = parser.parse_args()
 
     if args.thresholds_filepath:
@@ -128,18 +110,9 @@ def main():
                        "located in {}; run "
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
-            # If the user provides a land mask and uses the default dictionary
-            # change the key to "land" so the land mask is applied.
-            if thresholds_dict == THRESHOLDS_DICT:
-                thresholds_dict['land'] = thresholds_dict.pop(
-                    'any_surface_type')
-        elif 'land' in thresholds_dict.keys():
-            msg = ('To generate topography bands only over land, a land '
-                   'mask must be provided as input')
-            raise IOError(msg)
 
         result = GenerateOrographyBandAncils().process(
-            orography, thresholds_dict, landmask)
+            orography, thresholds_dict, landmask=landmask)
         result = result.concatenate_cube()
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
     else:
