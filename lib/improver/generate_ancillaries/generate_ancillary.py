@@ -83,7 +83,7 @@ def _make_mask_cube(
                                                units=Unit(topographic_units))
         mask_cube.add_aux_coord(threshold_coord)
     mask_cube.attributes.update(
-        {'topographic_zones_include_seapoints': sea_points_included})
+        {'topographic_zones_include_seapoints': str(sea_points_included)})
     for coord in coords:
         if coord.name() in ['projection_y_coordinate', 'latitude']:
             mask_cube.add_dim_coord(coord, 0)
@@ -196,9 +196,9 @@ class GenerateOrographyBandAncils(object):
 
         For example, for threshold pair [1,3] with orography::
 
-                     [[0 0 2]    and      sea mask: [[-- -- 2]
-                      [0 2 3]                        [0  2  3]
-                      [0 1 4]]                       [-- 1  4]]
+                     [[0 0 2]    and      sea mask: [[0 0 1]
+                      [2 2 3]                        [1 1 1]
+                      [0 1 4]]                       [0 1 1]]
 
         the resultant array will be::
 

@@ -43,7 +43,7 @@ from improver.utilities.load import load_cube
 iris.FUTURE.netcdf_promote = True
 
 # The following dictionary defines the orography altitude bands in metres
-# above/below sea level for which masks are required.
+# above/below sea level for which weights are required.
 
 THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
                               [150., 200.], [200., 250.], [250., 300.],
