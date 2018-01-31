@@ -198,10 +198,11 @@ class GenerateTopographicZoneWeights(object):
         mask_data = np.zeros(orography.shape)
         topographic_zone_cubes = iris.cube.CubeList([])
         for band in bands:
+            sea_points_included = False if landmask else True
             topographic_zone_cube = (
                 _make_mask_cube(
                     mask_data, orography.coords(), band,
-                    threshold_units))
+                    threshold_units, sea_points_included=sea_points_included))
             topographic_zone_cubes.append(topographic_zone_cube)
         topographic_zone_weights = topographic_zone_cubes.concatenate_cube()
 

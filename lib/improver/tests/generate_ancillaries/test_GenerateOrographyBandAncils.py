@@ -151,7 +151,7 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, self.landmask,
             self.valley_threshold)
         self.assertEqual(
-            result.attributes['topographic_zones_include_seapoints'], True)
+            result.attributes['topographic_zones_include_seapoints'], "False")
         self.assertEqual(result.coord('topographic_zone').points,
                          np.mean(self.valley_threshold))
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],
@@ -172,7 +172,7 @@ class Test_gen_orography_masks(IrisTest):
             self.orography, self.landmask,
             self.land_threshold)
         self.assertEqual(
-            result.attributes['topographic_zones_include_seapoints'], True)
+            result.attributes['topographic_zones_include_seapoints'], "False")
         self.assertEqual(result.coord('topographic_zone').points,
                          np.mean(self.land_threshold))
         self.assertEqual(result.coord('topographic_zone').bounds[0][0],

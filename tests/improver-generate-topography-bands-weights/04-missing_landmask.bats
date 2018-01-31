@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.
@@ -28,27 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-# Utilities for BATS tests.
 
-function improver_check_skip_acceptance {
-  if [[ -z "${IMPROVER_ACC_TEST_DIR:-}" ]]; then
-    skip "Acceptance test directory not defined"
-  fi
-  if ! type -f nccmp 1>/dev/null 2>&1; then
-    skip "nccmp not installed"
-  fi
-}
+. $IMPROVER_DIR/tests/lib/utils
 
-function improver_compare_output {
-  # Run nccmp to compare the output and known good output.
-  # nccmp options:
-  #    -d means compare data
-  #    -m also compare metadata
-  #    -N ignore NaN comparisons
-  #    -s report 'Files X and Y are identical' if they really are.
-  #    -g compares global attributes in the file
+@test "generate-topography-bands-weights input_orog.nc missing_landmask output.nc" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+  test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-weights/basic/
 
-  run nccmp -dmNsg "$1" "$2"
-  [[ "$status" -eq 0 ]]
-  [[ "$output" =~ "are identical." ]]
+  # Run topography band ancillary generation and check it passes.
+  run improver generate-topography-bands-weights \
+     "$test_path/input_orog.nc" \
+     "$TEST_DIR/output.nc" \
+     --input_filepath_landmask "$test_path/missing_landmask"
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+IOError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
+__TEXT__
+  rmdir "$TEST_DIR"
+  [[ "$output" =~ "$expected" ]]
+
 }

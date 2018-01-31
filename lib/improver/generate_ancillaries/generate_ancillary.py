@@ -250,12 +250,12 @@ class GenerateOrographyBandAncils(object):
                                       sea_fill_value=0)
             mask_cube = _make_mask_cube(
                 mask_data, coords, topographic_bounds=thresholds,
-                topographic_units=standard_orography.units,
-                sea_points_included=True)
+                topographic_units=standard_orography.units)
         else:
             mask_cube = _make_mask_cube(
                 orog_band, coords, topographic_bounds=thresholds,
-                topographic_units=standard_orography.units)
+                topographic_units=standard_orography.units,
+                sea_points_included=True)
 
         mask_cube.units = Unit('1')
         return mask_cube

@@ -110,7 +110,7 @@ def main():
                        "located in {}; run "
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
-
+                raise IOError(msg)
         result = GenerateOrographyBandAncils().process(
             orography, thresholds_dict, landmask=landmask)
         result = result.concatenate_cube()

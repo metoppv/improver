@@ -117,7 +117,7 @@ def main():
                        "located in {}; run "
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
-
+                raise IOError(msg)
         result = GenerateTopographicZoneWeights().process(
             orography, thresholds_dict, landmask=landmask)
         iris.save(result, args.output_filepath, unlimited_dimensions=[])
