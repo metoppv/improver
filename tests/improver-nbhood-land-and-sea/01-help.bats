@@ -53,8 +53,9 @@ draw the distinction between the two surface types.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed.
-  INPUT_MASK            A path to an input NetCDF file containing a mask of
-                        either topographic zones or land-sea.
+  INPUT_MASK            A path to an input NetCDF file containing either a
+                        mask of topographic zones over land or a land-sea
+                        mask.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:

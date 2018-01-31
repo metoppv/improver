@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes.
-  run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/topographic_bands_any_surface.nc" "$TEST_DIR/output.nc" --radius=20000
+  run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/topographic_bands_land.nc" "$TEST_DIR/output.nc" --radius=20000
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 A weights cube must be provided if using a mask
