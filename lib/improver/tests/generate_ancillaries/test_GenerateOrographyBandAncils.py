@@ -238,6 +238,8 @@ class Test_gen_orography_masks(IrisTest):
                                    [0.0, 0.0, 0.0],
                                    [0.0, 0.0, 0.0]]])
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(
+            result.attributes['topographic_zones_include_seapoints'], "True")
 
     def test_unit_conversion_for_landband_data(self):
         """test correct mask is produced for land bands > 0m"""

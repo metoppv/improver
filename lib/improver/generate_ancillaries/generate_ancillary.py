@@ -54,7 +54,7 @@ def _make_mask_cube(
 
     Keyword Args:
         sea_points_included (boolean):
-            Default is False. Value for the output cube attibute
+            Default is False. Value for the output cube attribute
             'topographic_zones_include_seapoints', signifying whether sea
             points have been included when the ancillary is generated.
 
@@ -82,6 +82,7 @@ def _make_mask_cube(
                                                long_name=coord_name,
                                                units=Unit(topographic_units))
         mask_cube.add_aux_coord(threshold_coord)
+    # We can't save attributes with boolean values to convert to string.
     mask_cube.attributes.update(
         {'topographic_zones_include_seapoints': str(sea_points_included)})
     for coord in coords:
