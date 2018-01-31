@@ -34,6 +34,7 @@ separately before combining them to return unified fields. Topographic zones
 may also be employed, with the sea area being treated as a distinct zone."""
 
 import numpy as np
+import warnings
 
 import iris
 from improver.argparser import ArgParser
@@ -66,40 +67,32 @@ def main():
     mask."""
     parser = ArgParser(
         description='Neighbourhood the input cube as two distinct regions of '
-        'land and sea, as defined by the mask (INPUT_MASK). The resulting '
-        'cube will include the two independently neighbourhooded regions '
-        'stitched back together. An optional secondary mask may be provided'
-        ' (ADDITIONAL_MASK) with an additional coordinate (e.g. topographic_'
-        'zone) over which to iterate. If provdided this CLI will neighbourhood'
-        ' the data in each of these masked regions over the "masked in" area '
-        'in the INPUT_MASK. These multiple regions of masking will be '
-        'collapsed using the weights provided, and any areas spreading beyond '
-        'the INPUT_MASK will be re-masked. Again, the sea area will finally '
-        'be stitched around the land area in the final output.')
+        'land and sea. If performed as a single level neighbourhood, a land-'
+        'sea mask should be provided. If instead topographic_zone '
+        'neighbourhooding is being employed, the mask should be one of '
+        'topographic zones. In the latter case a weights cube is also required'
+        ' to collapse the topographic_zone coordinate. These weights are '
+        'created with the improver generate-topography-bands-weights CLI and '
+        'should be made using a land-sea mask, which will then be employed '
+        'within this code to draw the distinction between the two surface '
+        'types.')
 
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file to be processed.')
     parser.add_argument('input_mask_filepath', metavar='INPUT_MASK',
-                        help=('A path to an input NetCDF land mask file.'))
+                        help=('A path to an input NetCDF file containing a '
+                              'mask of either topographic zones or land-sea.'))
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
     mask_group = parser.add_argument_group(
-        'Addtional Mask - All args are required to use an additional mask')
-    mask_group.add_argument('--additional_mask_filepath',
-                            metavar='ADDITIONAL_MASK',
-                            help='A path to an additional input mask NetCDF '
-                            'file to be used as well as the land-sea '
-                            'discrimination provided by the land mask.')
-    mask_group.add_argument('--coord_for_masking', metavar='COORD_FOR_MASKING',
-                            help='Coordinate to iterate over when applying '
-                            'the additional mask to the neighbourhood '
-                            'processing. ')
+        'Collapse weights - required if using a topographic zones mask')
     mask_group.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
                             default=None,
                             help='A path to an weights NetCDF file containing '
                             'the weights which are used for collapsing the '
-                            'dimension gained through masking.')
+                            'dimension gained through masking. These weights'
+                            'must have been created using a land-sea mask.')
 
     radius_group = parser.add_argument_group(
         'Neighbourhooding Radius - Set only one of the options')
@@ -145,19 +138,47 @@ def main():
                              "doesn't produce values above or below the "
                              "extremes in the input data this option can be "
                              "removed.")
-    parser.add_argument('--intermediate_filepath', default=None,
-                        help='If provided the result after neighbourhooding, '
-                             'before collapsing the extra dimension is saved '
-                             'in the given filepath.')
+    parser.add_argument('--intermediate_filepaths', default=None, nargs=2,
+                        help='If provided the results after neighbourhooding, '
+                        'but before recombining land and sea are saved to the '
+                        'two given filepaths; the first path for the land '
+                        'output, the second path for the sea output.')
 
     args = parser.parse_args()
 
     cube = load_cube(args.input_filepath)
+    mask = load_cube(args.input_mask_filepath)
+    masking_coordinate = None
 
-    landmask = load_cube(args.input_mask_filepath)
-    # Create land and sea masks
-    land_only = landmask.copy(data=landmask.data.astype(int))
-    sea_only = landmask.copy(data=np.logical_not(landmask.data).astype(int))
+    if any(['topographic_zone' in coord.name()
+            for coord in mask.coords(dim_coords=True)]):
+
+        if not args.weights_for_collapsing_dim:
+            raise IOError('A weights cube must be provided if using a mask '
+                          'of topographic zones to collapse the resulting '
+                          'vertical dimension.')
+
+        weights = load_cube(args.weights_for_collapsing_dim)
+        if weights.attributes['topographic_zones_include_seapoints'] == 'True':
+            raise ValueError('The weights cube must be masked to exclude sea '
+                             'points, but topographic_zones_include_seapoints '
+                             '= True')
+
+        masking_coordinate = 'topographic_zone'
+        landmask = weights[0].copy(data=weights[0].data.mask)
+        landmask.rename('land_binary_mask')
+        landmask.remove_coord(masking_coordinate)
+    else:
+        if args.weights_for_collapsing_dim:
+            warnings.warn('A weights cube has been provided but will not be '
+                          'used as there is no topographic zone coordinate '
+                          'to collapse.')
+        landmask = mask
+
+    # Create land and sea masks in IMPROVER format (inverse of numpy standard)
+    # 1 - include this region, 0 - exclude this region.
+    land_only = landmask.copy(data=np.logical_not(landmask.data).astype(int))
+    sea_only = landmask.copy(data=landmask.data.astype(int))
 
     if args.radius:
         radius_or_radii = args.radius
@@ -166,32 +187,21 @@ def main():
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
 
-    if args.additional_mask_filepath:
-        additional_mask = load_cube(args.additional_mask_filepath)
-        weights = load_cube(args.weights_for_collapsing_dim)
-
+    if masking_coordinate is not None:
+        # Apply the land mask taken from the weights to the topographic zones.
         mask_cube = iris.cube.CubeList()
-        xy_slices = additional_mask.slices([cube.coord(axis='y'),
-                                            cube.coord(axis='x')])
+        xy_slices = mask.slices([cube.coord(axis='y'), cube.coord(axis='x')])
         for xy_slice in xy_slices:
             mask_cube.append(xy_slice.copy(data=np.logical_and(
                 land_only.data, xy_slice.data).astype(int)))
 
+        # Collapse the slices modified with the land mask back to single cube.
         mask_cube = merge_cubes(mask_cube)
 
         result_land = ApplyNeighbourhoodProcessingWithAMask(
-            args.coord_for_masking, radius_or_radii, lead_times=lead_times,
+            masking_coordinate, radius_or_radii, lead_times=lead_times,
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
             re_mask=False).process(cube, mask_cube)
-
-        # Reapply land-mask to mask any data spread by neighbourhooding.
-        masked_data = iris.cube.CubeList()
-        for cslice in result_land.slices(
-                [cube.coord(axis='y'), cube.coord(axis='x')]):
-            cslice.data = np.ma.masked_array(cslice.data, mask=sea_only.data)
-            masked_data.append(cslice)
-        result_land = masked_data.concatenate()
-        result_land = result_land.merge_cube()
     else:
         result_land = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
@@ -210,21 +220,30 @@ def main():
         apply_clipping(cube, result_land)
         apply_clipping(cube, result_sea)
 
-    if args.intermediate_filepath is not None:
-        iris.save(result_land, '{}_land.nc'.format(
-                args.intermediate_filepath.strip('.nc')))
-        iris.save(result_sea, '{}_sea.nc'.format(
-                args.intermediate_filepath.strip('.nc')))
+    if args.intermediate_filepaths is not None:
+        if masking_coordinate is not None:
+            # Reapply land-mask to mask any data spread by neighbourhooding.
+            # When the output is collapsed, the weighting cube performs this
+            # step, but for saving intermediate output we must do it manually.
+            masked_data = iris.cube.CubeList()
+            for cslice in result_land.slices(
+                    [cube.coord(axis='y'), cube.coord(axis='x')]):
+                cslice.data = np.ma.masked_array(cslice.data,
+                                                 mask=sea_only.data)
+                masked_data.append(cslice)
+            result_land = masked_data.concatenate()
+            result_land = result_land.merge_cube()
 
-    if args.additional_mask_filepath:
-        # Collapse with the masking dimension.
+        iris.save(result_land, args.intermediate_filepaths[0])
+        iris.save(result_sea, args.intermediate_filepaths[1])
+
+    if masking_coordinate is not None:
+        # Collapse the masking coordinate.
         result_land = CollapseMaskedNeighbourhoodCoordinate(
-            args.coord_for_masking, weights=weights).process(result_land)
+            masking_coordinate, weights=weights).process(result_land)
 
     # Recombine cubes to be a single output.
-    combined_data = np.ma.array(
-        result_land.data.filled(1) * result_sea.data.filled(1),
-        mask=(result_land.data.mask * result_sea.data.mask))
+    combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
     result = result_land.copy(data=combined_data)
 
     iris.save(result, args.output_filepath)
