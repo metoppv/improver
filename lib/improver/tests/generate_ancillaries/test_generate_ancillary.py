@@ -106,14 +106,14 @@ class Test__make_mask_cube(IrisTest):
                          np.mean([self.lower, self.upper]))
         self.assertEqual(result.coord('topographic_zone').units, Unit('m'))
 
-    def test_new_attribute_no_seapoints(self):
+    def test_cube_attribute_no_seapoints(self):
         """Test the new attribute is added to the cube."""
         result = _make_mask_cube(self.mask, self.coords,
                                  [self.lower, self.upper], self.units)
         self.assertEqual(
             result.attributes["topographic_zones_include_seapoints"], "False")
 
-    def test_new_attribute_include_seapoints(self):
+    def test_cube_attribute_include_seapoints(self):
         """Test the new attribute is added to the cube when seapoints
            included."""
         result = _make_mask_cube(self.mask, self.coords,

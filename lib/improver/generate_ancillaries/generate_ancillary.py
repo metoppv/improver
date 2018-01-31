@@ -82,7 +82,7 @@ def _make_mask_cube(
                                                long_name=coord_name,
                                                units=Unit(topographic_units))
         mask_cube.add_aux_coord(threshold_coord)
-    # We can't save attributes with boolean values to convert to string.
+    # We can't save attributes with boolean values so convert to string.
     mask_cube.attributes.update(
         {'topographic_zones_include_seapoints': str(sea_points_included)})
     for coord in coords:
@@ -272,8 +272,8 @@ class GenerateOrographyBandAncils(object):
             threshold_dict (dictionary):
                 Definition of orography bands required. Has key-value pairs of
                 "bounds": list of list of pairs of bounds for each band and
-                "units":"string containing units of bounds", for example.
-                ::
+                "units":"string containing units of bounds", for example::
+
                     {'bounds':[[0,100], [100,200]], 'units': "m"}
 
         Keyword Args:
