@@ -171,7 +171,7 @@ class GenerateTopographicZoneWeights(object):
             thresholds_dict (dict):
                 Definition of orography bands required.
                 The expected format of the dictionary is e.g.
-                `{'land': {'bounds': [[0, 50], [50, 200]], 'units': 'm'}}`
+                `{'bounds': [[0, 50], [50, 200]], 'units': 'm'}`
         Keyword Args:
             landmask (iris.cube.Cube):
                 Land mask on standard grid. If provided sea points are masked

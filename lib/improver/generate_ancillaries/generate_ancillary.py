@@ -243,7 +243,7 @@ class GenerateOrographyBandAncils(object):
         # If we didn't find any points to mask, set all points to zero i.e
         # masked.
         if not isinstance(orog_band, np.ndarray):
-                orog_band = np.zeros(standard_orography.data.shape).astype(int)
+            orog_band = np.zeros(standard_orography.data.shape).astype(int)
 
         if standard_landmask is not None:
             mask_data = self.sea_mask(standard_landmask.data, orog_band,
