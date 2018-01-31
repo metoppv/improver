@@ -31,21 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "generate-topography-bands-mask input_orog.nc input_land.nc output.nc" {
+@test "generate-topography-bands-mask input_orog.nc missing_landmask output.nc" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-mask/basic/
 
-  # Run topography band mask generation and check it passes.
+  # Run topography band ancillary generation and check it passes.
   run improver generate-topography-bands-mask \
-      "$test_path/input_orog.nc" \
-      "$TEST_DIR/output.nc" \
-      --input_filepath_landmask "$test_path/input_land.nc"
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
-  rm "$TEST_DIR/output.nc"
+     "$test_path/input_orog.nc" \
+     "$TEST_DIR/output.nc" \
+     --input_filepath_landmask "$test_path/missing_landmask"
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+IOError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
+__TEXT__
   rmdir "$TEST_DIR"
+  [[ "$output" =~ "$expected" ]]
+
 }

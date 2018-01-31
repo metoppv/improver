@@ -31,21 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "generate-topography-bands-mask input_orog.nc input_land.nc output.nc" {
+@test "generate-topography-bands-weights input_orog.nc output.nc" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-mask/basic/
+  test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-weights/
 
-  # Run topography band mask generation and check it passes.
-  run improver generate-topography-bands-mask \
-      "$test_path/input_orog.nc" \
-      "$TEST_DIR/output.nc" \
-      --input_filepath_landmask "$test_path/input_land.nc"
+  # Run topography band weights generation and check it passes.
+  run improver generate-topography-bands-weights \
+      "$test_path/basic/input_orog.nc" \
+      "$TEST_DIR/output.nc" 
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
+      "$test_path/basic_no_landsea_mask/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

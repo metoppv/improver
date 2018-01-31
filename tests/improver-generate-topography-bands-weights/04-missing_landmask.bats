@@ -38,14 +38,15 @@
 
   # Run topography band ancillary generation and check it passes.
   run improver generate-topography-bands-weights \
-      "$test_path/input_orog.nc" \
-      "$test_path/missing_landmask" \
-      "$TEST_DIR/output.nc"
+     "$test_path/input_orog.nc" \
+     "$TEST_DIR/output.nc" \
+     --input_filepath_landmask "$test_path/missing_landmask"
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-Exception: One or more of the files specified did not exist
+IOError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
 __TEXT__
+  rmdir "$TEST_DIR"
   [[ "$output" =~ "$expected" ]]
 
 }
