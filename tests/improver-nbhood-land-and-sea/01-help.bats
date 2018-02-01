@@ -87,7 +87,7 @@ Collapse weights - required if using a topographic zones mask:
   --weights_for_collapsing_dim WEIGHTS
                         A path to an weights NetCDF file containing the
                         weights which are used for collapsing the dimension
-                        gained through masking. These weightsmust have been
+                        gained through masking. These weights must have been
                         created using a land-sea mask.
 
 Neighbourhooding Radius - Set only one of the options:

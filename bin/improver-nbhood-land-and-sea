@@ -92,7 +92,7 @@ def main():
                             default=None,
                             help='A path to an weights NetCDF file containing '
                             'the weights which are used for collapsing the '
-                            'dimension gained through masking. These weights'
+                            'dimension gained through masking. These weights '
                             'must have been created using a land-sea mask.')
 
     radius_group = parser.add_argument_group(
