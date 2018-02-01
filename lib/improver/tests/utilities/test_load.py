@@ -150,6 +150,26 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
 
+    def test_no_lazy_load(self):
+        """Test that the loading works correctly with lazy load bypassing."""
+        result = load_cube(self.filepath, no_lazy_load=True)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertFalse(result.has_lazy_data())
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, self.realization_points)
+        self.assertArrayAlmostEqual(
+            result.coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.longitude_points)
+
+    def test_lazy_load(self):
+        """Test that the loading works correctly with lazy loading."""
+        result = load_cube(self.filepath)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertTrue(result.has_lazy_data())
+
 
 class Test_load_cubelist(IrisTest):
 
@@ -239,6 +259,30 @@ class Test_load_cubelist(IrisTest):
             result[0].coord("latitude").points, self.latitude_points)
         self.assertArrayAlmostEqual(
             result[0].coord("longitude").points, self.longitude_points)
+
+    def test_no_lazy_load(self):
+        """Test that the loading works correctly with lazy load bypassing."""
+        result = load_cubelist([self.filepath, self.filepath],
+                               no_lazy_load=True)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayEqual([False, False],
+                              [_.has_lazy_data() for _ in result])
+        for cube in result:
+            self.assertArrayAlmostEqual(
+                cube.coord("realization").points, self.realization_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("time").points, self.time_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("latitude").points, self.latitude_points)
+            self.assertArrayAlmostEqual(
+                cube.coord("longitude").points, self.longitude_points)
+
+    def test_lazy_load(self):
+        """Test that the loading works correctly with lazy loading."""
+        result = load_cubelist([self.filepath, self.filepath])
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayEqual([True, True],
+                              [_.has_lazy_data() for _ in result])
 
 
 if __name__ == '__main__':

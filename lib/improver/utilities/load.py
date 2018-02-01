@@ -40,7 +40,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 iris.FUTURE.netcdf_promote = True
 
 
-def load_cube(filepath, constraints=None):
+def load_cube(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath provided using Iris into a cube.
 
     Args:
@@ -51,6 +51,10 @@ def load_cube(filepath, constraints=None):
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
+        no_lazy_load (bool)
+            If True, bypass cube deferred (lazy) loading and load the whole
+            cube into memory. This can increase performance at the cost of
+            memory. If False (default) then lazy load.
 
     Returns:
         cube (iris.cube.Cube):
@@ -66,10 +70,13 @@ def load_cube(filepath, constraints=None):
     y_name = cube.coord(axis="y").name()
     x_name = cube.coord(axis="x").name()
     cube = enforce_coordinate_ordering(cube, [y_name, x_name], anchor="end")
+    if no_lazy_load:
+        # Force the cube's data into memory by touching the .data attribute.
+        cube.data
     return cube
 
 
-def load_cubelist(filepath, constraints=None):
+def load_cubelist(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath(s) provided using Iris into a cubelist.
 
     Args:
@@ -80,6 +87,10 @@ def load_cubelist(filepath, constraints=None):
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
+        no_lazy_load (bool)
+            If True, bypass cube deferred (lazy) loading and load the whole
+            cube into memory. This can increase performance at the cost of
+            memory. If False (default) then lazy load.
 
     Returns:
         cubelist (iris.cube.CubeList):
@@ -100,5 +111,8 @@ def load_cubelist(filepath, constraints=None):
             cube = load_cube(filepath, constraints=constraints)
         except ConstraintMismatchError:
             continue
+        if no_lazy_load:
+            # Force the cube's data into memory by touching the .data.
+            cube.data
         cubelist.append(cube)
     return cubelist
