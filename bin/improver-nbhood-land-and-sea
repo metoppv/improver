@@ -222,8 +222,6 @@ def main():
         apply_clipping(cube, result_sea)
 
     if args.intermediate_filepaths is not None:
-        print args.intermediate_filepaths[0]
-        print args.intermediate_filepaths[1]
         iris.save(result_land, args.intermediate_filepaths[0])
         iris.save(result_sea, args.intermediate_filepaths[1])
 
