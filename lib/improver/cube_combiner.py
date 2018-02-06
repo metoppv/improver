@@ -125,7 +125,7 @@ class CubeCombiner(object):
                 len(result_cube.coord(coord).points)))
 
         bounds = ([cube.coord(coord).bounds for cube in cubelist])
-        if None in bounds:
+        if any(b is None for b in bounds):
             points = ([cube.coord(coord).points for cube in cubelist])
             new_low_bound = np.min(points)
             new_top_bound = np.max(points)
