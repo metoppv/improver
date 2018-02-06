@@ -32,6 +32,7 @@
 apply neighbourhood processing."""
 
 import iris
+import numpy as np
 
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.nbhood.nbhood import NeighbourhoodProcessing
@@ -135,7 +136,13 @@ class ProbabilityOfOccurrence(object):
         try:
             if cube.coord_dims('realization'):
                 ens_members = cube.coord('realization').points
+                # BUG in iris: collapsed returns a masked cube regardless of
+                # input status.  If input is not masked, output mask does not
+                # match data.  Fix is to re-cast output to an unmasked array.
+                cube_is_masked = isinstance(cube.data, np.ma.MaskedArray)
                 cube = cube.collapsed('realization', iris.analysis.MEAN)
+                if not cube_is_masked:
+                    cube.data = np.array(cube.data)
                 cube.remove_coord('realization')
                 cube.attributes['source_realizations'] = ens_members
         except iris.exceptions.CoordinateNotFoundError:
@@ -146,5 +153,6 @@ class ProbabilityOfOccurrence(object):
             lead_times=self.lead_times,
             weighted_mode=self.weighted_mode,
             ens_factor=self.ens_factor).process(cube)
+
         cube.rename(cube.name() + '_in_vicinity')
         return cube
