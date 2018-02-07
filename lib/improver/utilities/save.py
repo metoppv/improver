@@ -53,7 +53,8 @@ def save_netcdf(cube, filename, unlimited_dimensions=None):
     local_keys = None
     # TODO perform appropriate cube manipulation to obtain local_keys
 
-    iris.fileformats.netcdf.save(cube, filename, local_keys,
-                                 unlimited_dimensions)
+    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys,
+                                 unlimited_dimensions=unlimited_dimensions)
+
 
 
