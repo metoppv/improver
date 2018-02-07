@@ -34,7 +34,7 @@ import iris
 
 
 def save_netcdf(cube, filename, unlimited_dimensions=None):
-    """Save the cube provided to a netcdf file
+    """Save the cube provided as a NetCDF file.
 
     Uses the functionality provided by iris.fileformats.netcdf.save to record
     shared attributes as data attributes rather than global attributes.
@@ -43,7 +43,7 @@ def save_netcdf(cube, filename, unlimited_dimensions=None):
         cube (iris.Cube):
             Output cube
         filename (str):
-            Filename to save output cube
+            Filename to save output cube (must have .nc extension)
 
     Kwargs:
         unlimited_dimensions (type (see iris.fileformats.netcdf.save)):
