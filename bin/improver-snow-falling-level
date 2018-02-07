@@ -32,11 +32,11 @@
 """Script to calculate continuous snow falling level."""
 
 import argparse
-import iris
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     FallingSnowLevel)
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -91,7 +91,7 @@ def main():
             pressure,
             orog)
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":

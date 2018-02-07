@@ -33,14 +33,12 @@
 
 import argparse
 import os
-import iris
 import json
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
 from improver.utilities.load import load_cube
-
-iris.FUTURE.netcdf_promote = True
+from improver.utilities.save import save_netcdf
 
 # The following dictionary defines the orography altitude bands in metres
 # above/below sea level for which weights are required.
@@ -120,7 +118,7 @@ def main():
                 raise IOError(msg)
         result = GenerateTopographicZoneWeights().process(
             orography, thresholds_dict, landmask=landmask)
-        iris.save(result, args.output_filepath, unlimited_dimensions=[])
+        save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
     else:
         print 'File already exists here: ', args.output_filepath
 

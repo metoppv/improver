@@ -33,10 +33,9 @@
 
 import argparse
 
-import iris
-
 from improver.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -88,7 +87,7 @@ def main():
     result = (
         WindGustDiagnostic(args.percentile_gust,
                            args.percentile_ws).process(cube_wg, cube_ws))
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":

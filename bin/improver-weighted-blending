@@ -42,6 +42,7 @@ from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -197,7 +198,7 @@ def main():
         cycletime=args.cycletime,
         coords_for_bounds_removal=args.coords_for_bounds_removal)
     result = BlendingPlugin.process(cube, weights)
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":

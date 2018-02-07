@@ -32,13 +32,13 @@
 
 """Script to run weighted blending across adjacent points"""
 
-import iris
 from cf_units import Unit
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -96,7 +96,7 @@ def main():
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
         args.coordinate, width, parameter_unit, args.weighting_mode)
     result = BlendingPlugin.process(cube)
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
 
 
 if __name__ == "__main__":

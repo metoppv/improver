@@ -32,8 +32,6 @@
 
 """Script to run spot database creation from spot data."""
 
-import iris
-
 from improver.database import VerificationTable
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist

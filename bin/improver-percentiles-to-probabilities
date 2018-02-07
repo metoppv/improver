@@ -32,9 +32,9 @@
 """Script to collapse cube coordinates and calculate percentiled data."""
 
 import argparse
-import iris
 
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 
@@ -91,7 +91,7 @@ def main():
     result = ProbabilitiesFromPercentiles2D(percentiles_cube, args.new_name)
     probability_cube = result.process(threshold_cube)
 
-    iris.save(probability_cube, args.output_filepath)
+    save_netcdf(probability_cube, args.output_filepath)
 
 
 if __name__ == "__main__":
