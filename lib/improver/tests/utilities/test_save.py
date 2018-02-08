@@ -28,39 +28,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for saving netcdf cubes with desired attribute types."""
+"""Unit tests for saving functionality."""
 
-import iris
+import os
+import unittest
+import numpy as np
+from subprocess import call
+from tempfile import mkdtemp
 
-iris.FUTURE.netcdf_promote = True
-iris.FUTURE.netcdf_no_unlimited = True
+from iris.tests import IrisTest
+from improver.utilities.save import save_netcdf
 
-def save_netcdf(cube, filename, unlimited_dimensions=None):
-    """Save the cube provided as a NetCDF file.
-
-    Uses the functionality provided by iris.fileformats.netcdf.save with
-    local_keys to record shared attributes as data attributes rather than
-    global attributes.
-
-    NOTE current wrapper is a placeholder replicating the existing iris.save
-    functionality.
-
-    Args:
-        cube (iris.Cube):
-            Output cube
-        filename (str):
-            Filename to save output cube
-
-    Kwargs:
-        unlimited_dimensions (type (see iris.fileformats.netcdf.save)):
-            notes (see iris.fileformats.netcdf.save)
-    """
-
-    local_keys = None
-    # TODO perform appropriate cube manipulation here to obtain local_keys
-
-    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys,
-                                 unlimited_dimensions=unlimited_dimensions)
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import set_up_temperature_cube
 
 
+class Test_save_netcdf(IrisTest):
+
+    def setUp(self):
+        """ Set up cube to write, read and check """
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        self.cube = set_up_temperature_cube()
+
+    def tearDown(self):
+        """ Remove temporary directories created for testing. """
+        call(['rm', '-f', self.filepath])
+        call(['rmdir', self.directory])
+
+    def test_basic(self):
+        """ Test saves file in required location """
+        self.assertFalse(os.path.exists(self.filepath))
+        save_netcdf(self.cube, self.filepath)
+        self.assertTrue(os.path.exists(self.filepath))
+
+
+if __name__ == '__main__':
+    unittest.main()
 
