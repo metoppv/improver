@@ -32,8 +32,8 @@ install:
   # Download Iris 1.13 and all dependencies.
   - conda install -c conda-forge iris=1.13
 
-  # Force numpy to remain at version 1.11.1
-  - conda install -c conda-forge numpy=1.11.1
+  # Force numpy to remain at version 1.13.3
+  - conda install -c conda-forge numpy=1.13.3
 
   # Install our own extra dependencies (+ filelock for Iris test).
   - conda install -c conda-forge mock filelock pep8 pylint sphinx pandas python-stratify
