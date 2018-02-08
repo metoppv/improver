@@ -35,6 +35,7 @@ import iris
 iris.FUTURE.netcdf_promote = True
 iris.FUTURE.netcdf_no_unlimited = True
 
+
 def save_netcdf(cube, filename, unlimited_dimensions=None):
     """Save the cube provided as a NetCDF file.
 
@@ -61,6 +62,3 @@ def save_netcdf(cube, filename, unlimited_dimensions=None):
 
     iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys,
                                  unlimited_dimensions=unlimited_dimensions)
-
-
-

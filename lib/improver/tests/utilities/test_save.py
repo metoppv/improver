@@ -32,7 +32,6 @@
 
 import os
 import unittest
-import numpy as np
 from subprocess import call
 from tempfile import mkdtemp
 
@@ -44,6 +43,13 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 
 
 class Test_save_netcdf(IrisTest):
+
+    """Test function to save iris cubes as netcdf.
+
+    NOTE this is a dummy class as "save_netcdf" is currently just wrapping
+    iris.fileformats.netcdf.save.  Tests will be added when local_keys
+    functionality is incorporated.
+    """
 
     def setUp(self):
         """ Set up cube to write, read and check """
@@ -65,4 +71,3 @@ class Test_save_netcdf(IrisTest):
 
 if __name__ == '__main__':
     unittest.main()
-
