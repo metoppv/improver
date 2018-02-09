@@ -241,13 +241,6 @@ class Test_datetime_constraint(Test_common_functions):
     object.
     """
 
-    def test_constraint_equality(self):
-        """Check constraint is as expected."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
-        self.assertEqual(self.time_extract._coord_values,
-                         dt_constraint._coord_values)
-
     def test_constraint_list_equality(self):
         """Check a list of constraints is as expected."""
         plugin = datetime_constraint
