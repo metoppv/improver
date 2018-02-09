@@ -247,7 +247,7 @@ def datetime_constraint(time_in, time_max=None):
         time_in.year, time_in.month, time_in.day, time_in.hour)
 
     if time_max is None:
-        time_extract = Constraint(time=time_start)
+        time_extract = Constraint(time=lambda cell: cell.point == time_start)
     else:
         time_limit = PartialDateTime(
             time_max.year, time_max.month, time_max.day, time_max.hour)

@@ -241,13 +241,6 @@ class Test_datetime_constraint(Test_common_functions):
     object.
     """
 
-    def test_constraint_equality(self):
-        """Check constraint is as expected."""
-        plugin = datetime_constraint
-        dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
-        self.assertEqual(self.time_extract._coord_values,
-                         dt_constraint._coord_values)
-
     def test_constraint_list_equality(self):
         """Check a list of constraints is as expected."""
         plugin = datetime_constraint
@@ -294,6 +287,15 @@ class Test_extract_cube_at_time(Test_common_functions):
         """Case for a time that is available within the diagnostic cube."""
         plugin = extract_cube_at_time
         cubes = CubeList([self.cube])
+        result = plugin(cubes, self.time_dt, self.time_extract)
+        self.assertIsInstance(result, Cube)
+
+    def test_valid_time_for_coord_with_bounds(self):
+        """Case for a time that is available within the diagnostic cube.
+           Test it still works for coordinates with bounds."""
+        plugin = extract_cube_at_time
+        self.long_cube.coord("time").guess_bounds()
+        cubes = CubeList([self.long_cube])
         result = plugin(cubes, self.time_dt, self.time_extract)
         self.assertIsInstance(result, Cube)
 
