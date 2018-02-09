@@ -93,8 +93,9 @@ class Test_common_functions(IrisTest):
                                 calendar='gregorian'))
 
         time_dt = dt(2017, 2, 17, 6, 0)
-        time_extract = Constraint(time=PartialDateTime(
-            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+        time_extract = Constraint(
+            time=lambda cell: cell.point == PartialDateTime(
+                time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
 
         cube = Cube(data.reshape((1, 12, 12)),
                     long_name="air_temperature",

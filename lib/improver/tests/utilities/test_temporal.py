@@ -290,6 +290,15 @@ class Test_extract_cube_at_time(Test_common_functions):
         result = plugin(cubes, self.time_dt, self.time_extract)
         self.assertIsInstance(result, Cube)
 
+    def test_valid_time_for_coord_with_bounds(self):
+        """Case for a time that is available within the diagnostic cube.
+           Test it still works for coordinates with bounds."""
+        plugin = extract_cube_at_time
+        self.long_cube.coord("time").guess_bounds()
+        cubes = CubeList([self.long_cube])
+        result = plugin(cubes, self.time_dt, self.time_extract)
+        self.assertIsInstance(result, Cube)
+
     def test_invalid_time(self):
         """Case for a time that is unavailable within the diagnostic cube."""
         plugin = extract_cube_at_time
