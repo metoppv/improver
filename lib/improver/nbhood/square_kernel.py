@@ -598,15 +598,22 @@ class SquareNeighbourhood(object):
         grid_cells_x, grid_cells_y = (
             convert_distance_into_number_of_grid_cells(
                 cube, radius, MAX_RADIUS_IN_GRID_CELLS))
-        cubes_to_sum = (
-            self._set_up_cubes_to_be_neighbourhooded(cube, mask_cube))
-        neighbourhood_averaged_cubes = (
-            self._pad_and_calculate_neighbourhood(
-                cubes_to_sum, grid_cells_x, grid_cells_y))
-        neighbourhood_averaged_cube = (
-            self._remove_padding_and_mask(
-                neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
-                grid_cells_x, grid_cells_y))
+        result_slices = iris.cube.CubeList()
+        for cube_slice in cube.slices([cube.coord(axis='y'),
+                                       cube.coord(axis='x')]):
+            cubes_to_sum = (
+                self._set_up_cubes_to_be_neighbourhooded(cube_slice,
+                                                         mask_cube))
+            neighbourhood_averaged_cubes = (
+                self._pad_and_calculate_neighbourhood(
+                    cubes_to_sum, grid_cells_x, grid_cells_y))
+            neighbourhood_averaged_cube = (
+                self._remove_padding_and_mask(
+                    neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
+                    grid_cells_x, grid_cells_y))
+            result_slices.append(neighbourhood_averaged_cube)
+
+        neighbourhood_averaged_cube = result_slices.merge_cube()
 
         neighbourhood_averaged_cube.cell_methods = original_methods
         neighbourhood_averaged_cube.attributes = original_attributes

@@ -32,14 +32,13 @@
 """Script to run neighbourhooding processing when iterating over a coordinate
 defining a series of masks."""
 
-import numpy as np
-
 from improver.argparser import ArgParser
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cube_manipulation import clip_cube_data
 
 
 def main():
@@ -168,9 +167,7 @@ def main():
     # At the moment the neighbourhood code can produce values beyond extremes
     # in the input data.
     if not args.no_clip:
-        input_max = cube.data.max()
-        input_min = cube.data.min()
-        result.data = np.clip(result.data, input_min, input_max)
+        result = clip_cube_data(cube, result)
 
     if args.intermediate_filepath is not None:
         save_netcdf(result, args.intermediate_filepath)
