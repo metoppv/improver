@@ -120,7 +120,7 @@ def main():
     cubes = load_cubelist(args.input_filepaths)
 
     result = (WeatherSymbols().process(cubes))
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

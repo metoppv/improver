@@ -91,7 +91,7 @@ def main():
             pressure,
             orog)
 
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

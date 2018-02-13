@@ -113,7 +113,7 @@ def main():
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if 'realization' in non_dim_coords:
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
-    save_netcdf(wind_speed, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(wind_speed, args.output_filepath)
 
 
 if __name__ == "__main__":

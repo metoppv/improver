@@ -36,8 +36,8 @@ iris.FUTURE.netcdf_promote = True
 iris.FUTURE.netcdf_no_unlimited = True
 
 
-def save_netcdf(cube, filename, unlimited_dimensions=None):
-    """Save the cube provided as a NetCDF file.
+def save_netcdf(cube, filename):
+    """Save the input cube as a NetCDF file.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record shared attributes as data attributes rather than
@@ -48,17 +48,12 @@ def save_netcdf(cube, filename, unlimited_dimensions=None):
 
     Args:
         cube (iris.cube.Cube):
-            Ouptut cube
+            Input cube
         filename (str):
-            Filename to save output cube
-
-    Kwargs:
-        unlimited_dimensions (iterable of strings and/or iris.coords.Coord):
-            See iris.fileformats.netcdf.save
+            Filename to save input cube
     """
 
     local_keys = None
     # TODO perform appropriate cube manipulation here to obtain local_keys
 
-    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys,
-                                 unlimited_dimensions=unlimited_dimensions)
+    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys)

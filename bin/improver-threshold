@@ -144,7 +144,7 @@ def main():
         fuzzy_bounds=fuzzy_bounds,
         below_thresh_ok=args.below_threshold).process(cube)
 
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

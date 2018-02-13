@@ -112,7 +112,7 @@ def main():
         result = GenerateOrographyBandAncils().process(
             orography, thresholds_dict, landmask=landmask)
         result = result.concatenate_cube()
-        save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+        save_netcdf(result, args.output_filepath)
     else:
         print 'File already exists here: ', args.output_filepath
 

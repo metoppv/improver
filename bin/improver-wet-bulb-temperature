@@ -77,7 +77,7 @@ def main():
 
     result = (WetBulbTemperature(precision=args.convergence_condition).
               process(temperature, relative_humidity, pressure))
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

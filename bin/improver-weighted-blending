@@ -198,7 +198,7 @@ def main():
         cycletime=args.cycletime,
         coords_for_bounds_removal=args.coords_for_bounds_removal)
     result = BlendingPlugin.process(cube, weights)
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

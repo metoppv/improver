@@ -105,7 +105,7 @@ def main():
             cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
             mask_cube=mask_cube)
 
-    save_netcdf(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":
