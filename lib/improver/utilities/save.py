@@ -47,14 +47,14 @@ def save_netcdf(cube, filename, unlimited_dimensions=None):
     functionality.
 
     Args:
-        cube (iris.Cube):
-            Output cube
+        cube (iris.cube.Cube):
+            Ouptut cube
         filename (str):
             Filename to save output cube
 
     Kwargs:
-        unlimited_dimensions (type (see iris.fileformats.netcdf.save)):
-            notes (see iris.fileformats.netcdf.save)
+        unlimited_dimensions (iterable of strings and/or iris.coords.Coord):
+            See iris.fileformats.netcdf.save
     """
 
     local_keys = None

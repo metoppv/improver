@@ -32,9 +32,11 @@
 
 import os
 import unittest
+import numpy as np
 from subprocess import call
 from tempfile import mkdtemp
 
+import iris
 from iris.tests import IrisTest
 from improver.utilities.save import save_netcdf
 
@@ -47,7 +49,7 @@ class Test_save_netcdf(IrisTest):
     """Test function to save iris cubes as netcdf.
 
     NOTE this is a dummy class as "save_netcdf" is currently just wrapping
-    iris.fileformats.netcdf.save.  Tests will be added when local_keys
+    iris.fileformats.netcdf.save.  More tests will be added when local_keys
     functionality is incorporated.
     """
 
@@ -67,6 +69,13 @@ class Test_save_netcdf(IrisTest):
         self.assertFalse(os.path.exists(self.filepath))
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
+
+    def test_saved_cube(self):
+        """ Test valid cube can be read from saved file """
+        save_netcdf(self.cube, self.filepath)
+        cube = iris.load_cube(self.filepath)
+        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        self.assertTrue(np.array_equal(cube.data, self.cube.data))
 
 
 if __name__ == '__main__':
