@@ -34,7 +34,7 @@
 import numpy as np
 import iris
 from cf_units import Unit
-from improver.spotdata.extract_data import ExtractData
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
 
@@ -206,6 +206,7 @@ class BasicThreshold(object):
         cube.rename("probability_of_{}".format(cube.name()))
         cube.units = Unit(1)
 
-        cube = ExtractData.make_stat_coordinate_first(cube)
+        cube = enforce_coordinate_ordering(
+            cube, ["realization", "percentile_over", "threshold"])
 
         return cube
