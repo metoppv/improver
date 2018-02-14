@@ -835,34 +835,37 @@ def enforce_coordinate_ordering(
     return cube
 
 
-def clip_cube_data(cube, result):
+def clip_cube_data(cube, minimum_value, maximum_value):
     """Apply np.clip to data in a resulting cube to ensure that the limits do
     not go beyond the limits of the original input cube.
 
     Args:
         cube (iris.cube.Cube):
-            The cube from which data has been taken to be processed.
-        result (iris.cube.Cube):
             The cube that has been processed and contains data that is to be
             clipped.
+        minimum_value (float):
+            The minimum value, with data in the cube that falls below this
+            threshold set to it.
+        maximum_value (float):
+            The maximum value, with data in the cube that falls above this
+            threshold set to it.
     Returns:
         result_slices (iris.cube.Cube):
             The processed cube with the data clipped to the limits of the
             original preprocessed cube.
     """
-    input_max = cube.data.max()
-    input_min = cube.data.min()
     original_attributes = cube.attributes
     original_methods = cube.cell_methods
 
-    result_slices = iris.cube.CubeList()
-    for result_slice in result.slices([result.coord(axis='y'),
-                                       result.coord(axis='x')]):
-        result_slice.data = np.clip(result_slice.data, input_min, input_max)
-        result_slices.append(result_slice)
+    result = iris.cube.CubeList()
+    for cube_slice in cube.slices([cube.coord(axis='y'),
+                                   cube.coord(axis='x')]):
+        cube_slice.data = np.clip(cube_slice.data,
+                                  minimum_value, maximum_value)
+        result.append(cube_slice)
 
-    result_slices = result_slices.merge_cube()
-    result_slices.cell_methods = original_methods
-    result_slices.attributes = original_attributes
-    result_slices = check_cube_coordinates(result, result_slices)
-    return result_slices
+    result = result.merge_cube()
+    result.cell_methods = original_methods
+    result.attributes = original_attributes
+    result = check_cube_coordinates(cube, result)
+    return result

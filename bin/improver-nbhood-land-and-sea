@@ -204,8 +204,10 @@ def main():
     # At the moment the neighbourhood code can produce values beyond extremes
     # in the input data.
     if not args.no_clip:
-        result_land = clip_cube_data(cube, result_land)
-        result_sea = clip_cube_data(cube, result_sea)
+        minimum_value = np.nanmin(cube.data)
+        maximum_value = np.nanmax(cube.data)
+        result_land = clip_cube_data(result_land, minimum_value, maximum_value)
+        result_sea = clip_cube_data(result_sea, minimum_value, maximum_value)
 
     if args.intermediate_filepaths is not None:
         save_netcdf(result_land, args.intermediate_filepaths[0])
