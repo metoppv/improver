@@ -103,7 +103,8 @@ class SquareNeighbourhood(object):
         Args:
             cube (Iris.cube.Cube):
                 Cube to which the cumulative summing along the y and x
-                direction will be applied.
+                direction will be applied. The cube should contain only x and
+                y dimensions, so will generally be a slice of a cube.
 
         Returns:
             (tuple) : tuple containing:
@@ -118,17 +119,15 @@ class SquareNeighbourhood(object):
         xname = cube.coord(axis="x").name()
         cubelist = iris.cube.CubeList([])
         nan_masks = []
-        for slice_2d in cube.slices([yname, xname]):
-            data = slice_2d.data
-            nan_mask = np.isnan(data)
-            data[nan_mask] = 0
-            data_summed_along_y = np.cumsum(data, axis=0)
-            data_summed_along_x = (
-                np.cumsum(data_summed_along_y, axis=1))
-            slice_2d.data = data_summed_along_x
-            cubelist.append(slice_2d)
-            nan_masks.append(nan_mask)
-        return cubelist.merge_cube(), nan_masks
+        data = cube.data
+        nan_mask = np.isnan(data)
+        data[nan_mask] = 0
+        data_summed_along_y = np.cumsum(data, axis=0)
+        data_summed_along_x = (
+            np.cumsum(data_summed_along_y, axis=1))
+        cube.data = data_summed_along_x
+        nan_masks.append(nan_mask)
+        return cube, nan_masks
 
     @staticmethod
     def pad_coord(coord, width, method):
@@ -238,40 +237,38 @@ class SquareNeighbourhood(object):
 
         Args:
             cube (iris.cube.Cube):
-                The original cube prior to applying padding.
+                The original cube prior to applying padding. The cube should
+                contain only x and y dimensions, so will generally be a slice
+                of a cube.
             width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width of padding to be added to
                 the numpy array.
 
         Returns:
-            iris.cube.Cube:
+            padded_cube (iris.cube.Cube):
                 Cube containing the new padded cube, with appropriate
                 changes to the cube's dimension coordinates.
         """
         check_for_x_and_y_axes(cube)
 
-        yname = cube.coord(axis='y').name()
-        xname = cube.coord(axis='x').name()
-        cubelist = iris.cube.CubeList([])
-        for slice_2d in cube.slices([yname, xname]):
-            # Pad a halo around the original data with the extent of the halo
-            # given by width_y and width_x. Assumption to pad using the mean
-            # value within the neighbourhood width.
-            padded_data = np.pad(
-                slice_2d.data,
-                ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
-                "mean", stat_length=((width_y, width_y), (width_x, width_x)))
-            coord_x = cube.coord(axis='x')
-            padded_x_coord = (
-                SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
-            coord_y = cube.coord(axis='y')
-            padded_y_coord = (
-                SquareNeighbourhood.pad_coord(coord_y, width_y, 'add'))
-            cubelist.append(
-                self._create_cube_with_new_data(
-                    slice_2d, padded_data, padded_x_coord, padded_y_coord))
-        return cubelist.merge_cube()
+        # Pad a halo around the original data with the extent of the halo
+        # given by width_y and width_x. Assumption to pad using the mean
+        # value within the neighbourhood width.
+        padded_data = np.pad(
+            cube.data,
+            ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
+            "mean", stat_length=((width_y, width_y), (width_x, width_x)))
+        coord_x = cube.coord(axis='x')
+        padded_x_coord = (
+            SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
+        coord_y = cube.coord(axis='y')
+        padded_y_coord = (
+            SquareNeighbourhood.pad_coord(coord_y, width_y, 'add'))
+        padded_cube = self._create_cube_with_new_data(
+            cube, padded_data, padded_x_coord, padded_y_coord)
+
+        return padded_cube
 
     def remove_halo_from_cube(self, cube, width_x, width_y):
         """
@@ -281,37 +278,33 @@ class SquareNeighbourhood(object):
 
         Args:
             cube (iris.cube.Cube):
-                The original cube to be trimmed of edge data.
+                The original cube to be trimmed of edge data. The cube should
+                contain only x and y dimensions, so will generally be a slice
+                of a cube.
             width_x, width_y (int):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width removed from the numpy
                 array.
 
         Returns:
-            iris.cube.Cube:
+            trimmed_cube (iris.cube.Cube):
                 Cube containing the new trimmed cube, with appropriate
                 changes to the cube's dimension coordinates.
         """
         check_for_x_and_y_axes(cube)
 
-        yname = cube.coord(axis='y')
-        xname = cube.coord(axis='x')
-        cubelist = iris.cube.CubeList([])
-        for slice_2d in cube.slices([yname, xname]):
-            end_y = -2*width_y if width_y != 0 else None
-            end_x = -2*width_x if width_x != 0 else None
-            trimmed_data = slice_2d.data[2*width_y:end_y,
-                                         2*width_x:end_x]
-            coord_x = slice_2d.coord(axis='x')
-            trimmed_x_coord = (
-                SquareNeighbourhood.pad_coord(coord_x, width_x, 'remove'))
-            coord_y = slice_2d.coord(axis='y')
-            trimmed_y_coord = (
-                SquareNeighbourhood.pad_coord(coord_y, width_y, 'remove'))
-            cubelist.append(
-                self._create_cube_with_new_data(
-                    slice_2d, trimmed_data, trimmed_x_coord, trimmed_y_coord))
-        return cubelist.merge_cube()
+        end_y = -2*width_y if width_y != 0 else None
+        end_x = -2*width_x if width_x != 0 else None
+        trimmed_data = cube.data[2*width_y:end_y, 2*width_x:end_x]
+        coord_x = cube.coord(axis='x')
+        trimmed_x_coord = SquareNeighbourhood.pad_coord(
+            coord_x, width_x, 'remove')
+        coord_y = cube.coord(axis='y')
+        trimmed_y_coord = SquareNeighbourhood.pad_coord(
+            coord_y, width_y, 'remove')
+        trimmed_cube = self._create_cube_with_new_data(
+            cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
+        return trimmed_cube
 
     def mean_over_neighbourhood(self, cube, cells_x, cells_y, nan_masks):
         """
@@ -369,7 +362,9 @@ class SquareNeighbourhood(object):
         Args:
             cube (iris.cube.Cube):
                 Cube to which neighbourhood processing is being applied. Must
-                be passed through cumulate_array method first.
+                be passed through cumulate_array method first. The cube should
+                contain only x and y dimensions, so will generally be a slice
+                of a cube.
             cells_x, cells_y (int):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
@@ -382,9 +377,6 @@ class SquareNeighbourhood(object):
                 Cube to which square neighbourhood has been applied.
         """
         check_for_x_and_y_axes(cube)
-
-        yname = cube.coord(axis="y").name()
-        xname = cube.coord(axis="x").name()
 
         # Calculate displacement factors to find 4-points after flattening the
         # array.
@@ -402,33 +394,30 @@ class SquareNeighbourhood(object):
         # Equivalent to point C in the docstring example.
         ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1
 
-        cubelist = iris.cube.CubeList([])
-        for slice_2d, nan_mask in zip(cube.slices([yname, xname]), nan_masks):
-            # Flatten the 2d slice and create 4 copies of the flattened
-            # array which are rolled to align the 4-points which are needed
-            # for the calculation.
-            flattened = slice_2d.data.flatten()
-            ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
-            ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
-            ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
-            ymax_xmin_array = np.roll(flattened, -ymax_xmin_disp)
-            neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
-                                   ymin_xmin_array - ymax_xmin_array)
-            neighbourhood_total.resize(n_rows, n_columns)
+        # Flatten the cube data and create 4 copies of the flattened
+        # array which are rolled to align the 4-points which are needed
+        # for the calculation.
+        flattened = cube.data.flatten()
+        ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
+        ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
+        ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
+        ymax_xmin_array = np.roll(flattened, -ymax_xmin_disp)
+        neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
+                               ymin_xmin_array - ymax_xmin_array)
+        neighbourhood_total.resize(n_rows, n_columns)
 
-            if self.sum_or_fraction == "fraction":
-                # Initialise and calculate the neighbourhood area.
-                neighbourhood_area = np.zeros(neighbourhood_total.shape)
-                neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
-                with np.errstate(invalid='ignore', divide='ignore'):
-                    slice_2d.data = (neighbourhood_total.astype(float) /
-                                     neighbourhood_area.astype(float))
-            elif self.sum_or_fraction == "sum":
-                slice_2d.data = neighbourhood_total.astype(float)
+        if self.sum_or_fraction == "fraction":
+            # Initialise and calculate the neighbourhood area.
+            neighbourhood_area = np.zeros(neighbourhood_total.shape)
+            neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
+            with np.errstate(invalid='ignore', divide='ignore'):
+                cube.data = (neighbourhood_total.astype(float) /
+                             neighbourhood_area.astype(float))
+        elif self.sum_or_fraction == "sum":
+            cube.data = neighbourhood_total.astype(float)
 
-            slice_2d.data[nan_mask.astype(bool)] = np.NaN
-            cubelist.append(slice_2d)
-        return cubelist.merge_cube()
+        cube.data[nan_masks[0].astype(bool)] = np.NaN
+        return cube
 
     @staticmethod
     def _set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):

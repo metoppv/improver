@@ -90,119 +90,8 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
+        cube = iris.util.squeeze(cube)
         nan_mask = np.zeros(cube.data.shape, dtype=int).flatten()
-        result = SquareNeighbourhood().cumulate_array(cube)
-        self.assertIsInstance(result[0], Cube)
-        self.assertArrayAlmostEqual(result[0].data, data)
-        self.assertArrayAlmostEqual(result[1][0].data, nan_mask)
-
-    def test_for_multiple_times(self):
-        """
-        Test that the y-dimension and x-dimension accumulation produces the
-        intended result when the input cube has multiple times. The input
-        cube has an extra time dimension to ensure that a 3d cube is correctly
-        handled.
-        """
-        data = np.array([[[1., 2., 3., 4., 5.],
-                          [2., 4., 6., 8., 10.],
-                          [3., 6., 8., 11., 14.],
-                          [4., 8., 11., 15., 19.],
-                          [5., 10., 14., 19., 24.]],
-                         [[1., 2., 3., 4., 5.],
-                          [2., 4., 6., 8., 10.],
-                          [3., 6., 9., 12., 15.],
-                          [4., 8., 12., 15., 19.],
-                          [5., 10., 15., 19., 24.]],
-                         [[0., 1., 2., 3., 4.],
-                          [1., 3., 5., 7., 9.],
-                          [2., 5., 8., 11., 14.],
-                          [3., 7., 11., 15., 19.],
-                          [4., 9., 14., 19., 24.]]])
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
-            num_time_points=3, num_grid_points=5)
-        nan_mask = np.zeros(cube[0, 0, :, :].data.shape, dtype=int).flatten()
-        result = SquareNeighbourhood().cumulate_array(cube)
-        self.assertIsInstance(result[0], Cube)
-        self.assertArrayAlmostEqual(result[0].data, data)
-        self.assertArrayAlmostEqual(result[1][0].data, nan_mask)
-
-    def test_for_multiple_times_nans(self):
-        """
-        Test that the y-dimension and x-dimension accumulation produces the
-        intended result when the input cube has multiple times. The input
-        cube has an extra time dimension to ensure that a 3d cube is correctly
-        handled.
-        """
-        data = np.array(
-            [[[0., 1., 2., 3., 4.],
-              [1., 3., 5., 7., 9.],
-              [2., 5., 7., 10., 13.],
-              [3., 7., 10., 14., 18.],
-              [4., 9., 13., 18., 23.]],
-             [[1., 2., 3., 4., 5.],
-              [2., 3., 5., 7., 9.],
-              [3., 5., 8., 11., 14.],
-              [4., 7., 11., 14., 18.],
-              [5., 9., 14., 18., 23.]],
-             [[0., 1., 2., 3., 4.],
-              [1., 3., 5., 7., 9.],
-              [2., 5., 8., 10., 13.],
-              [3., 7., 11., 14., 18.],
-              [4., 9., 14., 18., 23.]]])
-
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2), (0, 1, 3, 3), (0, 2, 0, 0)),
-            num_time_points=3, num_grid_points=5)
-        cube.data[0, 0, 0, 0] = np.nan
-        cube.data[0, 1, 1, 1] = np.nan
-        cube.data[0, 2, 2, 3] = np.nan
-        nan_mask = np.zeros(cube[0, 0, :, :].data.shape, dtype=int).flatten()
-        nan_mask_1 = copy.copy(nan_mask)
-        nan_mask_2 = copy.copy(nan_mask)
-        nan_mask_3 = copy.copy(nan_mask)
-        nan_mask_1[0] = 1
-        nan_mask_2[6] = 1
-        nan_mask_3[13] = 1
-        result = SquareNeighbourhood().cumulate_array(cube)
-        self.assertIsInstance(result[0], Cube)
-        self.assertArrayAlmostEqual(result[0].data, data)
-        self.assertArrayAlmostEqual(result[1][0].data, nan_mask_1)
-        self.assertArrayAlmostEqual(result[1][1].data, nan_mask_2)
-        self.assertArrayAlmostEqual(result[1][2].data, nan_mask_3)
-
-    def test_for_multiple_realizations_and_times(self):
-        """
-        Test that the y-dimension and x-dimension accumulation produces the
-        intended result when the input cube has multiple realizations and
-        times. The input cube has extra time and realization dimensions to
-        ensure that a 4d cube is correctly handled.
-        """
-        data = np.array([[[[1., 2., 3., 4., 5.],
-                           [2., 4., 6., 8., 10.],
-                           [3., 6., 8., 11., 14.],
-                           [4., 8., 11., 15., 19.],
-                           [5., 10., 14., 19., 24.]],
-                          [[0., 1., 2., 3., 4.],
-                           [1., 3., 5., 7., 9.],
-                           [2., 5., 8., 11., 14.],
-                           [3., 7., 11., 15., 19.],
-                           [4., 9., 14., 19., 24.]]],
-                         [[[1., 2., 3., 4., 5.],
-                           [2., 4., 6., 8., 10.],
-                           [3., 6., 9., 12., 15.],
-                           [4., 8., 12., 15., 19.],
-                           [5., 10., 15., 19., 24.]],
-                          [[1., 2., 3., 4., 5.],
-                           [2., 4., 6., 8., 10.],
-                           [3., 5., 8., 11., 14.],
-                           [4., 7., 11., 15., 19.],
-                           [5., 9., 14., 19., 24.]]]])
-        cube = set_up_cube(
-            zero_point_indices=(
-                (0, 0, 2, 2), (1, 0, 3, 3), (0, 1, 0, 0), (1, 1, 2, 1)),
-            num_time_points=2, num_grid_points=5, num_realization_points=2)
-        nan_mask = np.zeros(cube[0, 0, :, :].data.shape, dtype=int).flatten()
         result = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result[0], Cube)
         self.assertArrayAlmostEqual(result[0].data, data)
@@ -221,7 +110,8 @@ class Test_cumulate_array(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        cube.data[0, 0, 0, 0] = np.nan
+        cube = iris.util.squeeze(cube)
+        cube.data[0, 0] = np.nan
         result, nan_masks = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -657,22 +547,6 @@ class Test_mean_over_neighbourhood(IrisTest):
         self.assertArrayAlmostEqual(
             result.data[2:-2, 2:-2], self.padded_result)
 
-    def test_multiple_times(self):
-        """Test mean over neighbourhood with more than two dimensions."""
-        data = np.array([self.padded_data, self.padded_data])
-        cube = Cube(data, long_name='two times test')
-        cube.add_dim_coord(self.padded_x_coord, 1)
-        cube.add_dim_coord(self.padded_y_coord, 2)
-        t_coord = DimCoord([0, 1], standard_name='time')
-        cube.add_dim_coord(t_coord, 0)
-        nan_masks = [np.zeros(cube.data[0].shape, dtype=int)] * 2
-        result = SquareNeighbourhood().mean_over_neighbourhood(
-            cube, self.width, self.width, nan_masks)
-        self.assertArrayAlmostEqual(
-            result.data[0, 2:-2, 2:-2], self.padded_result)
-        self.assertArrayAlmostEqual(
-            result.data[1, 2:-2, 2:-2], self.padded_result)
-
     def test_nan_mask(self):
         """Test the correct result is returned when a nan must be substituted
            into the final array. Note: this type of data should also be masked,
@@ -862,8 +736,8 @@ class Test__remove_padding_and_mask(IrisTest):
              [1., 0., 1.],
              [1., 1., 1.]])
         grid_cells_x = grid_cells_y = 1
-        padded_cubes = CubeList([self.padded_cube])
-        cubes = CubeList([self.cube])
+        padded_cubes = CubeList([iris.util.squeeze(self.padded_cube)])
+        cubes = CubeList([iris.util.squeeze(self.cube)])
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
                 padded_cubes, cubes, self.padded_cube.name(),
@@ -879,21 +753,21 @@ class Test__remove_padding_and_mask(IrisTest):
              [1., np.nan, 1.],
              [1., 1., 1.]])
         grid_cells_x = grid_cells_y = 1
-        padded_cube = self.padded_cube
+        padded_cube = iris.util.squeeze(self.padded_cube)
         # Set up padded cube and associated mask.
         mask_cube = padded_cube.copy()
         masked_array = np.ones(mask_cube.data.shape)
-        masked_array[0, 0, 3, 3] = 0
-        masked_array[0, 0, 2, 3] = 0
+        masked_array[3, 3] = 0
+        masked_array[2, 3] = 0
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         padded_cubes = CubeList([padded_cube, mask_cube])
         # Set up cube without padding and associated mask.
-        cube = self.cube
+        cube = iris.util.squeeze(self.cube)
         mask_cube = cube.copy()
         masked_array = np.ones(mask_cube.data.shape)
-        masked_array[0, 0, 1, 1] = 0
-        masked_array[0, 0, 0, 1] = 0
+        masked_array[1, 1] = 0
+        masked_array[0, 1] = 0
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         cubes = CubeList([cube, mask_cube])
@@ -913,22 +787,22 @@ class Test__remove_padding_and_mask(IrisTest):
              [1., np.nan, 1.],
              [1., 1., 0.]])
         grid_cells_x = grid_cells_y = 1
-        padded_cube = self.padded_cube
+        padded_cube = iris.util.squeeze(self.padded_cube)
         # Set up padded cube and associated mask.
         mask_cube = padded_cube.copy()
         masked_array = np.ones(mask_cube.data.shape)
-        masked_array[0, 0, 3, 3] = 0
-        masked_array[0, 0, 2, 3] = 0
+        masked_array[3, 3] = 0
+        masked_array[2, 3] = 0
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         padded_cubes = CubeList([padded_cube, mask_cube])
         # Set up cube without padding and associated mask.
-        cube = self.cube
+        cube = iris.util.squeeze(self.cube)
         mask_cube = cube.copy()
         masked_array = np.ones(mask_cube.data.shape)
-        masked_array[0, 0, 2, 2] = 0
-        masked_array[0, 0, 1, 1] = 0
-        masked_array[0, 0, 0, 1] = 0
+        masked_array[2, 2] = 0
+        masked_array[1, 1] = 0
+        masked_array[0, 1] = 0
         mask_cube.rename('mask_data')
         mask_cube.data = masked_array.astype(bool)
         cubes = CubeList([cube, mask_cube])
