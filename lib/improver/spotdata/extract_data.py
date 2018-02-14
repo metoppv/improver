@@ -278,9 +278,8 @@ class ExtractData(object):
         # to a standard name if possible.
         result_cube.rename(cube.name())
 
-        # Promote any statistical coordinate to be first.
         result_cube = enforce_coordinate_ordering(
-            result_cube, ["realization", "percentile_over", "threshold"])
+            result_cube, ["realization", "percentile_over"])
         return result_cube
 
     def use_nearest(self, cube, sites, neighbours):
