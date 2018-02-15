@@ -32,44 +32,16 @@
 """Script to extract subcubes given constraints."""
 
 import argparse
-import sys
-from ast import literal_eval
-
 import iris
+from improver.utilities.cube_extraction import (parse_constraint_list,
+                                                extract_subcube)
 
 iris.FUTURE.netcdf_no_unlimited = True
 iris.FUTURE.netcdf_promote = True
 
 
-def extract_subcube(input_filename, output_filename, constraints, units=None):
-    """Apply a set of constraints to the data in input_filename, then save."""
-    print "Extract subcube: {} to {}, given constraint {}".format(
-        input_filename, output_filename, constraints)
-    cube = None
-    constraint = iris.Constraint(**constraints)
-
-    if units is not None:
-        cubes = iris.load(input_filename)
-        for cube in cubes:
-            for coord in units.keys():
-                cube.coord(coord).convert_units(units[coord])
-        cube = cubes.extract(constraint)
-    else:
-        cube = iris.load_cube(input_filename, constraint)
-
-    if cube is None:
-        sys.stderr.write(
-            "extract_subcube: Constraint(s) could not be matched in " +
-            "input cube.  No output written.\n")
-    else:
-        iris.fileformats.netcdf.save(cube, output_filename)
-
-
 def main():
     """Invoke the extraction of a cube."""
-
-    # This assumes command line arguments are 'correct'
-    # i.e: there is minimal error checking...
 
     parser = argparse.ArgumentParser(description='Extracts subcube from' +
                                      ' a cube, subject to constraints.')
@@ -90,34 +62,15 @@ def main():
 
     args = parser.parse_args()
 
-    if args.units is None:
-        list_units = len(args.constraints)*[None]
-        units_kwargs = None
+    constraints, units = parse_constraint_list(args.constraints, args.units)
+    cube = extract_subcube(args.input_file, constraints, units)
+
+    if cube is None:
+        msg = ("extract_subcube: Constraint(s) could not be matched in "
+                "input cube.  No output written.")
+        raise ValueError(msg)
     else:
-        list_units = args.units
-        units_kwargs = {}
-
-    # Assume constraints are space separated list of constraints
-    # (with no space between key and value in each pair)
-    # e.g: kw1=val1 kw2=val2 kw3=val3
-    constraint_kwargs = {}
-    for cons_pair, units in zip(args.constraints, list_units):
-        [key, value] = cons_pair.split('=')
-
-        # Not exactly a great way of doing this, but let's try using
-        # literal_eval to guess the type of the value...
-        try:
-            parsed_value = literal_eval(value)
-        except:
-            # if it doesn't work, just store the original string...
-            parsed_value = value
-
-        constraint_kwargs[key] = parsed_value
-        if units is not None and units != 'None':
-            units_kwargs[key] = units
-
-        extract_subcube(args.input_file, args.output_file, constraint_kwargs,
-                        units_kwargs)
+        iris.fileformats.netcdf.save(cube, output_filename)
 
 
 if __name__ == '__main__':
