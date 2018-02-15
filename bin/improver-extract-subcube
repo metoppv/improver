@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to extract subcubes given constraints."""
+
+import argparse
+import sys
+from ast import literal_eval
+
+import iris
+
+iris.FUTURE.netcdf_no_unlimited = True
+iris.FUTURE.netcdf_promote = True
+
+
+def extract_subcube(input_filename, output_filename, constraints, units=None):
+    """Apply a set of constraints to the data in input_filename, then save."""
+    print "Extract subcube: {} to {}, given constraint {}".format(
+        input_filename, output_filename, constraints)
+    cube = None
+    constraint = iris.Constraint(**constraints)
+
+    if units is not None:
+        cubes = iris.load(input_filename)
+        for cube in cubes:
+            for coord in units.keys():
+                cube.coord(coord).convert_units(units[coord])
+        cube = cubes.extract(constraint)
+    else:
+        cube = iris.load_cube(input_filename, constraint)
+
+    if cube is None:
+        sys.stderr.write(
+            "extract_subcube: Constraint(s) could not be matched in " +
+            "input cube.  No output written.\n")
+    else:
+        iris.fileformats.netcdf.save(cube, output_filename)
+
+
+def main():
+    """Invoke the extraction of a cube."""
+
+    # This assumes command line arguments are 'correct'
+    # i.e: there is minimal error checking...
+
+    parser = argparse.ArgumentParser(description='Extracts subcube from' +
+                                     ' a cube, subject to constraints.')
+
+    parser.add_argument('input_file', metavar='INPUT_FILE',
+                        help="File containing a single cube to extract from.")
+    parser.add_argument('output_file', metavar='OUTPUT_FILE',
+                        help="File to write the extracted cube to.")
+
+    parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
+                        help="The constraint(s) to be applied.")
+    parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
+                        help='Optional: units of coordinate constraint(s) to '
+                        'be applied, for use when the input cube coordinate '
+                        'units are not ideal (eg for float equality). If '
+                        'used, this list must match the CONSTRAINTS list in '
+                        'order and length (with null values set to None).')
+
+    args = parser.parse_args()
+
+    if args.units is None:
+        list_units = len(args.constraints)*[None]
+        units_kwargs = None
+    else:
+        list_units = args.units
+        units_kwargs = {}
+
+    # Assume constraints are space separated list of constraints
+    # (with no space between key and value in each pair)
+    # e.g: kw1=val1 kw2=val2 kw3=val3
+    constraint_kwargs = {}
+    for cons_pair, units in zip(args.constraints, list_units):
+        [key, value] = cons_pair.split('=')
+
+        # Not exactly a great way of doing this, but let's try using
+        # literal_eval to guess the type of the value...
+        try:
+            parsed_value = literal_eval(value)
+        except:
+            # if it doesn't work, just store the original string...
+            parsed_value = value
+
+        constraint_kwargs[key] = parsed_value
+        if units is not None and units != 'None':
+            units_kwargs[key] = units
+
+        extract_subcube(args.input_file, args.output_file, constraint_kwargs,
+                        units_kwargs)
+
+
+if __name__ == '__main__':
+    main()
