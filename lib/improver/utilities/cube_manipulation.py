@@ -836,21 +836,21 @@ def enforce_coordinate_ordering(
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):
-    """Apply np.clip to data in a resulting cube to ensure that the limits do
-    not go beyond the limits of the original input cube.
+    """Apply np.clip to data in a cube to ensure that the limits do not go
+    beyond the provided minimum and maximum values.
 
     Args:
         cube (iris.cube.Cube):
             The cube that has been processed and contains data that is to be
             clipped.
-        minimum_value (float):
+        minimum_value (int or float):
             The minimum value, with data in the cube that falls below this
             threshold set to it.
-        maximum_value (float):
+        maximum_value (int or float):
             The maximum value, with data in the cube that falls above this
             threshold set to it.
     Returns:
-        result_slices (iris.cube.Cube):
+        result (iris.cube.Cube):
             The processed cube with the data clipped to the limits of the
             original preprocessed cube.
     """

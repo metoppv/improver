@@ -1753,8 +1753,8 @@ class Test_clip_cube_data(IrisTest):
         result = clip_cube_data(processed_cube, minimum_value, maximum_value)
         self.assertEqual(result.data.min(), minimum_value)
         self.assertEqual(result.data.max(), maximum_value)
-        self.assertEqual(result.attributes, cube.attributes)
-        self.assertEqual(result.cell_methods, cube.cell_methods)
+        self.assertEqual(result.attributes, processed_cube.attributes)
+        self.assertEqual(result.cell_methods, processed_cube.cell_methods)
 
 
 if __name__ == '__main__':
