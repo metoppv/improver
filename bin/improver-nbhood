@@ -31,14 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run neighbourhood processing."""
 
-import iris
-
 from improver.argparser import ArgParser
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -244,7 +243,7 @@ def main():
         raise ValueError('Recursive filter option is not applicable to '
                          'circular neighbourhoods. ')
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

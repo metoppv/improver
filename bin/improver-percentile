@@ -32,8 +32,6 @@
 """Script to collapse cube coordinates and calculate percentiled data."""
 
 import argparse
-
-import iris
 import warnings
 
 from improver.percentile import PercentileConverter
@@ -42,6 +40,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import choose_set_of_percentiles
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -103,7 +102,7 @@ def main():
         result = PercentileConverter(
             args.coordinates, percentiles=percentiles).process(cube)
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

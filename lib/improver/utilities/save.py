@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
@@ -29,42 +28,32 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run landmask ancillary generation."""
+"""Module for saving netcdf cubes with desired attribute types."""
 
-import argparse
-import os
+import iris
 
-from improver.generate_ancillaries.generate_ancillary import (
-    CorrectLandSeaMask)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+iris.FUTURE.netcdf_promote = True
+iris.FUTURE.netcdf_no_unlimited = True
 
 
-def main():
-    """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
-        description=('Read the input landmask, and correct '
-                     'to boolean values.'))
-    parser.add_argument('--force', dest='force', default=False,
-                        action='store_true',
-                        help=('If True, ancillaries will be generated '
-                              'even if doing so will overwrite existing '
-                              'files.'))
-    parser.add_argument('input_filepath_standard',
-                        metavar='INPUT_FILE_STANDARD',
-                        help='A path to an input NetCDF file to be processed')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
-    args = parser.parse_args()
+def save_netcdf(cube, filename):
+    """Save the input cube as a NetCDF file.
 
-    # Check if improver ancillary already exists.
-    if not os.path.exists(args.output_filepath) or args.force:
-        landmask = load_cube(args.input_filepath_standard)
-        land_binary_mask = CorrectLandSeaMask().process(landmask)
-        save_netcdf(land_binary_mask, args.output_filepath)
-    else:
-        print 'File already exists here: ', args.output_filepath
+    Uses the functionality provided by iris.fileformats.netcdf.save with
+    local_keys to record shared attributes as data attributes rather than
+    global attributes.
 
+    NOTE current wrapper is a placeholder replicating the existing iris.save
+    functionality.
 
-if __name__ == "__main__":
-    main()
+    Args:
+        cube (iris.cube.Cube):
+            Input cube
+        filename (str):
+            Filename to save input cube
+    """
+
+    local_keys = None
+    # TODO perform appropriate cube manipulation here to obtain local_keys
+
+    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys)

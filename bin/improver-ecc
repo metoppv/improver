@@ -32,14 +32,13 @@
 
 """Script to run Ensemble Copula Coupling processing."""
 
-import iris
-
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsMembers, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -150,7 +149,7 @@ def main():
         result_cube = RebadgePercentilesAsMembers().process(
             result_cube, ensemble_member_numbers=args.member_numbers)
 
-    iris.save(result_cube, args.output_filepath)
+    save_netcdf(result_cube, args.output_filepath)
 
 
 if __name__ == '__main__':

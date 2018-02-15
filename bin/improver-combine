@@ -40,6 +40,7 @@ from glob import glob
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -124,7 +125,7 @@ def main():
             revised_attributes=new_attr,
             expanded_coord=expanded_coord))
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

@@ -36,14 +36,13 @@ may also be employed, with the sea area being treated as a distinct zone."""
 import numpy as np
 import warnings
 
-import iris
 from improver.argparser import ArgParser
-
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 from improver.utilities.cube_manipulation import merge_cubes
 
 
@@ -223,8 +222,8 @@ def main():
         apply_clipping(cube, result_sea)
 
     if args.intermediate_filepaths is not None:
-        iris.save(result_land, args.intermediate_filepaths[0])
-        iris.save(result_sea, args.intermediate_filepaths[1])
+        save_netcdf(result_land, args.intermediate_filepaths[0])
+        save_netcdf(result_sea, args.intermediate_filepaths[1])
 
     if masking_coordinate is not None:
         # Collapse the masking coordinate.
@@ -235,7 +234,7 @@ def main():
     combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
     result = result_land.copy(data=combined_data)
 
-    iris.save(result, args.output_filepath)
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,6 @@
 """CLI to generate weather symbols."""
 
 import argparse
-import iris
 import numpy as np
 from argparse import RawTextHelpFormatter
 
@@ -40,6 +39,7 @@ from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.utilities.load import load_cubelist
+from improver.utilities.save import save_netcdf
 
 
 def interrogate_decision_tree():
@@ -120,7 +120,7 @@ def main():
     cubes = load_cubelist(args.input_filepaths)
 
     result = (WeatherSymbols().process(cubes))
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

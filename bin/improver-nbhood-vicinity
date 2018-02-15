@@ -32,11 +32,10 @@
 """Script to run occurrence of a phenomenon within a vicinity
 neighbourhood processing."""
 
-import iris
-
 from improver.argparser import ArgParser
 from improver.nbhood.vicinity import ProbabilityOfOccurrence
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -125,7 +124,7 @@ def main():
             weighted_mode=args.weighted_mode
             ).process(cube))
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

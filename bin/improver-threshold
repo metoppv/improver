@@ -34,11 +34,11 @@
 import argparse
 
 import json
-import iris
 import cf_units
 
 from improver.threshold import BasicThreshold
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -144,7 +144,7 @@ def main():
         fuzzy_bounds=fuzzy_bounds,
         below_thresh_ok=args.below_threshold).process(cube)
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

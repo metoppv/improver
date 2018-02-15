@@ -40,6 +40,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance, EnsembleReordering)
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -140,8 +141,7 @@ def main():
     if args.save_mean_variance:
         mean_variance = [x for y in forecast_predictor_and_variance for x in y]
         mean_variance = iris.cube.CubeList(mean_variance)
-        iris.save(mean_variance, args.save_mean_variance,
-                  unlimited_dimensions=[])
+        save_netcdf(mean_variance, args.save_mean_variance)
 
     # Ensemble-Copula-Coupling to generate members from mean and variance.
     percentiles = GeneratePercentilesFromMeanAndVariance().process(
@@ -149,7 +149,7 @@ def main():
     result = EnsembleReordering().process(percentiles, current_forecast,
                                           random_ordering=args.random_ordering,
                                           random_seed=args.random_seed)
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

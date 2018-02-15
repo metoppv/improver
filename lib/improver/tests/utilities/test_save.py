@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
@@ -29,43 +28,55 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate gradient of input field in x and y direction."""
+"""Unit tests for saving functionality."""
 
-import argparse
 import os
+import unittest
+import numpy as np
+from subprocess import call
+from tempfile import mkdtemp
 
-from improver.utilities.load import load_cube
+import iris
+from iris.tests import IrisTest
 from improver.utilities.save import save_netcdf
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import set_up_temperature_cube
 
 
-def main():
-    """Load in arguments to calculate the gradient between adjacent grid cells
-       and save the output gradient fields."""
-    parser = argparse.ArgumentParser(
-        description=('Read the input field, and calculate the gradient'
-                     ' in x and y directions.'))
-    parser.add_argument('--force', dest='force', default=False,
-                        action='store_true',
-                        help=('If True, ancillaries will be generated '
-                              'even if doing so will overwrite existing '
-                              'files.'))
-    parser.add_argument('input_filepath',
-                        metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
-    args = parser.parse_args()
-    # Check if improver ancillary already exists.
-    if not os.path.exists(args.output_filepath) or args.force:
-        input_field = load_cube(args.input_filepath)
-        gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
-        save_netcdf(gradients, args.output_filepath)
-    else:
-        print args.output_filepath
-        msg = 'File already exists here: {}'.format(args.output_filepath)
-        raise IOError(msg)
+class Test_save_netcdf(IrisTest):
+
+    """Test function to save iris cubes as netcdf.
+
+    NOTE this is a dummy class as "save_netcdf" is currently just wrapping
+    iris.fileformats.netcdf.save.  More tests will be added when local_keys
+    functionality is incorporated.
+    """
+
+    def setUp(self):
+        """ Set up cube to write, read and check """
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        self.cube = set_up_temperature_cube()
+
+    def tearDown(self):
+        """ Remove temporary directories created for testing. """
+        call(['rm', '-f', self.filepath])
+        call(['rmdir', self.directory])
+
+    def test_basic(self):
+        """ Test saves file in required location """
+        self.assertFalse(os.path.exists(self.filepath))
+        save_netcdf(self.cube, self.filepath)
+        self.assertTrue(os.path.exists(self.filepath))
+
+    def test_saved_cube(self):
+        """ Test valid cube can be read from saved file """
+        save_netcdf(self.cube, self.filepath)
+        cube = iris.load_cube(self.filepath)
+        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        self.assertTrue(np.array_equal(cube.data, self.cube.data))
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    unittest.main()

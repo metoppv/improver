@@ -32,10 +32,10 @@
 """Module to apply a recursive filter to neighbourhooded data."""
 
 import argparse
-import iris
 
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -105,7 +105,7 @@ def main():
             cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
             mask_cube=mask_cube)
 
-    iris.save(result, args.output_filepath, unlimited_dimensions=[])
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":
