@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from improver.utilities.cube_checker import check_cube_coordinates
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -832,3 +833,39 @@ def enforce_coordinate_ordering(
     elif anchor == "end":
         cube.transpose(remaining_coords+coord_dims)
     return cube
+
+
+def clip_cube_data(cube, minimum_value, maximum_value):
+    """Apply np.clip to data in a cube to ensure that the limits do not go
+    beyond the provided minimum and maximum values.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube that has been processed and contains data that is to be
+            clipped.
+        minimum_value (int or float):
+            The minimum value, with data in the cube that falls below this
+            threshold set to it.
+        maximum_value (int or float):
+            The maximum value, with data in the cube that falls above this
+            threshold set to it.
+    Returns:
+        result (iris.cube.Cube):
+            The processed cube with the data clipped to the limits of the
+            original preprocessed cube.
+    """
+    original_attributes = cube.attributes
+    original_methods = cube.cell_methods
+
+    result = iris.cube.CubeList()
+    for cube_slice in cube.slices([cube.coord(axis='y'),
+                                   cube.coord(axis='x')]):
+        cube_slice.data = np.clip(cube_slice.data,
+                                  minimum_value, maximum_value)
+        result.append(cube_slice)
+
+    result = result.merge_cube()
+    result.cell_methods = original_methods
+    result.attributes = original_attributes
+    result = check_cube_coordinates(cube, result)
+    return result

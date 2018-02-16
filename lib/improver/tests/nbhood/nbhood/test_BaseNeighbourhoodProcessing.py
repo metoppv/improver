@@ -650,21 +650,22 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does not mask
         out the occurrences."""
         expected = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-               [1., 1., 1., 1., 1.]]]])
+            [[1., 1., 1., 1., 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 1., 1., 1., 1.]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),),
             num_grid_points=5, num_time_points=1)
+        cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.]]]])
+            [[1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.]])
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius).process(
@@ -676,21 +677,22 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
         expected = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 0., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.]]]])
+            [[1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 0., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),),
             num_grid_points=5, num_time_points=1)
+        cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 0., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 1., 1., 1., 1.]]]])
+            [[1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 0., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.]])
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius).process(
@@ -702,21 +704,22 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does mask
         out the occurrences. In this case, an irregular mask is applied."""
         expected = np.array(
-            [[[[1.000000, 1.000000, 1.000000, 1.000000, 1.000000],
-               [1.000000, 0.000000, 0.833333, 0.000000, 1.000000],
-               [1.000000, 0.000000, 0.833333, 0.875000, 1.000000],
-               [1.000000, 0.857143, 0.833333, 0.857143, 1.000000],
-               [1.000000, 0.000000, 1.000000, 0.000000, 0.000000]]]])
+            [[1.000000, 1.000000, 1.000000, 1.000000, 1.000000],
+             [1.000000, 0.000000, 0.833333, 0.000000, 1.000000],
+             [1.000000, 0.000000, 0.833333, 0.875000, 1.000000],
+             [1.000000, 0.857143, 0.833333, 0.857143, 1.000000],
+             [1.000000, 0.000000, 1.000000, 0.000000, 0.000000]])
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),),
             num_grid_points=5, num_time_points=1)
+        cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[[[1., 1., 1., 1., 1.],
-               [1., 0., 1., 0., 1.],
-               [1., 0., 1., 1., 1.],
-               [1., 1., 1., 1., 1.],
-               [1., 0., 1., 0., 0.]]]])
+            [[1., 1., 1., 1., 1.],
+             [1., 0., 1., 0., 1.],
+             [1., 0., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 0., 1., 0., 0.]])
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius).process(

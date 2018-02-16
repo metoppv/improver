@@ -26,6 +26,7 @@
 """Unit tests for the nbhood.RecursiveFilter plugin."""
 
 import unittest
+import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.coords import DimCoord
@@ -159,7 +160,8 @@ class Test_set_alphas(Test_RecursiveFilter):
     def test_alpha_x_used_result(self):
         """Test that the returned alphas array has the expected result
            when alphas_cube=None."""
-        result = RecursiveFilter().set_alphas(self.cube, self.alpha_x, None)
+        cube = iris.util.squeeze(self.cube)
+        result = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
         expected_result = 0.5
         self.assertIsInstance(result.data, np.ndarray)
         self.assertEqual(result.data[0][2], expected_result)
@@ -267,10 +269,11 @@ class Test_run_recursion(Test_RecursiveFilter):
     def test_return_type(self):
         """Test that the run_recursion method returns an iris.cube.Cube."""
         edge_width = 1
-        alphas_x = RecursiveFilter().set_alphas(self.cube, self.alpha_x, None)
-        alphas_y = RecursiveFilter().set_alphas(self.cube, self.alpha_y, None)
+        cube = iris.util.squeeze(self.cube)
+        alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
+        alphas_y = RecursiveFilter().set_alphas(cube, self.alpha_y, None)
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            self.cube, edge_width, edge_width)
+            cube, edge_width, edge_width)
         result = RecursiveFilter().run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         self.assertIsInstance(result, Cube)
@@ -278,10 +281,11 @@ class Test_run_recursion(Test_RecursiveFilter):
     def test_expected_result(self):
         """Test that the run_recursion method returns the expected value."""
         edge_width = 1
-        alphas_x = RecursiveFilter().set_alphas(self.cube, self.alpha_x, None)
-        alphas_y = RecursiveFilter().set_alphas(self.cube, self.alpha_y, None)
+        cube = iris.util.squeeze(self.cube)
+        alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
+        alphas_y = RecursiveFilter().set_alphas(cube, self.alpha_y, None)
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            self.cube, edge_width, edge_width)
+            cube, edge_width, edge_width)
         result = RecursiveFilter().run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         expected_result = 0.13382206

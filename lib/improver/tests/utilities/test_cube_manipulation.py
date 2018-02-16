@@ -59,7 +59,9 @@ from improver.utilities.cube_manipulation import (
     compare_coords,
     build_coordinate,
     add_renamed_cell_method,
-    sort_coord_in_cube, enforce_coordinate_ordering)
+    sort_coord_in_cube,
+    enforce_coordinate_ordering,
+    clip_cube_data)
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
@@ -1713,6 +1715,46 @@ class Test_enforce_coordinate_ordering(IrisTest):
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             enforce_coordinate_ordering(
                 cube, "realization", raise_exception=True)
+
+
+class Test_clip_cube_data(IrisTest):
+    """Test the clip_cube_data utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
+        self.minimum_value = self.cube.data.min()
+        self.maximum_value = self.cube.data.max()
+        self.processed_cube = self.cube.copy(
+            data=self.cube.data*2.0 - self.cube.data.mean())
+
+    def test_basic(self):
+        """Test that the utility returns a cube."""
+        result = clip_cube_data(self.processed_cube,
+                                self.minimum_value, self.maximum_value)
+        self.assertIsInstance(result, Cube)
+
+    def test_clipping(self):
+        """Test that the utility clips the processed cube to the same limits
+        as the input cube."""
+        result = clip_cube_data(self.processed_cube,
+                                self.minimum_value, self.maximum_value)
+        self.assertEqual(result.data.min(), self.minimum_value)
+        self.assertEqual(result.data.max(), self.maximum_value)
+
+    def test_clipping_slices(self):
+        """Test that the utility clips the processed cube to the same limits
+        as the input cube, and that it does this when slicing over multiple
+        x-y planes."""
+        cube = set_up_probability_above_threshold_temperature_cube()
+        minimum_value = cube.data.min()
+        maximum_value = cube.data.max()
+        processed_cube = cube.copy(data=cube.data*2.0 - cube.data.mean())
+        result = clip_cube_data(processed_cube, minimum_value, maximum_value)
+        self.assertEqual(result.data.min(), minimum_value)
+        self.assertEqual(result.data.max(), maximum_value)
+        self.assertEqual(result.attributes, processed_cube.attributes)
+        self.assertEqual(result.cell_methods, processed_cube.cell_methods)
 
 
 if __name__ == '__main__':

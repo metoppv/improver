@@ -40,6 +40,7 @@ from improver.nbhood.use_nbhood import (
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cube_manipulation import clip_cube_data
 
 
 def main():
@@ -168,9 +169,9 @@ def main():
     # At the moment the neighbourhood code can produce values beyond extremes
     # in the input data.
     if not args.no_clip:
-        input_max = cube.data.max()
-        input_min = cube.data.min()
-        result.data = np.clip(result.data, input_min, input_max)
+        minimum_value = np.nanmin(cube.data)
+        maximum_value = np.nanmax(cube.data)
+        result = clip_cube_data(result, minimum_value, maximum_value)
 
     if args.intermediate_filepath is not None:
         save_netcdf(result, args.intermediate_filepath)

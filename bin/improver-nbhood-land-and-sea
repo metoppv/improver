@@ -42,23 +42,9 @@ from improver.nbhood.use_nbhood import (
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.load import load_cube
+
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import merge_cubes
-
-
-def apply_clipping(cube, result):
-    """A temporary fix to clip data values that are artificially enlarged
-    by the neighbourhooding process.
-
-    Args:
-       cube (iris.cube.Cube):
-          The cube that was passed to the CLI.
-       result (iris.cube.Cube):
-          The cube that has undergone neighbourhooding and is to be clipped.
-    """
-    input_max = cube.data.max()
-    input_min = cube.data.min()
-    result.data = np.clip(result.data, input_min, input_max)
+from improver.utilities.cube_manipulation import clip_cube_data
 
 
 def main():
@@ -218,8 +204,10 @@ def main():
     # At the moment the neighbourhood code can produce values beyond extremes
     # in the input data.
     if not args.no_clip:
-        apply_clipping(cube, result_land)
-        apply_clipping(cube, result_sea)
+        minimum_value = np.nanmin(cube.data)
+        maximum_value = np.nanmax(cube.data)
+        result_land = clip_cube_data(result_land, minimum_value, maximum_value)
+        result_sea = clip_cube_data(result_sea, minimum_value, maximum_value)
 
     if args.intermediate_filepaths is not None:
         save_netcdf(result_land, args.intermediate_filepaths[0])
