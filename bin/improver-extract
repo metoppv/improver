@@ -33,8 +33,10 @@
 
 import argparse
 import iris
+
 from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
+from improver.utilities.save import save_netcdf
 
 iris.FUTURE.netcdf_no_unlimited = True
 iris.FUTURE.netcdf_promote = True
@@ -70,7 +72,7 @@ def main():
                 "input cube.  No output written.")
         raise ValueError(msg)
     else:
-        iris.fileformats.netcdf.save(cube, output_filename)
+        save_netcdf(cube, output_filename)
 
 
 if __name__ == '__main__':

@@ -46,8 +46,10 @@ def parse_constraint_list(constraints, units):
     Args:
         constraints (list):
             Space separated list of constraints with no space between key and
-            value in each pair: e.g: kw1=val1 kw2=val2 kw3=val3
-        units (list or None):
+            value in each pair: e.g: kw1=val1 kw2=val2 kw3=val3.  Values must
+            be of scalar types interpretable by ast.literal_eval: strings,
+            numbers, booleans, or "None".
+        units (list of strings or None):
             Space separated list of units for each coordinate in the list of
             constraints.  One or more "units" may be None, and units can only
             be associated with coordinate constraints.
@@ -66,18 +68,9 @@ def parse_constraint_list(constraints, units):
         units_dict = {}
 
     constraints_dict = {}
-    for cons_pair, units in zip(constraints, list_units):
-        [key, value] = cons_pair.split('=')
-
-        # Not exactly a great way of doing this, but let's try using
-        # literal_eval to guess the type of the value...
-        try:
-            parsed_value = literal_eval(value)
-        except:
-            # if it doesn't work, just store the original string...
-            parsed_value = value
-
-        constraints_dict[key] = parsed_value
+    for constraint_pair, units in zip(constraints, list_units):
+        [key, value] = constraint_pair.split('=')
+        constraints_dict[key] = literal_eval(value)
         if units is not None and units != 'None':
             units_dict[key] = units
 
@@ -87,8 +80,9 @@ def parse_constraint_list(constraints, units):
 def extract_subcube(input_filename, constraints, units):
     """
     Using a set of constraints, extract a subcube from the provided cube or
-    cubelist if it is available. Returns a single merged cube or raises
-    iris.ConstraintMismatchError.
+    cubelist if it is available.  Constraints are strictly equality based.
+    Returns a single merged cube, or raises ValueError on merge if no subcube
+    matched the constraints provided.
 
     Args:
         cube (iris.cube.Cube or iris.cube.CubeList):
@@ -99,13 +93,12 @@ def extract_subcube(input_filename, constraints, units):
 
     Kwargs:
         units (dictionary):
-            A dictionary of units for the constraints.  Supplied if units are
-            different from those of the input cube (eg precip in mm/h for cube
-            data in m/s).
+            A dictionary of units for the constraints.  Supplied if any
+            coordinate constraints are provided in different units from those
+            of the input cube (eg precip in mm/h for cube threshold in m/s).
 
     """
     constraint = iris.Constraint(**constraints)
-    cube = None
 
     if units is not None:
         cubes = iris.load(input_filename)
@@ -115,7 +108,7 @@ def extract_subcube(input_filename, constraints, units):
         cubes = cubes.extract(constraint)     
     else:
         cubes = iris.load(input_filename, constraint)
-    cube = cubes.merge_cube()
 
+    cube = cubes.merge_cube()
     return cube
 

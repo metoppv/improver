@@ -40,6 +40,7 @@ from subprocess import call
 import iris
 from iris.tests import IrisTest
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
@@ -135,22 +136,26 @@ class Test_extract_subcube(IrisTest):
     def test_raises_mismatch_error(self):
         """ Test error is raised if the output cube is empty """
         constraint_dict = {"threshold" : 6}
-        msg = "can't merge an empty CubeList"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaises(ValueError):
             extract_subcube(self.filepath, constraint_dict, None)
-        
 
-    # test list of constraints with mixed units
-
-
-
-
-    # test error raised for single non-coord constraint with units
-
-
-
-
-
+    def test_multiple_constraints_with_units(self):
+        """ Test behaviour with a list of constraints and units """
+        constraint_dict = {"name" : "probability_of_precipitation", 
+                           "threshold" : 0.03}
+        units_dict = {"threshold" : "mm h-1"}
+        cube = extract_subcube(self.filepath, constraint_dict, units_dict)
+        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        reference_data = self.precip_cube.data[0,:,:]
+        self.assertTrue(np.array_equal(cube.data, reference_data))
+ 
+    def test_error_non_coord_units(self):
+        """ Test error raised if units are provided for a non-coordinate
+        constraint """
+        constraint_dict = {"name" : "probability_of_precipitation"}
+        units_dict = {"name" : "1"}
+        with self.assertRaises(CoordinateNotFoundError):
+            extract_subcube(self.filepath, constraint_dict, units_dict)
 
 
 if __name__ == '__main__':
