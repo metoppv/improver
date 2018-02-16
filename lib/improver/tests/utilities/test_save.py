@@ -37,27 +37,42 @@ from subprocess import call
 from tempfile import mkdtemp
 
 import iris
+from iris.coords import DimCoord
 from iris.tests import IrisTest
+from iris.fileformats.cf import CFReader
+
+from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
-from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube
+
+def set_up_test_cube():
+    """Create a cube with metadata and values suitable for air temperature."""
+    data = (np.linspace(-45.0, 45.0, 9).reshape(1, 3, 3) + 273.15)
+    realization = DimCoord(1, "realization")
+    y_coord = DimCoord(np.linspace(-45.0, 45.0, 3),
+                       'latitude', units='degrees')
+    x_coord = DimCoord(np.linspace(120, 180, 3),
+                       'longitude', units='degrees')
+
+    attributes = {'Conventions' : 'CF-1.5', 'source_realizations' : 12 }
+    cube = iris.cube.Cube(data, 'air_temperature', units='K',
+                          attributes=attributes,
+                          dim_coords_and_dims=[(realization, 0), (y_coord, 1),
+                                               (x_coord, 2)])
+    return cube
 
 
 class Test_save_netcdf(IrisTest):
 
-    """Test function to save iris cubes as netcdf.
-
-    NOTE this is a dummy class as "save_netcdf" is currently just wrapping
-    iris.fileformats.netcdf.save.  More tests will be added when local_keys
-    functionality is incorporated.
-    """
+    """ Test function to save iris cubes as netcdf. """
 
     def setUp(self):
         """ Set up cube to write, read and check """
+        self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
+                                'Conventions', 'institution', 'history']
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_temperature_cube()
+        self.cube = set_up_test_cube()
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
@@ -70,12 +85,28 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
 
-    def test_saved_cube(self):
+    def test_cube_data(self):
         """ Test valid cube can be read from saved file """
         save_netcdf(self.cube, self.filepath)
-        cube = iris.load_cube(self.filepath)
+        cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
         self.assertTrue(np.array_equal(cube.data, self.cube.data))
+        self.assertEqual(len(cube.coords(dim_coords=True)),
+                         len(self.cube.coords(dim_coords=True)))
+
+    def test_cf_global_attributes(self):
+        """
+        Test that the saved NetCDF file only contains the expected global
+        attributes.
+
+        NOTE Loading the file as an iris.cube.Cube does not distinguish global
+        from local attributes, and therefore cannot test for the correct
+        behaviour here.
+        """
+        save_netcdf(self.cube, self.filepath)
+        cube_keys = CFReader(self.filepath).cf_group.global_attributes.keys()
+        self.assertTrue(all(key in self.global_keys_ref
+                            for key in cube_keys))
 
 
 if __name__ == '__main__':

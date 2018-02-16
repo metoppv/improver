@@ -40,20 +40,24 @@ def save_netcdf(cube, filename):
     """Save the input cube as a NetCDF file.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
-    local_keys to record shared attributes as data attributes rather than
+    local_keys to record non-global attributes as data attributes rather than
     global attributes.
-
-    NOTE current wrapper is a placeholder replicating the existing iris.save
-    functionality.
 
     Args:
         cube (iris.cube.Cube):
-            Input cube
+            Input cube, which must conform to CF metadata standards
         filename (str):
             Filename to save input cube
     """
 
-    local_keys = None
-    # TODO perform appropriate cube manipulation here to obtain local_keys
+    # TODO check grid / coordinate metadata to avoid loss of dim_coord names?
+
+    global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
+                   'institution', 'history']
+
+    local_keys = []
+    for key in cube.attributes.keys():
+        if key not in global_keys:
+            local_keys.append(key)
 
     iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys)
