@@ -69,7 +69,7 @@ def main():
 
     if cube is None:
         msg = ("extract_subcube: Constraint(s) could not be matched in "
-                "input cube.  No output written.")
+               "input cube.  No output written.")
         raise ValueError(msg)
     else:
         save_netcdf(cube, output_filename)

@@ -105,10 +105,9 @@ def extract_subcube(input_filename, constraints, units):
         for cube in cubes:
             for coord in units.keys():
                 cube.coord(coord).convert_units(units[coord])
-        cubes = cubes.extract(constraint)     
+        cubes = cubes.extract(constraint)
     else:
         cubes = iris.load(input_filename, constraint)
 
     cube = cubes.merge_cube()
     return cube
-
