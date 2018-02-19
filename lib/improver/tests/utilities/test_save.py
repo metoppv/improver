@@ -54,7 +54,7 @@ def set_up_test_cube():
     x_coord = DimCoord(np.linspace(120, 180, 3),
                        'longitude', units='degrees')
 
-    attributes = {'Conventions' : 'CF-1.5', 'source_realizations' : 12 }
+    attributes = {'Conventions': 'CF-1.5', 'source_realizations': 12}
     cube = iris.cube.Cube(data, 'air_temperature', units='K',
                           attributes=attributes,
                           dim_coords_and_dims=[(realization, 0), (y_coord, 1),
