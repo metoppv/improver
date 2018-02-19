@@ -36,7 +36,7 @@ iris.FUTURE.netcdf_promote = True
 iris.FUTURE.netcdf_no_unlimited = True
 
 
-def save_netcdf(cube, filename):
+def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
@@ -44,24 +44,19 @@ def save_netcdf(cube, filename):
     global attributes.
 
     Args:
-        cube (iris.cube.Cube or iris.cube.CubeList):
-            Input cube
+        cubelist (iris.cube.Cube or iris.cube.CubeList):
+            Cube or list of cubes to be saved
         filename (str):
-            Filename to save input cube
+            Filename to save input cube(s)
     """
+    if isinstance(cubelist, iris.cube.Cube):
+        cubelist = [cubelist]
+
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'institution', 'history']
-
     local_keys = []
+    [local_keys.append(key) for cube in cubelist
+        for key in cube.attributes.keys()
+        if key not in global_keys and key not in local_keys]
 
-    if isinstance(cube, iris.cube.Cube):
-        for key in cube.attributes.keys():
-            if key not in global_keys:
-                local_keys.append(key)
-    else:
-        for subcube in cube:
-            for key in subcube.attributes.keys():
-                if key not in global_keys and key not in local_keys:
-                    local_keys.append(key)
-
-    iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys)
+    iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys)
