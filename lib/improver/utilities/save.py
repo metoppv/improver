@@ -37,14 +37,14 @@ iris.FUTURE.netcdf_no_unlimited = True
 
 
 def save_netcdf(cube, filename):
-    """Save the input cube as a NetCDF file.
+    """Save the input Cube or CubeList as a NetCDF file.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record non-global attributes as data attributes rather than
     global attributes.
 
     Args:
-        cube (iris.cube.Cube):
+        cube (iris.cube.Cube or iris.cube.CubeList):
             Input cube
         filename (str):
             Filename to save input cube
@@ -53,8 +53,15 @@ def save_netcdf(cube, filename):
                    'institution', 'history']
 
     local_keys = []
-    for key in cube.attributes.keys():
-        if key not in global_keys:
-            local_keys.append(key)
+
+    if isinstance(cube, iris.cube.Cube):
+        for key in cube.attributes.keys():
+            if key not in global_keys:
+                local_keys.append(key)
+    else:
+        for subcube in cube:
+            for key in subcube.attributes.keys():
+                if key not in global_keys and key not in local_keys:
+                    local_keys.append(key)
 
     iris.fileformats.netcdf.save(cube, filename, local_keys=local_keys)

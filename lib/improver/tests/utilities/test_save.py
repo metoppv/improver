@@ -84,6 +84,14 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
 
+    def test_cube_list(self):
+        """ Test functionality for saving iris.cube.CubeList """
+        cube_list = ([self.cube, self.cube])
+        save_netcdf(cube_list, self.filepath)
+        read_cubes = iris.load(self.filepath)
+        self.assertTrue(isinstance(read_cubes, iris.cube.CubeList))
+        self.assertEqual(len(read_cubes), 2)
+
     def test_cube_data(self):
         """ Test valid cube can be read from saved file """
         save_netcdf(self.cube, self.filepath)
