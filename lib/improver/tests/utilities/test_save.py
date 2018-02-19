@@ -103,12 +103,9 @@ class Test_save_netcdf(IrisTest):
         """ Test cube dimension coordinates are preserved """
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
-        coord_names = []
-        (coord_names.append(coord.name())
-            for coord in cube.coords(dim_coords=True))
-        reference_names = []
-        (reference_names.append(coord.name())
-            for coord in self.cube.coords(dim_coords=True))
+        coord_names = [coord.name() for coord in cube.coords(dim_coords=True)]
+        reference_names = [coord.name()
+                           for coord in self.cube.coords(dim_coords=True)]
         self.assertItemsEqual(coord_names, reference_names)
 
     def test_cf_global_attributes(self):
