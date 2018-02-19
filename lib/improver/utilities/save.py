@@ -45,13 +45,10 @@ def save_netcdf(cube, filename):
 
     Args:
         cube (iris.cube.Cube):
-            Input cube, which must conform to CF metadata standards
+            Input cube
         filename (str):
             Filename to save input cube
     """
-
-    # TODO check grid / coordinate metadata to avoid loss of dim_coord names?
-
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'institution', 'history']
 

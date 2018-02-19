@@ -53,7 +53,6 @@ def set_up_test_cube():
                        'latitude', units='degrees')
     x_coord = DimCoord(np.linspace(120, 180, 3),
                        'longitude', units='degrees')
-
     attributes = {'Conventions': 'CF-1.5', 'source_realizations': 12}
     cube = iris.cube.Cube(data, 'air_temperature', units='K',
                           attributes=attributes,
@@ -91,8 +90,18 @@ class Test_save_netcdf(IrisTest):
         cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
         self.assertTrue(np.array_equal(cube.data, self.cube.data))
-        self.assertEqual(len(cube.coords(dim_coords=True)),
-                         len(self.cube.coords(dim_coords=True)))
+
+    def test_cube_dimensions(self):
+        """ Test cube dimension coordinates are preserved """
+        save_netcdf(self.cube, self.filepath)
+        cube = load_cube(self.filepath)
+        coord_names = []
+        [coord_names.append(coord.name()) 
+            for coord in cube.coords(dim_coords=True)]
+        reference_names = []
+        [reference_names.append(coord.name())
+            for coord in self.cube.coords(dim_coords=True)]
+        self.assertItemsEqual(coord_names, reference_names)
 
     def test_cf_global_attributes(self):
         """
