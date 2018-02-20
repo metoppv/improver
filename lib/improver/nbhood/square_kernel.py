@@ -117,7 +117,7 @@ class SquareNeighbourhood(object):
                     the data of the output cube to be NaN.
         """
         nan_mask = np.isnan(cube_and_mask[0].data)
-        for i,cube in enumerate(cube_and_mask):
+        for i, cube in enumerate(cube_and_mask):
             data = cube.data.astype(np.longdouble)
             data[nan_mask] = 0.0
             data_summed_along_y = np.cumsum(data, axis=0)
@@ -305,7 +305,8 @@ class SquareNeighbourhood(object):
             cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
         return trimmed_cube
 
-    def mean_over_neighbourhood(self, cube_and_mask, cells_x, cells_y, nan_mask):
+    def mean_over_neighbourhood(self, cube_and_mask,
+                                cells_x, cells_y, nan_mask):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
@@ -360,10 +361,10 @@ class SquareNeighbourhood(object):
 
         Args:
             cube_and_mask (iris.cube.CubeList):
-                Cube and mask to which neighbourhood processing is being applied.
-                Must be passed through cumulate_array method first. The cube should
-                contain only x and y dimensions, so will generally be a slice
-                of a cube.
+                Cube and mask to which neighbourhood processing is being
+                applied. Must be passed through cumulate_array method first.
+                The cube should contain only x and y dimensions,
+                so will generally be a slice of a cube.
             cells_x, cells_y (int):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
@@ -488,17 +489,15 @@ class SquareNeighbourhood(object):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
         """
-        neighbourhood_averaged_cubes = iris.cube.CubeList([])
-        
-        for i,cube_to_process in enumerate(cubes_to_sum):
+
+        for i, cube_to_process in enumerate(cubes_to_sum):
             # Pad the iris cube. This way, the edge effects produced
             # by the vectorisation of the 4-point method will appear outside
             # our domain of interest. These unwanted points can be trimmed off
             # later.
             cubes_to_sum[i] = self.pad_cube_with_halo(
                 cube_to_process, grid_cells_x, grid_cells_y)
-        summed_up_cubes, nan_mask = self.cumulate_array(
-                cubes_to_sum)
+        summed_up_cubes, nan_mask = self.cumulate_array(cubes_to_sum)
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(
                 summed_up_cubes, grid_cells_x, grid_cells_y, nan_mask))
@@ -511,10 +510,10 @@ class SquareNeighbourhood(object):
         Remove the halo from the padded array and apply the mask, if required.
 
         Args:
-            neighbourhood_averaged_cube (Iris.cube.CubeList):
-                CubeList containing the smoothed field after the square
+            neighbourhood_averaged_cube (Iris.cube.Cube):
+                Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
-            mask_cubes (Iris.cube.CubeList):
+            mask_cubes (Iris.cube.Cube or None):
                 The original mask cube.
             grid_cells_x (Float):
                 The number of grid cells along the x axis used to create a
@@ -534,7 +533,7 @@ class SquareNeighbourhood(object):
         neighbourhood_averaged_cube = self.remove_halo_from_cube(
             neighbourhood_averaged_cube, grid_cells_x, grid_cells_y)
 
-        if self.re_mask:
+        if self.re_mask and mask_cube is not None:
             neighbourhood_averaged_cube.data = np.ma.masked_array(
                 neighbourhood_averaged_cube.data,
                 mask=np.logical_not(mask_cube.data.squeeze()))

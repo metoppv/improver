@@ -546,7 +546,6 @@ class Test_mean_over_neighbourhood(IrisTest):
         """Test cube with correct data is produced when mean over
            neighbourhood is calculated where the sum_or_fraction option is
            set to "fraction"."""
-        
         cube_and_mask = iris.cube.CubeList([self.cube, self.mask])
         result = SquareNeighbourhood().mean_over_neighbourhood(
             cube_and_mask, self.width, self.width, self.nan_mask)
@@ -583,6 +582,479 @@ class Test_mean_over_neighbourhood(IrisTest):
         result = SquareNeighbourhood().mean_over_neighbourhood(
             cube_and_mask, self.width, self.width, nan_mask)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+
+class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
+
+    """Test the set up of cubes prior to neighbourhooding."""
+
+    def setUp(self):
+        """Set up a cube."""
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        self.cube = iris.util.squeeze(self.cube)
+
+    def test_without_masked_data(self):
+        """Test setting up cubes to be neighbourhooded when the input cube
+        does not contain masked arrays."""
+        expected_mask = np.ones((5, 5))
+        cubes = (
+            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(self.cube))
+        self.assertIsInstance(cubes, CubeList)
+        self.assertEqual(len(cubes), 2)
+        self.assertEqual(cubes[0], self.cube)
+        self.assertArrayEqual(cubes[1].data, expected_mask)
+
+    def test_with_masked_data(self):
+        """Test setting up cubes to be neighbourhooded when the input cube
+        contains masked arrays."""
+        cube = self.cube
+        data = cube.data
+        cube.data[1, 3] = 0.5
+        cube.data[3, 3] = 0.5
+        cube.data = np.ma.masked_equal(data, 0.5)
+        mask = np.logical_not(cube.data.mask.astype(int))
+        data = cube.data.data * mask
+        cubes = (
+            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                cube.copy()))
+        self.assertIsInstance(cubes, CubeList)
+        self.assertEqual(len(cubes), 2)
+        self.assertArrayAlmostEqual(cubes[0].data, data)
+        self.assertArrayAlmostEqual(cubes[1].data, mask)
+
+    def test_with_separate_mask_cube(self):
+        """Test setting up cubes to be neighbourhooded for an input cube and
+        an additional mask cube."""
+        self.cube.data[1, 3] = 0.5
+        self.cube.data[3, 3] = 0.5
+        mask_cube = self.cube.copy()
+        mask_cube.data[mask_cube.data == 0.5] = 0.0
+        mask_cube.data = mask_cube.data.astype(int)
+        expected_data = self.cube.data * mask_cube.data
+        cubes = (
+            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                self.cube.copy(), mask_cube=mask_cube))
+        self.assertIsInstance(cubes, CubeList)
+        self.assertEqual(len(cubes), 2)
+        self.assertArrayAlmostEqual(cubes[0].data, expected_data)
+
+
+class Test__pad_and_calculate_neighbourhood(IrisTest):
+
+    """Test the padding and calculation of neighbourhood processing."""
+
+    def setUp(self):
+        """Set up a cube."""
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
+            num_grid_points=3)
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
+            break
+        sliced_cube.remove_coord("realization")
+        sliced_cube.remove_coord("time")
+        self.cube = sliced_cube
+        self.mask = self.cube.copy()
+        self.mask.data[::] = 1.0
+        self.mask.rename('masked_data')
+
+    def test_basic(self):
+        """Test setting up cubes to be padded and then passed into
+        neighbourhood processing."""
+        expected_data = np.array(
+            [[0.85714286, 0.75, 0.83333333, 0.85714286, 0.75, 1., 0.85714286],
+             [0.85714286, 0.8, 0.75, 0.75, 0.5, np.nan, 0.75],
+             [0.75, 0.83333333, 0.75, 0.8, 0.66666667, 1., 0.8],
+             [0.8, 0.5, 0.83333333, 0.85714286, 0.75, 1., 0.85714286],
+             [0.85714286, 0.8, 0.75, 0.75, 0.5, np.nan, 0.75],
+             [0.75, 0.66666667, 1., 1., 1., np.nan, 1.],
+             [1., 1., 0.83333333, 0.85714286, 0.75, 1., 0.85714286]])
+
+        grid_cells_x = grid_cells_y = 1
+        cube = self.cube
+        mask_cube = cube.copy()
+        mask_cube.data[::] = 1.0
+        mask_cube.data[1, 2] = 0.0
+        mask_cube.data[2, 2] = 0.0
+        # _set_up_cubes_to_be_neighbourhooded would set masked points to 0.0
+        cube.data[1, 2] = 0.0
+        cube.data[2, 2] = 0.0
+        mask_cube.rename('mask_data')
+        cubes = CubeList([cube, mask_cube])
+        nbcube = (
+            SquareNeighbourhood()._pad_and_calculate_neighbourhood(
+                cubes, grid_cells_x, grid_cells_y))
+        self.assertIsInstance(nbcube, Cube)
+        self.assertArrayAlmostEqual(nbcube.data, expected_data)
+
+
+class Test__remove_padding_and_mask(IrisTest):
+
+    """Test the removal of padding and dealing with masked data."""
+
+    def setUp(self):
+        """Set up a cube."""
+        self.padded_cube = set_up_cube(
+            zero_point_indices=((0, 0, 3, 3),), num_time_points=1,
+            num_grid_points=7)
+        self.padded_cube = iris.util.squeeze(self.padded_cube)
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
+            num_grid_points=3)
+        self.cube = iris.util.squeeze(self.cube)
+        self.mask_cube = self.cube.copy()
+        masked_array = np.ones(self.mask_cube.data.shape)
+        masked_array[1, 1] = 0
+        masked_array[0, 1] = 0
+        self.mask_cube.rename('mask_data')
+        self.mask_cube.data = masked_array.astype(bool)
+
+    def test_without_masked_data(self):
+        """Test that removing a halo of points from the data on a cube
+        has worked as intended when the input data is not masked."""
+        expected = np.array(
+            [[1., 1., 1.],
+             [1., 0., 1.],
+             [1., 1., 1.]])
+        grid_cells_x = grid_cells_y = 1
+        nbcube = (
+            SquareNeighbourhood()._remove_padding_and_mask(
+                self.padded_cube, None,
+                grid_cells_x, grid_cells_y))
+        self.assertIsInstance(nbcube, Cube)
+        self.assertArrayAlmostEqual(nbcube.data, expected)
+
+    def test_with_masked_data(self):
+        """Test that removing a halo of points from the data on a cube
+        has worked as intended when the input data has an associated mask."""
+        expected = np.array(
+            [[1., np.nan, 1.],
+             [1., np.nan, 1.],
+             [1., 1., 1.]])
+        grid_cells_x = grid_cells_y = 1
+        nbcube = (
+            SquareNeighbourhood()._remove_padding_and_mask(
+                self.padded_cube, self.mask_cube,
+                grid_cells_x, grid_cells_y))
+        self.assertIsInstance(nbcube, Cube)
+        self.assertArrayAlmostEqual(nbcube.data, expected)
+
+    def test_with_masked_data_and_no_remasking(self):
+        """Test that removing halo works correctly with remask=False"""
+        expected = np.array(
+            [[1., 1., 1.],
+             [1., 0., 1.],
+             [1., 1., 1.]])
+        grid_cells_x = grid_cells_y = 1
+        nbcube = (
+            SquareNeighbourhood(re_mask=False)._remove_padding_and_mask(
+                self.padded_cube, self.mask_cube,
+                grid_cells_x, grid_cells_y))
+        self.assertIsInstance(nbcube, Cube)
+        self.assertArrayAlmostEqual(nbcube.data, expected)
+
+
+class Test_run(IrisTest):
+
+    """Test the run method on the SquareNeighbourhood class."""
+
+    RADIUS = 2500
+
+    def test_basic_re_mask_true(self):
+        """Test that a cube with correct data is produced by the run method
+        when re-masking is applied."""
+        data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_negative_strides_re_mask_true(self):
+        """Test that a cube still works if there are negative-strides."""
+        data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        coord_points_x = np.arange(-42000, -52000., -2000)
+        coord_points_y = np.arange(8000., -2000, -2000)
+
+        cube.coord("projection_x_coordinate").points = coord_points_x
+        cube.coord("projection_y_coordinate").points = coord_points_y
+
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_basic_re_mask_false(self):
+        """Test that a cube with correct data is produced by the run method."""
+        data = np.array(
+            [[[[1., 1., 1., 1., 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_masked_array_re_mask_true(self):
+        """Test that the run method produces a cube with correct data when a
+        cube containing masked data is passed in and re-masking is applied."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = np.array([[[[1, 1, 0, 1, 1],
+                                [1, 1, 1, 0, 0],
+                                [1, 0, 1, 0, 0],
+                                [0, 0, 1, 1, 0],
+                                [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        expected_array = np.array(
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        cube.data = np.ma.masked_where(mask == 0, cube.data)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_masked_array_re_mask_false(self):
+        """Test that the run method produces a cube with correct data when a
+           cube containing masked data is passed in."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = np.array([[[[1, 1, 0, 1, 1],
+                                [1, 1, 1, 0, 0],
+                                [1, 0, 1, 0, 0],
+                                [0, 0, 1, 1, 0],
+                                [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        expected_array = np.array(
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        cube.data = np.ma.masked_where(mask == 0, cube.data)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_nan_array_re_mask_true(self):
+        """Test that an array containing nans is handled correctly when
+        re-masking is applied."""
+        data = np.array(
+            [[[[np.nan, 1., 1., 1., 1.],
+               [1., 0.8750000, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data[0, 0, 0, 0] = np.nan
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_nan_array_re_mask_false(self):
+        """Test that an array containing nans is handled correctly."""
+        data = np.array(
+            [[[[np.nan, 1., 1., 1., 1.],
+               [1., 0.8750000, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+               [1., 1., 1., 1., 1.]]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data[0, 0, 0, 0] = np.nan
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data, data)
+
+    def test_masked_array_with_nans_re_mask_true(self):
+        """Test that the run method produces a cube with correct data when a
+        cube containing masked nans is passed in and when re-masking is
+        applied."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = np.array([[[[np.nan, 1, 0, 1, 1],
+                                [1, 1, 1, 0, 0],
+                                [1, 0, 1, 0, 0],
+                                [0, 0, 1, 1, 0],
+                                [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        expected_array = np.array(
+            [[[[np.nan, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        cube.data = np.ma.masked_where(mask == 0, cube.data)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_masked_array_with_nans_re_mask_false(self):
+        """Test that the run method produces a cube with correct data when a
+           cube containing masked nans is passed in."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = np.array([[[[np.nan, 1, 0, 1, 1],
+                                [1, 1, 1, 0, 0],
+                                [1, 0, 1, 0, 0],
+                                [0, 0, 1, 1, 0],
+                                [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        expected_array = np.array(
+            [[[[np.nan, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        cube.data = np.ma.masked_where(mask == 0, cube.data)
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_multiple_times(self):
+        """Test that a cube with correct data is produced by the run method
+        when multiple times are supplied."""
+        expected_1 = np.array(
+            [[1., 1., 1., 1., 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 1., 1., 1., 1.]])
+        expected_2 = np.array(
+            [[1., 0.83333333, 0.83333333, 0.83333333, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2), (0, 1, 1, 2)), num_time_points=2,
+            num_grid_points=5)
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data[0, 0], expected_1)
+        self.assertArrayAlmostEqual(result.data[0, 1], expected_2)
+
+    def test_multiple_times_with_mask(self):
+        """Test that the run method produces a cube with correct data when a
+        cube containing masked data at multiple time steps is passed in.
+        Re-masking is disabled."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=2,
+            num_grid_points=5)
+        data = np.array([[[[1, 1, 0, 1, 1],
+                           [1, 1, 1, 0, 0],
+                           [1, 0, 1, 0, 0],
+                           [0, 0, 1, 1, 0],
+                           [0, 1, 1, 0, 1]],
+                          [[1, 1, 0, 1, 1],
+                           [1, 1, 1, 0, 0],
+                           [1, 0, 1, 0, 0],
+                           [0, 0, 1, 0, 0],
+                           [0, 1, 1, 0, 1]]]])
+        mask = np.array([[[[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 0, 1, 1, 1],
+                           [0, 0, 1, 1, 0],
+                           [0, 0, 1, 1, 0]],
+                          [[0, 0, 1, 1, 0],
+                           [0, 1, 1, 1, 0],
+                           [0, 1, 1, 1, 1],
+                           [0, 0, 0, 1, 0],
+                           [0, 0, 1, 1, 0]]]])
+        masked_data = np.ma.masked_where(mask == 0, data)
+        cube.data = masked_data
+        expected_array = np.array(
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.500000],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.250000],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.250000],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.250000],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.500000]],
+              [[1.0000, 0.666667, 0.600000, 0.500000, 0.500000],
+               [0.5000, 0.600000, 0.500000, 0.428571, 0.250000],
+               [0.5000, 0.750000, 0.428571, 0.333333, 0.000000],
+               [0.0000, 0.666667, 0.333333, 0.333333, 0.000000],
+               [np.nan, 1.000000, 0.333333, 0.333333, 0.000000]]]])
+        result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_multiple_times_nan(self):
+        """Test that a cube with correct data is produced by the run method
+        for multiple times and for when nans are present."""
+        expected_1 = np.array(
+            [[np.nan, 0.8, 0.8333333, 0.8333333, 1.],
+             [1., 0.75, 0.77777778, 0.77777778, 1.],
+             [1., 0.77777778, 0.77777778, 0.77777778, 1.],
+             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
+             [1., 1., 1., 1., 1.]])
+        expected_2 = np.array(
+            [[1., 1., 1., 1., 1.],
+             [1., np.nan, 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1.]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2), (0, 0, 1, 2)), num_time_points=2,
+            num_grid_points=5)
+        cube.data[0, 0, 0, 0] = np.nan
+        cube.data[0, 1, 1, 1] = np.nan
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertArrayAlmostEqual(result.data[0, 0], expected_1)
+        self.assertArrayAlmostEqual(result.data[0, 1], expected_2)
+
+    def test_metadata(self):
+        """Test that a cube with correct metadata is produced by the run
+        method."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.attributes = {"Conventions": "CF-1.5"}
+        cube.add_cell_method(CellMethod("mean", coords="time"))
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertIsInstance(cube, Cube)
+        self.assertTupleEqual(result.cell_methods, cube.cell_methods)
+        self.assertDictEqual(result.attributes, cube.attributes)
 
 
 if __name__ == '__main__':
