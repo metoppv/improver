@@ -31,6 +31,7 @@
 """Unit tests for saving functionality."""
 
 import os
+import copy
 import unittest
 import numpy as np
 from subprocess import call
@@ -39,6 +40,7 @@ from tempfile import mkdtemp
 import iris
 from iris.tests import IrisTest
 from iris.fileformats.cf import CFReader
+from iris.fileformats.cf import CFDataVariable
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -114,6 +116,28 @@ class Test_save_netcdf(IrisTest):
         global_keys = CFReader(self.filepath).cf_group.global_attributes.keys()
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys))
+
+
+    def test_cf_data_attributes(self):
+        """ Test that forbidden global metadata are saved as data variable
+        attributes
+
+        TODO get this working.  Need to be able to inspect the data variable!
+        """
+        save_netcdf(self.cube, self.filepath)
+
+        cf_group = copy.deepcopy(CFReader(self.filepath).cf_group)
+        print cf_group.values()
+
+        #group = CFReader(self.filepath).cf_group
+
+        #print group.items()
+
+        #data_variable = CFDataVariable(group.data_variables.keys()[0],
+        #                               group.data_variables)
+
+        #print data_variable
+
 
     def test_cf_shared_attributes_list(self):
         """ Test that a NetCDF file saved from a list of cubes that share
