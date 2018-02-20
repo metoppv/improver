@@ -892,11 +892,11 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[np.nan, np.nan, 0.600000, 0.500000, np.nan],
-               [np.nan, 0.7500, 0.571429, 0.428571, np.nan],
-               [1.0000, np.nan, 0.714286, 0.571429, 0.2500],
-               [np.nan, np.nan, 0.666667, 0.571429, np.nan],
-               [np.nan, np.nan, 0.750000, 0.750000, np.nan]]]])
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
