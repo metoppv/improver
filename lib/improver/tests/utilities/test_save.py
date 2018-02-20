@@ -31,7 +31,6 @@
 """Unit tests for saving functionality."""
 
 import os
-import copy
 import unittest
 import numpy as np
 from subprocess import call
