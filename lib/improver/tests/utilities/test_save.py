@@ -37,7 +37,6 @@ from subprocess import call
 from tempfile import mkdtemp
 
 import iris
-from iris.coords import DimCoord
 from iris.tests import IrisTest
 from iris.fileformats.cf import CFReader
 
