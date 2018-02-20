@@ -31,20 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extract" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  # Run cube extraction processing and check it passes.
+@test "extract invalid constraints" {
+  # Run invalid cube extraction processing and check it fails.
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
-      "$TEST_DIR/output.nc" \
-      realization=1
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/extract/basic/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "NO_OUTPUT_FILE" \
+      realization=6
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Constraint(s) could not be matched in input cube
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

@@ -39,10 +39,8 @@
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
       "$TEST_DIR/output.nc" \
-      "threshold=10000" "--units 'mm s-1'"
+      threshold=10000 --units 'mm s-1'
   [[ "$status" -eq 0 ]]
-
-  cp "$TEST_DIR/output.nc" "/data/users/csand/impro450_kgo_extract/extract/change_units/kgo.nc"
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \

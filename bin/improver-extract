@@ -45,9 +45,8 @@ iris.FUTURE.netcdf_promote = True
 def main():
     """Invoke the extraction of a cube."""
 
-    parser = argparse.ArgumentParser(description='Extracts subcube from' +
+    parser = argparse.ArgumentParser(description='Extracts subcube from'
                                      ' a cube, subject to constraints.')
-
     parser.add_argument('input_file', metavar='INPUT_FILE',
                         help="File containing a single cube to extract from.")
     parser.add_argument('output_file', metavar='OUTPUT_FILE',
@@ -61,15 +60,13 @@ def main():
                         'units are not ideal (eg for float equality). If '
                         'used, this list must match the CONSTRAINTS list in '
                         'order and length (with null values set to None).')
-
     args = parser.parse_args()
 
     constraints, units = parse_constraint_list(args.constraints, args.units)
-    cube = extract_subcube(args.input_file, constraints, units)
-
-    if cube is None:
-        msg = ("extract_subcube: Constraint(s) could not be matched in "
-               "input cube.  No output written.")
+    try:
+        cube = extract_subcube(args.input_file, constraints, units)
+    except ValueError:
+        msg = ("Constraint(s) could not be matched in input cube")
         raise ValueError(msg)
     else:
         save_netcdf(cube, output_filename)
