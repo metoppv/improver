@@ -30,9 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to parse a list of constraints and extract matching subcube """
 
-import numpy as np
 from ast import literal_eval
-
 import iris
 
 iris.FUTURE.netcdf_no_unlimited = True

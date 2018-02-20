@@ -31,7 +31,6 @@
 """ Unit tests for cube extraction utilities """
 
 import unittest
-import warnings
 import os
 import numpy as np
 from tempfile import mkdtemp
@@ -75,7 +74,10 @@ def set_up_precip_probability_cube():
 
 class Test_parse_constraint_list(IrisTest):
 
+    """ Test function to parse constraints and units into dictionaries """
+
     def setUp(self):
+        """ Set up some constraints to parse """
         self.constraints = ["percentile=10", "threshold=0.1"]
 
     def test_basic_no_units(self):
@@ -88,10 +90,9 @@ class Test_parse_constraint_list(IrisTest):
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
         units = ["None", "mm h-1"]
-        cdict, udict = parse_constraint_list(self.constraints, units)
+        _, udict = parse_constraint_list(self.constraints, units)
         self.assertEqual(udict["threshold"], "mm h-1")
-        with self.assertRaises(KeyError):
-            udict["percentile"]
+        self.assertNotIn("percentile", udict.keys())
 
     def test_unmatched_units(self):
         """ Test for ValueError if units list does not match constraints """
@@ -102,6 +103,8 @@ class Test_parse_constraint_list(IrisTest):
 
 
 class Test_extract_subcube(IrisTest):
+
+    """ Test function to extract subcube according to constraints """
 
     def setUp(self):
         """ Save temporary input cube to file """
