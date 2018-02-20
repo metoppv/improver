@@ -37,9 +37,11 @@
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
       "NO_OUTPUT_FILE" \
       realization=6
+  echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 ValueError: Constraint(s) could not be matched in input cube
 __TEXT__
   [[ "$output" =~ "$expected" ]]
+
 }
