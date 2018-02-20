@@ -486,6 +486,7 @@ class Test_remove_halo_from_cube(IrisTest):
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
+
 class Test_mean_over_neighbourhood(IrisTest):
 
     """Test for calculating mean value in neighbourhood."""
@@ -493,64 +494,95 @@ class Test_mean_over_neighbourhood(IrisTest):
     def setUp(self):
         """Set up cube and expected results for tests."""
 
-        # This array is the output from cumulate_array when a 5x5 array of 1's
-        # with a 0 at the centre point (2,2) is passed in.
-        # Note that edge points are not handled correctly by default as no
-        # padding is applied.
+        # This array is the output from cumulate_array when a 3x3 array of 1's
+        # with a 0 at the centre point (1,1) is passed in.
+        # A Halo has been added to the data.
         self.data = np.array(
-            [[1., 2., 3., 4., 5.],
-             [2., 4., 6., 8., 10.],
-             [3., 6., 8., 11., 14.],
-             [4., 8., 11., 15., 19.],
-             [5., 10., 14., 19., 24.]])
+            [[0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 1., 2., 3., 3., 3.],
+             [0., 0., 2., 3., 5., 5., 5.],
+             [0., 0., 3., 5., 8., 8., 8.],
+             [0., 0., 3., 5., 8., 8., 8.],
+             [0., 0., 3., 5., 8., 8., 8.]])
         self.cube = Cube(self.data, long_name='test')
-        self.x_coord = DimCoord([0, 1, 2, 3, 4], standard_name='longitude')
-        self.y_coord = DimCoord([0, 1, 2, 3, 4], standard_name='latitude')
-        self.cube.add_dim_coord(self.x_coord, 0)
-        self.cube.add_dim_coord(self.y_coord, 1)
+        self.x_coord = DimCoord([0, 1, 2, 3, 4, 5, 6],
+                                standard_name='longitude')
+        self.y_coord = DimCoord([0, 1, 2, 3, 4, 5, 6],
+                                standard_name='latitude')
+        self.cube.add_dim_coord(self.x_coord, 1)
+        self.cube.add_dim_coord(self.y_coord, 0)
         self.mask = self.cube.copy()
         self.mask.rename('mask_data')
-        self.nan_masks = np.zeros(self.cube.data.shape, dtype=int)
+        # This array is the output from cumulate_array when a 3x3 array of 1's
+        # A Halo of missing points has been added to the data.
+        self.mask.data = np.array(
+            [[0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 1., 2., 3., 3., 3.],
+             [0., 0., 2., 4., 6., 6., 6.],
+             [0., 0., 3., 6., 9., 9., 9.],
+             [0., 0., 3., 6., 9., 9., 9.],
+             [0., 0., 3., 6., 9., 9., 9.]])
+        self.nan_mask = np.zeros(self.cube.data.shape, dtype=int)
         self.width = 1
-        # Set up padded dataset to simulate padding.
-        self.padded_data = np.array(
-            [[1., 2., 3., 4., 5., 6., 7., 8., 9.],
-             [2., 4., 6., 8., 10., 12., 14., 16., 18.],
-             [3., 6., 9., 12., 15., 18., 21., 24., 27.],
-             [4., 8., 12., 16., 20., 24., 28., 32., 36.],
-             [5., 10., 15., 20., 24., 29., 34., 39., 44.],
-             [6., 12., 18., 24., 29., 35., 41., 47., 53.],
-             [7., 14., 21., 28., 34., 41., 48., 55., 62.],
-             [8., 16., 24., 32., 39., 47., 55., 63., 71.],
-             [9., 18., 27., 36., 44., 53., 62., 71., 80.]])
-        self.padded_cube = Cube(self.padded_data, long_name='test')
-        self.padded_x_coord = DimCoord(range(0, 9), standard_name='longitude')
-        self.padded_y_coord = DimCoord(range(0, 9), standard_name='latitude')
-        self.padded_cube.add_dim_coord(self.padded_x_coord, 0)
-        self.padded_cube.add_dim_coord(self.padded_y_coord, 1)
-        self.padded_result = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 1., 1., 1., 1.]])
+        self.expected = np.array(
+            [[0.88888889, 0.83333333, 0.83333333, 0.88888889,
+              0.83333333, 1.0, 0.88888889],
+             [0.88888889, 0.85714286, 0.75000000, 0.83333333,
+              0.75000000, 1.0, 0.83333333],
+             [0.83333333, 0.87500000, 0.75000000, 0.83333333,
+              0.75000000, 1.0, 0.83333333],
+             [0.83333333, 0.66666667, 0.83333333, 0.88888889,
+              0.83333333, 1.0, 0.88888889],
+             [0.88888889, 0.85714286, 0.75000000, 0.83333333,
+              0.75000000, 1.0, 0.83333333],
+             [0.83333333, 0.80000000, 1.00000000, 1.00000000,
+              1.00000000, 1.0, 1.00000000],
+             [1.00000000, 1.00000000, 0.83333333, 0.88888889,
+              0.83333333, 1.0, 0.88888889]])
 
     def test_basic_fraction(self):
         """Test cube with correct data is produced when mean over
            neighbourhood is calculated where the sum_or_fraction option is
            set to "fraction"."""
-        expected = np.array(
-            [[0.33333333, 0.44444444, -0.55555556, -0.55555556, 0.33333333],
-             [0.33333333, 0.33333333, -0.66666667, -0.66666667, 1.],
-             [1.55555556, 2., 0.88888889, 0.88888889, -0.55555556],
-             [-0.55555556, -0.66666667, 0.88888889, 0.88888889, -1.11111111],
-             [-1.66666667, -2.11111111, -0.55555556, -0.55555556, 0.33333333]])
+        
         cube_and_mask = iris.cube.CubeList([self.cube, self.mask])
         result = SquareNeighbourhood().mean_over_neighbourhood(
-            cube_and_mask, self.width, self.width, self.nan_masks)
+            cube_and_mask, self.width, self.width, self.nan_mask)
         self.assertIsInstance(result, Cube)
-        print result.data
-        #self.assertArrayAlmostEqual(result.data, self.result)
+        self.assertArrayAlmostEqual(result.data, self.expected)
+
+    def test_basic_sum(self):
+        """Test cube with correct data is produced when mean over
+           neighbourhood is calculated where the sum_or_fraction option is
+           set to "sum"."""
+        expected = np.array(
+            [[8., 5., -5., -8., -5., -3., 8.],
+             [8., 6., -3., -5., -3., -2., 5.],
+             [5., 7., 3., 5., 3., 2., -5.],
+             [-5., -2., 5., 8., 5., 3., -8.],
+             [-8., -6., 3., 5., 3., 2., -5.],
+             [-5., -4., 2., 3., 2., 1., -3.],
+             [-3., -6., -5., -8., -5., -3., 8.]])
+        cube_and_mask = iris.cube.CubeList([self.cube, self.mask])
+        result = SquareNeighbourhood(
+            sum_or_fraction="sum").mean_over_neighbourhood(
+                cube_and_mask, self.width, self.width, self.nan_mask)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_nan_mask(self):
+        """Test the correct result is returned when a nan must be substituted
+           into the final array."""
+        cube_and_mask = iris.cube.CubeList([self.cube, self.mask])
+        nan_mask = self.nan_mask
+        nan_mask[2, 2] = True
+        expected_data = self.expected
+        expected_data[2, 2] = np.nan
+        result = SquareNeighbourhood().mean_over_neighbourhood(
+            cube_and_mask, self.width, self.width, nan_mask)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 if __name__ == '__main__':

@@ -351,7 +351,7 @@ class SquareNeighbourhood(object):
           Neighbourhood sum = 7 - 2 - 2 +1 => 4
           Neighbourhood mean = Neighbourhood sum
                                -----------------
-                               (2 * nb_width +1)
+                               (2 * nb_width +1)^2
 
         where nb_width is the neighbourhood width, which is equal to 1 for a
         3x3 neighbourhood. This example gives::
