@@ -38,7 +38,6 @@ usage: improver-nbhood-land-and-sea [-h]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--ens_factor ENS_FACTOR]
                                     [--sum_or_fraction {sum,fraction}]
-                                    [--no_clip]
                                     [--intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 
@@ -71,12 +70,6 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --no_clip             By default the results of neighbourhooding will be
-                        clipped to the extremes in the input data. If '--
-                        no_clip' is used then this clipping is turned off.
-                        Once the neighbourhood code is fixed so it doesn't
-                        produce values above or below the extremes in the
-                        input data this option can be removed.
   --intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS
                         If provided the results after neighbourhooding, but
                         before recombining land and sea are saved to the two
