@@ -168,9 +168,14 @@ class Test__modify_first_guess(IrisTest):
             set_up_cube_with_no_realizations(), fp_point=0.0)
         self.vii_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
-                set_up_cube_with_no_realizations(
+                set_up_cube(num_realization_points=3,
                     zero_point_indices=[]),
                 fp_point=0.0))
+        threshold_coord = self.vii_cube.coord('realization')
+        threshold_coord.points = [0.5, 1.0, 2.0]
+        threshold_coord.rename('threshold')
+        threshold_coord.units = cf_units.Unit('kg m^-2')
+        self.vii_cube.data = np.zeros_like(self.vii_cube.data)
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -223,7 +228,7 @@ class Test__modify_first_guess(IrisTest):
     def test_precip_zero(self):
         """Test that zero precip probs reduce lightning risk"""
         # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
@@ -240,7 +245,7 @@ class Test__modify_first_guess(IrisTest):
         # Set precip data to 0.075, in the middle of the upper low range.
         self.precip_cube.data[0, 7, 7] = 0.075
         # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
@@ -250,6 +255,76 @@ class Test__modify_first_guess(IrisTest):
                                             self.ltng_cube,
                                             self.precip_cube,
                                             None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_vii_null(self):
+        """Test that small VII probs do not increase lightning risk"""
+        self.vii_cube.data[:, 7, 7] = 0.
+        self.vii_cube.data[0, 7, 7] = 0.5
+        self.ltng_cube.data[0, 7, 7] = 0.
+        self.fg_cube.data[0, 7, 7] = 0.
+        self.precip_cube.data[0, 7, 7] = 1.
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.25
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            self.vii_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_vii_zero(self):
+        """Test that zero VII probs do not increase lightning risk"""
+        # Set lightning data to -1 so it has a Null impact
+        self.vii_cube.data[:, 7, 7] = 0.
+        self.ltng_cube.data[0, 7, 7] = -1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            self.vii_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_vii_small(self):
+        """Test that small VII probs do increase lightning risk"""
+        # Set lightning data to -1 so it has a Null impact
+        self.vii_cube.data[:, 7, 7] = 0.
+        self.vii_cube.data[0, 7, 7] = 0.5
+        self.ltng_cube.data[0, 7, 7] = -1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        # No halo - we're only testing this method.
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.05
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            self.vii_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_vii_large(self):
+        """Test that zero precip probs reduce lightning risk"""
+        # Set lightning data to zero so it has a Null impact
+        self.vii_cube.data[:, 7, 7] = 1.
+        self.ltng_cube.data[0, 7, 7] = -1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        # No halo - we're only testing this method.
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.9
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            self.vii_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_null(self):

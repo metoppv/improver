@@ -225,7 +225,10 @@ class NowcastLightning(object):
 
             vii_cube (iris.cube.Cube):
                 Radar-derived vertically integrated ice content (VII)
-                Must have same dimensions as cube
+                Must have same x and y dimensions as cube
+                Time should be a scalar coordinate
+                Must have a threshold coordinate with points matching
+                self.vii_thresholds
                 Can be <No cube> or None or anything that evaluates to False
 
         Returns:
@@ -278,11 +281,15 @@ class NowcastLightning(object):
 
             # If we have VII data, increase prob(lightning) accordingly.
             if vii_cube:
-                vii_scaling = (np.array(self.vii_scaling) *
-                               (1. - (fcmins / 150.)))
-                cube_slice.data = self._apply_double_scaling(
-                    vii_cube, cube_slice,
-                    self.vii_thresholds, self.vii_scaling)
+                for threshold, prob_max in zip(self.vii_thresholds, self.vii_scaling):
+                    vii_slice = vii_cube.extract(iris.Constraint(threshold=threshold))
+                    vii_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
+                    cube_slice.data = np.maximum(
+                        rescale(vii_slice.data,
+                                datarange=(0., 1.),
+                                scalerange=vii_scaling,
+                                clip=True, debug=self.debug),
+                        cube_slice.data)
 
             new_cube_list.append(cube_slice)
 
