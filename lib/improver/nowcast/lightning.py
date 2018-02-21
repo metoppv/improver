@@ -281,8 +281,10 @@ class NowcastLightning(object):
 
             # If we have VII data, increase prob(lightning) accordingly.
             if vii_cube:
-                for threshold, prob_max in zip(self.vii_thresholds, self.vii_scaling):
-                    vii_slice = vii_cube.extract(iris.Constraint(threshold=threshold))
+                for threshold, prob_max in zip(self.vii_thresholds,
+                                               self.vii_scaling):
+                    vii_slice = vii_cube.extract(
+                        iris.Constraint(threshold=threshold))
                     vii_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
                     cube_slice.data = np.maximum(
                         rescale(vii_slice.data,
@@ -344,7 +346,8 @@ class NowcastLightning(object):
                     * First-guess lightning probability
                     * Nowcast precipitation probability (threshold > 0)
                     * Nowcast lightning rate
-                    * Analysis of vertically integrated ice (VII) from radar
+                    * (optional) Analysis of vertically integrated ice (VII)
+                      from radar
 
         Returns:
             new_cube (iris.cube.Cube):
@@ -352,11 +355,14 @@ class NowcastLightning(object):
                 This cube will have the same dimensions as the input
                 Nowcast precipitation probability.
         """
-        fg_cube, = cubelist.extract("probability_of_lightning")
-        ltng_cube, = cubelist.extract("rate_of_lightning")
+        fg_cube = cubelist.extract("probability_of_lightning").merge_cube()
+        ltng_cube = cubelist.extract("rate_of_lightning").merge_cube()
         ltng_cube.convert_units("min^-1")  # Ensure units are correct.
-        precip_cube, = cubelist.extract("probability_of_precipitation")
-        vii_cube = cubelist.extract("vertical_integral_of_ice")
+        precip_cube = cubelist.extract("probability_of_precipitation")
+        precip_cube = precip_cube.merge_cube()
+        vii_cube = cubelist.extract("probability_of_vertical_integral_of_ice")
+        if vii_cube:
+            vii_cube = vii_cube.merge_cube()
         precip_cube = precip_cube.extract(iris.Constraint(threshold=0.5))
         new_cube = self._update_meta(precip_cube)
         new_cube = self._modify_first_guess(

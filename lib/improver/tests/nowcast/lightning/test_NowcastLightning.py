@@ -169,7 +169,7 @@ class Test__modify_first_guess(IrisTest):
         self.vii_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
-                    zero_point_indices=[]),
+                            zero_point_indices=[]),
                 fp_point=0.0))
         threshold_coord = self.vii_cube.coord('realization')
         threshold_coord.points = [0.5, 1.0, 2.0]
@@ -497,6 +497,17 @@ class Test_process(IrisTest):
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
         self.precip_cube.add_aux_coord(coord)
+        self.vii_cube = squeeze(
+            add_forecast_reference_time_and_forecast_period(
+                set_up_cube(num_realization_points=3,
+                            zero_point_indices=[]),
+                fp_point=0.0))
+        threshold_coord = self.vii_cube.coord('realization')
+        threshold_coord.points = [0.5, 1.0, 2.0]
+        threshold_coord.rename('threshold')
+        threshold_coord.units = cf_units.Unit('kg m^-2')
+        self.vii_cube.data = np.zeros_like(self.vii_cube.data)
+        self.vii_cube.rename("probability_of_vertical_integral_of_ice")
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -506,6 +517,18 @@ class Test_process(IrisTest):
             self.ltng_cube,
             self.precip_cube]))
         self.assertIsInstance(result, Cube)
+
+    def test_with_vii(self):
+        """Test that the method returns the expected cube type with vii is
+        present"""
+        plugin = Plugin()
+        result = plugin.process(CubeList([
+            self.fg_cube,
+            self.ltng_cube,
+            self.precip_cube,
+            self.vii_cube]))
+        self.assertIsInstance(result, Cube)
+
 
 if __name__ == '__main__':
     unittest.main()
