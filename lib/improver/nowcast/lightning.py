@@ -278,7 +278,8 @@ class NowcastLightning(object):
 
             # If we have VII data, increase prob(lightning) accordingly.
             if vii_cube:
-                vii_scaling = self.vii_scaling * 1. - (fcmins / 150.)
+                vii_scaling = (np.array(self.vii_scaling) *
+                               (1. - (fcmins / 150.)))
                 cube_slice.data = self._apply_double_scaling(
                     vii_cube, cube_slice,
                     self.vii_thresholds, self.vii_scaling)

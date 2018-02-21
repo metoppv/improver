@@ -33,6 +33,7 @@
 
 import unittest
 
+from iris.util import squeeze
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
@@ -165,6 +166,11 @@ class Test__modify_first_guess(IrisTest):
             fp_point=0.0)
         self.precip_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(), fp_point=0.0)
+        self.vii_cube = squeeze(
+            add_forecast_reference_time_and_forecast_period(
+                set_up_cube_with_no_realizations(
+                    zero_point_indices=[]),
+                fp_point=0.0))
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -174,6 +180,16 @@ class Test__modify_first_guess(IrisTest):
                                             self.ltng_cube,
                                             self.precip_cube,
                                             None)
+        self.assertIsInstance(result, Cube)
+
+    def test_basic_with_vii(self):
+        """Test that the method returns the expected cube type"""
+        plugin = Plugin()
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            self.vii_cube)
         self.assertIsInstance(result, Cube)
 
     def test_input(self):
@@ -188,6 +204,21 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
         self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
+
+    def test_input_with_vii(self):
+        """Test that the method does not modify the input cube."""
+        plugin = Plugin()
+        cube_a = self.cube.copy()
+        cube_b = self.fg_cube.copy()
+        cube_c = self.ltng_cube.copy()
+        cube_d = self.precip_cube.copy()
+        cube_e = self.vii_cube.copy()
+        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, cube_e)
+        self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
+        self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
+        self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
+        self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
+        self.assertArrayAlmostEqual(cube_e.data, self.vii_cube.data)
 
     def test_precip_zero(self):
         """Test that zero precip probs reduce lightning risk"""
