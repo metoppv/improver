@@ -1,5 +1,5 @@
 [MASTER]
-extension-pkg-whitelist=numpy,scipy
+extension-pkg-whitelist=numpy,scipy,netCDF4
 
 [TYPECHECK]
 ignored-classes=data,list,tuple,WeightedAggregator,MaskedArray,PercentileAggregator
