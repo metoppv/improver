@@ -91,7 +91,7 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
-        self.assertTrue(np.array_equal(cube.data, self.cube.data))
+        self.assertArrayEqual(cube.data, self.cube.data)
 
     def test_cube_dimensions(self):
         """ Test cube dimension coordinates are preserved """
@@ -125,9 +125,9 @@ class Test_save_netcdf(IrisTest):
         cf_data_dict = dict(Dataset(self.filepath, mode='r').variables)
         self.assertTrue('source_realizations' in
                         cf_data_dict['air_temperature'].ncattrs())
-        self.assertTrue(np.array_equal(
+        self.assertArrayEqual(
             cf_data_dict['air_temperature'].getncattr('source_realizations'),
-            np.arange(12)))
+            np.arange(12))
 
     def test_cf_shared_attributes_list(self):
         """ Test that a NetCDF file saved from a list of cubes that share
