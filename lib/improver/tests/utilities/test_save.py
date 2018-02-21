@@ -120,10 +120,12 @@ class Test_save_netcdf(IrisTest):
         attributes
         """
         save_netcdf(self.cube, self.filepath)
-        temp = Dataset(self.filepath, mode='r').variables['air_temperature']
-        self.assertTrue('source_realizations' in temp.ncattrs())
-        self.assertTrue(np.array_equal(temp.getncattr('source_realizations'),
-                                       np.arange(12)))
+        cf_data_dict = dict(Dataset(self.filepath, mode='r').variables)
+        self.assertTrue('source_realizations' in
+                        cf_data_dict['air_temperature'].ncattrs())
+        self.assertTrue(np.array_equal(
+            cf_data_dict['air_temperature'].getncattr('source_realizations'),
+            np.arange(12)))
 
     def test_cf_shared_attributes_list(self):
         """ Test that a NetCDF file saved from a list of cubes that share
