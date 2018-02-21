@@ -120,6 +120,8 @@ class Test_save_netcdf(IrisTest):
         attributes
         """
         save_netcdf(self.cube, self.filepath)
+        # cast explicitly to dictionary, as pylint does not recognise
+        # OrderedDict as subscriptable
         cf_data_dict = dict(Dataset(self.filepath, mode='r').variables)
         self.assertTrue('source_realizations' in
                         cf_data_dict['air_temperature'].ncattrs())
