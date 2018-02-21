@@ -32,6 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "extract invalid constraints" {
+  improver_check_skip_acceptance
+
   # Run invalid cube extraction processing and check it fails.
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
