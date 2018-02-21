@@ -263,6 +263,101 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 
+class Test__apply_double_scaling(IrisTest):
+
+    """Test the _apply_double_scaling method."""
+
+    def setUp(self):
+        """Create cubes with a single zero prob(precip) point."""
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
+        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
+        self.plugin = Plugin()
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        result = self.plugin._apply_double_scaling(self.cube,
+                                                   self.ltng_cube,
+                                                   self.plugin.precipthr,
+                                                   self.plugin.ltngthr)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_input(self):
+        """Test that the method does not modify the input cubes."""
+        cube_a = self.cube.copy()
+        cube_b = self.ltng_cube.copy()
+        self.plugin._apply_double_scaling(self.cube,
+                                          self.ltng_cube,
+                                          self.plugin.precipthr,
+                                          self.plugin.ltngthr)
+        self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
+        self.assertArrayAlmostEqual(cube_b.data, self.ltng_cube.data)
+
+    def test_values_default(self):
+        """Test that the method returns the expected data values with default
+        function"""
+        data_vals = (0.1, 0.5, 0.8)
+        scaling_vals = (0.0, 0.5, 0.9)
+        # Create an array of correct shape and fill with expected value
+        expected = np.full_like(self.cube.data, 0.9)
+        # Row zero should be changed to all-zeroes
+        expected[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0.]
+        # Row one should be like ltng_cube but with most values reduced to 0.5
+        expected[0, 1, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.5,
+                             0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        # Row two should be like ltng_cube but with late values limited to 0.9
+        expected[0, 2, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+                             0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
+        self.cube.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                                   0., 0., 0., 0., 0., 0., 0., 0.]
+        self.cube.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+                                   0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        self.cube.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
+                                   1., 1., 1., 1., 1., 1., 1., 1.]
+        self.ltng_cube.data[0, 0, :] = np.arange(0., 1.6, 0.1)
+        self.ltng_cube.data[0, 1, :] = np.arange(0., 1.6, 0.1)
+        self.ltng_cube.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        result = self.plugin._apply_double_scaling(self.cube,
+                                                   self.ltng_cube,
+                                                   data_vals,
+                                                   scaling_vals)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_values_max(self):
+        """Test that the method returns the expected data values with max
+        function"""
+        data_vals = (0.1, 0.5, 0.8)
+        scaling_vals = (0.0, 0.5, 0.9)
+        expected = self.cube.data.copy()
+        # Row zero should be unchanged from ltng_cube
+        expected[0, 0, :] = np.arange(0., 1.6, 0.1)
+        # Row one should be like ltng_cube but with early values raised to 0.5
+        expected[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.6, 0.7,
+                             0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        # Row two should be like ltng_cube but with most values raised to 0.9
+        expected[0, 2, :] = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+                             0.9, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        self.cube.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                                   0., 0., 0., 0., 0., 0., 0., 0.]
+        self.cube.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+                                   0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        self.cube.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
+                                   1., 1., 1., 1., 1., 1., 1., 1.]
+        self.ltng_cube.data[0, 0, :] = np.arange(0., 1.6, 0.1)
+        self.ltng_cube.data[0, 1, :] = np.arange(0., 1.6, 0.1)
+        self.ltng_cube.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        result = self.plugin._apply_double_scaling(self.cube,
+                                                   self.ltng_cube,
+                                                   data_vals,
+                                                   scaling_vals,
+                                                   combine_function=np.maximum)
+        self.assertArrayAlmostEqual(result, expected)
+
+
 class Test_process(IrisTest):
 
     """Test the nowcast lightning plugin."""

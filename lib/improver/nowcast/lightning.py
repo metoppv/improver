@@ -255,24 +255,8 @@ class NowcastLightning(object):
             cube_slice.data = np.where(this_ltng.data >= lratethresh,
                                        self.pl_dict[1],
                                        cube_slice.data)
-
-            # Set up an array of prob(lightning) upper-limits based on
-            # prob(precip) by rescaling the prob(precip) array based on an
-            # upper, mid and lower threshold.
-            # precipthr supplies the prob(precip) points
-            # ltngthr supplies the equivalent prob(lightning) points.
-            preciplimit = np.where(
-                this_precip.data < self.precipthr[1],
-                rescale(this_precip.data,
-                        data_range=(self.precipthr[0], self.precipthr[1]),
-                        scale_range=(self.ltngthr[0], self.ltngthr[1]),
-                        clip=True),
-                rescale(this_precip.data,
-                        data_range=(self.precipthr[1], self.precipthr[2]),
-                        scale_range=(self.ltngthr[1], self.ltngthr[2]),
-                        clip=True))
-            # Ensure prob(lightning) is no larger than the local upper-limit:
-            cube_slice.data = np.minimum(cube_slice.data, preciplimit)
+            cube_slice.data = self._apply_double_scaling(
+                this_precip, cube_slice, self.precipthr, self.ltngthr)
 
             new_cube_list.append(cube_slice)
 
@@ -280,6 +264,42 @@ class NowcastLightning(object):
         merged_cube = check_cube_coordinates(
             cube, merged_cube)
         return merged_cube
+
+    def _apply_double_scaling(self, data_cube, scaled_cube,
+                              data_vals, scaling_vals,
+                              combine_function=np.minimum):
+        """
+        Update scaled_cube based on the contents of data_cube so that
+        scaled_cube is at least the value of the data_cube after rescaling
+        based on an upper, mid and lower threshold.
+
+        Args:
+            data_cube (iris.cube.Cube):
+                Data with which to modify scaled_cube.data
+            scaled_cube (iris.cube.Cube):
+                Input cube to modify
+            data_vals (tuple of three values):
+                Lower, mid and upper points to rescale data_cube from
+            scaling_vals (tuple of three values):
+                Lower, mid and upper points to rescale data_cube to
+
+        Returns:
+            data (numpy.array):
+                Output data from scaled_cube after modification.
+                This array will have the same dimensions as scaled_cube.
+        """
+        local_limit = np.where(
+            data_cube.data < data_vals[1],
+            rescale(data_cube.data,
+                    data_range=(data_vals[0], data_vals[1]),
+                    scale_range=(scaling_vals[0], scaling_vals[1]),
+                    clip=True),
+            rescale(data_cube.data,
+                    data_range=(data_vals[1], data_vals[2]),
+                    scale_range=(scaling_vals[1], scaling_vals[2]),
+                    clip=True))
+        # Ensure prob(lightning) is no larger than the local upper-limit:
+        return combine_function(scaled_cube.data, local_limit)
 
     def process(self, cubelist):
         """
