@@ -68,12 +68,20 @@ class Test__repr__(IrisTest):
    upper:  precip probability {precu} => max lightning prob {lprecu}
    middle: precip probability {precm} => max lightning prob {lprecm}
    lower:  precip probability {precl} => max lightning prob {lprecl}
+ VII (ice) mapping:
+   upper:  VII {viiu} => max lightning prob {lviiu}
+   middle: VII {viim} => max lightning prob {lviim}
+   lower:  VII {viil} => max lightning prob {lviil}
 >""".format(
             radius=10000., debug=False,
             lthru=set_lightning_thresholds[0], lthrl=0.,
             lprobu=1., lprobl=0.25,
             precu=0.1, precm=0.05, precl=0.0,
-            lprecu=1., lprecm=0.2, lprecl=0.0067)
+            lprecu=1., lprecm=0.2, lprecl=0.0067,
+            viiu=2.0, viim=1.0,
+            viil=0.5,
+            lviiu=0.9, lviim=0.5,
+            lviil=0.1)
             )
         self.assertEqual(result, msg)
 
@@ -164,7 +172,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertIsInstance(result, Cube)
 
     def test_input(self):
@@ -174,7 +183,7 @@ class Test__modify_first_guess(IrisTest):
         cube_b = self.fg_cube.copy()
         cube_c = self.ltng_cube.copy()
         cube_d = self.precip_cube.copy()
-        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d)
+        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, None)
         self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
@@ -191,7 +200,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_small(self):
@@ -207,7 +217,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_null(self):
@@ -222,7 +233,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_lrate_large(self):
@@ -240,7 +252,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_lrate_halo(self):
@@ -259,7 +272,8 @@ class Test__modify_first_guess(IrisTest):
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
-                                            self.precip_cube)
+                                            self.precip_cube,
+                                            None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 

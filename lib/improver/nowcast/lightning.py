@@ -106,6 +106,8 @@ class NowcastLightning(object):
                  problightning_values={1: 1., 2: 0.25},
                  probprecip_thresholds=(0.0, 0.05, 0.1),
                  problightning_scaling=(0.0067, 0.2, 1.),
+                 vii_thresholds=(0.5, 1.0, 2.0),
+                 vii_scaling=(0.1, 0.5, 0.9),
                  debug=False):
         """
         Set up class for Nowcast of lightning probability.
@@ -126,6 +128,8 @@ class NowcastLightning(object):
 
         self.precipthr = probprecip_thresholds
         self.ltngthr = problightning_scaling
+        self.vii_thresholds = vii_thresholds
+        self.vii_scaling = vii_scaling
 
     def __repr__(self):
         """
@@ -141,6 +145,10 @@ class NowcastLightning(object):
    upper:  precip probability {precu} => max lightning prob {lprecu}
    middle: precip probability {precm} => max lightning prob {lprecm}
    lower:  precip probability {precl} => max lightning prob {lprecl}
+ VII (ice) mapping:
+   upper:  VII {viiu} => max lightning prob {lviiu}
+   middle: VII {viim} => max lightning prob {lviim}
+   lower:  VII {viil} => max lightning prob {lviil}
 >""".format(
             radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
@@ -148,7 +156,11 @@ class NowcastLightning(object):
             precu=self.precipthr[2], precm=self.precipthr[1],
             precl=self.precipthr[0],
             lprecu=self.ltngthr[2], lprecm=self.ltngthr[1],
-            lprecl=self.ltngthr[0])
+            lprecl=self.ltngthr[0],
+            viiu=self.vii_thresholds[2], viim=self.vii_thresholds[1],
+            viil=self.vii_thresholds[0],
+            lviiu=self.vii_scaling[2], lviim=self.vii_scaling[1],
+            lviil=self.vii_scaling[0])
 
     def _process_haloes(self, cube):
         """
@@ -188,7 +200,8 @@ class NowcastLightning(object):
             print('In {}, new_cube is {}'.format(self, new_cube))
         return new_cube
 
-    def _modify_first_guess(self, cube, fg_cube, ltng_cube, precip_cube):
+    def _modify_first_guess(self, cube, fg_cube, ltng_cube, precip_cube,
+                            vii_cube):
         """
         Modify first-guess lightning probability with nowcast data
 
@@ -209,6 +222,11 @@ class NowcastLightning(object):
             precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability (threshold > 0)
                 Must have same dimensions as cube
+
+            vii_cube (iris.cube.Cube):
+                Radar-derived vertically integrated ice content (VII)
+                Must have same dimensions as cube
+                Can be <No cube> or None or anything that evaluates to False
 
         Returns:
             new_cube (iris.cube.Cube):
@@ -257,6 +275,13 @@ class NowcastLightning(object):
                                        cube_slice.data)
             cube_slice.data = self._apply_double_scaling(
                 this_precip, cube_slice, self.precipthr, self.ltngthr)
+
+            # If we have VII data, increase prob(lightning) accordingly.
+            if vii_cube:
+                vii_scaling = self.vii_scaling * 1. - (fcmins / 150.)
+                cube_slice.data = self._apply_double_scaling(
+                    vii_cube, cube_slice,
+                    self.vii_thresholds, self.vii_scaling)
 
             new_cube_list.append(cube_slice)
 
@@ -311,6 +336,7 @@ class NowcastLightning(object):
                     * First-guess lightning probability
                     * Nowcast precipitation probability (threshold > 0)
                     * Nowcast lightning rate
+                    * Analysis of vertically integrated ice (VII) from radar
 
         Returns:
             new_cube (iris.cube.Cube):
@@ -322,9 +348,10 @@ class NowcastLightning(object):
         ltng_cube, = cubelist.extract("rate_of_lightning")
         ltng_cube.convert_units("min^-1")  # Ensure units are correct.
         precip_cube, = cubelist.extract("probability_of_precipitation")
+        vii_cube = cubelist.extract("vertical_integral_of_ice")
         precip_cube = precip_cube.extract(iris.Constraint(threshold=0.5))
         new_cube = self._update_meta(precip_cube)
         new_cube = self._modify_first_guess(
-            new_cube, fg_cube, ltng_cube, precip_cube)
+            new_cube, fg_cube, ltng_cube, precip_cube, vii_cube)
         new_cube = self._process_haloes(new_cube)
         return new_cube
