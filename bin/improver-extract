@@ -69,7 +69,7 @@ def main():
         msg = ("Constraint(s) could not be matched in input cube")
         raise ValueError(msg)
     else:
-        save_netcdf(cube, output_filename)
+        save_netcdf(cube, args.output_file)
 
 
 if __name__ == '__main__':
