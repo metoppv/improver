@@ -288,9 +288,9 @@ class NowcastLightning(object):
                     vii_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
                     cube_slice.data = np.maximum(
                         rescale(vii_slice.data,
-                                datarange=(0., 1.),
-                                scalerange=vii_scaling,
-                                clip=True, debug=self.debug),
+                                data_range=(0., 1.),
+                                scale_range=vii_scaling,
+                                clip=True),
                         cube_slice.data)
 
             new_cube_list.append(cube_slice)
