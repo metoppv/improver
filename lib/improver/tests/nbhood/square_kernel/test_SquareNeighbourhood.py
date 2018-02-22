@@ -918,9 +918,16 @@ class Test_run(IrisTest):
                [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
                [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
                [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        expected_mask = np.array(
+            [[[[True, True, False, False, True],
+               [True, False, False, False, True],
+               [True, True, False, False, False],
+               [True, True, False, False, True],
+               [True, True, False, False, True]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.data, expected_array)
+        self.assertArrayEqual(result.data.mask, expected_mask)
 
     def test_masked_array_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
@@ -1004,9 +1011,16 @@ class Test_run(IrisTest):
                [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
                [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
                [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        expected_mask = np.array(
+            [[[[True, True, False, False, True],
+               [True, False, False, False, True],
+               [True, True, False, False, False],
+               [True, True, False, False, True],
+               [True, True, False, False, True]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.mask, expected_mask)
 
     def test_masked_array_with_nans_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
@@ -1101,7 +1115,7 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_times_nan(self):
-        """A1 Test that a cube with correct data is produced by the run method
+        """Test that a cube with correct data is produced by the run method
         for multiple times and for when nans are present."""
         expected_1 = np.array(
             [[np.nan, 0.666667, 0.88888889, 0.88888889, 1.],
