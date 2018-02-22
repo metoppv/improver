@@ -166,6 +166,8 @@ class Test__modify_first_guess(IrisTest):
             fp_point=0.0)
         self.precip_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(), fp_point=0.0)
+        # iris.util.queeze is applied here to demote the singular coord "time"
+        # to a scalar coord.
         self.vii_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
