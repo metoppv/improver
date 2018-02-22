@@ -43,9 +43,9 @@
       --input_mask_filepath "$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc" --re_mask
   [[ "$status" -eq 0 ]]
 
-  # Run cmp -bl to compare the output and kgo.
-  cmp -bl "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_re_mask.nc"
+  # Run cmp -b to compare the output and kgo.
+  cmp -b "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_external_masked.nc"
   [[ "$status" -eq 0 ]]
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
