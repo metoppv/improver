@@ -38,7 +38,8 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
-
+from improver.utilities.cube_manipulation import (
+    clip_cube_data)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -557,6 +558,14 @@ class SquareNeighbourhood(object):
                 neighbourhood_averaged_cube.data = np.ma.masked_array(
                     neighbourhood_averaged_cube.data,
                     mask=np.logical_not(original_mask_cube.data.squeeze()))
+        # Add clipping
+        if self.sum_or_fraction == "fraction":
+            original_cube, = pre_neighbourhood_cubes.extract(cube_name)
+            minimum_value = np.nanmin(original_cube.data)
+            maximum_value = np.nanmax(original_cube.data)
+            neighbourhood_averaged_cube = (
+                clip_cube_data(neighbourhood_averaged_cube,
+                               minimum_value, maximum_value))
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):

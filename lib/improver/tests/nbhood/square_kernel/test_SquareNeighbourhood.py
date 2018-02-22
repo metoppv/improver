@@ -1101,7 +1101,7 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_times_nan(self):
-        """Test that a cube with correct data is produced by the run method
+        """A1 Test that a cube with correct data is produced by the run method
         for multiple times and for when nans are present."""
         expected_1 = np.array(
             [[np.nan, 0.666667, 0.88888889, 0.88888889, 1.],
@@ -1110,9 +1110,9 @@ class Test_run(IrisTest):
              [1., 0.88888889, 0.88888889, 0.88888889, 1.],
              [1., 1., 1., 1., 1.]])
         expected_2 = np.array(
-            [[0.88888889, 0.88888889, 0.88888889, 1., 1.],
-             [0.88888889, np.nan, 0.88888889, 1., 1.],
-             [0.88888889, 0.88888889, 0.88888889, 1., 1.],
+            [[1., 1., 1., 1., 1.],
+             [1., np.nan, 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
              [1., 1., 1., 1., 1.],
              [1., 1., 1., 1., 1.]])
         cube = set_up_cube(
