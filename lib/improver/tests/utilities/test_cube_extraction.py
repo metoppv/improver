@@ -122,19 +122,19 @@ class Test_extract_subcube(IrisTest):
         """ Test cube extraction for single constraint without units """
         constraint_dict = {"name": "probability_of_precipitation"}
         cube = extract_subcube(self.filepath, constraint_dict, None)
-        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data
-        self.assertTrue(np.array_equal(cube.data, reference_data))
+        self.assertArrayEqual(cube.data, reference_data)
 
     def test_basic_with_units(self):
         """ Test cube extraction for single constraint with units """
         constraint_dict = {"threshold": 0.1}
         units_dict = {"threshold": "mm h-1"}
         cube = extract_subcube(self.filepath, constraint_dict, units_dict)
-        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        self.assertIsInstance(cube, iris.cube.Cube)
         self.assertEqual(cube.coord("threshold").units, "mm h-1")
         reference_data = self.precip_cube.data[1, :, :]
-        self.assertTrue(np.array_equal(cube.data, reference_data))
+        self.assertArrayEqual(cube.data, reference_data)
 
     def test_raises_mismatch_error(self):
         """ Test error is raised if the output cube is empty """
@@ -148,9 +148,9 @@ class Test_extract_subcube(IrisTest):
                            "threshold": 0.03}
         units_dict = {"threshold": "mm h-1"}
         cube = extract_subcube(self.filepath, constraint_dict, units_dict)
-        self.assertTrue(isinstance(cube, iris.cube.Cube))
+        self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data[0, :, :]
-        self.assertTrue(np.array_equal(cube.data, reference_data))
+        self.assertArrayEqual(cube.data, reference_data)
 
     def test_error_non_coord_units(self):
         """ Test error raised if units are provided for a non-coordinate
