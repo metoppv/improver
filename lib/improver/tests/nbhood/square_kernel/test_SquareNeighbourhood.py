@@ -345,6 +345,28 @@ class Test_pad_cube_with_halo(IrisTest):
              [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
         width_x = width_y = 1
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
+            sliced_cube, width_x, width_y, masked_halo=True)
+        self.assertIsInstance(padded_cube, Cube)
+        self.assertArrayAlmostEqual(padded_cube.data, expected)
+
+    def test_masked_halo_false(self):
+        """Test the halo data is as expeceted when masked_halo is false"""
+
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
+            break
+        expected = np.array(
+            [[1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 0., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
+             [1., 1., 1., 1., 1., 1., 1., 1., 1.]])
+        width_x = width_y = 1
+        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
             sliced_cube, width_x, width_y)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
@@ -393,7 +415,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 1
         width_y = 2
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y, masked_halo=True)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -420,7 +442,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 0
         width_y = 2
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            sliced_cube, width_x, width_y)
+            sliced_cube, width_x, width_y, masked_halo=True)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -721,7 +743,7 @@ class Test__remove_padding_and_mask(IrisTest):
         grid_cells_x = grid_cells_y = 1
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                self.padded_cube, None,
+                self.padded_cube, self.cube, None,
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
@@ -730,16 +752,22 @@ class Test__remove_padding_and_mask(IrisTest):
         """Test that removing a halo of points from the data on a cube
         has worked as intended when the input data has an associated mask."""
         expected = np.array(
-            [[1., np.nan, 1.],
-             [1., np.nan, 1.],
+            [[1., 1., 1.],
+             [1., 0., 1.],
              [1., 1., 1.]])
+        expected_mask = np.array(
+            [[False, True, False],
+             [False, True, False],
+             [False, False, False]])
         grid_cells_x = grid_cells_y = 1
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
-                self.padded_cube, self.mask_cube,
+                self.padded_cube, self.cube, self.mask_cube,
                 grid_cells_x, grid_cells_y))
+        print nbcube.data
         self.assertIsInstance(nbcube, Cube)
-        self.assertArrayAlmostEqual(nbcube.data, expected)
+        self.assertArrayAlmostEqual(nbcube.data.data, expected)
+        self.assertArrayAlmostEqual(nbcube.data.mask, expected_mask)
 
     def test_with_masked_data_and_no_remasking(self):
         """Test that removing halo works correctly with remask=False"""
@@ -750,7 +778,7 @@ class Test__remove_padding_and_mask(IrisTest):
         grid_cells_x = grid_cells_y = 1
         nbcube = (
             SquareNeighbourhood(re_mask=False)._remove_padding_and_mask(
-                self.padded_cube, self.mask_cube,
+                self.padded_cube, self.cube, self.mask_cube,
                 grid_cells_x, grid_cells_y))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)

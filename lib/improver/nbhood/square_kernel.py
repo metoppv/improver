@@ -225,7 +225,7 @@ class SquareNeighbourhood(object):
             new_cube.add_aux_coord(coord_y)
         return new_cube
 
-    def pad_cube_with_halo(self, cube, width_x, width_y, masked_data=False):
+    def pad_cube_with_halo(self, cube, width_x, width_y, masked_halo=False):
         """
         Method to pad a halo around the data in an iris cube. The padding
         calculates the mean within the neighbourhood radius in grid cells
@@ -241,8 +241,12 @@ class SquareNeighbourhood(object):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width of padding to be added to
                 the numpy array.
-            masked_data (bool):
-                True if masked data.
+            masked_halo (bool):
+                mask_halo = True means that the halo will be treated as
+                masked points otherwise the halo will be filled with
+                mean values. Default is set to False for backwards
+                compatability as this function is used outside of
+                SquareNeighbourhooding.
 
         Returns:
             padded_cube (iris.cube.Cube):
@@ -254,10 +258,16 @@ class SquareNeighbourhood(object):
         # Pad a halo around the original data with the extent of the halo
         # given by width_y and width_x. Assumption to pad using the mean
         # value within the neighbourhood width.
-        padded_data = np.pad(
-            cube.data,
-            ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
-            "constant", constant_values=(0.0, 0.0))
+        if masked_halo:
+            padded_data = np.pad(
+                cube.data,
+                ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
+                "constant", constant_values=(0.0, 0.0))
+        else:
+             padded_data = np.pad(
+                cube.data,
+                ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
+                "mean", stat_length=((width_y, width_y), (width_x, width_x)))
         coord_x = cube.coord(axis='x')
         padded_x_coord = (
             SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
@@ -496,7 +506,8 @@ class SquareNeighbourhood(object):
             # our domain of interest. These unwanted points can be trimmed off
             # later.
             cubes_to_sum[i] = self.pad_cube_with_halo(
-                cube_to_process, grid_cells_x, grid_cells_y)
+                cube_to_process, grid_cells_x, grid_cells_y,
+                masked_halo=True)
         summed_up_cubes, nan_mask = self.cumulate_array(cubes_to_sum)
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(
@@ -504,7 +515,8 @@ class SquareNeighbourhood(object):
         return neighbourhood_averaged_cube
 
     def _remove_padding_and_mask(
-            self, neighbourhood_averaged_cube, mask_cube,
+            self, neighbourhood_averaged_cube,
+            original_cube, mask_cube,
             grid_cells_x, grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
@@ -513,7 +525,9 @@ class SquareNeighbourhood(object):
             neighbourhood_averaged_cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
-            mask_cubes (Iris.cube.Cube or None):
+            original_cube (Iris.cube.Cube or None):
+                The original cube slice.
+            mask_cube (Iris.cube.Cube or None):
                 The original mask cube.
             grid_cells_x (Float):
                 The number of grid cells along the x axis used to create a
@@ -537,6 +551,13 @@ class SquareNeighbourhood(object):
             neighbourhood_averaged_cube.data = np.ma.masked_array(
                 neighbourhood_averaged_cube.data,
                 mask=np.logical_not(mask_cube.data.squeeze()))
+        # Add clipping
+        if self.sum_or_fraction == "fraction":
+            minimum_value = np.nanmin(original_cube.data)
+            maximum_value = np.nanmax(original_cube.data)
+            neighbourhood_averaged_cube = (
+                clip_cube_data(neighbourhood_averaged_cube,
+                               minimum_value, maximum_value))
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):
@@ -587,7 +608,8 @@ class SquareNeighbourhood(object):
                     cubes_to_sum, grid_cells_x, grid_cells_y))
             neighbourhood_averaged_cube = (
                 self._remove_padding_and_mask(
-                    neighbourhood_averaged_cube, mask_cube,
+                    neighbourhood_averaged_cube, 
+                    cube_slice, mask_cube,
                     grid_cells_x, grid_cells_y))
             result_slices.append(neighbourhood_averaged_cube)
 
