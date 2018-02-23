@@ -511,7 +511,7 @@ class Test_process(IrisTest):
         self.vii_cube.data = np.zeros_like(self.vii_cube.data)
         self.vii_cube.rename("probability_of_vertical_integral_of_ice")
 
-    def set_up_vii_inputs(self):
+    def set_up_vii_input_output(self):
         """Used to set up four standard VII tests."""
 
         # Repeat all tests relating to vii from Test__modify_first_guess
@@ -572,7 +572,7 @@ class Test_process(IrisTest):
         present"""
         # Set precip_cube forecast period to be zero.
         self.precip_cube.coord('forecast_period').points = [0.]
-        expected = self.set_up_vii_inputs()
+        expected = self.set_up_vii_input_output()
 
         # No halo - we're only testing this method.
         plugin = Plugin(2000.)
@@ -587,7 +587,7 @@ class Test_process(IrisTest):
     def test_result_with_vii_longfc(self):
         """Test that the method returns the expected data when vii is
         present and forecast time is 4 hours"""
-        expected = self.set_up_vii_inputs()
+        expected = self.set_up_vii_input_output()
 
         # test_vii_small will now return zero
         expected.data[0, 6, 6] = 0.
