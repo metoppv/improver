@@ -264,7 +264,7 @@ class SquareNeighbourhood(object):
                 ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
                 "constant", constant_values=(0.0, 0.0))
         else:
-             padded_data = np.pad(
+            padded_data = np.pad(
                 cube.data,
                 ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
                 "mean", stat_length=((width_y, width_y), (width_x, width_x)))
@@ -608,7 +608,7 @@ class SquareNeighbourhood(object):
                     cubes_to_sum, grid_cells_x, grid_cells_y))
             neighbourhood_averaged_cube = (
                 self._remove_padding_and_mask(
-                    neighbourhood_averaged_cube, 
+                    neighbourhood_averaged_cube,
                     cube_slice, mask_cube,
                     grid_cells_x, grid_cells_y))
             result_slices.append(neighbourhood_averaged_cube)
