@@ -511,31 +511,8 @@ class Test_process(IrisTest):
         self.vii_cube.data = np.zeros_like(self.vii_cube.data)
         self.vii_cube.rename("probability_of_vertical_integral_of_ice")
 
-    def test_basic(self):
-        """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin.process(CubeList([
-            self.fg_cube,
-            self.ltng_cube,
-            self.precip_cube]))
-        self.assertIsInstance(result, Cube)
-
-    def test_basic_with_vii(self):
-        """Test that the method returns the expected cube type when vii is
-        present"""
-        plugin = Plugin()
-        result = plugin.process(CubeList([
-            self.fg_cube,
-            self.ltng_cube,
-            self.precip_cube,
-            self.vii_cube]))
-        self.assertIsInstance(result, Cube)
-
-    def test_result_with_vii(self):
-        """Test that the method returns the expected data when vii is
-        present"""
-        # Set precip_cube forecast period to be zero.
-        self.precip_cube.coord('forecast_period').points = [0.]
+    def set_up_vii_inputs(self):
+        """Used to set up four standard VII tests."""
 
         # Repeat all tests relating to vii from Test__modify_first_guess
         expected = set_up_cube_with_no_realizations()
@@ -568,6 +545,35 @@ class Test_process(IrisTest):
         self.ltng_cube.data[0, 5, 5] = -1.
         self.fg_cube.data[0, 5, 5] = 0.
         expected.data[0, 5, 5] = 0.9
+        return expected
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        plugin = Plugin()
+        result = plugin.process(CubeList([
+            self.fg_cube,
+            self.ltng_cube,
+            self.precip_cube]))
+        self.assertIsInstance(result, Cube)
+
+    def test_basic_with_vii(self):
+        """Test that the method returns the expected cube type when vii is
+        present"""
+        plugin = Plugin()
+        result = plugin.process(CubeList([
+            self.fg_cube,
+            self.ltng_cube,
+            self.precip_cube,
+            self.vii_cube]))
+        self.assertIsInstance(result, Cube)
+
+    def test_result_with_vii(self):
+        """Test that the method returns the expected data when vii is
+        present"""
+        # Set precip_cube forecast period to be zero.
+        self.precip_cube.coord('forecast_period').points = [0.]
+        expected = self.set_up_vii_inputs()
+
         # No halo - we're only testing this method.
         plugin = Plugin(2000.)
         result = plugin.process(CubeList([
@@ -581,36 +587,12 @@ class Test_process(IrisTest):
     def test_result_with_vii_longfc(self):
         """Test that the method returns the expected data when vii is
         present and forecast time is 4 hours"""
-        # Repeat all tests relating to vii from Test__modify_first_guess
-        expected = set_up_cube_with_no_realizations()
+        expected = self.set_up_vii_inputs()
 
-        # test_vii_null
-        self.vii_cube.data[:, 8, 8] = 0.
-        self.vii_cube.data[0, 8, 8] = 0.5
-        self.ltng_cube.data[0, 8, 8] = 0.
-        self.fg_cube.data[0, 8, 8] = 0.
-        self.precip_cube.data[0, 8, 8] = 1.
-        expected.data[0, 8, 8] = 0.25
-
-        # test_vii_zero
-        self.vii_cube.data[:, 7, 7] = 0.
-        self.ltng_cube.data[0, 7, 7] = -1.
-        self.fg_cube.data[0, 7, 7] = 0.
-        expected.data[0, 7, 7] = 0.
-
-        # test_vii_small
-        # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 6, 6] = 0.
-        self.vii_cube.data[0, 6, 6] = 0.5
-        self.ltng_cube.data[0, 6, 6] = -1.
-        self.fg_cube.data[0, 6, 6] = 0.
+        # test_vii_small will now return zero
         expected.data[0, 6, 6] = 0.
 
-        # test_vii_large
-        # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 5, 5] = 1.
-        self.ltng_cube.data[0, 5, 5] = -1.
-        self.fg_cube.data[0, 5, 5] = 0.
+        # test_vii_large now return zero
         expected.data[0, 5, 5] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(1500.)
