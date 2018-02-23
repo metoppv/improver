@@ -30,73 +30,65 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for plugin wind_downscaling.FrictionVelocity."""
 
-
 import unittest
-
-from cf_units import Unit
 import numpy as np
 
-import iris
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.grids import STANDARD_GRID_CCRS
 from improver.constants import RMDI
 from improver.wind_downscaling import FrictionVelocity
 
 
-class Test_calc_ustar(IrisTest):
+class Test_process(IrisTest):
 
-    """Test the calc_ustar method."""
-
-    """
-    Args:
-        u_href: 2D np.array (float)
-            wind speed at h_ref
-        h_ref:  2D np.array (float)
-            reference height
-        z_0:    2D np.array (float)
-            vegetative roughness length
-        mask:   2D np.array (logical)
-            where True, calculate u*
-
-    comments:
-        * z_0 and h_ref need to have identical units.
-        * the calculated friction velocity will have the units of the
-            supplied velocity u_href.
-
-    """
+    """Test the creation of friction velocity 2D arrays."""
 
     def setUp(self):
-        """Create 2D arrays for testing."""
-        self.u_href = u_href_array
-        self.h_ref = h_ref_array
-        self.z_0 = z_0_array
-        self.mask = mask_array
+        """Creates wind-speed, height, veg roughness and mask 2D arrays."""
 
-    def test_basic(self):
-        """Test that the function returns a 2D array. """
+        n_x, n_y = 4, 4  # Set array dimensions.
 
-        result = FrictionVelocity(u_href, h_ref, z_0)
-        self.assertIsInstance(result, numpy array)
+        # Wind speed=u_href=10m/s  Height=h_ref=20m
+        self.u_href = np.full([n_y, n_x], 10, dtype=float)
+        self.h_ref = np.full([n_y, n_x], 20, dtype=float)
+        # Vegetative roughness = 0.5m
+        self.z_0 = np.full([n_y, n_x], 0.5, dtype=float)
 
+        # Mask for land/sea - True for land-points, false for sea.
+        self.mask = np.full([n_y, n_x], False, dtype=bool)
+        # Mask has 'land' in centre bounded by sea points.
+        self.mask[1:n_y-1, 1:n_x-1] = True
 
-    def test_without_mask(self):
-        """Test that the function returns the expected values without
-           a mask applied. """
+    def test_returns_expected_values(self):
+        """Test that the function returns correct 2D array of floats. """
 
+        # Equation is (K=0.4): ustar = K * (u_href / ln(h_ref / z_0))
+        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
+                                 [RMDI, 1.08434, 1.08434, RMDI],
+                                 [RMDI, 1.08434, 1.08434, RMDI],
+                                 [RMDI, RMDI, RMDI, RMDI]])
 
-        result = FrictionVelocity(u_href, h_ref, z_0)
-        self.assertIsInstance(result, numpy array)
+        result = FrictionVelocity(self.u_href, self.h_ref,
+                                  self.z_0, self.mask).process()
 
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_out)
 
+    def test_handles_nan_values(self):
+        """Test that the function accepts NaN values correctly. """
 
-    def test_with_mask(self):
-        """Test that the function returns the expected values with a mask."""
+        self.u_href[1, 1] = np.nan  # Adds NaN value
 
-        result = FrictionVelocity(u_href, h_ref, z_0, mask)
-        self.assertIsInstance(result, numpy array)
+        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
+                                 [RMDI, np.nan, 1.08434, RMDI],
+                                 [RMDI, 1.08434, 1.08434, RMDI],
+                                 [RMDI, RMDI, RMDI, RMDI]])
 
+        result = FrictionVelocity(self.u_href, self.h_ref,
+                                  self.z_0, self.mask).process()
+
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_out)
 
 if __name__ == '__main__':
     unittest.main()
