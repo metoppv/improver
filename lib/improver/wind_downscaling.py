@@ -69,16 +69,16 @@ class FrictionVelocity(object):
         """Initialise the class.
 
         Args:
-            u_href: 2D np.array (float)
-                wind speed at h_ref
-            h_ref:  2D np.array (float)
-                reference height
-            z_0:    2D np.array (float)
-                vegetative roughness length
-            mask:   2D np.array (logical)
-                where True, calculate u*
+            u_href: (np.ndarray)
+                A 2D array of floats for the wind speed at h_ref
+            h_ref: (np.ndarray)
+                A 2D array of floats for the reference heights
+            z_0:  (np.ndarray)
+                A 2D array of floats for the vegetative roughness lengths
+            mask: (np.ndarray)
+                A 2D array of booleans where True indicates calculate u*
 
-        comments:
+        Notes:
             * z_0 and h_ref need to have identical units.
             * the calculated friction velocity will have the units of the
                 supplied velocity u_href.
@@ -100,8 +100,8 @@ class FrictionVelocity(object):
         roughness length.
 
         Returns:
-            ustar (2D array float):
-                friction velocity
+            ustar (ndarray):
+                A 2D array of friction velocities
 
         """
         ustar = np.full(self.u_href.shape, RMDI)

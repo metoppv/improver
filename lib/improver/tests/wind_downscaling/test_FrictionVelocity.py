@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for plugin wind_downscaling.FrictionVelocity."""
+"""Unit tests for plugin wind_downscaling.FrictionVelocity"""
 
 import unittest
 import numpy as np
@@ -41,7 +41,9 @@ from improver.wind_downscaling import FrictionVelocity
 
 class Test_process(IrisTest):
 
-    """Test the creation of friction velocity 2D arrays."""
+    """Test the creation of friction velocity 2D arrays. Note that in the
+    future, use of the Real Missing Data Indicator (RMDI) constant is due to be
+    deprecated in favour of np.nan"""
 
     def setUp(self):
         """Creates wind-speed, height, veg roughness and mask 2D arrays."""
