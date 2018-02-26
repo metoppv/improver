@@ -92,6 +92,14 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
+    def test_handles_different_sized_arrays(self):
+        """Test when a different sized arrays have been input"""
+        u_href = np.full([3, 3], 10, dtype=float)
+        msg = 'Different size input arrays u_href, h_ref, z_0, mask'
+        with self.assertRaisesRegexp(ValueError, msg):
+            FrictionVelocity(u_href, self.h_ref,
+                             self.z_0, self.mask).process()
+
 
 if __name__ == '__main__':
     unittest.main()
