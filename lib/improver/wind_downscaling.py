@@ -89,10 +89,10 @@ class FrictionVelocity(object):
         self.z_0 = z_0
         self.mask = mask
 
-    def calc_ustar(self):
+    def process(self):
         """Function to calculate the friction velocity.
 
-        ustar = K * u_href / ln(h_ref / z_0)
+        ustar = K * (u_href / ln(h_ref / z_0))
 
         where ustar is the friction velocity, K is Von Karman's
         constant, u_ref is the wind speed at the reference height,
@@ -357,7 +357,7 @@ class RoughnessCorrectionUtilities(object):
         if hgrid.ndim == 1:
             hgrid = hgrid[np.newaxis, np.newaxis, :]
         ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
-                                 mask).calc_ustar()
+                                 mask).process()
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI
