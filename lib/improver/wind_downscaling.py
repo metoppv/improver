@@ -86,6 +86,7 @@ class FrictionVelocity(object):
         self.z_0 = z_0
         self.mask = mask
 
+        # Check that input cubes are the same size
         array_sizes = [np.size(u_href), np.size(h_ref), np.size(z_0),
                        np.size(mask)]
 
