@@ -111,9 +111,9 @@ class FrictionVelocity(object):
         ustar = np.full(self.u_href.shape, RMDI)
         ustar[self.mask] = (
                 VONKARMAN * (
-                self.u_href[self.mask] /
-                np.log(self.h_ref[self.mask] / self.z_0[self.mask])
-        )
+                    self.u_href[self.mask] /
+                    np.log(self.h_ref[self.mask] / self.z_0[self.mask])
+                )
         )
         return ustar
 
@@ -463,7 +463,7 @@ class RoughnessCorrectionUtilities(object):
                                     diffs[diffs != 0] * (yup[diffs != 0] -
                                                          ylow[diffs != 0])))
         interp[diffs == 0] = at_x[diffs == 0] / xup[diffs == 0] * (
-        yup[diffs == 0])
+            yup[diffs == 0])
         return interp
 
     @staticmethod
@@ -547,7 +547,7 @@ class RoughnessCorrectionUtilities(object):
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
                 expon * u_a[:, :, np.newaxis] * ml2[:, :,
-                                                np.newaxis] * onemfrac)
+                                                    np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
@@ -563,7 +563,8 @@ class RoughnessCorrectionUtilities(object):
 
         """
         delt_z = np.ones(self.pporo.shape) * RMDI
-        delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[self.hcmask]
+        delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[
+            self.hcmask]
         return delt_z
 
     def do_rc_hc_all(self, hgrid, uorig):
