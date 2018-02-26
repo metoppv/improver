@@ -105,7 +105,7 @@ class FrictionVelocity(object):
         roughness length.
 
         Returns:
-            ustar (ndarray):
+            ustar (np.ndarray):
                 A 2D array of friction velocities
 
         """
