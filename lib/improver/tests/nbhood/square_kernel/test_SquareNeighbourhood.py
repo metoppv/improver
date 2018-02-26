@@ -341,6 +341,27 @@ class Test_pad_cube_with_halo(IrisTest):
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
+    def test_mask_halo(self):
+        """Test that padding the data in a cube with a halo when mask=True."""
+        for sliced_cube in self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]):
+            break
+        expected = np.array(
+            [[0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
+             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
+             [0., 0., 1., 1., 0., 1., 1., 0., 0.],
+             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
+             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        width_x = width_y = 1
+        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
+            sliced_cube, width_x, width_y, masked_data=True)
+        self.assertIsInstance(padded_cube, Cube)
+        self.assertArrayAlmostEqual(padded_cube.data, expected)
+
     def test_different_widths(self):
         """Test that padding the data in a cube with different widths has
         worked as intended."""
@@ -667,44 +688,46 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         neighbourhood processing when the input cubes contain masked
         arrays."""
         expected_data = np.array(
-            [[1.66666667, 1.66666667, -1.22222222, -1.22222222, -1.22222222,
-              -1.33333333, 1.66666667],
-             [1.66666667, 1.66666667, -1.22222222, -1.22222222, -1.22222222,
-              -1.33333333, 2.44444444],
-             [3.22222222, 4., 0.88888889, 0.88888889, 0.88888889,
-              1., -1.22222222],
-             [-1.22222222, -1.22222222, 0.88888889, 0.88888889, 0.88888889,
-              1., -1.22222222],
-             [-1.22222222, -1.22222222, 0.88888889, 0.88888889, 0.88888889,
-              1., -1.22222222],
-             [-1.22222222, -1.22222222, 1., 1., 1.,
-              1., -2.11111111],
-             [-2.88888889, -3.66666667, -1.22222222, -1.22222222, -1.22222222,
-              -1.33333333, 1.66666667]])
+            [[0.66666667, 0.33333333, -0.55555556, -0.66666667, -0.33333333,
+              -0.11111111, 0.66666667],
+             [0.66666667, 0.44444444, -0.33333333, -0.33333333, -0.11111111,
+              0., 0.33333333],
+             [0.33333333, 0.55555556, 0.33333333, 0.44444444, 0.22222222,
+              0.11111111, -0.44444444],
+             [-0.44444444, -0.11111111, 0.55555556, 0.66666667, 0.33333333,
+              0.11111111, -0.66666667],
+             [-0.66666667, -0.44444444, 0.33333333, 0.33333333, 0.11111111,
+              0., -0.33333333],
+             [-0.33333333, -0.22222222, 0.22222222, 0.22222222, 0.11111111,
+              0., -0.22222222],
+             [-0.22222222, -0.55555556, -0.55555556, -0.66666667, -0.33333333,
+              -0.11111111, 0.66666667]])
         expected_mask = np.array(
-            [[0.55555556, 0.77777778, -0.11111111, -0.44444444, -0.77777778,
-              -1., 0.44444444],
-             [0.77777778, 1.11111111, -0.11111111, -0.55555556, -1.,
-              -1.33333333, 0.55555556],
-             [1., 1.44444444, 0.11111111, 0.22222222, 0.33333333,
-              0.33333333, -0.22222222],
-             [-0.33333333, -0.44444444, 0.11111111, 0.33333333, 0.55555556,
-              0.66666667, -0.33333333],
-             [-0.55555556, -0.77777778, 0.11111111, 0.44444444, 0.77777778,
-              1., -0.44444444],
-             [-0.77777778, -1.11111111, 0., 0.33333333, 0.66666667,
-              1., -0.33333333],
-             [-0.66666667, -1., -0.11111111, -0.33333333, -0.55555556,
-              -0.66666667, 0.33333333]])
+            [[0.77777778, 0.44444444, -0.66666667, -0.77777778, -0.44444444,
+              -0.11111111, 0.77777778],
+             [0.77777778, 0.55555556, -0.44444444, -0.44444444, -0.22222222,
+              0., 0.44444444],
+             [0.44444444, 0.66666667, 0.44444444, 0.55555556, 0.33333333,
+              0.11111111, -0.55555556],
+             [-0.55555556, -0.22222222, 0.66666667, 0.77777778, 0.44444444,
+              0.11111111, -0.77777778],
+             [-0.77777778, -0.55555556, 0.44444444, 0.44444444, 0.22222222,
+              0., -0.44444444],
+             [-0.44444444, -0.33333333, 0.22222222, 0.22222222, 0.11111111,
+              0., -0.22222222],
+             [-0.22222222, -0.55555556, -0.66666667, -0.77777778, -0.44444444,
+              -0.11111111, 0.77777778]])
 
         grid_cells_x = grid_cells_y = 1
         cube = self.cube
         mask_cube = cube.copy()
-        mask_cube.data[1, 2] = 0.5
-        mask_cube.data[2, 2] = 0.5
-        mask_cube.data = np.ma.masked_equal(mask_cube.data, 0.5)
+        mask_cube.data[::] = 1.0
+        mask_cube.data[1, 2] = 0.0
+        mask_cube.data[2, 2] = 0.0
+        # _set_up_cubes_to_be_neighbourhooded would set masked points to 0.0
+        cube.data[1, 2] = 0.0
+        cube.data[2, 2] = 0.0
         mask_cube.rename('mask_data')
-        mask_cube.data = np.logical_not(mask_cube.data.astype(int))
         cubes = CubeList([cube, mask_cube])
         nbcubes = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
@@ -890,14 +913,21 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[0.000000, 0.000000, 0.571429, 0.500000, 0.000000],
-               [0.000000, 0.750000, 0.571429, 0.428571, 0.000000],
-               [0.000000, 0.000000, 0.714286, 0.571429, 0.200000],
-               [np.nan, 0.000000, 0.666667, 0.571429, 0.000000],
-               [np.nan, 0.000000, 0.666667, 0.666667, 0.000000]]]])
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        expected_mask = np.array(
+            [[[[True, True, False, False, True],
+               [True, False, False, False, True],
+               [True, True, False, False, False],
+               [True, True, False, False, True],
+               [True, True, False, False, True]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.data, expected_array)
+        self.assertArrayEqual(result.data.mask, expected_mask)
 
     def test_masked_array_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
@@ -916,11 +946,11 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
-               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
-               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.666667, 0.333333]]]])
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
@@ -976,14 +1006,21 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[np.nan, 0.000000, 0.571429, 0.500000, 0.000000],
-               [0.000000, 0.750000, 0.571429, 0.428571, 0.000000],
-               [0.000000, 0.000000, 0.714286, 0.571429, 0.200000],
-               [np.nan, 0.000000, 0.666667, 0.571429, 0.000000],
-               [np.nan, 0.000000, 0.666667, 0.666667, 0.000000]]]])
+            [[[[np.nan, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        expected_mask = np.array(
+            [[[[True, True, False, False, True],
+               [True, False, False, False, True],
+               [True, True, False, False, False],
+               [True, True, False, False, True],
+               [True, True, False, False, True]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.mask, expected_mask)
 
     def test_masked_array_with_nans_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
@@ -1002,11 +1039,11 @@ class Test_run(IrisTest):
                            [0, 0, 1, 1, 0],
                            [0, 0, 1, 1, 0]]]])
         expected_array = np.array(
-            [[[[np.nan, 0.500000, 0.571429, 0.500000, 0.666667],
-               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
-               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.666667, 0.333333]]]])
+            [[[[np.nan, 0.666667, 0.600000, 0.500000, 0.50],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.25],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
@@ -1064,16 +1101,16 @@ class Test_run(IrisTest):
         masked_data = np.ma.masked_where(mask == 0, data)
         cube.data = masked_data
         expected_array = np.array(
-            [[[[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
-               [1.000000, 0.750000, 0.571429, 0.428571, 0.200000],
-               [1.000000, 1.000000, 0.714286, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.571429, 0.200000],
-               [np.nan, 1.000000, 0.666667, 0.666667, 0.333333]],
-              [[1.000000, 0.500000, 0.571429, 0.500000, 0.666667],
-               [0.500000, 0.600000, 0.500000, 0.428571, 0.200000],
-               [0.500000, 0.750000, 0.428571, 0.333333, 0.000000],
-               [0.000000, 0.666667, 0.333333, 0.333333, 0.000000],
-               [np.nan, 1.000000, 0.400000, 0.400000, 0.000000]]]])
+            [[[[1.0000, 0.666667, 0.600000, 0.500000, 0.500000],
+               [1.0000, 0.750000, 0.571429, 0.428571, 0.250000],
+               [1.0000, 1.000000, 0.714286, 0.571429, 0.250000],
+               [np.nan, 1.000000, 0.666667, 0.571429, 0.250000],
+               [np.nan, 1.000000, 0.750000, 0.750000, 0.500000]],
+              [[1.0000, 0.666667, 0.600000, 0.500000, 0.500000],
+               [0.5000, 0.600000, 0.500000, 0.428571, 0.250000],
+               [0.5000, 0.750000, 0.428571, 0.333333, 0.000000],
+               [0.0000, 0.666667, 0.333333, 0.333333, 0.000000],
+               [np.nan, 1.000000, 0.333333, 0.333333, 0.000000]]]])
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -1087,9 +1124,9 @@ class Test_run(IrisTest):
              [1., 0.88888889, 0.88888889, 0.88888889, 1.],
              [1., 1., 1., 1., 1.]])
         expected_2 = np.array(
-            [[0.88888889, 0.88888889, 0.88888889, 1., 1.],
-             [0.88888889, np.nan, 0.88888889, 1., 1.],
-             [0.88888889, 0.88888889, 0.88888889, 1., 1.],
+            [[1., 1., 1., 1., 1.],
+             [1., np.nan, 1., 1., 1.],
+             [1., 1., 1., 1., 1.],
              [1., 1., 1., 1., 1.],
              [1., 1., 1., 1., 1.]])
         cube = set_up_cube(

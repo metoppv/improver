@@ -40,7 +40,6 @@ from improver.nbhood.use_nbhood import (
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import clip_cube_data
 
 
 def main():
@@ -139,15 +138,6 @@ def main():
                         help='If provided the result after neighbourhooding, '
                              'before collapsing the extra dimension is saved '
                              'in the given filepath.')
-    parser.add_argument('--no_clip', action='store_true', default=False,
-                        help="By default the results of neighbourhooding will "
-                             "be clipped to the extremes in the input data. "
-                             "If '--no_clip' is used then this clipping is "
-                             "turned off. "
-                             "Once the neighbourhood code is fixed so it "
-                             "doesn't produce values above or below the "
-                             "extremes in the input data this option can be "
-                             "removed.")
 
     args = parser.parse_args()
 
@@ -165,13 +155,6 @@ def main():
         args.coord_for_masking, radius_or_radii, lead_times=lead_times,
         ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
         re_mask=args.re_mask).process(cube, mask_cube)
-    # TODO: This clip should be removed once the neighbourhood code is fixed.
-    # At the moment the neighbourhood code can produce values beyond extremes
-    # in the input data.
-    if not args.no_clip:
-        minimum_value = np.nanmin(cube.data)
-        maximum_value = np.nanmax(cube.data)
-        result = clip_cube_data(result, minimum_value, maximum_value)
 
     if args.intermediate_filepath is not None:
         save_netcdf(result, args.intermediate_filepath)
