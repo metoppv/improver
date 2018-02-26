@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind downscaling plugins."""
 
-
 import copy
 import itertools
 
@@ -40,7 +39,6 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.constants import RMDI
-
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04
@@ -56,7 +54,6 @@ Z0M_SEA = 0.0001
 
 
 class FrictionVelocity(object):
-
     """"Class to calculate the friction velocity.
 
     This holds the function to calculate the friction velocity u_star,
@@ -69,16 +66,16 @@ class FrictionVelocity(object):
         """Initialise the class.
 
         Args:
-            u_href: 2D np.array (float)
-                wind speed at h_ref
-            h_ref:  2D np.array (float)
-                reference height
-            z_0:    2D np.array (float)
-                vegetative roughness length
-            mask:   2D np.array (logical)
-                where True, calculate u*
+            u_href: (np.ndarray)
+                A 2D array of floats for the wind speed at h_ref
+            h_ref: (np.ndarray)
+                A 2D array of floats for the reference heights
+            z_0:  (np.ndarray)
+                A 2D array of floats for the vegetative roughness lengths
+            mask: (np.ndarray)
+                A 2D array of booleans where True indicates calculate u*
 
-        comments:
+        Notes:
             * z_0 and h_ref need to have identical units.
             * the calculated friction velocity will have the units of the
                 supplied velocity u_href.
@@ -89,10 +86,17 @@ class FrictionVelocity(object):
         self.z_0 = z_0
         self.mask = mask
 
-    def calc_ustar(self):
+        array_sizes = [np.size(u_href), np.size(h_ref), np.size(z_0),
+                       np.size(mask)]
+
+        if not all(x == array_sizes[0] for x in array_sizes):
+            raise ValueError('Different size input arrays u_href, h_ref, z_0, '
+                             'mask')
+
+    def process(self):
         """Function to calculate the friction velocity.
 
-        ustar = K * u_href / ln(h_ref / z_0)
+        ustar = K * (u_href / ln(h_ref / z_0))
 
         where ustar is the friction velocity, K is Von Karman's
         constant, u_ref is the wind speed at the reference height,
@@ -100,22 +104,21 @@ class FrictionVelocity(object):
         roughness length.
 
         Returns:
-            ustar (2D array float):
-                friction velocity
+            ustar (ndarray):
+                A 2D array of friction velocities
 
         """
         ustar = np.full(self.u_href.shape, RMDI)
         ustar[self.mask] = (
-            VONKARMAN * (
-                self.u_href[self.mask] /
-                np.log(self.h_ref[self.mask] / self.z_0[self.mask])
-            )
+                VONKARMAN * (
+                    self.u_href[self.mask] /
+                    np.log(self.h_ref[self.mask] / self.z_0[self.mask])
+                )
         )
         return ustar
 
 
 class RoughnessCorrectionUtilities(object):
-
     """Class to calculate the height and roughness wind corrections.
 
     This holds functions to calculate the roughness and height
@@ -167,9 +170,9 @@ class RoughnessCorrectionUtilities(object):
         self.hcmask, self.rcmask = self._setmask()  # HC mask, RC mask
         if self.z_0 is not None:
             self.z_0[z_0 <= 0] = Z0M_SEA
-        self.dx_min = ppres/2.  # scales smaller than this not resolved in pp
+        self.dx_min = ppres / 2.  # scales smaller than this not resolved in pp
         # the original code had hardcoded 500
-        self.dx_max = 3.*modres  # scales larger than this resolved in model
+        self.dx_max = 3. * modres  # scales larger than this resolved in model
         # the original code had hardcoded 4000
         self.wavenum = self._calc_wav()  # k = 2*pi / L
         self.h_ref = self._calc_h_ref()
@@ -282,12 +285,12 @@ class RoughnessCorrectionUtilities(object):
         """
         wavn = np.full(self.a_over_s.shape, RMDI)
         wavn[self.hcmask] = (
-            (self.a_over_s[self.hcmask] * np.pi) /
-            self.h_over_2[self.hcmask]
+                (self.a_over_s[self.hcmask] * np.pi) /
+                self.h_over_2[self.hcmask]
         )
-        wavn[wavn > np.pi/self.dx_min] = np.pi/self.dx_min
+        wavn[wavn > np.pi / self.dx_min] = np.pi / self.dx_min
         wavn[self.h_over_2 == 0] = RMDI
-        wavn[abs(wavn) < np.pi/self.dx_max] = np.pi/self.dx_max
+        wavn[abs(wavn) < np.pi / self.dx_max] = np.pi / self.dx_max
         return wavn
 
     def _calc_h_ref(self):
@@ -319,13 +322,13 @@ class RoughnessCorrectionUtilities(object):
         tunable_param = np.full(self.wavenum.shape, RMDI)
         h_ref = np.full(self.wavenum.shape, RMDI)
         tunable_param[self.hcmask] = (
-            alpha + np.log(self.wavenum[self.hcmask] *
-                           self.h_over_2[self.hcmask])
+                alpha + np.log(self.wavenum[self.hcmask] *
+                               self.h_over_2[self.hcmask])
         )
         tunable_param[tunable_param > 1.0] = 1.0
         tunable_param[tunable_param < 0.0] = 0.0
         h_ref[self.hcmask] = (
-            tunable_param[self.hcmask] / self.wavenum[self.hcmask])
+                tunable_param[self.hcmask] / self.wavenum[self.hcmask])
         h_ref[h_ref < 1.0] = 1.0
         h_ref = np.minimum(h_ref, HREF_SCALE * self.h_over_2)
         h_ref[h_ref < 1.0] = 1.0
@@ -357,16 +360,18 @@ class RoughnessCorrectionUtilities(object):
         if hgrid.ndim == 1:
             hgrid = hgrid[np.newaxis, np.newaxis, :]
         ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
-                                 mask).calc_ustar()
+                                 mask).process()
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI
         cond = hgrid < self.h_ref[:, :, np.newaxis]
         unew[cond] = (
-            ustar[:, :, np.newaxis]*np.ones(unew.shape)
-            )[cond] * (
-                np.log(hgrid/(np.reshape(self.z_0, self.z_0.shape + (1,)) *
-                              np.ones(unew.shape)))[cond])/VONKARMAN
+                             ustar[:, :, np.newaxis] * np.ones(unew.shape)
+                     )[cond] * (
+                         np.log(hgrid / (np.reshape(self.z_0,
+                                                    self.z_0.shape + (1,)) *
+                                         np.ones(unew.shape)))[
+                             cond]) / VONKARMAN
         return unew
 
     def _calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
@@ -402,19 +407,21 @@ class RoughnessCorrectionUtilities(object):
                                             h_in, 0.0), axis=2)
 
         if h_in.ndim == 3:
-            hup = h_in.take(upidx.flatten()+np.arange(0, upidx.size *
-                                                      h_in.shape[2],
-                                                      h_in.shape[2]))
-            hlow = h_in.take(loidx.flatten()+np.arange(0, loidx.size *
-                                                       h_in.shape[2],
-                                                       h_in.shape[2]))
+            hup = h_in.take(upidx.flatten() + np.arange(0, upidx.size *
+                                                        h_in.shape[2],
+                                                        h_in.shape[2]))
+            hlow = h_in.take(loidx.flatten() + np.arange(0, loidx.size *
+                                                         h_in.shape[2],
+                                                         h_in.shape[2]))
         elif h_in.ndim == 1:
             hup = h_in[upidx].flatten()
             hlow = h_in[loidx].flatten()
-        uup = u_in.take(upidx.flatten()+np.arange(0, upidx.size*u_in.shape[2],
-                                                  u_in.shape[2]))
-        ulow = u_in.take(loidx.flatten()+np.arange(0, loidx.size*u_in.shape[2],
-                                                   u_in.shape[2]))
+        uup = u_in.take(
+            upidx.flatten() + np.arange(0, upidx.size * u_in.shape[2],
+                                        u_in.shape[2]))
+        ulow = u_in.take(
+            loidx.flatten() + np.arange(0, loidx.size * u_in.shape[2],
+                                        u_in.shape[2]))
         mask = mask.flatten()
         uath = np.full(mask.shape, RMDI, dtype=float)
         if dolog:
@@ -452,10 +459,11 @@ class RoughnessCorrectionUtilities(object):
         interp = np.full(xup.shape, RMDI, dtype=float)
         diffs = (xup - xlow)
         interp[diffs != 0] = (
-            ylow[diffs != 0]+((at_x[diffs != 0]-xlow[diffs != 0]) /
-                              diffs[diffs != 0]*(yup[diffs != 0] -
-                                                 ylow[diffs != 0])))
-        interp[diffs == 0] = at_x[diffs == 0]/xup[diffs == 0]*(yup[diffs == 0])
+                ylow[diffs != 0] + ((at_x[diffs != 0] - xlow[diffs != 0]) /
+                                    diffs[diffs != 0] * (yup[diffs != 0] -
+                                                         ylow[diffs != 0])))
+        interp[diffs == 0] = at_x[diffs == 0] / xup[diffs == 0] * (
+            yup[diffs == 0])
         return interp
 
     @staticmethod
@@ -482,12 +490,13 @@ class RoughnessCorrectionUtilities(object):
         """
         ain = np.full(xup.shape, RMDI, dtype=float)
         loginterp = np.full(xup.shape, RMDI, dtype=float)
-        mfrac = xup/xlow
-        mtest = (xup/xlow != 1) & (at_x != xup)
-        ain[mtest] = (yup[mtest] - ylow[mtest])/np.log(mfrac[mtest])
-        loginterp[mtest] = ain[mtest]*np.log(at_x[mtest]/xup[mtest])+yup[mtest]
-        mtest = (xup/xlow == 1)  # below lowest layer, make lin interp
-        loginterp[mtest] = at_x[mtest]/xup[mtest] * (yup[mtest])
+        mfrac = xup / xlow
+        mtest = (xup / xlow != 1) & (at_x != xup)
+        ain[mtest] = (yup[mtest] - ylow[mtest]) / np.log(mfrac[mtest])
+        loginterp[mtest] = ain[mtest] * np.log(at_x[mtest] / xup[mtest]) + yup[
+            mtest]
+        mtest = (xup / xlow == 1)  # below lowest layer, make lin interp
+        loginterp[mtest] = at_x[mtest] / xup[mtest] * (yup[mtest])
         mtest = (at_x == xup)  # just use yup
         loginterp[mtest] = yup[mtest]
         return loginterp
@@ -532,12 +541,13 @@ class RoughnessCorrectionUtilities(object):
             heightg = heightg[np.newaxis, np.newaxis, :]
         elif heightg.ndim == 3:
             zdim = heightg.shape[2]
-        ml2 = self.h_at0*self.wavenum
+        ml2 = self.h_at0 * self.wavenum
         expon = np.ones([xdim, ydim, zdim])
-        mult = self.wavenum[:, :, np.newaxis]*heightg
+        mult = self.wavenum[:, :, np.newaxis] * heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
-            expon*u_a[:, :, np.newaxis] * ml2[:, :, np.newaxis] * onemfrac)
+                expon * u_a[:, :, np.newaxis] * ml2[:, :,
+                                                    np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
@@ -553,7 +563,8 @@ class RoughnessCorrectionUtilities(object):
 
         """
         delt_z = np.ones(self.pporo.shape) * RMDI
-        delt_z[self.hcmask] = self.pporo[self.hcmask]-self.modoro[self.hcmask]
+        delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[
+            self.hcmask]
         return delt_z
 
     def do_rc_hc_all(self, hgrid, uorig):
@@ -586,7 +597,8 @@ class RoughnessCorrectionUtilities(object):
             unew = self.calc_roughness_correction(hgrid, uorig, mask_rc)
         else:
             unew = uorig
-        uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0/self.wavenum, mask_hc)
+        uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0 / self.wavenum,
+                                       mask_hc)
         mask_hc[uhref_orig <= 0] = False
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
@@ -600,7 +612,6 @@ class RoughnessCorrectionUtilities(object):
 
 
 class RoughnessCorrection(object):
-
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]
@@ -783,9 +794,9 @@ class RoughnessCorrection(object):
         oklist = []
         for entry in permutated_ancil_list:
             x_axis_flag = (
-                entry[0].coord(axis="y") == entry[1].coord(axis="y"))
+                    entry[0].coord(axis="y") == entry[1].coord(axis="y"))
             y_axis_flag = (
-                entry[0].coord(axis="x") == entry[1].coord(axis="x"))
+                    entry[0].coord(axis="x") == entry[1].coord(axis="x"))
             oklist.append(x_axis_flag & y_axis_flag)
             # HybridHeightToPhenomOnPressure._cube_compatibility_check(entr[0],
             # entr[1])
@@ -875,7 +886,7 @@ class RoughnessCorrection(object):
 
         """
         xap, yap, _, _ = self.find_coord_order(self.pp_oro)
-        if xwp - ywp != xap-yap:
+        if xwp - ywp != xap - yap:
             if np.isnan(xap) or np.isnan(yap):
                 raise ValueError("ancillary grid different from wind grid")
             else:
