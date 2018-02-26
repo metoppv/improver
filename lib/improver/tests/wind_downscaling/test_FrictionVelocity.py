@@ -93,7 +93,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_handles_different_sized_arrays(self):
-        """Test when a different size arrays have been input"""
+        """Test when if different size arrays have been input"""
         u_href = np.full([3, 3], 10, dtype=float)
         msg = 'Different size input arrays u_href, h_ref, z_0, mask'
         with self.assertRaisesRegexp(ValueError, msg):
