@@ -38,9 +38,6 @@ from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
 from improver.utilities.save import save_netcdf
 
-iris.FUTURE.netcdf_no_unlimited = True
-iris.FUTURE.netcdf_promote = True
-
 
 def main():
     """Invoke the extraction of a cube."""
@@ -53,7 +50,10 @@ def main():
                         help="File to write the extracted cube to.")
 
     parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
-                        help="The constraint(s) to be applied.")
+                        help='The constraint(s) to be applied.  These must be'
+                        ' strictly of the form "key=value", eg "threshold=1",'
+                        ' as parse_constraints() does not support < > or '
+                        'lambda functions.')
     parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
                         help='Optional: units of coordinate constraint(s) to '
                         'be applied, for use when the input cube coordinate '

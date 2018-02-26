@@ -33,9 +33,6 @@
 from ast import literal_eval
 import iris
 
-iris.FUTURE.netcdf_no_unlimited = True
-iris.FUTURE.netcdf_promote = True
-
 
 def parse_constraint_list(constraints, units):
     """
@@ -52,7 +49,11 @@ def parse_constraint_list(constraints, units):
             constraints.  One or more "units" may be None, and units can only
             be associated with coordinate constraints.
 
-    Returns a dictionary of constraints and units
+    Returns:
+        constraints_dict (dictionary):
+            A dictionary of constraint keys and interpreted values
+        units_dict (dictionary or None):
+            A dictionary of unit keys and values
     """
 
     if units is None:
@@ -78,8 +79,7 @@ def parse_constraint_list(constraints, units):
 def extract_subcube(input_filename, constraints, units):
     """
     Using a set of constraints, extract a subcube from the provided cube or
-    cubelist if it is available.  Constraints are strictly equality based.
-    Returns a single merged cube, or raises ValueError on merge if no subcube
+    cubelist if it is available.  Raises ValueError on merge if no subcube
     matched the constraints provided.
 
     Args:
@@ -94,6 +94,10 @@ def extract_subcube(input_filename, constraints, units):
             A dictionary of units for the constraints.  Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
+
+    Returns:
+        cube (iris.cube.Cube):
+            A single cube matching the input constraints.
 
     """
     constraint = iris.Constraint(**constraints)
