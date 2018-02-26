@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+git# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017 Met Office.
 # All rights reserved.

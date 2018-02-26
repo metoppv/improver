@@ -92,5 +92,6 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
+
 if __name__ == '__main__':
     unittest.main()
