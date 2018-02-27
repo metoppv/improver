@@ -388,7 +388,7 @@ class Test_pad_cube_with_halo(IrisTest):
              [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
         width_x = width_y = 1
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            sliced_cube, width_x, width_y, masked_data=True)
+            sliced_cube, width_x, width_y, masked_halo=True)
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
