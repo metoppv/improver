@@ -41,7 +41,10 @@ Extracts subcube from a cube, subject to constraints.
 positional arguments:
   INPUT_FILE            File containing a single cube to extract from.
   OUTPUT_FILE           File to write the extracted cube to.
-  CONSTRAINTS           The constraint(s) to be applied.
+  CONSTRAINTS           The constraint(s) to be applied. These must be
+                        strictly of the form "key=value", eg "threshold=1", as
+                        parse_constraints() does not support < > or lambda
+                        functions.
 
 optional arguments:
   -h, --help            show this help message and exit
