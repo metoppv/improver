@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,11 @@ def parse_constraint_list(constraints, units):
     constraints_dict = {}
     for constraint_pair, units in zip(constraints, list_units):
         [key, value] = constraint_pair.split('=')
-        constraints_dict[key] = literal_eval(value)
+        try:
+            constraints_dict[key] = literal_eval(value)
+        except ValueError:
+            constraints_dict[key] = value
+
         if units is not None and units != 'None':
             units_dict[key] = units
 

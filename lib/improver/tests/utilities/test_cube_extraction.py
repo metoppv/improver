@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,8 +60,8 @@ def set_up_precip_probability_cube():
                       [0.02, 0.02, 0.00],
                       [0.01, 0.00, 0.00]]])
 
-    mmh_to_ms = 0.001/3600.
-    threshold = DimCoord(mmh_to_ms*np.array([0.03, 0.1, 1.0]),
+    MMH_TO_MS = 0.001/3600.
+    threshold = DimCoord(MMH_TO_MS*np.array([0.03, 0.1, 1.0]),
                          long_name="threshold", units="m s-1")
     ycoord = DimCoord(np.arange(3), "projection_y_coordinate")
     xcoord = DimCoord(np.arange(3), "projection_x_coordinate")

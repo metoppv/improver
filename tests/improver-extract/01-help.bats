@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,15 +36,13 @@
 usage: improver-extract [-h] [--units UNITS [UNITS ...]]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 
-Extracts subcube from a cube, subject to constraints.
+Extracts subcube from a file, subject to constraints.
 
 positional arguments:
   INPUT_FILE            File containing a single cube to extract from.
   OUTPUT_FILE           File to write the extracted cube to.
   CONSTRAINTS           The constraint(s) to be applied. These must be
-                        strictly of the form "key=value", eg "threshold=1", as
-                        parse_constraints() does not support < > or lambda
-                        functions.
+                        strictly of the form "key=value", eg "threshold=1".
 
 optional arguments:
   -h, --help            show this help message and exit
