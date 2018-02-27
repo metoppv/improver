@@ -1,6 +1,6 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 #------------------------------------------------------------------------------
 # NAME
 #    improver tests - Run IMPROVER self-tests
