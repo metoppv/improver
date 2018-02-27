@@ -44,7 +44,6 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.load import load_cube
 
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import clip_cube_data
 
 
 def main():
@@ -115,15 +114,6 @@ def main():
                              'fraction calculated by dividing the sum of the '
                              'neighbourhood by the neighbourhood area. '
                              '"fraction" is the default option.')
-    parser.add_argument('--no_clip', action='store_true', default=False,
-                        help="By default the results of neighbourhooding will "
-                             "be clipped to the extremes in the input data. "
-                             "If '--no_clip' is used then this clipping is "
-                             "turned off. "
-                             "Once the neighbourhood code is fixed so it "
-                             "doesn't produce values above or below the "
-                             "extremes in the input data this option can be "
-                             "removed.")
     parser.add_argument('--intermediate_filepaths', default=None, nargs=2,
                         help='If provided the results after neighbourhooding, '
                         'but before recombining land and sea are saved to the '
@@ -199,15 +189,6 @@ def main():
         'square', radius_or_radii, lead_times=lead_times,
         ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
         re_mask=True).process(cube, sea_only)
-
-    # TODO: This clip should be removed once the neighbourhood code is fixed.
-    # At the moment the neighbourhood code can produce values beyond extremes
-    # in the input data.
-    if not args.no_clip:
-        minimum_value = np.nanmin(cube.data)
-        maximum_value = np.nanmax(cube.data)
-        result_land = clip_cube_data(result_land, minimum_value, maximum_value)
-        result_sea = clip_cube_data(result_sea, minimum_value, maximum_value)
 
     if args.intermediate_filepaths is not None:
         save_netcdf(result_land, args.intermediate_filepaths[0])

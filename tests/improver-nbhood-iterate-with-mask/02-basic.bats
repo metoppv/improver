@@ -37,7 +37,7 @@
 
   # Run neighbourhood processing and check it passes.
   run improver nbhood-iterate-with-mask 'topographic_zone' "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/input.nc"\
-      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/mask.nc" "$TEST_DIR/output.nc" --radius=20000 --no_clip
+      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/mask.nc" "$TEST_DIR/output.nc" --radius=20000
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

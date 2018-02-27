@@ -40,7 +40,6 @@ usage: improver-nbhood-iterate-with-mask [-h]
                                          [--re_mask | --collapse_dimension]
                                          [--weights_for_collapsing_dim WEIGHTS]
                                          [--intermediate_filepath INTERMEDIATE_FILEPATH]
-                                         [--no_clip]
                                          COORD_FOR_MASKING INPUT_FILE
                                          INPUT_MASK_FILE OUTPUT_FILE
 
@@ -115,12 +114,6 @@ optional arguments:
                         If provided the result after neighbourhooding, before
                         collapsing the extra dimension is saved in the given
                         filepath.
-  --no_clip             By default the results of neighbourhooding will be
-                        clipped to the extremes in the input data. If '--
-                        no_clip' is used then this clipping is turned off.
-                        Once the neighbourhood code is fixed so it doesn't
-                        produce values above or below the extremes in the
-                        input data this option can be removed.
 
 
 __HELP__
