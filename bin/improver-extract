@@ -31,8 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extract subcubes given constraints."""
 
-import iris
 from improver.argparser import ArgParser
+from improver.utilities.load import load_cube
 from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
 from improver.utilities.save import save_netcdf
@@ -58,16 +58,16 @@ def main():
                         'order and length (with null values set to None).')
     args = parser.parse_args()
 
-    cube = iris.load_cube(args.input_file)
+    cube = load_cube(args.input_file)
 
     constraints, units = parse_constraint_list(args.constraints, args.units)
-    cube = extract_subcube(cube, constraints, units)
+    output_cube = extract_subcube(cube, constraints, units)
 
-    if cube is None:
+    if output_cube is None:
         msg = ("Constraint(s) could not be matched in input cube")
         raise ValueError(msg)
     else:
-        save_netcdf(cube, args.output_file)
+        save_netcdf(output_cube, args.output_file)
 
 
 if __name__ == '__main__':
