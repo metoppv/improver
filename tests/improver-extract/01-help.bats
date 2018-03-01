@@ -36,11 +36,12 @@
 usage: improver-extract [-h] [--units UNITS [UNITS ...]]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 
-Extracts subcube from a file, subject to constraints.
+Extracts subset of data from a single input file, subject to equality-based
+constraints.
 
 positional arguments:
-  INPUT_FILE            File containing a single cube to extract from.
-  OUTPUT_FILE           File to write the extracted cube to.
+  INPUT_FILE            File containing a dataset to extract from.
+  OUTPUT_FILE           File to write the extracted dataset to.
   CONSTRAINTS           The constraint(s) to be applied. These must be
                         strictly of the form "key=value", eg "threshold=1".
 

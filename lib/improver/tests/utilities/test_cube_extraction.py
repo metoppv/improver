@@ -31,7 +31,6 @@
 """ Unit tests for cube extraction utilities """
 
 import unittest
-import os
 import numpy as np
 
 import iris
@@ -80,14 +79,14 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_basic_no_units(self):
         """ Test simple key-value splitting with no units """
-        cdict, udict = parse_constraint_list(self.constraints, None)
+        cdict, udict = parse_constraint_list(self.constraints)
         self.assertEqual(cdict["percentile"], 10)
         self.assertEqual(cdict["threshold"], 0.1)
         self.assertFalse(udict)
 
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
-        units = ["None", "mm h-1"]
+        units = ["none", "mm h-1"]
         _, udict = parse_constraint_list(self.constraints, units)
         self.assertEqual(udict["threshold"], "mm h-1")
         self.assertNotIn("percentile", udict.keys())
@@ -111,7 +110,7 @@ class Test_extract_subcube(IrisTest):
     def test_basic_no_units(self):
         """ Test cube extraction for single constraint without units """
         constraint_dict = {"name": "probability_of_precipitation"}
-        cube = extract_subcube(self.precip_cube, constraint_dict, None)
+        cube = extract_subcube(self.precip_cube, constraint_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data
         self.assertArrayEqual(cube.data, reference_data)

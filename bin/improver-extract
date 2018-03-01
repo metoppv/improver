@@ -31,24 +31,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extract subcubes given constraints."""
 
-import argparse
 import iris
-
+from improver.argparser import ArgParser
 from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
 from improver.utilities.save import save_netcdf
 
 
 def main():
-    """Invoke the extraction of a cube."""
+    """Invoke data extraction."""
 
-    parser = argparse.ArgumentParser(description='Extracts subcube from'
-                                     ' a file, subject to constraints.')
+    parser = ArgParser(description='Extracts subset of data from a single '
+                       'input file, subject to equality-based constraints.')
     parser.add_argument('input_file', metavar='INPUT_FILE',
-                        help="File containing a single cube to extract from.")
+                        help="File containing a dataset to extract from.")
     parser.add_argument('output_file', metavar='OUTPUT_FILE',
-                        help="File to write the extracted cube to.")
-
+                        help="File to write the extracted dataset to.")
     parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
                         help='The constraint(s) to be applied.  These must be'
                         ' strictly of the form "key=value", eg "threshold=1".')

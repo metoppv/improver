@@ -34,7 +34,7 @@ from ast import literal_eval
 import iris
 
 
-def parse_constraint_list(constraints, units):
+def parse_constraint_list(constraints, units=None):
     """
     Takes a list of string constraints and converts to key-value pairs
 
@@ -44,7 +44,9 @@ def parse_constraint_list(constraints, units):
             value in each pair: e.g: kw1=val1 kw2=val2 kw3=val3.  Values must
             be of scalar types interpretable by ast.literal_eval: strings,
             numbers, booleans, or "None".
-        units (list of strings or None):
+
+    Kwargs:
+        units (list of strings):
             Space separated list of units for each coordinate in the list of
             constraints.  One or more "units" may be None, and units can only
             be associated with coordinate constraints.
@@ -74,13 +76,13 @@ def parse_constraint_list(constraints, units):
         except ValueError:
             constraints_dict[key] = value
 
-        if units is not None and units != 'None':
+        if units is not None and units.capitalize() != 'None':
             units_dict[key] = units
 
     return constraints_dict, units_dict
 
 
-def extract_subcube(cube, constraints, units):
+def extract_subcube(cube, constraints, units=None):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
