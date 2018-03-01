@@ -33,8 +33,6 @@
 import unittest
 import os
 import numpy as np
-from tempfile import mkdtemp
-from subprocess import call
 
 import iris
 from iris.tests import IrisTest
@@ -107,21 +105,13 @@ class Test_extract_subcube(IrisTest):
     """ Test function to extract subcube according to constraints """
 
     def setUp(self):
-        """ Save temporary input cube to file """
+        """ Set up temporary input cube """
         self.precip_cube = set_up_precip_probability_cube()
-        self.directory = mkdtemp()
-        self.filepath = os.path.join(self.directory, 'tmp_precip_cube.nc')
-        iris.save(self.precip_cube, self.filepath)
-
-    def tearDown(self):
-        """ Remove temporary path created for testing """
-        call(['rm', '-f', self.filepath])
-        call(['rmdir', self.directory])
 
     def test_basic_no_units(self):
         """ Test cube extraction for single constraint without units """
         constraint_dict = {"name": "probability_of_precipitation"}
-        cube = extract_subcube(self.filepath, constraint_dict, None)
+        cube = extract_subcube(self.precip_cube, constraint_dict, None)
         self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data
         self.assertArrayEqual(cube.data, reference_data)
@@ -130,24 +120,18 @@ class Test_extract_subcube(IrisTest):
         """ Test cube extraction for single constraint with units """
         constraint_dict = {"threshold": 0.1}
         units_dict = {"threshold": "mm h-1"}
-        cube = extract_subcube(self.filepath, constraint_dict, units_dict)
+        cube = extract_subcube(self.precip_cube, constraint_dict, units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertEqual(cube.coord("threshold").units, "mm h-1")
+        self.assertEqual(cube.coord("threshold").units, "m s-1")
         reference_data = self.precip_cube.data[1, :, :]
         self.assertArrayEqual(cube.data, reference_data)
-
-    def test_raises_mismatch_error(self):
-        """ Test error is raised if the output cube is empty """
-        constraint_dict = {"threshold": 6}
-        with self.assertRaises(ValueError):
-            extract_subcube(self.filepath, constraint_dict, None)
 
     def test_multiple_constraints_with_units(self):
         """ Test behaviour with a list of constraints and units """
         constraint_dict = {"name": "probability_of_precipitation",
                            "threshold": 0.03}
         units_dict = {"threshold": "mm h-1"}
-        cube = extract_subcube(self.filepath, constraint_dict, units_dict)
+        cube = extract_subcube(self.precip_cube, constraint_dict, units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
         reference_data = self.precip_cube.data[0, :, :]
         self.assertArrayEqual(cube.data, reference_data)
@@ -158,7 +142,7 @@ class Test_extract_subcube(IrisTest):
         constraint_dict = {"name": "probability_of_precipitation"}
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
-            extract_subcube(self.filepath, constraint_dict, units_dict)
+            extract_subcube(self.precip_cube, constraint_dict, units_dict)
 
 
 if __name__ == '__main__':

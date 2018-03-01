@@ -60,10 +60,12 @@ def main():
                         'order and length (with null values set to None).')
     args = parser.parse_args()
 
+    cube = iris.load_cube(args.input_file)
+
     constraints, units = parse_constraint_list(args.constraints, args.units)
-    try:
-        cube = extract_subcube(args.input_file, constraints, units)
-    except ValueError:
+    cube = extract_subcube(cube, constraints, units)
+
+    if cube is None:
         msg = ("Constraint(s) could not be matched in input cube")
         raise ValueError(msg)
     else:

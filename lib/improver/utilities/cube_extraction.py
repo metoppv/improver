@@ -80,15 +80,14 @@ def parse_constraint_list(constraints, units):
     return constraints_dict, units_dict
 
 
-def extract_subcube(input_filename, constraints, units):
+def extract_subcube(cube, constraints, units):
     """
-    Using a set of constraints, extract a subcube from the provided cube or
-    cubelist if it is available.  Raises ValueError on merge if no subcube
-    matched the constraints provided.
+    Using a set of constraints, extract a subcube from the provided cube if it
+    is available.
 
     Args:
-        cube (iris.cube.Cube or iris.cube.CubeList):
-            The cube or cubelist from which a subcube is to be extracted.
+        cube (iris.cube.Cube):
+            The cube from which a subcube is to be extracted.
         constraints (dictionary):
             A dictionary of constraints that define the subcube to be
             extracted.
@@ -101,19 +100,20 @@ def extract_subcube(input_filename, constraints, units):
 
     Returns:
         cube (iris.cube.Cube):
-            A single cube matching the input constraints.
+            A single cube matching the input constraints, or None.
 
     """
     constraint = iris.Constraint(**constraints)
 
     if units is not None:
-        cubes = iris.load(input_filename)
-        for cube in cubes:
-            for coord in units.keys():
-                cube.coord(coord).convert_units(units[coord])
-        cubes = cubes.extract(constraint)
+        original_units = {}
+        for coord in units.keys():
+            original_units[coord] = cube.coord(coord).units
+            cube.coord(coord).convert_units(units[coord])
+        output_cube = cube.extract(constraint)
+        for coord in original_units.keys():
+            output_cube.coord(coord).convert_units(original_units[coord])
     else:
-        cubes = iris.load(input_filename, constraint)
+        output_cube = cube.extract(constraint)
 
-    cube = cubes.merge_cube()
-    return cube
+    return output_cube
