@@ -42,8 +42,10 @@ constraints.
 positional arguments:
   INPUT_FILE            File containing a dataset to extract from.
   OUTPUT_FILE           File to write the extracted dataset to.
-  CONSTRAINTS           The constraint(s) to be applied. These must be
-                        strictly of the form "key=value", eg "threshold=1".
+  CONSTRAINTS           The constraint(s) to be applied. These must be of the
+                        form "key=value", eg "threshold=1". Scalars, boolean
+                        and string values are supported. Lists (eg
+                        "key=[value1, value2]") are not supported.
 
 optional arguments:
   -h, --help            show this help message and exit

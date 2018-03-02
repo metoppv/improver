@@ -49,7 +49,9 @@ def main():
                         help="File to write the extracted dataset to.")
     parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
                         help='The constraint(s) to be applied.  These must be'
-                        ' strictly of the form "key=value", eg "threshold=1".')
+                        ' of the form "key=value", eg "threshold=1".  Scalars'
+                        ', boolean and string values are supported.  Lists '
+                        '(eg "key=[value1, value2]") are not supported.')
     parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
                         help='Optional: units of coordinate constraint(s) to '
                         'be applied, for use when the input cube coordinate '
