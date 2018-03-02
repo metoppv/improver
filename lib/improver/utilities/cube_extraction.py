@@ -70,7 +70,7 @@ def parse_constraint_list(constraints, units=None):
         key, value = constraint_pair.split('=', 1)
         key = key.strip(' ')
         value = value.strip(' ')
-        
+
         try:
             constraints_dict[key] = literal_eval(value)
         except ValueError:
@@ -107,7 +107,9 @@ def extract_subcube(cube, constraints, units=None):
     """
     constraint = iris.Constraint(**constraints)
 
-    if units is not None:
+    if units is None:
+        output_cube = cube.extract(constraint)
+    else:
         original_units = {}
         for coord in units.keys():
             original_units[coord] = cube.coord(coord).units
@@ -115,8 +117,10 @@ def extract_subcube(cube, constraints, units=None):
         output_cube = cube.extract(constraint)
         for coord in original_units.keys():
             cube.coord(coord).convert_units(original_units[coord])
-            output_cube.coord(coord).convert_units(original_units[coord])
-    else:
-        output_cube = cube.extract(constraint)
+            try:
+                output_cube.coord(coord).convert_units(original_units[coord])
+            except AttributeError:
+                # an empty output cube (None) is handled by the CLI
+                pass
 
     return output_cube

@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_extraction import (parse_constraint_list,
                                                 extract_subcube)
 
+
 def set_up_precip_probability_cube():
     """
     Set up a cube with spatial probabilities of precipitation at three
@@ -66,7 +67,7 @@ def set_up_precip_probability_cube():
                           dim_coords_and_dims=[(threshold, 0), (ycoord, 1),
                                                (xcoord, 2)], units="1")
     return cube
- 
+
 
 class Test_parse_constraint_list(IrisTest):
     """ Test function to parse constraints and units into dictionaries """
@@ -147,6 +148,16 @@ class Test_extract_subcube(IrisTest):
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
             extract_subcube(self.precip_cube, constraint_dict, units_dict)
+
+    def test_return_none(self):
+        """ Test function returns None rather than raising an error where
+        no subcubes match the required constraints, when unit conversion is
+        required """
+        constraint_dict = {"name": "probability_of_precipitation",
+                           "threshold": 5}
+        cube = extract_subcube(self.precip_cube, constraint_dict,
+                               self.units_dict)
+        self.assertFalse(cube)
 
 
 if __name__ == '__main__':
