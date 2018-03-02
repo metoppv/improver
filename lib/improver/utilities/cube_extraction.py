@@ -40,14 +40,11 @@ def parse_constraint_list(constraints, units=None):
 
     Args:
         constraints (list):
-            Space separated list of constraints with no space between key and
-            value in each pair: e.g: kw1=val1 kw2=val2 kw3=val3.  Values must
-            be of scalar types interpretable by ast.literal_eval: strings,
-            numbers, booleans, or "None".
-
+            List of string constraints with keys and values split by "=":
+            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
     Kwargs:
         units (list of strings):
-            Space separated list of units for each coordinate in the list of
+            List of units corresponding to each coordinate in the list of
             constraints.  One or more "units" may be None, and units can only
             be associated with coordinate constraints.
 
@@ -70,14 +67,17 @@ def parse_constraint_list(constraints, units=None):
 
     constraints_dict = {}
     for constraint_pair, units in zip(constraints, list_units):
-        [key, value] = constraint_pair.split('=')
+        key, value = constraint_pair.split('=', 1)
+        key = key.strip(' ')
+        value = value.strip(' ')
+        
         try:
             constraints_dict[key] = literal_eval(value)
         except ValueError:
             constraints_dict[key] = value
 
         if units is not None and units.capitalize() != 'None':
-            units_dict[key] = units
+            units_dict[key] = units.strip(' ')
 
     return constraints_dict, units_dict
 
@@ -114,6 +114,7 @@ def extract_subcube(cube, constraints, units=None):
             cube.coord(coord).convert_units(units[coord])
         output_cube = cube.extract(constraint)
         for coord in original_units.keys():
+            cube.coord(coord).convert_units(original_units[coord])
             output_cube.coord(coord).convert_units(original_units[coord])
     else:
         output_cube = cube.extract(constraint)
