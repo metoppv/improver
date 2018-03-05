@@ -77,7 +77,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
 
 
 def load_cubelist(filepath, constraints=None, no_lazy_load=False):
-    """Load the filepath(s) provided using Iris into a cubelist.
+    """Load the filepath(s) provided using Iris into a cubelist.  Loads
+    exactly one data cube per file.
 
     Args:
         filepath (str or list):

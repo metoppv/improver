@@ -30,9 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for loading functionality."""
 
+import os
+import unittest
 from subprocess import call as Call
 from tempfile import mkdtemp
-import unittest
 
 import iris
 from iris.tests import IrisTest
@@ -52,7 +53,7 @@ class Test_load_cube(IrisTest):
     def setUp(self):
         """Set up variables for use in testing."""
         self.directory = mkdtemp()
-        self.filepath = self.directory+"temp.nc"
+        self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_temperature_cube()
         iris.save(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
@@ -131,11 +132,10 @@ class Test_load_cube(IrisTest):
     def test_ordering(self):
         """Test that cube has been reordered, if it is originally in an
         undesirable order."""
-        filepath = self.directory+"temp.nc"
         cube = set_up_temperature_cube()
         cube.transpose([3, 2, 1, 0])
-        iris.save(cube, filepath)
-        result = load_cube(filepath)
+        iris.save(cube, self.filepath)
+        result = load_cube(self.filepath)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, self.realization_points)
@@ -177,17 +177,22 @@ class Test_load_cubelist(IrisTest):
     def setUp(self):
         """Set up variables for use in testing."""
         self.directory = mkdtemp()
-        self.filepath = self.directory+"temp.nc"
+        self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_temperature_cube()
         iris.save(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
         self.time_points = np.array(402192.5)
         self.latitude_points = np.array([-45., 0., 45.])
         self.longitude_points = np.array([120., 150., 180.])
+        self.low_cloud_filepath = os.path.join(self.directory, "low_cloud.nc")
+        self.med_cloud_filepath = os.path.join(self.directory,
+                                               "medium_cloud.nc")
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
         Call(['rm', '-f', self.filepath])
+        Call(['rm', '-f', self.low_cloud_filepath])
+        Call(['rm', '-f', self.med_cloud_filepath])
         Call(['rmdir', self.directory])
 
     def test_single_file(self):
@@ -207,7 +212,7 @@ class Test_load_cubelist(IrisTest):
     def test_wildcard_files(self):
         """Test that the loading works correctly, if a wildcarded filepath is
         provided."""
-        filepath = self.directory+"*.nc"
+        filepath = os.path.join(self.directory, "*.nc")
         result = load_cubelist(filepath)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertArrayAlmostEqual(
@@ -240,15 +245,13 @@ class Test_load_cubelist(IrisTest):
         of the available files."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
-        low_cloud_filepath = self.directory+"low_cloud.nc"
-        iris.save(low_cloud_cube, low_cloud_filepath)
+        iris.save(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
-        medium_cloud_filepath = self.directory+"medium_cloud.nc"
-        iris.save(medium_cloud_cube, medium_cloud_filepath)
+        iris.save(medium_cloud_cube, self.med_cloud_filepath)
         constr = iris.Constraint("low_type_cloud_area_fraction")
-        result = load_cubelist(
-            [low_cloud_filepath, medium_cloud_filepath], constraints=constr)
+        result = load_cubelist([self.low_cloud_filepath,
+                                self.med_cloud_filepath], constraints=constr)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(result), 1)
         self.assertArrayAlmostEqual(
