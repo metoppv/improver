@@ -66,7 +66,7 @@ def parse_constraint_list(constraints, units=None):
         units_dict = {}
 
     constraints_dict = {}
-    for constraint_pair, units in zip(constraints, list_units):
+    for constraint_pair, unit_val in zip(constraints, list_units):
         key, value = constraint_pair.split('=', 1)
         key = key.strip(' ')
         value = value.strip(' ')
@@ -76,8 +76,8 @@ def parse_constraint_list(constraints, units=None):
         except ValueError:
             constraints_dict[key] = value
 
-        if units is not None and units.capitalize() != 'None':
-            units_dict[key] = units.strip(' ')
+        if unit_val is not None and unit_val.capitalize() != 'None':
+            units_dict[key] = unit_val.strip(' ')
 
     return constraints_dict, units_dict
 
