@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2018 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to cutout the desired domain."""
+
+from distutils.spawn import find_executable
+
+from improver.argparser import ArgParser
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+
+
+def cutout_values_to_indices(cube, y_extent, x_extent, use_indices):
+    if use_indices:
+        y_extent = np.arange(y_extent)
+        x_extent = np.arange(x_extent)
+    else:
+        y_points = cube.coord(axis="y").points
+        y_extent = np.where(
+            np.logical_and(y_points>=y_extent[0], y_points<=y_extent[1]))
+        x_points = cube.coord(axis="y").points
+        x_extent = np.where(
+            np.logical_and(y_points>=y_extent[0], y_points<=y_extent[1]))
+    return y_extent, x_extent
+
+
+def domain_cutout(cube, y_extent, x_extent):
+    index = [slice(None)] * cube.ndim
+    for axis, extent in zip([["y", "x"], [y_extent, x_extent]]):
+        dim, = cube.coord_dims(cube.coord(axis=axis))
+        index[dim] = extent
+    return cube[tuple(index)]
+
+
+def find_if_coordinates_are_circular(cube, coords)
+    coord_has_modulus = False
+    for coord in coords:
+        if cube.coord(coord).units.modulus:
+            coord_has_modulus = True
+    return coord_has_modulus
+
+
+def main():
+    """Load in arguments, use ncks to make a cutout and save."""
+
+    parser = ArgParser(
+        description='Compute a spatial cutout from an input cube. '
+                    'The cutout will be computed by specifying the coordinate '
+                    'that will be used to create the cutout and the ')
+    parser.add_argument('input_filepath', metavar='INPUT_FILE',
+                        help='A path to an input NetCDF file to be processed.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--output_files', metavar='OUTPUT_FILES',
+                        help='The output files for the processed NetCDF.')
+    group.add_argument('--output_directory', metavar='OUTPUT_DIRECTORY',
+                        help='The output directory the processed NetCDF.'
+                             'If this option is selected, then the assumption'
+                             'is that the output filename will be the same '
+                             'as the input filename.')
+    parser.add_argument('x_coordinate', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF.')
+    parser.add_argument('y_coordinate', metavar='OUTPUT_FILE',
+                        help='The output path for the processed NetCDF.')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--use_indices')
+    group.add_argument('--use_values')
+    parser.add_argument('--x_coordinate_indices',
+                        metavar=('MINIMUM_INDEX', 'MAXIMUM_INDEX'),
+                        nargs=2, help='dfsd')
+    parser.add_argument('--y_coordinate_indices',
+                        metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                        nargs=2, help='dfsd')
+    parser.add_argument('--x_coordinate_values',
+                        metavar=('MINIMUM_INDEX', 'MAXIMUM_INDEX'),
+                        nargs=2, help='dfsd')
+    parser.add_argument('--y_coordinate_values',
+                        metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
+                        nargs=2, help='dfsd')
+    parser.add_argument('--ncks_options', default="-O -h", nargs="+")
+
+    if args.use_indices:
+        if args.x_coordinate_indices or args.y_coordinate_indices:
+            if args.x_coordinate_indices:
+                x_coordinate_indices = args.x_coordinate_indices
+            else:
+                x_coordinate_indices = (0, -1)
+            if args.y_coordinate_indices:
+                y_coordinate_indices = args.y_coordinate_indices
+            else:
+                y_coordinate_indices = (0, -1)
+        else:
+            msg = ("If indices are to be used to create the cutout, then "
+                   "either x coordinate indices, y coordinate indices or "
+                   "both must be specified.")
+            raise ValueError(msg)
+
+    if args.use_values:
+        if args.x_coordinate_values or args.y_coordinate_values:
+            if args.x_coordinate_values:
+                x_coordinate_values = args.x_coordinate_values
+            else:
+                x_coordinate_values = False
+            if args.y_coordinate_values:
+                y_coordinate_values = args.y_coordinate_values
+            else:
+                y_coordinate_values = False
+        else:
+            msg = ("If values are to be used to create the cutout, then "
+                   "either x coordinate values, y coordinate values or "
+                   "both must be specified.")
+            raise ValueError(msg)
+
+    input_files = glob.glob(args.input_filepath)
+
+    if len(input_files) != len(args.output_filepaths):
+        msg = "If the output_filepaths argument is provided, "
+        raise ValueError(msg)
+
+    if args.output_directory:
+        output_files = []
+        for input_file in input_files:
+            basename = os.path.basename(input_file)
+            output_files.append(os.path.join(args.output_directoy, basename))
+
+    for input_file, output_file in zip(input_files, output_files):
+        if find_executable("ncks"):
+            subprocess.call(["ncks", args.ncks_options, "-d" args.y_coordinate, args.y_coordinate_indices, "-d", args.x_coordinate, args.c_coordinate_indices, file_to_process, output_file])
+        else:
+            cube = load_cube(input_file)
+            if find_if_coordinates_are_circular(
+                   cube, [args.y_coordinate, args.x_coordinate]):
+                cube.intersection(args.y_coordinate=y_coordinate_values,
+                                  args.x_coordinate=x_coordinate_values)
+            else:
+                y_extent, x_extent = (
+                    cutout_values_to_indices(
+                        cube, y_extent=y_coordinate_values,
+                        x_extent=x_coordinate_values, args.use_indices)
+                cube = domain_cutout(
+                    cube, y_extent=y_extent, x_extent=x_extent,
+                    args.use_indices)
+            save_netcdf(cube)
+
+
+if __name__ == "__main__":
+    main()
