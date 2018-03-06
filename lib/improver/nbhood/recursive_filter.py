@@ -401,8 +401,10 @@ class RecursiveFilter(object):
             new_cube = SquareNeighbourhood().remove_halo_from_cube(
                 new_cube, self.edge_width, self.edge_width)
             if self.re_mask:
+                new_cube.data[nan_array.astype(bool)] = np.nan
                 new_cube.data = np.ma.masked_array(new_cube.data,
                                                    mask=np.logical_not(mask))
+
             recursed_cube.append(new_cube)
 
         new_cube = recursed_cube.merge_cube()

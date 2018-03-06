@@ -109,14 +109,14 @@ class SquareNeighbourhood(object):
 
         Returns:
             summed_cube (Iris.cube.Cube):
-                Cubeto which the cumulative summing
+                Cube to which the cumulative summing
                 along the y and x direction has been applied.
         """
         summed_cube = cube.copy()
         data = cube.data.astype(np.longdouble)
         data_summed_along_y = np.cumsum(data, axis=0)
         data_summed_along_x = (
-        np.cumsum(data_summed_along_y, axis=1))
+            np.cumsum(data_summed_along_y, axis=1))
         summed_cube.data = data_summed_along_x
         return summed_cube
 
@@ -221,10 +221,11 @@ class SquareNeighbourhood(object):
 
     def pad_cube_with_halo(self, cube, width_x, width_y, masked_halo=False):
         """
-        Method to pad a halo around the data in an iris cube. The padding
-        calculates the mean within the neighbourhood radius in grid cells
-        i.e. the neighbourhood width at the edge of the data and uses this
-        mean value as the padding value.
+        Method to pad a halo around the data in an iris cube. Normally the
+        masked_halo should be zero as it is considered masked data however if
+        masked_halo is False then the padding calculates the mean within the
+        neighbourhood radius in grid cells i.e. the neighbourhood width at
+        the edge of the data and uses this mean value as the padding value.
 
         Args:
             cube (iris.cube.Cube):
@@ -252,7 +253,8 @@ class SquareNeighbourhood(object):
 
         # Pad a halo around the original data with the extent of the halo
         # given by width_y and width_x. Assumption to pad using the mean
-        # value within the neighbourhood width.
+        # value within the neighbourhood width for backwards compatability
+        # as this function is used outside of SquareNeighbourhood.
         if masked_halo:
             padded_data = np.pad(
                 cube.data,
@@ -358,10 +360,14 @@ class SquareNeighbourhood(object):
                 Displacement from the point at the centre
                 of the neighbourhood.
                 Equivalent to point D in the docstring example.
-            ymin_xmin_disp  (int):
+            ymin_xmin_disp (int):
                 Displacement from the point at the centre
                 of the neighbourhood.
                 Equivalent to point C in the docstring example.
+            n_rows (int):
+                Number of rows
+            n_columns (int):
+                Number of columns
 
         Returns:
             neighbourhood_total (np.array):
@@ -456,13 +462,13 @@ class SquareNeighbourhood(object):
         if self.sum_or_fraction == "fraction":
             # Initialise and calculate the neighbourhood area.
             neighbourhood_area = self.calculate_neighbourhood(
-                summed_mask, ymax_xmax_disp,ymin_xmax_disp,
+                summed_mask, ymax_xmax_disp, ymin_xmax_disp,
                 ymin_xmin_disp, ymax_xmin_disp,
                 n_rows, n_columns)
 
             with np.errstate(invalid='ignore', divide='ignore'):
                 cube.data = (neighbourhood_total.astype(float) /
-                                    neighbourhood_area.astype(float))
+                             neighbourhood_area.astype(float))
                 cube.data[~np.isfinite(cube.data)] = np.nan
         elif self.sum_or_fraction == "sum":
             cube.data = neighbourhood_total.astype(float)
@@ -485,14 +491,13 @@ class SquareNeighbourhood(object):
                 Input Cube containing the array to be used as a mask.
 
         Returns:
-             (tuple) : tuple containing:
-                **cube** (Iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **mask** (Iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **nan_array** (np.array):
-                    numpy array to be used to set the values within
-                    the data of the output cube to be NaN.
+            cube (Iris.cube.Cube):
+                Cube with masked or NaN values set to 0.0
+            mask (Iris.cube.Cube):
+                Cube with masked or NaN values set to 0.0
+            nan_array (np.array):
+                numpy array to be used to set the values within
+                the data of the output cube to be NaN.
         """
         # Set up mask_cube
         if not mask_cube:
@@ -506,7 +511,7 @@ class SquareNeighbourhood(object):
         if isinstance(cube.data, np.ma.MaskedArray):
             index = np.where(cube.data.mask.astype(int) == 1)
             if len(index) > 0:
-               mask.data[index] = 0.0
+                mask.data[index] = 0.0
         mask.rename('mask_data')
         if np.ma.is_masked(cube.data):
             cube.data = cube.data.data
@@ -545,10 +550,8 @@ class SquareNeighbourhood(object):
         Returns:
             neighbourhood_averaged_cube (Iris.cube):
                 Cube containing the smoothed field after the square
-                neighbourhood method has been applied.
+                neighbourhood method has been applied with halo added.
         """
-
-        
         # Pad the iris cube. This way, the edge effects produced
         # by the vectorisation of the 4-point method will appear outside
         # our domain of interest. These unwanted points can be trimmed off
@@ -562,7 +565,7 @@ class SquareNeighbourhood(object):
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(
                 summed_up_cube, summed_up_mask, grid_cells_x, grid_cells_y))
-        
+
         return neighbourhood_averaged_cube
 
     def _remove_padding_and_mask(
@@ -571,6 +574,8 @@ class SquareNeighbourhood(object):
             grid_cells_x, grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
+        If fraction option set, clip the data so values lie within
+        the range of the original cube.
 
         Args:
             neighbourhood_averaged_cube (Iris.cube.Cube):

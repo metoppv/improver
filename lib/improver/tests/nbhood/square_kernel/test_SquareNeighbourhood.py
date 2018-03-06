@@ -339,27 +339,6 @@ class Test_pad_cube_with_halo(IrisTest):
         self.assertIsInstance(padded_cube, Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
-    def test_mask_halo(self):
-        """Test that padding the data in a cube with a halo when mask=True."""
-        for sliced_cube in self.cube.slices(["projection_y_coordinate",
-                                             "projection_x_coordinate"]):
-            break
-        expected = np.array(
-            [[0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
-             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
-             [0., 0., 1., 1., 0., 1., 1., 0., 0.],
-             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
-             [0., 0., 1., 1., 1., 1., 1., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
-        width_x = width_y = 1
-        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            sliced_cube, width_x, width_y, masked_halo=True)
-        self.assertIsInstance(padded_cube, Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
-
     def test_different_widths(self):
         """Test that padding the data in a cube with different widths has
         worked as intended."""
