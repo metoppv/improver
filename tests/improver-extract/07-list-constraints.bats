@@ -39,7 +39,7 @@
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
       "$TEST_DIR/output.nc" \
-      "threshold=[30, 40]"
+      "threshold=[34, 35]"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
