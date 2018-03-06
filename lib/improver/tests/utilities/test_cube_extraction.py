@@ -104,6 +104,12 @@ class Test_parse_constraint_list(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             parse_constraint_list(self.constraints, units)
 
+    def test_list_constraint(self):
+        """ Test that a list of constraints is parsed correctly """
+        constraints = ["threshold=[0.1,1.0]"]
+        cdict, _ = parse_constraint_list(constraints)
+        self.assertEqual(cdict["threshold"], [0.1, 1.0])
+
 
 class Test_extract_subcube(IrisTest):
     """ Test function to extract subcube according to constraints """
@@ -158,6 +164,14 @@ class Test_extract_subcube(IrisTest):
         cube = extract_subcube(self.precip_cube, constraint_dict,
                                self.units_dict)
         self.assertFalse(cube)
+
+    def test_list_constraints(self):
+        """ Test that a list of constraints behaves correctly """
+        constraint_dict = {"threshold": [0.1, 1.0]}
+        cube = extract_subcube(self.precip_cube, constraint_dict,
+                               self.units_dict)
+        reference_data = self.precip_cube.data[1:, :, :]
+        self.assertArrayEqual(cube.data, reference_data)
 
 
 if __name__ == '__main__':

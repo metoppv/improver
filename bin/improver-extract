@@ -50,8 +50,9 @@ def main():
     parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
                         help='The constraint(s) to be applied.  These must be'
                         ' of the form "key=value", eg "threshold=1".  Scalars'
-                        ', boolean and string values are supported.  Lists '
-                        '(eg "key=[value1, value2]") are not supported.')
+                        ', boolean and string values are supported.  Comma-'
+                        'separated lists (eg "key=[value1,value2]") are also '
+                        'supported.')
     parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
                         help='Optional: units of coordinate constraint(s) to '
                         'be applied, for use when the input cube coordinate '

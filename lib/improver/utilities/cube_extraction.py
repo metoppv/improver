@@ -101,9 +101,9 @@ def extract_subcube(cube, constraints, units=None):
             of the input cube (eg precip in mm/h for cube threshold in m/s).
 
     Returns:
-        cube (iris.cube.Cube):
-            A single cube matching the input constraints, or None.
-
+        output_cube (iris.cube.Cube):
+            A single cube matching the input constraints, or None if no subcube
+            is found within cube that matches the constraints.
     """
     constraint = iris.Constraint(**constraints)
 
