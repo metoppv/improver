@@ -60,7 +60,7 @@ def domain_cutout(cube, y_extent, x_extent):
     return cube[tuple(index)]
 
 
-def find_if_coordinates_are_circular(cube, coords)
+def find_if_coordinates_are_circular(cube, coords):
     coord_has_modulus = False
     for coord in coords:
         if cube.coord(coord).units.modulus:
@@ -90,32 +90,47 @@ def main():
     parser.add_argument('y_coordinate', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--use_indices')
-    group.add_argument('--use_values')
-    parser.add_argument('--x_coordinate_indices',
-                        metavar=('MINIMUM_INDEX', 'MAXIMUM_INDEX'),
-                        nargs=2, help='dfsd')
-    parser.add_argument('--y_coordinate_indices',
+    group.add_argument('--use_indices', action='store_true'
+                       help='')
+    group.add_argument('--use_values', action='store_true',
+                       help='')
+    parser.add_argument('--x_coord',
+                        metavar=('FIRST_LIMIT', 'SECOND_LIMIT'),
+                        nargs=2,
+                        help='A pair of limits to represent either the '
+                             'range for the indices that will be extracted '
+                             'e.g. 1 3 to extract from the first index to '
+                             'the third index ' 
+                             'or the data values that will be used as the '
+                             'limits e.g. 10 30 where these limits could '
+                             'refer to degrees of longitude.')
+    parser.add_argument('--y_coord',
                         metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
-                        nargs=2, help='dfsd')
-    parser.add_argument('--x_coordinate_values',
-                        metavar=('MINIMUM_INDEX', 'MAXIMUM_INDEX'),
-                        nargs=2, help='dfsd')
-    parser.add_argument('--y_coordinate_values',
-                        metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
-                        nargs=2, help='dfsd')
-    parser.add_argument('--ncks_options', default="-O -h", nargs="+")
+                        nargs=2,
+                        help='A pair of limits to represent either the '
+                             'range for the indices that will be extracted '
+                             'e.g. 1 3 to extract from the first index to '
+                             'the third index '
+                             'or the data values that will be used as the '
+                             'limits e.g. 10 30 where these limits could '
+                             'refer to degrees of longitude.')
+    parser.add_argument('--different_domains', action='store_true'
+                        help='If this argument is specified, then the '
+                             'y and x extent of the spatial cutout will be '
+                             'recalculated for each file, otherwise it will '
+                             'be assumed that the input files contain the '
+                             'same domain.')
 
     if args.use_indices:
-        if args.x_coordinate_indices or args.y_coordinate_indices:
-            if args.x_coordinate_indices:
-                x_coordinate_indices = args.x_coordinate_indices
+        if args.x_coord or args.y_coord:
+            if args.x_coord:
+                x_coord = args.x_coord
             else:
-                x_coordinate_indices = (0, -1)
-            if args.y_coordinate_indices:
-                y_coordinate_indices = args.y_coordinate_indices
+                x_coord = (0, -1)
+            if args.y_coord:
+                y_coord = args.y_coord
             else:
-                y_coordinate_indices = (0, -1)
+                y_coord = (0, -1)
         else:
             msg = ("If indices are to be used to create the cutout, then "
                    "either x coordinate indices, y coordinate indices or "
@@ -123,15 +138,15 @@ def main():
             raise ValueError(msg)
 
     if args.use_values:
-        if args.x_coordinate_values or args.y_coordinate_values:
-            if args.x_coordinate_values:
-                x_coordinate_values = args.x_coordinate_values
+        if args.x_coord or args.y_coord:
+            if args.x_coord:
+                x_coord = args.x_coord
             else:
-                x_coordinate_values = False
-            if args.y_coordinate_values:
-                y_coordinate_values = args.y_coordinate_values
+                x_coord = False
+            if args.y_coord:
+                y_coord = args.y_coord
             else:
-                y_coordinate_values = False
+                y_coord = False
         else:
             msg = ("If values are to be used to create the cutout, then "
                    "either x coordinate values, y coordinate values or "
@@ -148,8 +163,9 @@ def main():
         output_files = []
         for input_file in input_files:
             basename = os.path.basename(input_file)
-            output_files.append(os.path.join(args.output_directoy, basename))
+            output_files.append(os.path.join(args.output_directory, basename))
 
+    
     for input_file, output_file in zip(input_files, output_files):
         if find_executable("ncks"):
             subprocess.call(["ncks", args.ncks_options, "-d" args.y_coordinate, args.y_coordinate_indices, "-d", args.x_coordinate, args.c_coordinate_indices, file_to_process, output_file])
