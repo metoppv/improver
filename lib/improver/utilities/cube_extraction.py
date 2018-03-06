@@ -43,10 +43,10 @@ def parse_constraint_list(constraints, units=None):
             List of string constraints with keys and values split by "=":
             e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
     Kwargs:
-        units (list of strings):
-            List of units corresponding to each coordinate in the list of
-            constraints.  One or more "units" may be None, and units can only
-            be associated with coordinate constraints.
+        units (list):
+            List of units (as strings) corresponding to each coordinate in the
+            list of constraints.  One or more "units" may be None, and units
+            may only be associated with coordinate constraints.
 
     Returns:
         constraints_dict (dictionary):

@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extract change units" {
+@test "extract multiple constraints with units" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
