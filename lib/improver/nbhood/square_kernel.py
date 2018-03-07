@@ -407,9 +407,7 @@ class SquareNeighbourhood(object):
         3. The neighbourhood total at all points can then be calculated
            simultaneously in a single vector sum.
 
-          Neighbourhood mean = Neighbourhood sum
-                               -----------------
-                               Neighbourhood area
+        Neighbourhood mean = Neighbourhood sum / Neighbourhood area
 
         Neighbourhood area = (2 * nb_width +1)^2 if there are no missing
         points, nb_width is the neighbourhood width, which is equal to 1 for a
@@ -487,19 +485,20 @@ class SquareNeighbourhood(object):
                 Cube that will be checked for whether the data is masked
                 or nan. The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
-
         Keyword Args:
             mask_cube (Iris.cube.Cube):
                 Input Cube containing the array to be used as a mask.
 
         Returns:
-            cube (Iris.cube.Cube):
-                Cube with masked or NaN values set to 0.0
-            mask (Iris.cube.Cube):
-                Cube with masked or NaN values set to 0.0
-            nan_array (np.array):
-                numpy array to be used to set the values within
-                the data of the output cube to be NaN.
+            (tuple) : tuple containing:
+                **cube** (Iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **mask** (Iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **nan_array** (np.array):
+                    numpy array to be used to set the values within
+                    the data of the output cube to be NaN.
+
         """
         # Set up mask_cube
         if not mask_cube:
@@ -510,6 +509,7 @@ class SquareNeighbourhood(object):
         # If there is a mask, fill the data array of the mask_cube with a
         # logical array, logically inverted compared to the integer version of
         # the mask within the original data array.
+
         if isinstance(cube.data, np.ma.MaskedArray):
             index = np.where(cube.data.mask.astype(int) == 1)
             mask.data[index] = 0.0
