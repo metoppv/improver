@@ -593,7 +593,7 @@ class Test_mean_over_neighbourhood(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
+class Test_set_up_cubes_to_be_neighbourhooded(IrisTest):
 
     """Test the set up of cubes prior to neighbourhooding."""
 
@@ -610,7 +610,7 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         expected_mask = np.ones((5, 5))
         expected_nans = expected_mask.astype(bool)*False
         cube, mask, nan_array = (
-            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(self.cube))
+            SquareNeighbourhood.set_up_cubes_to_be_neighbourhooded(self.cube))
         self.assertIsInstance(cube, Cube)
         self.assertIsInstance(mask, Cube)
         self.assertEqual(cube, self.cube)
@@ -629,7 +629,7 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         expected_nans = np.ones((5, 5)).astype(bool)*False
         data = cube.data.data * mask
         result_cube, result_mask, result_nan_array = (
-            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+            SquareNeighbourhood.set_up_cubes_to_be_neighbourhooded(
                 cube.copy()))
         self.assertArrayAlmostEqual(result_cube.data, data)
         self.assertArrayAlmostEqual(result_mask.data, mask)
@@ -649,7 +649,7 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         expected_mask[3, 3] = 0.0
         expected_nans = np.ones((5, 5)).astype(bool)*False
         result_cube, result_mask, result_nan_array = (
-            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+            SquareNeighbourhood.set_up_cubes_to_be_neighbourhooded(
                 self.cube.copy(), mask_cube=mask_cube))
         self.assertIsInstance(result_cube, Cube)
         self.assertIsInstance(result_mask, Cube)
@@ -681,7 +681,7 @@ class Test__set_up_cubes_to_be_neighbourhooded(IrisTest):
         expected_nans[3, 1] = True
 
         result_cube, result_mask, result_nan_array = (
-            SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+            SquareNeighbourhood.set_up_cubes_to_be_neighbourhooded(
                 self.cube.copy(), mask_cube=mask_cube))
 
         self.assertIsInstance(result_cube, Cube)
@@ -728,7 +728,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         mask_cube.data[::] = 1.0
         mask_cube.data[1, 2] = 0.0
         mask_cube.data[2, 2] = 0.0
-        # _set_up_cubes_to_be_neighbourhooded would set masked points to 0.0
+        # set_up_cubes_to_be_neighbourhooded would set masked points to 0.0
         cube.data[1, 2] = 0.0
         cube.data[2, 2] = 0.0
         mask_cube.rename('mask_data')

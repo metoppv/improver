@@ -389,7 +389,7 @@ class RecursiveFilter(object):
             # This should set up a mask full of 1.0 if None is provided
             # and set the data 0.0 where mask is 0.0 or the data is NaN
             output, mask, nan_array = (
-                SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
+                SquareNeighbourhood().set_up_cubes_to_be_neighbourhooded(
                     output, mask_cube))
             mask = mask.data.squeeze()
 

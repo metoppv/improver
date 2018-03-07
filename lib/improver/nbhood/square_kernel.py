@@ -476,7 +476,7 @@ class SquareNeighbourhood(object):
         return cube
 
     @staticmethod
-    def _set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
+    def set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
         """
         Set up a cube ready for neighourhooding the data.
 
@@ -510,8 +510,7 @@ class SquareNeighbourhood(object):
         # the mask within the original data array.
         if isinstance(cube.data, np.ma.MaskedArray):
             index = np.where(cube.data.mask.astype(int) == 1)
-            if len(index) > 0:
-                mask.data[index] = 0.0
+            mask.data[index] = 0.0
         mask.rename('mask_data')
         if np.ma.is_masked(cube.data):
             cube.data = cube.data.data
@@ -584,7 +583,7 @@ class SquareNeighbourhood(object):
             original_cube (Iris.cube.Cube or None):
                 The original cube slice.
             mask (Iris.cube.Cube):
-                The mask cube created by _set_up_cubes_to_be_neighbourhooded.
+                The mask cube created by set_up_cubes_to_be_neighbourhooded.
             grid_cells_x (Float):
                 The number of grid cells along the x axis used to create a
                 square neighbourhood.
@@ -656,7 +655,7 @@ class SquareNeighbourhood(object):
         for cube_slice in cube.slices([cube.coord(axis='y'),
                                        cube.coord(axis='x')]):
             (cube_slice, mask, nan_array) = (
-                self._set_up_cubes_to_be_neighbourhooded(cube_slice,
+                self.set_up_cubes_to_be_neighbourhooded(cube_slice,
                                                          mask_cube))
             neighbourhood_averaged_cube = (
                 self._pad_and_calculate_neighbourhood(
