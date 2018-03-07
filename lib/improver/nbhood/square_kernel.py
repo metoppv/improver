@@ -105,7 +105,8 @@ class SquareNeighbourhood(object):
             cube (Iris.cube.Cube):
                 Cube to which the cumulative summing along the y and x
                 direction will be applied. The cube should contain only x and
-                y dimensions, so will generally be a slice of a cube.
+                y dimensions, so will generally be a slice of a cube ordered
+                so that y is first in the cube (i.e. axis=0).
 
         Returns:
             summed_cube (Iris.cube.Cube):
@@ -321,20 +322,21 @@ class SquareNeighbourhood(object):
         Fast vectorised approach to calculating neighbourhood totals.
 
         Displacements are calculated as follows for the following input array,
-        where the accumulation has occurred from left to right and top to
-        bottom::
+        where the accumulation has occurred from top to
+        bottom and left to right::
 
-        | 2 | 4 | 6 | 7 |
-        | 2 | 4 | 5 | 6 |
-        | 1 | 3 | 4 | 4 |
         | 1 | 2 | 2 | 2 |
+        | 1 | 3 | 4 | 4 |
+        | 2 | 4 | 5 | 6 |
+        | 2 | 4 | 6 | 7 |
+
 
         For a 3x3 neighbourhood centred around the point with a value of 5::
 
-        | 2 (A) | 4 | 6                 | 7 (B) |
-        | 2     | 4 | 5 (Central point) | 6     |
-        | 1     | 3 | 4                 | 4     |
         | 1 (C) | 2 | 2                 | 2 (D) |
+        | 1     | 3 | 4                 | 4     |
+        | 2     | 4 | 5 (Central point) | 6     |
+        | 2 (A) | 4 | 6                 | 7 (B) |
 
         To calculate the value for the neighbourhood sum at the "Central point"
         with a value of 5, calculate::
@@ -511,9 +513,8 @@ class SquareNeighbourhood(object):
         if isinstance(cube.data, np.ma.MaskedArray):
             index = np.where(cube.data.mask.astype(int) == 1)
             mask.data[index] = 0.0
-        mask.rename('mask_data')
-        if np.ma.is_masked(cube.data):
             cube.data = cube.data.data
+        mask.rename('mask_data')
         cube = iris.util.squeeze(cube)
         mask = iris.util.squeeze(mask)
         # Set NaN values to 0 in both the cube data and mask data.
