@@ -656,7 +656,7 @@ class SquareNeighbourhood(object):
                                        cube.coord(axis='x')]):
             (cube_slice, mask, nan_array) = (
                 self.set_up_cubes_to_be_neighbourhooded(cube_slice,
-                                                         mask_cube))
+                                                        mask_cube))
             neighbourhood_averaged_cube = (
                 self._pad_and_calculate_neighbourhood(
                     cube_slice, mask,
