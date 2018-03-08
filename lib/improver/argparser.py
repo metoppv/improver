@@ -57,3 +57,29 @@ class ArgParser(argparse.ArgumentParser):
         """
         msg = 'Method: {} does not accept arguments: {}'
         self.error(msg.format(method, args))
+
+    def incompatible_options(self, arg_1, arg_2, explanation):
+        """Function to raise a parser error
+
+        Some CLI scripts have multiple methods of carrying out an action, with
+        each method having different arguments. This function provides a
+        standard error to be used when incompatible method-argument
+        combinations are passed in.
+
+        Args:
+            arg_1 (string):
+              The first incompatible argument.
+            arg_2 (string):
+              The second incompatible argument.
+            explanation (string):
+              Text description of the reason why the arguments are
+              incompatible.
+
+        Raises:
+            parser.error:
+                To notify user of incompatible method-argument
+                combinations.
+        """
+        msg = ('The {} argument is incompatible with the {} argument '
+               'because {}')
+        self.error(msg.format(arg_1, arg_2, explanation))
