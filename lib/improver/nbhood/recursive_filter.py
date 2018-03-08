@@ -381,32 +381,30 @@ class RecursiveFilter(object):
         alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
         alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
 
-        # Extract mask if present on input cube or provided separately.
-        try:
-            mask, = SquareNeighbourhood._set_up_cubes_to_be_neighbourhooded(
-                cube, mask_cube).extract('mask_data')
-            mask = mask.data.squeeze()
-        except ValueError:
-            mask = np.ones((cube_format.data.shape))
-
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
 
-            # Use mask to zero masked areas.
-            output.data = output.data * mask
-            # Zero any remaining NaN values not covered by mask.
-            output.data = np.nan_to_num(output.data)
+            # Setup cube and mask for processing.
+            # This should set up a mask full of 1.0 if None is provided
+            # and set the data 0.0 where mask is 0.0 or the data is NaN
+            output, mask, nan_array = (
+                SquareNeighbourhood().set_up_cubes_to_be_neighbourhooded(
+                    output, mask_cube))
+            mask = mask.data.squeeze()
 
             padded_cube = SquareNeighbourhood().pad_cube_with_halo(
                 output, self.edge_width, self.edge_width)
+
             new_cube = self.run_recursion(padded_cube, alphas_x, alphas_y,
                                           self.iterations)
             new_cube = SquareNeighbourhood().remove_halo_from_cube(
                 new_cube, self.edge_width, self.edge_width)
             if self.re_mask:
+                new_cube.data[nan_array.astype(bool)] = np.nan
                 new_cube.data = np.ma.masked_array(new_cube.data,
                                                    mask=np.logical_not(mask))
+
             recursed_cube.append(new_cube)
 
         new_cube = recursed_cube.merge_cube()
