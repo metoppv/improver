@@ -33,86 +33,17 @@
 
 from distutils.spawn import find_executable
 import glob
+import os
 import subprocess
 
-import iris
-import numpy as np
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-
-def strings_to_ints(extent):
-    return [int(i) for i in extent]
-
-
-def range_with_endpoint(extent):
-    extent = [int(i) for i in extent]
-    new_extent = list(np.arange(*extent))
-    extent = sorted(list(set(new_extent + extent)))
-    return extent
-
-
-def cutout_values_to_indices(cube, y_extent, x_extent, use_indices):
-    if use_indices:
-        x_extent = range_with_endpoint(x_extent)
-        y_extent = range_with_endpoint(y_extent)
-    else:
-        y_extent = sorted(strings_to_ints(y_extent))
-        x_extent = sorted(strings_to_ints(x_extent))
-        y_points = cube.coord(axis="y").points
-        y_extent, = np.where(
-            np.logical_and(y_points>=y_extent[0], y_points<=y_extent[1]))
-        x_points = cube.coord(axis="x").points
-        x_extent, = np.where(
-            np.logical_and(x_points>=x_extent[0], x_points<=x_extent[1]))
-    return y_extent, x_extent
-
-
-def domain_cutout_with_indices(cube, y_extent, x_extent):
-    index = [slice(None)] * cube.ndim
-    for axis, extent in zip(["y", "x"], [y_extent, x_extent]):
-        dim, = cube.coord_dims(cube.coord(axis=axis))
-        index[dim] = extent
-    return cube[tuple(index)]
-
-
-def create_sorted_lambda_constraint(values, coord_name):
-    values = [int(i) for i in values]
-    values = sorted(values)
-    constr = (
-        iris.Constraint(
-            coord_values={
-                coord_name: lambda cell: values[0] <= cell <= values[1]}))
-    return constr
-
-
-def domain_cutout_with_values(
-        cube, y_coord_name, x_coord_name, y_extent, x_extent):
-    if find_if_any_coordinate_is_circular(cube, [y_coord_name, x_coord_name]):
-        cube = cube.intersection(y_coord_name=y_coord, x_coord_name=x_coord)
-    else:
-        # Sort values into ascending order. Note that they could be passed in
-        # as either lowest value first, or lowest value second.
-        if y_extent is None:
-            y_constr = None
-        else:
-            y_constr = create_sorted_lambda_constraint(y_extent, y_coord_name)
-
-        if x_extent is None:
-            x_constr = None
-        else:
-            x_constr = create_sorted_lambda_constraint(x_extent, x_coord_name)
-        cube = cube.extract(y_constr & x_constr)
-    return cube
-
-
-def find_if_any_coordinate_is_circular(cube, coords):
-    coord_has_modulus = False
-    for coord in coords:
-        if cube.coord(coord).units.modulus:
-            coord_has_modulus = True
-    return coord_has_modulus
+from improver.utilities.spatial import (
+    generate_indices_for_cutout, domain_cutout_with_indices,
+    domain_cutout_with_values, find_if_any_coordinate_is_circular,
+    range_with_endpoint)
 
 
 def main():
@@ -193,16 +124,16 @@ def main():
 
     input_files = glob.glob(args.input_filepath)
 
-    if len(input_files) == len([args.output_filepath]):
-        output_files = [args.output_filepath]
-    else:
-        msg = ("If the output_filepath argument is provided, then the number "
-               "of input files must match the number of output files.")
-        raise ValueError(msg)
-
-    if args.output_directory:
+    if args.output_filepath:
+        if len(input_files) == len([args.output_filepath]):
+            output_files = [args.output_filepath]
+        else:
+            msg = ("If the output_filepath argument is provided, then the number "
+                  "of input files must match the number of output files.")
+            raise ValueError(msg)
+    elif args.output_directory:
         output_files = []
-        for input_file in input_files:
+        for input_file in sorted(input_files):
             basename = os.path.basename(input_file)
             output_files.append(os.path.join(args.output_directory, basename))
 
@@ -240,7 +171,7 @@ def main():
 
     determine_extent = True
     for input_file, output_file in zip(input_files, output_files):
-        if find_executable("ncks"):
+        if find_executable("ncks") and args.use_indices:
             y_constr = "{},{},{}".format(args.y_coord_name, y_coord[0],
                                          y_coord[1])
             x_constr = "{},{},{}".format(args.x_coord_name, x_coord[0],
@@ -260,15 +191,13 @@ def main():
             if args.use_indices or args.force_conversion_to_indices:
                 if determine_extent or args.different_domains:
                     y_extent, x_extent = (
-                        cutout_values_to_indices(
+                        generate_indices_for_cutout(
                             cube, y_coord, x_coord, args.use_indices))
                 determine_extent = False
                 cube = domain_cutout_with_indices(
                     cube, y_extent=y_extent, x_extent=x_extent)
             elif args.use_values:
-                cube = domain_cutout_with_values(
-                    cube, args.y_coord_name, args.x_coord_name,
-                    y_coord, x_coord)
+                cube = domain_cutout_with_values(cube, y_coord, x_coord)
             else:
                 msg = ("The spatial cutout uses either indices or values, "
                        "in order to create the spatial cutout. "

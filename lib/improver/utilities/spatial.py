@@ -39,6 +39,7 @@ import scipy.ndimage
 import cartopy.crs as ccrs
 
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
 # Maximum radius of the neighbourhood width in grid cells.
@@ -416,3 +417,177 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
     i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
     j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
     return i_latitude, j_longitude
+
+
+def domain_cutout_with_indices(cube, y_extent, x_extent):
+    """
+    Uses the provided list of indices along the y and y axis to cut out a
+    subcube from the input cube. The cut out is inclusive of all the indices
+    that have been specified.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing x and y axes that will be subset using indices.
+        y_extent (list or None):
+            List of the indices that will be used to subset the input cube
+            along the y axis.
+        x_extent (list or None):
+            List of the indices that will be used to subset the input cube
+            along the x axis.
+
+    Returns:
+        iris.cube.Cube
+            Cube that has been subset using the specified indices.
+
+    """
+    index = [slice(None)] * cube.ndim
+    for axis, extent in zip(["y", "x"], [y_extent, x_extent]):
+        dim, = cube.coord_dims(cube.coord(axis=axis))
+        index[dim] = extent
+    return cube[tuple(index)]
+
+
+def domain_cutout_with_values(cube, y_extent, x_extent):
+    """
+    Cut out a spatial area when the required range of points along the x and y
+    axes are provided. Either circular or non-circular coordinates are
+    supported. The cut out is inclusive of all the values that have been
+    specified.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing x and y axes that will be subset using values
+            from the points of the coordinate.
+        y_extent (list or None):
+            List of two values that will be used to subset the
+            input cube along the y axis.
+        x_extent (list or None):
+            List of two values that will be used to subset the
+            input cube along the x axis.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube that has been extracted by selecting the points along the x
+            and y coordinates that are within the specified extent.
+
+    """
+    y_coord_name = cube.coord(axis="y").name()
+    x_coord_name = cube.coord(axis="x").name()
+    if find_if_any_coordinate_is_circular(cube, [y_coord_name, x_coord_name]):
+        y_extent = CoordExtent(y_coord_name, min(y_extent), max(y_extent))
+        x_extent = CoordExtent(x_coord_name, min(x_extent), max(x_extent))
+        cube = cube.intersection(y_extent, x_extent)
+    else:
+        # Handling if y_extent is either a list of two values to represent the
+        # spatial extent required, or None, if the spatial extent is only
+        # specified along the x axis. Similar handling is provided for the
+        # x_extent.
+        if y_extent is None:
+            y_constr = None
+        else:
+            y_constr = create_sorted_lambda_constraint(y_extent, y_coord_name)
+
+        if x_extent is None:
+            x_constr = None
+        else:
+            x_constr = create_sorted_lambda_constraint(x_extent, x_coord_name)
+        cube = cube.extract(y_constr & x_constr)
+    return cube
+
+
+def generate_indices_for_cutout(cube, y_extent, x_extent, use_indices):
+    """
+    Conversion of values that have been specified to define a range into
+    indices that represent the range defined. The indices returned are
+    inclusive of all values within the specified range.
+    If indices are provided 
+
+    For example, for if the range [20, 40] is specified, then the indices
+    that will be returned will be [1, 2, 3].
+
+    Values 10 20 30 40 50 60 70 80
+    Index   0  1  2  3  4  5  6  7
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing the coordinates that will be inspected.
+        y_extent (list):
+            List of two values along that y coordinate that will be converted
+            to indices.
+        x_extent (list):
+            List of two values along that x coordinate that will be converted
+            to indices.
+        use_indices (bool):
+            Boolean to indicate wheter the numbers that have been provided to
+            represent the extent are in the form of values along the x and y
+            coordinates, or in terms of indices along the x and y coordinates.
+
+    Returns:
+        y_indices (list):
+            List of indices inclusive of the endpoints specified within
+            input y_extent.
+        x_indices (list):
+            List of indices inclusive of the endpoints specified within
+            input x_extent.
+
+    """
+    if use_indices:
+        x_extent = range_with_endpoint(x_extent)
+        y_extent = range_with_endpoint(y_extent)
+    else:
+        y_extent = sorted([int(i) for i in y_extent])
+        x_extent = sorted([int(i) for i in x_extent])
+        y_points = cube.coord(axis="y").points
+        y_indices, = np.where(
+            np.logical_and(y_points>=y_extent[0], y_points<=y_extent[1]))
+        x_points = cube.coord(axis="x").points
+        x_indices, = np.where(
+            np.logical_and(x_points>=x_extent[0], x_points<=x_extent[1]))
+    return y_indices, x_indices
+
+
+def find_if_any_coordinate_is_circular(cube, coords):
+    """
+    Identify whether any of the coordinates specified on a cube represent
+    circular coordinates. This is determined based on whether the units
+    attribute of the specified coordinate has a modulus attribute defined.
+    The modulus is only defined for circular coordinates.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing the coordinates that will be inspected.
+        coords (list):
+            A list of the names of the coordinates to be inspected.
+
+    Returns:
+        coord_has_modulus (bool):
+            Boolean to represent whether a modulus has been defined for any
+            of the coordinates inspected. This indicates that, at least, some
+            of the coordinates inspected are circular coordinates.
+    """
+    coord_has_modulus = False
+    for coord in coords:
+        if cube.coord(coord).units.modulus:
+            coord_has_modulus = True
+    return coord_has_modulus
+
+
+def range_with_endpoint(extent):
+    """
+    Create a range inclusive of the endpoint. Note that np.arange is
+    deliberately exclusive of the endpoint.
+
+    Args:
+        extent (list):
+            List of two values representing the start and end of a set of
+            values.
+
+    Returns:
+        extent (list):
+            List containing the range between the start and end points of the
+            input values, inclusive of the endpoint.
+    """
+    extent = [int(i) for i in extent]
+    new_extent = list(np.arange(*extent))
+    extent = sorted(list(set(new_extent + extent)))
+    return extent
