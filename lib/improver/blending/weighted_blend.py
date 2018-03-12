@@ -535,11 +535,18 @@ class WeightedBlendAcrossWholeDimension(object):
                 if perc_coord and self.mode == "weighted_mean":
                     percentiles = np.array(perc_coord.points, dtype=float)
                     perc_dim, = cube_thres.coord_dims(perc_coord.name())
-                    # The Iris aggregate method moves the collapse coordinate
-                    # to index=-1, so we must adjust perc_dim if moving the
-                    # collapse coordinate moves the perc_dim as well.
+
+                    # The iris.analysis.Aggregator moves the coordinate being
+                    # collapsed to index=-1 in initialisation, before the
+                    # aggregation method is called. This reduces by 1 the index
+                    # of all coordinates with an initial index higher than the
+                    # collapsing coordinate. As we need to know the index of
+                    # the percentile coordinate at a later step, if it will be
+                    # changed by this process, we adjust our record (perc_dim)
+                    # here.
                     if cube_thres.coord_dims(self.coord)[0] < perc_dim:
                         perc_dim -= 1
+
                     # Set equal weights if none are provided
                     if weights is None:
                         num = len(cube_thres.coord(self.coord).points)
