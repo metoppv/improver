@@ -31,7 +31,7 @@
 """ Provides support utilities."""
 
 import copy
-from iris.coords import CellMethod
+from iris.coords import CellMethod, CoordExtent
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -500,7 +500,6 @@ def generate_indices_for_cutout(cube, y_extent, x_extent, use_indices):
     Conversion of values that have been specified to define a range into
     indices that represent the range defined. The indices returned are
     inclusive of all values within the specified range.
-    If indices are provided 
 
     For example, for if the range [20, 40] is specified, then the indices
     that will be returned will be [1, 2, 3].
@@ -539,10 +538,10 @@ def generate_indices_for_cutout(cube, y_extent, x_extent, use_indices):
         x_extent = sorted([int(i) for i in x_extent])
         y_points = cube.coord(axis="y").points
         y_indices, = np.where(
-            np.logical_and(y_points>=y_extent[0], y_points<=y_extent[1]))
+            np.logical_and(y_points >= y_extent[0], y_points <= y_extent[1]))
         x_points = cube.coord(axis="x").points
         x_indices, = np.where(
-            np.logical_and(x_points>=x_extent[0], x_points<=x_extent[1]))
+            np.logical_and(x_points >= x_extent[0], x_points <= x_extent[1]))
     return y_indices, x_indices
 
 
