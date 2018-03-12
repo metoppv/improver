@@ -101,14 +101,22 @@ def main():
                              'or the data values that will be used as the '
                              'limits e.g. 10 30 where these limits could '
                              'refer to degrees of latitude.')
-    parser.add_argument('--force_indices_recalculation', action='store_true',
+    parser.add_argument('--different_domains', action='store_true',
                         help='If this argument is specified, then the '
                              'y and x extent of the spatial cutout will be '
                              'recalculated for each file, otherwise it will '
                              'be assumed that the input files contain the '
                              'same domain.')
     parser.add_argument('--force_conversion_to_indices', action='store_true',
-                        help='')
+                        help='Force the spatial cutout to be constructed '
+                             'in terms of indices, even when values are '
+                             'supplied.')
+    parser.add_argument('--force_overwrite', action='store_true',
+                        help='Force the overwriting of output files if '
+                             'the files already exist. This could be useful '
+                             'when cutouts have already been created for a '
+                             'subset of a large number of files.'
+                            )
     parser.add_argument('--ncks_options',
                         help='The list of options for passing to the ncks '
                              'utility. This should be supplied as a string '
@@ -177,34 +185,39 @@ def main():
             x_constr = "{},{},{}".format(args.x_coord_name, x_coord[0],
                                          x_coord[1])
             ncks_options = "-{}".format(args.ncks_options)
-            try:
-                subprocess.check_call(
-                    ["ncks", ncks_options, "-d", y_constr, "-d", x_constr,
-                     input_file, output_file])
-            except subprocess.CalledProcessError as err:
-                print "Caught error"
-                msg = ("Error when creating spatial cutout using ncks. "
-                       "Error reported is {}".format(err))
-                raise ValueError(msg)
-        else:
-            cube = load_cube(input_file)
-            if args.use_indices or args.force_conversion_to_indices:
-                if determine_extent or args.different_domains:
-                    y_extent, x_extent = (
-                        generate_indices_for_cutout(
-                            cube, y_coord, x_coord, args.use_indices))
-                determine_extent = False
-                cube = domain_cutout_with_indices(
-                    cube, y_extent=y_extent, x_extent=x_extent)
-            elif args.use_values:
-                cube = domain_cutout_with_values(cube, y_coord, x_coord)
+            if os.path.isfile(output_file) and "O" not in ncks_options:
+                print "The file: {} exists. Moving on...".format(output_file)
             else:
-                msg = ("The spatial cutout uses either indices or values, "
-                       "in order to create the spatial cutout. "
-                       "Please specify whether you would like the spatial "
-                       "cutout to be done in terms of indices or values.")
-                raise ValueError(msg)
-            save_netcdf(cube, output_file)
+                try:
+                    subprocess.check_call(
+                        ["ncks", ncks_options, "-d", y_constr, "-d", x_constr,
+                        input_file, output_file])
+                except subprocess.CalledProcessError as err:
+                    msg = ("Error when creating spatial cutout using ncks. "
+                          "Error reported is {}".format(err))
+                    raise ValueError(msg)
+        else:
+            if os.path.isfile(output_file) and not args.force_overwrite:
+                print "The file: {} exists. Moving on...".format(output_file)
+            else:
+                cube = load_cube(input_file)
+                if args.use_indices or args.force_conversion_to_indices:
+                    if determine_extent or args.different_domains:
+                        y_extent, x_extent = (
+                            generate_indices_for_cutout(
+                                cube, y_coord, x_coord, args.use_indices))
+                    determine_extent = False
+                    cube = domain_cutout_with_indices(
+                        cube, y_extent=y_extent, x_extent=x_extent)
+                elif args.use_values:
+                    cube = domain_cutout_with_values(cube, y_coord, x_coord)
+                else:
+                    msg = ("The spatial cutout uses either indices or values, "
+                          "in order to create the spatial cutout. "
+                          "Please specify whether you would like the spatial "
+                          "cutout to be done in terms of indices or values.")
+                    raise ValueError(msg)
+                save_netcdf(cube, output_file)
 
 
 if __name__ == "__main__":
