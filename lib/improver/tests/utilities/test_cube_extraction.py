@@ -144,7 +144,7 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
-        _, udict = parse_constraint_list(self.constraints, self.units)
+        _, udict = parse_constraint_list(self.constraints, units=self.units)
         self.assertEqual(udict["threshold"], "mm h-1")
         self.assertNotIn("percentile", udict.keys())
 
@@ -153,7 +153,7 @@ class Test_parse_constraint_list(IrisTest):
         units = ["mm h-1"]
         msg = "units list must match constraints"
         with self.assertRaisesRegexp(ValueError, msg):
-            parse_constraint_list(self.constraints, units)
+            parse_constraint_list(self.constraints, units=units)
 
     def test_list_constraint(self):
         """ Test that a list of constraints is parsed correctly """
@@ -240,7 +240,9 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_range_constraints(self):
-        """ Test that a list of constraints behaves correctly """
+        """ Test that a list of constraints behaves correctly. This includes
+        converting the units to the units that the constraints is
+        defined in."""
         constraint_dict = {"threshold": lambda cell: 0.03 <= cell <= 0.1}
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
@@ -257,6 +259,8 @@ class Test_extract_subcube(IrisTest):
         self.precip_cube = set_up_precip_probability_cube()
 
     def single_threshold(self):
+        """Test that a single threshold is extracted correctly when using the
+        key=value syntax."""
         constraints = "threshold=0.03"
         precip_units = "mm h-1"
         expected = self.precip_cube[0]
@@ -265,6 +269,8 @@ class Test_extract_subcube(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def multiple_thresholds(self):
+        """Test that multiple thresholds are extracted correctly when using the
+        key=[value1,value2] syntax."""
         constraints = "threshold=[0.03,0.1]"
         precip_units = "mm h-1"
         expected = self.precip_cube[:2]
@@ -273,6 +279,8 @@ class Test_extract_subcube(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def range_constraint(self):
+        """Test that multiple thresholds are extracted correctly when using the
+        key=[value1:value2] syntax."""
         constraints = "projection_y_coordinate=[1:2]"
         expected = self.precip_cube[:, 1:, :]
         result = extract_subcube(self.precip_cube, constraints)

@@ -138,7 +138,6 @@ def parse_constraint_list(constraints, units=None):
     constraints = simple_constraints
     for constr in complex_constraints:
         constraints = constraints & constr
-
     return constraints, units_dict
 
 
@@ -201,7 +200,7 @@ def extract_subcube(cube, constraints, units=None):
             may only be associated with coordinate constraints.
 
     Returns:
-        output_cube (iris.cube.Cube):
+        output_cube (iris.cube.Cube or None):
             A single cube matching the input constraints, or None if no subcube
             is found within cube that matches the constraints.
     """

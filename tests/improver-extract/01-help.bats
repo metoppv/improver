@@ -48,7 +48,9 @@ positional arguments:
                         (eg "key=[value1,value2]") are supported. These comma-
                         separated lists can either extract all values
                         specified in the list or all values specified within a
-                        range e.g. key=[value1:value2].
+                        range e.g. key=[value1:value2]. When a range is
+                        specified, this is inclusive of the endpoints of the
+                        range.
 
 optional arguments:
   -h, --help            show this help message and exit

@@ -31,7 +31,7 @@
 """ Provides support utilities."""
 
 import copy
-from iris.coords import CellMethod, CoordExtent
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -39,7 +39,6 @@ import scipy.ndimage
 import cartopy.crs as ccrs
 
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
 # Maximum radius of the neighbourhood width in grid cells.
