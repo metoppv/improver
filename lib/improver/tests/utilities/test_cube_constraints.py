@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
@@ -29,33 +28,47 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for helping to create Iris constraints."""
+"""Utilities for creating Iris constraints."""
+
+import unittest
 
 import iris
+from iris.tests import IrisTest
+
+from improver.utilities.cube_constraints import create_sorted_lambda_constraint
+from improver.tests.utilities.test_cube_extraction import (
+    set_up_precip_probability_cube)
 
 
-def create_sorted_lambda_constraint(coord_name, values):
-    """
-    Create a lambda constraint for a range. This formulation of specifying
-    a lambda constraint has the benefit of not needing to hardcode the name
-    for the coordinate, so that this can be determined at runtime.
+class Test_create_sorted_lambda_constraint(IrisTest):
+    """Test that a lambda constraint is created."""
+    def setUp(self):
+        self.precip_cube = set_up_precip_probability_cube()
+        self.precip_cube.coord("threshold").convert_units("mm h-1")
+        self.expected_data = self.precip_cube[:2].data
 
-    Args:
-        coord_name (str):
-            Name of the coordinate.
-        values (list):
-            A list of two values that represent the inclusive end points
-            of a range.
+    def test_basic_ascending(self):
+        """Test that a constraint is created, if the input coordinates are
+        ascending."""
+        coord_name = "threshold"
+        values = [0.03, 0.1]
+        result = create_sorted_lambda_constraint(coord_name, values)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        result_cube = self.precip_cube.extract(result)
+        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
-    Returns:
-        constr (iris.Constraint):
-            Constraint representative of a range of values.
+    def test_basic_descending(self):
+        """Test that a constraint is created, if the input coordinates are
+        descending."""
+        coord_name = "threshold"
+        values = [0.1, 0.03]
+        result = create_sorted_lambda_constraint(coord_name, values)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        result_cube = self.precip_cube.extract(result)
+        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
-    """
-    values = [float(i) for i in values]
-    values = sorted(values)
-    constr = (
-        iris.Constraint(
-            coord_values={
-                coord_name: lambda cell: values[0] <= cell <= values[1]}))
-    return constr
+
+if __name__ == '__main__':
+    unittest.main()

@@ -29,35 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "extract -h" {
-  run improver extract -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extract list constraints" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run cube extraction processing and check it passes.
+  run improver extract \
+      "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
+      "$TEST_DIR/output.nc" \
+      "projection_y_coordinate=[-398000:-160000]" \
+      "projection_x_coordinate=[-202000:16000]"
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]]
-                        INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 
-Extracts subset of data from a single input file, subject to equality-based
-constraints.
-
-positional arguments:
-  INPUT_FILE            File containing a dataset to extract from.
-  OUTPUT_FILE           File to write the extracted dataset to.
-  CONSTRAINTS           The constraint(s) to be applied. These must be of the
-                        form "key=value", eg "threshold=1". Scalars, boolean
-                        and string values are supported. Comma-separated lists
-                        (eg "key=[value1,value2]") are supported. These comma-
-                        separated lists can either extract all values
-                        specified in the list or all values specified within a
-                        range e.g. key=[value1:value2].
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --units UNITS [UNITS ...]
-                        Optional: units of coordinate constraint(s) to be
-                        applied, for use when the input cube coordinate units
-                        are not ideal (eg for float equality). If used, this
-                        list must match the CONSTRAINTS list in order and
-                        length (with null values set to None).
-__HELP__
-  [[ "$output" == "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/extract/range_constraints/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

@@ -32,11 +32,57 @@
 
 from ast import literal_eval
 import iris
+from improver.utilities.cube_constraints import create_sorted_lambda_constraint
+
+
+def create_range_constraint(coord_name, value):
+    """
+    Create a constraint that is representative of a range.
+
+    Args:
+        coord_name (string):
+            Name of the coordinate for which the constraint will be created.
+        value (string):
+            A string containing the range information.
+            It is assumed that the input value is of the form: "[2:10]".
+
+    Returns:
+        constr (iris.Constraint):
+            The constraint that has been created to represent the range.
+
+    """
+    value = value.replace("[", "").replace("]", "").split(":")
+    constr = create_sorted_lambda_constraint(coord_name, value)
+    return constr
+
+
+def is_complex_parsing_required(value):
+    """
+    Determine if the string being parsed requires complex parsing.
+    Currently, this is solely determined by the presence of a colon (:).
+
+    Args:
+        value (string):
+           A string that will be parsed.
+
+    Returns:
+        complex_constraint (bool):
+            Flag value to indicate whether the string requires complex parsing.
+    """
+    if ":" in value:
+        complex_constraint = True
+    else:
+        complex_constraint = False
+    return complex_constraint
 
 
 def parse_constraint_list(constraints, units=None):
     """
-    Takes a list of string constraints and converts to key-value pairs
+    Takes a list of string constraints and converts to key-value pairs for
+    simple contraints whilst more complex constraints are evaluated by
+    parsing for specific identifiers and creating constraints are required.
+    The simple key-value pairs and other constraints are merged into a single
+    Constraint.
 
     Args:
         constraints (list):
@@ -49,8 +95,9 @@ def parse_constraint_list(constraints, units=None):
             may only be associated with coordinate constraints.
 
     Returns:
-        constraints_dict (dictionary):
-            A dictionary of constraint keys and interpreted values
+        constraints (iris.Constraint or
+                     iris._constraints.ConstraintCombination):
+            A combination of all the constraints that were supplied.
         units_dict (dictionary or None):
             A dictionary of unit keys and values
     """
@@ -65,48 +112,57 @@ def parse_constraint_list(constraints, units=None):
         list_units = units
         units_dict = {}
 
-    constraints_dict = {}
+    simple_constraints_dict = {}
+    complex_constraints = []
     for constraint_pair, unit_val in zip(constraints, list_units):
         key, value = constraint_pair.split('=', 1)
         key = key.strip(' ')
         value = value.strip(' ')
 
-        try:
-            constraints_dict[key] = literal_eval(value)
-        except ValueError:
-            constraints_dict[key] = value
+        if is_complex_parsing_required(value):
+            complex_constraints.append(create_range_constraint(key, value))
+        else:
+            try:
+                simple_constraints_dict[key] = literal_eval(value)
+            except ValueError:
+                simple_constraints_dict[key] = value
 
         if unit_val is not None and unit_val.capitalize() != 'None':
             units_dict[key] = unit_val.strip(' ')
 
-    return constraints_dict, units_dict
+    if simple_constraints_dict:
+        simple_constraints = iris.Constraint(**simple_constraints_dict)
+    else:
+        simple_constraints = None
+
+    constraints = simple_constraints
+    for constr in complex_constraints:
+        constraints = constraints & constr
+
+    return constraints, units_dict
 
 
-def extract_subcube(cube, constraints, units=None):
+def apply_extraction(cube, constraint, units=None):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
-
     Args:
         cube (iris.cube.Cube):
             The cube from which a subcube is to be extracted.
-        constraints (dictionary):
-            A dictionary of constraints that define the subcube to be
-            extracted.
-
+        constraint (iris.Constraint or
+                    iris.ConstraintCombination):
+            The constraint or ConstraintCombination that will be used to
+            extract a subcube from the input cube.
     Kwargs:
         units (dictionary):
             A dictionary of units for the constraints.  Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
-
     Returns:
         output_cube (iris.cube.Cube):
             A single cube matching the input constraints, or None if no subcube
             is found within cube that matches the constraints.
     """
-    constraint = iris.Constraint(**constraints)
-
     if units is None:
         output_cube = cube.extract(constraint)
     else:
@@ -123,4 +179,32 @@ def extract_subcube(cube, constraints, units=None):
                 # an empty output cube (None) is handled by the CLI
                 pass
 
+    return output_cube
+
+
+def extract_subcube(cube, constraints, units=None):
+    """
+    Using a set of constraints, extract a subcube from the provided cube if it
+    is available.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which a subcube is to be extracted.
+        constraints (list):
+            List of string constraints with keys and values split by "=":
+            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
+
+    Kwargs:
+        units (list):
+            List of units (as strings) corresponding to each coordinate in the
+            list of constraints.  One or more "units" may be None, and units
+            may only be associated with coordinate constraints.
+
+    Returns:
+        output_cube (iris.cube.Cube):
+            A single cube matching the input constraints, or None if no subcube
+            is found within cube that matches the constraints.
+    """
+    constraints, units = parse_constraint_list(constraints, units=units)
+    output_cube = apply_extraction(cube, constraints, units=units)
     return output_cube
