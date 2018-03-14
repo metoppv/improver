@@ -105,11 +105,13 @@ class Test_is_complex_parsing_required(IrisTest):
     """Test if the string requires complex parsing."""
 
     def test_basic_with_colon(self):
+        """Test that a value with a colon is parsed correctly."""
         value = "1230:1240"
         result = is_complex_parsing_required(value)
         self.assertTrue(result)
 
     def test_basic_without_colon(self):
+        """Test that a value without a colon is parsed correctly."""
         value = "12301240"
         result = is_complex_parsing_required(value)
         self.assertFalse(result)

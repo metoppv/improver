@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extract list constraints" {
+@test "extract range constraints" {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
