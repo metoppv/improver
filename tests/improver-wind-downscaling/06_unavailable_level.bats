@@ -29,17 +29,21 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "wind downscaling no arguments" {
-  run improver wind-downscaling
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wind downscaling wind_speed " {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
+
+  # Run wind downscaling processing and check it passes.
+  run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
+      "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
+      1500 "$TEST_DIR/output.nc" --output_height_level "9" "m"
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-wind-downscaling [-h]
-                                 [--output_height_level OUTPUT_HEIGHT_LEVEL UNITS_OF_HEIGHT]
-                                 [--height_levels_filepath HEIGHT_LEVELS_FILE]
-                                 [--veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE]
-                                 WIND_SPEED_FILE AOS_FILE SIGMA_FILE
-                                 TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE
-                                 MODEL_RESOLUTION OUTPUT_FILE
+ValueError: Requested height level not found, no cube returned. Available height levels are:
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
+  rmdir "$TEST_DIR"
 }
