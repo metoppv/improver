@@ -74,14 +74,19 @@ def main():
                              ' Units of field: m')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    parser.add_argument('--output_height_level',
-                        metavar=('OUTPUT_HEIGHT_LEVEL', 'UNITS_OF_HEIGHT'),
-                        nargs=2, default=None,
+    parser.add_argument('--output_height_level', metavar='OUTPUT_HEIGHT_LEVEL',
+                        default=None,
                         help='If only a single height level is desired as '
                         'output from wind-downscaling, this option can be '
-                        'used stating the height level followed by the units '
-                        'in which this height is specified, e.g. 10 m or '
-                        '800 hPa.')
+                        'used to select the height level. If no units are '
+                        'provided with the --output_height_level_units '
+                        'option, metres are assumed.')
+    parser.add_argument('--output_height_level_units',
+                        metavar='OUTPUT_HEIGHT_LEVEL_UNITS', default='m',
+                        help='If a single height level is selected as output '
+                        'using the --output_height_level option, this '
+                        'additional argument may be used to specify the units '
+                        'of the value entered to select the level. e.g. hPa')
     parser.add_argument('--height_levels_filepath',
                         metavar='HEIGHT_LEVELS_FILE',
                         help='Location of file containing height levels '
@@ -124,8 +129,8 @@ def main():
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
 
     if args.output_height_level:
-        constraints = {'height': float(args.output_height_level[0])}
-        units = {'height': args.output_height_level[1]}
+        constraints = {'height': float(args.output_height_level)}
+        units = {'height': args.output_height_level_units}
         single_level = extract_subcube(wind_speed, constraints, units)
         if not single_level:
             raise ValueError(

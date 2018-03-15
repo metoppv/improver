@@ -32,27 +32,19 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wind downscaling wind_speed " {
+  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
 
   # Run wind downscaling processing and check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      1500 "NO_OUTPUT_FILE" --output_height_level "9" --output_height_level_units "m"
-  echo "status = ${status}"
-  [[ "$status" -eq 1 ]]
-  read -d '' expected <<'__TEXT__' || true
-ValueError: Requested height level not found, no cube returned. Available height levels are:
-[  5.00000000e+00   1.00000000e+01   2.00000000e+01   3.00000000e+01
-   5.00000000e+01   7.50000000e+01   1.00000000e+02   1.50000000e+02
-   2.00000000e+02   2.50000000e+02   3.00000000e+02   4.00000000e+02
-   5.00000000e+02   6.00000000e+02   7.00000000e+02   8.00000000e+02
-   1.00000000e+03   1.25000000e+03   1.50000000e+03   1.75000000e+03
-   2.00000000e+03   2.25000000e+03   2.50000000e+03   2.75000000e+03
-   3.00000000e+03   3.25000000e+03   3.50000000e+03   3.75000000e+03
-   4.00000000e+03   4.50000000e+03   5.00000000e+03   5.50000000e+03
-   6.00000000e+03]
-in units of m
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+      1500 "$TEST_DIR/output.nc" --output_height_level "1000" --output_height_level_units "cm"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wind_downscaling/single_level/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

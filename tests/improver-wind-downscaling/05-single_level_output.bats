@@ -39,7 +39,7 @@
   # Run wind downscaling processing and check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      1500 "$TEST_DIR/output.nc" --output_height_level "10" "m"
+      1500 "$TEST_DIR/output.nc" --output_height_level "10"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
