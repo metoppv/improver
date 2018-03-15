@@ -39,8 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_extraction import (parse_constraint_list,
-                                                extract_subcube)
+from improver.utilities.cube_extraction import extract_subcube
 
 
 def main():
@@ -125,9 +124,8 @@ def main():
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
 
     if args.output_height_level:
-        constraints, units = parse_constraint_list(
-            ['height={}'.format(args.output_height_level[0])],
-            [args.output_height_level[1]])
+        constraints = {'height': float(args.output_height_level[0])}
+        units = {'height': args.output_height_level[1]}
         single_level = extract_subcube(wind_speed, constraints, units)
         if not single_level:
             raise ValueError(
