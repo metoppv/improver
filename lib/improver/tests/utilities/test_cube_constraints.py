@@ -43,6 +43,7 @@ from improver.tests.utilities.test_cube_extraction import (
 class Test_create_sorted_lambda_constraint(IrisTest):
     """Test that a lambda constraint is created."""
     def setUp(self):
+        """Set up cube with testing lambda constraint."""
         self.precip_cube = set_up_precip_probability_cube()
         self.precip_cube.coord("threshold").convert_units("mm h-1")
         self.expected_data = self.precip_cube[:2].data

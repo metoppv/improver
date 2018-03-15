@@ -75,6 +75,7 @@ class Test_create_range_constraint(IrisTest):
     create_range_constraint."""
 
     def setUp(self):
+        """Set up cube for testing range constraint."""
         self.precip_cube = set_up_precip_probability_cube()
         self.precip_cube.coord("threshold").convert_units("mm h-1")
         self.expected_data = self.precip_cube[:2].data
