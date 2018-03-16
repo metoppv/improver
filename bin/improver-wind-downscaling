@@ -32,6 +32,7 @@
 """Script to run wind downscaling."""
 
 import argparse
+import warnings
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -39,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cube_extraction import extract_subcube
 
 
 def main():
@@ -73,6 +75,19 @@ def main():
                              ' Units of field: m')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
+    parser.add_argument('--output_height_level', metavar='OUTPUT_HEIGHT_LEVEL',
+                        default=None,
+                        help='If only a single height level is desired as '
+                        'output from wind-downscaling, this option can be '
+                        'used to select the height level. If no units are '
+                        'provided with the --output_height_level_units '
+                        'option, metres are assumed.')
+    parser.add_argument('--output_height_level_units',
+                        metavar='OUTPUT_HEIGHT_LEVEL_UNITS', default='m',
+                        help='If a single height level is selected as output '
+                        'using the --output_height_level option, this '
+                        'additional argument may be used to specify the units '
+                        'of the value entered to select the level. e.g. hPa')
     parser.add_argument('--height_levels_filepath',
                         metavar='HEIGHT_LEVELS_FILE',
                         help='Location of file containing height levels '
@@ -82,6 +97,12 @@ def main():
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
     args = parser.parse_args()
+
+    if args.output_height_level_units and not args.output_height_level:
+        warnings.warn('--output_height_level_units has been set but no '
+                      'associated height level has been provided. These units '
+                      'will have no effect.')
+
     wind_speed = load_cube(args.wind_speed_filepath)
     silhouette_roughness_filepath = load_cube(
         args.silhouette_roughness_filepath)
@@ -113,6 +134,20 @@ def main():
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if 'realization' in non_dim_coords:
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
+
+    if args.output_height_level:
+        constraints = {'height': float(args.output_height_level)}
+        units = {'height': args.output_height_level_units}
+        single_level = extract_subcube(wind_speed, constraints, units)
+        if not single_level:
+            raise ValueError(
+                'Requested height level not found, no cube '
+                'returned. Available height levels are:\n'
+                '{0:}\nin units of {1:}'.format(
+                    wind_speed.coord('height').points,
+                    wind_speed.coord('height').units))
+        wind_speed = single_level
+
     save_netcdf(wind_speed, args.output_filepath)
 
 
