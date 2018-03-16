@@ -32,6 +32,7 @@
 """Script to run wind downscaling."""
 
 import argparse
+import warnings
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -96,6 +97,12 @@ def main():
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
     args = parser.parse_args()
+
+    if args.output_height_level_units and not args.output_height_level:
+        warnings.warn('--output_height_level_units has been set but no '
+                      'associated height level has been provided. These units '
+                      'will have no effect.')
+
     wind_speed = load_cube(args.wind_speed_filepath)
     silhouette_roughness_filepath = load_cube(
         args.silhouette_roughness_filepath)
