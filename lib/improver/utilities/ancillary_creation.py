@@ -81,6 +81,22 @@ class OrographicAlphas(object):
         """
         This uses the grid spacing with difference in height fields
         to calculate the gradient between grid spaces.
+
+        Args:
+            cube_x : iris.cube.Cube
+                The difference in height between adjacent grid squares
+                in the x direction.
+            cube_y: iris.cube.Cube
+                The difference in height between adjacent grid squares
+                in the y direction.
+
+         Returns:
+            gradient_x : iris.cube.Cube
+               A cube of the gradients based on orography in the x 
+               direction.
+            gradient_y : iris.cube.Cube
+               A cube of the gradients based on orography in the y 
+               direction.
         """
         grid_space_x = np.diff(cube_x.coord(axis='x').points)[0]
         grid_space_y = np.diff(cube_y.coord(axis='y').points)[0]
@@ -93,6 +109,19 @@ class OrographicAlphas(object):
         """
         This normalises a cube so that all of the numbers are between
         min and max value which can be set.
+
+        Args:
+            cubes : iris.cube.Cubelist
+                A list of cubes that we need to take the cube_max and 
+                cube_min from. 
+            min_output_value : float
+                The minimum value we want our alpha to be
+            max_output_value : float
+                The maximum value we want our alpha to be 
+
+        Returns: 
+            normalised_cubes : iris.cube.Cube
+                A normalised cube based on the orography
         """
         cube_min = min([cube.data.min() for cube in cubes])
         cube_max = max([cube.data.max() for cube in cubes])
@@ -108,11 +137,16 @@ class OrographicAlphas(object):
 
     def scale_alpha_values(self, difference_cube):
         """
-        This scales the alpha values using the normalise_cube code.
-        For the alphas we want lower gradients to be higher alphas
-        (more spreading) and for higher gradients we want lower alphas.
-        This is done by then inverting the difference cube if this is set to
-        be true.
+        This scales the alpha values depending on our equation
+        for alpha.
+
+        Args:
+            difference_cube : iris.cube.Cube
+                A cube of the normalised gradient
+
+        Returns:
+            difference_cube : iris.cube.Cube
+                The scaled cube of normalised gradient
         """
         difference_cube.data = (
             self.coefficient * difference_cube.data**self.power +
@@ -129,6 +163,10 @@ class OrographicAlphas(object):
         chosen). The gradients are then linearly regridded so that they match the
         orography dimensions and will go into the recursive filter.
         
+        Args:
+            cube: iris.cube.Cube
+                A cube of the orography for the grid we want to get alphas for.
+
         Returns:
             alpha_x : iris.cube.Cube
                A cube of orographic dependent alphas calculated in the x direction.
