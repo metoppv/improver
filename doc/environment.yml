@@ -7,7 +7,7 @@ name: improver
 channels:
   - conda-forge
 dependencies:
-  - sphinx
+  - sphinx=1.7.0
   - iris
   - biggus
   - cartopy
