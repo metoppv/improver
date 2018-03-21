@@ -31,12 +31,17 @@
 
 import iris
 import numpy as np
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    Utilities)
-from improver.utilities.spatial import (DifferenceBetweenAdjacentGridSquares)
+from improver.psychrometric_calculations.psychrometric_calculations import \
+    Utilities
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
 class OrographicAlphas(object):
+
+    """
+    Class to generate alpha smoothing parameters for recursive filtering
+    based on orography gradients.
+    """
 
     def __init__(self, min_alpha=0., max_alpha=1., coefficient=1, power=1,
                  intercept=0, invert_alphas=True):
@@ -73,34 +78,6 @@ class OrographicAlphas(object):
                                 self.invert_alphas))
 
         return result
-
-    def difference_to_gradient(self, cube_x, cube_y):
-        """
-        This uses the grid spacing with difference in height fields
-        to calculate the gradient between grid spaces.
-
-        Args:
-            cube_x : iris.cube.Cube
-                The difference in height between adjacent grid squares
-                in the x direction.
-            cube_y: iris.cube.Cube
-                The difference in height between adjacent grid squares
-                in the y direction.
-
-         Returns:
-            gradient_x : iris.cube.Cube
-               A cube of the gradients based on orography in the x
-               direction.
-            gradient_y : iris.cube.Cube
-               A cube of the gradients based on orography in the y
-               direction.
-        """
-        grid_space_x = np.diff(cube_x.coord(axis='x').points)[0]
-        grid_space_y = np.diff(cube_y.coord(axis='y').points)[0]
-        gradient_x = cube_x.copy(data=abs(cube_x.data / grid_space_x))
-        gradient_y = cube_y.copy(data=abs(cube_y.data / grid_space_y))
-
-        return gradient_x, gradient_y
 
     def normalise_cube(self, cubes, min_output_value=0, max_output_value=1):
         """
@@ -173,11 +150,8 @@ class OrographicAlphas(object):
                A cube of orographic dependent alphas calculated in the y
                direction.
         """
-        ukvx_x, ukvx_y = DifferenceBetweenAdjacentGridSquares().process(cube)
-        gradient_x, gradient_y = self.difference_to_gradient(ukvx_x, ukvx_y)
-        gradient_x = gradient_x.regrid(cube, iris.analysis.Linear())
-        gradient_y = gradient_y.regrid(cube, iris.analysis.Linear())
-        gradient_x, gradient_y = self.normalise_cube([gradient_x, gradient_y])
+        gradient_x, gradient_y = \
+            DifferenceBetweenAdjacentGridSquares().process(cube, gradient=True)
         alpha_x = self.scale_alpha_values(gradient_x)
         alpha_y = self.scale_alpha_values(gradient_y)
 

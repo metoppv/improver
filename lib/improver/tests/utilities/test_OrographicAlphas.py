@@ -35,12 +35,10 @@ Unit tests for the OrographicAlphas utility.
 
 import unittest
 
-import warnings
 import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 from iris.cube import Cube
-from cf_units import Unit
 
 from improver.utilities.ancillary_creation import OrographicAlphas
 
@@ -99,15 +97,6 @@ class Test_functions(IrisTest):
         expected = np.array([[3.2, 4.0, 5.0],
                              [3.6, 3.8, 4.4],
                              [3.0, 3.4, 3.2]])
-        self.assertArrayEqual(result[0].data, expected)
-        self.assertArrayEqual(result[1].data, expected)
-
-    def test_gradient(self):
-        """ Tests that it correctly calculates the gradient"""
-        result = self.plugin.difference_to_gradient(self.cube, self.cube)
-        expected = np.array([[0.5, 2.5, 5.0],
-                            [1.5, 2., 3.5],
-                            [0., 1.0, 0.5]])
         self.assertArrayEqual(result[0].data, expected)
         self.assertArrayEqual(result[1].data, expected)
 

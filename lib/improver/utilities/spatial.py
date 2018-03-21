@@ -31,6 +31,7 @@
 """ Provides support utilities."""
 
 import copy
+import iris
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
@@ -230,7 +231,34 @@ class DifferenceBetweenAdjacentGridSquares(object):
             cube, coord_name, diff_along_axis)
         return diff_cube
 
-    def process(self, cube):
+    @staticmethod
+    def calculate_gradient(diff_cube, ref_cube, coord_axis):
+        """
+        Calculate the gradient along the x or y axis from differences between
+        adjacent grid squares.
+
+        Args:
+            diff_cube (Iris.cube.Cube):
+                Cube containing differences along the x or y axis
+            ref_cube (Iris.cube.Cube):
+                Cube with correct output dimensions
+            coord_axis (String):
+                Short-hand reference for the x or y coordinate, as allowed by
+                iris.util.guess_coord_axis.
+
+
+        Returns:
+            gradient (Iris.cube.Cube):
+                A cube of the gradients in the coordinate direction specified.
+        """
+        grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
+        gradient = diff_cube.copy(data=abs(diff_cube.data / grid_spacing))
+        gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
+        # TODO make cube units per m / km, not original cube units
+        # gradient.units =
+        return gradient
+
+    def process(self, cube, gradient=False):
         """
         Calculate the difference along the x and y axes and return
         the result in separate cubes. The difference along each axis is
@@ -239,6 +267,11 @@ class DifferenceBetweenAdjacentGridSquares(object):
         Args:
             cube (Iris.cube.Cube):
                 Cube from which the differences will be calculated.
+
+        Kwargs:
+            gradient (boolean):
+                Optionally return gradient rather than difference.  This has
+                dimensions of original grid, rather than losing 1 row & col.
 
         Returns:
             (tuple) : tuple containing:
@@ -252,6 +285,11 @@ class DifferenceBetweenAdjacentGridSquares(object):
         """
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
+        if gradient:
+            diff_along_y_cube = self.calculate_gradient(diff_along_y_cube,
+                                                        cube, "y")
+            diff_along_x_cube = self.calculate_gradient(diff_along_x_cube,
+                                                        cube, "x")
         return diff_along_x_cube, diff_along_y_cube
 
 
