@@ -28,12 +28,169 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Plugins to create ancillary data."""
 
 import iris
 import numpy as np
 from improver.psychrometric_calculations.psychrometric_calculations import (
     Utilities)
+from improver.utilities.spatial import (DifferenceBetweenAdjacentGridSquares)
+
+
+class OrographicAlphas(object):
+
+    def __init__(self, min_alpha=0., max_alpha=1., coefficient=1, power=1,
+                 intercept=0, invert_alphas=True):
+        """
+        Initialise class.
+
+        Args:
+            min_alpha : float
+                The minimum value of alpha that you want to go into the
+                recursive filter.
+            max_alpha : float
+                The maximum value of alpha that you want to go into the
+                recursive filter
+            coefficient : float
+                The coefficient for the alpha calculation
+            intercept : float
+                The intercept that you want for your alpha calculation
+            power : float
+                What power you want for your alpha equation
+        """
+        self.max_alpha = max_alpha
+        self.min_alpha = min_alpha
+        self.coefficient = coefficient
+        self.power = power
+        self.intercept = intercept
+        self.invert_alphas = invert_alphas
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<OrographicAlphas: min_alpha: {}; max_alpha: {};'
+                  ' coefficient: {}; power: {}; intercept: {}; invert_alphas:'
+                  ' {}>'.format(self.min_alpha, self.max_alpha,
+                                self.coefficient, self.power, self.intercept,
+                                self.invert_alphas))
+
+        return result
+
+    def difference_to_gradient(self, cube_x, cube_y):
+        """
+        This uses the grid spacing with difference in height fields
+        to calculate the gradient between grid spaces.
+
+        Args:
+            cube_x : iris.cube.Cube
+                The difference in height between adjacent grid squares
+                in the x direction.
+            cube_y: iris.cube.Cube
+                The difference in height between adjacent grid squares
+                in the y direction.
+
+         Returns:
+            gradient_x : iris.cube.Cube
+               A cube of the gradients based on orography in the x
+               direction.
+            gradient_y : iris.cube.Cube
+               A cube of the gradients based on orography in the y
+               direction.
+        """
+        grid_space_x = np.diff(cube_x.coord(axis='x').points)[0]
+        grid_space_y = np.diff(cube_y.coord(axis='y').points)[0]
+        gradient_x = cube_x.copy(data=abs(cube_x.data / grid_space_x))
+        gradient_y = cube_y.copy(data=abs(cube_y.data / grid_space_y))
+
+        return gradient_x, gradient_y
+
+    def normalise_cube(self, cubes, min_output_value=0, max_output_value=1):
+        """
+        This normalises a cube so that all of the numbers are between
+        min and max value which can be set.
+
+        Args:
+            cubes : iris.cube.Cubelist
+                A list of cubes that we need to take the cube_max and
+                cube_min from.
+            min_output_value : float
+                The minimum value we want our alpha to be
+            max_output_value : float
+                The maximum value we want our alpha to be
+
+        Returns:
+            normalised_cubes : iris.cube.Cube
+                A normalised cube based on the orography
+        """
+        cube_min = min([cube.data.min() for cube in cubes])
+        cube_max = max([cube.data.max() for cube in cubes])
+
+        normalised_cubes = iris.cube.CubeList()
+        for cube in cubes:
+            normalised_cube = cube.copy(data=(cube.data - cube_min) /
+                                        (cube_max - cube_min))
+            normalised_cube.data = (normalised_cube.data * (max_output_value
+                                    - min_output_value) + min_output_value)
+            normalised_cubes.append(normalised_cube)
+        return normalised_cubes
+
+    def scale_alpha_values(self, difference_cube):
+        """
+        This scales the alpha values depending on our equation
+        for alpha.
+
+        Args:
+            difference_cube : iris.cube.Cube
+                A cube of the normalised gradient
+
+        Returns:
+            difference_cube : iris.cube.Cube
+                The scaled cube of normalised gradient
+        """
+        difference_cube.data = (
+            self.coefficient * difference_cube.data**self.power +
+            self.intercept)
+
+        return difference_cube
+
+    def process(self, cube):
+        """
+        This creates the alpha cubes. It returns one for the x direction and
+        one for the y direction. It uses the
+        DifferencBetweenAdjacentGridSquares plugin to get the height
+        difference between grid spaces and then calculates a gradient,
+        which is normalised between between numbers (which can be chosen).
+        The gradients are then linearly regridded so that they match the
+        orography dimensions and will go into the recursive filter.
+
+        Args:
+            cube: iris.cube.Cube
+                A cube of the orography for the grid we want to get alphas for.
+
+        Returns:
+            alpha_x : iris.cube.Cube
+               A cube of orographic dependent alphas calculated in the x
+               direction.
+            alpha_y : iris.cube.Cube
+               A cube of orographic dependent alphas calculated in the y
+               direction.
+        """
+        ukvx_x, ukvx_y = DifferenceBetweenAdjacentGridSquares().process(cube)
+        gradient_x, gradient_y = self.difference_to_gradient(ukvx_x, ukvx_y)
+        gradient_x = gradient_x.regrid(cube, iris.analysis.Linear())
+        gradient_y = gradient_y.regrid(cube, iris.analysis.Linear())
+        gradient_x, gradient_y = self.normalise_cube([gradient_x, gradient_y])
+        alpha_x = self.scale_alpha_values(gradient_x)
+        alpha_y = self.scale_alpha_values(gradient_y)
+
+        if self.invert_alphas is True:
+            alpha_x, alpha_y = self.normalise_cube(
+                [alpha_x, alpha_y], min_output_value=self.max_alpha,
+                max_output_value=self.min_alpha)
+        else:
+            alpha_x, alpha_y = self.normalise_cube(
+                [alpha_x, alpha_y], min_output_value=self.min_alpha,
+                max_output_value=self.max_alpha)
+
+        return alpha_x, alpha_y
 
 
 class SaturatedVapourPressureTable(object):
