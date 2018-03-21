@@ -97,6 +97,14 @@ class NowcastLightning(object):
             Values for limiting prob(lightning) with prob(precip)
             These are the three prob(lightning) values to scale to.
 
+        vii_thresholds (tuple):
+            Values for increasing prob(lightning) with column-ice data.
+            These are the three vertically-integrated ice thresholds in kg/m2.
+
+        vii_scaling (tuple):
+            Values for increasing prob(lightning) with column-ice data.
+            These are the three prob(lightning) values to scale to.
+
         debug (boolean):
             True results in verbose output for debugging purposes.
     """
