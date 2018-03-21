@@ -37,9 +37,7 @@ import unittest
 
 import warnings
 import numpy as np
-import iris
 from iris.coords import DimCoord
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 from iris.cube import Cube
 from cf_units import Unit
@@ -56,23 +54,26 @@ class Test__repr__(IrisTest):
         result = str(OrographicAlphas())
         msg = ('<OrographicAlphas: min_alpha: {}; max_alpha: {}; '
                'coefficient: {}; power: {}; intercept: {}; '
-               'invert_alphas: {}>'.format(0.0, 1.0, 1, 1, 0,True))
+               'invert_alphas: {}>'.format(0.0, 1.0, 1, 1, 0, True))
         self.assertEqual(result, msg)
+
 
 class Test_functions(IrisTest):
 
     """ Test that the OrographicAlphas functions works as expected. """
-    
+
     def setUp(self):
         """ set up a cube with dimensions 3 x 3"""
- 
+
         self.plugin = OrographicAlphas()
-        data=np.array([[1., 5., 10.], 
-                       [3., 4., 7.], 
-                       [0., 2., 1.]])
-        cube=Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'latitude', units='m'), 0)
-        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'longitude', units='m'), 1)
+        data = np.array([[1., 5., 10.],
+                         [3., 4., 7.],
+                         [0., 2., 1.]])
+        cube = Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
+        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'latitude',
+                                    units='m'), 0)
+        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'longitude',
+                                    units='m'), 1)
         self.cube = cube
 
     def test_normalise(self):
@@ -80,11 +81,11 @@ class Test_functions(IrisTest):
         Test the basic function of the normalise_cube, using the
         standard max and min alphas.
         """
-        cubelist=[self.cube, self.cube]
-        result=self.plugin.normalise_cube(cubelist)
-        expected=np.array([[0.1, 0.5, 1.0], 
-                           [0.3, 0.4, 0.7],
-                           [0.0, 0.2, 0.1]])
+        cubelist = [self.cube, self.cube]
+        result = self.plugin.normalise_cube(cubelist)
+        expected = np.array([[0.1, 0.5, 1.0],
+                             [0.3, 0.4, 0.7],
+                             [0.0, 0.2, 0.1]])
         self.assertArrayEqual(result[0].data, expected)
         self.assertArrayEqual(result[1].data, expected)
 
@@ -93,36 +94,33 @@ class Test_functions(IrisTest):
         Tests the function of the normalise cube, using a max
         and min value for alpha.
         """
-        cubelist=[self.cube, self.cube]
-        result=self.plugin.normalise_cube(cubelist, 3, 5)
-        expected=np.array([[3.2, 4.0, 5.0],
-                           [3.6, 3.8, 4.4],
-                           [3.0, 3.4, 3.2]])
+        cubelist = [self.cube, self.cube]
+        result = self.plugin.normalise_cube(cubelist, 3, 5)
+        expected = np.array([[3.2, 4.0, 5.0],
+                             [3.6, 3.8, 4.4],
+                             [3.0, 3.4, 3.2]])
         self.assertArrayEqual(result[0].data, expected)
         self.assertArrayEqual(result[1].data, expected)
-    
 
     def test_gradient(self):
         """ Tests that it correctly calculates the gradient"""
-        result=self.plugin.difference_to_gradient(self.cube, self.cube)
-        expected=np.array([[0.5, 2.5, 5.0],
-                           [1.5, 2., 3.5],
-                           [0., 1.0, 0.5]])
+        result = self.plugin.difference_to_gradient(self.cube, self.cube)
+        expected = np.array([[0.5, 2.5, 5.0],
+                            [1.5, 2., 3.5],
+                            [0., 1.0, 0.5]])
         self.assertArrayEqual(result[0].data, expected)
         self.assertArrayEqual(result[1].data, expected)
-        
-
 
     def test_process(self):
-        """ 
-        Tests that the final processing step gets the 
+        """
+        Tests that the final processing step gets the
         right values.
         """
-        result=self.plugin.process(self.cube)
-        expected_x=np.array([[0.53333333, 0.4, 0.26666667],
-                             [1.0, 0.73333333, 0.46666667],
-                             [0.66666667, 0.8, 0.93333333]])
-        expected_y=np.array([[0.8, 0.93333333, 0.8],
+        result = self.plugin.process(self.cube)
+        expected_x = np.array([[0.53333333, 0.4, 0.26666667],
+                              [1.0, 0.73333333, 0.46666667],
+                              [0.66666667, 0.8, 0.93333333]])
+        expected_y = np.array([[0.8, 0.93333333, 0.8],
                               [0.66666667, 0.8, 0.4],
                               [0.53333333, 0.66666667, 0.]])
         self.assertArrayAlmostEqual(result[0].data, expected_x)
