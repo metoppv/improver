@@ -44,7 +44,7 @@ class OrographicAlphas(object):
     """
 
     def __init__(self, min_alpha=0., max_alpha=1., coefficient=1, power=1,
-                 intercept=0, invert_alphas=True):
+                 invert_alphas=True):
         """
         Initialise class.
 
@@ -57,8 +57,6 @@ class OrographicAlphas(object):
                 recursive filter
             coefficient : float
                 The coefficient for the alpha calculation
-            intercept : float
-                The intercept that you want for your alpha calculation
             power : float
                 What power you want for your alpha equation
         """
@@ -66,67 +64,96 @@ class OrographicAlphas(object):
         self.min_alpha = min_alpha
         self.coefficient = coefficient
         self.power = power
-        self.intercept = intercept
         self.invert_alphas = invert_alphas
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<OrographicAlphas: min_alpha: {}; max_alpha: {};'
-                  ' coefficient: {}; power: {}; intercept: {}; invert_alphas:'
+                  ' coefficient: {}; power: {}; invert_alphas:'
                   ' {}>'.format(self.min_alpha, self.max_alpha,
-                                self.coefficient, self.power, self.intercept,
+                                self.coefficient, self.power,
                                 self.invert_alphas))
 
         return result
 
-    def normalise_cube(self, cubes, min_output_value=0, max_output_value=1):
+    def scale_alphas(self, cubes, min_output=0, max_output=1):
         """
-        This normalises a cube so that all of the numbers are between
-        min and max value which can be set.
+        This scales a set of alphas from input cubes to range between the
+        minimum and maximum alpha values.
 
         Args:
-            cubes : iris.cube.Cubelist
-                A list of cubes that we need to take the cube_max and
+            raw_alphas : iris.cube.Cubelist
+                A list of alpha cubes that we need to take the cube_max and
                 cube_min from.
-            min_output_value : float
+            min_output : float
                 The minimum value we want our alpha to be
-            max_output_value : float
+            max_output : float
                 The maximum value we want our alpha to be
 
         Returns:
-            normalised_cubes : iris.cube.Cube
-                A normalised cube based on the orography
+            scaled_cubes : iris.cube.CubeList
+                A list of alpha cubes scaled to within the range specified.
         """
         cube_min = min([cube.data.min() for cube in cubes])
         cube_max = max([cube.data.max() for cube in cubes])
 
-        normalised_cubes = iris.cube.CubeList()
+        scaled_cubes = iris.cube.CubeList()
         for cube in cubes:
-            normalised_cube = cube.copy(data=(cube.data - cube_min) /
-                                        (cube_max - cube_min))
-            normalised_cube.data = (normalised_cube.data * (max_output_value
-                                    - min_output_value) + min_output_value)
-            normalised_cubes.append(normalised_cube)
-        return normalised_cubes
+            scaled_data = (cube.data - cube_min) / (cube_max - cube_min)
+            scaled_data = scaled_data * (max_output - min_output) + min_output
+            scaled_cube = cube.copy(data=scaled_data)
+            scaled_cube.units = '1'
+            scaled_cubes.append(scaled_cube)
+        return scaled_cubes
 
-    def scale_alpha_values(self, difference_cube):
+    def unnormalised_alphas(self, gradient_cube):
         """
-        This scales the alpha values depending on our equation
-        for alpha.
+        This generates initial alpha values from gradients using a generalised
+        power law, whose parameters are set at initialisation.
 
         Args:
-            difference_cube : iris.cube.Cube
+            gradient_cube : iris.cube.Cube
                 A cube of the normalised gradient
 
         Returns:
-            difference_cube : iris.cube.Cube
-                The scaled cube of normalised gradient
+            alphas_cube : iris.cube.Cube
+                The cube of unnormalised alphas
         """
-        difference_cube.data = (
-            self.coefficient * difference_cube.data**self.power +
-            self.intercept)
+        alphas_cube = gradient_cube.copy(data=self.coefficient * 
+                                         gradient_cube.data**self.power)
+        return alphas_cube
 
-        return difference_cube
+    def gradient_to_alpha(self, gradient_x, gradient_y):
+        """
+        Generate alpha smoothing parameters from orography gradients in the
+        x- and y- directions
+
+        Args:
+            gradient_x : iris.cube.Cube
+                A cube of the normalised gradient in the x direction
+            gradient_y : iris.cube.Cube
+                A cube of the normalised gradient in the y direction
+
+        Returns:
+            alpha_x : iris.cube.Cube
+                A cube of alphas in the x direction
+            alpha_y : iris.cube.Cube
+                A cube of alphas in the y direction
+        """
+        alpha_x = self.unnormalised_alphas(gradient_x)
+        alpha_y = self.unnormalised_alphas(gradient_y)
+
+        if self.invert_alphas:
+            alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
+                min_output=self.max_alpha,
+                max_output=self.min_alpha)
+        else:
+            alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
+                min_output=self.min_alpha,
+                max_output=self.max_alpha)
+
+        return alpha_x, alpha_y
+
 
     def process(self, cube):
         """
@@ -152,17 +179,7 @@ class OrographicAlphas(object):
         """
         gradient_x, gradient_y = \
             DifferenceBetweenAdjacentGridSquares().process(cube, gradient=True)
-        alpha_x = self.scale_alpha_values(gradient_x)
-        alpha_y = self.scale_alpha_values(gradient_y)
-
-        if self.invert_alphas is True:
-            alpha_x, alpha_y = self.normalise_cube(
-                [alpha_x, alpha_y], min_output_value=self.max_alpha,
-                max_output_value=self.min_alpha)
-        else:
-            alpha_x, alpha_y = self.normalise_cube(
-                [alpha_x, alpha_y], min_output_value=self.min_alpha,
-                max_output_value=self.max_alpha)
+        alpha_x, alpha_y = self.gradient_to_alpha(gradient_x, gradient_y)
 
         return alpha_x, alpha_y
 

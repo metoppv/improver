@@ -232,7 +232,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         return diff_cube
 
     @staticmethod
-    def calculate_gradient(diff_cube, ref_cube, coord_axis):
+    def gradient_from_diff(diff_cube, ref_cube, coord_axis):
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -254,8 +254,9 @@ class DifferenceBetweenAdjacentGridSquares(object):
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
         gradient = diff_cube.copy(data=abs(diff_cube.data / grid_spacing))
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
-        # TODO make cube units per m / km, not original cube units
-        # gradient.units =
+        # update units of gradient cube
+        spatial_units = diff_cube.coord(axis=coord_axis).units
+        gradient.units = '{} {}-1'.format(diff_cube.units, spatial_units)
         return gradient
 
     def process(self, cube, gradient=False):
@@ -286,9 +287,9 @@ class DifferenceBetweenAdjacentGridSquares(object):
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
         if gradient:
-            diff_along_y_cube = self.calculate_gradient(diff_along_y_cube,
+            diff_along_y_cube = self.gradient_from_diff(diff_along_y_cube,
                                                         cube, "y")
-            diff_along_x_cube = self.calculate_gradient(diff_along_x_cube,
+            diff_along_x_cube = self.gradient_from_diff(diff_along_x_cube,
                                                         cube, "x")
         return diff_along_x_cube, diff_along_y_cube
 

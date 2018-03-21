@@ -51,8 +51,8 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(OrographicAlphas())
         msg = ('<OrographicAlphas: min_alpha: {}; max_alpha: {}; '
-               'coefficient: {}; power: {}; intercept: {}; '
-               'invert_alphas: {}>'.format(0.0, 1.0, 1, 1, 0, True))
+               'coefficient: {}; power: {}; '
+               'invert_alphas: {}>'.format(0.0, 1.0, 1, 1, True))
         self.assertEqual(result, msg)
 
 
@@ -74,13 +74,13 @@ class Test_functions(IrisTest):
                                     units='m'), 1)
         self.cube = cube
 
-    def test_normalise(self):
+    def test_scale(self):
         """
-        Test the basic function of the normalise_cube, using the
+        Test the basic function of scale_alphas, using the
         standard max and min alphas.
         """
         cubelist = [self.cube, self.cube]
-        result = self.plugin.normalise_cube(cubelist)
+        result = self.plugin.scale_alphas(cubelist)
         expected = np.array([[0.1, 0.5, 1.0],
                              [0.3, 0.4, 0.7],
                              [0.0, 0.2, 0.1]])
@@ -89,11 +89,11 @@ class Test_functions(IrisTest):
 
     def test_maxmin(self):
         """
-        Tests the function of the normalise cube, using a max
+        Tests the function of scale_alphas, using a max
         and min value for alpha.
         """
         cubelist = [self.cube, self.cube]
-        result = self.plugin.normalise_cube(cubelist, 3, 5)
+        result = self.plugin.scale_alphas(cubelist, 3, 5)
         expected = np.array([[3.2, 4.0, 5.0],
                              [3.6, 3.8, 4.4],
                              [3.0, 3.4, 3.2]])
