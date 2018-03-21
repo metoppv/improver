@@ -109,7 +109,8 @@ class OrographicAlphas(object):
     def unnormalised_alphas(self, gradient_cube):
         """
         This generates initial alpha values from gradients using a generalised
-        power law, whose parameters are set at initialisation.
+        power law, whose parameters are set at initialisation.  Current defaults
+        give an output alphas_cube equal to the input gradient_cube.
 
         Args:
             gradient_cube : iris.cube.Cube
@@ -117,9 +118,9 @@ class OrographicAlphas(object):
 
         Returns:
             alphas_cube : iris.cube.Cube
-                The cube of unnormalised alphas
+                The cube of initial unscaled alphas
         """
-        alphas_cube = gradient_cube.copy(data=self.coefficient * 
+        alphas_cube = gradient_cube.copy(data=self.coefficient *
                                          gradient_cube.data**self.power)
         return alphas_cube
 
