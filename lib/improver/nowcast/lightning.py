@@ -56,6 +56,11 @@ class NowcastLightning(object):
         middle: precip probability 0.05 => max lightning prob 0.2
         lower:  precip probability 0.0 => max lightning prob 0.0067
 
+        heavy:  prob(precip>7mm/hr)  0.4 => min lightning prob 0.25
+                equiv radar refl 37dBZ
+        intense:prob(precip>35mm/hr) 0.2 => min lightning prob 1.0
+                equiv radar refl 48dBZ
+
     Keyword Args:
         radius (float):
             This value controls the halo radius (metres)
@@ -97,6 +102,12 @@ class NowcastLightning(object):
             Values for limiting prob(lightning) with prob(precip)
             These are the three prob(lightning) values to scale to.
 
+        hvyprecip_threshs (tuple):
+            probability thresholds for increasing the prob(lightning)
+            First value for heavy precip (>7mm/hr)
+                relates to problightning_values[2]
+            Second value for intense precip (>35mm/hr)
+                relates to problightning_values[1]
         vii_thresholds (tuple):
             Values for increasing prob(lightning) with column-ice data.
             These are the three vertically-integrated ice thresholds in kg/m2.
@@ -114,6 +125,7 @@ class NowcastLightning(object):
                  problightning_values={1: 1., 2: 0.25},
                  probprecip_thresholds=(0.0, 0.05, 0.1),
                  problightning_scaling=(0.0067, 0.2, 1.),
+                 hvyprecip_threshs=(0.4, 0.2),
                  vii_thresholds=(0.5, 1.0, 2.0),
                  vii_scaling=(0.1, 0.5, 0.9),
                  debug=False):
@@ -136,6 +148,8 @@ class NowcastLightning(object):
 
         self.precipthr = probprecip_thresholds
         self.ltngthr = problightning_scaling
+        self.phighthresh = hvyprecip_threshs[0]
+        self.ptorrthresh = hvyprecip_threshs[1]
         self.vii_thresholds = vii_thresholds
         self.vii_scaling = vii_scaling
 
@@ -153,6 +167,9 @@ class NowcastLightning(object):
    upper:  precip probability {precu} => max lightning prob {lprecu}
    middle: precip probability {precm} => max lightning prob {lprecm}
    lower:  precip probability {precl} => max lightning prob {lprecl}
+
+   heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
+   intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
  VII (ice) mapping:
    upper:  VII {viiu} => max lightning prob {lviiu}
    middle: VII {viim} => max lightning prob {lviim}
@@ -165,6 +182,7 @@ class NowcastLightning(object):
             precl=self.precipthr[0],
             lprecu=self.ltngthr[2], lprecm=self.ltngthr[1],
             lprecl=self.ltngthr[0],
+            pphvy=self.phighthresh, ppint=self.ptorrthresh,
             viiu=self.vii_thresholds[2], viim=self.vii_thresholds[1],
             viil=self.vii_thresholds[0],
             lviiu=self.vii_scaling[2], lviim=self.vii_scaling[1],
@@ -228,8 +246,8 @@ class NowcastLightning(object):
                 Must have same dimensions as cube
 
             precip_cube (iris.cube.Cube):
-                Nowcast precipitation probability (threshold > 0)
-                Must have same dimensions as cube
+                Nowcast precipitation probability (threshold > 0.5, 7, 35)
+                Must have same other dimensions as cube
 
             vii_cube (iris.cube.Cube):
                 Radar-derived vertically integrated ice content (VII)
@@ -247,7 +265,12 @@ class NowcastLightning(object):
         for cube_slice in cube.slices_over('time'):
             thistime = cube_slice.coord('time').points
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
-            this_precip = precip_cube.extract(iris.Constraint(time=thistime))
+            this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=0.5))
+            high_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=7.))
+            torr_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=35.))
             fg_time = fg_cube.coord('time').points[
                 fg_cube.coord('time').nearest_neighbour_index(thistime)]
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
@@ -281,9 +304,25 @@ class NowcastLightning(object):
 
             # Increase prob(lightning) to Risk 1 (pl_dict[1]) when within
             #   lightning storm (lrt_lev1; ~5km of an observed ATDNet strike):
-            cube_slice.data = np.where(this_ltng.data >= lratethresh,
-                                       self.pl_dict[1],
-                                       cube_slice.data)
+            cube_slice.data = np.where(
+                np.logical_and(this_ltng.data >= lratethresh,
+                               cube_slice.data < self.pl_dict[1]),
+                self.pl_dict[1], cube_slice.data)
+
+            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
+            #   prob(precip > 7mm/hr) > phighthresh
+            cube_slice.data = np.where(
+                np.logical_and(high_precip.data >= self.phighthresh,
+                               cube_slice.data < self.pl_dict[2]),
+                self.pl_dict[2], cube_slice.data)
+            # Increase prob(lightning) to Risk 1 (pl_dict[1]) when
+            #   prob(precip > 35mm/hr) > ptorrthresh
+            cube_slice.data = np.where(
+                np.logical_and(torr_precip.data >= self.ptorrthresh,
+                               cube_slice.data < self.pl_dict[1]),
+                self.pl_dict[1], cube_slice.data)
+
+            # Decrease prob(lightning) where prob(precip > 0) is low.
             cube_slice.data = self._apply_double_scaling(
                 this_precip, cube_slice, self.precipthr, self.ltngthr)
 
@@ -352,7 +391,7 @@ class NowcastLightning(object):
             cubelist (iris.cube.CubeList):
                 Contains cubes of
                     * First-guess lightning probability
-                    * Nowcast precipitation probability (threshold > 0)
+                    * Nowcast precipitation probability (threshold > 0.5, 7., 35.)
                     * Nowcast lightning rate
                     * (optional) Analysis of vertically integrated ice (VII)
                       from radar
