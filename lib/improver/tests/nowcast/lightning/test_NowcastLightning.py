@@ -620,36 +620,36 @@ class Test_process(IrisTest):
         expected = set_up_cube_with_no_realizations()
 
         # test_vii_null
-        self.vii_cube.data[:, 8, 8] = 0.
-        self.vii_cube.data[0, 8, 8] = 0.5
-        self.ltng_cube.data[0, 8, 8] = 0.
-        self.fg_cube.data[0, 8, 8] = 0.
-        self.precip_cube.data[0, 0, 8, 8] = 1.
-        expected.data[0, 8, 8] = 0.25
+        self.vii_cube.data[:, 5, 5:9] = 0.
+        self.vii_cube.data[0, 5, 5:9] = 0.5
+        self.ltng_cube.data[0, 5, 5:9] = 0.
+        self.fg_cube.data[0, 5, 5:9] = 0.
+        self.precip_cube.data[0, 0, 5, 5:9] = 1.
+        expected.data[0, 5, 5:9] = 0.25
 
         # test_vii_zero
-        self.vii_cube.data[:, 7, 7] = 0.
-        self.ltng_cube.data[0, 7, 7] = -1.
-        self.fg_cube.data[0, 7, 7] = 0.
-        self.precip_cube.data[0, 0, 7, 7] = 0.
-        expected.data[0, 7, 7] = 0.
+        self.vii_cube.data[:, 6, 5:9] = 0.
+        self.ltng_cube.data[0, 6, 5:9] = -1.
+        self.fg_cube.data[0, 6, 5:9] = 0.
+        self.precip_cube.data[0, 0, 6, 5:9] = 0.
+        expected.data[0, 6, 5:9] = 0.
 
         # test_vii_small
         # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 6, 6] = 0.
-        self.vii_cube.data[0, 6, 6] = 0.5
-        self.ltng_cube.data[0, 6, 6] = -1.
-        self.fg_cube.data[0, 6, 6] = 0.
-        self.precip_cube.data[0, 0, 6, 6] = 0.
-        expected.data[0, 6, 6] = 0.05
+        self.vii_cube.data[:, 7, 5:9] = 0.
+        self.vii_cube.data[0, 7, 5:9] = 0.5
+        self.ltng_cube.data[0, 7, 5:9] = -1.
+        self.fg_cube.data[0, 7, 5:9] = 0.
+        self.precip_cube.data[0, 0, 7, 5:9] = 0.
+        expected.data[0, 7, 5:9] = 0.05
 
         # test_vii_large
         # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 5, 5] = 1.
-        self.ltng_cube.data[0, 5, 5] = -1.
-        self.fg_cube.data[0, 5, 5] = 0.
-        self.precip_cube.data[0, 0, 5, 5] = 0.
-        expected.data[0, 5, 5] = 0.9
+        self.vii_cube.data[:, 8, 5:9] = 1.
+        self.ltng_cube.data[0, 8, 5:9] = -1.
+        self.fg_cube.data[0, 8, 5:9] = 0.
+        self.precip_cube.data[0, 0, 8, 5:9] = 0.
+        expected.data[0, 8, 5:9] = 0.9
         return expected
 
     def test_basic(self):
@@ -695,10 +695,10 @@ class Test_process(IrisTest):
         expected = self.set_up_vii_input_output()
 
         # test_vii_small will now return zero
-        expected.data[0, 6, 6] = 0.
+        expected.data[0, 7, 5:9] = 0.
 
         # test_vii_large now return zero
-        expected.data[0, 5, 5] = 0.
+        expected.data[0, 8, 5:9] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(2000.)
         result = plugin.process(CubeList([
