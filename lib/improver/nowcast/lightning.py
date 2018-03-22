@@ -221,6 +221,7 @@ class NowcastLightning(object):
         """
         new_cube = cube.copy()
         new_cube.rename("lightning_probability")
+        new_cube.remove_coord('threshold')
         new_cube.attributes = {}
         if self.debug:
             print('In {}, new_cube is {}'.format(self, new_cube))

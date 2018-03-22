@@ -37,6 +37,7 @@ from iris.util import squeeze
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import StringIO
 import sys
@@ -135,17 +136,23 @@ class Test__update_meta(IrisTest):
         """Create a cube with a single non-zero point."""
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube())
+        coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
+        self.cube.add_aux_coord(coord)
 
     def test_basic(self):
         """Test that the method returns the expected cube type
         and that the metadata are as expected.
-        We expect a new name and an empty dictionary of attributes."""
+        We expect a new name, the threshold coord to be removed
+        and an empty dictionary of attributes."""
         plugin = Plugin()
         self.cube.attributes = {'source': 'testing'}
         result = plugin._update_meta(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "lightning_probability")
         self.assertEqual(result.attributes, {})
+        msg = "Expected to find exactly 1  coordinate, but found none."
+        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+            result.coord('threshold')
 
     def test_input(self):
         """Test that the method does not modify the input cube data."""
