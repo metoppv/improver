@@ -78,11 +78,14 @@ def is_complex_parsing_required(value):
 
 def parse_constraint_list(constraints, units=None):
     """
-    Takes a list of string constraints and converts to key-value pairs for
-    simple contraints whilst more complex constraints are evaluated by
-    parsing for specific identifiers and creating constraints are required.
+    For simple constraints of a key=value format, these are passed in as a
+    list of strings and converted to key-value pairs prior to creating the
+    constraints.
+    For more complex constraints, the list of strings given as input
+    are evaluated by parsing for specific identifiers and then the constraints
+    are created as required.
     The simple key-value pairs and other constraints are merged into a single
-    Constraint.
+    constraint.
 
     Args:
         constraints (list):
