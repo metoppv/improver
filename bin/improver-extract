@@ -51,8 +51,12 @@ def main():
                         help='The constraint(s) to be applied.  These must be'
                         ' of the form "key=value", eg "threshold=1".  Scalars'
                         ', boolean and string values are supported.  Comma-'
-                        'separated lists (eg "key=[value1,value2]") are also '
-                        'supported.')
+                        'separated lists (eg "key=[value1,value2]") are '
+                        'supported. These comma-separated lists can either '
+                        'extract all values specified in the list or '
+                        'all values specified within a range e.g. '
+                        'key=[value1:value2]. When a range is specified, '
+                        'this is inclusive of the endpoints of the range.')
     parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
                         help='Optional: units of coordinate constraint(s) to '
                         'be applied, for use when the input cube coordinate '
@@ -63,8 +67,7 @@ def main():
 
     cube = load_cube(args.input_file)
 
-    constraints, units = parse_constraint_list(args.constraints, args.units)
-    output_cube = extract_subcube(cube, constraints, units)
+    output_cube = extract_subcube(cube, args.constraints, args.units)
 
     if output_cube is None:
         msg = ("Constraint(s) could not be matched in input cube")
