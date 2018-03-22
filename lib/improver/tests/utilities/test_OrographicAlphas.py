@@ -49,8 +49,28 @@ TODO add tests for
 
 """
 
-class Test__repr__(IrisTest):
+def set_up_cube():
+    """Set up dummy cube for tests"""
+    data = np.array([[1., 5., 10.],
+                     [3., 4., 7.],
+                     [0., 2., 1.]])
+    cube = Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'latitude',
+                                units='m'), 0)
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'longitude',
+                                units='m'), 1)
+    return cube
 
+
+class Test__init__(IrisTest):
+    """Test the init method."""
+
+    def test_basic(self):
+        """Test attribute initialisation TODO """
+        pass
+
+
+class Test__repr__(IrisTest):
     """Test the repr method."""
 
     def test_basic(self):
@@ -62,25 +82,15 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_functions(IrisTest):
-
-    """ Test that the OrographicAlphas functions works as expected. """
+class Test_scale_alphas(IrisTest):
+    """Class to test the scale_alphas function"""
 
     def setUp(self):
-        """ set up a cube with dimensions 3 x 3"""
-
+        """Set up cube & plugin"""
         self.plugin = OrographicAlphas()
-        data = np.array([[1., 5., 10.],
-                         [3., 4., 7.],
-                         [0., 2., 1.]])
-        cube = Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'latitude',
-                                    units='m'), 0)
-        cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'longitude',
-                                    units='m'), 1)
-        self.cube = cube
+        self.cube = set_up_cube()
 
-    def test_scale(self):
+    def test_basic(self):
         """
         Test the basic function of scale_alphas, using the
         standard max and min alphas.
@@ -106,7 +116,25 @@ class Test_functions(IrisTest):
         self.assertArrayEqual(result[0].data, expected)
         self.assertArrayEqual(result[1].data, expected)
 
-    def test_process(self):
+
+class Test_unnormalised_alphas(IrisTest):
+    """Dummy class to test the basic alphas function (currently no effect)"""
+
+    def setUp(self):
+        """Set up cube & plugin"""
+        self.plugin = OrographicAlphas()
+        self.cube = set_up_cube()
+
+
+class Test_process(IrisTest):
+    """Class to test end-to-end alphas creation"""
+
+    def setUp(self):
+        """Set up cube & plugin"""
+        self.plugin = OrographicAlphas()
+        self.cube = set_up_cube()
+
+    def test_basic(self):
         """
         Tests that the final processing step gets the
         right values.

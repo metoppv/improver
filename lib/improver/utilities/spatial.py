@@ -254,6 +254,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         gradient = diff_cube.copy(data=abs(diff_cube.data / grid_spacing))
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
         gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
+        print gradient.name()
         return gradient
 
     def process(self, cube):
@@ -283,6 +284,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         """
         diff_along_y_cube = self.calculate_difference(cube, "y")
         diff_along_x_cube = self.calculate_difference(cube, "x")
+
         if self.is_gradient:
             diff_along_y_cube = self.gradient_from_diff(diff_along_y_cube,
                                                         cube, "y")
