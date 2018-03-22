@@ -147,15 +147,19 @@ class Test_gradient_to_alpha(IrisTest):
 
     def test_basic(self):
         """Test basic version of gradient to alpha"""
-        expected = np.array([[0.32, 0.40, 0.50],
-                             [0.36, 0.38, 0.44],
-                             [0.30, 0.34, 0.32]])
+
+        expected = np.array([[0.40666667, 0.38, 0.35333333],
+                             [0.5, 0.44666667, 0.39333333],
+                             [0.40666667, 0.48666667, 0.43333333]])
+
         result = self.plugin.gradient_to_alpha(self.gradient_x,
                                                self.gradient_y)
         self.assertEqual(result[0].name(), 'alphas')
         self.assertArrayAlmostEqual(result[0].data, expected)
-        self.assertNotIn('forecast_period', result[0].coords().name)
-        self.assertNotIn('forecast_time', result[0].coords().name)
+        self.assertNotIn('forecast_period', [coord.name()
+                         for coord in result[0].coords()])
+        self.assertNotIn('forecast_time', [coord.name()
+                         for coord in result[0].coords()])
 
 
 class Test_process(IrisTest):
@@ -169,12 +173,15 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Tests that the final processing step gets the right values."""
         result = self.plugin.process(self.cube)
+
         expected_x = np.array([[0.53333333, 0.4, 0.26666667],
-                              [1.0, 0.73333333, 0.46666667],
-                              [0.66666667, 0.8, 0.93333333]])
-        expected_y = np.array([[0.8, 0.93333333, 0.8],
-                              [0.66666667, 0.8, 0.4],
-                              [0.53333333, 0.66666667, 0.]])
+                               [1., 0.73333333, 0.46666667],
+                               [0.53333333, 0.93333333, 0.66666667]])
+
+        expected_y = np.array([[0.4, 0.93333333, 0.8],
+                               [0.93333333, 0.8, 0.4],
+                               [0.26666667, 0.66666667, 0.]])
+
         self.assertArrayAlmostEqual(result[0].data, expected_x)
         self.assertArrayAlmostEqual(result[1].data, expected_y)
 

@@ -49,15 +49,15 @@ class OrographicAlphas(object):
         Initialise class.
 
         Args:
-            min_alpha : float
+            min_alpha (float):
                 The minimum value of alpha that you want to go into the
                 recursive filter.
-            max_alpha : float
+            max_alpha (float):
                 The maximum value of alpha that you want to go into the
                 recursive filter
-            coefficient : float
+            coefficient (float):
                 The coefficient for the alpha calculation
-            power : float
+            power (float):
                 What power you want for your alpha equation
         """
         self.max_alpha = max_alpha
@@ -83,24 +83,24 @@ class OrographicAlphas(object):
         minimum and maximum alpha values.
 
         Args:
-            raw_alphas : iris.cube.Cubelist
+            raw_alphas (iris.cube.Cubelist):
                 A list of alpha cubes that we need to take the cube_max and
                 cube_min from.
-            min_output : float
+            min_output (float):
                 The minimum value we want our alpha to be
-            max_output : float
+            max_output (float):
                 The maximum value we want our alpha to be
 
         Returns:
-            scaled_cubes : iris.cube.CubeList
+            scaled_cubes (iris.cube.CubeList):
                 A list of alpha cubes scaled to within the range specified.
         """
-        cube_min = min([cube.data.min() for cube in cubes])
-        cube_max = max([cube.data.max() for cube in cubes])
+        cube_min = min([abs(cube.data).min() for cube in cubes])
+        cube_max = max([abs(cube.data).max() for cube in cubes])
 
         scaled_cubes = iris.cube.CubeList()
         for cube in cubes:
-            scaled_data = (cube.data - cube_min) / (cube_max - cube_min)
+            scaled_data = (abs(cube.data) - cube_min) / (cube_max - cube_min)
             scaled_data = scaled_data * (max_output - min_output) + min_output
             scaled_cube = cube.copy(data=scaled_data)
             scaled_cube.units = '1'
@@ -114,11 +114,11 @@ class OrographicAlphas(object):
         defaults give an output alphas_cube equal to the input gradient_cube.
 
         Args:
-            gradient_cube : iris.cube.Cube
+            gradient_cube (iris.cube.Cube):
                 A cube of the normalised gradient
 
         Returns:
-            alphas_cube : iris.cube.Cube
+            alphas_cube (iris.cube.Cube):
                 The cube of initial unscaled alphas
         """
         alphas_cube = gradient_cube.copy(data=self.coefficient *
@@ -132,11 +132,11 @@ class OrographicAlphas(object):
         rename.
 
         Args:
-        alphas_cube : iris.cube.Cube
+        alphas_cube (iris.cube.Cube):
             A cube of alphas with "gradient" metadata
 
         Returns:
-        alphas_cube : iris.cube.Cube
+        alphas_cube (iris.cube.Cube):
             A cube of alphas with adjusted metadata
         """
         alphas_cube.rename('alphas')
@@ -151,16 +151,19 @@ class OrographicAlphas(object):
         x- and y- directions
 
         Args:
-            gradient_x : iris.cube.Cube
+            gradient_x (iris.cube.Cube):
                 A cube of the normalised gradient in the x direction
-            gradient_y : iris.cube.Cube
+            gradient_y (iris.cube.Cube):
                 A cube of the normalised gradient in the y direction
 
         Returns:
-            alpha_x : iris.cube.Cube
-                A cube of alphas in the x direction
-            alpha_y : iris.cube.Cube
-                A cube of alphas in the y direction
+            (tuple): tuple containing
+
+                alpha_x (iris.cube.Cube) - A cube of orography-dependent
+                    alphas calculated in the x direction.
+
+                alpha_y (iris.cube.Cube) - A cube of orography-dependent
+                    alphas calculated in the y direction.
         """
         alpha_x = self.unnormalised_alphas(gradient_x)
         alpha_y = self.unnormalised_alphas(gradient_y)
@@ -182,24 +185,24 @@ class OrographicAlphas(object):
         """
         This creates the alpha cubes. It returns one for the x direction and
         one for the y direction. It uses the
-        DifferencBetweenAdjacentGridSquares plugin to get the height
-        difference between grid spaces and then calculates a gradient,
-        which is normalised between between numbers (which can be chosen).
-        The gradients are then linearly regridded so that they match the
-        orography dimensions and will go into the recursive filter.
+        DifferenceBetweenAdjacentGridSquares plugin to calculate an average
+        gradient across each grid square.  These gradients are then used to
+        calculate a "alpha" smoothing arrays that are normalised between a
+        user-specified max and min.
 
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                 A 2D cube of the orography for the grid we want to get alphas
                 for.
 
         Returns:
-            alpha_x : iris.cube.Cube
-                A cube of orographic dependent alphas calculated in the x
-                direction.
-            alpha_y : iris.cube.Cube
-                A cube of orographic dependent alphas calculated in the y
-                direction.
+            (tuple): tuple containing
+
+                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
+                    alphas calculated in the x direction.
+
+                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
+                    alphas calculated in the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError('OrographicAlphas() expects cube input, got {}'
@@ -227,11 +230,11 @@ class SaturatedVapourPressureTable(object):
         Initialise class.
 
         Args:
-            t_min : float
+            t_min (float):
                 The minimum temperature for the range.
-            t_max : float
+            t_max (float):
                 The maximum temperature for the range.
-            t_increment : float
+            t_increment (float):
                 The temperature increment at which to create values for the
                 saturated vapour pressure between t_min and t_max.
         """
@@ -253,7 +256,7 @@ class SaturatedVapourPressureTable(object):
         psychrometric_calculations.Utilities.
 
         Returns:
-            svp : iris.cube.Cube
+            svp (iris.cube.Cube):
                A cube of saturated vapour pressure values at temperature
                points defined by t_min, t_max, and t_increment (defined above).
         """

@@ -251,7 +251,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
                 A cube of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
-        gradient = diff_cube.copy(data=abs(diff_cube.data / grid_spacing))
+        gradient = diff_cube.copy(data=(diff_cube.data) / grid_spacing)
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
         gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
         return gradient
@@ -269,7 +269,9 @@ class DifferenceBetweenAdjacentGridSquares(object):
         Kwargs:
             gradient (boolean):
                 Optionally return gradient rather than difference.  This has
-                dimensions of original grid, rather than losing 1 row & col.
+                dimensions of original grid, rather than losing 1 row & col,
+                which is achieved by linear interpolation (note this will
+                smooth over local maxima & minima).
 
         Returns:
             (tuple) : tuple containing:
