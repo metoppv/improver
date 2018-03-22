@@ -126,14 +126,14 @@ class Test_unnormalised_alphas(IrisTest):
 
     def test_basic(self):
         """Test data are as expected"""
-        gradient_x, gradient_y = \
+        gradient_x, _ = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(
                 self.cube)
         alpha_x = self.plugin.unnormalised_alphas(gradient_x)
         self.assertArrayAlmostEqual(gradient_x.data, alpha_x.data)
 
 
-def Test_gradient_to_alpha(IrisTest):
+class Test_gradient_to_alpha(IrisTest):
 
     """Class to test alphas data and metadata output"""
 
