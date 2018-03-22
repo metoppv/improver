@@ -619,20 +619,30 @@ class Test_process(IrisTest):
         # Repeat all tests relating to vii from Test__modify_first_guess
         expected = set_up_cube_with_no_realizations()
 
-        # test_vii_null
+        # Set up precip_cube with increasing intensity along x-axis
+        #y=5; no precip
+        self.precip_cube.data[:, 0, 5:9, 5] = 0.
+        #y=6; light precip
+        self.precip_cube.data[0, 0, 5:9, 6] = 0.1
+        self.precip_cube.data[1, 0:, 5:9, 6] = 0.
+        #y=7; heavy precip
+        self.precip_cube.data[:2, 0, 5:9, 7] = 1.
+        self.precip_cube.data[2, 0, 5:9, 7] = 0.
+        #y=8; intense precip
+        self.precip_cube.data[:, 0, 5:9, 8] = 1.
+
+        # test_vii_null - with lightning-halo
         self.vii_cube.data[:, 5, 5:9] = 0.
         self.vii_cube.data[0, 5, 5:9] = 0.5
         self.ltng_cube.data[0, 5, 5:9] = 0.
         self.fg_cube.data[0, 5, 5:9] = 0.
-        self.precip_cube.data[0, 0, 5, 5:9] = 1.
-        expected.data[0, 5, 5:9] = 0.25
+        expected.data[0, 5, 5:9] = [0.05, 0.25, 0.25, 1.]
 
         # test_vii_zero
         self.vii_cube.data[:, 6, 5:9] = 0.
         self.ltng_cube.data[0, 6, 5:9] = -1.
         self.fg_cube.data[0, 6, 5:9] = 0.
-        self.precip_cube.data[0, 0, 6, 5:9] = 0.
-        expected.data[0, 6, 5:9] = 0.
+        expected.data[0, 6, 5:9] = [0., 0., 0.25, 1.]
 
         # test_vii_small
         # Set lightning data to -1 so it has a Null impact
@@ -640,16 +650,14 @@ class Test_process(IrisTest):
         self.vii_cube.data[0, 7, 5:9] = 0.5
         self.ltng_cube.data[0, 7, 5:9] = -1.
         self.fg_cube.data[0, 7, 5:9] = 0.
-        self.precip_cube.data[0, 0, 7, 5:9] = 0.
-        expected.data[0, 7, 5:9] = 0.05
+        expected.data[0, 7, 5:9] = [0.05, 0.05, 0.25, 1.]
 
         # test_vii_large
         # Set lightning data to -1 so it has a Null impact
         self.vii_cube.data[:, 8, 5:9] = 1.
         self.ltng_cube.data[0, 8, 5:9] = -1.
         self.fg_cube.data[0, 8, 5:9] = 0.
-        self.precip_cube.data[0, 0, 8, 5:9] = 0.
-        expected.data[0, 8, 5:9] = 0.9
+        expected.data[0, 8, 5:9] = [0.9, 0.9, 0.9, 1.]
         return expected
 
     def test_basic(self):
@@ -694,11 +702,15 @@ class Test_process(IrisTest):
         present and forecast time is 4 hours"""
         expected = self.set_up_vii_input_output()
 
-        # test_vii_small will now return zero
-        expected.data[0, 7, 5:9] = 0.
+        # test_vii_null with no precip will now return 0.0067
+        expected.data[0, 5, 5] = 0.0067
 
-        # test_vii_large now return zero
-        expected.data[0, 8, 5:9] = 0.
+        # test_vii_small with no and light precip will now return zero
+        expected.data[0, 7, 5:7] = 0.
+
+        # test_vii_large with no and light precip now return zero
+        # and 0.25 for heavy precip
+        expected.data[0, 8, 5:8] = [0., 0., 0.25]
         # No halo - we're only testing this method.
         plugin = Plugin(2000.)
         result = plugin.process(CubeList([
