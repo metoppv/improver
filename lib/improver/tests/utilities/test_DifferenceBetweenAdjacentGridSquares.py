@@ -43,6 +43,12 @@ from numpy import ma
 from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares)
 
+"""
+TODO add tests for gradient including:
+- output cube metadata (name and units)
+
+
+"""
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
                 realizations=np.array([0]), timesteps=1,

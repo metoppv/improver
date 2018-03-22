@@ -125,6 +125,27 @@ class OrographicAlphas(object):
                                          gradient_cube.data**self.power)
         return alphas_cube
 
+    @staticmethod
+    def fix_metadata(alphas_cube):
+        """
+        Update metadata in alphas cube.  Remove any time coordinates and
+        rename.
+
+        Args:
+        alphas_cube : iris.cube.Cube
+            A cube of alphas with "gradient" metadata
+
+        Returns:
+        alphas_cube : iris.cube.Cube
+            A cube of alphas with adjusted metadata
+        """
+        alphas_cube.rename('alphas')
+        for coord in alphas_cube.coords(dim_coords=False):
+            if 'time' in coord.name() or 'period' in coord.name():
+                alphas_cube.remove_coord(coord)
+        return alphas_cube
+        
+
     def gradient_to_alpha(self, gradient_x, gradient_y):
         """
         Generate alpha smoothing parameters from orography gradients in the
@@ -153,6 +174,8 @@ class OrographicAlphas(object):
             alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
                                                  min_output=self.min_alpha,
                                                  max_output=self.max_alpha)
+        alpha_x = self.fix_metadata(alpha_x)
+        alpha_y = self.fix_metadata(alpha_y)
 
         return alpha_x, alpha_y
 
@@ -167,19 +190,28 @@ class OrographicAlphas(object):
         orography dimensions and will go into the recursive filter.
 
         Args:
-            cube: iris.cube.Cube
-                A cube of the orography for the grid we want to get alphas for.
+            cube : iris.cube.Cube
+                A 2D cube of the orography for the grid we want to get alphas
+                for.
 
         Returns:
             alpha_x : iris.cube.Cube
-               A cube of orographic dependent alphas calculated in the x
-               direction.
+                A cube of orographic dependent alphas calculated in the x
+                direction.
             alpha_y : iris.cube.Cube
-               A cube of orographic dependent alphas calculated in the y
-               direction.
+                A cube of orographic dependent alphas calculated in the y
+                direction.
         """
+        if not isinstance(cube, iris.cube.Cube):
+            raise ValueError('OrographicAlphas() expects cube input, got {}'
+                             .format(type(cube)))
+        
+        if len(cube.data.shape) != 2:
+            raise ValueError('Expected orography on 2D grid, got {} dims'
+                             .format(len(cube.data.shape)))
+
         gradient_x, gradient_y = \
-            DifferenceBetweenAdjacentGridSquares().process(cube, gradient=True)
+            DifferenceBetweenAdjacentGridSquares(gradient=True).process(cube)
         alpha_x, alpha_y = self.gradient_to_alpha(gradient_x, gradient_y)
 
         return alpha_x, alpha_y
