@@ -276,6 +276,45 @@ class Test__modify_first_guess(IrisTest):
                                             None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
+    def test_precip_heavy(self):
+        """Test that prob of heavy precip increases lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 0.5
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.0
+        # Set lightning data to zero so it has a Null impact
+        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.25
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_intense(self):
+        """Test that prob of intense precip increases lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 1.0
+        self.precip_cube.data[2, 0, 7, 7] = 0.5
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.0
+        # Set lightning data to zero so it has a Null impact
+        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
+        # No halo - we're only testing this method.
+        plugin = Plugin(0.)
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 1.0
+        result = plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
     def test_vii_null(self):
         """Test that small VII probs do not increase lightning risk"""
         self.vii_cube.data[:, 7, 7] = 0.
