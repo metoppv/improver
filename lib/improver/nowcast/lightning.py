@@ -391,7 +391,8 @@ class NowcastLightning(object):
             cubelist (iris.cube.CubeList):
                 Contains cubes of
                     * First-guess lightning probability
-                    * Nowcast precipitation probability (threshold > 0.5, 7., 35.)
+                    * Nowcast precipitation probability
+                        (threshold > 0.5, 7., 35.)
                     * Nowcast lightning rate
                     * (optional) Analysis of vertically integrated ice (VII)
                       from radar
@@ -410,8 +411,8 @@ class NowcastLightning(object):
         vii_cube = cubelist.extract("probability_of_vertical_integral_of_ice")
         if vii_cube:
             vii_cube = vii_cube.merge_cube()
-        precip_cube = precip_cube.extract(iris.Constraint(threshold=0.5))
-        new_cube = self._update_meta(precip_cube)
+        precip_slice = precip_cube.extract(iris.Constraint(threshold=0.5))
+        new_cube = self._update_meta(precip_slice)
         new_cube = self._modify_first_guess(
             new_cube, fg_cube, ltng_cube, precip_cube, vii_cube)
         new_cube = self._process_haloes(new_cube)
