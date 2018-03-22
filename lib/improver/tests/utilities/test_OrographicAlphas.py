@@ -41,13 +41,8 @@ from iris.tests import IrisTest
 from iris.cube import Cube
 
 from improver.utilities.ancillary_creation import OrographicAlphas
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
-"""
-TODO add tests for
-- ValueError if given orography CubeList
-
-
-"""
 
 def set_up_cube():
     """Set up dummy cube for tests"""
@@ -66,8 +61,13 @@ class Test__init__(IrisTest):
     """Test the init method."""
 
     def test_basic(self):
-        """Test attribute initialisation TODO """
-        pass
+        """Test default attribute initialisation"""
+        result = OrographicAlphas()
+        self.assertTrue(result.invert_alphas)
+        self.assertEqual(result.min_alpha, 0.)
+        self.assertEqual(result.max_alpha, 1.)
+        self.assertEqual(result.coefficient, 1.)
+        self.assertEqual(result.power, 1.)
 
 
 class Test__repr__(IrisTest):
@@ -88,33 +88,32 @@ class Test_scale_alphas(IrisTest):
     def setUp(self):
         """Set up cube & plugin"""
         self.plugin = OrographicAlphas()
-        self.cube = set_up_cube()
+        cube = set_up_cube()
+        self.cubelist = [cube, cube]
 
     def test_basic(self):
         """
         Test the basic function of scale_alphas, using the
         standard max and min alphas.
         """
-        cubelist = [self.cube, self.cube]
-        result = self.plugin.scale_alphas(cubelist)
+        result = self.plugin.scale_alphas(self.cubelist)
         expected = np.array([[0.1, 0.5, 1.0],
                              [0.3, 0.4, 0.7],
                              [0.0, 0.2, 0.1]])
-        self.assertArrayEqual(result[0].data, expected)
-        self.assertArrayEqual(result[1].data, expected)
+        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertArrayAlmostEqual(result[1].data, expected)
 
     def test_maxmin(self):
         """
         Tests the function of scale_alphas, using a max
         and min value for alpha.
         """
-        cubelist = [self.cube, self.cube]
-        result = self.plugin.scale_alphas(cubelist, 3, 5)
-        expected = np.array([[3.2, 4.0, 5.0],
-                             [3.6, 3.8, 4.4],
-                             [3.0, 3.4, 3.2]])
-        self.assertArrayEqual(result[0].data, expected)
-        self.assertArrayEqual(result[1].data, expected)
+        result = self.plugin.scale_alphas(self.cubelist, 0.3, 0.5)
+        expected = np.array([[0.32, 0.40, 0.50],
+                             [0.36, 0.38, 0.44],
+                             [0.30, 0.34, 0.32]])
+        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertArrayAlmostEqual(result[1].data, expected)
 
 
 class Test_unnormalised_alphas(IrisTest):
@@ -124,6 +123,39 @@ class Test_unnormalised_alphas(IrisTest):
         """Set up cube & plugin"""
         self.plugin = OrographicAlphas()
         self.cube = set_up_cube()
+
+    def test_basic(self):
+        """Test data are as expected"""
+        gradient_x, gradient_y = \
+            DifferenceBetweenAdjacentGridSquares(gradient=True).process(
+                self.cube)
+        alpha_x = self.plugin.unnormalised_alphas(gradient_x)
+        self.assertArrayAlmostEqual(gradient_x.data, alpha_x.data)
+
+
+def Test_gradient_to_alpha(IrisTest):
+
+    """Class to test alphas data and metadata output"""
+
+    def setUp(self):
+        """Set up cube & plugin"""
+        self.plugin = OrographicAlphas(min_alpha=0.3, max_alpha=0.5)
+        self.cube = set_up_cube()
+        self.gradient_x, self.gradient_y = \
+            DifferenceBetweenAdjacentGridSquares(gradient=True).process(
+                self.cube)
+
+    def test_basic(self):
+        """Test basic version of gradient to alpha"""
+        expected = np.array([[0.32, 0.40, 0.50],
+                             [0.36, 0.38, 0.44],
+                             [0.30, 0.34, 0.32]])
+        result = self.plugin.gradient_to_alpha(self.gradient_x,
+                                               self.gradient_y)
+        self.assertEqual(result[0].name(), 'alphas')
+        self.assertArrayAlmostEqual(result[0].data, expected)
+        self.assertNotIn('forecast_period', result[0].coords().name)
+        self.assertNotIn('forecast_time', result[0].coords().name)
 
 
 class Test_process(IrisTest):
@@ -135,10 +167,7 @@ class Test_process(IrisTest):
         self.cube = set_up_cube()
 
     def test_basic(self):
-        """
-        Tests that the final processing step gets the
-        right values.
-        """
+        """Tests that the final processing step gets the right values."""
         result = self.plugin.process(self.cube)
         expected_x = np.array([[0.53333333, 0.4, 0.26666667],
                               [1.0, 0.73333333, 0.46666667],
@@ -148,6 +177,11 @@ class Test_process(IrisTest):
                               [0.53333333, 0.66666667, 0.]])
         self.assertArrayAlmostEqual(result[0].data, expected_x)
         self.assertArrayAlmostEqual(result[1].data, expected_y)
+
+    def test_list_error(self):
+        """Test that a list of orography input cubes raises a value error"""
+        with self.assertRaises(ValueError):
+            self.plugin.process([self.cube, self.cube])
 
 
 if __name__ == '__main__':

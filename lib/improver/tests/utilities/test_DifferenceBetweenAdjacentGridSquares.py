@@ -219,7 +219,7 @@ class Test_gradient_from_diff(IrisTest):
         self.plugin = DifferenceBetweenAdjacentGridSquares(gradient=True)
 
     def test_basic(self):
-        """Test contents and metadata"""        
+        """Test contents and metadata"""
         expected = np.array([[0.5, 0.5, 0.5],
                              [1.0, 1.0, 1.0],
                              [2.5, 2.5, 2.5]])

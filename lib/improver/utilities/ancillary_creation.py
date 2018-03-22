@@ -126,7 +126,7 @@ class OrographicAlphas(object):
         return alphas_cube
 
     @staticmethod
-    def fix_metadata(alphas_cube):
+    def update_alphas_metadata(alphas_cube):
         """
         Update metadata in alphas cube.  Remove any time coordinates and
         rename.
@@ -144,7 +144,6 @@ class OrographicAlphas(object):
             if 'time' in coord.name() or 'period' in coord.name():
                 alphas_cube.remove_coord(coord)
         return alphas_cube
-        
 
     def gradient_to_alpha(self, gradient_x, gradient_y):
         """
@@ -174,8 +173,8 @@ class OrographicAlphas(object):
             alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
                                                  min_output=self.min_alpha,
                                                  max_output=self.max_alpha)
-        alpha_x = self.fix_metadata(alpha_x)
-        alpha_y = self.fix_metadata(alpha_y)
+        alpha_x = self.update_alphas_metadata(alpha_x)
+        alpha_y = self.update_alphas_metadata(alpha_y)
 
         return alpha_x, alpha_y
 
@@ -205,7 +204,7 @@ class OrographicAlphas(object):
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError('OrographicAlphas() expects cube input, got {}'
                              .format(type(cube)))
-        
+
         if len(cube.data.shape) != 2:
             raise ValueError('Expected orography on 2D grid, got {} dims'
                              .format(len(cube.data.shape)))

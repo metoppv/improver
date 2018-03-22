@@ -199,7 +199,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         #       agreed upon.
         if not self.is_gradient:
             cell_method = CellMethod("difference", coords=[coord_name],
-                                    intervals='1 grid length')
+                                     intervals='1 grid length')
             diff_cube.add_cell_method(cell_method)
             diff_cube.attributes["form_of_difference"] = (
                 "forward_difference")
@@ -254,7 +254,6 @@ class DifferenceBetweenAdjacentGridSquares(object):
         gradient = diff_cube.copy(data=abs(diff_cube.data / grid_spacing))
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
         gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
-        print gradient.name()
         return gradient
 
     def process(self, cube):
