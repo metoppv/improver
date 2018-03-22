@@ -76,7 +76,8 @@ class OrographicAlphas(object):
 
         return result
 
-    def scale_alphas(self, cubes, min_output=0, max_output=1):
+    @staticmethod
+    def scale_alphas(cubes, min_output=0, max_output=1):
         """
         This scales a set of alphas from input cubes to range between the
         minimum and maximum alpha values.
