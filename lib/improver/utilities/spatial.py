@@ -195,8 +195,8 @@ class DifferenceBetweenAdjacentGridSquares(object):
             diff_cube.add_aux_coord(coord.copy(), dims)
 
         # Add metadata to indicate that a difference has been calculated.
-        # TODO: update this metadata when proper conventions have been
-        #       agreed upon.
+        # TODO: update metadata for difference and add metadata for gradient
+        #       when proper conventions have been agreed upon.
         if not self.is_gradient:
             cell_method = CellMethod("difference", coords=[coord_name],
                                      intervals='1 grid length')

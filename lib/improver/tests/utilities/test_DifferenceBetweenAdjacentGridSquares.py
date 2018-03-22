@@ -209,7 +209,7 @@ class Test_gradient_from_diff(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3],
-                         [2, 4, 6],
+                         [2, 4, 2],
                          [5, 10, 15]])
         x_coord = DimCoord(2.*np.arange(3), "projection_x_coordinate")
         y_coord = DimCoord(2.*np.arange(3), "projection_y_coordinate")
@@ -221,7 +221,7 @@ class Test_gradient_from_diff(IrisTest):
     def test_basic(self):
         """Test contents and metadata"""
         expected = np.array([[0.5, 0.5, 0.5],
-                             [1.0, 1.0, 1.0],
+                             [2.0, 0.0, -2.0],
                              [2.5, 2.5, 2.5]])
         xdiff = self.plugin.calculate_difference(self.cube, "x")
         result = self.plugin.gradient_from_diff(xdiff, self.cube, "x")
