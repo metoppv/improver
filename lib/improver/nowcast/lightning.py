@@ -174,8 +174,7 @@ class NowcastLightning(object):
    upper:  VII {viiu} => max lightning prob {lviiu}
    middle: VII {viim} => max lightning prob {lviim}
    lower:  VII {viil} => max lightning prob {lviil}
->""".format(
-            radius=self.radius, debug=self.debug,
+>""".format(radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
             precu=self.precipthr[2], precm=self.precipthr[1],
@@ -348,7 +347,8 @@ class NowcastLightning(object):
             cube, merged_cube)
         return merged_cube
 
-    def _apply_double_scaling(self, data_cube, scaled_cube,
+    @staticmethod
+    def _apply_double_scaling(data_cube, scaled_cube,
                               data_vals, scaling_vals,
                               combine_function=np.minimum):
         """
