@@ -620,15 +620,15 @@ class Test_process(IrisTest):
         expected = set_up_cube_with_no_realizations()
 
         # Set up precip_cube with increasing intensity along x-axis
-        #y=5; no precip
+        # y=5; no precip
         self.precip_cube.data[:, 0, 5:9, 5] = 0.
-        #y=6; light precip
+        # y=6; light precip
         self.precip_cube.data[0, 0, 5:9, 6] = 0.1
         self.precip_cube.data[1, 0:, 5:9, 6] = 0.
-        #y=7; heavy precip
+        # y=7; heavy precip
         self.precip_cube.data[:2, 0, 5:9, 7] = 1.
         self.precip_cube.data[2, 0, 5:9, 7] = 0.
-        #y=8; intense precip
+        # y=8; intense precip
         self.precip_cube.data[:, 0, 5:9, 8] = 1.
 
         # test_vii_null - with lightning-halo
