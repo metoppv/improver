@@ -110,8 +110,8 @@ class OrographicAlphas(object):
     def unnormalised_alphas(self, gradient_cube):
         """
         This generates initial alpha values from gradients using a generalised
-        power law, whose parameters are set at initialisation.  Current defaults
-        give an output alphas_cube equal to the input gradient_cube.
+        power law, whose parameters are set at initialisation.  Current
+        defaults give an output alphas_cube equal to the input gradient_cube.
 
         Args:
             gradient_cube : iris.cube.Cube
@@ -147,15 +147,14 @@ class OrographicAlphas(object):
 
         if self.invert_alphas:
             alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
-                min_output=self.max_alpha,
-                max_output=self.min_alpha)
+                                                 min_output=self.max_alpha,
+                                                 max_output=self.min_alpha)
         else:
             alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
-                min_output=self.min_alpha,
-                max_output=self.max_alpha)
+                                                 min_output=self.min_alpha,
+                                                 max_output=self.max_alpha)
 
         return alpha_x, alpha_y
-
 
     def process(self, cube):
         """
