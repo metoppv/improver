@@ -44,9 +44,12 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
+from iris import FUTURE
 
 from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
+
+FUTURE.netcdf_no_unlimited = True
 
 
 class Test_read_input(IrisTest):

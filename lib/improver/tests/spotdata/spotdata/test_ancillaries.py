@@ -39,8 +39,11 @@ from tempfile import mkdtemp
 import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
+from iris import FUTURE
 
 from improver.spotdata.ancillaries import get_ancillary_data as Plugin
+
+FUTURE.netcdf_no_unlimited = True
 
 
 class Test_get_ancillary_data(IrisTest):

@@ -41,6 +41,7 @@ import numpy as np
 from improver.nbhood.vicinity import ProbabilityOfOccurrence
 from improver.tests.utilities.test_OccurrenceWithinVicinity import (
     set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -128,6 +129,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_additional_arguments(self):
         """Test when all keyword arguments are passed in."""
         expected = np.array(

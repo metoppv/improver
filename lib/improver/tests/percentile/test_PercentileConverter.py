@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.percentile import PercentileConverter
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_process(IrisTest):
@@ -111,6 +112,8 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord('longitude').bounds,
                               [[-180., 180.]])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_valid_multi_coord_string_list(self):
         """
         Test that the plugin handles a valid list of collapse_coords passed in

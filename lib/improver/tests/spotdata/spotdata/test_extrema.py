@@ -45,6 +45,7 @@ from datetime import datetime as dt
 from improver.spotdata.extrema import ExtractExtrema as Plugin
 from improver.spotdata.extrema import make_local_time_cube
 from improver.spotdata.extrema import get_datetime_limits
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_extrema(IrisTest):
@@ -167,6 +168,8 @@ class Test_ExtractExtrema(Test_extrema):
             self.assertEqual(result[i].coord('time').bounds[0, 0], [low_bound])
             self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_data_arrays_day1(self):
         """Test extraction of maxima and minima values from the time localised
         cube in the first 24 hours. The first day is the first day for which

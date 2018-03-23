@@ -31,7 +31,6 @@
 """Unit tests for the cube_metadata utilities."""
 import unittest
 
-import warnings
 import numpy as np
 
 import iris
@@ -43,6 +42,7 @@ from cf_units import Unit
 from improver.utilities.cube_metadata import (
     add_coord, update_coord, update_attribute,
     amend_metadata, resolve_metadata_diff)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def create_cube_with_threshold(data=None,
@@ -120,7 +120,8 @@ class Test_add_coord(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             add_coord(cube, coord_name, changes)
 
-    def test_warning_messages(self):
+    @ManageWarnings(record=True)
+    def test_warning_messages(self, warning_list=None):
         """Test that warning messages is raised correctly. """
         coord_name = 'threshold'
         cube = create_cube_with_threshold()
@@ -128,13 +129,11 @@ class Test_add_coord(IrisTest):
         cube = iris.util.squeeze(cube)
         changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
         warning_msg = "Adding new coordinate"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            add_coord(cube, coord_name, changes, warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
+        add_coord(cube, coord_name, changes, warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 class Test_update_coord(IrisTest):
@@ -171,19 +170,18 @@ class Test_update_coord(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             update_coord(cube, 'time', changes)
 
-    def test_warning_messages_with_delete(self):
+    @ManageWarnings(record=True)
+    def test_warning_messages_with_delete(self, warning_list=None):
         """Test warning message is raised correctly when deleting coord. """
         coord_name = 'threshold'
         cube = create_cube_with_threshold()
         changes = 'delete'
         warning_msg = "Deleted coordinate"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            update_coord(cube, coord_name, changes, warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
+        update_coord(cube, coord_name, changes, warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     def test_coords_update_fail_points(self):
         """Test that update_coord fails if points do not match. """
@@ -219,19 +217,18 @@ class Test_update_coord(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             update_coord(cube, 'threshold', changes)
 
-    def test_warning_messages_with_update(self):
+    @ManageWarnings(record=True)
+    def test_warning_messages_with_update(self, warning_list=None):
         """Test warning message is raised correctly when updating coord. """
         coord_name = 'threshold'
         cube = create_cube_with_threshold()
         changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
         warning_msg = "Updated coordinate"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            update_coord(cube, coord_name, changes, warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
+        update_coord(cube, coord_name, changes, warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 class Test_update_attribute(IrisTest):
@@ -248,22 +245,21 @@ class Test_update_attribute(IrisTest):
         self.assertEqual(result.attributes['relative_to_threshold'],
                          'between')
 
-    def test_attributes_updated_warnings(self):
+    @ManageWarnings(record=True)
+    def test_attributes_updated_warnings(self, warning_list=None):
         """Test update_attribute updates attributes and gives warning. """
         cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'between'
         warning_msg = "Adding or updating attribute"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = update_attribute(cube, attribute_name, changes,
-                                      warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertEqual(result.attributes['relative_to_threshold'],
-                             'between')
+        result = update_attribute(cube, attribute_name, changes,
+                                  warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertEqual(result.attributes['relative_to_threshold'],
+                         'between')
 
     def test_attributes_added(self):
         """Test update_attribute adds attributeOK. """
@@ -282,21 +278,20 @@ class Test_update_attribute(IrisTest):
         result = update_attribute(cube, attribute_name, changes)
         self.assertFalse('relative_to_threshold' in result.attributes)
 
-    def test_attributes_deleted_warnings(self):
+    @ManageWarnings(record=True)
+    def test_attributes_deleted_warnings(self, warning_list=None):
         """Test update_attribute deletes and gives warning. """
         cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'delete'
         warning_msg = "Deleted attribute"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = update_attribute(cube, attribute_name, changes,
-                                      warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertFalse('relative_to_threshold' in result.attributes)
+        result = update_attribute(cube, attribute_name, changes,
+                                  warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertFalse('relative_to_threshold' in result.attributes)
 
 
 class Test_amend_metadata(IrisTest):
@@ -355,26 +350,25 @@ class Test_amend_metadata(IrisTest):
         self.assertArrayEqual(result.coord('new_coord').points,
                               np.array([2.0]))
 
-    def test_warnings_on_works(self):
+    @ManageWarnings(record=True)
+    def test_warnings_on_works(self, warning_list=None):
         """Test amend_metadata raises warnings """
         cube = create_cube_with_threshold()
         updated_attributes = {'new_attribute': 'new_value'}
         updated_coords = {'threshold': {'points': [2.0]}}
         warning_msg_attr = "Adding or updating attribute"
         warning_msg_coord = "Updated coordinate"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                    updated_coords, updated_attributes,
-                                    warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg_attr in str(item)
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg_coord in str(item)
-                                for item in warning_list))
-            self.assertEqual(result.attributes['new_attribute'],
-                             'new_value')
+        result = amend_metadata(cube, 'new_cube_name', np.dtype,
+                                updated_coords, updated_attributes,
+                                warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg_attr in str(item)
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg_coord in str(item)
+                            for item in warning_list))
+        self.assertEqual(result.attributes['new_attribute'],
+                         'new_value')
 
 
 class Test_resolve_metadata_diff(IrisTest):
@@ -485,24 +479,23 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[1].coord('threshold').points,
                               np.array([2.0]))
 
-    def test_warnings_on_work(self):
+    @ManageWarnings(record=True)
+    def test_warnings_on_work(self, warning_list=None):
         """Test warning messages are given if warnings_on is set."""
         cube1 = create_cube_with_threshold()
         cube2 = cube1.copy()
         cube2.remove_coord('threshold')
         cube2 = iris.util.squeeze(cube2)
         warning_msg = 'Adding new coordinate'
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = resolve_metadata_diff(cube1, cube2,
-                                           warnings_on=True)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, tuple)
-            self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
-            self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
+        result = resolve_metadata_diff(cube1, cube2,
+                                       warnings_on=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, tuple)
+        self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
+        self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
 if __name__ == '__main__':
     unittest.main()
