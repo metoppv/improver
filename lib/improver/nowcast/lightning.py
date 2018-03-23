@@ -35,7 +35,7 @@ import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.rescale import rescale
-
+from improver.nowcast.convection.handle_vii import ApplyIce
 
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
@@ -108,13 +108,11 @@ class NowcastLightning(object):
                 relates to problightning_values[2]
             Second value for intense precip (>35mm/hr)
                 relates to problightning_values[1]
-        vii_thresholds (tuple):
-            Values for increasing prob(lightning) with column-ice data.
-            These are the three vertically-integrated ice thresholds in kg/m2.
 
-        vii_scaling (tuple):
-            Values for increasing prob(lightning) with column-ice data.
-            These are the three prob(lightning) values to scale to.
+        ice_method = (improver.nowcast.lightning.handle_vii.ApplyIce()):
+            Initiated plugin with a process method that takes two
+            iris.cube.Cube arguments of lightning probability and vertically
+            integrated ice and returns updates the lightning probability cube.
 
         debug (boolean):
             True results in verbose output for debugging purposes.
@@ -126,8 +124,7 @@ class NowcastLightning(object):
                  probprecip_thresholds=(0.0, 0.05, 0.1),
                  problightning_scaling=(0.0067, 0.2, 1.),
                  hvyprecip_threshs=(0.4, 0.2),
-                 vii_thresholds=(0.5, 1.0, 2.0),
-                 vii_scaling=(0.1, 0.5, 0.9),
+                 ice_method = ApplyIce(),
                  debug=False):
         """
         Set up class for Nowcast of lightning probability.
@@ -150,16 +147,14 @@ class NowcastLightning(object):
         self.ltngthr = problightning_scaling
         self.phighthresh = hvyprecip_threshs[0]
         self.ptorrthresh = hvyprecip_threshs[1]
-        self.vii_thresholds = vii_thresholds
-        self.vii_scaling = vii_scaling
+        self.ice_plugin = ice_method
 
     def __repr__(self):
         """
         Docstring to describe the repr, which should return a
         printable representation of the object.
         """
-        return """
-<NowcastLightning: radius={radius}, debug={debug},
+        return """<NowcastLightning: radius={radius}, debug={debug},
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
@@ -170,10 +165,8 @@ class NowcastLightning(object):
 
    heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
    intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
- VII (ice) mapping:
-   upper:  VII {viiu} => max lightning prob {lviiu}
-   middle: VII {viim} => max lightning prob {lviim}
-   lower:  VII {viil} => max lightning prob {lviil}
+With:
+{ice}
 >""".format(radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
@@ -182,10 +175,7 @@ class NowcastLightning(object):
             lprecu=self.ltngthr[2], lprecm=self.ltngthr[1],
             lprecl=self.ltngthr[0],
             pphvy=self.phighthresh, ppint=self.ptorrthresh,
-            viiu=self.vii_thresholds[2], viim=self.vii_thresholds[1],
-            viil=self.vii_thresholds[0],
-            lviiu=self.vii_scaling[2], lviim=self.vii_scaling[1],
-            lviil=self.vii_scaling[0])
+            ice=self.ice_plugin)
 
     def _process_haloes(self, cube):
         """
@@ -326,25 +316,15 @@ class NowcastLightning(object):
             cube_slice.data = self._apply_double_scaling(
                 this_precip, cube_slice, self.precipthr, self.ltngthr)
 
-            # If we have VII data, increase prob(lightning) accordingly.
-            if vii_cube:
-                for threshold, prob_max in zip(self.vii_thresholds,
-                                               self.vii_scaling):
-                    vii_slice = vii_cube.extract(
-                        iris.Constraint(threshold=threshold))
-                    vii_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
-                    cube_slice.data = np.maximum(
-                        rescale(vii_slice.data,
-                                data_range=(0., 1.),
-                                scale_range=vii_scaling,
-                                clip=True),
-                        cube_slice.data)
-
             new_cube_list.append(cube_slice)
 
         merged_cube = new_cube_list.merge_cube()
         merged_cube = check_cube_coordinates(
             cube, merged_cube)
+
+        # If we have VII data, increase prob(lightning) accordingly.
+        if vii_cube:
+            merged_cube = self.ice_plugin.process(merged_cube, vii_cube)
         return merged_cube
 
     @staticmethod

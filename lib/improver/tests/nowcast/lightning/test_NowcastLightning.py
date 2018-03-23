@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the threshold.BasicThreshold plugin."""
+"""Unit tests for the nowcast.lightning.NowcastLightning plugin."""
 
 
 import unittest
@@ -61,8 +61,7 @@ class Test__repr__(IrisTest):
         set_lightning_thresholds = (lambda mins: mins, 0.)
         result = str(Plugin(
             lightning_thresholds=set_lightning_thresholds))
-        msg = ("""
-<NowcastLightning: radius={radius}, debug={debug},
+        msg = ("""<NowcastLightning: radius={radius}, debug={debug},
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
@@ -73,10 +72,13 @@ class Test__repr__(IrisTest):
 
    heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
    intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
- VII (ice) mapping:
+With:
+<ApplyIce:
+ VII (ice) mapping (kg/m2):
    upper:  VII {viiu} => max lightning prob {lviiu}
    middle: VII {viim} => max lightning prob {lviim}
    lower:  VII {viil} => max lightning prob {lviil}
+>
 >""".format(
             radius=10000., debug=False,
             lthru=set_lightning_thresholds[0], lthrl=0.,
