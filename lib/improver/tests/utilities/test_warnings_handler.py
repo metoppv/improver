@@ -32,7 +32,6 @@
 
 import unittest
 import warnings
-import numpy as np
 
 from iris.tests import IrisTest
 
@@ -40,6 +39,7 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 
 def dummy_func(arg1, keyval1=None):
+    """ Dummy function to test """
     if arg1 == 'User':
         msg = 'Raising User error'
         warnings.warn(msg)
@@ -61,7 +61,7 @@ class Test__init__(IrisTest):
         """Test Raises type error if ignored_messages is not a list."""
         msg = "Expecting list of strings for ignored_messages"
         with self.assertRaisesRegexp(TypeError, msg):
-            plugin = ManageWarnings(ignored_messages="Wrong")
+            ManageWarnings(ignored_messages="Wrong")
 
     def test_ignored_messages(self):
         """Test set defaults set correctly when ignored_messages set."""
@@ -89,8 +89,8 @@ class Test__init__(IrisTest):
         warning_types = [UserWarning]
         msg = "Length of warning_types"
         with self.assertRaisesRegexp(ValueError, msg):
-            plugin = ManageWarnings(ignored_messages=messages,
-                                    warning_types=warning_types)
+            ManageWarnings(ignored_messages=messages,
+                           warning_types=warning_types)
 
     def test_record_is_true(self):
         """Test record is set to True."""
@@ -122,7 +122,7 @@ class Test__call__(IrisTest):
     @ManageWarnings(record=True)
     def test_tests_warnings(self, warning_list=None):
         """Test the Function still works with wrapper"""
-        argval, keyval = dummy_func('User')
+        dummy_func('User')
         user_warning_msg = 'Raising User error'
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
