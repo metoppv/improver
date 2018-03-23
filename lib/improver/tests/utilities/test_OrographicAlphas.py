@@ -50,9 +50,11 @@ def set_up_cube():
                      [3., 4., 7.],
                      [0., 2., 1.]])
     cube = Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
-    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'latitude',
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3),
+                                'projection_y_coordinate',
                                 units='m'), 0)
-    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3), 'longitude',
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3),
+                                'projection_x_coordinate',
                                 units='m'), 1)
     return cube
 
@@ -117,20 +119,23 @@ class Test_scale_alphas(IrisTest):
 
 
 class Test_unnormalised_alphas(IrisTest):
-    """Dummy class to test the basic alphas function (currently no effect)"""
+    """Class to test the basic alphas function"""
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicAlphas()
+        self.plugin = OrographicAlphas(coefficient=0.5, power=2.)
         self.cube = set_up_cube()
 
     def test_basic(self):
         """Test data are as expected"""
+        expected = np.array([[1.53125, 2.53125, 3.78125],
+                             [0., 0.5, 2.],
+                             [1.53125, 0.03125, 0.78125]])
         gradient_x, _ = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(
                 self.cube)
         alpha_x = self.plugin.unnormalised_alphas(gradient_x)
-        self.assertArrayAlmostEqual(gradient_x.data, alpha_x.data)
+        self.assertArrayAlmostEqual(alpha_x.data, expected)
 
 
 class Test_gradient_to_alpha(IrisTest):

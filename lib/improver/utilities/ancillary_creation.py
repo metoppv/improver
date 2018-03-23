@@ -159,10 +159,10 @@ class OrographicAlphas(object):
         Returns:
             (tuple): tuple containing
 
-                alpha_x (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
                     alphas calculated in the x direction.
 
-                alpha_y (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
                     alphas calculated in the y direction.
         """
         alpha_x = self.unnormalised_alphas(gradient_x)
@@ -187,7 +187,7 @@ class OrographicAlphas(object):
         one for the y direction. It uses the
         DifferenceBetweenAdjacentGridSquares plugin to calculate an average
         gradient across each grid square.  These gradients are then used to
-        calculate a "alpha" smoothing arrays that are normalised between a
+        calculate "alpha" smoothing arrays that are normalised between a
         user-specified max and min.
 
         Args:
