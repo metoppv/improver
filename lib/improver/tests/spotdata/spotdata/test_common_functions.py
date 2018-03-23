@@ -32,7 +32,6 @@
 
 
 import unittest
-import warnings
 from datetime import datetime as dt
 
 import cf_units
@@ -49,6 +48,7 @@ from improver.spotdata.common_functions import (
     node_edge_check, index_of_minimum_difference,
     list_entry_from_index, construct_neighbour_hash,
     apply_bias, extract_ad_at_time)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_common_functions(IrisTest):
@@ -504,7 +504,8 @@ class Test_extract_ad_at_time(Test_common_functions):
         result = plugin(self.additional_data, self.time_dt, self.time_extract)
         self.assertIsInstance(result['air_temperature'], Cube)
 
-    def test_invalid_extraction_time(self):
+    @ManageWarnings(record=True)
+    def test_invalid_extraction_time(self, warning_list=None):
         """
         Case for a time that is not available within the additional diagnostic.
 
@@ -513,11 +514,11 @@ class Test_extract_ad_at_time(Test_common_functions):
         time_dt = dt(2017, 2, 20, 6, 0)
         time_extract = Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
-        with warnings.catch_warnings(record=True) as w_messages:
-            plugin(self.additional_data, time_dt, time_extract)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "Forecast time" in str(w_messages[0])
+
+        plugin(self.additional_data, time_dt, time_extract)
+        assert len(warning_list) == 1
+        assert issubclass(warning_list[0].category, UserWarning)
+        assert "Forecast time" in str(warning_list[0])
 
 
 class Test_construct_neighbour_hash(Test_common_functions):

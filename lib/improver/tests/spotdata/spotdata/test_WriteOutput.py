@@ -39,8 +39,11 @@ import iris
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
+from iris import FUTURE
 
 from improver.spotdata.write_output import WriteOutput as Plugin
+
+FUTURE.netcdf_promote = True
 
 
 class Test_write_output(IrisTest):

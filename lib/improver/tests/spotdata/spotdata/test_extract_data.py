@@ -32,7 +32,6 @@
 
 import numpy as np
 import unittest
-import warnings
 
 from collections import OrderedDict
 from datetime import datetime as dt

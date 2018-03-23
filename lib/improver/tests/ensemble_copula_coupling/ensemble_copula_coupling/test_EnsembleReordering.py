@@ -45,6 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (set_up_cube, set_up_temperature_cube,
                              add_forecast_reference_time_and_forecast_period)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__recycle_raw_ensemble_members(IrisTest):
@@ -627,6 +628,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_2d_cube_random_ordering(self):
         """
         Test that the plugin returns the correct cube data for a
