@@ -133,7 +133,7 @@ class Test__call__(IrisTest):
                     record=True)
     def test_traps_warnings(self, warning_list=None):
         """Test the Function still works with wrapper"""
-        argval, keyval = dummy_func('User')
+        dummy_func('User')
         self.assertEqual(warning_list, [])
 
 if __name__ == '__main__':
