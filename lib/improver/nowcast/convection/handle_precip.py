@@ -126,7 +126,6 @@ class ApplyPrecip(object):
         new_cube_list = iris.cube.CubeList([])
         for cube_slice in first_guess_cube.slices_over('time'):
             thistime = cube_slice.coord('time').points
-            fcmins = cube_slice.coord('forecast_period').points[0]
             this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
                                               iris.Constraint(threshold=0.5))
             high_precip = precip_cube.extract(iris.Constraint(time=thistime) &
@@ -142,8 +141,8 @@ class ApplyPrecip(object):
                                                                  thistime)
             assert isinstance(torr_precip,
                               iris.cube.Cube), err_string.format(
-                              "intense precip",
-                              thistime)
+                                  "intense precip",
+                                  thistime)
             # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
             #   prob(precip > 7mm/hr) > phighthresh
             cube_slice.data = np.where(

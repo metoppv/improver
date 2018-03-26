@@ -34,7 +34,6 @@ import numpy as np
 import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.rescale import rescale
 from improver.nowcast.convection.handle_vii import ApplyIce
 from improver.nowcast.convection.handle_precip import ApplyPrecip
 

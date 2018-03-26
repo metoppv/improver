@@ -32,11 +32,9 @@
 
 import unittest
 from iris.tests import IrisTest
-
-from iris.util import squeeze
-import cf_units
-import numpy as np
 from iris.cube import Cube
+
+import cf_units
 from improver.nowcast.convection.handle_precip import ApplyPrecip as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)

@@ -32,11 +32,11 @@
 
 import unittest
 from iris.tests import IrisTest
-
+from iris.cube import Cube
 from iris.util import squeeze
+
 import cf_units
 import numpy as np
-from iris.cube import Cube
 from improver.nowcast.convection.handle_vii import ApplyIce as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
@@ -58,7 +58,7 @@ class Test__repr__(IrisTest):
    lower:  VII {viil} => max lightning prob {lviil}
 >""".format(viiu=2.0, viim=1.0, viil=0.5,
             lviiu=0.9, lviim=0.5, lviil=0.1)
-            )
+              )
         self.assertEqual(result, msg)
 
 

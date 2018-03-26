@@ -39,8 +39,6 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
-import StringIO
-import sys
 import cf_units
 
 from improver.nowcast.lightning import NowcastLightning as Plugin
@@ -81,8 +79,7 @@ With:
    middle: VII {viim} => max lightning prob {lviim}
    lower:  VII {viil} => max lightning prob {lviil}
 >
->""".format(
-            radius=10000., debug=False,
+>""".format(radius=10000., debug=False,
             lthru=set_lightning_thresholds[0], lthrl=0.,
             lprobu=1., lprobl=0.25,
             precu=0.1, precm=0.05, precl=0.0,
@@ -92,7 +89,7 @@ With:
             viil=0.5,
             lviiu=0.9, lviim=0.5,
             lviil=0.1)
-            )
+              )
         self.assertEqual(result, msg)
 
 
