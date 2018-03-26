@@ -81,3 +81,39 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
     if clip:
         result = np.clip(result, scale_min, scale_max)
     return result
+
+def apply_double_scaling(data_cube, scaled_cube,
+                          data_vals, scaling_vals,
+                          combine_function=np.minimum):
+    """
+    Update scaled_cube based on the contents of data_cube so that
+    scaled_cube is at least the value of the data_cube after rescaling
+    based on an upper, mid and lower threshold.
+
+    Args:
+        data_cube (iris.cube.Cube):
+            Data with which to modify scaled_cube.data
+        scaled_cube (iris.cube.Cube):
+            Input cube to modify
+        data_vals (tuple of three values):
+            Lower, mid and upper points to rescale data_cube from
+        scaling_vals (tuple of three values):
+            Lower, mid and upper points to rescale data_cube to
+
+    Returns:
+        data (numpy.array):
+            Output data from scaled_cube after modification.
+            This array will have the same dimensions as scaled_cube.
+    """
+    local_limit = np.where(
+        data_cube.data < data_vals[1],
+        rescale(data_cube.data,
+                data_range=(data_vals[0], data_vals[1]),
+                scale_range=(scaling_vals[0], scaling_vals[1]),
+                clip=True),
+        rescale(data_cube.data,
+                data_range=(data_vals[1], data_vals[2]),
+                scale_range=(scaling_vals[1], scaling_vals[2]),
+                clip=True))
+    # Ensure prob(lightning) is no larger than the local upper-limit:
+    return combine_function(scaled_cube.data, local_limit)

@@ -36,6 +36,7 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.rescale import rescale
 from improver.nowcast.convection.handle_vii import ApplyIce
+from improver.nowcast.convection.handle_precip import ApplyPrecip
 
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
@@ -92,27 +93,18 @@ class NowcastLightning(object):
             The default values are selected to represent lightning risk
             index values of 1 and 2 relating to the key.
 
-        probprecip_thresholds (tuple):
-            Values for limiting prob(lightning) with prob(precip)
-            These are the three prob(precip) thresholds and are designed
-            to prevent a large probability of lightning being output if
-            the probability of precipitation is very low.
-
-        problightning_scaling (tuple):
-            Values for limiting prob(lightning) with prob(precip)
-            These are the three prob(lightning) values to scale to.
-
-        hvyprecip_threshs (tuple):
-            probability thresholds for increasing the prob(lightning)
-            First value for heavy precip (>7mm/hr)
-                relates to problightning_values[2]
-            Second value for intense precip (>35mm/hr)
-                relates to problightning_values[1]
+        precip_method = (improver.nowcast.lightning.
+                         handle_precip.ApplyPrecip()):
+            Initiated plugin with a process method that takes two
+            iris.cube.Cube arguments of lightning probability and precipitation
+            probability and returns an updated lightning probability cube.
+            Default value of None causes a plugin to be initiated using the
+            problightning_values available in this plugin.
 
         ice_method = (improver.nowcast.lightning.handle_vii.ApplyIce()):
             Initiated plugin with a process method that takes two
             iris.cube.Cube arguments of lightning probability and vertically
-            integrated ice and returns updates the lightning probability cube.
+            integrated ice and returns an updated lightning probability cube.
 
         debug (boolean):
             True results in verbose output for debugging purposes.
@@ -121,9 +113,7 @@ class NowcastLightning(object):
                  lightning_thresholds=(
                      lambda mins: 0.5 + mins * 2. / 360., 0.),
                  problightning_values={1: 1., 2: 0.25},
-                 probprecip_thresholds=(0.0, 0.05, 0.1),
-                 problightning_scaling=(0.0067, 0.2, 1.),
-                 hvyprecip_threshs=(0.4, 0.2),
+                 precip_method = None,
                  ice_method = ApplyIce(),
                  debug=False):
         """
@@ -143,10 +133,10 @@ class NowcastLightning(object):
         # Prob(lightning) value for Lightning Risk 1 & 2 levels
         self.pl_dict = problightning_values
 
-        self.precipthr = probprecip_thresholds
-        self.ltngthr = problightning_scaling
-        self.phighthresh = hvyprecip_threshs[0]
-        self.ptorrthresh = hvyprecip_threshs[1]
+        if precip_method is None:
+            self.precip_plugin = ApplyPrecip(problightning_values=self.pl_dict)
+        else:
+            self.precip_plugin = precip_method
         self.ice_plugin = ice_method
 
     def __repr__(self):
@@ -158,23 +148,13 @@ class NowcastLightning(object):
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
- precipitation mapping:
-   upper:  precip probability {precu} => max lightning prob {lprecu}
-   middle: precip probability {precm} => max lightning prob {lprecm}
-   lower:  precip probability {precl} => max lightning prob {lprecl}
-
-   heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
-   intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
 With:
+{precip}
 {ice}
 >""".format(radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
-            precu=self.precipthr[2], precm=self.precipthr[1],
-            precl=self.precipthr[0],
-            lprecu=self.ltngthr[2], lprecm=self.ltngthr[1],
-            lprecl=self.ltngthr[0],
-            pphvy=self.phighthresh, ppint=self.ptorrthresh,
+            precip=self.precip_plugin,
             ice=self.ice_plugin)
 
     def _process_haloes(self, cube):
@@ -255,21 +235,12 @@ With:
         for cube_slice in cube.slices_over('time'):
             thistime = cube_slice.coord('time').points
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
-            this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=0.5))
-            high_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=7.))
-            torr_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=35.))
             fg_time = fg_cube.coord('time').points[
                 fg_cube.coord('time').nearest_neighbour_index(thistime)]
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
             err_string = "No matching {} cube for {}"
             assert isinstance(this_ltng,
                               iris.cube.Cube), err_string.format("lightning",
-                                                                 thistime)
-            assert isinstance(this_precip,
-                              iris.cube.Cube), err_string.format("precip",
                                                                  thistime)
             assert isinstance(cube_slice,
                               iris.cube.Cube), err_string.format("output",
@@ -299,70 +270,19 @@ With:
                                cube_slice.data < self.pl_dict[1]),
                 self.pl_dict[1], cube_slice.data)
 
-            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
-            #   prob(precip > 7mm/hr) > phighthresh
-            cube_slice.data = np.where(
-                np.logical_and(high_precip.data >= self.phighthresh,
-                               cube_slice.data < self.pl_dict[2]),
-                self.pl_dict[2], cube_slice.data)
-            # Increase prob(lightning) to Risk 1 (pl_dict[1]) when
-            #   prob(precip > 35mm/hr) > ptorrthresh
-            cube_slice.data = np.where(
-                np.logical_and(torr_precip.data >= self.ptorrthresh,
-                               cube_slice.data < self.pl_dict[1]),
-                self.pl_dict[1], cube_slice.data)
-
-            # Decrease prob(lightning) where prob(precip > 0) is low.
-            cube_slice.data = self._apply_double_scaling(
-                this_precip, cube_slice, self.precipthr, self.ltngthr)
-
             new_cube_list.append(cube_slice)
 
         merged_cube = new_cube_list.merge_cube()
         merged_cube = check_cube_coordinates(
             cube, merged_cube)
 
+        # Apply precipitation adjustments.
+        merged_cube = self.precip_plugin.process(merged_cube, precip_cube)
+
         # If we have VII data, increase prob(lightning) accordingly.
         if vii_cube:
             merged_cube = self.ice_plugin.process(merged_cube, vii_cube)
         return merged_cube
-
-    @staticmethod
-    def _apply_double_scaling(data_cube, scaled_cube,
-                              data_vals, scaling_vals,
-                              combine_function=np.minimum):
-        """
-        Update scaled_cube based on the contents of data_cube so that
-        scaled_cube is at least the value of the data_cube after rescaling
-        based on an upper, mid and lower threshold.
-
-        Args:
-            data_cube (iris.cube.Cube):
-                Data with which to modify scaled_cube.data
-            scaled_cube (iris.cube.Cube):
-                Input cube to modify
-            data_vals (tuple of three values):
-                Lower, mid and upper points to rescale data_cube from
-            scaling_vals (tuple of three values):
-                Lower, mid and upper points to rescale data_cube to
-
-        Returns:
-            data (numpy.array):
-                Output data from scaled_cube after modification.
-                This array will have the same dimensions as scaled_cube.
-        """
-        local_limit = np.where(
-            data_cube.data < data_vals[1],
-            rescale(data_cube.data,
-                    data_range=(data_vals[0], data_vals[1]),
-                    scale_range=(scaling_vals[0], scaling_vals[1]),
-                    clip=True),
-            rescale(data_cube.data,
-                    data_range=(data_vals[1], data_vals[2]),
-                    scale_range=(scaling_vals[1], scaling_vals[2]),
-                    clip=True))
-        # Ensure prob(lightning) is no larger than the local upper-limit:
-        return combine_function(scaled_cube.data, local_limit)
 
     def process(self, cubelist):
         """

@@ -35,9 +35,9 @@ import numpy as np
 
 from iris.tests import IrisTest
 
-from improver.utilities.rescale import rescale
+from improver.utilities.rescale import rescale, apply_double_scaling
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube)
+    set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
@@ -96,6 +96,98 @@ class Test_rescale(IrisTest):
         expected[0, 0, 7, 7] = 100.
         result = rescale(self.cube.data, data_range=(0.2, 1.2),
                          scale_range=(100., 110.), clip=True)
+        self.assertArrayAlmostEqual(result, expected)
+
+
+class Test_apply_double_scaling(IrisTest):
+
+    """Test the apply_double_scaling method."""
+
+    def setUp(self):
+        """Create cubes with a single zero prob(precip) point."""
+        self.cube_a = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
+        self.cube_b = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
+        self.thr_a = (0.1, 0.5, 0.8)
+        self.thr_b = (0.0, 0.5, 0.9)
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        result = apply_double_scaling(self.cube_a,
+                                      self.cube_b,
+                                      self.thr_a,
+                                      self.thr_b)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_input(self):
+        """Test that the method does not modify the input cubes."""
+        cube_a = self.cube_a.copy()
+        cube_b = self.cube_b.copy()
+        apply_double_scaling(self.cube_a,
+                             self.cube_b,
+                             self.thr_a,
+                             self.thr_b)
+        self.assertArrayAlmostEqual(cube_a.data, self.cube_a.data)
+        self.assertArrayAlmostEqual(cube_b.data, self.cube_b.data)
+
+    def test_values_default(self):
+        """Test that the method returns the expected data values with default
+        function"""
+        # Create an array of correct shape and fill with expected value
+        expected = np.full_like(self.cube_a.data, 0.9)
+        # Row zero should be changed to all-zeroes
+        expected[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                             0., 0., 0., 0., 0., 0., 0., 0.]
+        # Row one should be like ltng_cube but with most values reduced to 0.5
+        expected[0, 1, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.5,
+                             0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        # Row two should be like ltng_cube but with late values limited to 0.9
+        expected[0, 2, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
+                             0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
+        self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                                     0., 0., 0., 0., 0., 0., 0., 0.]
+        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+                                     0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        self.cube_a.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
+                                     1., 1., 1., 1., 1., 1., 1., 1.]
+        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.1)
+        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.1)
+        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        result = apply_double_scaling(self.cube_a,
+                                      self.cube_b,
+                                      self.thr_a,
+                                      self.thr_b)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_values_max(self):
+        """Test that the method returns the expected data values with max
+        function"""
+        expected = self.cube_a.data.copy()
+        # Row zero should be unchanged from ltng_cube
+        expected[0, 0, :] = np.arange(0., 1.6, 0.1)
+        # Row one should be like ltng_cube but with early values raised to 0.5
+        expected[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.6, 0.7,
+                             0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        # Row two should be like ltng_cube but with most values raised to 0.9
+        expected[0, 2, :] = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
+                             0.9, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
+                                     0., 0., 0., 0., 0., 0., 0., 0.]
+        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
+                                     0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        self.cube_a.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
+                                     1., 1., 1., 1., 1., 1., 1., 1.]
+        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.1)
+        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.1)
+        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        result = apply_double_scaling(self.cube_a,
+                                      self.cube_b,
+                                      self.thr_a,
+                                      self.thr_b,
+                                      combine_function=np.maximum)
         self.assertArrayAlmostEqual(result, expected)
 
 

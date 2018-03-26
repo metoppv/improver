@@ -65,6 +65,8 @@ class Test__repr__(IrisTest):
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
+With:
+<ApplyPrecip:
  precipitation mapping:
    upper:  precip probability {precu} => max lightning prob {lprecu}
    middle: precip probability {precm} => max lightning prob {lprecm}
@@ -72,7 +74,7 @@ class Test__repr__(IrisTest):
 
    heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
    intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
-With:
+>
 <ApplyIce:
  VII (ice) mapping (kg/m2):
    upper:  VII {viiu} => max lightning prob {lviiu}
@@ -247,7 +249,7 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_e.data, self.vii_cube.data)
 
     def test_precip_zero(self):
-        """Test that zero precip probs reduce lightning risk"""
+        """Test that ApplyPrecip is being called"""
         # Set lightning data to zero so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
@@ -261,158 +263,8 @@ class Test__modify_first_guess(IrisTest):
                                             None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
-    def test_precip_small(self):
-        """Test that small precip probs reduce lightning risk"""
-        # Set precip data to 0.075, in the middle of the upper low range.
-        self.precip_cube.data[0, 0, 7, 7] = 0.075
-        # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.6
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_precip_heavy(self):
-        """Test that prob of heavy precip increases lightning risk"""
-        self.precip_cube.data[0, 0, 7, 7] = 1.0
-        self.precip_cube.data[1, 0, 7, 7] = 0.5
-        # Set first-guess to zero
-        self.fg_cube.data[0, 7, 7] = 0.0
-        # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.25
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_precip_heavy_null(self):
-        """Test that low prob of heavy precip does not increase
-        lightning risk"""
-        self.precip_cube.data[0, 0, 7, 7] = 1.0
-        self.precip_cube.data[1, 0, 7, 7] = 0.3
-        # Set first-guess to zero
-        self.fg_cube.data[0, 7, 7] = 0.1
-        # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.1
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_precip_intense(self):
-        """Test that prob of intense precip increases lightning risk"""
-        self.precip_cube.data[0, 0, 7, 7] = 1.0
-        self.precip_cube.data[1, 0, 7, 7] = 1.0
-        self.precip_cube.data[2, 0, 7, 7] = 0.5
-        # Set first-guess to zero
-        self.fg_cube.data[0, 7, 7] = 0.0
-        # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 1.0
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_precip_intense_null(self):
-        """Test that low prob of intense precip does not increase
-        lightning risk"""
-        self.precip_cube.data[0, 0, 7, 7] = 1.0
-        self.precip_cube.data[1, 0, 7, 7] = 1.0
-        self.precip_cube.data[2, 0, 7, 7] = 0.1
-        # Set first-guess to zero
-        self.fg_cube.data[0, 7, 7] = 0.1
-        # Set lightning data to zero so it has a Null impact
-        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_vii_null(self):
-        """Test that small VII probs do not increase lightning risk"""
-        self.vii_cube.data[:, 7, 7] = 0.
-        self.vii_cube.data[0, 7, 7] = 0.5
-        self.ltng_cube.data[0, 7, 7] = 0.
-        self.fg_cube.data[0, 7, 7] = 0.
-        self.precip_cube.data[0, 0, 7, 7] = 1.
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.25
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            self.vii_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_vii_zero(self):
-        """Test that zero VII probs do not increase lightning risk"""
-        # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 7, 7] = 0.
-        self.ltng_cube.data[0, 7, 7] = -1.
-        self.fg_cube.data[0, 7, 7] = 0.
-        # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            self.vii_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_vii_small(self):
-        """Test that small VII probs do increase lightning risk"""
-        # Set lightning data to -1 so it has a Null impact
-        self.vii_cube.data[:, 7, 7] = 0.
-        self.vii_cube.data[0, 7, 7] = 0.5
-        self.ltng_cube.data[0, 7, 7] = -1.
-        self.fg_cube.data[0, 7, 7] = 0.
-        # No halo - we're only testing this method.
-        plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.05
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            self.vii_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
     def test_vii_large(self):
-        """Test that zero precip probs reduce lightning risk"""
+        """Test that ApplyIce is being called"""
         # Set lightning data to zero so it has a Null impact
         self.vii_cube.data[:, 7, 7] = 1.
         self.ltng_cube.data[0, 7, 7] = -1.
@@ -482,101 +334,6 @@ class Test__modify_first_guess(IrisTest):
                                             self.precip_cube,
                                             None)
         self.assertArrayAlmostEqual(result.data, expected.data)
-
-
-class Test__apply_double_scaling(IrisTest):
-
-    """Test the _apply_double_scaling method."""
-
-    def setUp(self):
-        """Create cubes with a single zero prob(precip) point."""
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]),
-            fp_point=0.0)
-        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]),
-            fp_point=0.0)
-        self.plugin = Plugin()
-
-    def test_basic(self):
-        """Test that the method returns the expected cube type"""
-        result = self.plugin._apply_double_scaling(self.cube,
-                                                   self.ltng_cube,
-                                                   self.plugin.precipthr,
-                                                   self.plugin.ltngthr)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_input(self):
-        """Test that the method does not modify the input cubes."""
-        cube_a = self.cube.copy()
-        cube_b = self.ltng_cube.copy()
-        self.plugin._apply_double_scaling(self.cube,
-                                          self.ltng_cube,
-                                          self.plugin.precipthr,
-                                          self.plugin.ltngthr)
-        self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.ltng_cube.data)
-
-    def test_values_default(self):
-        """Test that the method returns the expected data values with default
-        function"""
-        data_vals = (0.1, 0.5, 0.8)
-        scaling_vals = (0.0, 0.5, 0.9)
-        # Create an array of correct shape and fill with expected value
-        expected = np.full_like(self.cube.data, 0.9)
-        # Row zero should be changed to all-zeroes
-        expected[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                             0., 0., 0., 0., 0., 0., 0., 0.]
-        # Row one should be like ltng_cube but with most values reduced to 0.5
-        expected[0, 1, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.5,
-                             0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        # Row two should be like ltng_cube but with late values limited to 0.9
-        expected[0, 2, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-                             0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
-        self.cube.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                                   0., 0., 0., 0., 0., 0., 0., 0.]
-        self.cube.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                                   0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        self.cube.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
-                                   1., 1., 1., 1., 1., 1., 1., 1.]
-        self.ltng_cube.data[0, 0, :] = np.arange(0., 1.6, 0.1)
-        self.ltng_cube.data[0, 1, :] = np.arange(0., 1.6, 0.1)
-        self.ltng_cube.data[0, 2, :] = np.arange(0., 1.6, 0.1)
-        result = self.plugin._apply_double_scaling(self.cube,
-                                                   self.ltng_cube,
-                                                   data_vals,
-                                                   scaling_vals)
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_values_max(self):
-        """Test that the method returns the expected data values with max
-        function"""
-        data_vals = (0.1, 0.5, 0.8)
-        scaling_vals = (0.0, 0.5, 0.9)
-        expected = self.cube.data.copy()
-        # Row zero should be unchanged from ltng_cube
-        expected[0, 0, :] = np.arange(0., 1.6, 0.1)
-        # Row one should be like ltng_cube but with early values raised to 0.5
-        expected[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.6, 0.7,
-                             0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        # Row two should be like ltng_cube but with most values raised to 0.9
-        expected[0, 2, :] = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
-                             0.9, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        self.cube.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                                   0., 0., 0., 0., 0., 0., 0., 0.]
-        self.cube.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                                   0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        self.cube.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
-                                   1., 1., 1., 1., 1., 1., 1., 1.]
-        self.ltng_cube.data[0, 0, :] = np.arange(0., 1.6, 0.1)
-        self.ltng_cube.data[0, 1, :] = np.arange(0., 1.6, 0.1)
-        self.ltng_cube.data[0, 2, :] = np.arange(0., 1.6, 0.1)
-        result = self.plugin._apply_double_scaling(self.cube,
-                                                   self.ltng_cube,
-                                                   data_vals,
-                                                   scaling_vals,
-                                                   combine_function=np.maximum)
-        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_process(IrisTest):
