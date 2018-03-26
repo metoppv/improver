@@ -37,6 +37,7 @@ import numpy as np
 from improver.utilities.rescale import rescale
 from improver.utilities.cube_checker import check_cube_coordinates
 
+
 class ApplyIce(object):
     """
 
@@ -105,7 +106,7 @@ class ApplyIce(object):
                             data_range=(0., 1.),
                             scale_range=ice_scaling,
                             clip=True),
-                cube_slice.data)
+                    cube_slice.data)
             new_cube_list.append(cube_slice)
 
         new_cube = new_cube_list.merge_cube()

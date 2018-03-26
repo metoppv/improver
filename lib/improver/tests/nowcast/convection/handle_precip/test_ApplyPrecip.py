@@ -176,4 +176,3 @@ class Test_process(IrisTest):
 
 if __name__ == '__main__':
     unittest.main()
-

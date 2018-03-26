@@ -37,6 +37,7 @@ import numpy as np
 from improver.utilities.rescale import apply_double_scaling
 from improver.utilities.cube_checker import check_cube_coordinates
 
+
 class ApplyPrecip(object):
     """
 
@@ -140,8 +141,9 @@ class ApplyPrecip(object):
                               iris.cube.Cube), err_string.format("high precip",
                                                                  thistime)
             assert isinstance(torr_precip,
-                              iris.cube.Cube), err_string.format("intense precip",
-                                                                 thistime)
+                              iris.cube.Cube), err_string.format(
+                              "intense precip",
+                              thistime)
             # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
             #   prob(precip > 7mm/hr) > phighthresh
             cube_slice.data = np.where(

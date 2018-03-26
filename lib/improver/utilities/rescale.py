@@ -82,9 +82,10 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
         result = np.clip(result, scale_min, scale_max)
     return result
 
+
 def apply_double_scaling(data_cube, scaled_cube,
-                          data_vals, scaling_vals,
-                          combine_function=np.minimum):
+                         data_vals, scaling_vals,
+                         combine_function=np.minimum):
     """
     Update scaled_cube based on the contents of data_cube so that
     scaled_cube is at least the value of the data_cube after rescaling

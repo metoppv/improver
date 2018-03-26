@@ -38,6 +38,7 @@ from improver.utilities.rescale import rescale
 from improver.nowcast.convection.handle_vii import ApplyIce
 from improver.nowcast.convection.handle_precip import ApplyPrecip
 
+
 class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
 
@@ -113,8 +114,8 @@ class NowcastLightning(object):
                  lightning_thresholds=(
                      lambda mins: 0.5 + mins * 2. / 360., 0.),
                  problightning_values={1: 1., 2: 0.25},
-                 precip_method = None,
-                 ice_method = ApplyIce(),
+                 precip_method=None,
+                 ice_method=ApplyIce(),
                  debug=False):
         """
         Set up class for Nowcast of lightning probability.
