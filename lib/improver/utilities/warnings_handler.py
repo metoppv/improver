@@ -108,11 +108,9 @@ class ManageWarnings(object):
             """
             with warnings.catch_warnings(record=self.record) as warning_list:
                 warnings.filterwarnings("always")
-                # print warning_list
                 if self.messages is not None:
                     for message, warning_type in zip(self.messages,
                                                      self.warning_types):
-                        # print message, warning_type
                         warnings.filterwarnings("ignore", message,
                                                 warning_type)
                         # Clears the hidden __warningregistry__ attribute from

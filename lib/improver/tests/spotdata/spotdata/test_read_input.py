@@ -49,8 +49,6 @@ from iris import FUTURE
 from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
 
-FUTURE.netcdf_no_unlimited = True
-
 
 class Test_read_input(IrisTest):
     """Test the reading of ancillary data files and creation of an ancillaries
@@ -133,13 +131,14 @@ class Test_read_input(IrisTest):
                             '/pressure_on_height_levels.nc')
         ad_file_s_pressure = self.data_directory + '/surface_pressure.nc'
 
-        iris.save(cube, self.cube_file)
-        iris.save(cube2, self.cube_file2)
-        iris.save(orography, orography_file)
-        iris.save(land, land_file)
-        iris.save(temperature_on_height_levels, ad_file_temperature)
-        iris.save(pressure_on_height_levels, ad_file_pressure)
-        iris.save(surface_pressure, ad_file_s_pressure)
+        with FUTURE.context(netcdf_no_unlimited=True):
+            iris.save(cube, self.cube_file)
+            iris.save(cube2, self.cube_file2)
+            iris.save(orography, orography_file)
+            iris.save(land, land_file)
+            iris.save(temperature_on_height_levels, ad_file_temperature)
+            iris.save(pressure_on_height_levels, ad_file_pressure)
+            iris.save(surface_pressure, ad_file_s_pressure)
 
         diagnostic_recipe = {
             "temperature": {
