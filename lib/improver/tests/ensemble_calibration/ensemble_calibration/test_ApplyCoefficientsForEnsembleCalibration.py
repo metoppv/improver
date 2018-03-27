@@ -771,9 +771,9 @@ class Test__apply_params(IrisTest):
                 coeff_names, predictor_of_mean_flag)
 
     @ManageWarnings(
-        record=True,
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_missing_date(self, warning_list=None):
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Ensemble calibration not available"])
+    def test_missing_date(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
         if the date to be calibrated can not be found in the available
@@ -804,7 +804,7 @@ class Test__apply_params(IrisTest):
         self.assertArrayAlmostEqual(result[0][0].data, data)
 
     @ManageWarnings(record=True)
-    def test_missing_date_catch_warning(self, warning_list=None):
+    def test_catch_warning_missing_date(self, warning_list=None):
         """
         Test that the plugin returns values for the calibrated forecasts,
         if the date to be calibrated can not be found in the available

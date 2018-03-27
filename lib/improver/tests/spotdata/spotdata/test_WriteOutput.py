@@ -43,8 +43,6 @@ from iris import FUTURE
 
 from improver.spotdata.write_output import WriteOutput as Plugin
 
-FUTURE.netcdf_promote = True
-
 
 class Test_write_output(IrisTest):
     """Test the writing of SpotData output."""
@@ -78,7 +76,8 @@ class Test_write_output(IrisTest):
 
         method = 'as_netcdf'
         Plugin(method, self.data_directory).process(self.cube)
-        result = iris.load_cube(self.data_directory + '/test_data.nc')
+        with FUTURE.context(netcdf_promote=True):
+            result = iris.load_cube(self.data_directory + '/test_data.nc')
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'test_data')
         self.assertEqual(result.data.shape, (20, 20))

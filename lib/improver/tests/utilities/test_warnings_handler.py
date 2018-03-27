@@ -64,7 +64,7 @@ class Test__init__(IrisTest):
             ManageWarnings(ignored_messages="Wrong")
 
     def test_ignored_messages(self):
-        """Test set defaults set correctly when ignored_messages set."""
+        """Test defaults set correctly when ignored_messages set."""
         messages = ["Testing", "Testing2"]
         plugin = ManageWarnings(ignored_messages=messages)
         self.assertEqual(plugin.messages, messages)
@@ -73,7 +73,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.warning_types[1], UserWarning)
 
     def test_ignored_messages_and_warning_types(self):
-        """Test the OK when ignored_messages and warning_types set."""
+        """Test OK when ignored_messages and warning_types set."""
         messages = ["Testing", "Testing2"]
         warning_types = [UserWarning, PendingDeprecationWarning]
         plugin = ManageWarnings(ignored_messages=messages,
@@ -113,7 +113,7 @@ class Test__call__(IrisTest):
 
     @ManageWarnings(record=True)
     def test_warning_list(self, warning_list=None):
-        """Test the Function still works with wrapper"""
+        """Test when record is True"""
         argval, keyval = dummy_func('Test2', keyval1='Test3')
         self.assertEqual(argval, 'Test2')
         self.assertEqual(keyval, 'Test3')
@@ -121,7 +121,7 @@ class Test__call__(IrisTest):
 
     @ManageWarnings(record=True)
     def test_tests_warnings(self, warning_list=None):
-        """Test the Function still works with wrapper"""
+        """Test picks up user error correctly"""
         dummy_func('User')
         user_warning_msg = 'Raising User error'
         self.assertTrue(any(item.category == UserWarning
@@ -132,7 +132,7 @@ class Test__call__(IrisTest):
     @ManageWarnings(ignored_messages=["Raising User error"],
                     record=True)
     def test_traps_warnings(self, warning_list=None):
-        """Test the Function still works with wrapper"""
+        """Test ignores user error correctly"""
         dummy_func('User')
         self.assertEqual(warning_list, [])
 

@@ -43,8 +43,6 @@ from iris import FUTURE
 
 from improver.spotdata.ancillaries import get_ancillary_data as Plugin
 
-FUTURE.netcdf_no_unlimited = True
-
 
 class Test_get_ancillary_data(IrisTest):
     """Test the reading of ancillary data files and creation of an ancillaries
@@ -79,8 +77,10 @@ class Test_get_ancillary_data(IrisTest):
         self.directory = mkdtemp()
         self.orography_path = self.directory + '/highres_orog.nc'
         self.land_path = self.directory + '/land_mask.nc'
-        iris.save(orography, self.orography_path)
-        iris.save(land, self.land_path)
+        with FUTURE.context(netcdf_no_unlimited=True):
+            iris.save(orography, self.orography_path)
+        with FUTURE.context(netcdf_no_unlimited=True):
+            iris.save(land, self.land_path)
 
         self.diagnostics = {
             "wind_speed": {
