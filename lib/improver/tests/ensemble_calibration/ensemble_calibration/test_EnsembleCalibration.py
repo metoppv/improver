@@ -75,6 +75,8 @@ class Test_process(IrisTest):
         self.wind_speed_truth_cube = (
             _create_truth(self.current_wind_speed_forecast_cube))
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_temperature(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -166,6 +168,8 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_temperature_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -331,6 +335,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_alternative_calibration_name(self):
         """
         Test that the plugin returns an iris.cube.CubeList.

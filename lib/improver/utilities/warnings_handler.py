@@ -83,6 +83,15 @@ class ManageWarnings(object):
                                      len(self.messages))
             raise ValueError(message)
 
+    def reset_warning_registry(self):
+        """
+        Clears the hidden __warningregistry__ attribute from
+        all imported modules.
+        """
+        for mod in sys.modules.values():
+            if hasattr(mod, '__warningregistry__'):
+                mod.__warningregistry__.clear()
+
     def __call__(self, func):
         """
         Call the decorator on a function.
@@ -108,19 +117,16 @@ class ManageWarnings(object):
             """
             with warnings.catch_warnings(record=self.record) as warning_list:
                 warnings.filterwarnings("always")
+                self.reset_warning_registry()
                 if self.messages is not None:
                     for message, warning_type in zip(self.messages,
                                                      self.warning_types):
                         warnings.filterwarnings("ignore", message,
                                                 warning_type)
-                        # Clears the hidden __warningregistry__ attribute from
-                        # all imported modules
-                        for mod in sys.modules.values():
-                            if hasattr(mod, '__warningregistry__'):
-                                mod.__warningregistry__.clear()
                 if self.record:
                     result = func(*args, warning_list=warning_list, **kwargs)
                 else:
                     result = func(*args, **kwargs)
+                self.reset_warning_registry()
                 return result
         return warnings_wrapper

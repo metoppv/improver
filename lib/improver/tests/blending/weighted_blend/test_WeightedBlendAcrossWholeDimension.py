@@ -216,6 +216,8 @@ class Test_process(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             plugin.process(self.cube, weights)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_coord_adjust_set(self):
         """Test it works with coord adjust set."""
         coord = "time"
@@ -253,6 +255,8 @@ class Test_process(IrisTest):
                             for item in warning_list))
         self.assertArrayAlmostEqual(result.data, self.cube.data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weights_equal_none(self):
         """Test it works with weights set to None."""
         coord = "time"
@@ -262,6 +266,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.5
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weights_equal_list(self):
         """Test it work with weights set to list [0.2, 0.8]."""
         coord = "time"
@@ -271,6 +277,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.8
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weights_equal_array(self):
         """Test it works with weights set to array (0.8, 0.2)."""
         coord = "time"
@@ -280,6 +288,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def tests_threshold_splicing_works_weighted_mean(self):
         """Test weighted_mean works with a threshold dimension."""
         coord = "time"
@@ -302,6 +312,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2, 2))*0.56
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_percentiles_weights_none(self):
         """Test it works for percentiles with weights set to None."""
         coord = "time"
@@ -313,6 +325,8 @@ class Test_process(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_percentiles_non_equal_weights_list(self):
         """Test it works for percentiles with weights [0.8, 0.2]
            given as a list."""
@@ -325,6 +339,8 @@ class Test_process(IrisTest):
                                            (6, 2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_percentiles_different_coordinate_orders(self):
         """Test the result of the percentile aggregation is the same
         regardless of the coordinate order in the input cube. Most
@@ -345,6 +361,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result_time_leading.data,
                                     expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weighted_max_weights_none(self):
         """Test it works for weighted max with weights set to None."""
         coord = "time"
@@ -354,6 +372,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weighted_max_non_equal_weights_list(self):
         """Test it works for weighted_max with weights [0.2, 0.8]
            given as a list."""
@@ -364,6 +384,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2))*1.6
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def tests_threshold_splicing_works_weighted_max(self):
         """Test weighted_max works with a threshold dimension."""
         coord = "time"
@@ -373,6 +395,8 @@ class Test_process(IrisTest):
         expected_result_array = np.ones((2, 2, 2))*0.4
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_weighted_max_non_equal_weights_array(self):
         """Test it works for weighted_max with weights [0.2, 0.8]
            given as a array."""

@@ -339,6 +339,8 @@ class Test_apply_params_entry(IrisTest):
 
         self.coeff_names = ["gamma", "delta", "a", "beta"]
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the plugin returns a tuple."""
         cube = self.current_temperature_forecast_cube
@@ -352,6 +354,8 @@ class Test_apply_params_entry(IrisTest):
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members(self):
         """
         Test that the plugin returns a tuple when using the ensemble
@@ -369,6 +373,8 @@ class Test_apply_params_entry(IrisTest):
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_output_is_mean(self):
         """
         Test that the plugin returns a tuple containing cubes with a
@@ -385,6 +391,8 @@ class Test_apply_params_entry(IrisTest):
         for cell_method in forecast_predictor[0].cell_methods:
             self.assertEqual(cell_method.method, "mean")
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_output_is_variance(self):
         """
         Test that the plugin returns a tuple containing cubes with a
@@ -401,6 +409,8 @@ class Test_apply_params_entry(IrisTest):
         for cell_method in forecast_variance[0].cell_methods:
             self.assertEqual(cell_method.method, "variance")
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_output_coefficients(self):
         """
         Test that the plugin returns a tuple containing cubes with the
@@ -419,6 +429,8 @@ class Test_apply_params_entry(IrisTest):
             self.assertEqual(result.long_name, coeff_name)
             self.assertArrayAlmostEqual(result.data, coeff)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_output_coefficients_members(self):
         """
         Test that the plugin returns a tuple containing cubes with the
@@ -479,6 +491,8 @@ class Test__apply_params(IrisTest):
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_two_dates(self):
         """
         Test that the plugin returns a tuple when two dates are present
@@ -515,6 +529,8 @@ class Test__apply_params(IrisTest):
             self.assertEqual(len(result), 2)
         self.assertEqual(len(coefficients), 8)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_calibrated_predictor(self):
         """
         Test that the plugin returns values for the calibrated predictor (the
@@ -551,6 +567,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_predictor[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_calibrated_variance(self):
         """
         Test that the plugin returns values for the calibrated variance,
@@ -587,6 +605,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_variance[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_coefficients(self):
         """
         Test that the plugin returns values for the coefficients,
@@ -621,6 +641,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(coefficients[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_calibrated_predictor_members(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -660,6 +682,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_predictor[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_calibrated_variance_members(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -699,6 +723,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(forecast_variance[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_coefficients_members(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
@@ -735,6 +761,8 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
         self.assertArrayAlmostEqual(coefficients[0].data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_too_many_coefficients(self):
         """
         Test that the plugin returns values for the coefficients,
@@ -803,8 +831,10 @@ class Test__apply_params(IrisTest):
 
         self.assertArrayAlmostEqual(result[0][0].data, data)
 
-    @ManageWarnings(record=True)
-    def test_catch_warning_missing_date(self, warning_list=None):
+    @ManageWarnings(
+        record=True,
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_missing_date_catch_warning(self, warning_list=None):
         """
         Test that the plugin returns values for the calibrated forecasts,
         if the date to be calibrated can not be found in the available
@@ -828,6 +858,7 @@ class Test__apply_params(IrisTest):
         dummy_result = plugin._apply_params(
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
+
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
