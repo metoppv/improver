@@ -132,12 +132,12 @@ class OrographicAlphas(object):
         rename.
 
         Args:
-        alphas_cube (iris.cube.Cube):
-            A cube of alphas with "gradient" metadata
+            alphas_cube (iris.cube.Cube):
+                A cube of alphas with "gradient" metadata
 
         Returns:
-        alphas_cube (iris.cube.Cube):
-            A cube of alphas with adjusted metadata
+            alphas_cube (iris.cube.Cube):
+                A cube of alphas with adjusted metadata
         """
         alphas_cube.rename('alphas')
         for coord in alphas_cube.coords(dim_coords=False):

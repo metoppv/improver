@@ -91,6 +91,7 @@ def parse_constraint_list(constraints, units=None):
         constraints (list):
             List of string constraints with keys and values split by "=":
             e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
+
     Kwargs:
         units (list):
             List of units (as strings) corresponding to each coordinate in the
@@ -98,11 +99,13 @@ def parse_constraint_list(constraints, units=None):
             may only be associated with coordinate constraints.
 
     Returns:
-        constraints (iris.Constraint or
-                     iris._constraints.ConstraintCombination):
-            A combination of all the constraints that were supplied.
-        units_dict (dictionary or None):
-            A dictionary of unit keys and values
+        (tuple): tuple containing
+            **constraints** (iris.Constraint or \
+            iris._constraints.ConstraintCombination):
+                A combination of all the constraints that were supplied.
+
+            **units_dict** (dictionary or None):
+                A dictionary of unit keys and values
     """
 
     if units is None:
@@ -148,18 +151,20 @@ def apply_extraction(cube, constraint, units=None):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
+
     Args:
         cube (iris.cube.Cube):
             The cube from which a subcube is to be extracted.
-        constraint (iris.Constraint or
-                    iris.ConstraintCombination):
+        constraint (iris.Constraint or iris.ConstraintCombination):
             The constraint or ConstraintCombination that will be used to
             extract a subcube from the input cube.
+
     Kwargs:
         units (dictionary):
-            A dictionary of units for the constraints.  Supplied if any
+            A dictionary of units for the constraints. Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
+
     Returns:
         output_cube (iris.cube.Cube):
             A single cube matching the input constraints, or None if no subcube
