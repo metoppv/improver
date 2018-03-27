@@ -526,6 +526,8 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_no_of_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -548,6 +550,8 @@ class Test_process(IrisTest):
             cube, no_of_percentiles=no_of_percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -565,6 +569,8 @@ class Test_process(IrisTest):
             cube, percentiles=percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile_not_as_list(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -581,6 +587,8 @@ class Test_process(IrisTest):
             cube, percentiles=percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

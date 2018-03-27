@@ -56,6 +56,8 @@ class Test_normal_crps_minimiser(IrisTest):
     Either the ensemble mean or the individual ensemble members are used as
     the predictors.
     """
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value with
@@ -89,6 +91,8 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 16.6076833546)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a numpy float array with ensemble members
@@ -122,6 +126,8 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 4886.94724835)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
@@ -165,6 +171,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
     Either the ensemble mean or the individual ensemble members are used as
     the predictors.
     """
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -198,6 +206,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 13.1827829517)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a numpy array.
@@ -231,6 +241,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 533.487612959)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value

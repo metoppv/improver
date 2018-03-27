@@ -94,6 +94,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data(self):
         """
         Test that the plugin returns the expected values for the generated
@@ -174,6 +176,10 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    @ManageWarnings(
+        ignored_messages=["invalid value encountered",
+                          "Collapsing a non-contiguous coordinate."],
+        warning_types=[RuntimeWarning, UserWarning])
     def test_if_nearly_identical_data(self):
         """
         Test that the plugin returns the expected values, if every
@@ -215,6 +221,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_many_percentiles(self):
         """
         Test that the plugin returns an iris.cube.Cube if many percentiles
@@ -231,6 +239,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             current_forecast_predictor, current_forecast_variance, percentiles)
         self.assertIsInstance(result, Cube)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_negative_percentiles(self):
         """
         Test that the plugin returns the expected values for the
@@ -249,6 +259,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
                 current_forecast_predictor, current_forecast_variance,
                 percentiles)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_spot_forecasts_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected

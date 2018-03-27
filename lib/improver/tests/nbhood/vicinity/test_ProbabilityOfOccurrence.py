@@ -85,6 +85,8 @@ class Test_process(IrisTest):
                                 y_dimension_values=y_dimension_values,
                                 x_dimension_values=y_dimension_values)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_with_realization(self):
         """Test when a realization coordinate is present."""
         expected = np.array(
@@ -108,6 +110,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_without_realization(self):
         """Test when a realization coordinate is not present."""
         expected = np.array(

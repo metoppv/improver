@@ -461,6 +461,8 @@ class Test_process(IrisTest):
         self.percentile_cube_mismatch = (
             add_forecast_reference_time_and_forecast_period(cube_mismatch))
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -504,6 +506,8 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_ok_for_diff_percentile_coord(self):
         """Test the plugin succeeds if percentile coord is different"""
         data = np.array([[[[4.75, 5.375, 6.],

@@ -593,6 +593,8 @@ class Test_process(IrisTest):
         self.post_processed_percentiles.coord(
             self.perc_coord).points = [10, 50, 90]
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_basic(self):
         """
         Test that the plugin returns an iris.cube.Cube and the cube has a
@@ -605,6 +607,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_works_for_different_percentile_coord(self):
         """Test that it still works for different percentile coordinate"""
         cube = self.post_processed_percentiles
@@ -616,6 +620,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_works_for_cubelist(self):
         """Test that the plugin works for a cubelist """
         plugin = Plugin()
@@ -660,6 +666,8 @@ class Test_process(IrisTest):
             np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_2d_cube_recycling_raw_ensemble_members(self):
         """
         Test that the plugin returns the correct cube data for a

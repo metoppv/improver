@@ -101,6 +101,8 @@ class Test_ExtractExtrema(Test_extrema):
         expected = '<ExtractExtrema: period: 12, start_hour: 12>'
         self.assertEqual(expected, Plugin(12, start_hour=12).__repr__())
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_time_coordinates_24_hour(self):
         """Time coordinate should be a series of mid points calculated from the
         start hour + half the period. Each should have an associated pair of
@@ -135,6 +137,8 @@ class Test_ExtractExtrema(Test_extrema):
             self.assertEqual(result[i].coord('time').bounds[0, 0], [low_bound])
             self.assertEqual(result[i].coord('time').bounds[0, 1], [up_bound])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_time_coordinates_9_hour(self):
         """Time coordinate should be a series of mid points calculated from the
         start hour + half the period. Each should have an associated pair of
@@ -197,6 +201,8 @@ class Test_ExtractExtrema(Test_extrema):
         self.assertEqual(result[0].coord('time').bounds[0, 0], [lower_bound])
         self.assertEqual(result[0].coord('time').bounds[0, 1], [upper_bound])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_data_arrays_day2(self):
         """Test extraction of maxima and minima values from the time localised
         cube in the second 24 hours. All sites should return valid data during
@@ -217,6 +223,8 @@ class Test_ExtractExtrema(Test_extrema):
         self.assertEqual(result[1].coord('time').bounds[0, 0], [lower_bound])
         self.assertEqual(result[1].coord('time').bounds[0, 1], [upper_bound])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_extrema_values_day1(self):
         """Test the actual values returned by the collapse method to ensure it
         is successfully extracting the maximum/minimum temperatures in the
