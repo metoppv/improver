@@ -83,7 +83,8 @@ class ManageWarnings(object):
                                      len(self.messages))
             raise ValueError(message)
 
-    def reset_warning_registry(self):
+    @staticmethod
+    def reset_warning_registry():
         """
         Clears the hidden __warningregistry__ attribute from
         all imported modules.
