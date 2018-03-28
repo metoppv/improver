@@ -44,6 +44,9 @@ from improver.percentile import PercentileConverter
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+WARNING_COORD_MSG = "Collapsing a non-contiguous coordinate."
+
+
 class Test_process(IrisTest):
 
     """Test the creation of percentiles by the plugin."""
@@ -85,8 +88,7 @@ class Test_process(IrisTest):
         self.default_percentiles = np.array([0, 5, 10, 20, 25, 30, 40, 50,
                                              60, 70, 75, 80, 90, 95, 100])
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def test_valid_single_coord_string(self):
         """
         Test that the plugin handles a valid collapse_coord passed in
@@ -114,8 +116,7 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord('longitude').bounds,
                               [[-180., 180.]])
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def test_valid_multi_coord_string_list(self):
         """
         Test that the plugin handles a valid list of collapse_coords passed in

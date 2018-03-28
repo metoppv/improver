@@ -43,12 +43,14 @@ from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+WARNING_COORD_MSG = "Collapsing a non-contiguous coordinate."
+
+
 class Test_conform_metadata(IrisTest):
 
     """Test the conform_metadata function."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def setUp(self):
         """Set up cubes for testing."""
         data = np.full((3, 1, 3, 3), 275.15, dtype=np.float)
