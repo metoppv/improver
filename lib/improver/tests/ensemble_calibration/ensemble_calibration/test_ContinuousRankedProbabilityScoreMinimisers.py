@@ -49,9 +49,6 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-WARNING_COORD_MSG = "Collapsing a non-contiguous coordinate."
-
-
 class Test_normal_crps_minimiser(IrisTest):
 
     """
@@ -59,7 +56,8 @@ class Test_normal_crps_minimiser(IrisTest):
     Either the ensemble mean or the individual ensemble members are used as
     the predictors.
     """
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value with
@@ -93,7 +91,8 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 16.6076833546)
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a numpy float array with ensemble members
@@ -127,7 +126,8 @@ class Test_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 4886.94724835)
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
@@ -171,7 +171,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
     Either the ensemble mean or the individual ensemble members are used as
     the predictors.
     """
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -205,7 +206,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 13.1827829517)
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a numpy array.
@@ -239,7 +241,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 533.487612959)
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
@@ -284,7 +287,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
     the predictors.
     """
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_basic_normal_mean_predictor(self):
         """
@@ -312,7 +315,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_basic_normal_members_predictor(self):
         """
@@ -340,7 +343,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
                      5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_normal_mean_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a KeyError, if the
@@ -368,7 +372,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_normal_mean_predictor_max_iterations(self):
         """
@@ -400,7 +404,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_normal_members_predictor_max_iterations(self):
         """
@@ -434,7 +438,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=[WARNING_COORD_MSG])
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_normal_catch_warnings(self, warning_list=None):
         """
         Test that a warning is generated if the minimisation
@@ -466,7 +470,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=[WARNING_COORD_MSG])
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_normal_catch_warnings_percentage_change(self, warning_list=None):
         """
         Test that two warnings are generated if the minimisation
@@ -502,7 +506,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_basic_truncated_normal_mean_predictor(self):
         """
@@ -530,7 +534,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_basic_truncated_normal_members_predictor(self):
         """Test that the plugin returns a numpy array."""
@@ -555,7 +559,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
                      5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_truncated_normal_mean_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a successful convergence,
@@ -582,7 +587,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
 
-    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_truncated_normal_members_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a successful convergence,
@@ -610,7 +616,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_truncated_normal_mean_predictor_max_iterations(self):
         """
@@ -642,7 +648,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             result, [-0.303343, -0.022553, 0.008502, 1.009565])
 
     @ManageWarnings(
-        ignored_messages=[WARNING_COORD_MSG,
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_truncated_normal_members_predictor_max_iterations(self):
         """
@@ -676,7 +682,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=[WARNING_COORD_MSG])
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_truncated_normal_catch_warnings(self, warning_list=None):
         """
         Test that a warning is generated if the minimisation
@@ -707,7 +713,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=[WARNING_COORD_MSG])
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_truncated_normal_catch_warnings_percentage_change(
             self,
             warning_list=None):
