@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spotdata.write_output"""
 
-
+import os
 import unittest
 import numpy as np
 from tempfile import mkdtemp
@@ -39,9 +39,9 @@ import iris
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
-from iris import FUTURE
 
 from improver.spotdata.write_output import WriteOutput as Plugin
+from improver.utilities.load import load_cube
 
 
 class Test_write_output(IrisTest):
@@ -68,7 +68,7 @@ class Test_write_output(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.data_directory + '/test_data.nc'])
+        Call(['rm', '-f', os.path.join(self.data_directory, 'test_data.nc')])
         Call(['rmdir', self.data_directory])
 
     def test_write_netcdf(self):
@@ -76,8 +76,7 @@ class Test_write_output(IrisTest):
 
         method = 'as_netcdf'
         Plugin(method, self.data_directory).process(self.cube)
-        with FUTURE.context(netcdf_promote=True):
-            result = iris.load_cube(self.data_directory + '/test_data.nc')
+        result = load_cube(os.path.join(self.data_directory, 'test_data.nc'))
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'test_data')
         self.assertEqual(result.data.shape, (20, 20))

@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spotdata.read_data"""
 
-
+import os
 import unittest
 import numpy as np
 import cf_units
@@ -44,10 +44,10 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-from iris import FUTURE
 
 from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
+from improver.utilities.save import save_netcdf
 
 
 class Test_read_input(IrisTest):
@@ -119,26 +119,30 @@ class Test_read_input(IrisTest):
 
         self.data_directory = mkdtemp()
 
-        self.cube_file = (self.data_directory +
-                          '/01-temperature_at_screen_level.nc')
-        self.cube_file2 = (self.data_directory +
-                           '/02-temperature_at_screen_level.nc')
-        orography_file = self.data_directory + '/orography.nc'
-        land_file = self.data_directory + '/land_mask.nc'
-        ad_file_temperature = (self.data_directory +
-                               '/temperature_on_height_levels.nc')
-        ad_file_pressure = (self.data_directory +
-                            '/pressure_on_height_levels.nc')
-        ad_file_s_pressure = self.data_directory + '/surface_pressure.nc'
+        self.cube_file = os.path.join(
+            self.data_directory,
+            '01-temperature_at_screen_level.nc')
+        self.cube_file2 = os.path.join(
+            self.data_directory,
+            '02-temperature_at_screen_level.nc')
+        orography_file = os.path.join(self.data_directory, 'orography.nc')
+        land_file = os.path.join(self.data_directory, 'land_mask.nc')
+        ad_file_temperature = os.path.join(
+            self.data_directory,
+            'temperature_on_height_levels.nc')
+        ad_file_pressure = os.path.join(
+            self.data_directory,
+            'pressure_on_height_levels.nc')
+        ad_file_s_pressure = os.path.join(
+            self.data_directory, 'surface_pressure.nc')
 
-        with FUTURE.context(netcdf_no_unlimited=True):
-            iris.save(cube, self.cube_file)
-            iris.save(cube2, self.cube_file2)
-            iris.save(orography, orography_file)
-            iris.save(land, land_file)
-            iris.save(temperature_on_height_levels, ad_file_temperature)
-            iris.save(pressure_on_height_levels, ad_file_pressure)
-            iris.save(surface_pressure, ad_file_s_pressure)
+        save_netcdf(cube, self.cube_file)
+        save_netcdf(cube2, self.cube_file2)
+        save_netcdf(orography, orography_file)
+        save_netcdf(land, land_file)
+        save_netcdf(temperature_on_height_levels, ad_file_temperature)
+        save_netcdf(pressure_on_height_levels, ad_file_pressure)
+        save_netcdf(surface_pressure, ad_file_s_pressure)
 
         diagnostic_recipe = {
             "temperature": {
@@ -153,7 +157,8 @@ class Test_read_input(IrisTest):
                 }
             }
 
-        self.config_file = self.data_directory + '/spotdata_diagnostics.json'
+        self.config_file = os.path.join(
+            self.data_directory, 'spotdata_diagnostics.json')
         ff = open(self.config_file, 'w')
         json.dump(diagnostic_recipe, ff, sort_keys=True, indent=4,
                   separators=(',', ': ',))
