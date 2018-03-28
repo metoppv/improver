@@ -47,12 +47,14 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+WARNING_COORD_MSG = "Collapsing a non-contiguous coordinate."
+
+
 class Test_process(IrisTest):
 
     """Test the process plugin."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         self.current_temperature_forecast_cube = (
@@ -75,8 +77,7 @@ class Test_process(IrisTest):
         self.wind_speed_truth_cube = (
             _create_truth(self.current_wind_speed_forecast_cube))
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def test_basic_temperature(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -96,7 +97,7 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
-                          "Collapsing a non-contiguous coordinate.",
+                          WARNING_COORD_MSG,
                           "Minimisation did not result in"
                           " convergence"])
     def test_basic_temperature_members(self):
@@ -121,7 +122,7 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
-                          "Collapsing a non-contiguous coordinate.",
+                          WARNING_COORD_MSG,
                           "\nThe final iteration resulted in a percentage "
                           "change that is greater than the accepted threshold",
                           "Minimisation did not result in"
@@ -145,7 +146,7 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
-                          "Collapsing a non-contiguous coordinate.",
+                          WARNING_COORD_MSG,
                           "Minimisation did not result in"
                           " convergence"])
     def test_basic_wind_speed_members(self):
@@ -168,8 +169,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, CubeList)
         self.assertEqual(len(result), 2)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def test_temperature_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -199,7 +199,7 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
-                          "Collapsing a non-contiguous coordinate.",
+                          WARNING_COORD_MSG,
                           "Minimisation did not result in"
                           " convergence"])
     def test_temperature_members_data_check(self):
@@ -251,7 +251,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
+        ignored_messages=[WARNING_COORD_MSG,
                           "\nThe final iteration resulted in a percentage "
                           "change that is greater than "
                           "the accepted threshold"])
@@ -284,7 +284,7 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
-                          "Collapsing a non-contiguous coordinate.",
+                          WARNING_COORD_MSG,
                           "Minimisation did not result in"
                           " convergence"])
     def test_wind_speed_members_data_check(self):
@@ -335,8 +335,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[WARNING_COORD_MSG])
     def test_alternative_calibration_name(self):
         """
         Test that the plugin returns an iris.cube.CubeList.
