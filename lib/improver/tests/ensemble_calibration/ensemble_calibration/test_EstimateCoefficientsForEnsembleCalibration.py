@@ -40,7 +40,6 @@ import iris
 from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
-import warnings
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
@@ -48,6 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
                              add_forecast_reference_time_and_forecast_period,
                              _create_historic_forecasts, _create_truth)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -58,12 +58,14 @@ class Test__init__(IrisTest):
         """Set up cube for testing."""
         self.cube = set_up_temperature_cube()
 
-    def test_statsmodels_mean(self):
+    @ManageWarnings(
+        record=True,
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_statsmodels_mean(self, warning_list=None):
         """
         Test that the plugin raises no warnings if the statsmodels module
         is not found for when the predictor is the ensemble mean.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -90,17 +92,18 @@ class Test__init__(IrisTest):
         estimate_coefficients_from_linear_model_flag = True
 
         if not statsmodels_found:
-            with warnings.catch_warnings(record=True) as warning_list:
-                plugin = Plugin(distribution, desired_units,
-                                predictor_of_mean_flag=predictor_of_mean_flag)
-                self.assertTrue(len(warning_list) == 0)
+            plugin = Plugin(distribution, desired_units,
+                            predictor_of_mean_flag=predictor_of_mean_flag)
+            self.assertTrue(len(warning_list) == 0)
 
-    def test_statsmodels_members(self):
+    @ManageWarnings(
+        record=True,
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_statsmodels_members(self, warning_list=None):
         """
         Test that the plugin raises the desired warning if the statsmodels
         module is not found for when the predictor is the ensemble members.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -127,14 +130,13 @@ class Test__init__(IrisTest):
         estimate_coefficients_from_linear_model_flag = True
 
         if not statsmodels_found:
-            with warnings.catch_warnings(record=True) as warning_list:
-                plugin = Plugin(distribution, desired_units,
-                                predictor_of_mean_flag=predictor_of_mean_flag)
-                self.assertTrue(len(warning_list) == 1)
-                self.assertTrue(any(item.category == UserWarning
-                                    for item in warning_list))
-                self.assertTrue("The statsmodels can not be imported"
-                                in str(warning_list[0]))
+            plugin = Plugin(distribution, desired_units,
+                            predictor_of_mean_flag=predictor_of_mean_flag)
+            self.assertTrue(len(warning_list) == 1)
+            self.assertTrue(any(item.category == UserWarning
+                                for item in warning_list))
+            self.assertTrue("The statsmodels can not be imported"
+                            in str(warning_list[0]))
 
 
 class Test_compute_initial_guess(IrisTest):
@@ -145,6 +147,8 @@ class Test_compute_initial_guess(IrisTest):
         """Use temperature cube to test with."""
         self.cube = set_up_temperature_cube()
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a list containing the initial guess
@@ -167,6 +171,8 @@ class Test_compute_initial_guess(IrisTest):
             estimate_coefficients_from_linear_model_flag)
         self.assertIsInstance(result, list)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor(self):
         """
         Test that the plugin returns a list containing the initial guess
@@ -190,6 +196,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertIsInstance(result, list)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -215,6 +223,8 @@ class Test_compute_initial_guess(IrisTest):
             estimate_coefficients_from_linear_model_flag)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_members_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -241,6 +251,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_mean_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -266,13 +278,14 @@ class Test_compute_initial_guess(IrisTest):
 
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_members_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
-        warnings.simplefilter("always")
         import imp
         try:
             statsmodels_found = imp.find_module('statsmodels')
@@ -303,6 +316,8 @@ class Test_compute_initial_guess(IrisTest):
             no_of_members=no_of_members)
         self.assertArrayAlmostEqual(result, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_mean_predictor_estimate_coefficients_nans(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -336,6 +351,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     """Test the estimate_coefficients_for_ngr plugin."""
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def setUp(self):
         """Set up multiple cubes for testing."""
         self.current_temperature_forecast_cube = (
@@ -358,6 +375,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.wind_speed_truth_cube = (
             _create_truth(self.current_wind_speed_forecast_cube))
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Ensure that the optimised_coeffs are returned as a dictionary,
            and the coefficient names are returned as a list."""
@@ -380,6 +399,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.assertEqual(
                 len(optimised_coeffs[key]), len(coeff_names))
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_gaussian_distribution(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -408,6 +429,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
+    @ManageWarnings(
+        ignored_messages=["\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold ",
+                          "Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -435,6 +461,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
+    @ManageWarnings(
+        ignored_messages=["Minimisation did not result in convergence",
+                          "Collapsing a non-contiguous coordinate.",
+                          "The statsmodels can not be imported"])
     def test_coefficient_values_for_gaussian_distribution_members(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -475,6 +505,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
+    @ManageWarnings(
+        ignored_messages=["Minimisation did not result in convergence",
+                          "Collapsing a non-contiguous coordinate.",
+                          "The statsmodels can not be imported"])
     def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -514,6 +548,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_fake_distribution(self):
         """
         Ensure the appropriate error is raised if the minimisation function
@@ -534,6 +570,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_truth_unit_conversion(self):
         """
         Ensure the expected optimised coefficients are generated, even if the
@@ -561,6 +599,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         for key in optimised_coeffs.keys():
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_historic_forecast_unit_conversion(self):
         """
         Ensure the expected optimised coefficients are generated, even if the
@@ -588,6 +628,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         for key in optimised_coeffs.keys():
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_current_forecast_unit_conversion(self):
         """
         Ensure the expected optimised coefficients are generated, even if the
@@ -635,6 +677,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
 
+    @ManageWarnings(
+        ignored_messages=["Insufficient input data present"])
     def test_historic_forecast_is_empty_cubelist(self):
         """
         Ensure that the expected empty list for the optimised coefficients
@@ -660,7 +704,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertFalse(optimised_coeffs)
         self.assertItemsEqual(coeff_names, desired_coeff_names)
 
-    def test_current_forecast_cubes_is_fake_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_current_forecast_cubes_is_fake_catch_warning(self,
+                                                          warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -676,17 +722,17 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("is not a Cube or CubeList"
-                            in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("is not a Cube or CubeList"
+                        in str(warning_list[0]))
 
-    def test_historic_forecast_cubes_is_fake_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_historic_forecast_cubes_is_fake_catch_warning(self,
+                                                           warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -702,17 +748,16 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("is not a Cube or CubeList"
-                            in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("is not a Cube or CubeList"
+                        in str(warning_list[0]))
 
-    def test_truth_data_is_fake_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_truth_data_is_fake_catch_warning(self, warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -728,17 +773,17 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("is not a Cube or CubeList"
-                            in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("is not a Cube or CubeList"
+                        in str(warning_list[0]))
 
-    def test_current_forecast_cubes_length_zero_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_current_forecast_cubes_len_zero_catch_warning(self,
+                                                           warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -754,17 +799,17 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("Insufficient input data present to estimate "
-                            "coefficients using NGR." in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("Insufficient input data present to estimate "
+                        "coefficients using NGR." in str(warning_list[0]))
 
-    def test_historic_forecast_cubes_length_zero_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_historic_forecast_cubes_len_zero_catch_warning(self,
+                                                            warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -780,17 +825,16 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("Insufficient input data present to estimate "
-                            "coefficients using NGR." in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("Insufficient input data present to estimate "
+                        "coefficients using NGR." in str(warning_list[0]))
 
-    def test_truth_data_length_zero_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_truth_data_length_zero_catch_warning(self, warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -806,17 +850,16 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("Insufficient input data present to estimate "
-                            "coefficients using NGR." in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("Insufficient input data present to estimate "
+                        "coefficients using NGR." in str(warning_list[0]))
 
-    def test_truth_data_has_wrong_time_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_truth_data_has_wrong_time_catch_warning(self, warning_list=None):
         """
         Ensure that a ValueError with the expected text is generated,
         if the input data is None, rather than a cube.
@@ -833,15 +876,13 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue("Unable to calibrate for the time points"
-                            in str(warning_list[0]))
+        plugin.estimate_coefficients_for_ngr(
+            current_forecast, historic_forecasts, truth)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("Unable to calibrate for the time points"
+                        in str(warning_list[0]))
 
 
 if __name__ == '__main__':

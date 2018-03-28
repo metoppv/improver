@@ -46,6 +46,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (set_up_spot_temperature_cube,
                              set_up_temperature_cube,
                              add_forecast_reference_time_and_forecast_period)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__mean_and_variance_to_percentiles(IrisTest):
@@ -61,6 +62,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_spot_temperature_cube()))
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
@@ -91,6 +94,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data(self):
         """
         Test that the plugin returns the expected values for the generated
@@ -130,6 +135,10 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    @ManageWarnings(
+        ignored_messages=["invalid value encountered",
+                          "Collapsing a non-contiguous coordinate."],
+        warning_types=[RuntimeWarning, UserWarning])
     def test_if_identical_data(self):
         """
         Test that the plugin returns the expected values, if every
@@ -167,6 +176,10 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    @ManageWarnings(
+        ignored_messages=["invalid value encountered",
+                          "Collapsing a non-contiguous coordinate."],
+        warning_types=[RuntimeWarning, UserWarning])
     def test_if_nearly_identical_data(self):
         """
         Test that the plugin returns the expected values, if every
@@ -208,6 +221,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_many_percentiles(self):
         """
         Test that the plugin returns an iris.cube.Cube if many percentiles
@@ -224,6 +239,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             current_forecast_predictor, current_forecast_variance, percentiles)
         self.assertIsInstance(result, Cube)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_negative_percentiles(self):
         """
         Test that the plugin returns the expected values for the
@@ -242,6 +259,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
                 current_forecast_predictor, current_forecast_variance,
                 percentiles)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_spot_forecasts_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
@@ -283,6 +302,9 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences",
+                          "Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         cube = self.current_temperature_forecast_cube
@@ -300,6 +322,9 @@ class Test_process(IrisTest):
         result = plugin.process(predictor_and_variance, no_of_percentiles)
         self.assertIsInstance(result, Cube)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences",
+                          "Collapsing a non-contiguous coordinate."])
     def test_number_of_percentiles(self):
         """
         Test that the plugin returns a cube with the expected number of

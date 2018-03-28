@@ -31,7 +31,6 @@
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
 import unittest
 
-import warnings
 import numpy as np
 from cf_units import Unit
 
@@ -44,6 +43,7 @@ from improver.tests.utilities.test_cube_metadata import (
     create_cube_with_threshold)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -282,7 +282,8 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    def test_warnings_on(self):
+    @ManageWarnings(record=True)
+    def test_warnings_on(self, warning_list=None):
         """Test that the plugin raises warnings and updates metadata. """
         plugin = CubeCombiner('-', warnings_on=True)
         cubelist = iris.cube.CubeList([self.cube1, self.cube1])
@@ -291,16 +292,14 @@ class Test_process(IrisTest):
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.0
         expected_data[0, 1, :, :] = 0.0
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = plugin.process(cubelist, 'new_cube_name',
-                                    revised_attributes=attributes)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertEqual(result.name(), 'new_cube_name')
-            self.assertArrayAlmostEqual(result.data, expected_data)
+        result = plugin.process(cubelist, 'new_cube_name',
+                                revised_attributes=attributes)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 if __name__ == '__main__':

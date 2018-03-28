@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spotdata.ancillaries."""
 
-
+import os
 import unittest
 import numpy as np
 from iris.tests import IrisTest
@@ -41,6 +41,7 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 
 from improver.spotdata.ancillaries import get_ancillary_data as Plugin
+from improver.utilities.save import save_netcdf
 
 
 class Test_get_ancillary_data(IrisTest):
@@ -74,10 +75,10 @@ class Test_get_ancillary_data(IrisTest):
         self.orography = orography
         self.land = land
         self.directory = mkdtemp()
-        self.orography_path = self.directory + '/highres_orog.nc'
-        self.land_path = self.directory + '/land_mask.nc'
-        iris.save(orography, self.orography_path)
-        iris.save(land, self.land_path)
+        self.orography_path = os.path.join(self.directory, 'highres_orog.nc')
+        self.land_path = os.path.join(self.directory, 'land_mask.nc')
+        save_netcdf(orography, self.orography_path)
+        save_netcdf(land, self.land_path)
 
         self.diagnostics = {
             "wind_speed": {

@@ -33,7 +33,6 @@ Unit tests for the
 `ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
 
 """
-import warnings
 import numpy as np
 import unittest
 
@@ -50,6 +49,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
         set_up_probability_above_threshold_cube,
         set_up_probability_above_threshold_temperature_cube,
         set_up_probability_above_threshold_spot_temperature_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
@@ -322,7 +322,9 @@ class Test__probabilities_to_percentiles(IrisTest):
             cube, percentiles, bounds_pairing)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_probabilities_not_monotonically_increasing(self):
+    @ManageWarnings(record=True)
+    def test_probabilities_not_monotonically_increasing(self,
+                                                        warning_list=None):
         """
         Test that the plugin raises a Warning when the probabilities
         of the Cumulative Distribution Function are not monotonically
@@ -342,12 +344,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         warning_msg = "The probability values used to construct the"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            plugin._probabilities_to_percentiles(
-                cube, percentiles, bounds_pairing)
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
+        plugin._probabilities_to_percentiles(
+            cube, percentiles, bounds_pairing)
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
@@ -526,6 +526,8 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_no_of_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -548,6 +550,8 @@ class Test_process(IrisTest):
             cube, no_of_percentiles=no_of_percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -565,6 +569,8 @@ class Test_process(IrisTest):
             cube, percentiles=percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile_not_as_list(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -581,6 +587,8 @@ class Test_process(IrisTest):
             cube, percentiles=percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -603,6 +611,8 @@ class Test_process(IrisTest):
             cube, percentiles=percentiles)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_check_data_not_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
