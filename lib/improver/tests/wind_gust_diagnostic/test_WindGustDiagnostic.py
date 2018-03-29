@@ -355,5 +355,6 @@ class Test_process(IrisTest):
         self.assertEqual(result.attributes['wind_gust_diagnostic'],
                          'Typical gusts')
 
+
 if __name__ == '__main__':
     unittest.main()

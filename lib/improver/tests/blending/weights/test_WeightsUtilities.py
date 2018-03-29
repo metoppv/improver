@@ -314,5 +314,6 @@ class Test_process_coord(IrisTest):
         self.assertAlmostEquals(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 
+
 if __name__ == '__main__':
     unittest.main()

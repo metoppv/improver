@@ -69,7 +69,7 @@ class WriteOutput(object):
         """Call the required method"""
         try:
             function = getattr(self, self.method)
-        except:
+        except AttributeError:
             raise AttributeError('Unknown method "{}" passed to '
                                  'WriteOutput.'.format(self.method))
         function(cube)

@@ -36,6 +36,7 @@ def make_constant_with_units(constant, units):
     """Make an iris.AuxCoord containing a constant with units."""
     return AuxCoord(constant, units=units)
 
+
 # Real Missing Data Indicator
 RMDI = -32767.0
 

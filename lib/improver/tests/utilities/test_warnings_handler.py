@@ -136,5 +136,6 @@ class Test__call__(IrisTest):
         dummy_func('User')
         self.assertEqual(warning_list, [])
 
+
 if __name__ == '__main__':
     unittest.main()
