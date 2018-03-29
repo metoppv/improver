@@ -635,24 +635,23 @@ class RoughnessCorrection(object):
         """Initialise the RoughnessCorrection instance.
 
         Args:
-        a_over_s_cube (iris.cube.Cube):
-            2D - model silhouette roughness on pp grid. dimensionless
-        sigma_cube (iris.cube.Cube):
-            2D - standard deviation of model orography height on pp grid.
-            In m.
-        pporo_cube (iris.cube.Cube):
-            2D - pp orography. In m
-        modoro_cube (iris.cube.Cube):
-            2D - model orography interpolated on pp grid. In m
-        modres (float):
-            original average model resolution in m
-        height_levels_cube (iris.cube.Cube):
-            3D or 1D - height of input velocity field.
-            Can be position dependent
-        z0_cube (iris.cube.Cube):
-            2D - vegetative roughness length in m. If not given, do not do
-            any RC
-
+            a_over_s_cube (iris.cube.Cube):
+                2D - model silhouette roughness on pp grid. dimensionless
+            sigma_cube (iris.cube.Cube):
+                2D - standard deviation of model orography height on pp grid.
+                In m.
+            pporo_cube (iris.cube.Cube):
+                2D - pp orography. In m
+            modoro_cube (iris.cube.Cube):
+                2D - model orography interpolated on pp grid. In m
+            modres (float):
+                original average model resolution in m
+            height_levels_cube (iris.cube.Cube):
+                3D or 1D - height of input velocity field.
+                Can be position dependent
+            z0_cube (iris.cube.Cube):
+                2D - vegetative roughness length in m. If not given, do not do
+                any RC
         """
         enforce_float32_precision([a_over_s_cube,
                                    sigma_cube,

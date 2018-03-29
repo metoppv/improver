@@ -68,7 +68,7 @@ def get_ancillary_data(diagnostics, ancillary_path):
         orography = load_cube(
             ancillary_path + '/highres_orog.nc',
             constraints='surface_altitude')
-    except:
+    except IOError:
         raise IOError('Orography file not found.')
 
     ancillary_data['orography'] = orography
@@ -80,7 +80,7 @@ def get_ancillary_data(diagnostics, ancillary_path):
             land = load_cube(
                 ancillary_path + '/land_mask.nc',
                 constraints='land_binary_mask')
-        except:
+        except IOError:
             raise IOError('Land mask file not found.')
 
         ancillary_data['land_mask'] = land

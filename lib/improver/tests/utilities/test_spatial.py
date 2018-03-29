@@ -238,5 +238,6 @@ class Test_get_nearest_coords(Test_common_functions):
                         'latitude', 'longitude')
         self.assertEqual(expected, result)
 
+
 if __name__ == '__main__':
     unittest.main()
