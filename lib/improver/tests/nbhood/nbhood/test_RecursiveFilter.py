@@ -243,13 +243,13 @@ class Test_recurse_backward(Test_RecursiveFilter):
         self.assertAlmostEqual(result[0][2], expected_result)
 
     def test_second_axis(self):
-        """Test that the returned recurse_forward array has the expected
+        """Test that the returned recurse_backward array has the expected
            type and result."""
-        result = RecursiveFilter().recurse_forward(
+        result = RecursiveFilter().recurse_backward(
             self.cube.data[0, :], self.alphas_cube1.data, 1)
         expected_result = 0.0125
         self.assertIsInstance(result, np.ndarray)
-        self.assertAlmostEqual(result[0][4], expected_result)
+        self.assertAlmostEqual(result[0][0], expected_result)
 
 
 class Test_run_recursion(Test_RecursiveFilter):

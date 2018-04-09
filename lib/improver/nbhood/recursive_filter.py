@@ -135,7 +135,7 @@ class RecursiveFilter(object):
             grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
-                forward y-direction.
+                forward direction along the specified axis.
         """
         lim = grid.shape[axis]
         for i in range(1, lim):
@@ -213,13 +213,13 @@ class RecursiveFilter(object):
         output = cube.data
         for _ in range(iterations):
             output = RecursiveFilter.recurse_forward(output,
-                                                     alphas_x.data, 0)
+                                                     alphas_x.data, 1)
             output = RecursiveFilter.recurse_backward(output,
-                                                      alphas_x.data, 0)
+                                                      alphas_x.data, 1)
             output = RecursiveFilter.recurse_forward(output,
-                                                     alphas_y.data, 1)
+                                                     alphas_y.data, 0)
             output = RecursiveFilter.recurse_backward(output,
-                                                      alphas_y.data, 1)
+                                                      alphas_y.data, 0)
             cube.data = output
         return cube
 
@@ -319,13 +319,13 @@ class RecursiveFilter(object):
                 method has been applied.
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
-                                        cube.coord(axis='x')]))
+                                        cube.coord(axis='x')], ordered=True))
         alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
         alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')]):
+                                   cube.coord(axis='x')], ordered=True):
 
             # Setup cube and mask for processing.
             # This should set up a mask full of 1.0 if None is provided
