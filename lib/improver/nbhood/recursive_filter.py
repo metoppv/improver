@@ -109,9 +109,9 @@ class RecursiveFilter(object):
                              self.edge_width)
 
     @staticmethod
-    def recurse_forward_x(grid, alphas):
+    def recurse_forward(grid, alphas, axis):
         """
-        Method to run the recursive filter in the forward x-direction.
+        Method to run the recursive filter in the forward direction.
 
         In the forward direction:
             Recursive filtering is calculated as:
@@ -127,75 +127,9 @@ class RecursiveFilter(object):
                 will be applied.
             alphas (numpy array):
                 Array of alpha values that will be used when applying
-                the recursive filter along the x-axis.
-
-        Returns:
-            grid (numpy array):
-                Array containing the smoothed field after the recursive
-                filter method has been applied to the input array in the
-                forward x-direction.
-        """
-
-        x_lim = grid.shape[0]
-        for i in range(1, x_lim):
-            grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
-                          alphas[i, :] * grid[i-1, :])
-        return grid
-
-    @staticmethod
-    def recurse_backwards_x(grid, alphas):
-        """
-        Method to run the recursive filter in the backwards x-direction.
-
-        In the backwards direction:
-            Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
-
-            Progressing from gridpoint i+1 to i:
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi+1 = New value at gridpoint i+1
-
-        Args:
-            grid (numpy array):
-                Array containing the input data to which the recursive filter
-                will be applied.
-            alphas (numpy array):
-                Array of alpha values that will be used when applying
-                the recursive filter along the x-axis.
-
-        Returns:
-            grid (numpy array):
-                Array containing the smoothed field after the recursive
-                filtermethod has been applied to the input array in the
-                backwards x-direction.
-        """
-
-        x_lim = grid.shape[0]
-        for i in range(x_lim-2, -1, -1):
-            grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
-                          alphas[i, :] * grid[i+1, :])
-        return grid
-
-    @staticmethod
-    def recurse_forward_y(grid, alphas):
-        """
-        Method to run the recursive filter in the forward y-direction.
-
-        In the forward direction:
-            Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
-
-            Progressing from gridpoint i-1 to i:
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi-1 = New value at gridpoint i-1
-
-        Args:
-            grid (numpy array):
-                Array containing the input data to which the recursive filter
-                will be applied.
-            alphas (numpy array):
-                Array of alpha values that will be used when applying
-                the recursive filter along the y-axis.
+                the recursive filter along the specified axis.
+            axis (integer):
+                Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
             grid (numpy array):
@@ -203,17 +137,20 @@ class RecursiveFilter(object):
                 filter method has been applied to the input array in the
                 forward y-direction.
         """
-
-        y_lim = grid.shape[1]
-        for i in range(1, y_lim):
-            grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
-                          alphas[:, i] * grid[:, i-1])
+        lim = grid.shape[axis]
+        for i in range(1, lim):
+            if axis == 0:
+                grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
+                              alphas[i, :] * grid[i-1, :])
+            if axis == 1:
+                grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
+                              alphas[:, i] * grid[:, i-1])
         return grid
-
+        
     @staticmethod
-    def recurse_backwards_y(grid, alphas):
+    def recurse_backward(grid, alphas, axis):
         """
-        Method to run the recursive filter in the backwards y-direction.
+        Method to run the recursive filter in the backwards direction.
 
         In the backwards direction:
             Recursive filtering is calculated as:
@@ -229,19 +166,24 @@ class RecursiveFilter(object):
                 will be applied.
             alphas (numpy array):
                 Array of alpha values that will be used when applying
-                the recursive filter along the y-axis.
+                the recursive filter along the specified axis.
+            axis (integer):
+                Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
             grid (numpy array):
                 Array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
-                backwards y-direction.
+                backwards direction along the specified axis.
         """
-
-        y_lim = grid.shape[1]
-        for i in range(y_lim-2, -1, -1):
-            grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
-                          alphas[:, i] * grid[:, i+1])
+        lim = grid.shape[axis]
+        for i in range(lim-2, -1, -1):
+            if axis == 0:
+                grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
+                              alphas[i, :] * grid[i+1, :])
+            if axis == 1:
+                grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
+                              alphas[:, i] * grid[:, i+1])
         return grid
 
     @staticmethod
@@ -270,14 +212,14 @@ class RecursiveFilter(object):
 
         output = cube.data
         for _ in range(iterations):
-            output = RecursiveFilter.recurse_forward_x(output,
-                                                       alphas_x.data)
-            output = RecursiveFilter.recurse_backwards_x(output,
-                                                         alphas_x.data)
-            output = RecursiveFilter.recurse_forward_y(output,
-                                                       alphas_y.data)
-            output = RecursiveFilter.recurse_backwards_y(output,
-                                                         alphas_y.data)
+            output = RecursiveFilter.recurse_forward(output,
+                                                     alphas_x.data, 0)
+            output = RecursiveFilter.recurse_backward(output,
+                                                      alphas_x.data, 0)
+            output = RecursiveFilter.recurse_forward(output,
+                                                     alphas_y.data, 1)
+            output = RecursiveFilter.recurse_backward(output,
+                                                      alphas_y.data, 1)
             cube.data = output
         return cube
 

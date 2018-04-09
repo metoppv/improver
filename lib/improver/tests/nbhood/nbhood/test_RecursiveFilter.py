@@ -206,60 +206,50 @@ class Test_set_alphas(Test_RecursiveFilter):
             RecursiveFilter().set_alphas(self.cube, alpha, alphas_cube)
 
 
-class Test_recurse_forward_x(Test_RecursiveFilter):
+class Test_recurse_forward(Test_RecursiveFilter):
 
-    """Test the recurse_forward_x method"""
+    """Test the recurse_forward method"""
 
-    def test_basic_method(self):
-        """Test that the returned recurse_forward_x array has the expected
+    def test_first_axis(self):
+        """Test that the returned recurse_forward array has the expected
            type and result."""
-        result = RecursiveFilter().recurse_forward_x(
-            self.cube.data[0, :], self.alphas_cube1.data)
+        result = RecursiveFilter().recurse_forward(
+            self.cube.data[0, :], self.alphas_cube1.data, 0)
         expected_result = 0.196875
         self.assertIsInstance(result, np.ndarray)
         self.assertAlmostEqual(result[4][2], expected_result)
 
-
-class Test_recurse_backwards_x(Test_RecursiveFilter):
-
-    """Test the recurse_backwards_x method"""
-
-    def test_basic_method(self):
-        """Test that the returned recurse_backwards_x array has the expected
+    def test_second_axis(self):
+        """Test that the returned recurse_forward array has the expected
            type and result."""
-        result = RecursiveFilter().recurse_backwards_x(
-            self.cube.data[0, :], self.alphas_cube1.data)
-        expected_result = 0.196875
-        self.assertIsInstance(result, np.ndarray)
-        self.assertAlmostEqual(result[0][2], expected_result)
-
-
-class Test_recurse_forward_y(Test_RecursiveFilter):
-
-    """Test the recurse_forward_y method"""
-
-    def test_basic_method(self):
-        """Test that the returned recurse_forward_y array has the expected
-           type and result."""
-        result = RecursiveFilter().recurse_forward_y(
-            self.cube.data[0, :], self.alphas_cube1.data)
+        result = RecursiveFilter().recurse_forward(
+            self.cube.data[0, :], self.alphas_cube1.data, 1)
         expected_result = 0.0125
         self.assertIsInstance(result, np.ndarray)
         self.assertAlmostEqual(result[0][4], expected_result)
 
 
-class Test_recurse_backwards_y(Test_RecursiveFilter):
+class Test_recurse_backward(Test_RecursiveFilter):
 
-    """Test the recurse_backwards_y method"""
+    """Test the recurse_backward method"""
 
-    def test_basic_method(self):
-        """Test that the returned recurse_backwards_y array has the expected
+    def test_first_axis(self):
+        """Test that the returned recurse_backward array has the expected
            type and result."""
-        result = RecursiveFilter().recurse_backwards_y(
-            self.cube.data[0, :], self.alphas_cube1.data)
+        result = RecursiveFilter().recurse_backward(
+            self.cube.data[0, :], self.alphas_cube1.data, 0)
+        expected_result = 0.196875
+        self.assertIsInstance(result, np.ndarray)
+        self.assertAlmostEqual(result[0][2], expected_result)
+
+    def test_second_axis(self):
+        """Test that the returned recurse_forward array has the expected
+           type and result."""
+        result = RecursiveFilter().recurse_forward(
+            self.cube.data[0, :], self.alphas_cube1.data, 1)
         expected_result = 0.0125
         self.assertIsInstance(result, np.ndarray)
-        self.assertAlmostEqual(result[0][0], expected_result)
+        self.assertAlmostEqual(result[0][4], expected_result)
 
 
 class Test_run_recursion(Test_RecursiveFilter):
