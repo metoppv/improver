@@ -185,8 +185,8 @@ class Test_load_cube(IrisTest):
         cube = set_up_probability_above_threshold_temperature_cube()
         threshold_points = np.array([8, 10, 12])
         cube.transpose([3, 2, 1, 0])
-        iris.save(cube, self.filepath)
-        result = load_cube(self.filepath)
+        iris.save(cube, filepath)
+        result = load_cube(filepath)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("threshold").points, threshold_points)
