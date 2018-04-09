@@ -393,7 +393,7 @@ class Test_process(Test_RecursiveFilter):
         # check x was smoothed out more than y (where x is FIRST dimension)
         self.assertTrue(result.data[0][0, 2] > result.data[0][2, 0])
         self.assertAlmostEqual(result.data[0][1, 2], 0.15184643)
-        
+
 
 if __name__ == '__main__':
     unittest.main()
