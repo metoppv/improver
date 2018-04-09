@@ -33,7 +33,7 @@ install:
   - conda install -c conda-forge iris=1.13
 
   # Install our own extra dependencies (+ filelock for Iris test).
-  - conda install -c conda-forge mock filelock numpy=1.13.3 pep8 pylint pandas python-stratify sphinx=1.7.0
+  - conda install -c conda-forge mock filelock numpy=1.13.3 pycodestyle pylint pandas python-stratify sphinx=1.7.0
 
 script:
   - python -c "import iris"
