@@ -42,7 +42,12 @@ import numpy as np
 from improver.utilities.load import load_cube, load_cubelist
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube
+    helper_functions import (
+        set_up_probability_above_threshold_temperature_cube,
+        set_up_temperature_cube)
+from improver.tests.utilities.test_cube_manipulation import (
+    set_up_percentile_temperature_cube)
+
 
 iris.FUTURE.netcdf_no_unlimited = True
 
@@ -129,9 +134,9 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("longitude").points, self.longitude_points)
 
-    def test_ordering(self):
-        """Test that cube has been reordered, if it is originally in an
-        undesirable order."""
+    def test_ordering_for_realization_coordinate(self):
+        """Test that the cube has been reordered, if it is originally in an
+        undesirable order and the cube contains a "realization" coordinate."""
         cube = set_up_temperature_cube()
         cube.transpose([3, 2, 1, 0])
         iris.save(cube, self.filepath)
@@ -149,6 +154,48 @@ class Test_load_cube(IrisTest):
         self.assertEqual(result.coord_dims("time")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
+
+    def test_ordering_for_percentile_over_coordinate(self):
+        """Test that the cube has been reordered, if it is originally in an
+        undesirable order and the cube contains a "percentile_over"
+        coordinate."""
+        directory = mkdtemp()
+        filepath = os.path.join(directory, "temp.nc")
+        cube = set_up_percentile_temperature_cube()
+        percentile_points = np.array([10, 50, 90])
+        cube.transpose([3, 2, 1, 0])
+        iris.save(cube, filepath)
+        result = load_cube(filepath)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("percentile_over_realization").points,
+            percentile_points)
+        self.assertArrayAlmostEqual(
+            result.coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.longitude_points)
+
+    def test_ordering_for_threshold_coordinate(self):
+        """Test that the cube has been reordered, if it is originally in an
+        undesirable order and the cube contains a "threshold" coordinate."""
+        directory = mkdtemp()
+        filepath = os.path.join(directory, "temp.nc")
+        cube = set_up_probability_above_threshold_temperature_cube()
+        threshold_points = np.array([8, 10, 12])
+        cube.transpose([3, 2, 1, 0])
+        iris.save(cube, self.filepath)
+        result = load_cube(self.filepath)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result.coord("threshold").points, threshold_points)
+        self.assertArrayAlmostEqual(
+            result.coord("time").points, self.time_points)
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.latitude_points)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.longitude_points)
 
     def test_no_lazy_load(self):
         """Test that the loading works correctly with lazy load bypassing."""
