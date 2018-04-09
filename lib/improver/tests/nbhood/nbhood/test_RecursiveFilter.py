@@ -36,6 +36,18 @@ from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.nbhood.square_kernel import SquareNeighbourhood
 
 
+def create_test_alphas_cube(alphas_data):
+    """Create alphas test cube from a 2-dimensional data matrix"""
+    alphas_cube = Cube(alphas_data)
+    alphas_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0,
+                                                   alphas_data.shape[0]),
+                                       'latitude', units='degrees'), 0)
+    alphas_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 
+                                                   alphas_data.shape[1]),
+                                       'longitude', units='degrees'), 1)
+    return alphas_cube
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -89,23 +101,17 @@ class Test_RecursiveFilter(IrisTest):
                                     "time", units=tunit), 0)
         self.cube = cube
 
-        # Generate alphas_cube with dimensions 5 x 5
+        # Generate alphas_cube with correct dimensions 5 x 5
         alphas_data1 = np.ones((5, 5)) * 0.5
-        alphas_cube1 = Cube(alphas_data1)
-        alphas_cube1.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 5),
-                                            'latitude', units='degrees'), 0)
-        alphas_cube1.add_dim_coord(DimCoord(np.linspace(120, 180, 5),
-                                            'longitude', units='degrees'), 1)
-        self.alphas_cube1 = alphas_cube1
+        self.alphas_cube1 = create_test_alphas_cube(alphas_data1)
 
-        # Generate alphas_cube with dimensions 6 x 6
+        # Generate alphas_cube with incorrect dimensions 6 x 6
         alphas_data2 = np.ones((6, 6)) * 0.5
-        alphas_cube2 = Cube(alphas_data2)
-        alphas_cube2.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 6),
-                                            'latitude', units='degrees'), 0)
-        alphas_cube2.add_dim_coord(DimCoord(np.linspace(120, 180, 6),
-                                            'longitude', units='degrees'), 1)
-        self.alphas_cube2 = alphas_cube2
+        self.alphas_cube2 = create_test_alphas_cube(alphas_data2)
+
+        # Generate different alphas cube to test 2-dimensional recursion
+        alphas_data3 = np.ones((5, 5)) * 0.25
+        self.alphas_cube3 = create_test_alphas_cube(alphas_data3)
 
 
 class Test__init__(Test_RecursiveFilter):
@@ -268,7 +274,7 @@ class Test_run_recursion(Test_RecursiveFilter):
             padded_cube, alphas_x, alphas_y, self.iterations)
         self.assertIsInstance(result, Cube)
 
-    def test_expected_result(self):
+    def test_result_basic(self):
         """Test that the run_recursion method returns the expected value."""
         edge_width = 1
         cube = iris.util.squeeze(self.cube)
@@ -280,6 +286,21 @@ class Test_run_recursion(Test_RecursiveFilter):
             padded_cube, alphas_x, alphas_y, self.iterations)
         expected_result = 0.13382206
         self.assertAlmostEqual(result.data[4][4], expected_result)
+
+    def test_different_dimensional_alphas(self):
+        """Test that the run_recursion method returns expected values when
+        alpha matrices are different in the x and y directions"""
+        cube = iris.util.squeeze(self.cube)
+        alphas_x = RecursiveFilter().set_alphas(cube, None, self.alphas_cube1)
+        alphas_y = RecursiveFilter().set_alphas(cube, None, self.alphas_cube3)
+        padded_cube = SquareNeighbourhood().pad_cube_with_halo(cube, 1, 1)
+        result = RecursiveFilter().run_recursion(
+            padded_cube, alphas_x, alphas_y, 1)
+        # slice back down to the source grid - easier to visualise!
+        unpadded_result = result.data[2:-2, 2:-2]
+        # check x was smoothed out more than y
+        self.assertTrue(unpadded_result[0, 2] < unpadded_result[2, 0])
+        self.assertAlmostEqual(unpadded_result[2, 1], 0.15184643)
 
 
 class Test_process(Test_RecursiveFilter):
