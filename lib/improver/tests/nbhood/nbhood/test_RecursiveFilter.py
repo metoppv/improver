@@ -93,18 +93,18 @@ class Test_RecursiveFilter(IrisTest):
         alphas_data1 = np.ones((5, 5)) * 0.5
         alphas_cube1 = Cube(alphas_data1)
         alphas_cube1.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 5),
-                                   'latitude', units='degrees'), 0)
+                                            'latitude', units='degrees'), 0)
         alphas_cube1.add_dim_coord(DimCoord(np.linspace(120, 180, 5),
-                                   'longitude', units='degrees'), 1)
+                                            'longitude', units='degrees'), 1)
         self.alphas_cube1 = alphas_cube1
 
         # Generate alphas_cube with incorrect dimensions 6 x 6
         alphas_data2 = np.ones((6, 6)) * 0.5
         alphas_cube2 = Cube(alphas_data2)
         alphas_cube2.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 6),
-                                   'latitude', units='degrees'), 0)
+                                            'latitude', units='degrees'), 0)
         alphas_cube2.add_dim_coord(DimCoord(np.linspace(120, 180, 6),
-                                   'longitude', units='degrees'), 1)
+                                            'longitude', units='degrees'), 1)
         self.alphas_cube2 = alphas_cube2
 
 
@@ -281,9 +281,9 @@ class Test_run_recursion(Test_RecursiveFilter):
         expected_result = 0.13382206
         self.assertAlmostEqual(result.data[4][4], expected_result)
 
-    def test_different_dimensional_alphas(self):
+    def test_different_alphas(self):
         """Test that the run_recursion method returns expected values when
-        alpha matrices are different in the x and y directions"""
+        alpha values are different in the x and y directions."""
         cube = iris.util.squeeze(self.cube)
         alpha_y = 0.5*self.alpha_x
         alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
