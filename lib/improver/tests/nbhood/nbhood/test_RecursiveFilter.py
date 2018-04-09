@@ -34,6 +34,7 @@ from cf_units import Unit
 import numpy as np
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test__repr__(IrisTest):
@@ -293,7 +294,7 @@ class Test_run_recursion(Test_RecursiveFilter):
             padded_cube, alphas_x, alphas_y, 1)
         # slice back down to the source grid - easier to visualise!
         unpadded_result = result.data[2:-2, 2:-2]
-        # check x was smoothed out more than y
+        # check x was smoothed out more than y (where x is SECOND dimension)
         self.assertTrue(unpadded_result[0, 2] < unpadded_result[2, 0])
         self.assertAlmostEqual(unpadded_result[2, 1], 0.15184643)
 
@@ -377,6 +378,22 @@ class Test_process(Test_RecursiveFilter):
         self.assertEqual(result.data.shape, expected_shape)
         self.assertEqual(result.data.shape, expected_shape)
 
+    def test_coordinate_reordering_with_different_alphas(self):
+        """Test that x and y alphas still apply to the right coordinate when
+        the input cube spatial dimensions are (x, y) not (y, x)"""
+        alpha_y = 0.5*self.alpha_x
+        cube = enforce_coordinate_ordering(self.cube,
+                                           ["time", "longitude", "latitude"])
+        plugin = RecursiveFilter(alpha_x=self.alpha_x, alpha_y=alpha_y,
+                                 iterations=self.iterations)
+        result = plugin.process(cube)
+        # check "incorrect" input cube coordinate order is maintained
+        self.assertSequenceEqual([x.name() for x in result.coords()],
+                                 ["time", "longitude", "latitude"])
+        # check x was smoothed out more than y (where x is FIRST dimension)
+        self.assertTrue(result.data[0][0, 2] > result.data[0][2, 0])
+        self.assertAlmostEqual(result.data[0][1, 2], 0.15184643)
+        
 
 if __name__ == '__main__':
     unittest.main()
