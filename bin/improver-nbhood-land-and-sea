@@ -185,11 +185,6 @@ def main():
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
             re_mask=True).process(cube, land_only)
 
-    if masking_coordinate is not None:
-        # Collapse the masking coordinate.
-        result_land = CollapseMaskedNeighbourhoodCoordinate(
-            masking_coordinate, weights=weights).process(result_land)
-
     if sea_only.data.max() > 0.0:
         result_sea = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
@@ -200,6 +195,11 @@ def main():
             save_netcdf(result_land, args.intermediate_filepaths[0])
             save_netcdf(result_sea, args.intermediate_filepaths[1])
 
+        if masking_coordinate is not None:
+            # Collapse the masking coordinate.
+            result_land = CollapseMaskedNeighbourhoodCoordinate(
+                masking_coordinate, weights=weights).process(result_land)
+
         # Recombine cubes to be a single output.
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
         result = result_land.copy(data=combined_data)
@@ -208,6 +208,12 @@ def main():
         if args.intermediate_filepaths is not None:
             save_netcdf(result_land, args.intermediate_filepaths[0])
         print 'No sea points'
+
+        if masking_coordinate is not None:
+            # Collapse the masking coordinate.
+            result_land = CollapseMaskedNeighbourhoodCoordinate(
+                masking_coordinate, weights=weights).process(result_land)
+
         result =  result_land
 
     save_netcdf(result, args.output_filepath)
