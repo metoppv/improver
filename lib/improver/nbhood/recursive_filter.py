@@ -146,7 +146,7 @@ class RecursiveFilter(object):
                 grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
                               alphas[:, i] * grid[:, i-1])
         return grid
-        
+
     @staticmethod
     def recurse_backward(grid, alphas, axis):
         """
