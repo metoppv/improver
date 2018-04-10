@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to combine cube data."""
 
-import argparse
+from improver.argparser import ArgParser
 
 import iris
 import json
@@ -46,7 +46,7 @@ from improver.utilities.save import save_netcdf
 def main():
     """Load in arguments for the cube combiner plugin.
     """
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Combine the input cubes into a single cube using "
                     "the requested operation e.g. + - min max etc.")
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",

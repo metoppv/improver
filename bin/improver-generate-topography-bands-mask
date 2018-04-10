@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run topographic bands mask generation."""
 
-import argparse
+from improver.argparser import ArgParser
 import os
 import json
 
@@ -52,7 +52,7 @@ THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description=('Read input orography and landmask fields. Return a '
                      'a cube of masks, where each mask excludes data below '
                      'or equal to the lower threshold, and excludes data above'

@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate gradient of input field in x and y direction."""
 
-import argparse
+from improver.argparser import ArgParser
 import os
 
 from improver.utilities.load import load_cube
@@ -42,7 +42,7 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 def main():
     """Load in arguments to calculate the gradient between adjacent grid cells
        and save the output gradient fields."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description=('Read the input field, and calculate the gradient'
                      ' in x and y directions.'))
     parser.add_argument('--force', dest='force', default=False,
