@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to generate weather symbols."""
 
-import argparse
+from improver.argparser import ArgParser
 import numpy as np
 from argparse import RawTextHelpFormatter
 
@@ -103,7 +103,7 @@ def main():
     n_files = len(diagnostics)
     dlist = (' - {}\n'*n_files)
 
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description='Calculate a cube of weather symbol codes.\nThis plugin '
         'requires a specific set of input cubes, where data\nmay be in any '
         'units to which the thresholds given below can\nbe converted:\n' +

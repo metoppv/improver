@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
 
-import argparse
+from improver.argparser import ArgParser
 
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
@@ -40,7 +40,7 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Run a recursive filter to convert a square neighbourhood "
         "into a Gaussian-like kernel or smooth over short "
         "distances. The filter uses an alpha parameter (0 < alpha < 1) to "
