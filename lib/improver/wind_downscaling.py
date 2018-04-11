@@ -371,7 +371,7 @@ class RoughnessCorrectionUtilities(object):
                      )[cond] * (
                          np.log(hgrid / (np.reshape(self.z_0,
                                                     self.z_0.shape + (1,)) *
-                                         np.ones(unew.shape, 
+                                         np.ones(unew.shape,
                                                  dtype=np.float32))
                                )[cond]) / VONKARMAN
         return unew

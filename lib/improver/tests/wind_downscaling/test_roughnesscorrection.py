@@ -646,14 +646,12 @@ class Test1D(IrisTest):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
-
     def test_section1g(self):
         """ Test that code returns float32 precision. """
         landpointtests_hc_rc = TestSinglePoint(
             AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
             heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
-        land_hc_rc.data = np.float64(land_hc_rc.data)
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
 
@@ -749,7 +747,6 @@ class Test2D(IrisTest):
         hidx = land_hc_rc.shape.index(hlvs)
         for field in land_hc_rc.slices_over(hidx):
             self.assertEqual(field.dtype, np.float32)
-        
 
     def test_section3a(self):
         """As test 1c, however with manipulated z_0 cube.
