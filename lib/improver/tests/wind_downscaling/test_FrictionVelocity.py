@@ -100,6 +100,14 @@ class Test_process(IrisTest):
             FrictionVelocity(u_href, self.h_ref,
                              self.z_0, self.mask).process()
 
+    def test_output_is_float32(self):
+        """Test that the plugin returns an array of float 32 type
+           even when the input arrays are double precision."""
+        
+        result = FrictionVelocity(self.u_href, self.h_ref,
+                                  self.z_0, self.mask).process()
+
+        self.assertEqual(result.dtype, np.float32)
 
 if __name__ == '__main__':
     unittest.main()

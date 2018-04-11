@@ -109,7 +109,7 @@ class FrictionVelocity(object):
                 A 2D array of friction velocities
 
         """
-        ustar = np.full(self.u_href.shape, RMDI)
+        ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
         ustar[self.mask] = (
                 VONKARMAN * (
                     self.u_href[self.mask] /
@@ -248,7 +248,7 @@ class RoughnessCorrectionUtilities(object):
             RMDI.
 
         """
-        h_o_2 = np.full(sigma.shape, RMDI)
+        h_o_2 = np.full(sigma.shape, RMDI, dtype=np.float32)
         h_o_2[sigma > 0] = sigma[sigma > 0] * np.sqrt(2.0)
         return h_o_2
 
@@ -284,7 +284,7 @@ class RoughnessCorrectionUtilities(object):
                 wavenumber in units of inverse units of supplied h_over_2.
 
         """
-        wavn = np.full(self.a_over_s.shape, RMDI)
+        wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
         wavn[self.hcmask] = (
                 (self.a_over_s[self.hcmask] * np.pi) /
                 self.h_over_2[self.hcmask]
@@ -320,8 +320,8 @@ class RoughnessCorrectionUtilities(object):
 
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
-        tunable_param = np.full(self.wavenum.shape, RMDI)
-        h_ref = np.full(self.wavenum.shape, RMDI)
+        tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
+        h_ref = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
         tunable_param[self.hcmask] = (
                 alpha + np.log(self.wavenum[self.hcmask] *
                                self.h_over_2[self.hcmask])
@@ -366,13 +366,14 @@ class RoughnessCorrectionUtilities(object):
         mhref = self.h_ref
         mhref[~mask] = RMDI
         cond = hgrid < self.h_ref[:, :, np.newaxis]
-        unew[cond] = (
-                             ustar[:, :, np.newaxis] * np.ones(unew.shape)
+        unew[cond] = (ustar[:, :, np.newaxis] * np.ones(unew.shape,
+                                                         dtype=np.float32)
                      )[cond] * (
                          np.log(hgrid / (np.reshape(self.z_0,
                                                     self.z_0.shape + (1,)) *
-                                         np.ones(unew.shape)))[
-                             cond]) / VONKARMAN
+                                         np.ones(unew.shape, 
+                                                 dtype=np.float32))
+                               )[cond]) / VONKARMAN
         return unew
 
     def _calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
@@ -424,7 +425,7 @@ class RoughnessCorrectionUtilities(object):
             loidx.flatten() + np.arange(0, loidx.size * u_in.shape[2],
                                         u_in.shape[2]))
         mask = mask.flatten()
-        uath = np.full(mask.shape, RMDI, dtype=float)
+        uath = np.full(mask.shape, RMDI, dtype=np.float32)
         if dolog:
             uath[mask] = self._interpolate_log(hup[mask], hlow[mask],
                                                hhere.flatten()[mask],
@@ -457,7 +458,7 @@ class RoughnessCorrectionUtilities(object):
                 y(at_x) assuming a lin function between xlow and xup
 
         """
-        interp = np.full(xup.shape, RMDI, dtype=float)
+        interp = np.full(xup.shape, RMDI, dtype=np.float32)
         diffs = (xup - xlow)
         interp[diffs != 0] = (
                 ylow[diffs != 0] + ((at_x[diffs != 0] - xlow[diffs != 0]) /
@@ -489,8 +490,8 @@ class RoughnessCorrectionUtilities(object):
                 y(at_x) assuming a log function between xlow and xup
 
         """
-        ain = np.full(xup.shape, RMDI, dtype=float)
-        loginterp = np.full(xup.shape, RMDI, dtype=float)
+        ain = np.full(xup.shape, RMDI, dtype=np.float32)
+        loginterp = np.full(xup.shape, RMDI, dtype=np.float32)
         mfrac = xup / xlow
         mtest = (xup / xlow != 1) & (at_x != xup)
         ain[mtest] = (yup[mtest] - ylow[mtest]) / np.log(mfrac[mtest])
@@ -543,7 +544,7 @@ class RoughnessCorrectionUtilities(object):
         elif heightg.ndim == 3:
             zdim = heightg.shape[2]
         ml2 = self.h_at0 * self.wavenum
-        expon = np.ones([xdim, ydim, zdim])
+        expon = np.ones([xdim, ydim, zdim], dtype=np.float32)
         mult = self.wavenum[:, :, np.newaxis] * heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
         hc_add = (
@@ -563,7 +564,7 @@ class RoughnessCorrectionUtilities(object):
                 height difference, ppgrid-model
 
         """
-        delt_z = np.ones(self.pporo.shape) * RMDI
+        delt_z = np.full(self.pporo.shape, RMDI, dtype=np.float32)
         delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[
             self.hcmask]
         return delt_z
@@ -642,6 +643,11 @@ class RoughnessCorrection(object):
             any RC
 
         """
+        a_over_s_cube.data = a_over_s_cube.data.astype(np.float32)
+        sigma_cube.data = sigma_cube.data.astype(np.float32)
+        pporo_cube.data = pporo_cube.data.astype(np.float32)
+        modoro_cube.data = modoro_cube.data.astype(np.float32)
+
         x_name, y_name, _, _ = self.find_coord_names(pporo_cube)
         # Some checking that all the grids match
         if not (self.check_ancils(a_over_s_cube, sigma_cube, z0_cube,
@@ -652,8 +658,14 @@ class RoughnessCorrection(object):
         self.sigma = next(sigma_cube.slices([y_name, x_name]))
         try:
             self.z_0 = next(z0_cube.slices([y_name, x_name]))
+            self.z_0.data = np.float32(self.z_0.data)
         except AttributeError:
             self.z_0 = z0_cube
+
+        if height_levels_cube is not None:
+            height_levels_cube.data = height_levels_cube.data.astype(
+                                                                    np.float32)
+
         self.pp_oro = next(pporo_cube.slices([y_name, x_name]))
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))
         self.ppres = self.calc_av_ppgrid_res(pporo_cube)
@@ -914,6 +926,7 @@ class RoughnessCorrection(object):
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
             raise TypeError(msg.format(type(input_cube)))
+        input_cube.data = input_cube.data.astype(np.float32)
         (self.x_name, self.y_name, self.z_name,
          self.t_name) = self.find_coord_names(input_cube)
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)

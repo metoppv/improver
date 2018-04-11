@@ -647,6 +647,16 @@ class Test1D(IrisTest):
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
 
+    def test_section1g(self):
+        """ Test that code returns float32 precision. """
+        landpointtests_hc_rc = TestSinglePoint(
+            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
+            heightlevels=self.hls)
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
+        land_hc_rc.data = np.float64(land_hc_rc.data)
+        self.assertEqual(land_hc_rc.dtype, np.float32)
+
+
 class Test2D(IrisTest):
 
     """Test multi-point wind corrections.
@@ -728,6 +738,18 @@ class Test2D(IrisTest):
         with self.assertRaisesRegexp(TypeError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights,
                                        aslist=True)
+
+    def test_section2d(self):
+        """ Test whether output is float32. """
+        hlvs = 10
+        uin = np.ones(hlvs)*20
+        heights = ((np.arange(hlvs)+1)**2.)*12.
+        multip_hc_rc = TestMultiPoint(3)
+        land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
+        hidx = land_hc_rc.shape.index(hlvs)
+        for field in land_hc_rc.slices_over(hidx):
+            self.assertEqual(field.dtype, np.float32)
+        
 
     def test_section3a(self):
         """As test 1c, however with manipulated z_0 cube.
