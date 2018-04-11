@@ -32,6 +32,13 @@
 
 import numpy as np
 import math
+import datetime as dt
+import cartopy.crs as ccrs
+import iris
+
+from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.spatial import lat_lon_determine
 
 
 def solar_declination(day_of_year):
@@ -144,7 +151,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
     return lats
 
 
-def daynight_mask_slow(cube):
+def daynight_mask(cube):
     """
     Calculate the daynight mask for the provided cube
 
@@ -156,4 +163,51 @@ def daynight_mask_slow(cube):
         daynight_mask (iris.cube.Cube):
             daynight mask cube
     """
-    return cube
+    result_slices = iris.cube.CubeList()
+    for cube_slice in cube.slices([cube.coord(axis='y'),
+                                   cube.coord(axis='x')]):
+        mask_cube = cube_slice.copy()
+        mask_cube.long_name = 'day_night_mask'
+        mask_cube.standard_name = None
+        mask_cube.var_name = None
+        mask_cube.units = 1
+        mask_data = np.zeros(cube_slice.shape, dtype='int')
+        dtval = iris_time_to_datetime(cube_slice.coord('time'))[0]
+        day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days + 1
+        utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
+        trg_latlon = ccrs.PlateCarree()
+        trg_crs = lat_lon_determine(cube_slice)
+        if trg_crs is not None:
+            x_points = mask_cube.coord(axis='x').points
+            y_points = mask_cube.coord(axis='y').points
+            x_ones = np.ones_like(x_points)
+            y_ones = np.ones_like(y_points)
+            all_x_points = y_ones.reshape(len(y_ones), 1) + x_points
+            all_y_points = y_points.reshape(len(y_points), 1) + x_ones
+            points = trg_latlon.transform_points(trg_crs,
+                                                 all_x_points,
+                                                 all_y_points)
+            lons = points[:, :, 0]
+            lats = points[:, :, 1]
+            solar_el = solar_elevation(lats, lons, day_of_year, utc_hour)
+            mask_data[np.where(solar_el > 0.0)] = 1
+        else:
+            lons = mask_cube.coord('longitude').points
+            lats = mask_cube.coord('latitude').points
+            terminator_lats = daynight_terminator(lons, day_of_year, utc_hour)
+            lons_ones = np.ones_like(lons)
+            lats_ones = np.ones_like(lats).reshape(len(lats), 1)
+            lats_on_lon = lats.reshape(len(lats), 1) + lons_ones
+            terminator_on_lon = lats_ones + terminator_lats
+            dec = solar_declination(day_of_year)
+            if dec > 0.0:
+                mask_data[np.where(lats_on_lon >= terminator_on_lon)] = 1
+            else:
+                mask_data[np.where(lats_on_lon < terminator_on_lon)] = 1
+        mask_cube.data = mask_data
+
+        result_slices.append(mask_cube)
+    daynight_mask = result_slices.merge_cube()
+    daynight_mask = check_cube_coordinates(
+            cube, daynight_mask)
+    return daynight_mask
