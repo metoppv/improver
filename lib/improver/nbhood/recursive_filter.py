@@ -209,17 +209,19 @@ class RecursiveFilter(object):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied to the input cube.
         """
-
+        x_index, = cube.coord_dims(cube.coord(axis="x").name())
+        y_index, = cube.coord_dims(cube.coord(axis="y").name())
         output = cube.data
+
         for _ in range(iterations):
-            output = RecursiveFilter.recurse_forward(output,
-                                                     alphas_x.data, 1)
-            output = RecursiveFilter.recurse_backward(output,
-                                                      alphas_x.data, 1)
-            output = RecursiveFilter.recurse_forward(output,
-                                                     alphas_y.data, 0)
-            output = RecursiveFilter.recurse_backward(output,
-                                                      alphas_y.data, 0)
+            output = RecursiveFilter.recurse_forward(output, alphas_x.data,
+                                                     x_index)
+            output = RecursiveFilter.recurse_backward(output, alphas_x.data,
+                                                      x_index)
+            output = RecursiveFilter.recurse_forward(output, alphas_y.data,
+                                                     y_index)
+            output = RecursiveFilter.recurse_backward(output, alphas_y.data,
+                                                      y_index)
             cube.data = output
         return cube
 
