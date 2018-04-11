@@ -366,14 +366,17 @@ class RoughnessCorrectionUtilities(object):
         mhref = self.h_ref
         mhref[~mask] = RMDI
         cond = hgrid < self.h_ref[:, :, np.newaxis]
-        unew[cond] = (ustar[:, :, np.newaxis] * np.ones(unew.shape,
-                                                         dtype=np.float32)
-                     )[cond] * (
-                         np.log(hgrid / (np.reshape(self.z_0,
-                                                    self.z_0.shape + (1,)) *
-                                         np.ones(unew.shape,
-                                                 dtype=np.float32))
-                               )[cond]) / VONKARMAN
+
+        # Create array of ones.
+        arr_ones = np.ones(unew.shape, dtype=np.float32)
+
+        first_arg = (ustar[:, :, np.newaxis] * arr_ones)[cond]
+        sec_arg = np.log(hgrid /
+                         (np.reshape(self.z_0, self.z_0.shape + (1,)) *
+                          arr_ones))[cond]
+
+        unew[cond] = (first_arg * sec_arg) / VONKARMAN
+
         return unew
 
     def _calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
