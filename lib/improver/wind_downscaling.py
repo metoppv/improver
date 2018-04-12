@@ -319,12 +319,13 @@ class RoughnessCorrectionUtilities(object):
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
         tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
         h_ref = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
-        tunable_param[self.hcmask] = (alpha +
-                np.log(self.wavenum[self.hcmask] * self.h_over_2[self.hcmask]))
+        tunable_param[self.hcmask] = (
+            alpha + np.log(self.wavenum[self.hcmask] *
+                           self.h_over_2[self.hcmask]))
         tunable_param[tunable_param > 1.0] = 1.0
         tunable_param[tunable_param < 0.0] = 0.0
         h_ref[self.hcmask] = (
-                        tunable_param[self.hcmask] / self.wavenum[self.hcmask])
+            tunable_param[self.hcmask] / self.wavenum[self.hcmask])
         h_ref[h_ref < 1.0] = 1.0
         h_ref = np.minimum(h_ref, HREF_SCALE * self.h_over_2)
         h_ref[h_ref < 1.0] = 1.0
@@ -661,7 +662,7 @@ class RoughnessCorrection(object):
 
         if height_levels_cube is not None:
             height_levels_cube.data = (
-                                    height_levels_cube.data.astype(np.float32))
+                height_levels_cube.data.astype(np.float32))
 
         self.pp_oro = next(pporo_cube.slices([y_name, x_name]))
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))
