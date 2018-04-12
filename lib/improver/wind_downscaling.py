@@ -110,12 +110,9 @@ class FrictionVelocity(object):
 
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
-        ustar[self.mask] = (
-                VONKARMAN * (
-                    self.u_href[self.mask] /
-                    np.log(self.h_ref[self.mask] / self.z_0[self.mask])
-                )
-        )
+        numerator = self.u_href[self.mask]
+        denominator = np.log(self.h_ref[self.mask] / self.z_0[self.mask])
+        ustar[self.mask] = VONKARMAN * (numerator / denominator)
         return ustar
 
 
@@ -322,14 +319,12 @@ class RoughnessCorrectionUtilities(object):
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
         tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
         h_ref = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
-        tunable_param[self.hcmask] = (
-                alpha + np.log(self.wavenum[self.hcmask] *
-                               self.h_over_2[self.hcmask])
-        )
+        tunable_param[self.hcmask] = (alpha +
+                np.log(self.wavenum[self.hcmask] * self.h_over_2[self.hcmask]))
         tunable_param[tunable_param > 1.0] = 1.0
         tunable_param[tunable_param < 0.0] = 0.0
         h_ref[self.hcmask] = (
-                tunable_param[self.hcmask] / self.wavenum[self.hcmask])
+                        tunable_param[self.hcmask] / self.wavenum[self.hcmask])
         h_ref[h_ref < 1.0] = 1.0
         h_ref = np.minimum(h_ref, HREF_SCALE * self.h_over_2)
         h_ref[h_ref < 1.0] = 1.0
@@ -550,9 +545,8 @@ class RoughnessCorrectionUtilities(object):
         expon = np.ones([xdim, ydim, zdim], dtype=np.float32)
         mult = self.wavenum[:, :, np.newaxis] * heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
-        hc_add = (
-                expon * u_a[:, :, np.newaxis] * ml2[:, :,
-                                                    np.newaxis] * onemfrac)
+        hc_add = (expon * u_a[:, :, np.newaxis] *
+                  ml2[:, :, np.newaxis] * onemfrac)
         hc_add[~mask, :] = 0
         return hc_add
 
@@ -666,8 +660,8 @@ class RoughnessCorrection(object):
             self.z_0 = z0_cube
 
         if height_levels_cube is not None:
-            height_levels_cube.data = height_levels_cube.data.astype(
-                                                                    np.float32)
+            height_levels_cube.data = (
+                                    height_levels_cube.data.astype(np.float32))
 
         self.pp_oro = next(pporo_cube.slices([y_name, x_name]))
         self.model_oro = next(modoro_cube.slices([y_name, x_name]))

@@ -114,7 +114,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
             data = np.array(data)
             cube.data = data.reshape(cube.data.shape)
         except ValueError as err:
-            if err.message == "total size of new array must be unchanged":
+            if err == "total size of new array must be unchanged":
                 msg = ("supplied data does not fit the cube."
                        "cube dimensions: {} vs. supplied data {}")
                 raise ValueError(msg.format(cube.shape, data.shape))
@@ -125,12 +125,14 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
         try:
             cube.standard_name = name
         except ValueError as err:
-            msg = "error trying to set the supplied name as cube data name: "
-            raise ValueError(msg + err.message)
+            msg = ("error trying to set the supplied name as cube data name: "
+                   "{}".format(err))
+            raise ValueError(msg)
         except TypeError as err:
             msg = ("error trying to set the supplied name as cube data name: "
-                   "the name should be string and have a valid variable name ")
-            raise ValueError(msg + err.message)
+                   "the name should be string and have a valid variable name "
+                   "{}".format(err))
+            raise ValueError(msg)
     if unit is not None:
         try:
             cube.units = Unit(unit)
@@ -648,9 +650,7 @@ class Test1D(IrisTest):
 
     def test_section1g(self):
         """ Test that code returns float32 precision. """
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230,
-            heightlevels=self.hls)
+        landpointtests_hc_rc = TestSinglePoint()
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
@@ -744,9 +744,7 @@ class Test2D(IrisTest):
         heights = ((np.arange(hlvs)+1)**2.)*12.
         multip_hc_rc = TestMultiPoint(3)
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
-        hidx = land_hc_rc.shape.index(hlvs)
-        for field in land_hc_rc.slices_over(hidx):
-            self.assertEqual(field.dtype, np.float32)
+        self.assertEqual(land_hc_rc.dtype, np.float32)
 
     def test_section3a(self):
         """As test 1c, however with manipulated z_0 cube.
