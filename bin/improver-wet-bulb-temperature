@@ -32,7 +32,7 @@
 """CLI to generate wet bulb temperatures from air temperature, relative
    humidity, and pressure data. """
 
-import argparse
+from improver.argparser import ArgParser
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
@@ -46,7 +46,7 @@ def main():
     convergence_condition argument that can be used to specify the tolerance of
     the Newton iterator used to calculate the wet bulb temperatures."""
 
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description='Calculate a cube of wet bulb temperatures.')
     parser.add_argument('temperature', metavar='TEMPERATURE',
                         help='File path to a cube of air temperatures at the '

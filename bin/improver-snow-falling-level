@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate continuous snow falling level."""
 
-import argparse
+from improver.argparser import ArgParser
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     FallingSnowLevel)
@@ -41,7 +41,7 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Calculate the continuous falling snow level ")
     parser.add_argument("temperature", metavar="TEMPERATURE",
                         help="File path to a cube of air temperatures at"
