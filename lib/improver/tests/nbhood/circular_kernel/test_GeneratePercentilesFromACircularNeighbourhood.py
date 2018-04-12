@@ -109,8 +109,8 @@ class Test_make_percentile_cube(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
         result = (
-            GeneratePercentilesFromACircularNeighbourhood(50.
-            ).make_percentile_cube(cube))
+            GeneratePercentilesFromACircularNeighbourhood(
+                50.).make_percentile_cube(cube))
         self.assertEqual(
             result.coord_dims("percentiles_over_neighbourhood")[0], 0)
 
