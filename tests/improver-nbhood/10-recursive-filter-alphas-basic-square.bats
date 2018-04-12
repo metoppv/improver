@@ -45,7 +45,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_recursive_alphas.nc"
+      "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_recursive_alphas_gridded.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }
