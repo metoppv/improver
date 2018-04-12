@@ -60,6 +60,7 @@ class QuietTestCase(unittest.TestCase):
         cls.stderr_patch.stop()
         cls.exit_patch.stop()
 
+
 class Test_init(QuietTestCase):
 
     """Test the __init__ method."""
