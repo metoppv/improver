@@ -79,7 +79,7 @@ class ArgParser(ArgumentParser):
     # We can override including these, but options common to everything should
     # be in a list here:
     # DEFAULT_CENTRALIZED_ARGUMENTS = ('input_file', 'output_file')
-    DEFAULT_CENTRALIZED_ARGUMENTS = []
+    DEFAULT_CENTRALIZED_ARGUMENTS = ()
 
     def __init__(self, central_arguments=DEFAULT_CENTRALIZED_ARGUMENTS,
                  specific_arguments=None, **kwargs):
@@ -124,7 +124,7 @@ class ArgParser(ArgumentParser):
         # (argspecs)- we don't need to do anything special here...
 
         # create instance of ArgumentParser (pass along kwargs)
-        super(self.__class__, self).__init__(**kwargs)
+        super(ArgParser, self).__init__(**kwargs)
 
         cli_arguments = (compulsory_arguments + central_arguments +
                          specific_arguments)

@@ -35,7 +35,6 @@ import os
 import unittest
 from mock import patch
 
-import argparse
 from improver.argparser import ArgParser
 
 
