@@ -65,8 +65,7 @@ class Test_make_percentile_cube(IrisTest):
        GeneratePercentilesFromACircularNeighbourhood."""
 
     def test_basic(self):
-        """Test that the plugin returns an iris.cube.Cube and that percentile
-        coord is added."""
+        """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
@@ -74,6 +73,15 @@ class Test_make_percentile_cube(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood(
             ).make_percentile_cube(cube))
         self.assertIsInstance(result, Cube)
+
+    def test_coord_present(self):
+        """Test that the percentile coord is added."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+            ).make_percentile_cube(cube))
         self.assertIsInstance(result.coord(
             'percentiles_over_neighbourhood'), iris.coords.Coord)
         self.assertArrayEqual(result.coord(
@@ -81,6 +89,30 @@ class Test_make_percentile_cube(IrisTest):
         self.assertArrayEqual(result[0].data, cube.data)
         self.assertDictEqual(
             cube.metadata._asdict(), result.metadata._asdict())
+
+    def test_coord_is_dim_vector(self):
+        """Test that the percentile coord is added as the zeroth dimension when
+        multiple percentiles are used."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(
+            ).make_percentile_cube(cube))
+        self.assertEqual(
+            result.coord_dims("percentiles_over_neighbourhood")[0], 0)
+
+    def test_coord_is_dim_scalar(self):
+        """Test that the percentile coord is added as the zeroth dimension when
+        a single percentile is used."""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        result = (
+            GeneratePercentilesFromACircularNeighbourhood(50.
+            ).make_percentile_cube(cube))
+        self.assertEqual(
+            result.coord_dims("percentiles_over_neighbourhood")[0], 0)
 
 
 class Test_pad_and_unpad_cube(IrisTest):
