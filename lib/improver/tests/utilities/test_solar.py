@@ -35,11 +35,9 @@ import numpy as np
 
 from iris.tests import IrisTest
 
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube, set_up_cube_lat_long)
 from improver.utilities.solar import (
     solar_declination, solar_hour_angle, solar_elevation,
-    daynight_terminator, daynight_mask)
+    daynight_terminator)
 
 
 class Test_solar_declination(IrisTest):
@@ -124,72 +122,6 @@ class Test_daynight_terminator(IrisTest):
                                   2.64493534, -67.37718951, -77.7625883,
                                   -81.07852035, -82.41166928, -82.7926115])
         self.assertArrayAlmostEqual(result, expected_lats)
-
-
-class Test_daynight_mask(IrisTest):
-
-    """Test DayNight Mask."""
-
-    def setUp(self):
-        """Set up the cubes for testsing."""
-        self.cube = set_up_cube()
-        x_points = np.linspace(-30000, 0, 16)
-        self.cube.coord('projection_x_coordinate').points = x_points
-        dtval = self.cube.coord('time').points[0]
-        self.cube.coord('time').points = np.array(dtval + 7.5)
-        # Lat lon cube
-        self.cube_lat_lon = set_up_cube_lat_long()
-        lon_points = np.linspace(-8, 7, 16)
-        lat_points = np.linspace(49, 64, 16)
-        self.cube_lat_lon.coord('latitude').points = lat_points
-        self.cube_lat_lon.coord('longitude').points = lon_points
-        dt = self.cube_lat_lon.coord('time').points[0]
-        self.cube_lat_lon.coord('time').points[0] = dt + 7.5
-
-    def test_basic_standard_grid_ccrs(self):
-        """Test day_night mask with standard_grid_ccrs projection."""
-        result = daynight_mask(self.cube)
-        expected_result = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        expected_result = expected_result.reshape((1, 1, 16, 16))
-        self.assertArrayEqual(result.data, expected_result)
-
-    def test_basic_lat_lon(self):
-        """Test day_night mask with lat lon data."""
-        result = daynight_mask(self.cube_lat_lon)
-        expected_result = np.array([
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        self.assertArrayEqual(result.data, expected_result)
 
 
 if __name__ == '__main__':

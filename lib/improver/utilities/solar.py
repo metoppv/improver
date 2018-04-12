@@ -54,6 +54,7 @@ def solar_declination(day_of_year):
             Declination in degrees.North-South
     """
     # Declination (degrees):
+    # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
     declination = -23.5 * math.cos(math.radians(0.9856 * day_of_year + 9.3))
     return declination
 
@@ -151,52 +152,104 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
     return lats
 
 
-def daynight_mask(cube):
+class DayNightMask(object):
     """
-    Calculate the daynight mask for the provided cube
-
-    Args:
-        cube (iris.cube.Cube):
-            input cube
-
-    Returns:
-        daynight_mask (iris.cube.Cube):
-            daynight mask cube
+    Generate a daynight mask for the provided cube
     """
-    result_slices = iris.cube.CubeList()
-    for cube_slice in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')]):
-        mask_cube = cube_slice.copy()
-        mask_cube.long_name = 'day_night_mask'
-        mask_cube.standard_name = None
-        mask_cube.var_name = None
-        mask_cube.units = 1
-        mask_data = np.zeros(cube_slice.shape, dtype='int')
-        dtval = iris_time_to_datetime(cube_slice.coord('time'))[0]
-        day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days + 1
-        utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
-        trg_crs = lat_lon_determine(cube_slice)
-        if trg_crs is not None:
-            lats, lons = transform_grid_to_lat_lon(trg_crs, mask_cube)
-            solar_el = solar_elevation(lats, lons, day_of_year, utc_hour)
-            mask_data[np.where(solar_el > 0.0)] = 1
+    def __init__(self):
+        """ Initial the DayNightMask Object """
+        self.NIGHT = 0
+        self.DAY = 1
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<DayNightMask : '
+                  'Day = {}, Night = {}>'.format(self.DAY, self.NIGHT))
+        return result
+
+    def _create_daynight_mask(self, cube):
+        """
+        Create blank daynight mask cube
+
+        Args:
+            cube (iris.cube.Cube):
+                cube with the times and coordinates required for mask
+
+        Returns:
+            daynight_mask (iris.cube.Cube):
+                Blank daynight mask cube
+        """
+        daynight_mask = next(cube.slices([cube.coord('time'),
+                                          cube.coord(axis='y'),
+                                          cube.coord(axis='x')])).copy()
+        daynight_mask.long_name = 'day_night_mask'
+        daynight_mask.standard_name = None
+        daynight_mask.var_name = None
+        daynight_mask.units = 1
+        daynight_mask.data = np.ones(daynight_mask.data.shape,
+                                     dtype='int')*self.NIGHT
+        return daynight_mask
+
+    def _daynight_lat_lon_cube(self, mask_cube, day_of_year, utc_hour):
+        """
+        Calculate the daynight mask for the provided Lat Lon cube
+
+        Args:
+            mask_cube (iris.cube.Cube):
+                daynight mask cube - data initially set to self.NIGHT
+            day_of_year (int):
+                day of the year
+            utc_hour (float):
+                Hour in UTC
+
+        Returns:
+            mask_cube (iris.cube.Cube):
+                daynight mask cube - daytime set to self.DAY
+        """
+        lons = mask_cube.coord('longitude').points
+        lats = mask_cube.coord('latitude').points
+        terminator_lats = daynight_terminator(lons, day_of_year, utc_hour)
+        lons_ones = np.ones_like(lons)
+        lats_ones = np.ones_like(lats).reshape(len(lats), 1)
+        lats_on_lon = lats.reshape(len(lats), 1) + lons_ones
+        terminator_on_lon = lats_ones + terminator_lats
+        dec = solar_declination(day_of_year)
+        if dec > 0.0:
+            index = np.where(lats_on_lon >= terminator_on_lon)
         else:
-            lons = mask_cube.coord('longitude').points
-            lats = mask_cube.coord('latitude').points
-            terminator_lats = daynight_terminator(lons, day_of_year, utc_hour)
-            lons_ones = np.ones_like(lons)
-            lats_ones = np.ones_like(lats).reshape(len(lats), 1)
-            lats_on_lon = lats.reshape(len(lats), 1) + lons_ones
-            terminator_on_lon = lats_ones + terminator_lats
-            dec = solar_declination(day_of_year)
-            if dec > 0.0:
-                mask_data[np.where(lats_on_lon >= terminator_on_lon)] = 1
-            else:
-                mask_data[np.where(lats_on_lon < terminator_on_lon)] = 1
-        mask_cube.data = mask_data
+            index = np.where(lats_on_lon < terminator_on_lon)
+        mask_cube.data[index] = self.DAY
+        return mask_cube
 
-        result_slices.append(mask_cube)
-    daynight_mask = result_slices.merge_cube()
-    if trg_crs is not None:
-        daynight_mask = check_cube_coordinates(cube, daynight_mask)
-    return daynight_mask
+    def process(self, cube):
+        """
+        Calculate the daynight mask for the provided cube
+
+        Args:
+            cube (iris.cube.Cube):
+                input cube
+
+        Returns:
+            daynight_mask (iris.cube.Cube):
+                daynight mask cube
+        """
+        daynight_mask = self._create_daynight_mask(cube)
+        dtvalues = iris_time_to_datetime(daynight_mask.coord('time'))
+        for i, time in enumerate(daynight_mask.coord('time').points):
+            mask_cube = daynight_mask[i]
+            dtval = dtvalues[i]
+            day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days + 1
+            utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
+            trg_crs = lat_lon_determine(mask_cube)
+            # Grids that are not Lat Lon
+            if trg_crs is not None:
+                lats, lons = transform_grid_to_lat_lon(trg_crs, mask_cube)
+                solar_el = solar_elevation(lats, lons, day_of_year, utc_hour)
+                mask_cube.data[np.where(solar_el > 0.0)] = self.DAY
+            else:
+                mask_cube = self._daynight_lat_lon_cube(mask_cube,
+                                                        day_of_year, utc_hour)
+            mask_data = mask_cube.data
+            daynight_mask.data[i, ::] = mask_cube.data
+
+        return daynight_mask
