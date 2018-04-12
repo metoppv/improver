@@ -44,7 +44,8 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells,
-    lat_lon_determine, lat_lon_transform, get_nearest_coords)
+    lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
+    get_nearest_coords)
 from improver.tests.spotdata.spotdata.test_common_functions import (
     Test_common_functions)
 
@@ -223,6 +224,35 @@ class Test_lat_lon_transform(Test_common_functions):
         result_x, result_y = plugin(trg_crs, 10, 50)
         self.assertAlmostEqual(expected_x, result_x)
         self.assertAlmostEqual(expected_y, result_y)
+
+
+class Test_transform_grid_to_lat_lon(IrisTest):
+    """
+    Test function that transforms the points in the cube
+    into grid of latitudes and longitudes
+
+    """
+
+    def setUp(self):
+        """Set up the cube."""
+        self.cube = set_up_cube(zero_point_indices=((0, 0, 1, 1),),
+                                num_grid_points=2)
+        self.cube.coord(axis='x').points = np.array([-1158000.0, 924000.0])
+        self.cube.coord(axis='y').points = np.array([-1036000.0, 902000.0])
+        self.trg_crs = self.cube.coord(axis='x').coord_system.as_cartopy_crs()
+
+    def test_transform_grid(self):
+        """
+        Test transformation of grid
+        """
+        expected_lons = np.array([-17.1171193, 9.21257373,
+                                  -24.5099131, 15.2797927]).reshape(2, 2)
+        expected_lats = np.array([44.51716346, 44.89988045,
+                                  61.31887016, 61.92069315]).reshape(2, 2)
+        plugin = transform_grid_to_lat_lon
+        result_lats, result_lons = plugin(self.trg_crs, self.cube)
+        self.assertArrayAlmostEqual(result_lons, expected_lons)
+        self.assertArrayAlmostEqual(result_lats, expected_lats)
 
 
 class Test_get_nearest_coords(Test_common_functions):

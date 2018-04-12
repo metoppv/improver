@@ -33,12 +33,12 @@
 import numpy as np
 import math
 import datetime as dt
-import cartopy.crs as ccrs
 import iris
 
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.utilities.spatial import lat_lon_determine
+from improver.utilities.spatial import (
+    lat_lon_determine, transform_grid_to_lat_lon)
 
 
 def solar_declination(day_of_year):
@@ -175,20 +175,9 @@ def daynight_mask(cube):
         dtval = iris_time_to_datetime(cube_slice.coord('time'))[0]
         day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days + 1
         utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
-        trg_latlon = ccrs.PlateCarree()
         trg_crs = lat_lon_determine(cube_slice)
         if trg_crs is not None:
-            x_points = mask_cube.coord(axis='x').points
-            y_points = mask_cube.coord(axis='y').points
-            x_ones = np.ones_like(x_points)
-            y_ones = np.ones_like(y_points)
-            all_x_points = y_ones.reshape(len(y_ones), 1) + x_points
-            all_y_points = y_points.reshape(len(y_points), 1) + x_ones
-            points = trg_latlon.transform_points(trg_crs,
-                                                 all_x_points,
-                                                 all_y_points)
-            lons = points[:, :, 0]
-            lats = points[:, :, 1]
+            lats, lons = transform_grid_to_lat_lon(trg_crs, mask_cube)
             solar_el = solar_elevation(lats, lons, day_of_year, utc_hour)
             mask_data[np.where(solar_el > 0.0)] = 1
         else:
@@ -208,6 +197,6 @@ def daynight_mask(cube):
 
         result_slices.append(mask_cube)
     daynight_mask = result_slices.merge_cube()
-    daynight_mask = check_cube_coordinates(
-            cube, daynight_mask)
+    if trg_crs is not None:
+        daynight_mask = check_cube_coordinates(cube, daynight_mask)
     return daynight_mask

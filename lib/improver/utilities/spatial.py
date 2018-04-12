@@ -432,6 +432,43 @@ def lat_lon_transform(trg_crs, latitude, longitude):
                                        ccrs.PlateCarree())
 
 
+def transform_grid_to_lat_lon(trg_crs, cube):
+    """
+    Transform the points in the cube into grid of latitudes and longitudes
+
+    Args:
+        trg_crs (cartopy.crs/None):
+            Cube coordinate system in cartopy format.
+        cube (iris.cube.Cube):
+            Cube with points to transform
+
+    Returns
+        (tuple): tuple containing
+            **lats** (np.array):
+                Array of cube.data.shape of Latitude values
+            **lons** (np.array):
+                Array of cube.data.shape of Longitude values
+
+    """
+    trg_latlon = ccrs.PlateCarree()
+    x_points = cube.coord(axis='x').points
+    y_points = cube.coord(axis='y').points
+    x_ones = np.ones_like(x_points)
+    y_ones = np.ones_like(y_points)
+
+    # Broadcast x points and y points onto grid
+    all_x_points = y_ones.reshape(len(y_ones), 1) + x_points
+    all_y_points = y_points.reshape(len(y_points), 1) + x_ones
+
+    # Transform points
+    points = trg_latlon.transform_points(trg_crs,
+                                         all_x_points,
+                                         all_y_points)
+    lons = points[..., 0]
+    lats = points[..., 1]
+    return lats, lons
+
+
 def get_nearest_coords(cube, latitude, longitude, iname, jname):
     """
     Uses the iris cube method nearest_neighbour_index to find the nearest grid
