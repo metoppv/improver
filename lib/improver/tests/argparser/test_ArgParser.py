@@ -41,19 +41,24 @@ from improver.argparser import ArgParser
 # We might one day want to move this up to a more central place.
 class QuietTestCase(unittest.TestCase):
 
-    """A subclass of unittest.TestCase which prevents writing to stderr."""
+    """A subclass of unittest.TestCase which prevents writing to stderr and
+    calling of sys.exit."""
 
     @classmethod
     def setUpClass(cls):
-        """Patch the class by redirecting stderr to /dev/null."""
-        cls.patch = patch('sys.stderr', open(os.devnull, 'w'))
-        cls.patch.start()
+        """Patch the class by redirecting stderr to /dev/null, and disabling
+        calls to sys.exit."""
+        cls.stderr_patch = patch('sys.stderr', open(os.devnull, 'w'))
+        cls.exit_patch = patch('sys.exit')
+        cls.stderr_patch.start()
+        cls.exit_patch.start()
 
     @classmethod
     def tearDownClass(cls):
-        """Stop the patch which redirects stderr to /dev/null."""
-        cls.patch.stop()
-
+        """Stop the patches which redirect stderr to /dev/null and prevents
+        sys.exit from being called."""
+        cls.stderr_patch.stop()
+        cls.exit_patch.stop()
 
 class Test_init(QuietTestCase):
 
@@ -331,7 +336,8 @@ class Test_args(QuietTestCase):
         self.assertEqual(parser.parse_args(), parser.args())
 
 
-class Test_wrong_args_error(QuietTestCase):
+# inherit from only TestCase - we want to explicitly catch the SystemExit
+class Test_wrong_args_error(unittest.TestCase):
 
     """Test the wrong_args_error method."""
 
@@ -340,8 +346,11 @@ class Test_wrong_args_error(QuietTestCase):
 
         msg = ("Method: {} does not accept arguments: {}".format(
                    method, args))
-        with self.assertRaises(SystemExit, msg=msg):
-            ArgParser().wrong_args_error(args, method)
+
+        # argparser will write to stderr independently of SystemExit
+        with patch('sys.stderr', open(os.devnull, 'w')):
+            with self.assertRaises(SystemExit, msg=msg):
+                ArgParser().wrong_args_error(args, method)
 
 
 if __name__ == '__main__':
