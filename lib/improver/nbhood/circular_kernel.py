@@ -227,7 +227,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         Initialise class.
 
         Keyword Args:
-            percentiles (list):
+            percentiles (list or float):
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
 
