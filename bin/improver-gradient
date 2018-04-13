@@ -43,14 +43,13 @@ def main():
     """Load in arguments to calculate the gradient between adjacent grid cells
        and save the output gradient fields."""
 
-    cli_specific_arguments = [(['--force'], {'dest': 'force',
-                                             'default': False,
-                                             'action': 'store_true',
-                                             'help': ('If True, ancillaries '
-                                                      'will be generated even '
-                                                      'if doing so will '
-                                                      'overwrite existing '
-                                                      'files.')})]
+    cli_specific_arguments = [(['--force'],
+                               {'dest': 'force',
+                                'default': False,
+                                'action': 'store_true',
+                                'help': ('If True, ancillaries will be '
+                                         'generated even if doing so will '
+                                         'overwrite existing files.')})]
 
     cli_definition = {'central_arguments': ('input_file', 'output_file'),
                       'specific_arguments': cli_specific_arguments,
