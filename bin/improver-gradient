@@ -42,20 +42,23 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 def main():
     """Load in arguments to calculate the gradient between adjacent grid cells
        and save the output gradient fields."""
-    parser = ArgParser(
-        description=('Read the input field, and calculate the gradient'
-                     ' in x and y directions.'))
-    parser.add_argument('--force', dest='force', default=False,
-                        action='store_true',
-                        help=('If True, ancillaries will be generated '
-                              'even if doing so will overwrite existing '
-                              'files.'))
-    parser.add_argument('input_filepath',
-                        metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
-    args = parser.parse_args()
+
+    cli_specific_arguments = [(['--force'], {'dest': 'force',
+                                             'default': False,
+                                             'action': 'store_true',
+                                             'help': ('If True, ancillaries '
+                                                      'will be generated even '
+                                                      'if doing so will '
+                                                      'overwrite existing '
+                                                      'files.')})]
+
+    cli_definition = {'central_arguments': ('input_file', 'output_file'),
+                      'specific_arguments': cli_specific_arguments,
+                      'description': ('Read the input field, and calculate '
+                                      'the gradient in x and y directions.')}
+
+    args = ArgParser(**cli_definition).args()
+
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
         input_field = load_cube(args.input_filepath)

@@ -49,10 +49,12 @@ class ArgParser(ArgumentParser):
     CENTRALIZED_ARGUMENTS = {
         'input_file': (
             ['input_filepath'],
-            {}),
+            {'metavar': 'INPUT_FILE',
+             'help': 'A path to an input NetCDF file to be processed'}),
         'output_file': (
             ['output_filepath'],
-            {}),
+            {'metavar': 'OUTPUT_FILE',
+             'help': 'The output path for the processed NetCDF'}),
     }
 
     # *All* CLIs will use the options here (no option to disable them):
