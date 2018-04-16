@@ -432,7 +432,7 @@ def lat_lon_transform(trg_crs, latitude, longitude):
                                        ccrs.PlateCarree())
 
 
-def transform_grid_to_lat_lon(trg_crs, cube):
+def transform_grid_to_lat_lon(cube):
     """
     Transform the points in the cube into grid of latitudes and longitudes
 
@@ -451,21 +451,26 @@ def transform_grid_to_lat_lon(trg_crs, cube):
 
     """
     trg_latlon = ccrs.PlateCarree()
+    trg_crs = lat_lon_determine(cube)
     x_points = cube.coord(axis='x').points
     y_points = cube.coord(axis='y').points
-    x_ones = np.ones_like(x_points)
-    y_ones = np.ones_like(y_points)
+    x_zeros = np.zeros_like(x_points)
+    y_zeros = np.zeros_like(y_points)
 
     # Broadcast x points and y points onto grid
-    all_x_points = y_ones.reshape(len(y_ones), 1) + x_points
-    all_y_points = y_points.reshape(len(y_points), 1) + x_ones
+    all_x_points = y_zeros.reshape(len(y_zeros), 1) + x_points
+    all_y_points = y_points.reshape(len(y_points), 1) + x_zeros
 
     # Transform points
-    points = trg_latlon.transform_points(trg_crs,
-                                         all_x_points,
-                                         all_y_points)
-    lons = points[..., 0]
-    lats = points[..., 1]
+    if trg_crs is not None:
+        points = trg_latlon.transform_points(trg_crs,
+                                             all_x_points,
+                                             all_y_points)
+        lons = points[..., 0]
+        lats = points[..., 1]
+    else:
+        lons = all_x_points
+        lats = all_y_points
     return lats, lons
 
 

@@ -239,18 +239,17 @@ class Test_transform_grid_to_lat_lon(IrisTest):
                                 num_grid_points=2)
         self.cube.coord(axis='x').points = np.array([-1158000.0, 924000.0])
         self.cube.coord(axis='y').points = np.array([-1036000.0, 902000.0])
-        self.trg_crs = self.cube.coord(axis='x').coord_system.as_cartopy_crs()
 
     def test_transform_grid(self):
         """
         Test transformation of grid
         """
-        expected_lons = np.array([-17.1171193, 9.21257373,
-                                  -24.5099131, 15.2797927]).reshape(2, 2)
-        expected_lats = np.array([44.51716346, 44.89988045,
-                                  61.31887016, 61.92069315]).reshape(2, 2)
+        expected_lons = np.array([-17.11712928, 9.21255933,
+                                  -24.5099247, 15.27976922]).reshape(2, 2)
+        expected_lats = np.array([44.51715281, 44.899873,
+                                  61.31885886, 61.9206868]).reshape(2, 2)
         plugin = transform_grid_to_lat_lon
-        result_lats, result_lons = plugin(self.trg_crs, self.cube)
+        result_lats, result_lons = plugin(self.cube)
         self.assertArrayAlmostEqual(result_lons, expected_lons)
         self.assertArrayAlmostEqual(result_lats, expected_lats)
 

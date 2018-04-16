@@ -124,3 +124,7 @@ class Test_process(IrisTest):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
         expected_result = expected_result.reshape((1, 16, 16))
         self.assertArrayEqual(result.data, expected_result)
+
+
+if __name__ == '__main__':
+    unittest.main()
