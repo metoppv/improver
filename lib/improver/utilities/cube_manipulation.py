@@ -835,6 +835,26 @@ def enforce_coordinate_ordering(
     return cube
 
 
+def enforce_float32_precision(input_cubes):
+    """Take input cube of any precision and convert to float32.
+
+    Args:
+        input_cubes (list of cubes or single cube):
+            List containing one or more iris cubes to test if not float32
+            precision and downscale to float32 if necessary.
+            Note: The code will modify the cubes themselves.
+
+    """
+    # If single cube - place within list.
+    if isinstance(input_cubes, iris.cube.Cube):
+        input_cubes = [input_cubes]
+
+    for cube in input_cubes:
+        if isinstance(cube, iris.cube.Cube):  # Skip if not cube.
+            if cube.dtype != np.float32:
+                cube.data = cube.data.astype(np.float32)
+
+
 def clip_cube_data(cube, minimum_value, maximum_value):
     """Apply np.clip to data in a cube to ensure that the limits do not go
     beyond the provided minimum and maximum values.

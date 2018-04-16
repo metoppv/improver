@@ -649,7 +649,7 @@ class Test1D(IrisTest):
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section1g(self):
-        """ Test that code returns float32 precision. """
+        """Test that code returns float32 precision."""
         landpointtests_hc_rc = TestSinglePoint()
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertEqual(land_hc_rc.dtype, np.float32)
@@ -738,7 +738,7 @@ class Test2D(IrisTest):
                                        aslist=True)
 
     def test_section2d(self):
-        """ Test whether output is float32. """
+        """Test whether output is float32."""
         hlvs = 10
         uin = np.ones(hlvs)*20
         heights = ((np.arange(hlvs)+1)**2.)*12.
