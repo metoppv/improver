@@ -105,8 +105,8 @@ class Test_init(QuietTestCase):
         with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
                    centralized_arguments):
             with self.assertRaises(KeyError):
-                parser = ArgParser(central_arguments=central_args_to_fetch,
-                                   specific_arguments=None)
+                ArgParser(central_arguments=central_args_to_fetch,
+                          specific_arguments=None)
 
     def test_create_argparser_only_centralized_arguments(self):
         """Test that creating an ArgParser with only centralized arguments
