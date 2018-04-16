@@ -472,6 +472,8 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 pct, long_name=pct_coord_name, units='%'))
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
+        # If percentile coord is not already a dimension, promote it.
+        # This is required when self.percentiles is length 1.
         if result.coord_dims(pct_coord_name) == ():
             result = iris.util.new_axis(result, scalar_coord=pct_coord_name)
         return result
