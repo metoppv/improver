@@ -95,6 +95,19 @@ class Test_init(QuietTestCase):
             args = vars(args).keys()
             self.assertItemsEqual(args, ['foo'])
 
+    def test_create_argparser_fails_with_unknown_centralized_argument(self):
+        """Test that we raise an exception when attempting to retrieve
+        centralized arguments which are not centralized argument dictionary."""
+
+        centralized_arguments = {'foo': (['--foo'], {})}
+
+        central_args_to_fetch = ('missing_central_arg',)
+        with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
+                   centralized_arguments):
+            with self.assertRaises(KeyError):
+                parser = ArgParser(central_arguments=central_args_to_fetch,
+                                   specific_arguments=None)
+
     def test_create_argparser_only_centralized_arguments(self):
         """Test that creating an ArgParser with only centralized arguments
         adds only the selected centralized arguments."""
@@ -193,10 +206,9 @@ class Test_add_arguments(QuietTestCase):
         # we will not actually pass anything in, so the Namespace will receive
         # the defaults (if any) - only check the keys of the Namespace derived
         # dictionary
-        args_to_add = [
-                        (['--foo'], {}),
-                        (['--bar', '--b'], {})
-                      ]
+        args_to_add = [(['--foo'], {}),
+                       (['--bar', '--b'], {})]
+
         expected_namespace_keys = ['foo', 'bar']  # + compulsory...
 
         # explicitly pass nothing in - will only have compulsory arguments
@@ -219,9 +231,7 @@ class Test_add_arguments(QuietTestCase):
         when the argspec contained kwargs."""
 
         # length of argspec is 2...
-        args_to_add = [
-                        (['--foo'], {'action': 'store_true'}),
-                      ]
+        args_to_add = [(['--foo'], {'action': 'store_true'})]
         expected_arg = 'foo'
 
         parser = ArgParser(central_arguments=None,
@@ -237,9 +247,7 @@ class Test_add_arguments(QuietTestCase):
         when the argspec did not contain kwargs."""
 
         # length of argspec is 1...
-        args_to_add = [
-                        (['--foo'],),
-                      ]
+        args_to_add = [(['--foo'],)]
         expected_arg = 'foo'
 
         parser = ArgParser(central_arguments=None,
@@ -255,9 +263,7 @@ class Test_add_arguments(QuietTestCase):
         the wrong format argspec raises an exception."""
 
         # length of argspec is 3 - this is unexpected
-        args_to_add = [
-                        (['--foo'], 'bar', {}),
-                      ]
+        args_to_add = [(['--foo'], 'bar', {})]
 
         parser = ArgParser(central_arguments=None,
                            specific_arguments=None)
@@ -285,42 +291,6 @@ class Test_add_arguments(QuietTestCase):
         self.assertEqual(parser1.parse_args(), parser2.parse_args())
 
 
-class Test__args_from_selected_central_args(QuietTestCase):
-
-    """Test the _args_from_selected_args method."""
-
-    def setUp(self):
-        """Patch the ArgParser.CENTRALIZED_ARGUMENTS dictionary so test cases
-        know exactly what to expect."""
-        DUMMY_CENTRALIZED_ARGUMENTS = {'foo': (['central_foo'], {}),
-                                       'bar': (['central_bar'], {})}
-        self.patch = patch(
-                        'improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
-                        DUMMY_CENTRALIZED_ARGUMENTS)
-        self.patch.start()
-
-    def tearDown(self):
-        """Stop the patch of ArgParser.CENTRALIZED_ARGUMENTS."""
-        self.patch.stop()
-
-    def test_retrieving_known_central_argument(self):
-        """Test that we can successfully retrieve centralized arguments from
-        the centralized argument dictionary."""
-
-        central_args_to_fetch = ('foo',)
-        expected_result = [(['central_foo'], {})]
-        self.assertEqual(ArgParser._args_from_selected_central_args(
-            central_args_to_fetch), expected_result)
-
-    def test_retrieving_unknown_central_argument(self):
-        """Test that we raise an exception when attempting to retrieve
-        centralized arguments which are not centralized argument dictionary."""
-
-        central_args_to_fetch = ('missing_central_arg',)
-        with self.assertRaises(KeyError):
-            ArgParser._args_from_selected_central_args(central_args_to_fetch)
-
-
 class Test_args(QuietTestCase):
 
     """Test the args method."""
@@ -346,7 +316,7 @@ class Test_wrong_args_error(unittest.TestCase):
         """Test that an exception is raised containing the args and method."""
 
         msg = ("Method: {} does not accept arguments: {}".format(
-                   method, args))
+               method, args))
 
         # argparser will write to stderr independently of SystemExit
         with patch('sys.stderr', open(os.devnull, 'w')):

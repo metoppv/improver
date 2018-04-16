@@ -35,17 +35,33 @@ from argparse import ArgumentParser
 
 class ArgParser(ArgumentParser):
     """Argument parser for improver CLIs.
-    (Subclass of argparse.ArgumentParser)"""
 
-    # CENTRALIZED_ARGUMENTS, is a dictionary where, for each element:
-    #   the key is a string representing the argument name,
-    #   the value is a list containing 2 elements:
-    #       1. a list of strings containing the different flags
-    #       2. a dictionary containing all of the kwargs which are passed
-    #          to the ArgumentParser.add_argument() method
+    The main purpose of this class is to make it easier to create CLIs which
+    have arguments which are selected from centralized collections.
 
-    # All CLIs should select something from this dictionary:
-    # NB: --help included for free with ArgumentParser
+    To fulfil these requirements, we define 2 class level dictionaries,
+    ArgParser.CENTRALIZED_ARGUMENTS, and ArgParser.COMPULSORY_ARGUMENTS.
+
+    For these dictionaries, each element has:
+        - a key, which is a string representing the argument name - used
+          internally to refer to a particular argument (which, in the case of
+          the CENTRALIZED_ARUGMENTS may be selected from when creating an
+          instance of the ArgParser)
+        - a value, which is a list containing 2 elements:
+           1. a list of strings containing the different flags which are
+              associated with the argument (ie.: the first argument to the
+              add_arguments() method, e.g: ['--profile', '-p'])
+           2. a dictionary containing all of the kwargs which are passed
+              to the add_argument() method (e.g:
+              {'action': 'store_true', 'default': False, 'help': ... })
+
+    The CENTRALIZED_ARGUMENTS will be selected from, as necessary, for each
+    of the CLIs that we create, and the COMPULSORY_ARGUMENTS will be
+    automatically added to all CLIs (with no option to exclude them).
+    """
+
+    # Ideally, all CLIs should select something from this dictionary:
+    # NB: --help included by default with ArgumentParser
     CENTRALIZED_ARGUMENTS = {
         'input_file': (
             ['input_filepath'],
@@ -80,10 +96,10 @@ class ArgParser(ArgumentParser):
 
     # We can override including these, but options common to everything should
     # be in a list here:
-    # DEFAULT_CENTRALIZED_ARGUMENTS = ('input_file', 'output_file')
-    DEFAULT_CENTRALIZED_ARGUMENTS = ()
+    # DEFAULT_CENTRALIZED_ARG_NAMES = ('input_file', 'output_file')
+    DEFAULT_CENTRALIZED_ARG_NAMES = ()
 
-    def __init__(self, central_arguments=DEFAULT_CENTRALIZED_ARGUMENTS,
+    def __init__(self, central_arguments=DEFAULT_CENTRALIZED_ARG_NAMES,
                  specific_arguments=None, **kwargs):
         """Create an ArgParse instance, which is a subclass of
         argparse.ArgumentParser and automatically add all of the arguments.
@@ -93,12 +109,13 @@ class ArgParser(ArgumentParser):
             central_arguments (list):
               A list containing the centralized arguments we require.
               (Keys of the centralized argument dictionary). By default this is
-              set as ArgParse.DEFAULT_CENTRALIZED_ARGUMENTS.
-            specfic_arguments (list):
+              set as ArgParse.DEFAULT_CENTRALIZED_ARG_NAMES.
+            specific_arguments (list):
               A list of argument specifications required to add arguments
               which are not contained within the centralized argument
               dictionary. The format of these argument specifications should
-              be the same as the values in the centralized argument dictionary.
+              be the same as the values in the ArgParser.CENTRALIZED_ARGUMENTS
+              dictionary.
               (For more details, see the add_arguments method).
               Default is None, which does not add additional arguments.
             kwargs (dictionary):
@@ -118,9 +135,9 @@ class ArgParser(ArgumentParser):
         # argspecs of the compulsory arguments (no switch here)
         compulsory_arguments = ArgParser.COMPULSORY_ARGUMENTS.values()
 
-        # get argspecs of the central arguments
-        central_arguments = self._args_from_selected_central_args(
-                             central_arguments)
+        # get argspecs of the central arguments from the list of keys passed in
+        central_arguments = [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for
+                             arg_name in central_arguments]
 
         # specific arguments must be passed in with the correct format
         # (argspecs)- we don't need to do anything special here...
@@ -128,30 +145,13 @@ class ArgParser(ArgumentParser):
         # create instance of ArgumentParser (pass along kwargs)
         super(ArgParser, self).__init__(**kwargs)
 
+        # all arguments:
         cli_arguments = (compulsory_arguments + central_arguments +
                          specific_arguments)
 
         # automatically add all of the arguments
         self.add_arguments(cli_arguments)
         # Done. Now we can get the arguments with self.args()
-
-    @staticmethod
-    def _args_from_selected_central_args(arg_name_list):
-        """Return a list of argument specifications from the
-        ArgParser.CENTRALIZED_ARGUMENTS, given a list of keys (argument names).
-
-        Args:
-            arg_name_list (list):
-              A list containing the keys required from the centralized argument
-              dictionary.
-
-        Returns:
-            list:
-              The argument specifications which may later be used to add
-              arguments to the parser.
-        """
-        return [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for arg_name
-                in arg_name_list]
 
     def add_arguments(self, argspec_list):
         """Adds a list of arguments to the ArgumentParser.
@@ -191,14 +191,14 @@ class ArgParser(ArgumentParser):
         """Returns the arguments passed in through the command line.
 
         Automatically calls the parse_args method to return the arguments.
-        This means we do not necessarily need to call this manually in order
-        access the arguments.
+        (Just an alias to parse_args(), which caches the result.)
 
         Returns:
             self._args (argparse.Namespace):
                 A namespace containing the arguments that were passed in
                 though the command line.
         """
+        # Entirely stylistic - args() is nicer than parse_args()
         if self._args is None:
             # we only need to call parse_args() once
             self._args = self.parse_args()
@@ -210,7 +210,8 @@ class ArgParser(ArgumentParser):
         Some CLI scripts have multiple methods of carrying out an action, with
         each method having different arguments. This method provides a
         standard error to be used when incompatible method-argument
-        combinations are passed in.
+        combinations are passed in - ie: when there are mutually exclusive
+        groups of arguments.
 
         Args:
             args (string):
