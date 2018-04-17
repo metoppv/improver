@@ -30,15 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilites to find the relative position of the sun."""
 
-import numpy as np
 import datetime as dt
+import numpy as np
+import cf_units as unit
 
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.utilities.spatial import (
     lat_lon_determine, transform_grid_to_lat_lon)
 
 
-def solar_declination(day_of_year):
+def calc_solar_declination(day_of_year):
     """
     Calculate the Declination for the day of the year.
 
@@ -51,18 +52,18 @@ def solar_declination(day_of_year):
             Day of the year 0 to 365, 0 = 1st January
 
     Returns:
-        declination (float):
+        solar_declination (float):
             Declination in degrees.North-South
     """
     # Declination (degrees):
     # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
-    declination = -23.5 * np.cos(np.radians(0.9856 * day_of_year + 9.3))
-    return declination
+    solar_declination = -23.5 * np.cos(np.radians(0.9856 * day_of_year + 9.3))
+    return solar_declination
 
 
-def solar_hour_angle(longitudes, day_of_year, utc_hour):
+def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
     """
-    Calculate the Solar Hour angle for an array of longitudes.
+    Calculate the Solar Hour angle for each element of an array of longitudes.
 
     Calculation equivalent to the calculation defined in
     NOAA Earth System Reseach Lab Low Accuracy Equations
@@ -78,8 +79,8 @@ def solar_hour_angle(longitudes, day_of_year, utc_hour):
             Hour of the day in UTC
 
     Returns:
-        solar_hour_angle (numpy.array)
-            Hour angle in degrees East-West
+        solar_hour_angle (float or numpy.array)
+            Hour angles in degrees East-West
     """
     if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
         msg = ('Longitudes must be between -180.0 and 180.0')
@@ -99,7 +100,7 @@ def solar_hour_angle(longitudes, day_of_year, utc_hour):
     return solar_hour_angle
 
 
-def solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
+def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
     """
     Calculate the Solar elevation.
 
@@ -116,8 +117,8 @@ def solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
             Hour of the day in UTC in hours
 
     Returns:
-        solar_elevation (numpy.array):
-            Solar elevation in degrees
+        solar_elevation (float or numpy.array):
+            Solar elevation in degrees for each location.
     """
     if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
         msg = ('Longitudes must be between -180.0 and 180.0')
@@ -125,9 +126,9 @@ def solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = ('Latitudes must be between -90.0 and 90.0')
         raise ValueError(msg)
-    declination = solar_declination(day_of_year)
+    declination = calc_solar_declination(day_of_year)
     decl = np.radians(declination)
-    hour_angle = solar_hour_angle(longitudes, day_of_year, utc_hour)
+    hour_angle = calc_solar_hour_angle(longitudes, day_of_year, utc_hour)
     rad_hours = np.radians(hour_angle)
     lats = np.radians(latitudes)
     # Calculate solar position:
@@ -144,13 +145,14 @@ def solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
 def daynight_terminator(longitudes, day_of_year, utc_hour):
     """
     Calculate the Latitude values of the daynight terminator
+    for the given longitudes.
 
     Args:
         longitudes (numpy.array):
             Array of longitudes.
             longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
-            Day of the year
+            Day of the year 0 to 365, 0 = 1st January
         utc_hour (float):
             Hour of the day in UTC
 
@@ -158,9 +160,9 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
         latitudes (numpy.array):
             latitudes of the daynight terminator
     """
-    declination = solar_declination(day_of_year)
+    declination = calc_solar_declination(day_of_year)
     decl = np.radians(declination)
-    hour_angle = solar_hour_angle(longitudes, day_of_year, utc_hour)
+    hour_angle = calc_solar_hour_angle(longitudes, day_of_year, utc_hour)
     rad_hour = np.radians(hour_angle)
     lats = np.arctan(-np.cos(rad_hour)/np.tan(decl))
     lats = np.degrees(lats)
@@ -169,17 +171,17 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
 
 class DayNightMask(object):
     """
-    Generate a daynight mask for the provided cube
+    Plugin Class to generate a daynight mask for the provided cube
     """
     def __init__(self):
         """ Initial the DayNightMask Object """
-        self.NIGHT = 0
-        self.DAY = 1
+        self.night = 0
+        self.day = 1
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<DayNightMask : '
-                  'Day = {}, Night = {}>'.format(self.DAY, self.NIGHT))
+                  'Day = {}, Night = {}>'.format(self.day, self.night))
         return result
 
     def _create_daynight_mask(self, cube):
@@ -203,9 +205,9 @@ class DayNightMask(object):
         daynight_mask.long_name = 'day_night_mask'
         daynight_mask.standard_name = None
         daynight_mask.var_name = None
-        daynight_mask.units = 1
+        daynight_mask.units = unit.Unit('1')
         daynight_mask.data = np.ones(daynight_mask.data.shape,
-                                     dtype='int')*self.NIGHT
+                                     dtype='int')*self.night
         return daynight_mask
 
     def _daynight_lat_lon_cube(self, mask_cube, day_of_year, utc_hour):
@@ -214,15 +216,15 @@ class DayNightMask(object):
 
         Args:
             mask_cube (iris.cube.Cube):
-                daynight mask cube - data initially set to self.NIGHT
+                daynight mask cube - data initially set to self.night
             day_of_year (int):
-                day of the year
+                day of the year 0 to 365, 0 = 1st January
             utc_hour (float):
                 Hour in UTC
 
         Returns:
             mask_cube (iris.cube.Cube):
-                daynight mask cube - daytime set to self.DAY
+                daynight mask cube - daytime set to self.day
         """
         lons = mask_cube.coord('longitude').points
         lats = mask_cube.coord('latitude').points
@@ -231,12 +233,12 @@ class DayNightMask(object):
         lats_zeros = np.zeros_like(lats).reshape(len(lats), 1)
         lats_on_lon = lats.reshape(len(lats), 1) + lons_zeros
         terminator_on_lon = lats_zeros + terminator_lats
-        dec = solar_declination(day_of_year)
+        dec = calc_solar_declination(day_of_year)
         if dec > 0.0:
             index = np.where(lats_on_lon >= terminator_on_lon)
         else:
             index = np.where(lats_on_lon < terminator_on_lon)
-        mask_cube.data[index] = self.DAY
+        mask_cube.data[index] = self.day
         return mask_cube
 
     def process(self, cube):
@@ -249,8 +251,8 @@ class DayNightMask(object):
 
         Returns:
             daynight_mask (iris.cube.Cube):
-                daynight mask cube, daytime set to self.DAY
-                nighttime set to self.NIGHT.
+                daynight mask cube, daytime set to self.day
+                nighttime set to self.night.
                 The resulting cube will be the same shape as
                 the time, y, and x coordinate, other coordinates
                 will be ignored although they might appear as attributes
@@ -258,7 +260,7 @@ class DayNightMask(object):
         """
         daynight_mask = self._create_daynight_mask(cube)
         dtvalues = iris_time_to_datetime(daynight_mask.coord('time'))
-        for i in range(0, len(daynight_mask.coord('time').points)):
+        for i in range(len(dtvalues)):
             mask_cube = daynight_mask[i]
             dtval = dtvalues[i]
             day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
@@ -267,8 +269,9 @@ class DayNightMask(object):
             # Grids that are not Lat Lon
             if trg_crs is not None:
                 lats, lons = transform_grid_to_lat_lon(mask_cube)
-                solar_el = solar_elevation(lats, lons, day_of_year, utc_hour)
-                mask_cube.data[np.where(solar_el > 0.0)] = self.DAY
+                solar_el = calc_solar_elevation(lats, lons,
+                                                day_of_year, utc_hour)
+                mask_cube.data[np.where(solar_el > 0.0)] = self.day
             else:
                 mask_cube = self._daynight_lat_lon_cube(mask_cube,
                                                         day_of_year, utc_hour)

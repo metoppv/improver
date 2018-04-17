@@ -437,8 +437,6 @@ def transform_grid_to_lat_lon(cube):
     Transform the points in the cube into grid of latitudes and longitudes
 
     Args:
-        trg_crs (cartopy.crs/None):
-            Cube coordinate system in cartopy format.
         cube (iris.cube.Cube):
             Cube with points to transform
 

@@ -250,6 +250,8 @@ class Test_transform_grid_to_lat_lon(IrisTest):
                                   61.31885886, 61.9206868]).reshape(2, 2)
         plugin = transform_grid_to_lat_lon
         result_lats, result_lons = plugin(self.cube)
+        self.assertIsInstance(result_lats, np.ndarray)
+        self.assertIsInstance(result_lons, np.ndarray)
         self.assertArrayAlmostEqual(result_lons, expected_lons)
         self.assertArrayAlmostEqual(result_lats, expected_lats)
 

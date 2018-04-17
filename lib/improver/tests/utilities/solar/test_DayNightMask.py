@@ -33,6 +33,8 @@
 import unittest
 import numpy as np
 
+import iris
+import cf_units as unit
 from iris.tests import IrisTest
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
@@ -46,8 +48,8 @@ class Test__init__(IrisTest):
     def test_basic_init(self):
         """ Test Initiation of DayNightMask Object"""
         plugin = DayNightMask()
-        self.assertEqual(plugin.DAY, 1)
-        self.assertEqual(plugin.NIGHT, 0)
+        self.assertEqual(plugin.day, 1)
+        self.assertEqual(plugin.night, 0)
 
 
 class Test__repr__(IrisTest):
@@ -60,12 +62,53 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected)
 
 
+class Test__create_daynight_mask(IrisTest):
+    """ Test string representation """
+
+    def setUp(self):
+        """Set up the cube for testing."""
+        self.cube = set_up_cube()
+
+    def test_basic_daynight_mask(self):
+        """ Test this create a blank mask cube"""
+        result = DayNightMask()._create_daynight_mask(self.cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.long_name, 'day_night_mask')
+        self.assertEqual(result.units, unit.Unit('1'))
+        self.assertEqual(result.data.min(), DayNightMask().night)
+        self.assertEqual(result.data.max(), DayNightMask().night)
+
+
+class Test__daynight_lat_lon_cube(IrisTest):
+    """ Test string representation """
+
+    def setUp(self):
+        """Set up the cube for testing."""
+        cube = set_up_cube_lat_long()
+        lon_points = np.linspace(-8, 7, 16)
+        lat_points = np.linspace(49, 64, 16)
+        cube.coord('latitude').points = lat_points
+        cube.coord('longitude').points = lon_points
+        self.mask_cube = DayNightMask()._create_daynight_mask(cube)[0]
+
+    def test_basic_lat_lon_cube(self):
+        """ Test this create a blank mask cube"""
+        day_of_year = 10
+        utc_hour = 12.0
+        expected_result = np.ones((16, 16))
+        result = DayNightMask()._daynight_lat_lon_cube(self.mask_cube,
+                                                       day_of_year,
+                                                       utc_hour)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.data, expected_result)
+
+
 class Test_process(IrisTest):
 
     """Test DayNight Mask."""
 
     def setUp(self):
-        """Set up the cubes for testsing."""
+        """Set up the cubes for testing."""
         self.cube = set_up_cube()
         x_points = np.linspace(-30000, 0, 16)
         self.cube.coord('projection_x_coordinate').points = x_points
