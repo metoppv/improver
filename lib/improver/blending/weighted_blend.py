@@ -553,7 +553,7 @@ class WeightedBlendAcrossWholeDimension(object):
                         weights = np.ones(num) / float(num)
                     # Set up aggregator
                     PERCENTILE_BLEND = (Aggregator(
-                        'weighted_mean',
+                        'mean',  # Use CF-compliant cell method.
                         PercentileBlendingAggregator.aggregate))
                     cube_new = cube_thres.collapsed(self.coord,
                                                     PERCENTILE_BLEND,
@@ -584,7 +584,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                 set(orig_cell_methods)).pop()
                     add_renamed_cell_method(cube_new,
                                             extra_cm,
-                                            'weighted_mean')
+                                            'mean')
 
                 # Else use the maximum probability aggregator.
                 elif self.mode == "weighted_maximum":
@@ -594,7 +594,7 @@ class WeightedBlendAcrossWholeDimension(object):
                         weights = np.ones(num) / float(num)
                     # Set up aggregator
                     MAX_PROBABILITY = (Aggregator(
-                        'weighted_maximum',
+                        'maximum',  # Use CF-compliant cell method.
                         MaxProbabilityAggregator.aggregate))
 
                     cube_new = cube_thres.collapsed(self.coord,
