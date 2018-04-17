@@ -839,10 +839,11 @@ def enforce_float32_precision(input_cubes):
     """Take input cube of any precision and convert to float32.
 
     Args:
-        input_cubes (list of cubes or single cube):
+        input_cubes (list):
             List containing one or more iris cubes to test if not float32
-            precision and downscale to float32 if necessary.
-            Note: The code will modify the cubes themselves.
+            precision and downscale to float32 if necessary. If a list item
+            is not an Iris cube - then this item is skipped.
+            Note: The code will modify the cubes in-place.
 
     """
     # If single cube - place within list.
