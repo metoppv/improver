@@ -48,12 +48,12 @@ class ArgParser(ArgumentParser):
           the CENTRALIZED_ARUGMENTS may be selected from when creating an
           instance of the ArgParser)
         - a value, which is a list containing 2 elements:
-           1. a list of strings containing the different flags which are
-              associated with the argument (ie.: the first argument to the
-              add_arguments() method, e.g: ['--profile', '-p'])
-           2. a dictionary containing all of the kwargs which are passed
-              to the add_argument() method (e.g:
-              {'action': 'store_true', 'default': False, 'help': ... })
+            1. a list of strings containing the different flags which are
+               associated with the argument (ie.: the first argument to the
+               add_arguments() method, e.g: ['--profile', '-p'])
+            2. a dictionary containing all of the kwargs which are passed
+               to the add_argument() method (e.g:
+               {'action': 'store_true', 'default': False, 'help': ... })
 
     The CENTRALIZED_ARGUMENTS will be selected from, as necessary, for each
     of the CLIs that we create, and the COMPULSORY_ARGUMENTS will be
@@ -113,24 +113,22 @@ class ArgParser(ArgumentParser):
 
         Args:
             central_arguments (list):
-              A list containing the centralized arguments we require.
-              (Keys of the centralized argument dictionary). By default this is
-              set as ArgParse.DEFAULT_CENTRALIZED_ARG_NAMES.
+                A list containing the centralized arguments we require.
+                (Keys of the centralized argument dictionary). By default this
+                is set as ArgParse.DEFAULT_CENTRALIZED_ARG_NAMES.
             specific_arguments (list):
-              A list of argument specifications required to add arguments
-              which are not contained within the centralized argument
-              dictionary. The format of these argument specifications should
-              be the same as the values in the ArgParser.CENTRALIZED_ARGUMENTS
-              dictionary.
-              (For more details, see the add_arguments method).
-              Default is None, which does not add additional arguments.
+                A list of argument specifications required to add arguments
+                which are not contained within the centralized argument
+                dictionary. The format of these argument specifications should
+                be the same as the values in the
+                ArgParser.CENTRALIZED_ARGUMENTS dictionary.
+                (For more details, see the add_arguments method).
+                Default is None, which does not add additional arguments.
             kwargs (dictionary):
-              Additional keyword arguments which are passed to the superclass
-              constructor (argparse.ArgumentParser), e.g: the `description`
-              of the ArgumentParser.
+                Additional keyword arguments which are passed to the superclass
+                constructor (argparse.ArgumentParser), e.g: the `description`
+                of the ArgumentParser.
         """
-
-        self._args = None
 
         # Allow either central_arguments or specific_arguments to be None
         # (or empty lists)
@@ -155,7 +153,7 @@ class ArgParser(ArgumentParser):
 
         # automatically add all of the arguments
         self.add_arguments(cli_arguments)
-        # Done. Now we can get the arguments with self.args()
+        # Done. Now we can get the arguments with self.parse_args()
 
     def add_arguments(self, argspec_list):
         """Adds a list of arguments to the ArgumentParser.
@@ -170,8 +168,8 @@ class ArgParser(ArgumentParser):
 
         Args:
             argspec_list (list):
-              A list containing the specifications required to add the
-              arguments (see above)
+                A list containing the specifications required to add the
+                arguments (see above)
 
         Raises:
             AttributeError:
@@ -187,23 +185,6 @@ class ArgParser(ArgumentParser):
             argflags, argkwargs = argspec
             self.add_argument(*argflags, **argkwargs)
 
-    def args(self):
-        """Returns the arguments passed in through the command line.
-
-        Automatically calls the parse_args method to return the arguments.
-        (Just an alias to parse_args(), which caches the result.)
-
-        Returns:
-            self._args (argparse.Namespace):
-                A namespace containing the arguments that were passed in
-                though the command line.
-        """
-        # Entirely stylistic - args() is nicer than parse_args()
-        if self._args is None:
-            # we only need to call parse_args() once
-            self._args = self.parse_args()
-        return self._args
-
     def wrong_args_error(self, args, method):
         """Raise a parser error.
 
@@ -215,9 +196,9 @@ class ArgParser(ArgumentParser):
 
         Args:
             args (string):
-              The incompatible arguments
+                The incompatible arguments
             method (string):
-              The method with which the arguments are incompatible
+                The method with which the arguments are incompatible
 
         Raises:
             parser.error:

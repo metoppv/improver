@@ -306,22 +306,6 @@ class Test_add_arguments(QuietTestCase):
         self.assertEqual(parser1.parse_args(), parser2.parse_args())
 
 
-class Test_args(QuietTestCase):
-
-    """Test the args method."""
-
-    def test_result_same_as_parse_args(self):
-        """Test that the args method returns the same result as parse_args."""
-
-        # we don't need any arguments, but if we choose to include some
-        # (more useful than checking for an empty list), then they must be
-        # optional as they will not have been passed in.
-        optional_argument_spec = [[['--optional'], {}]]
-        parser = ArgParser(central_arguments=None,
-                           specific_arguments=optional_argument_spec)
-        self.assertEqual(parser.parse_args(), parser.args())
-
-
 # inherit from only TestCase - we want to explicitly catch the SystemExit
 class Test_wrong_args_error(unittest.TestCase):
 

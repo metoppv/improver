@@ -56,7 +56,7 @@ def main():
                       'description': ('Read the input field, and calculate '
                                       'the gradient in x and y directions.')}
 
-    args = ArgParser(**cli_definition).args()
+    args = ArgParser(**cli_definition).parse_args()
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
