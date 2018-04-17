@@ -151,15 +151,15 @@ class Test__init__(Test_RecursiveFilter):
                             iterations=iterations, edge_width=1)
 
 
-class Test_set_alphas(Test_RecursiveFilter):
+class Test__set_alphas(Test_RecursiveFilter):
 
-    """Test the set_alphas function"""
+    """Test the _set_alphas function"""
 
     def test_alpha_x_used_result(self):
         """Test that the returned alphas array has the expected result
            when alphas_cube=None."""
         cube = iris.util.squeeze(self.cube)
-        result = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
+        result = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         expected_result = 0.5
         self.assertIsInstance(result.data, np.ndarray)
         self.assertEqual(result.data[0][2], expected_result)
@@ -170,7 +170,7 @@ class Test_set_alphas(Test_RecursiveFilter):
     def test_alphas_cube_used_result(self):
         """Test that the returned alphas array has the expected result
            when alphas_cube is not None."""
-        result = RecursiveFilter().set_alphas(self.cube[0, :], None,
+        result = RecursiveFilter()._set_alphas(self.cube[0, :], None,
                                               self.alphas_cube)
         expected_result = 0.5
         self.assertIsInstance(result.data, np.ndarray)
@@ -184,7 +184,7 @@ class Test_set_alphas(Test_RecursiveFilter):
         shape to the data cube."""
         msg = "Dimensions of alphas array do not match dimensions "
         with self.assertRaisesRegexp(ValueError, msg):
-            RecursiveFilter().set_alphas(self.cube, None,
+            RecursiveFilter()._set_alphas(self.cube, None,
                                          self.alphas_cube_wrong_dims)
 
     def test_alphas_cube_and_alpha_not_set(self):
@@ -194,7 +194,7 @@ class Test_set_alphas(Test_RecursiveFilter):
         alphas_cube = None
         msg = "A value for alpha must be set if alphas_cube is "
         with self.assertRaisesRegexp(ValueError, msg):
-            RecursiveFilter().set_alphas(self.cube, alpha, alphas_cube)
+            RecursiveFilter()._set_alphas(self.cube, alpha, alphas_cube)
 
     def test_alphas_cube_and_alpha_both_set(self):
         """Test error is raised when both alphas_cube and alpha are set."""
@@ -202,15 +202,15 @@ class Test_set_alphas(Test_RecursiveFilter):
         alphas_cube = self.alphas_cube
         msg = "A cube of alpha values and a single float value for"
         with self.assertRaisesRegexp(ValueError, msg):
-            RecursiveFilter().set_alphas(self.cube, alpha, alphas_cube)
+            RecursiveFilter()._set_alphas(self.cube, alpha, alphas_cube)
 
 
-class Test_recurse_forward(Test_RecursiveFilter):
+class Test__recurse_forward(Test_RecursiveFilter):
 
-    """Test the recurse_forward method"""
+    """Test the _recurse_forward method"""
 
     def test_first_axis(self):
-        """Test that the returned recurse_forward array has the expected
+        """Test that the returned _recurse_forward array has the expected
            type and result."""
         expected_result = np.array(
             [[0.0000, 0.00000, 0.100000, 0.00000, 0.0000],
@@ -218,13 +218,13 @@ class Test_recurse_forward(Test_RecursiveFilter):
              [0.0500, 0.12500, 0.337500, 0.12500, 0.0500],
              [0.0250, 0.06250, 0.293750, 0.06250, 0.0250],
              [0.0125, 0.03125, 0.196875, 0.03125, 0.0125]])
-        result = RecursiveFilter().recurse_forward(
+        result = RecursiveFilter()._recurse_forward(
             self.cube.data[0, :], self.alphas_cube.data, 0)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_second_axis(self):
-        """Test that the returned recurse_forward array has the expected
+        """Test that the returned _recurse_forward array has the expected
            type and result."""
         expected_result = np.array(
             [[0.0, 0.000, 0.0500, 0.02500, 0.012500],
@@ -232,18 +232,18 @@ class Test_recurse_forward(Test_RecursiveFilter):
              [0.1, 0.175, 0.3375, 0.29375, 0.196875],
              [0.0, 0.000, 0.1250, 0.06250, 0.031250],
              [0.0, 0.000, 0.0500, 0.02500, 0.012500]])
-        result = RecursiveFilter().recurse_forward(
+        result = RecursiveFilter()._recurse_forward(
             self.cube.data[0, :], self.alphas_cube.data, 1)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
 
-class Test_recurse_backward(Test_RecursiveFilter):
+class Test__recurse_backward(Test_RecursiveFilter):
 
-    """Test the recurse_backward method"""
+    """Test the _recurse_backward method"""
 
     def test_first_axis(self):
-        """Test that the returned recurse_backward array has the expected
+        """Test that the returned _recurse_backward array has the expected
            type and result."""
         expected_result = np.array(
             [[0.0125, 0.03125, 0.196875, 0.03125, 0.0125],
@@ -251,13 +251,13 @@ class Test_recurse_backward(Test_RecursiveFilter):
              [0.0500, 0.12500, 0.337500, 0.12500, 0.0500],
              [0.0000, 0.00000, 0.175000, 0.00000, 0.0000],
              [0.0000, 0.00000, 0.100000, 0.00000, 0.0000]])
-        result = RecursiveFilter().recurse_backward(
+        result = RecursiveFilter()._recurse_backward(
             self.cube.data[0, :], self.alphas_cube.data, 0)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_second_axis(self):
-        """Test that the returned recurse_backward array has the expected
+        """Test that the returned _recurse_backward array has the expected
            type and result."""
         expected_result = np.array(
             [[0.012500, 0.02500, 0.0500, 0.000, 0.0],
@@ -265,50 +265,50 @@ class Test_recurse_backward(Test_RecursiveFilter):
              [0.196875, 0.29375, 0.3375, 0.175, 0.1],
              [0.031250, 0.06250, 0.1250, 0.000, 0.0],
              [0.012500, 0.02500, 0.0500, 0.000, 0.0]])
-        result = RecursiveFilter().recurse_backward(
+        result = RecursiveFilter()._recurse_backward(
             self.cube.data[0, :], self.alphas_cube.data, 1)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
 
-class Test_run_recursion(Test_RecursiveFilter):
+class Test__run_recursion(Test_RecursiveFilter):
 
-    """Test the run_recursion method"""
+    """Test the _run_recursion method"""
 
     def test_return_type(self):
-        """Test that the run_recursion method returns an iris.cube.Cube."""
+        """Test that the _run_recursion method returns an iris.cube.Cube."""
         edge_width = 1
         cube = iris.util.squeeze(self.cube)
-        alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
-        alphas_y = RecursiveFilter().set_alphas(cube, self.alpha_y, None)
+        alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
+        alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
             cube, edge_width, edge_width)
-        result = RecursiveFilter().run_recursion(
+        result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         self.assertIsInstance(result, Cube)
 
     def test_result_basic(self):
-        """Test that the run_recursion method returns the expected value."""
+        """Test that the _run_recursion method returns the expected value."""
         edge_width = 1
         cube = iris.util.squeeze(self.cube)
-        alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
-        alphas_y = RecursiveFilter().set_alphas(cube, self.alpha_y, None)
+        alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
+        alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(
             cube, edge_width, edge_width)
-        result = RecursiveFilter().run_recursion(
+        result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         expected_result = 0.13382206
         self.assertAlmostEqual(result.data[4][4], expected_result)
 
     def test_different_alphas(self):
-        """Test that the run_recursion method returns expected values when
+        """Test that the _run_recursion method returns expected values when
         alpha values are different in the x and y directions."""
         cube = iris.util.squeeze(self.cube)
         alpha_y = 0.5*self.alpha_x
-        alphas_x = RecursiveFilter().set_alphas(cube, self.alpha_x, None)
-        alphas_y = RecursiveFilter().set_alphas(cube, alpha_y, None)
+        alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
+        alphas_y = RecursiveFilter()._set_alphas(cube, alpha_y, None)
         padded_cube = SquareNeighbourhood().pad_cube_with_halo(cube, 1, 1)
-        result = RecursiveFilter().run_recursion(
+        result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, 1)
         # slice back down to the source grid - easier to visualise!
         unpadded_result = result.data[2:-2, 2:-2]

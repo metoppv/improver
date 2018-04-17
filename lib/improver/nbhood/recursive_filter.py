@@ -109,7 +109,7 @@ class RecursiveFilter(object):
                              self.edge_width)
 
     @staticmethod
-    def recurse_forward(grid, alphas, axis):
+    def _recurse_forward(grid, alphas, axis):
         """
         Method to run the recursive filter in the forward direction.
 
@@ -148,7 +148,7 @@ class RecursiveFilter(object):
         return grid
 
     @staticmethod
-    def recurse_backward(grid, alphas, axis):
+    def _recurse_backward(grid, alphas, axis):
         """
         Method to run the recursive filter in the backwards direction.
 
@@ -187,19 +187,19 @@ class RecursiveFilter(object):
         return grid
 
     @staticmethod
-    def run_recursion(cube, alphas_x, alphas_y, iterations):
+    def _run_recursion(cube, alphas_x, alphas_y, iterations):
         """
         Method to run the recursive filter.
 
         Args:
             cube (Iris.cube.Cube):
-                Cube containing the input data to which the recursive filter
-                will be applied.
+                2D cube containing the input data to which the recursive
+                filter will be applied.
             alphas_x (Iris.cube.Cube):
-                Cube containing array of alpha values that will be used
+                2D cube containing array of alpha values that will be used
                 when applying the recursive filter along the x-axis.
             alphas_y (Iris.cube.Cube):
-                Cube containing array of alpha values that will be used
+                2D cube containing array of alpha values that will be used
                 when applying the recursive filter along the y-axis.
             iterations (integer):
                 The number of iterations of the recursive filter
@@ -214,25 +214,25 @@ class RecursiveFilter(object):
         output = cube.data
 
         for _ in range(iterations):
-            output = RecursiveFilter.recurse_forward(output, alphas_x.data,
-                                                     x_index)
-            output = RecursiveFilter.recurse_backward(output, alphas_x.data,
+            output = RecursiveFilter._recurse_forward(output, alphas_x.data,
                                                       x_index)
-            output = RecursiveFilter.recurse_forward(output, alphas_y.data,
-                                                     y_index)
-            output = RecursiveFilter.recurse_backward(output, alphas_y.data,
+            output = RecursiveFilter._recurse_backward(output, alphas_x.data,
+                                                       x_index)
+            output = RecursiveFilter._recurse_forward(output, alphas_y.data,
                                                       y_index)
+            output = RecursiveFilter._recurse_backward(output, alphas_y.data,
+                                                       y_index)
             cube.data = output
         return cube
 
-    def set_alphas(self, cube, alpha, alphas_cube):
+    def _set_alphas(self, cube, alpha, alphas_cube):
         """
         Set up the alpha parameter.
 
         Args:
             cube (Iris.cube.Cube):
-                Cube containing the input data to which the recursive filter
-                will be applied.
+                2D cube containing the input data to which the recursive
+                filter will be applied.
             alpha (Float):
                 The constant used to weight the recursive filter in that
                 direction: Defined such that 0.0 < alpha < 1.0
@@ -321,13 +321,13 @@ class RecursiveFilter(object):
                 method has been applied.
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
-                                        cube.coord(axis='x')], ordered=True))
-        alphas_x = self.set_alphas(cube_format, self.alpha_x, alphas_x)
-        alphas_y = self.set_alphas(cube_format, self.alpha_y, alphas_y)
+                                        cube.coord(axis='x')]))
+        alphas_x = self._set_alphas(cube_format, self.alpha_x, alphas_x)
+        alphas_y = self._set_alphas(cube_format, self.alpha_y, alphas_y)
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')], ordered=True):
+                                   cube.coord(axis='x')]):
 
             # Setup cube and mask for processing.
             # This should set up a mask full of 1.0 if None is provided
@@ -340,8 +340,8 @@ class RecursiveFilter(object):
             padded_cube = SquareNeighbourhood().pad_cube_with_halo(
                 output, self.edge_width, self.edge_width)
 
-            new_cube = self.run_recursion(padded_cube, alphas_x, alphas_y,
-                                          self.iterations)
+            new_cube = self._run_recursion(padded_cube, alphas_x, alphas_y,
+                                           self.iterations)
             new_cube = SquareNeighbourhood().remove_halo_from_cube(
                 new_cube, self.edge_width, self.edge_width)
             if self.re_mask:
