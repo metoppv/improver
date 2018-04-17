@@ -70,6 +70,13 @@ class Test_solar_hour_angle(IrisTest):
                                     178.2167259, -180.7832741])
         self.assertArrayAlmostEqual(result, expected_result)
 
+    def test_solar_hour_raises_exception(self):
+        """Test an exception is raised if latitudes out of range"""
+        longitudes = np.array([0.0, 10.0, -10.0, 181.0, -179.0])
+        msg = 'Longitudes must be between -180.0 and 180.0'
+        with self.assertRaisesRegexp(ValueError, msg):
+            solar_hour_angle(longitudes, 10, 12.0)
+
 
 class Test_solar_elevation(IrisTest):
     """Test Calculation of the Solar Elevation."""
@@ -89,6 +96,22 @@ class Test_solar_elevation(IrisTest):
         expected_array = np.array([-3.1423043, -0.46061176, 2.09728301])
         result = solar_elevation(latitudes, longitudes, 10, 8.0)
         self.assertArrayAlmostEqual(result, expected_array)
+
+    def test_solar_elevation_raises_exception_lon(self):
+        """Test an exception is raised if latitudes out of range"""
+        latitudes = np.array([50.0, 50.0, 50.0])
+        longitudes = np.array([-205.0, 0.0, 5.0])
+        msg = 'Longitudes must be between -180.0 and 180.0'
+        with self.assertRaisesRegexp(ValueError, msg):
+            solar_elevation(latitudes, longitudes, 10, 8.0)
+
+    def test_solar_elevation_raises_exception_lat(self):
+        """Test an exception is raised if latitudes out of range"""
+        latitudes = np.array([-150.0, 50.0, 50.0])
+        longitudes = np.array([-5.0, 0.0, 5.0])
+        msg = 'Latitudes must be between -90.0 and 90.0'
+        with self.assertRaisesRegexp(ValueError, msg):
+            solar_elevation(latitudes, longitudes, 10, 8.0)
 
 
 class Test_daynight_terminator(IrisTest):

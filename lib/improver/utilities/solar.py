@@ -42,6 +42,10 @@ def solar_declination(day_of_year):
     """
     Calculate the Declination for the day of the year.
 
+    Calculation equivalent to the calculation defined in
+    NOAA Earth System Reseach Lab Low Accuracy Equations
+    https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
+
     Args:
         day_of_year (int):
             Day of the year 0 to 365, 0 = 1st January
@@ -60,10 +64,14 @@ def solar_hour_angle(longitudes, day_of_year, utc_hour):
     """
     Calculate the Solar Hour angle for an array of longitudes.
 
+    Calculation equivalent to the calculation defined in
+    NOAA Earth System Reseach Lab Low Accuracy Equations
+    https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
+
     Args:
         longitudes (float or numpy.array):
             A single Longitude or array of Longitudes
-            longitudes needs to be between 180.0 and -180.0
+            longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
             Day of the year 0 to 365, 0 = 1st January
         utc_hour (float):
@@ -73,6 +81,9 @@ def solar_hour_angle(longitudes, day_of_year, utc_hour):
         solar_hour_angle (numpy.array)
             Hour angle in degrees East-West
     """
+    if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
+        msg = ('Longitudes must be between -180.0 and 180.0')
+        raise ValueError(msg)
     thetao = 2*np.pi*day_of_year/365.0
     eqt = (0.000075 + 0.001868 * np.cos(thetao) -
            0.032077 * np.sin(thetao) - 0.014615 * np.cos(2*thetao) -
@@ -108,6 +119,12 @@ def solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
         solar_elevation (numpy.array):
             Solar elevation in degrees
     """
+    if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
+        msg = ('Longitudes must be between -180.0 and 180.0')
+        raise ValueError(msg)
+    if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
+        msg = ('Latitudes must be between -90.0 and 90.0')
+        raise ValueError(msg)
     declination = solar_declination(day_of_year)
     decl = np.radians(declination)
     hour_angle = solar_hour_angle(longitudes, day_of_year, utc_hour)
@@ -130,7 +147,8 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
 
     Args:
         longitudes (numpy.array):
-            Array of longitudes
+            Array of longitudes.
+            longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
             Day of the year
         utc_hour (float):
@@ -243,7 +261,7 @@ class DayNightMask(object):
         for i in range(0, len(daynight_mask.coord('time').points)):
             mask_cube = daynight_mask[i]
             dtval = dtvalues[i]
-            day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days + 1
+            day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
             utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon

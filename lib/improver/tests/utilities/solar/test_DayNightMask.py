@@ -70,7 +70,7 @@ class Test_process(IrisTest):
         x_points = np.linspace(-30000, 0, 16)
         self.cube.coord('projection_x_coordinate').points = x_points
         dtval = self.cube.coord('time').points[0]
-        self.cube.coord('time').points = np.array(dtval + 7.5)
+        self.cube.coord('time').points = np.array(dtval + 7.5 + 24.0)
         # Lat lon cube
         self.cube_lat_lon = set_up_cube_lat_long()
         lon_points = np.linspace(-8, 7, 16)
@@ -78,12 +78,12 @@ class Test_process(IrisTest):
         self.cube_lat_lon.coord('latitude').points = lat_points
         self.cube_lat_lon.coord('longitude').points = lon_points
         dt = self.cube_lat_lon.coord('time').points[0]
-        self.cube_lat_lon.coord('time').points[0] = dt + 7.5
+        self.cube_lat_lon.coord('time').points[0] = dt + 7.5 + 24.0
 
     def test_basic_standard_grid_ccrs(self):
         """Test day_night mask with standard_grid_ccrs projection."""
         result = DayNightMask().process(self.cube)
-        expected_result = np.array([
+        expected_result = np.array([[
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
@@ -99,14 +99,13 @@ class Test_process(IrisTest):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        expected_result = expected_result.reshape((1, 16, 16))
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
         self.assertArrayEqual(result.data, expected_result)
 
     def test_basic_lat_lon(self):
         """Test day_night mask with lat lon data."""
         result = DayNightMask().process(self.cube_lat_lon)
-        expected_result = np.array([
+        expected_result = np.array([[
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -122,8 +121,7 @@ class Test_process(IrisTest):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        expected_result = expected_result.reshape((1, 16, 16))
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
         self.assertArrayEqual(result.data, expected_result)
 
 

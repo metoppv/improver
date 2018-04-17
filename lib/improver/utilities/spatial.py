@@ -451,7 +451,7 @@ def transform_grid_to_lat_lon(cube):
 
     """
     trg_latlon = ccrs.PlateCarree()
-    trg_crs = lat_lon_determine(cube)
+    trg_crs = cube.coord_system().as_cartopy_crs()
     x_points = cube.coord(axis='x').points
     y_points = cube.coord(axis='y').points
     x_zeros = np.zeros_like(x_points)
@@ -462,15 +462,12 @@ def transform_grid_to_lat_lon(cube):
     all_y_points = y_points.reshape(len(y_points), 1) + x_zeros
 
     # Transform points
-    if trg_crs is not None:
-        points = trg_latlon.transform_points(trg_crs,
-                                             all_x_points,
-                                             all_y_points)
-        lons = points[..., 0]
-        lats = points[..., 1]
-    else:
-        lons = all_x_points
-        lats = all_y_points
+    points = trg_latlon.transform_points(trg_crs,
+                                         all_x_points,
+                                         all_y_points)
+    lons = points[..., 0]
+    lats = points[..., 1]
+
     return lats, lons
 
 
