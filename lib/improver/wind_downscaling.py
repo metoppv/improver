@@ -73,7 +73,7 @@ class FrictionVelocity(object):
                 A 2D array of float32 for the reference heights
             z_0 (np.ndarray):
                 A 2D array of float32 for the vegetative roughness lengths
-            mask (bool):
+            mask (np.ndarray):
                 A 2D array of booleans where True indicates calculate u*
 
         Notes:
@@ -347,9 +347,9 @@ class RoughnessCorrectionUtilities(object):
                 3D or 1D array float32 - height above orography
             uold (np.ndarray):
                 3D array float32 - original velocities at hgrid.
-            mask (bool):
-                 2D np.array that is True for land-points, False for Sea and
-                 False for invalid z_0.
+            mask (np.ndarray):
+                 2D array of bools that is True for land-points, False for Sea
+                 and False for invalid z_0.
 
         Returns:
             unew (np.ndarray):
@@ -395,8 +395,8 @@ class RoughnessCorrectionUtilities(object):
                 3D or 1D array float32 - height layer array
             hhere (np.ndarray):
                 2D array float32 - height grid to interpolate at
-            mask (bool):
-                mask the final result for uath
+            mask (np.ndarray):
+                2D array of bools - mask the final result for uath
             dolog (bool):
                 if True, log interpolation, default False
 
@@ -522,8 +522,8 @@ class RoughnessCorrectionUtilities(object):
                 2D array float32 - outer velocity, e.g. velocity at h_ref_orig
             heightg (np.ndarray):
                 1D or 3D array float32 - heights above orography
-            mask (bool):
-                3D array - Masks the hc_add result
+            mask (np.ndarray):
+                3D array of bools - Masks the hc_add result
             onemfrac (float or np.ndarray):
                 Currently, scalar = 1. But can be a function of position and
                 height, e.g. a 3D array (float32)
