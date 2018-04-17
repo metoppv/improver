@@ -47,7 +47,9 @@ class QuietTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Patch the class by redirecting stderr to /dev/null, and disabling
-        calls to sys.exit."""
+        calls to sys.exit. Currently used to prevent
+        ArgumentParser.parse_args() from writing its output to the screen and
+        exiting early when using unittest discover."""
         cls.stderr_patch = patch('sys.stderr', open(os.devnull, 'w'))
         cls.exit_patch = patch('sys.exit')
         cls.stderr_patch.start()
@@ -72,7 +74,8 @@ class Test_init(QuietTestCase):
         compulsory_arguments = {}
 
         # it doesn't matter what the centralized arguments are, because we
-        # select None of them
+        # select None of them - we only need to patch the COMPULSORY_ARGUMENTS
+        # to ensure there are none of them
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None, specific_arguments=None)
@@ -87,7 +90,8 @@ class Test_init(QuietTestCase):
         compulsory_arguments = {'foo': (['--foo'], {})}
 
         # it doesn't matter what the centralized arguments are, because we
-        # select None of them
+        # select None of them - only patch COMPULSORY_ARGUMENTS so we know
+        # what to expect
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None, specific_arguments=None)
@@ -102,6 +106,8 @@ class Test_init(QuietTestCase):
         centralized_arguments = {'foo': (['--foo'], {})}
 
         central_args_to_fetch = ('missing_central_arg',)
+        # patch the CENTRALIZED_ARGUMENTS so we know that `missing_central_arg`
+        # is not there, and we can raise an exception
         with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
                    centralized_arguments):
             with self.assertRaises(KeyError):
@@ -115,6 +121,9 @@ class Test_init(QuietTestCase):
         compulsory_arguments = {}
         centralized_arguments = {'foo': (['--foo'], {})}
 
+        # patch the COMPULSORY_ARGUMENTS to an empty dict (so there are none)
+        # and patch CENTRALIZED_ARGUMENTS so we know that `foo` can be selected
+        # from it
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
@@ -133,7 +142,8 @@ class Test_init(QuietTestCase):
         specific_arguments = [(['--foo'], {})]
 
         # it doesn't matter what the centralized arguments are, because we
-        # select None of them
+        # select None of them - patch the COMPULSORY_ARGUMENTS to be an empty
+        # dict so that we don't add any of them
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None,
@@ -149,6 +159,8 @@ class Test_init(QuietTestCase):
         compulsory_arguments = {'foo': (['--foo'], {})}
         centralized_arguments = {'bar': (['--bar'], {})}
 
+        # patch the COMPULSORY_ARGUMENTS so we know that `foo` exists
+        # and the CENTRALIZED_ARGUMENTS so we know that `bar` exists.
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
@@ -167,7 +179,8 @@ class Test_init(QuietTestCase):
         specific_arguments = [(['--bar'], {})]
 
         # it doesn't matter what the centralized arguments are, because we
-        # select None of them
+        # select None of them - patch only the COMPULSORY_ARGUMENTS so we know
+        # that `foo` is added from here
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None,
@@ -184,6 +197,8 @@ class Test_init(QuietTestCase):
         centralized_arguments = {'bar': (['--bar'], {})}
         specific_arguments = [(['--baz'], {})]
 
+        # patch both the COMPULSORY_ARGUMENTS and CENTRALIZED_ARGUMENTS, so
+        # that `foo` and `bar` are added from these (respectively)
         with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
                    compulsory_arguments):
             with patch('improver.argparser.ArgParser.CENTRALIZED_ARGUMENTS',
@@ -231,7 +246,7 @@ class Test_add_arguments(QuietTestCase):
         when the argspec contained kwargs."""
 
         # length of argspec is 2...
-        args_to_add = [(['--foo'], {'action': 'store_true'})]
+        args_to_add = [(['--foo'], {'default': 1})]
         expected_arg = 'foo'
 
         parser = ArgParser(central_arguments=None,
@@ -242,21 +257,21 @@ class Test_add_arguments(QuietTestCase):
         result_args = vars(result_args).keys()
         self.assertIn(expected_arg, result_args)
 
-    def test_adding_argument_with_missing_kwargs_dict(self):
+    def test_adding_argument_with_defined_kwargs_dict_has_defualt(self):
         """Test that we can successfully add an argument to the ArgParser,
-        when the argspec did not contain kwargs."""
+        when the argspec contained kwargs, and that the default value is
+        captured."""
 
-        # length of argspec is 1...
-        args_to_add = [(['--foo'],)]
-        expected_arg = 'foo'
+        args_to_add = [(['--one'], {'default': 1})]
 
         parser = ArgParser(central_arguments=None,
                            specific_arguments=None)
 
         parser.add_arguments(args_to_add)
         result_args = parser.parse_args()
-        result_args = vars(result_args).keys()
-        self.assertIn(expected_arg, result_args)
+        # `--one` was not passed in, so we pick up the default - let's check
+        # they agree...
+        self.assertEqual(1, result_args.one)
 
     def test_adding_single_argument_with_unexpected_length_argspec(self):
         """Test that attempting to add an argument to the ArgParser when

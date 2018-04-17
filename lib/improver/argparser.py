@@ -58,6 +58,12 @@ class ArgParser(ArgumentParser):
     The CENTRALIZED_ARGUMENTS will be selected from, as necessary, for each
     of the CLIs that we create, and the COMPULSORY_ARGUMENTS will be
     automatically added to all CLIs (with no option to exclude them).
+
+    ArgParser.DEFAULT_CENTRALIZED_ARG_NAMES defines the centralized arguments
+    which are to be included by default when creating instances of this
+    class (i.e: when nothing is explictly passed
+    into the constructor). This is a tuple containing keys associated with the
+    ArgParser.CENTRALIZED_ARGUMENTS dictionary.
     """
 
     # Ideally, all CLIs should select something from this dictionary:
@@ -120,7 +126,8 @@ class ArgParser(ArgumentParser):
               Default is None, which does not add additional arguments.
             kwargs (dictionary):
               Additional keyword arguments which are passed to the superclass
-              constructor (argparse.ArgumentParser).
+              constructor (argparse.ArgumentParser), e.g: the `description`
+              of the ArgumentParser.
         """
 
         self._args = None
@@ -139,13 +146,10 @@ class ArgParser(ArgumentParser):
         central_arguments = [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for
                              arg_name in central_arguments]
 
-        # specific arguments must be passed in with the correct format
-        # (argspecs)- we don't need to do anything special here...
-
         # create instance of ArgumentParser (pass along kwargs)
         super(ArgParser, self).__init__(**kwargs)
 
-        # all arguments:
+        # all arguments
         cli_arguments = (compulsory_arguments + central_arguments +
                          specific_arguments)
 
@@ -157,12 +161,12 @@ class ArgParser(ArgumentParser):
         """Adds a list of arguments to the ArgumentParser.
 
         The input argspec_list is a list of argument specifications, where each
-        element (argument specification) is a tuple/list of length 1 or 2.
+        element (argument specification) is a tuple/list of length 2.
         The first element of an argument specification is a list of strings
         which the name/flags used to add the argument.
-        (Optionally) the second element of the argument spec shall be a
-        dictionary containing the keyword arguments which are passed into the
-        add_arguments() method.
+        The second element of the argument spec shall be a dictionary
+        containing the keyword arguments which are passed into the
+        add_argument() method.
 
         Args:
             argspec_list (list):
@@ -172,19 +176,15 @@ class ArgParser(ArgumentParser):
         Raises:
             AttributeError:
                 Notifies the user if any of the argument specifications has
-                the wrong length (not 1 or 2).
+                the wrong length (not 2).
         """
         for argspec in argspec_list:
-            # each should be a list/tuple of length 1 or 2 (no more):
-            if len(argspec) == 1:
-                argflags, argkwargs = (argspec[0], {})
-            elif len(argspec) == 2:
-                argflags, argkwargs = argspec
-            else:
-                # AttributeError most appropriate?
-                # can't assign to argflags/argkwargs
-                raise AttributeError("The argument specification has an "
-                                     "unexpected length.")
+            if len(argspec) != 2:
+                raise AttributeError(
+                    "The argument specification has an unexpected length. "
+                    "Each argument specification should be a 2-tuple, of a "
+                    "list (of strings) and a dictionary.")
+            argflags, argkwargs = argspec
             self.add_argument(*argflags, **argkwargs)
 
     def args(self):
