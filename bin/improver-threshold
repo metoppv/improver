@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to apply thresholding to a cube."""
 
-import argparse
+from improver.argparser import ArgParser
 
 import json
 import cf_units
@@ -43,7 +43,7 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Calculate the threshold truth value of cube data "
         "relative to the provided threshold value. By default data are "
         "tested to be above the thresholds, though the --below_threshold "

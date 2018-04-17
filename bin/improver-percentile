@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
-import argparse
+from improver.argparser import ArgParser
 import warnings
 
 from improver.percentile import PercentileConverter
@@ -45,7 +45,7 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Calculate percentiled data over a cube coordinate by "
         "collapsing that coordinate. Typically used to convert realization "
         "(member) data into percentiled data, but may calculate over any "

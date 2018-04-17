@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run wind downscaling."""
 
-import argparse
+from improver.argparser import ArgParser
 import warnings
 
 import iris
@@ -45,7 +45,7 @@ from improver.utilities.cube_extraction import apply_extraction
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description='Run wind downscaling to apply roughness correction and'
                     ' height correction to wind fields (as described in'
                     ' Howard and Clark [2007]). All inputs must be on the same'
