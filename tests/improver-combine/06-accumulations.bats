@@ -38,7 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc" \
+      $IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

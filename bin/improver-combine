@@ -36,7 +36,6 @@ from improver.argparser import ArgParser
 import iris
 import json
 import warnings
-from glob import glob
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.load import load_cube
@@ -84,11 +83,7 @@ def main():
     # Load the cubes
     cubes = iris.cube.CubeList([])
     new_cube_name = args.new_name
-    input_filenames = []
-    for filename_globlist in args.input_filenames:
-        for filename in glob(filename_globlist):
-            input_filenames.append(filename)
-    for filename in input_filenames:
+    for filename in args.input_filenames:
         new_cube = load_cube(filename)
         cubes.append(new_cube)
         if new_cube_name is None:

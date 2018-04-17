@@ -39,7 +39,7 @@
   run improver combine \
       --operation='max' \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc" \
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
        "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
