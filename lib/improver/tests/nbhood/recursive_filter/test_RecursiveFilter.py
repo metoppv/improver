@@ -171,7 +171,7 @@ class Test__set_alphas(Test_RecursiveFilter):
         """Test that the returned alphas array has the expected result
            when alphas_cube is not None."""
         result = RecursiveFilter()._set_alphas(self.cube[0, :], None,
-                                              self.alphas_cube)
+                                               self.alphas_cube)
         expected_result = 0.5
         self.assertIsInstance(result.data, np.ndarray)
         self.assertEqual(result.data[0][2], expected_result)
@@ -185,7 +185,7 @@ class Test__set_alphas(Test_RecursiveFilter):
         msg = "Dimensions of alphas array do not match dimensions "
         with self.assertRaisesRegexp(ValueError, msg):
             RecursiveFilter()._set_alphas(self.cube, None,
-                                         self.alphas_cube_wrong_dims)
+                                          self.alphas_cube_wrong_dims)
 
     def test_alphas_cube_and_alpha_not_set(self):
         """Test error is raised when both alphas_cube and alpha are set
