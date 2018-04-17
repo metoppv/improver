@@ -60,6 +60,7 @@ from improver.utilities.cube_manipulation import (
     add_renamed_cell_method,
     sort_coord_in_cube,
     enforce_coordinate_ordering,
+    enforce_float32_precision,
     clip_cube_data)
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
@@ -1707,6 +1708,39 @@ class Test_enforce_coordinate_ordering(IrisTest):
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             enforce_coordinate_ordering(
                 cube, "realization", raise_exception=True)
+
+
+class Test_enforce_float32_precision(IrisTest):
+    """ Test the enforce_float32_precision utility."""
+
+    def setUp(self):
+        """Create two temperature cubes to test with."""
+        self.cube1 = set_up_temperature_cube()
+        self.cube2 = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the function will return a single iris.cube.Cube with
+           float32 precision."""
+        result1 = self.cube1
+        enforce_float32_precision(result1)
+        self.assertEqual(result1.dtype, np.float32)
+
+    def test_process_list(self):
+        """Test that the function will return a list of cubes with
+           float32 precision."""
+        result1 = self.cube1
+        result2 = self.cube2
+        enforce_float32_precision([result1, result2])
+        self.assertEqual(result1.dtype, np.float32)
+        self.assertEqual(result2.dtype, np.float32)
+
+    def test_process_none(self):
+        """Test that the function ignores None types."""
+        result1 = self.cube1
+        result2 = None
+        enforce_float32_precision([result1, result2])
+        self.assertEqual(result1.dtype, np.float32)
+        self.assertIsNone(result2)
 
 
 class Test_clip_cube_data(IrisTest):

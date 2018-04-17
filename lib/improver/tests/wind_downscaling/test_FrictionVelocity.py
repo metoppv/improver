@@ -37,6 +37,7 @@ from iris.tests import IrisTest
 
 from improver.constants import RMDI
 from improver.wind_downscaling import FrictionVelocity
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_process(IrisTest):
@@ -92,6 +93,26 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
+    @ManageWarnings(ignored_messages=["invalid value encountered in divide"],
+                    warning_types=[RuntimeWarning])
+    def test_handles_zero_values(self):
+        """Function calculates log(href/z_0) - test that the function accepts
+           zero values in h_ref and z_0 and returns np.nan without crashing."""
+
+        h_ref_zeros = np.full_like(self.h_ref, 0)
+        z_0_zeros = np.full_like(self.z_0, 0)
+
+        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
+                                 [RMDI, np.nan, np.nan, RMDI],
+                                 [RMDI, np.nan, np.nan, RMDI],
+                                 [RMDI, RMDI, RMDI, RMDI]])
+
+        result = FrictionVelocity(self.u_href, h_ref_zeros,
+                                  z_0_zeros, self.mask).process()
+
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_out)
+
     def test_handles_different_sized_arrays(self):
         """Test when if different size arrays have been input"""
         u_href = np.full([3, 3], 10, dtype=float)
@@ -100,6 +121,14 @@ class Test_process(IrisTest):
             FrictionVelocity(u_href, self.h_ref,
                              self.z_0, self.mask).process()
 
+    def test_output_is_float32(self):
+        """Test that the plugin returns an array of float 32 type
+           even when the input arrays are double precision."""
+
+        result = FrictionVelocity(self.u_href, self.h_ref,
+                                  self.z_0, self.mask).process()
+
+        self.assertEqual(result.dtype, np.float32)
 
 if __name__ == '__main__':
     unittest.main()
