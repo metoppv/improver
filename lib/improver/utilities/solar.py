@@ -260,9 +260,8 @@ class DayNightMask(object):
         """
         daynight_mask = self._create_daynight_mask(cube)
         dtvalues = iris_time_to_datetime(daynight_mask.coord('time'))
-        for i in range(len(dtvalues)):
+        for i, dtval in enumerate(dtvalues):
             mask_cube = daynight_mask[i]
-            dtval = dtvalues[i]
             day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
             utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
             trg_crs = lat_lon_determine(mask_cube)

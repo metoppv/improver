@@ -434,7 +434,7 @@ def lat_lon_transform(trg_crs, latitude, longitude):
 
 def transform_grid_to_lat_lon(cube):
     """
-    Transform the points in the cube into grid of latitudes and longitudes
+    Calculate the latitudes and longitudes of each points in the cube.
 
     Args:
         cube (iris.cube.Cube):
