@@ -205,10 +205,12 @@ class RoughnessCorrectionUtilities(object):
 
         Returns:
             (tuple) : tuple containing:
-                **hcmask** (bool):
-                    2D array - True for land-points, false for Sea (HC)
-                **rcmask** (bool):
-                    2D array - additionally False for invalid z_0 (RC)
+                **hcmask** (np.ndarray):
+                    2D array of booleans- True for land-points,
+                    false for Sea (HC)
+                **rcmask** (np.ndarray):
+                    2D array of booleans- additionally False for
+                    invalid z_0 (RC)
 
         """
         hcmask = np.full(self.h_over_2.shape, True, dtype=bool)
@@ -454,11 +456,11 @@ class RoughnessCorrectionUtilities(object):
             xlow (np.ndarray):
                 2D array float32 - lower x-bins
             at_x (np.ndarray):
-                x values to interpolate y at
+                2D array float32 - x values to interpolate y at
             yup (np.ndarray):
-                y(xup)
+                2D array float32 - y(xup)
             ylow (np.ndarray):
-                y(xlow)
+                2D array float32 - y(xlow)
 
         Returns:
             interp (np.ndarray):
@@ -660,7 +662,7 @@ class RoughnessCorrection(object):
                                    height_levels_cube])
 
         # Standard Python 'float' type is either single or double depending on
-        # system and there is no reliable method of finding which from
+        # system and there is no reliable method of finding which from the
         # variable. So force to numpy.float32 by default.
         modres = np.float32(modres)
 

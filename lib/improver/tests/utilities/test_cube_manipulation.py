@@ -1740,7 +1740,7 @@ class Test_enforce_float32_precision(IrisTest):
         result2 = None
         enforce_float32_precision([result1, result2])
         self.assertEqual(result1.dtype, np.float32)
-        self.assertIsNone(result2, None)
+        self.assertIsNone(result2)
 
 
 class Test_clip_cube_data(IrisTest):
