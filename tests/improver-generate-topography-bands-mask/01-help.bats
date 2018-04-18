@@ -11,7 +11,7 @@ usage: improver-generate-topography-bands-mask [-h]
                                                INPUT_FILE_STANDARD_OROGRAPHY
                                                OUTPUT_FILE
 
-Read input orography and landmask fields. Return a a cube of masks, where each
+Reads input orography and landmask fields. Creates a set of masks, where each
 mask excludes data below or equal to the lower threshold, and excludes data
 above the upper threshold.
 

@@ -49,8 +49,8 @@ next grid-square in the x and y directions. The alpha parameter can be set on
 a grid-square by grid-square basis for the x and y directions separately
 (using two arrays of alpha parameters of the same dimensionality as the
 domain). Alternatively a single alpha value can be set for each of the x and y
-directions. These methods can be mixed, e.g. a cube for the x direction and a
-float for the y direction and vice versa.
+directions. These methods can be mixed, e.g. an array for the x direction and
+a float for the y direction and vice versa.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed

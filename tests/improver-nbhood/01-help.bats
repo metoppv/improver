@@ -48,7 +48,7 @@ usage: improver-nbhood [-h]
                        OUTPUT_FILE
 
 Apply the requested neighbourhood method via the NeighbourhoodProcessing
-plugin to a file with one cube.
+plugin to a file whose data can be loaded as a single iris.cube.Cube.
 
 positional arguments:
   NEIGHBOURHOOD_OUTPUT  The form of the results generated using neighbourhood

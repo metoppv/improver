@@ -56,10 +56,10 @@ optional arguments:
   -h, --help            show this help message and exit
   --units UNITS [UNITS ...]
                         Optional: units of coordinate constraint(s) to be
-                        applied, for use when the input cube coordinate units
-                        are not ideal (eg for float equality). If used, this
-                        list must match the CONSTRAINTS list in order and
-                        length (with null values set to None).
+                        applied, for use when the input coordinate units are
+                        not ideal (eg for float equality). If used, this list
+                        must match the CONSTRAINTS list in order and length
+                        (with null values set to None).
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -39,7 +39,7 @@ usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
                        (--sqlite | --csv)
                        INPUT_FILES OUTPUT_FILE
 
-Convert spot forecast cubes to a table and save in csv or as a sqlite
+Convert spot forecast datasets to a table and save in csv or as a sqlite
 database. For all the spot files provided it creates a table in memory and
 then saves it in the format specified by the user.
 

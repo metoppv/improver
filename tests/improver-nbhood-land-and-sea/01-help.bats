@@ -41,14 +41,14 @@ usage: improver-nbhood-land-and-sea [-h]
                                     [--intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 
-Neighbourhood the input cube as two distinct regions of land and sea. If
+Neighbourhood the input dataset over two distinct regions of land and sea. If
 performed as a single level neighbourhood, a land-sea mask should be provided.
 If instead topographic_zone neighbourhooding is being employed, the mask
-should be one of topographic zones. In the latter case a weights cube is also
-required to collapse the topographic_zone coordinate. These weights are
-created with the improver generate-topography-bands-weights CLI and should be
-made using a land-sea mask, which will then be employed within this code to
-draw the distinction between the two surface types.
+should be one of topographic zones. In the latter case a weights array is also
+needed to collapse the topographic_zone coordinate. These weights are created
+with the improver generate-topography-bands-weights CLI and should be made
+using a land-sea mask, which will then be employed within this code to draw
+the distinction between the two surface types.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed.

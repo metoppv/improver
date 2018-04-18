@@ -41,7 +41,8 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 
-Apply Ensemble Copula Coupling to a file with one cube.
+Apply Ensemble Copula Coupling to a file whose data can be loaded as a single
+iris.cube.Cube.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed.

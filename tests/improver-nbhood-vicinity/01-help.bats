@@ -41,7 +41,7 @@ usage: improver-nbhood-vicinity [-h]
 
 Calculate the probability of having a phenomenon occur within the vicinity of
 a point via the ProbabilityOfOccurence plugin The input file contains a single
-diagnostic cube to which this process is applied.
+diagnostic to which this process is applied.
 
 positional arguments:
   VICINITY_DISTANCE     Distance in metres used to define the vicinity within

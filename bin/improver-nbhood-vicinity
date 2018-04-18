@@ -55,8 +55,8 @@ def main():
         description='Calculate the probability of having a phenomenon occur '
                     'within the vicinity of a point via '
                     'the ProbabilityOfOccurence plugin '
-                    'The input file contains a single diagnostic dataset '
-                    'to which this process is applied.')
+                    'The input file contains a single diagnostic to which '
+                    'this process is applied.')
     parser.add_argument('--neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
                         choices=["square"], default="square",
                         help='The shape of the neighbourhood to apply in '

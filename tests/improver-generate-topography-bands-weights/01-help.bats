@@ -11,7 +11,7 @@ usage: improver-generate-topography-bands-weights [-h]
                                                   INPUT_FILE_STANDARD_OROGRAPHY
                                                   OUTPUT_FILE
 
-Read input orography and landmask fields. Return a a cube of topographic zone
+Reads input orography and landmask fields. Creates a a set of topographic zone
 weights to indicate where an orography point sits within the defined
 topographic bands. If the orography point is in the centre of a topographic
 band, then a single band will have a weight of 1.0. If the orography point is
