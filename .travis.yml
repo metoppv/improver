@@ -30,7 +30,7 @@ install:
   - source activate $ENV_NAME
 
   # Download Iris 1.13 and all dependencies.
-  - conda install -c conda-forge iris_grib
+  - conda install -c conda-forge iris-grib
   - conda install -c conda-forge iris=1.13
 
   # Install our own extra dependencies (+ filelock for Iris test).
