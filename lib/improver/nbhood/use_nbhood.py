@@ -43,7 +43,7 @@ from improver.blending.weights import WeightsUtilities
 
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
-    """Class for applying neighbourhood processing when passing in a mask
+    r"""Class for applying neighbourhood processing when passing in a mask
     cube that is iterated over.
 
     Example:
@@ -218,7 +218,7 @@ GenerateOrographyBandAncils`
 
 class CollapseMaskedNeighbourhoodCoordinate(object):
 
-    """
+    r"""
     Plugin for collapsing the coordinate the mask was applied to after
     masked neighbourhood processing.
 

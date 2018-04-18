@@ -898,8 +898,8 @@ class Test__equalise_cube_attributes(IrisTest):
 
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):
-        """Test that the utility returns warning and removes unknown mismatching
-        attribute."""
+        """Test that the utility returns warning and removes unknown
+        mismatching attribute."""
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
         cube1.attributes.update({'unknown_attribute':

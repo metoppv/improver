@@ -94,16 +94,16 @@ class Test_process(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
     def test_default_percentiles(self):
-        """Test that the circular neighbourhood processing is successful, if the
-        default percentiles are used."""
+        """Test that the circular neighbourhood processing is successful, if
+        the default percentiles are used."""
         neighbourhood_method = 'circular'
         radii = 4000
         result = NBHood(neighbourhood_method, radii).process(self.cube)
         self.assertIsInstance(result, Cube)
 
     def test_define_percentiles(self):
-        """Test that the circular neighbourhood processing is successful, if the
-        percentiles are passed in as a keyword argument."""
+        """Test that the circular neighbourhood processing is successful, if
+        the percentiles are passed in as a keyword argument."""
         neighbourhood_method = 'circular'
         radii = 4000
         percentiles = (0, 25, 50, 75, 100)

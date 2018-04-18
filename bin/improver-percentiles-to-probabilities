@@ -40,7 +40,7 @@ from improver.utilities.statistical_operations import \
 
 
 def main():
-    """
+    r"""
     Load arguments and run ProbabilitiesFromPercentiles plugin.
 
     Plugin generates probabilities at a fixed threshold (height) from a set of
