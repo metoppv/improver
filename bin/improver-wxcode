@@ -106,7 +106,7 @@ def main():
     parser = ArgParser(
         description='Calculate gridded weather symbol codes.\nThis plugin '
         'requires a specific set of input diagnostics, where data\nmay be in '
-        'any units to which the thresholds given below can\nbe converted:\n'+
+        'any units to which the thresholds given below can\nbe converted:\n' +
         dlist.format(*diagnostics),
         formatter_class=RawTextHelpFormatter)
 
