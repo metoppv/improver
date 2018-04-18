@@ -31,8 +31,7 @@ install:
 
   # Download Iris 1.13 and all dependencies.
   - conda install -c conda-forge iris=1.13
-  - python -c "import iris_grib"
-  - conda install -c conda-forge iris-grib
+  - conda install -c conda-forge iris-grib=0.10.1
   - python -c "import iris_grib"
 
   # Install our own extra dependencies (+ filelock for Iris test).
