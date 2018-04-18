@@ -38,17 +38,17 @@ usage: improver-wet-bulb-temperature [-h]
                                      TEMPERATURE RELATIVE_HUMIDITY PRESSURE
                                      OUTPUT_FILE
 
-Calculate a cube of wet bulb temperatures.
+Calculate a field of wet bulb temperatures.
 
 positional arguments:
-  TEMPERATURE           File path to a cube of air temperatures at the points
-                        for which the wet bulb temperatures are being
+  TEMPERATURE           Path to a NetCDF file of air temperatures at the
+                        points for which the wet bulb temperatures are being
                         calculated.
-  RELATIVE_HUMIDITY     File path to a cube of relative humidities at the
+  RELATIVE_HUMIDITY     Path to a NetCDF file of relative humidities at the
                         points for for which the wet bulb temperatures are
                         being calculated.
-  PRESSURE              File path to a cube of air pressures at the points for
-                        for which the wet bulb temperatures are being
+  PRESSURE              Path to a NetCDF file of air pressures at the points
+                        for for which the wet bulb temperatures are being
                         calculated.
   OUTPUT_FILE           The output path for the processed NetCDF.
 

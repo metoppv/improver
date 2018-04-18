@@ -47,7 +47,7 @@ def main():
     the Newton iterator used to calculate the wet bulb temperatures."""
 
     parser = ArgParser(
-        description='Calculate an array of wet bulb temperatures.')
+        description='Calculate a field of wet bulb temperatures.')
     parser.add_argument('temperature', metavar='TEMPERATURE',
                         help='Path to a NetCDF file of air temperatures at '
                         'the points for which the wet bulb temperatures are '
