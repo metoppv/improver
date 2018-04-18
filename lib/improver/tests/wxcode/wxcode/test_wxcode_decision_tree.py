@@ -125,5 +125,6 @@ class Test_wxcode_decision_tree(IrisTest):
             self.assertEqual(diag_len, thres_len)
             self.assertEqual(diag_len, cond_len)
 
+
 if __name__ == '__main__':
     unittest.main()

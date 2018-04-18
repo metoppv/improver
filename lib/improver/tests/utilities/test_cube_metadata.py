@@ -497,5 +497,6 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -77,7 +77,8 @@ class ProbabilitiesFromPercentiles2D(object):
         """
         Initialise class. Sets an inverse_ordering (bool) switch to true for
         cases where the percentiled data increases in the opposite sense to the
-        percentile coordinate.
+        percentile coordinate:
+
                 e.g.  0th Percentile - Value = 10
                      10th Percentile - Value = 5
                      20th Percentile - Value = 0

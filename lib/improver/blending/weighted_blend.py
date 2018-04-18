@@ -392,8 +392,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 Function to apply to the coordinate after collapsing the cube
                 to correct the values, for example for time windowing and
                 cycle averaging the follow function would adjust the time
-                coordinates.
-                    e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+                coordinates, e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
             coords_for_bounds_removal (None or list):
