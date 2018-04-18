@@ -46,7 +46,7 @@ def main():
     The steps for this are as follows :
         1.    Calculate the occurrence of a phenomenon within
               a defined vicinity.
-        2.    If the cube contains a realization dimension coordinate,
+        2.    If the dataset contains a realization dimension coordinate,
                find the mean.
         3.    Compute neighbourhood processing. (Only square neighourhood
               processing is currently supported).
@@ -55,7 +55,7 @@ def main():
         description='Calculate the probability of having a phenomenon occur '
                     'within the vicinity of a point via '
                     'the ProbabilityOfOccurence plugin '
-                    'The input file contains a single diagnostic cube '
+                    'The input file contains a single diagnostic dataset '
                     'to which this process is applied.')
     parser.add_argument('--neighbourhood_shape', metavar='NEIGHBOURHOOD_SHAPE',
                         choices=["square"], default="square",

@@ -44,20 +44,20 @@ def main():
     parser = ArgParser(
         description="Calculate the continuous falling snow level ")
     parser.add_argument("temperature", metavar="TEMPERATURE",
-                        help="File path to a cube of air temperatures at"
+                        help="Path to a NetCDF file of air temperatures at"
                         " heights (m) at the points for which the continuous "
                         "falling snow level is being calculated.")
     parser.add_argument("relative_humidity", metavar="RELATIVE_HUMIDITY",
-                        help="File path to a cube of relative_humidities at"
+                        help="Path to a NetCDF file of relative_humidities at"
                         " heights (m) at the points for which the continuous "
                         "falling snow level is being calculated.")
     parser.add_argument("pressure", metavar="PRESSURE",
-                        help="File path to a cube of air pressures at"
+                        help="Path to a NetCDF file of air pressures at"
                         " heights (m) at the points for which the continuous "
                         "falling snow level is being calculated.")
     parser.add_argument("orography", metavar="OROGRAPHY",
-                        help="A path to an input NetCDF file containing "
-                        "a cube with the orography in m of the terrain "
+                        help="A path to a NetCDF file containing "
+                        "the orography height in m of the terrain "
                         "over which the continuous falling snow level is being"
                         "calculated.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",

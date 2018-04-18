@@ -42,10 +42,10 @@ def main():
     Load in the arguments and apply the requested variant of database creation.
     """
     parser = ArgParser(
-        description="Convert spot forecast cubes to a table and save in csv "
-                    "or as a sqlite database. For all the spot files provided "
-                    "it creates a table in memory and then saves it in the "
-                    "format specified by the user.")
+        description="Convert spot forecast datasets to a table and save in "
+                    "csv or as a sqlite database. For all the spot files "
+                    "provided it creates a table in memory and then saves it "
+                    "in the format specified by the user.")
     parser.add_argument('input_filepath', metavar='INPUT_FILES',
                         help="A path (with wildcards if necessary) to input "
                              "NetCDF files to be processed.")

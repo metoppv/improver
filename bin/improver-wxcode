@@ -104,15 +104,15 @@ def main():
     dlist = (' - {}\n'*n_files)
 
     parser = ArgParser(
-        description='Calculate a cube of weather symbol codes.\nThis plugin '
-        'requires a specific set of input cubes, where data\nmay be in any '
-        'units to which the thresholds given below can\nbe converted:\n' +
+        description='Calculate gridded weather symbol codes.\nThis plugin '
+        'requires a specific set of input diagnostics, where data\nmay be in '
+        ' any units to which the thresholds given below can\nbe converted:\n'+
         dlist.format(*diagnostics),
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
         'input_filepaths', metavar='INPUT_FILES', nargs=n_files,
-        help='Paths to files containing the required input cubes.')
+        help='Paths to files containing the required input diagnostics.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 

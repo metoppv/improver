@@ -44,8 +44,8 @@ def main():
     """Load in arguments and get going."""
     parser = ArgParser(
         description='Apply the requested neighbourhood method via '
-                    'the NeighbourhoodProcessing plugin '
-                    'to a file with one cube.')
+                    'the NeighbourhoodProcessing plugin to a file '
+                    'whose data can be loaded as a single iris.cube.Cube.')
     parser.add_argument(
         'neighbourhood_output', metavar='NEIGHBOURHOOD_OUTPUT',
         help='The form of the results generated using neighbourhood '

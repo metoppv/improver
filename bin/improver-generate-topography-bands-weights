@@ -53,8 +53,8 @@ THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
 def main():
     """Load in arguments and get going."""
     parser = ArgParser(
-        description=('Read input orography and landmask fields. Return a '
-                     'a cube of topographic zone weights to indicate '
+        description=('Reads input orography and landmask fields. Creates a '
+                     'a set of topographic zone weights to indicate '
                      'where an orography point sits within the defined '
                      'topographic bands. If the orography point is in the '
                      'centre of a topographic band, then a single band will '
