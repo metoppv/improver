@@ -29,17 +29,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood-land-and-sea
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood-land-and-sea [-h]
-                                    [--weights_for_collapsing_dim WEIGHTS]
-                                    [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                                    [--ens_factor ENS_FACTOR]
-                                    [--sum_or_fraction {sum,fraction}]
-                                    [--intermediate_filepath INTERMEDIATE_FILEPATH]
-                                    INPUT_FILE INPUT_MASK OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "nbhood-land-and-sea input sea_only_mask output" --radius=20000 {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run neighbourhood processing and check it passes.
+  run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/sea_only/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/sea_only/ukvx_landmask.nc" "$TEST_DIR/output.nc" --radius=20000
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/sea_only/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

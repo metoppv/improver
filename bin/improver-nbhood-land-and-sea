@@ -110,15 +110,17 @@ def main():
     parser.add_argument('--sum_or_fraction', default="fraction",
                         choices=["sum", "fraction"],
                         help='The neighbourhood output can either be in the '
-                             'form of a sum of the neighbourhood, or a '
-                             'fraction calculated by dividing the sum of the '
-                             'neighbourhood by the neighbourhood area. '
-                             '"fraction" is the default option.')
-    parser.add_argument('--intermediate_filepaths', default=None, nargs=2,
-                        help='If provided the results after neighbourhooding, '
-                        'but before recombining land and sea are saved to the '
-                        'two given filepaths; the first path for the land '
-                        'output, the second path for the sea output.')
+                        'form of a sum of the neighbourhood, or a '
+                        'fraction calculated by dividing the sum of the '
+                        'neighbourhood by the neighbourhood area. '
+                        '"fraction" is the default option.')
+    parser.add_argument('--intermediate_filepath', default=None,
+                        help='Intermediate filepath for results following '
+                        'topographic masked neighbourhood processing of '
+                        'land points and prior to collapsing the '
+                        'topographic_zone coordinate. Intermediate files '
+                        'will not be produced if no topographic masked '
+                        'neighbourhood processing occurs.')
 
     args = parser.parse_args()
 
@@ -174,34 +176,51 @@ def main():
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
 
-    if masking_coordinate is not None:
-        result_land = ApplyNeighbourhoodProcessingWithAMask(
-            masking_coordinate, radius_or_radii, lead_times=lead_times,
-            ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-            re_mask=False).process(cube, mask)
-    else:
-        result_land = NeighbourhoodProcessing(
+    if args.intermediate_filepath is not None and masking_coordinate is None:
+        msg = ('No topographic_zone coordinate found, so no intermediate file '
+               'will be saved.')
+        warnings.warn(msg)
+
+    # Section for neighbourhood processing land points.
+    if land_only.data.max() > 0.0:
+        if masking_coordinate is not None:
+            result_land = ApplyNeighbourhoodProcessingWithAMask(
+                masking_coordinate, radius_or_radii, lead_times=lead_times,
+                ens_factor=args.ens_factor,
+                sum_or_fraction=args.sum_or_fraction, re_mask=False).process(
+                    cube, mask)
+        else:
+            result_land = NeighbourhoodProcessing(
+                'square', radius_or_radii, lead_times=lead_times,
+                ens_factor=args.ens_factor,
+                sum_or_fraction=args.sum_or_fraction, re_mask=True).process(
+                    cube, land_only)
+
+        if masking_coordinate is not None:
+            if args.intermediate_filepath is not None:
+                save_netcdf(
+                    result_land, args.intermediate_filepath)
+            # Collapse the masking coordinate.
+            result_land = CollapseMaskedNeighbourhoodCoordinate(
+                masking_coordinate, weights=weights).process(result_land)
+
+        result = result_land
+
+    # Section for neighbourhood processing sea points.
+    if sea_only.data.max() > 0.0:
+        result_sea = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
             ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-            re_mask=True).process(cube, land_only)
+            re_mask=True).process(cube, sea_only)
 
-    result_sea = NeighbourhoodProcessing(
-        'square', radius_or_radii, lead_times=lead_times,
-        ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
-        re_mask=True).process(cube, sea_only)
+        result = result_sea
 
-    if args.intermediate_filepaths is not None:
-        save_netcdf(result_land, args.intermediate_filepaths[0])
-        save_netcdf(result_sea, args.intermediate_filepaths[1])
-
-    if masking_coordinate is not None:
-        # Collapse the masking coordinate.
-        result_land = CollapseMaskedNeighbourhoodCoordinate(
-            masking_coordinate, weights=weights).process(result_land)
-
-    # Recombine cubes to be a single output.
-    combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
-    result = result_land.copy(data=combined_data)
+    # Section for combining land and sea points following land and sea points
+    # being neighbourhood processed individually.
+    if sea_only.data.max() > 0.0 and land_only.data.max() > 0.0:
+        # Recombine cubes to be a single output.
+        combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
+        result = result_land.copy(data=combined_data)
 
     save_netcdf(result, args.output_filepath)
 

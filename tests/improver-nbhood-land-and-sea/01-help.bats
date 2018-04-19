@@ -38,7 +38,7 @@ usage: improver-nbhood-land-and-sea [-h]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--ens_factor ENS_FACTOR]
                                     [--sum_or_fraction {sum,fraction}]
-                                    [--intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS]
+                                    [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 
 Neighbourhood the input cube as two distinct regions of land and sea. If
@@ -70,11 +70,12 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS
-                        If provided the results after neighbourhooding, but
-                        before recombining land and sea are saved to the two
-                        given filepaths; the first path for the land output,
-                        the second path for the sea output.
+  --intermediate_filepath INTERMEDIATE_FILEPATH
+                        Intermediate filepath for results following
+                        topographic masked neighbourhood processing of land
+                        points and prior to collapsing the topographic_zone
+                        coordinate. Intermediate files will not be produced if
+                        no topographic masked neighbourhood processing occurs.
 
 Collapse weights - required if using a topographic zones mask:
   --weights_for_collapsing_dim WEIGHTS
