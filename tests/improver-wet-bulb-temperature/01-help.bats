@@ -48,7 +48,7 @@ positional arguments:
                         points for for which the wet bulb temperatures are
                         being calculated.
   PRESSURE              Path to a NetCDF file of air pressures at the points
-                        for for which the wet bulb temperatures are being
+                        for which the wet bulb temperatures are being
                         calculated.
   OUTPUT_FILE           The output path for the processed NetCDF.
 

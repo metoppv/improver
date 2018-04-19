@@ -58,8 +58,8 @@ def main():
                         'are being calculated.')
     parser.add_argument('pressure', metavar='PRESSURE',
                         help='Path to a NetCDF file of air pressures at the '
-                        'points for for which the wet bulb temperatures are '
-                        'being calculated.')
+                        'points for which the wet bulb temperatures are being'
+                        ' calculated.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--convergence_condition',
