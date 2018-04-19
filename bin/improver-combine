@@ -50,7 +50,7 @@ def main():
                     "the requested operation e.g. + - min max etc.")
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
                         nargs="+", type=str,
-                        help="Paths to the input NETCDF files. Each input"
+                        help="Paths to the input NetCDF files. Each input"
                         " file should be able to be loaded as a single "
                         " iris.cube.Cube instance. The resulting file"
                         " metadata will be based on the first file but"

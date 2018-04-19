@@ -85,7 +85,7 @@ def main():
                         'ensemble member. If ens_factor = 1.0 this '
                         'essentially conserves ensemble members if '
                         'every grid square is considered to be the '
-                        'equivalent of an ensemble member.'
+                        'equivalent of an ensemble member. '
                         'Optional, defaults to 1.0.')
     parser.add_argument('--weighted_mode', action='store_true', default=False,
                         help='For neighbourhood processing using a circular '
@@ -105,7 +105,7 @@ def main():
     parser.add_argument('--re_mask', action='store_true',
                         help='If re_mask is set (i.e. True), the original '
                              'un-neighbourhood processed mask is applied to '
-                             'mask out the neighbourhood processed cube. '
+                             'mask out the neighbourhood processed dataset. '
                              'If not set, re_mask defaults to False and the '
                              'original un-neighbourhood processed mask is '
                              'not applied. Therefore, the neighbourhood '
@@ -128,9 +128,10 @@ def main():
     parser.add_argument('--apply-recursive-filter', action='store_true',
                         default=False,
                         help='Option to apply the recursive filter to a '
-                             'square neighbourhooded output cube, converting  '
-                             'it into a Gaussian-like kernel or smooth over '
-                             'short distances. The filter uses an alpha '
+                             'square neighbourhooded output dataset, '
+                             'converting it into a Gaussian-like kernel or '
+                             'smoothing over short distances. '
+                             'The filter uses an alpha '
                              'parameter (0 < alpha < 1) to control what '
                              'proportion of the probability is passed onto '
                              'the next grid-square in the x and y directions. '
@@ -140,7 +141,7 @@ def main():
                              'parameters of the same dimensionality as the '
                              'domain). Alternatively a single alpha value can '
                              'be set for each of the x and y directions. These'
-                             ' methods can be mixed, e.g. a cube for the x '
+                             ' methods can be mixed, e.g. an array for the x '
                              'direction and a float for the y direction and '
                              'vice versa. The recursive filter cannot be '
                              'applied to a circular kernel')

@@ -50,9 +50,9 @@ positional arguments:
   PRESSURE              Path to a NetCDF file of air pressures at heights (m)
                         at the points for which the continuous falling snow
                         level is being calculated.
-  OROGRAPHY             A path to a NetCDF file containing the orography
-                        height in m of the terrain over which the continuous
-                        falling snow level is being calculated.
+  OROGRAPHY             Path to a NetCDF file containing the orography height
+                        in m of the terrain over which the continuous falling
+                        snow level is being calculated.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:

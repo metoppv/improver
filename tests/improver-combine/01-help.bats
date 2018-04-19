@@ -42,7 +42,7 @@ Combine the input files into a single file using the requested operation e.g.
 + - min max etc.
 
 positional arguments:
-  INPUT_FILENAMES       Paths to the input NETCDF files. Each input file
+  INPUT_FILENAMES       Paths to the input NetCDF files. Each input file
                         should be able to be loaded as a single iris.cube.Cube
                         instance. The resulting file metadata will be based on
                         the first file but its metadata can be overwritten via

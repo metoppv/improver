@@ -56,7 +56,7 @@ def main():
                         " heights (m) at the points for which the continuous "
                         "falling snow level is being calculated.")
     parser.add_argument("orography", metavar="OROGRAPHY",
-                        help="A path to a NetCDF file containing "
+                        help="Path to a NetCDF file containing "
                         "the orography height in m of the terrain "
                         "over which the continuous falling snow level is "
                         "being calculated.")

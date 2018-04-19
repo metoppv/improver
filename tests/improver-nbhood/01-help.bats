@@ -85,7 +85,7 @@ optional arguments:
                         for more than one ensemble member. If ens_factor = 1.0
                         this essentially conserves ensemble members if every
                         grid square is considered to be the equivalent of an
-                        ensemble member.Optional, defaults to 1.0.
+                        ensemble member. Optional, defaults to 1.0.
   --weighted_mode       For neighbourhood processing using a circular kernel,
                         setting the weighted_mode indicates the weighting
                         decreases with radius. If weighted_mode is not set, a
@@ -99,11 +99,12 @@ optional arguments:
                         neighbourhood area. "fraction" is the default option.
   --re_mask             If re_mask is set (i.e. True), the original un-
                         neighbourhood processed mask is applied to mask out
-                        the neighbourhood processed cube. If not set, re_mask
-                        defaults to False and the original un-neighbourhood
-                        processed mask is not applied. Therefore, the
-                        neighbourhood processing may result in values being
-                        present in areas that were originally masked.
+                        the neighbourhood processed dataset. If not set,
+                        re_mask defaults to False and the original un-
+                        neighbourhood processed mask is not applied.
+                        Therefore, the neighbourhood processing may result in
+                        values being present in areas that were originally
+                        masked.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Calculate values at the specified percentiles from the
                         neighbourhood surrounding each grid point.
@@ -113,20 +114,20 @@ optional arguments:
                         square neighbourhoods.
   --apply-recursive-filter
                         Option to apply the recursive filter to a square
-                        neighbourhooded output cube, converting it into a
-                        Gaussian-like kernel or smooth over short distances.
-                        The filter uses an alpha parameter (0 < alpha < 1) to
-                        control what proportion of the probability is passed
-                        onto the next grid-square in the x and y directions.
-                        The alpha parameter can be set on a grid-square by
-                        grid-square basis for the x and y directions
-                        separately (using two arrays of alpha parameters of
-                        the same dimensionality as the domain). Alternatively
-                        a single alpha value can be set for each of the x and
-                        y directions. These methods can be mixed, e.g. a cube
-                        for the x direction and a float for the y direction
-                        and vice versa. The recursive filter cannot be applied
-                        to a circular kernel
+                        neighbourhooded output dataset, converting it into a
+                        Gaussian-like kernel or smoothing over short
+                        distances. The filter uses an alpha parameter (0 <
+                        alpha < 1) to control what proportion of the
+                        probability is passed onto the next grid-square in the
+                        x and y directions. The alpha parameter can be set on
+                        a grid-square by grid-square basis for the x and y
+                        directions separately (using two arrays of alpha
+                        parameters of the same dimensionality as the domain).
+                        Alternatively a single alpha value can be set for each
+                        of the x and y directions. These methods can be mixed,
+                        e.g. an array for the x direction and a float for the
+                        y direction and vice versa. The recursive filter
+                        cannot be applied to a circular kernel
   --input_filepath_alphas_x_cube ALPHAS_X_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the x direction when
