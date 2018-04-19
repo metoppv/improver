@@ -77,8 +77,10 @@ optional arguments:
                         threshold value(s) which should be treated as fuzzy.
                         Data which fail a test against the hard threshold
                         value may return a fractional truth value if they fall
-                        within this fuzzy factor region. NB A fuzzy factor
-                        cannot be used with a zero threshold or a
+                        within this fuzzy factor region. Fuzzy factor must be
+                        in the range 0-1, with higher values indicating a
+                        narrower fuzzy factor region / sharper threshold. NB A
+                        fuzzy factor cannot be used with a zero threshold or a
                         threshold_config file.
 __HELP__
   [[ "$output" == "$expected" ]]
