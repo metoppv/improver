@@ -266,5 +266,6 @@ class Test_blend_percentiles(IrisTest):
         expected_result = np.array([5.0, 6.0, 7.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
+
 if __name__ == '__main__':
     unittest.main()

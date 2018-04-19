@@ -1004,11 +1004,15 @@ class EnsembleCalibration(object):
             calibration_method (String):
                 The calibration method that will be applied.
                 Supported methods are:
+
                     ensemble model output statistics
                     nonhomogeneous gaussian regression
+
                 Currently these methods are not supported:
+
                     logistic regression
                     bayesian model averaging
+
             distribution (String):
                 The distribution that will be used for calibration. This will
                 be dependent upon the input phenomenon. This has to be

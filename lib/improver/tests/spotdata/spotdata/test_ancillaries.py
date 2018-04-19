@@ -119,8 +119,8 @@ class Test_get_ancillary_data(IrisTest):
         self.assertArrayEqual(result['orography'].data, self.orography.data)
 
     def test_read_land_mask(self):
-        """Test reading a landmask netcdf file if a diagnostic makes use of a land
-        constraint condition."""
+        """Test reading a landmask netcdf file if a diagnostic makes use of a
+        land constraint condition."""
 
         result = Plugin(self.diagnostics, self.directory)
         self.assertIn('land_mask', result.keys())

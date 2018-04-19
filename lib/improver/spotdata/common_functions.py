@@ -84,7 +84,7 @@ class ConditionalListExtract(object):
         array_of_indices = np.array(indices_list)
         try:
             function = getattr(self, self.method)
-        except:
+        except AttributeError:
             raise AttributeError('Unknown method "{}" passed to {}.'.format(
                 self.method, self.__class__.__name__))
 

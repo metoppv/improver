@@ -90,8 +90,8 @@ class Test_process(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
     def test_weighted_mode_is_true(self):
-        """Test that the circular neighbourhood processing is successful, if the
-        weighted mode is True."""
+        """Test that the circular neighbourhood processing is successful, if
+        the weighted mode is True."""
         expected = np.array(
             [[[[1., 1., 1., 1., 1.],
                [1., 0.91666667, 0.875, 0.91666667, 1.],
@@ -105,8 +105,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_weighted_mode_is_false(self):
-        """Test that the circular neighbourhood processing is successful, if the
-        weighted mode is False."""
+        """Test that the circular neighbourhood processing is successful, if
+        the weighted mode is False."""
         expected = np.array(
             [[[[1., 1., 0.92307692, 1., 1.],
                [1., 0.92307692, 0.92307692, 0.92307692, 1.],

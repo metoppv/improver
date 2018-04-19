@@ -57,10 +57,10 @@ class ImportSiteData(object):
         Args:
             source (string):
                 String setting the source of site data, available options are:
+
                 - 'from_file' to read in site specifications from a file.
                 - 'runtime_list' to interpret lists passed to the CLI as site
                   definitions.
-
         """
         self.source = source
         if self.source == 'from_file':

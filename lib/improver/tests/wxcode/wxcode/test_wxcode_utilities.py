@@ -160,5 +160,6 @@ class Test_expand_nested_lists(IrisTest):
         for val in result:
             self.assertEquals(val, 'a')
 
+
 if __name__ == '__main__':
     unittest.main()

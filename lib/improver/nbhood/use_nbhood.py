@@ -43,7 +43,7 @@ from improver.blending.weights import WeightsUtilities
 
 class ApplyNeighbourhoodProcessingWithAMask(object):
 
-    """Class for applying neighbourhood processing when passing in a mask
+    r"""Class for applying neighbourhood processing when passing in a mask
     cube that is iterated over.
 
     Example:
@@ -57,7 +57,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
             ..............................
             Band 2        ---
             ............./...\.../\.......
-            Band 1      /     ---  \\
+            Band 1      /     ---  \
             .........../............\.....
             Band 0    /              --
             ........--.................\..
@@ -77,10 +77,10 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         result is left unmasked then the you can weight between adjacent bands
         when you collapse the new "topographic_zone" coordinate. See
         :class:`~improver.nbhood.use_nbhood.\
-CollapseMaskedNeighbourhoodCoordinate`
+        CollapseMaskedNeighbourhoodCoordinate`
         for a plugin to collapse the new dimension on the output cube.
         See also :class:`~improver.generate_ancillaries.generate_ancillary.\
-GenerateOrographyBandAncils`
+        GenerateOrographyBandAncils`
         for a plugin for generating topographic band masks.
 
     """
@@ -218,7 +218,7 @@ GenerateOrographyBandAncils`
 
 class CollapseMaskedNeighbourhoodCoordinate(object):
 
-    """
+    r"""
     Plugin for collapsing the coordinate the mask was applied to after
     masked neighbourhood processing.
 
@@ -231,10 +231,10 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
 
         This plugin is designed to work with
         :class:`~improver.nbhood.use_nbhood.\
-ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the resulting
-        cube based on the masks that are applied. This most obvious example
-        of these masks are topographic bands which separate the points in the
-        field to be neighbourhooded into bands with points of similar
+        ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the
+        resulting cube based on the masks that are applied. This most obvious
+        example of these masks are topographic bands which separate the points
+        in the field to be neighbourhooded into bands with points of similar
         orographic height.
         ::
 
@@ -243,7 +243,7 @@ ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the resulting
             ..............................
             Band 2        ---
             ............./...\.../\.......
-            Band 1      /     ---  \\
+            Band 1      /     ---  \
             .........../............\.....
             Band 0    /              --
             ........--.................\..
@@ -260,7 +260,7 @@ ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the resulting
         the upper band. For point B we would take equal weightings between the
         bands. There is a plugin to generate weights here:
         :class:`~improver.generate_ancillaries.\
-generate_topographic_zone_weights.GenerateTopographicZoneWeights`
+        generate_topographic_zone_weights.GenerateTopographicZoneWeights`
         ::
 
                         A             B
@@ -284,8 +284,8 @@ generate_topographic_zone_weights.GenerateTopographicZoneWeights`
 
         When this plugin is used alongside
         :class:`~improver.nbhood.use_nbhood.\
-ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the same
-        dimensions as the original cube, but the neighbourhood processing
+        ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the
+        same dimensions as the original cube, but the neighbourhood processing
         has been applied using masks so that only similar points are used in
         the neighbourhood.
 
