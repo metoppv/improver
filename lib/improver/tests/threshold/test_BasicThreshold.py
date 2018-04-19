@@ -144,7 +144,7 @@ class Test_process(IrisTest):
 
         # cube to test unit conversion
         rate_data = np.zeros((5, 5))
-        rate_data[2][2] = 1.39e-6 # ~ 5 mm/hr
+        rate_data[2][2] = 1.39e-6  # ~ 5 mm/hr
         rate_cube = Cube(rate_data, 'rainfall_rate', units='m s-1',
                          dim_coords_and_dims=[(latitude, 0), (longitude, 1)])
         self.rate_cube = rate_cube
