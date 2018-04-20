@@ -47,19 +47,19 @@ def main():
     the Newton iterator used to calculate the wet bulb temperatures."""
 
     parser = ArgParser(
-        description='Calculate a cube of wet bulb temperatures.')
+        description='Calculate a field of wet bulb temperatures.')
     parser.add_argument('temperature', metavar='TEMPERATURE',
-                        help='File path to a cube of air temperatures at the '
-                        'points for which the wet bulb temperatures are being '
-                        'calculated.')
+                        help='Path to a NetCDF file of air temperatures at '
+                        'the points for which the wet bulb temperatures are '
+                        'being calculated.')
     parser.add_argument('relative_humidity', metavar='RELATIVE_HUMIDITY',
-                        help='File path to a cube of relative humidities at '
+                        help='Path to a NetCDF file of relative humidities at '
                         'the points for for which the wet bulb temperatures '
                         'are being calculated.')
     parser.add_argument('pressure', metavar='PRESSURE',
-                        help='File path to a cube of air pressures at the '
-                        'points for for which the wet bulb temperatures are '
-                        'being calculated.')
+                        help='Path to a NetCDF file of air pressures at the '
+                        'points for which the wet bulb temperatures are being'
+                        ' calculated.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--convergence_condition',

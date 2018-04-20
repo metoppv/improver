@@ -41,18 +41,18 @@ usage: improver-snow-falling-level [-h] [--precision NEWTON_PRECISION]
 Calculate the continuous falling snow level
 
 positional arguments:
-  TEMPERATURE           File path to a cube of air temperatures at heights (m)
-                        at the points for which the continuous falling snow
-                        level is being calculated.
-  RELATIVE_HUMIDITY     File path to a cube of relative_humidities at heights
+  TEMPERATURE           Path to a NetCDF file of air temperatures at heights
                         (m) at the points for which the continuous falling
                         snow level is being calculated.
-  PRESSURE              File path to a cube of air pressures at heights (m) at
-                        the points for which the continuous falling snow level
-                        is being calculated.
-  OROGRAPHY             A path to an input NetCDF file containing a cube with
-                        the orography in m of the terrain over which the
-                        continuous falling snow level is beingcalculated.
+  RELATIVE_HUMIDITY     Path to a NetCDF file of relative_humidities at
+                        heights (m) at the points for which the continuous
+                        falling snow level is being calculated.
+  PRESSURE              Path to a NetCDF file of air pressures at heights (m)
+                        at the points for which the continuous falling snow
+                        level is being calculated.
+  OROGRAPHY             Path to a NetCDF file containing the orography height
+                        in m of the terrain over which the continuous falling
+                        snow level is being calculated.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:

@@ -37,8 +37,8 @@ usage: improver-wxcode [-h]
                        INPUT_FILES INPUT_FILES INPUT_FILES INPUT_FILES
                        INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE
 
-Calculate a cube of weather symbol codes.
-This plugin requires a specific set of input cubes, where data
+Calculate gridded weather symbol codes.
+This plugin requires a specific set of input diagnostics, where data
 may be in any units to which the thresholds given below can
 be converted:
  - probability_of_lwe_snowfall_rate; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
@@ -50,7 +50,7 @@ be converted:
  - probability_of_visibility_in_air; thresholds: below 1000.0 (m), below 5000.0 (m)
 
 positional arguments:
-  INPUT_FILES  Paths to files containing the required input cubes.
+  INPUT_FILES  Paths to files containing the required input diagnostics.
   OUTPUT_FILE  The output path for the processed NetCDF.
 
 optional arguments:

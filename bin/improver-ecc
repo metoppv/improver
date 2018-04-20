@@ -47,8 +47,8 @@ def main():
     Copula Coupling.
     """
     parser = ArgParser(
-        description='Apply Ensemble Copula Coupling '
-                    'to a file with one cube.')
+        description='Apply Ensemble Copula Coupling to a file whose '
+                    'data can be loaded as a single iris.cube.Cube.')
 
     # General options:
     parser.add_argument('input_filepath', metavar='INPUT_FILE',

@@ -38,29 +38,30 @@ usage: improver-combine [-h] [--operation OPERATION] [--new-name NEW_NAME]
                         [--warnings_on]
                         INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
 
-Combine the input cubes into a single cube using the requested operation e.g.
+Combine the input files into a single file using the requested operation e.g.
 + - min max etc.
 
 positional arguments:
-  INPUT_FILENAMES       A path to an input NETCDF files. One cube per NetCDF
-                        file. The resulting cube will be based on the first
-                        cube but its metadata can be overwritten via the
-                        metadata_jsonfile.
+  INPUT_FILENAMES       Paths to the input NetCDF files. Each input file
+                        should be able to be loaded as a single iris.cube.Cube
+                        instance. The resulting file metadata will be based on
+                        the first file but its metadata can be overwritten via
+                        the metadata_jsonfile option.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
   -h, --help            show this help message and exit
   --operation OPERATION
-                        Operation to use in combining the cubes Default=+ i.e.
-                        add
-  --new-name NEW_NAME   New name for the resulting diagnostic cube. Will
-                        default to the name of the first diagnostic cube if
-                        not set.
+                        Operation to use in combining NetCDF datasets
+                        Default=+ i.e. add
+  --new-name NEW_NAME   New name for the resulting dataset. Will default to
+                        the name of the first dataset if not set.
   --metadata_jsonfile METADATA_JSONFILE
                         Filename for the json file containing required changes
                         to the metadata. default=None
   --warnings_on         If warnings_on is set (i.e. True), Warning messages
-                        where cubes do not match will be given. Default=False
+                        where metadata do not match will be given.
+                        Default=False
 __HELP__
   [[ "$output" == "$expected" ]]
 }

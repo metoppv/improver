@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to apply thresholding to a cube."""
+"""Script to apply thresholding to a parameter dataset."""
 
 from improver.argparser import ArgParser
 
@@ -44,7 +44,7 @@ from improver.utilities.save import save_netcdf
 def main():
     """Load in arguments and get going."""
     parser = ArgParser(
-        description="Calculate the threshold truth value of cube data "
+        description="Calculate the threshold truth value of input data "
         "relative to the provided threshold value. By default data are "
         "tested to be above the thresholds, though the --below_threshold "
         "flag enables testing below thresholds. A fuzzy factor or fuzzy "
@@ -75,8 +75,8 @@ def main():
                         default=None, type=str,
                         help="Units of the threshold values. If not provided "
                         "the units are assumed to be the same as those of the "
-                        "input cube. Specifying the units here will allow a "
-                        "suitable conversion to match the cube units if "
+                        "input dataset. Specifying the units here will allow "
+                        "a suitable conversion to match the input units if "
                         "possible.")
     parser.add_argument("--below_threshold", default=False,
                         action='store_true',
