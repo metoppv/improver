@@ -41,6 +41,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.save import save_netcdf
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
@@ -89,7 +90,7 @@ class Test_load_cube(IrisTest):
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_temperature_cube()
-        iris.save(self.cube, self.filepath)
+        save_netcdf(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
         self.time_points = np.array([402192.5])
         self.latitude_points = np.array([-45., 0., 45.])
@@ -173,7 +174,7 @@ class Test_load_cube(IrisTest):
         undesirable order and the cube contains a "realization" coordinate."""
         cube = set_up_temperature_cube()
         cube.transpose([3, 2, 1, 0])
-        iris.save(cube, self.filepath)
+        save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("realization")[0], 0)
         self.assertEqual(result.coord_dims("time")[0], 1)
@@ -186,7 +187,7 @@ class Test_load_cube(IrisTest):
         coordinate."""
         cube = set_up_percentile_temperature_cube()
         cube.transpose([3, 2, 1, 0])
-        iris.save(cube, self.filepath)
+        save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(
             result.coord_dims("percentile_over_realization")[0], 0)
@@ -199,7 +200,7 @@ class Test_load_cube(IrisTest):
         undesirable order and the cube contains a "threshold" coordinate."""
         cube = set_up_probability_above_threshold_temperature_cube()
         cube.transpose([3, 2, 1, 0])
-        iris.save(cube, self.filepath)
+        save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("threshold")[0], 0)
         self.assertEqual(result.coord_dims("time")[0], 1)
@@ -217,7 +218,7 @@ class Test_load_cube(IrisTest):
         cube = create_sample_cube_with_additional_coordinate(
             cube, "percentile_over_neighbourhood", [10, 50, 90])
         cube.transpose([5, 4, 3, 2, 1, 0])
-        iris.save(cube, self.filepath)
+        save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("realization")[0], 0)
         self.assertEqual(
@@ -247,7 +248,7 @@ class Test_load_cubelist(IrisTest):
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_temperature_cube()
-        iris.save(self.cube, self.filepath)
+        save_netcdf(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
         self.time_points = np.array(402192.5)
         self.latitude_points = np.array([-45., 0., 45.])
@@ -315,10 +316,10 @@ class Test_load_cubelist(IrisTest):
         of the available files."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
-        iris.save(low_cloud_cube, self.low_cloud_filepath)
+        save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
-        iris.save(medium_cloud_cube, self.med_cloud_filepath)
+        save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         constr = iris.Constraint("low_type_cloud_area_fraction")
         result = load_cubelist([self.low_cloud_filepath,
                                 self.med_cloud_filepath], constraints=constr)

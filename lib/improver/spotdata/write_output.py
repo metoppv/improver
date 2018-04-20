@@ -34,7 +34,7 @@ import os
 import iris
 from iris import FUTURE
 
-FUTURE.netcdf_no_unlimited = True
+from improver.utilities.save import save_netcdf
 
 
 class WriteOutput(object):
@@ -88,5 +88,5 @@ class WriteOutput(object):
         """
         if self.filename is None:
             self.filename = cube.name()
-        iris.save(
-            cube, '{}.nc'.format(os.path.join(self.dir_path, self.filename)))
+        save_netcdf(cube,
+                    '{}.nc'.format(os.path.join(self.dir_path, self.filename)))
