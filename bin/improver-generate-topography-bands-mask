@@ -97,6 +97,8 @@ def main():
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = load_cube(args.input_filepath_standard_orography)
+        orography = next(orography.slices([orography.coord(axis='y'),
+                                           orography.coord(axis='x')]))
 
         landmask = None
         if args.input_filepath_landmask:
@@ -109,6 +111,10 @@ def main():
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
                 raise IOError(msg)
+
+            landmask = next(landmask.slices([landmask.coord(axis='y'),
+                                             landmask.coord(axis='x')]))
+
         result = GenerateOrographyBandAncils().process(
             orography, thresholds_dict, landmask=landmask)
         result = result.concatenate_cube()

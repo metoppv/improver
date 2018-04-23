@@ -29,12 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "extract no arguments" {
-  run improver extract
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]] [--ignore-failure]
-                        INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extract ignore failure" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run cube extraction processing and check it passes.
+  run improver extract \
+      "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
+      "$TEST_DIR/output.nc" \
+      percentile=10 --ignore-failure
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

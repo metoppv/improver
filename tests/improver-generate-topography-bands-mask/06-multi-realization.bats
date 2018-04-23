@@ -29,12 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "extract no arguments" {
-  run improver extract
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]] [--ignore-failure]
-                        INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "generate-topography-bands-mask multi-realization input" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+  test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-mask/multi_realization/
+
+  # Run topography band mask generation and check it passes.
+  run improver generate-topography-bands-mask \
+      "$test_path/input_orog.nc" \
+      "$TEST_DIR/output.nc" \
+      --input_filepath_landmask "$test_path/input_land.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$test_path/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }
