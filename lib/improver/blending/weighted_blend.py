@@ -462,7 +462,7 @@ class WeightedBlendAcrossWholeDimension(object):
             self._check_all_time_points_equal(cube)
 
         if weights is not None:
-            self._check_weights_shape_matches_coord_shape(cube, weights)
+            self._check_weights_have_coord_shape(cube, weights)
 
         # only do blending if coordinate is a dimension coordinate
         coord_dim = cube.coord_dims(self.coord)
@@ -481,6 +481,35 @@ class WeightedBlendAcrossWholeDimension(object):
 
         return result
 
+    @staticmethod
+    def _check_input_cube_has_correct_type(cube):
+        if not isinstance(cube, iris.cube.Cube):
+            msg = ('The first argument must be an instance of '
+                   'iris.cube.Cube but is'
+                   ' {0:s}.'.format(type(cube)))
+            raise TypeError(msg)
+
+    @staticmethod
+    def _check_all_time_points_equal(cube):
+        if cube.coords("time"):
+            time_points = cube.coord("time").points
+            if len(np.unique(time_points)) > 1:
+                msg = ("For blending using the forecast_reference_time "
+                       "coordinate, the points within the time coordinate "
+                       "need to be the same. The time points within the "
+                       "input cube are {}".format(time_points))
+                raise ValueError(msg)
+
+    def _check_weights_have_coord_shape(self, cube, weights):
+        if np.array(weights).shape != cube.coord(self.coord).points.shape:
+            msg = ('The weights array must match the shape '
+                   'of the coordinate in the input cube; '
+                   'weight shape is '
+                   '{0:s}'.format(np.array(weights).shape) +
+                   ', cube shape is '
+                   '{0:s}'.format(cube.coord(self.coord).points.shape))
+            raise ValueError(msg)
+
     def _perform_blending(self, cube, weights):
         cubelist = iris.cube.CubeList([])
         for cube_thres in self._slices_over_threshold(cube):
@@ -497,15 +526,34 @@ class WeightedBlendAcrossWholeDimension(object):
             result.data = np.ma.array(result.data)
         return result
 
-    def _check_weights_shape_matches_coord_shape(self, cube, weights):
-        if np.array(weights).shape != cube.coord(self.coord).points.shape:
-            msg = ('The weights array must match the shape '
-                   'of the coordinate in the input cube; '
-                   'weight shape is '
-                   '{0:s}'.format(np.array(weights).shape) +
-                   ', cube shape is '
-                   '{0:s}'.format(cube.coord(self.coord).points.shape))
-            raise ValueError(msg)
+    def _perform_blend_across_threshold(self, cube_thres, weights):
+
+        # check to see if the data is percentile data
+        # if not, perc_coord will be None
+        perc_coord = self._get_perc_dim_coord(cube_thres)
+
+        # Blend the cube across the coordinate
+        if self.mode == "weighted_mean":
+            # Use percentile Aggregator if required
+            if perc_coord:
+                cube_new = self._blend_weighted_mean_percentile(cube_thres,
+                                                                weights,
+                                                                perc_coord)
+            # Else do a simple weighted average
+            else:
+                cube_new = self._blend_weighted_mean(cube_thres, weights)
+
+        # Else use the maximum probability aggregator.
+        elif self.mode == "weighted_maximum":
+            # If we have a percentile dimension and the mode is 'max' raise an
+            # exception.
+            if perc_coord:
+                msg = ('The "weighted_maximum" mode cannot be used with'
+                       ' percentile data.')
+                raise ValueError(msg)
+            else:
+                cube_new = self._blend_weighted_maximum(cube_thres, weights)
+        return cube_new
 
     @staticmethod
     def _get_perc_dim_coord(cube):
@@ -527,54 +575,6 @@ class WeightedBlendAcrossWholeDimension(object):
             perc_coord = None
         return perc_coord
 
-    @staticmethod
-    def _check_all_time_points_equal(cube):
-        if cube.coords("time"):
-            time_points = cube.coord("time").points
-            if len(np.unique(time_points)) > 1:
-                msg = ("For blending using the forecast_reference_time "
-                       "coordinate, the points within the time coordinate "
-                       "need to be the same. The time points within the "
-                       "input cube are {}".format(time_points))
-                raise ValueError(msg)
-
-    @staticmethod
-    def _check_input_cube_has_correct_type(cube):
-        if not isinstance(cube, iris.cube.Cube):
-            msg = ('The first argument must be an instance of '
-                   'iris.cube.Cube but is'
-                   ' {0:s}.'.format(type(cube)))
-            raise TypeError(msg)
-
-    def _perform_blend_across_threshold(self, cube_thres, weights):
-
-        # check to see if the data is percentile data
-        # if not, perc_coord will be None
-        perc_coord = self._get_perc_dim_coord(cube_thres)
-
-        # Blend the cube across the coordinate
-        if self.mode == "weighted_mean":
-            # Use percentile Aggregator if required
-            if perc_coord:
-                cube_new = self._blending_weighted_mean_percentile(cube_thres,
-                                                                   weights,
-                                                                   perc_coord)
-            # Else do a simple weighted average
-            else:
-                cube_new = self._blending_weighted_mean(cube_thres, weights)
-
-        # Else use the maximum probability aggregator.
-        elif self.mode == "weighted_maximum":
-            # If we have a percentile dimension and the mode is 'max' raise an
-            # exception.
-            if perc_coord:
-                msg = ('The "weighted_maximum" mode cannot be used with'
-                       ' percentile data.')
-                raise ValueError(msg)
-            else:
-                cube_new = self._blending_weighted_maximum(cube_thres, weights)
-        return cube_new
-
     def _slices_over_threshold(self, cube):
         try:
             cube.coord('threshold')
@@ -587,16 +587,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 slices_over_threshold = [cube]
         return slices_over_threshold
 
-
-    def _adjust_coord(self, cube_to_adjust, orig_cube, blend_coord):
-        for crd in cube_to_adjust.coords():
-            if orig_cube.coord_dims(crd.name()) == blend_coord:
-                pnts = orig_cube.coord(crd.name()).points
-                crd.points = np.array(self.coord_adjust(pnts),
-                                      dtype=crd.points.dtype)
-        return cube_to_adjust
-
-    def _blending_weighted_maximum(self, cube_thres, weights):
+    def _blend_weighted_maximum(self, cube_thres, weights):
         # Set equal weights if none are provided
         if weights is None:
             weights = self._equal_weights(cube_thres)
@@ -610,12 +601,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                         arr_weights=weights)
         return cube_new
 
-    def _equal_weights(self, cube):
-        num = len(cube.coord(self.coord).points)
-        weights = np.ones(num) / float(num)
-        return weights
-
-    def _blending_weighted_mean(self, cube_thres, weights):
+    def _blend_weighted_mean(self, cube_thres, weights):
         # Equal weights are used as default.
         weights_array = None
         # Else broadcast the weights to be used by the aggregator.
@@ -640,8 +626,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                 'mean')
         return cube_new
 
-    def _blending_weighted_mean_percentile(self, cube_thres, weights,
-                                           perc_coord):
+    def _blend_weighted_mean_percentile(self, cube_thres, weights, perc_coord):
         percentiles = np.array(perc_coord.points, dtype=float)
         perc_dim, = cube_thres.coord_dims(perc_coord.name())
 
@@ -669,3 +654,11 @@ class WeightedBlendAcrossWholeDimension(object):
                                         arr_weights=weights,
                                         perc_dim=perc_dim)
         return cube_new
+
+    def _adjust_coord(self, cube_to_adjust, orig_cube, blend_coord):
+        for crd in cube_to_adjust.coords():
+            if orig_cube.coord_dims(crd.name()) == blend_coord:
+                pnts = orig_cube.coord(crd.name()).points
+                crd.points = np.array(self.coord_adjust(pnts),
+                                      dtype=crd.points.dtype)
+        return cube_to_adjust
