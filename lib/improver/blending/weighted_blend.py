@@ -455,7 +455,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         """
 
-        self._check_input_cube_has_correct_type(cube)
+        self._check_input_cube_is_iris_cube(cube)
 
         # if the coordinate being blended is forecast_reference_time.
         if self.coord == "forecast_reference_time":
@@ -482,7 +482,7 @@ class WeightedBlendAcrossWholeDimension(object):
         return result
 
     @staticmethod
-    def _check_input_cube_has_correct_type(cube):
+    def _check_input_cube_is_iris_cube(cube):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
@@ -586,6 +586,11 @@ class WeightedBlendAcrossWholeDimension(object):
             else:
                 slices_over_threshold = [cube]
         return slices_over_threshold
+
+    def _equal_weights(cube):
+        num = len(cube.coord(self.coord).points)
+        weights = np.ones(num) / float(num)
+        return weights
 
     def _blend_weighted_maximum(self, cube_thres, weights):
         # Set equal weights if none are provided
