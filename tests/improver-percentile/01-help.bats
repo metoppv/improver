@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,10 +39,10 @@ usage: improver-percentile [-h]
                            --no-of-percentiles NUMBER_OF_PERCENTILES]
                            INPUT_FILE OUTPUT_FILE
 
-Calculate percentiled data over a cube coordinate by collapsing that
+Calculate percentiled data over a given coordinate by collapsing that
 coordinate. Typically used to convert realization (member) data into
 percentiled data, but may calculate over any dimension coordinate.
-Alternatively, calling this CLI with a cube containing probabilities will
+Alternatively, calling this CLI with a dataset containing probabilities will
 convert those to percentiles using the ensemble copula coupling plugin. If no
 particular percentiles are given at which to calculate values and no 'number
 of percentiles' to calculate are specified, the following defaults will be

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@ import numpy as np
 from improver.nbhood.vicinity import ProbabilityOfOccurrence
 from improver.tests.utilities.test_OccurrenceWithinVicinity import (
     set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -84,14 +85,16 @@ class Test_process(IrisTest):
                                 y_dimension_values=y_dimension_values,
                                 x_dimension_values=y_dimension_values)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_with_realization(self):
         """Test when a realization coordinate is present."""
         expected = np.array(
-            [[[1, 1., 0.77777778, 0.55555556, 0.33333333],
+            [[[1., 1., 0.8333333, 0.666667, 0.5],
               [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
               [0.33333333, 0.55555556, 0.77777778, 1., 1.],
               [0., 0.22222222, 0.44444444, 0.66666667, 0.66666667],
-              [0., 0.11111111, 0.22222222, 0.33333333, 0.33333333]]])
+              [0., 0.16666667, 0.33333333, 0.5, 0.5]]])
         distance = 2000
         neighbourhood_method = "square"
         radii = 2000
@@ -102,18 +105,21 @@ class Test_process(IrisTest):
         result = (
             ProbabilityOfOccurrence(
                 distance, neighbourhood_method, radii).process(self.cube))
+
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_without_realization(self):
         """Test when a realization coordinate is not present."""
         expected = np.array(
-            [[[1, 1., 0.77777778, 0.55555556, 0.33333333],
+            [[[1., 1., 0.8333333, 0.666667, 0.5],
               [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
               [0.33333333, 0.55555556, 0.77777778, 1., 1.],
               [0., 0.22222222, 0.44444444, 0.66666667, 0.66666667],
-              [0., 0.11111111, 0.22222222, 0.33333333, 0.33333333]]])
+              [0., 0.16666667, 0.33333333, 0.5, 0.5]]])
         cube = self.cube[0, :, :, :]
         cube.remove_coord("realization")
         distance = 2000
@@ -127,19 +133,21 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_additional_arguments(self):
         """Test when all keyword arguments are passed in."""
         expected = np.array(
-            [[[1., 1., 0.77777778, 0.55555556, 0.333333],
+            [[[1., 1., 0.8333333, 0.666667, 0.5],
               [0.66666667, 0.77777778, 0.77777778, 0.77777778, 0.66666667],
               [0.33333333, 0.55555556, 0.77777778, 1., 1.],
               [0., 0.22222222, 0.44444444, 0.66666667, 0.66666667],
-              [0., 0.11111111, 0.22222222, 0.33333333, 0.33333333]],
-             [[0.84, 0.8, 0.76, 0.72, 0.68],
-              [0.68, 0.7, 0.72, 0.74, 0.76],
-              [0.48, 0.52, 0.56, 0.6, 0.64],
-              [0.3, 0.4, 0.5, 0.6, 0.7],
-              [0.12, 0.24, 0.36, 0.48, 0.6]]])
+              [0., 0.16666667, 0.33333333, 0.5, 0.5]],
+             [[0.77777778, 0.75, 0.73333333, 0.75, 0.77777778],
+              [0.66666667, 0.6875, 0.7, 0.75, 0.8333333],
+              [0.53333333, 0.55, 0.56, 0.6, 0.66666667],
+              [0.41666667, 0.5, 0.55, 0.625, 0.75],
+              [0.22222222, 0.33333333, 0.4, 0.5, 0.66666667]]])
         data = np.zeros((1, 2, 5, 5))
         data[0, :, 0, 1] = 1.0
         data[0, :, 2, 3] = 1.0

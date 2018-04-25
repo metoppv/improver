@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -124,6 +124,7 @@ class Test_wxcode_decision_tree(IrisTest):
                                                'diagnostic_conditions'))
             self.assertEqual(diag_len, thres_len)
             self.assertEqual(diag_len, cond_len)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,14 +29,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to combine cube data."""
+"""Script to combine netcdf data."""
 
-import argparse
+from improver.argparser import ArgParser
 
 import iris
 import json
 import warnings
-from glob import glob
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.load import load_cube
@@ -46,16 +45,17 @@ from improver.utilities.save import save_netcdf
 def main():
     """Load in arguments for the cube combiner plugin.
     """
-    parser = argparse.ArgumentParser(
-        description="Combine the input cubes into a single cube using "
+    parser = ArgParser(
+        description="Combine the input files into a single file using "
                     "the requested operation e.g. + - min max etc.")
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
                         nargs="+", type=str,
-                        help="A path to an input NETCDF files."
-                        " One cube per NetCDF file. The resulting"
-                        " cube will be based on the first cube but"
+                        help="Paths to the input NetCDF files. Each input"
+                        " file should be able to be loaded as a single "
+                        " iris.cube.Cube instance. The resulting file"
+                        " metadata will be based on the first file but"
                         " its metadata can be overwritten via"
-                        " the metadata_jsonfile.")
+                        " the metadata_jsonfile option.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF.")
     parser.add_argument("--operation", metavar="OPERATION",
@@ -63,12 +63,12 @@ def main():
                         choices=["+", "-", "*",
                                  "add", "subtract", "multiply",
                                  "min", "max", "mean"],
-                        help="Operation to use in combining the cubes"
+                        help="Operation to use in combining NetCDF datasets"
                         " Default=+ i.e. add ", type=str)
     parser.add_argument("--new-name", metavar="NEW_NAME",
                         default=None,
-                        help="New name for the resulting diagnostic cube. Will"
-                        " default to the name of the first diagnostic cube if "
+                        help="New name for the resulting dataset. Will"
+                        " default to the name of the first dataset if "
                         "not set.", type=str)
     parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
                         default=None,
@@ -77,18 +77,14 @@ def main():
                         " default=None", type=str)
     parser.add_argument('--warnings_on', action='store_true',
                         help="If warnings_on is set (i.e. True), "
-                        "Warning messages where cubes do not match "
+                        "Warning messages where metadata do not match "
                         "will be given. Default=False", default=False)
 
     args = parser.parse_args()
     # Load the cubes
     cubes = iris.cube.CubeList([])
     new_cube_name = args.new_name
-    input_filenames = []
-    for filename_globlist in args.input_filenames:
-        for filename in glob(filename_globlist):
-            input_filenames.append(filename)
-    for filename in input_filenames:
+    for filename in args.input_filenames:
         new_cube = load_cube(filename)
         cubes.append(new_cube)
         if new_cube_name is None:

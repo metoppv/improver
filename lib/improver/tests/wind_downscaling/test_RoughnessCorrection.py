@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -113,28 +113,30 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
         try:
             data = np.array(data)
             cube.data = data.reshape(cube.data.shape)
-        except ValueError as ex:
-            if ex.message == "total size of new array must be unchanged":
+        except ValueError as err:
+            if err == "total size of new array must be unchanged":
                 msg = ("supplied data does not fit the cube."
                        "cube dimensions: {} vs. supplied data {}")
                 raise ValueError(msg.format(cube.shape, data.shape))
             else:
-                raise ValueError(ex)
+                raise ValueError(err)
 
     if name is not None:
         try:
             cube.standard_name = name
-        except ValueError as ex:
-            msg = "error trying to set the supplied name as cube data name: "
-            raise ValueError(msg + ex.message)
-        except TypeError as ex:
+        except ValueError as err:
             msg = ("error trying to set the supplied name as cube data name: "
-                   "the name should be string and have a valid variable name ")
-            raise ValueError(msg + ex.message)
+                   "{}".format(err))
+            raise ValueError(msg)
+        except TypeError as err:
+            msg = ("error trying to set the supplied name as cube data name: "
+                   "the name should be string and have a valid variable name "
+                   "{}".format(err))
+            raise ValueError(msg)
     if unit is not None:
         try:
             cube.units = Unit(unit)
-        except ValueError as ex:
+        except ValueError as err:
             msg = "error trying to set Units to cube. supplied unit: {}"
             raise ValueError(msg.format(unit))
     return cube
@@ -646,6 +648,12 @@ class Test1D(IrisTest):
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
+    def test_section1g(self):
+        """Test that code returns float32 precision."""
+        landpointtests_hc_rc = TestSinglePoint()
+        land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
+        self.assertEqual(land_hc_rc.dtype, np.float32)
+
 
 class Test2D(IrisTest):
 
@@ -728,6 +736,15 @@ class Test2D(IrisTest):
         with self.assertRaisesRegexp(TypeError, msg):
             _ = multip_hc_rc.run_hc_rc([uin, uin], dtime=2, height=heights,
                                        aslist=True)
+
+    def test_section2d(self):
+        """Test whether output is float32."""
+        hlvs = 10
+        uin = np.ones(hlvs)*20
+        heights = ((np.arange(hlvs)+1)**2.)*12.
+        multip_hc_rc = TestMultiPoint(3)
+        land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
+        self.assertEqual(land_hc_rc.dtype, np.float32)
 
     def test_section3a(self):
         """As test 1c, however with manipulated z_0 cube.

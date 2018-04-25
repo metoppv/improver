@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
       --new-name='total_cloud_cover_excluding_high_cloud' \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/low_cloud.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/medium_cloud.nc" \
-       "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

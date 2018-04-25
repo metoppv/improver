@@ -1,6 +1,6 @@
-git# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -145,6 +145,32 @@ class Test_process(IrisTest):
         plugin = Threshold(threshold, fuzzy_factor=fuzzy_factor)
         result = plugin.process(self.cube)
         self.assertIsInstance(result, Cube)
+
+    def test_data_precision_preservation(self):
+        """Test that the plugin returns an iris.cube.Cube of the same float
+        precision as the input cube."""
+        threshold = 0.1
+        plugin = Threshold(threshold, fuzzy_factor=self.fuzzy_factor)
+        f64cube = self.cube.copy(data=self.cube.data.astype(np.float64))
+        f32cube = self.cube.copy(data=self.cube.data.astype(np.float32))
+        f64result = plugin.process(f64cube)
+        f32result = plugin.process(f32cube)
+        self.assertEqual(f64cube.dtype, f64result.dtype)
+        self.assertEqual(f32cube.dtype, f32result.dtype)
+
+    def test_data_type_change_for_ints(self):
+        """Test that the plugin returns an iris.cube.Cube of float32 type
+        if the input cube is of int type. This allows fuzzy bounds to be used
+        which return fractional values."""
+        fuzzy_factor = 5./6.
+        threshold = 12
+        self.cube.data = np.arange(25).reshape(1, 5, 5)
+        plugin = Threshold(threshold, fuzzy_factor=fuzzy_factor)
+        result = plugin.process(self.cube)
+        expected = np.round(np.arange(0, 1, 1./25.)).reshape(1, 1, 5, 5)
+        expected[0, 0, 2, 1:4] = [0.25, 0.5, 0.75]
+        self.assertEqual(result.dtype, 'float32')
+        self.assertArrayEqual(result.data, expected)
 
     def test_metadata_changes(self):
         """Test the metadata altering functionality"""

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,8 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells,
-    lat_lon_determine, lat_lon_transform, get_nearest_coords)
+    lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
+    get_nearest_coords)
 from improver.tests.spotdata.spotdata.test_common_functions import (
     Test_common_functions)
 
@@ -225,6 +226,36 @@ class Test_lat_lon_transform(Test_common_functions):
         self.assertAlmostEqual(expected_y, result_y)
 
 
+class Test_transform_grid_to_lat_lon(IrisTest):
+    """
+    Test function that transforms the points in the cube
+    into grid of latitudes and longitudes
+
+    """
+
+    def setUp(self):
+        """Set up the cube."""
+        self.cube = set_up_cube(zero_point_indices=((0, 0, 1, 1),),
+                                num_grid_points=2)
+        self.cube.coord(axis='x').points = np.array([-1158000.0, 924000.0])
+        self.cube.coord(axis='y').points = np.array([-1036000.0, 902000.0])
+
+    def test_transform_grid(self):
+        """
+        Test transformation of grid
+        """
+        expected_lons = np.array([-17.11712928, 9.21255933,
+                                  -24.5099247, 15.27976922]).reshape(2, 2)
+        expected_lats = np.array([44.51715281, 44.899873,
+                                  61.31885886, 61.9206868]).reshape(2, 2)
+        plugin = transform_grid_to_lat_lon
+        result_lats, result_lons = plugin(self.cube)
+        self.assertIsInstance(result_lats, np.ndarray)
+        self.assertIsInstance(result_lons, np.ndarray)
+        self.assertArrayAlmostEqual(result_lons, expected_lons)
+        self.assertArrayAlmostEqual(result_lats, expected_lats)
+
+
 class Test_get_nearest_coords(Test_common_functions):
     """Test wrapper for iris.cube.Cube.nearest_neighbour_index."""
 
@@ -237,6 +268,7 @@ class Test_get_nearest_coords(Test_common_functions):
         result = plugin(self.cube, latitude, longitude,
                         'latitude', 'longitude')
         self.assertEqual(expected, result)
+
 
 if __name__ == '__main__':
     unittest.main()

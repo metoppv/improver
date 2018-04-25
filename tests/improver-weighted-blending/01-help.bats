@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
 
 Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
-apply these weights to the cube using the BasicWeightedAverage plugin.
+apply these weights to the dataset using the BasicWeightedAverage plugin.
 Required for ChooseDefaultWeightsLinear: y0val and ONE of slope, ynval.
 Required for ChooseDefaultWeightsNonLinear: cval.
 

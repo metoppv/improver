@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -84,7 +84,7 @@ class ConditionalListExtract(object):
         array_of_indices = np.array(indices_list)
         try:
             function = getattr(self, self.method)
-        except:
+        except AttributeError:
             raise AttributeError('Unknown method "{}" passed to {}.'.format(
                 self.method, self.__class__.__name__))
 

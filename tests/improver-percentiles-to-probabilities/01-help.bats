@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,9 @@ positional arguments:
 
 optional arguments:
   -h, --help           show this help message and exit
-  --new_name NEW_NAME  Name for data in output cube. Defaults to
-                       'probability_of_X', where X is the percentiles cube
-                       data name
+  --new_name NEW_NAME  Name for data in output file. Defaults to
+                       'probability_of_X', where X is the name of the
+                       percentiled diagnostic.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

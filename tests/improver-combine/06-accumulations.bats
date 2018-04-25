@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc" \
+      $IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

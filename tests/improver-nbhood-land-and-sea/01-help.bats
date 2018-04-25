@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,17 @@ usage: improver-nbhood-land-and-sea [-h]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--ens_factor ENS_FACTOR]
                                     [--sum_or_fraction {sum,fraction}]
-                                    [--intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS]
+                                    [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 
-Neighbourhood the input cube as two distinct regions of land and sea. If
+Neighbourhood the input dataset over two distinct regions of land and sea. If
 performed as a single level neighbourhood, a land-sea mask should be provided.
 If instead topographic_zone neighbourhooding is being employed, the mask
-should be one of topographic zones. In the latter case a weights cube is also
-required to collapse the topographic_zone coordinate. These weights are
-created with the improver generate-topography-bands-weights CLI and should be
-made using a land-sea mask, which will then be employed within this code to
-draw the distinction between the two surface types.
+should be one of topographic zones. In the latter case a weights array is also
+needed to collapse the topographic_zone coordinate. These weights are created
+with the improver generate-topography-bands-weights CLI and should be made
+using a land-sea mask, which will then be employed within this code to draw
+the distinction between the two surface types.
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed.
@@ -70,11 +70,12 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --intermediate_filepaths INTERMEDIATE_FILEPATHS INTERMEDIATE_FILEPATHS
-                        If provided the results after neighbourhooding, but
-                        before recombining land and sea are saved to the two
-                        given filepaths; the first path for the land output,
-                        the second path for the sea output.
+  --intermediate_filepath INTERMEDIATE_FILEPATH
+                        Intermediate filepath for results following
+                        topographic masked neighbourhood processing of land
+                        points and prior to collapsing the topographic_zone
+                        coordinate. Intermediate files will not be produced if
+                        no topographic masked neighbourhood processing occurs.
 
 Collapse weights - required if using a topographic zones mask:
   --weights_for_collapsing_dim WEIGHTS

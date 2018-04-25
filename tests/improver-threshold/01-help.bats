@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]
 
-Calculate the threshold truth value of cube data relative to the provided
+Calculate the threshold truth value of input data relative to the provided
 threshold value. By default data are tested to be above the thresholds, though
 the --below_threshold flag enables testing below thresholds. A fuzzy factor or
 fuzzy bounds may be provided to capture data that is close to the threshold.
@@ -66,8 +66,9 @@ optional arguments:
   --threshold_units THRESHOLD_UNITS
                         Units of the threshold values. If not provided the
                         units are assumed to be the same as those of the input
-                        cube. Specifying the units here will allow a suitable
-                        conversion to match the cube units if possible.
+                        dataset. Specifying the units here will allow a
+                        suitable conversion to match the input units if
+                        possible.
   --below_threshold     By default truth values of 1 are returned for data
                         ABOVE the threshold value(s). Using this flag changes
                         this behaviour to return 1 for data below the

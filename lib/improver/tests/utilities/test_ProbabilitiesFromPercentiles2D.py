@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,6 @@ Unit tests for the plugin ProbabilitiesFromPercentiles2D
 """
 
 import unittest
-import warnings
 import numpy as np
 
 import iris
@@ -45,6 +44,7 @@ from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_percentiles_cube():
@@ -352,7 +352,8 @@ class Test_process(IrisTest):
         self.assertEqual(percentiles_cube.coords(dim_coords=True)[0],
                          probability_cube.coords(dim_coords=True)[0])
 
-    def test_threshold_dimensions(self):
+    @ManageWarnings(record=True)
+    def test_threshold_dimensions(self, warning_list=None):
         """Test threshold data is correctly sliced and processed if eg a
         2-field orography cube is passed into the "process" function. Ensure a
         warning is raised."""
@@ -369,11 +370,9 @@ class Test_process(IrisTest):
                                                              (grid_x, 2)])
 
         msg = 'threshold cube has too many'
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            probability_cube = self.plugin_instance.process(threshold_cube)
-            self.assertTrue(warning_list[0].category == UserWarning)
-            self.assertTrue(msg in str(warning_list[0]))
+        probability_cube = self.plugin_instance.process(threshold_cube)
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertTrue(msg in str(warning_list[0]))
 
         self.assertSequenceEqual(probability_cube.shape,
                                  self.reference_cube.shape)

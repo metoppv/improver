@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -163,6 +163,12 @@ class BasicThreshold(object):
             ValueError: if a np.nan value is detected within the input cube.
 
         """
+        # Record input cube data type to ensure consistent output, though
+        # integer data must become float to enable fuzzy thresholding.
+        input_cube_dtype = input_cube.dtype
+        if input_cube.dtype.kind == 'i':
+            input_cube_dtype = np.float32
+
         thresholded_cubes = iris.cube.CubeList()
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
@@ -183,7 +189,7 @@ class BasicThreshold(object):
                             scale_range=(0.5, 1.),
                             clip=True),
                 )
-            truth_value = truth_value.astype(np.float64)
+            truth_value = truth_value.astype(input_cube_dtype)
             if self.below_thresh_ok:
                 truth_value = 1. - truth_value
             cube.data = truth_value
@@ -196,7 +202,6 @@ class BasicThreshold(object):
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
-
         # TODO: Correct when formal cf-standards exists
         # Force the metadata to temporary conventions
         if self.below_thresh_ok:

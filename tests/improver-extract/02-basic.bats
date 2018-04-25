@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "wind downscaling no arguments" {
-  run improver wind-downscaling
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-wind-downscaling [-h]
-                                 [--height_levels_filepath HEIGHT_LEVELS_FILE]
-                                 [--veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE]
-                                 WIND_SPEED_FILE AOS_FILE SIGMA_FILE
-                                 TARGET_OROGRAPHY_FILE STANDARD_OROGRAPHY_FILE
-                                 MODEL_RESOLUTION OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extract" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  # Run cube extraction processing and check it passes.
+  run improver extract \
+      "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
+      "$TEST_DIR/output.nc" \
+      realization=1
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/extract/basic/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

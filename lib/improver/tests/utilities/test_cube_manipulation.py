@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,6 @@ Unit tests for the utilities within the "cube_manipulation" module.
 
 """
 import unittest
-import warnings
 
 from cf_units import Unit
 import iris
@@ -61,6 +60,7 @@ from improver.utilities.cube_manipulation import (
     add_renamed_cell_method,
     sort_coord_in_cube,
     enforce_coordinate_ordering,
+    enforce_float32_precision,
     clip_cube_data)
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
@@ -71,6 +71,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 
 from improver.tests.utilities.test_mathematical_operations import (
     set_up_height_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_percentile_cube(data, phenomenon_standard_name, phenomenon_units,
@@ -609,17 +610,16 @@ class Test_merge_cubes(IrisTest):
             {'title':
              'Operational Mogreps UK Model Forecast'})
 
-    def test_basic(self):
+    @ManageWarnings(record=True)
+    def test_basic(self, warning_list=None):
         """Test that the utility returns an iris.cube.Cube."""
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = merge_cubes(self.cube)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, Cube)
+        result = merge_cubes(self.cube)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Only a single cube "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, Cube)
 
     def test_identical_cubes(self):
         """Test that merging identical cubes fails."""
@@ -678,20 +678,19 @@ class Test_equalise_cubes(IrisTest):
         self.cube_ukv.attributes["history"] = (
             "2017-01-19T08:59:53: StaGE Decoupler")
 
-    def test_basic(self):
+    @ManageWarnings(record=True)
+    def test_basic(self, warning_list=None):
         """Test that the utility returns an iris.cube.CubeList."""
         cubes = self.cube
         if isinstance(cubes, iris.cube.Cube):
             cubes = iris.cube.CubeList([cubes])
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = equalise_cubes(cubes)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, iris.cube.CubeList)
+        result = equalise_cubes(cubes)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Only a single cube "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_equalise_attributes(self):
         """Test that the utility equalises the attributes as expected"""
@@ -897,9 +896,10 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertNotIn("title", result[0].attributes.keys())
         self.assertNotIn("title", result[1].attributes.keys())
 
-    def test_unknown_attribute(self):
-        """Test that the utility returns warning and removes unknown mismatching
-        attribute."""
+    @ManageWarnings(record=True)
+    def test_unknown_attribute(self, warning_list=None):
+        """Test that the utility returns warning and removes unknown
+        mismatching attribute."""
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
         cube1.attributes.update({'unknown_attribute':
@@ -909,18 +909,16 @@ class Test__equalise_cube_attributes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = _equalise_cube_attributes(cubelist)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Do not know what to do with "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertNotIn("unknown_attribute",
-                             result[0].attributes.keys())
-            self.assertNotIn("unknown_attribute",
-                             result[1].attributes.keys())
+        result = _equalise_cube_attributes(cubelist)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Do not know what to do with "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertNotIn("unknown_attribute",
+                         result[0].attributes.keys())
+        self.assertNotIn("unknown_attribute",
+                         result[1].attributes.keys())
 
 
 class Test__equalise_cube_coords(IrisTest):
@@ -931,17 +929,16 @@ class Test__equalise_cube_coords(IrisTest):
         """Use temperature cube to test with."""
         self.cube = set_up_temperature_cube()
 
-    def test_basic(self):
+    @ManageWarnings(record=True)
+    def test_basic(self, warning_list=None):
         """Test that the utility returns an iris.cube.CubeList."""
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = _equalise_cube_coords(iris.cube.CubeList([self.cube]))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube so no differences will be found "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, iris.cube.CubeList)
+        result = _equalise_cube_coords(iris.cube.CubeList([self.cube]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Only a single cube so no differences will be found "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_threshold_exception(self):
         """Test that an exception is raised if a threshold coordinate is
@@ -1051,18 +1048,17 @@ class Test__equalise_cell_methods(IrisTest):
         self.assertEqual(len(result), 2)
         self.assertTrue(result[0].is_compatible(result[1]))
 
-    def test_single_cube_in_cubelist(self):
+    @ManageWarnings(record=True)
+    def test_single_cube_in_cubelist(self, warning_list=None):
         """Test single cube in CubeList returns CubeList and raises warning."""
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = _equalise_cell_methods(iris.cube.CubeList([self.cube]))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = ("Only a single cube so no differences "
-                           "will be found in cell methods")
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, iris.cube.CubeList)
+        result = _equalise_cell_methods(iris.cube.CubeList([self.cube]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = ("Only a single cube so no differences "
+                       "will be found in cell methods")
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_different_cell_methods(self):
         """Test returns an iris.cube.CubeList with matching cell methods."""
@@ -1106,18 +1102,17 @@ class Test_compare_attributes(IrisTest):
         self.assertIsInstance(result, list)
         self.assertAlmostEquals(result, [{}, {}])
 
-    def test_warning(self):
+    @ManageWarnings(record=True)
+    def test_warning(self, warning_list=None):
         """Test that the utility returns warning if only one cube supplied."""
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = (
-                compare_attributes(iris.cube.CubeList([self.cube])))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube so no differences will be found "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertAlmostEquals(result, [])
+        result = (
+            compare_attributes(iris.cube.CubeList([self.cube])))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Only a single cube so no differences will be found "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertAlmostEquals(result, [])
 
     def test_history_attribute(self):
         """Test that the utility returns diff when history do not match"""
@@ -1164,18 +1159,17 @@ class Test_compare_coords(IrisTest):
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
 
-    def test_catch_warning(self):
+    @ManageWarnings(record=True)
+    def test_catch_warning(self, warning_list=None):
         """Test warning is raised if the input is cubelist of length 1."""
         cube = self.cube.copy()
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = compare_coords(iris.cube.CubeList([cube]))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "Only a single cube so no differences will be found "
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertAlmostEquals(result, [])
+        result = compare_coords(iris.cube.CubeList([cube]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "Only a single cube so no differences will be found "
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertAlmostEquals(result, [])
 
     def test_first_cube_has_extra_dimension_coordinates(self):
         """Test for comparing coordinate between cubes, where the first
@@ -1537,22 +1531,21 @@ class Test_sort_coord_in_cube(IrisTest):
             expected_points, result.coord(coord_name).points)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    def test_warn_raised_for_circular_coordinate(self):
+    @ManageWarnings(record=True)
+    def test_warn_raised_for_circular_coordinate(self, warning_list=None):
         """Test that a warning is successfully raised when circular
         coordinates are sorted."""
         self.ascending_cube.data[:, :, 0, 0] = 6.0
         coord_name = "latitude"
         self.ascending_cube.coord(coord_name).circular = True
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result = sort_coord_in_cube(
-                self.ascending_cube, coord_name, order="descending")
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            warning_msg = "The latitude coordinate is circular."
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, iris.cube.Cube)
+        result = sort_coord_in_cube(
+            self.ascending_cube, coord_name, order="descending")
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        warning_msg = "The latitude coordinate is circular."
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, iris.cube.Cube)
 
 
 class Test_enforce_coordinate_ordering(IrisTest):
@@ -1715,6 +1708,39 @@ class Test_enforce_coordinate_ordering(IrisTest):
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             enforce_coordinate_ordering(
                 cube, "realization", raise_exception=True)
+
+
+class Test_enforce_float32_precision(IrisTest):
+    """ Test the enforce_float32_precision utility."""
+
+    def setUp(self):
+        """Create two temperature cubes to test with."""
+        self.cube1 = set_up_temperature_cube()
+        self.cube2 = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that the function will return a single iris.cube.Cube with
+           float32 precision."""
+        result1 = self.cube1
+        enforce_float32_precision(result1)
+        self.assertEqual(result1.dtype, np.float32)
+
+    def test_process_list(self):
+        """Test that the function will return a list of cubes with
+           float32 precision."""
+        result1 = self.cube1
+        result2 = self.cube2
+        enforce_float32_precision([result1, result2])
+        self.assertEqual(result1.dtype, np.float32)
+        self.assertEqual(result2.dtype, np.float32)
+
+    def test_process_none(self):
+        """Test that the function ignores None types."""
+        result1 = self.cube1
+        result2 = None
+        enforce_float32_precision([result1, result2])
+        self.assertEqual(result1.dtype, np.float32)
+        self.assertIsNone(result2)
 
 
 class Test_clip_cube_data(IrisTest):

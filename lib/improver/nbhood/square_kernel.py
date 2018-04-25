@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -105,30 +105,21 @@ class SquareNeighbourhood(object):
             cube (Iris.cube.Cube):
                 Cube to which the cumulative summing along the y and x
                 direction will be applied. The cube should contain only x and
-                y dimensions, so will generally be a slice of a cube.
+                y dimensions, so will generally be a slice of a cube ordered
+                so that y is first in the cube (i.e. axis=0).
 
         Returns:
-            (tuple) : tuple containing:
-                **cube** (Iris.cube.Cube):
-                    Cube to which the cumulative summing along the y and x
-                    direction has been applied.
-                **nan_masks** (list):
-                    List of numpy arrays to be used to set the values within
-                    the data of the output cube to be NaN.
+            summed_cube (Iris.cube.Cube):
+                Cube to which the cumulative summing
+                along the y and x direction has been applied.
         """
-        yname = cube.coord(axis="y").name()
-        xname = cube.coord(axis="x").name()
-        cubelist = iris.cube.CubeList([])
-        nan_masks = []
+        summed_cube = cube.copy()
         data = cube.data.astype(np.longdouble)
-        nan_mask = np.isnan(data)
-        data[nan_mask] = 0
         data_summed_along_y = np.cumsum(data, axis=0)
         data_summed_along_x = (
             np.cumsum(data_summed_along_y, axis=1))
-        cube.data = data_summed_along_x
-        nan_masks.append(nan_mask)
-        return cube, nan_masks
+        summed_cube.data = data_summed_along_x
+        return summed_cube
 
     @staticmethod
     def pad_coord(coord, width, method):
@@ -229,12 +220,13 @@ class SquareNeighbourhood(object):
             new_cube.add_aux_coord(coord_y)
         return new_cube
 
-    def pad_cube_with_halo(self, cube, width_x, width_y, masked_data=False):
+    def pad_cube_with_halo(self, cube, width_x, width_y, masked_halo=False):
         """
-        Method to pad a halo around the data in an iris cube. The padding
-        calculates the mean within the neighbourhood radius in grid cells
-        i.e. the neighbourhood width at the edge of the data and uses this
-        mean value as the padding value.
+        Method to pad a halo around the data in an iris cube. Normally the
+        masked_halo should be zero as it is considered masked data however if
+        masked_halo is False then the padding calculates the mean within the
+        neighbourhood radius in grid cells i.e. the neighbourhood width at
+        the edge of the data and uses this mean value as the padding value.
 
         Args:
             cube (iris.cube.Cube):
@@ -245,8 +237,13 @@ class SquareNeighbourhood(object):
                 The width in x and y directions of the neighbourhood radius in
                 grid cells. This will be the width of padding to be added to
                 the numpy array.
-            masked_data (bool):
-                True if masked data.
+            masked_halo (bool):
+                masked_halo = True means that the halo will be treated as
+                masked points (i.e. set to 0.0) otherwise the halo
+                will be filled with mean values.
+                Default is set to False for backwards
+                compatability as this function is used outside of
+                SquareNeighbourhooding.
 
         Returns:
             padded_cube (iris.cube.Cube):
@@ -257,8 +254,9 @@ class SquareNeighbourhood(object):
 
         # Pad a halo around the original data with the extent of the halo
         # given by width_y and width_x. Assumption to pad using the mean
-        # value within the neighbourhood width.
-        if masked_data:
+        # value within the neighbourhood width for backwards compatability
+        # as this function is used outside of SquareNeighbourhood.
+        if masked_halo:
             padded_data = np.pad(
                 cube.data,
                 ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
@@ -315,7 +313,80 @@ class SquareNeighbourhood(object):
             cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
         return trimmed_cube
 
-    def mean_over_neighbourhood(self, cube, cells_x, cells_y, nan_masks):
+    @staticmethod
+    def calculate_neighbourhood(summed_cube,
+                                ymax_xmax_disp, ymin_xmax_disp,
+                                ymin_xmin_disp, ymax_xmin_disp,
+                                n_rows, n_columns):
+        """
+        Fast vectorised approach to calculating neighbourhood totals.
+
+        Displacements are calculated as follows for the following input array,
+        where the accumulation has occurred from top to
+        bottom and left to right::
+
+        | 1 | 2 | 2 | 2 |
+        | 1 | 3 | 4 | 4 |
+        | 2 | 4 | 5 | 6 |
+        | 2 | 4 | 6 | 7 |
+
+
+        For a 3x3 neighbourhood centred around the point with a value of 5::
+
+        | 1 (C) | 2 | 2                 | 2 (D) |
+        | 1     | 3 | 4                 | 4     |
+        | 2     | 4 | 5 (Central point) | 6     |
+        | 2 (A) | 4 | 6                 | 7 (B) |
+
+        To calculate the value for the neighbourhood sum at the "Central point"
+        with a value of 5, calculate::
+
+          Neighbourhood sum = B - A - D + C
+
+        At the central point, this will yield::
+
+          Neighbourhood sum = 7 - 2 - 2 +1 => 4
+
+        Args:
+            summed_cube (iris.cube.Cube):
+                cube on which to calculate the neighbourhood total.
+            ymax_xmax_disp (int):
+                Displacement from the point at the centre
+                of the neighbourhood.
+                Equivalent to point B in the docstring example.
+            ymax_xmin_disp (int):
+                Displacement from the point at the centre
+                of the neighbourhood.
+                Equivalent to point A in the docstring example.
+            ymin_xmax_disp (int):
+                Displacement from the point at the centre
+                of the neighbourhood.
+                Equivalent to point D in the docstring example.
+            ymin_xmin_disp (int):
+                Displacement from the point at the centre
+                of the neighbourhood.
+                Equivalent to point C in the docstring example.
+            n_rows (int):
+                Number of rows
+            n_columns (int):
+                Number of columns
+
+        Returns:
+            neighbourhood_total (np.array):
+                Array containing the calculated neighbourhood total.
+        """
+        flattened = summed_cube.data.flatten()
+        ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
+        ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
+        ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
+        ymax_xmin_array = np.roll(flattened, -ymax_xmin_disp)
+        neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
+                               ymin_xmin_array - ymax_xmin_array)
+        neighbourhood_total.resize(n_rows, n_columns)
+        return neighbourhood_total
+
+    def mean_over_neighbourhood(self, summed_cube, summed_mask,
+                                cells_x, cells_y):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
@@ -329,63 +400,40 @@ class SquareNeighbourhood(object):
 
         1. The displacements between the four points used to calculate the
            neighbourhood total sum and the central grid point are calculated.
-        2. Four copies of the cumulate array output are flattened and rolled
+        2. Within the function calculate_neighbourhood...
+           Four copies of the cumulate array output are flattened and rolled
            by these displacements to align the four terms used in the
            neighbourhood total sum calculation.
         3. The neighbourhood total at all points can then be calculated
            simultaneously in a single vector sum.
 
-        Displacements are calculated as follows for the following input array,
-        where the accumulation has occurred from left to right and top to
-        bottom::
+        Neighbourhood mean = Neighbourhood sum / Neighbourhood area
 
-        | 2 | 4 | 6 | 7 |
-        | 2 | 4 | 5 | 6 |
-        | 1 | 3 | 4 | 4 |
-        | 1 | 2 | 2 | 2 |
-
-        For a 3x3 neighbourhood centred around the point with a value of 5::
-
-        | 2 (A) | 4 | 6                 | 7 (B) |
-        | 2     | 4 | 5 (Central point) | 6     |
-        | 1     | 3 | 4                 | 4     |
-        | 1 (C) | 2 | 2                 | 2 (D) |
-
-        To calculate the value for the neighbourhood sum at the "Central point"
-        with a value of 5, calculate::
-
-          Neighbourhood sum = B - A - D + C
-
-        At the central point, this will yield::
-
-          Neighbourhood sum = 7 - 2 - 2 +1 => 4
-          Neighbourhood mean = Neighbourhood sum
-                               -----------------
-                               (2 * nb_width +1)
-
-        where nb_width is the neighbourhood width, which is equal to 1 for a
-        3x3 neighbourhood. This example gives::
-
-          Neighbourhood mean = 4. / 9.
+        Neighbourhood area = (2 * nb_width +1)^2 if there are no missing
+        points, nb_width is the neighbourhood width, which is equal to 1 for a
+        3x3 neighbourhood.
 
         Args:
-            cube (iris.cube.Cube):
-                Cube to which neighbourhood processing is being applied. Must
-                be passed through cumulate_array method first. The cube should
-                contain only x and y dimensions, so will generally be a slice
-                of a cube.
+            summed_cube (iris.cube.Cube):
+                Summed Cube to which neighbourhood processing is being
+                applied. Must be passed through cumulate_array method first.
+                The cube should contain only x and y dimensions,
+                so will generally be a slice of a cube.
+            summed_mask (iris.cube.Cube):
+                Summed Mask used to calculate neighbourhood size.
+                Must be passed through cumulate_array method first.
+                The cube should contain only x and y dimensions,
+                so will generally be a slice of a cube.
             cells_x, cells_y (int):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
-            nan_masks (list):
-                List of numpy arrays to be used to set the values within the
-                data of the output cube to be NaN.
 
         Returns:
             cube (iris.cube.Cube):
                 Cube to which square neighbourhood has been applied.
         """
-        check_for_x_and_y_axes(cube)
+        cube = summed_cube
+        check_for_x_and_y_axes(summed_cube)
 
         # Calculate displacement factors to find 4-points after flattening the
         # array.
@@ -406,67 +454,80 @@ class SquareNeighbourhood(object):
         # Flatten the cube data and create 4 copies of the flattened
         # array which are rolled to align the 4-points which are needed
         # for the calculation.
-        flattened = cube.data.flatten()
-        ymax_xmax_array = np.roll(flattened, -ymax_xmax_disp)
-        ymin_xmax_array = np.roll(flattened, -ymin_xmax_disp)
-        ymin_xmin_array = np.roll(flattened, -ymin_xmin_disp)
-        ymax_xmin_array = np.roll(flattened, -ymax_xmin_disp)
-        neighbourhood_total = (ymax_xmax_array - ymin_xmax_array +
-                               ymin_xmin_array - ymax_xmin_array)
-        neighbourhood_total.resize(n_rows, n_columns)
+        neighbourhood_total = self.calculate_neighbourhood(
+            summed_cube, ymax_xmax_disp, ymin_xmax_disp,
+            ymin_xmin_disp, ymax_xmin_disp,
+            n_rows, n_columns)
 
         if self.sum_or_fraction == "fraction":
             # Initialise and calculate the neighbourhood area.
-            neighbourhood_area = np.zeros(neighbourhood_total.shape)
-            neighbourhood_area.fill((2*cells_x+1) * (2*cells_y+1))
+            neighbourhood_area = self.calculate_neighbourhood(
+                summed_mask, ymax_xmax_disp, ymin_xmax_disp,
+                ymin_xmin_disp, ymax_xmin_disp,
+                n_rows, n_columns)
+
             with np.errstate(invalid='ignore', divide='ignore'):
                 cube.data = (neighbourhood_total.astype(float) /
                              neighbourhood_area.astype(float))
+                cube.data[~np.isfinite(cube.data)] = np.nan
         elif self.sum_or_fraction == "sum":
             cube.data = neighbourhood_total.astype(float)
 
-        cube.data[nan_masks[0].astype(bool)] = np.NaN
         return cube
 
     @staticmethod
-    def _set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
+    def set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
         """
-        Set up a cubelist containing either the input cube, or the input cube
-        and a mask cube.
+        Set up a cube ready for neighourhooding the data.
 
         Args:
             cube (Iris.cube.Cube):
-                Cube that will be checked for whether the data is masked.
-
+                Cube that will be checked for whether the data is masked
+                or nan. The cube should contain only x and y dimensions,
+                so will generally be a slice of a cube.
         Keyword Args:
             mask_cube (Iris.cube.Cube):
-                Cube containing the array to be used as a mask.
+                Input Cube containing the array to be used as a mask.
 
         Returns:
-            cubes_to_sum (Iris.cube.CubeList):
-                CubeList containing either the input cube, or the input cube
-                and a mask cube.
+            (tuple) : tuple containing:
+                **cube** (Iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **mask** (Iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **nan_array** (np.array):
+                    numpy array to be used to set the values within
+                    the data of the output cube to be NaN.
+
         """
+        # Set up mask_cube
+        if not mask_cube:
+            mask = cube.copy()
+            mask.data[::] = 1.0
+        else:
+            mask = mask_cube
         # If there is a mask, fill the data array of the mask_cube with a
         # logical array, logically inverted compared to the integer version of
         # the mask within the original data array.
-        if isinstance(cube.data, np.ma.MaskedArray) or mask_cube:
-            if not mask_cube:
-                mask_cube = cube.copy()
-                mask_cube.data = np.logical_not(cube.data.mask.astype(int))
-            mask_cube.rename('mask_data')
-            if np.ma.is_masked(cube.data):
-                cube.data = cube.data.data
-            cube = iris.util.squeeze(cube)
-            cube.data = (cube.data * mask_cube.data.squeeze()).astype(
-                cube.data.dtype)
-            cubes_to_sum = iris.cube.CubeList([cube, mask_cube])
-        else:
-            cubes_to_sum = iris.cube.CubeList([cube])
-        return cubes_to_sum
+
+        if isinstance(cube.data, np.ma.MaskedArray):
+            index = np.where(cube.data.mask.astype(int) == 1)
+            mask.data[index] = 0.0
+            cube.data = cube.data.data
+        mask.rename('mask_data')
+        cube = iris.util.squeeze(cube)
+        mask = iris.util.squeeze(mask)
+        # Set NaN values to 0 in both the cube data and mask data.
+        nan_array = np.isnan(cube.data)
+        mask.data[nan_array] = 0.0
+        cube.data[nan_array] = 0.0
+        #  Set cube.data to 0.0 where mask_cube is 0.0
+        cube.data = (cube.data * mask.data).astype(
+            cube.data.dtype)
+        return cube, mask, nan_array
 
     def _pad_and_calculate_neighbourhood(
-            self, cubes_to_sum, grid_cells_x, grid_cells_y):
+            self, cube, mask, grid_cells_x, grid_cells_y):
         """
         Apply neighbourhood processing consisting of the following steps:
         1. Pad a halo around the input cube to allow vectorised
@@ -475,9 +536,10 @@ class SquareNeighbourhood(object):
         3. Apply neighbourhood processing to the cumulated array.
 
         Args:
-            cubes_to_sum (Iris.cube.CubeList):
-                CubeList containing either the input cube, or the input cube
-                and a mask cube.
+            cube (Iris.cube.Cube):
+                Cube with masked or NaN values set to 0.0
+            mask (Iris.cube.Cube):
+                Cube with masked or NaN values set to 0.0
             grid_cells_x (Float):
                 The number of grid cells along the x axis used to create a
                 square neighbourhood.
@@ -486,44 +548,43 @@ class SquareNeighbourhood(object):
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cubes (Iris.cube.CubeList):
-                CubeList containing the smoothed field after the square
-                neighbourhood method has been applied to either the input cube,
-                or both the input cube and a mask cube.
+            neighbourhood_averaged_cube (Iris.cube):
+                Cube containing the smoothed field after the square
+                neighbourhood method has been applied with halo added.
         """
-        neighbourhood_averaged_cubes = iris.cube.CubeList([])
-        masked_data = len(cubes_to_sum) > 1
-        for cube_to_process in cubes_to_sum:
-            # Pad the iris cube. This way, the edge effects produced
-            # by the vectorisation of the 4-point method will appear outside
-            # our domain of interest. These unwanted points can be trimmed off
-            # later.
-            cube_to_process = self.pad_cube_with_halo(
-                cube_to_process, grid_cells_x, grid_cells_y, masked_data)
-            summed_up_cube, nan_masks = self.cumulate_array(
-                cube_to_process)
-            neighbourhood_averaged_cubes.append(
-                self.mean_over_neighbourhood(
-                    summed_up_cube, grid_cells_x, grid_cells_y, nan_masks))
-        return neighbourhood_averaged_cubes
+        # Pad the iris cube. This way, the edge effects produced
+        # by the vectorisation of the 4-point method will appear outside
+        # our domain of interest. These unwanted points can be trimmed off
+        # later.
+        padded_cube = self.pad_cube_with_halo(cube, grid_cells_x, grid_cells_y,
+                                              masked_halo=True)
+        padded_mask = self.pad_cube_with_halo(mask, grid_cells_x, grid_cells_y,
+                                              masked_halo=True)
+        summed_up_cube = self.cumulate_array(padded_cube)
+        summed_up_mask = self.cumulate_array(padded_mask)
+        neighbourhood_averaged_cube = (
+            self.mean_over_neighbourhood(
+                summed_up_cube, summed_up_mask, grid_cells_x, grid_cells_y))
+
+        return neighbourhood_averaged_cube
 
     def _remove_padding_and_mask(
-            self, neighbourhood_averaged_cubes, pre_neighbourhood_cubes,
-            cube_name, grid_cells_x, grid_cells_y):
+            self, neighbourhood_averaged_cube,
+            original_cube, mask,
+            grid_cells_x, grid_cells_y):
         """
         Remove the halo from the padded array and apply the mask, if required.
+        If fraction option set, clip the data so values lie within
+        the range of the original cube.
 
         Args:
-            neighbourhood_averaged_cubes (Iris.cube.CubeList):
-                CubeList containing the smoothed field after the square
-                neighbourhood method has been applied to either the input cube,
-                or both the input cube and a mask cube.
-            pre_neighbourhood_cubes (Iris.cube.CubeList):
-                CubeList containing the fields prior to applying neighbourhood
-                processing. This is required to be able to know the original
-                mask cube.
-            cube_name (String):
-                Name of the variable that has been neighbourhooded.
+            neighbourhood_averaged_cube (Iris.cube.Cube):
+                Cube containing the smoothed field after the square
+                neighbourhood method has been applied.
+            original_cube (Iris.cube.Cube or None):
+                The original cube slice.
+            mask (Iris.cube.Cube):
+                The mask cube created by set_up_cubes_to_be_neighbourhooded.
             grid_cells_x (Float):
                 The number of grid cells along the x axis used to create a
                 square neighbourhood.
@@ -534,33 +595,19 @@ class SquareNeighbourhood(object):
         Returns:
             neighbourhood_averaged_cube (Iris.cube.Cube):
                 Cube containing the smoothed field after the square
-                neighbourhood method has been applied.
+                neighbourhood method has been applied and halo removed.
         """
         # Correct neighbourhood averages for masked data, which may have been
         # calculated using larger neighbourhood areas than are present in
         # reality.
-        neighbourhood_averaged_cube, = neighbourhood_averaged_cubes.extract(
-            cube_name)
         neighbourhood_averaged_cube = self.remove_halo_from_cube(
             neighbourhood_averaged_cube, grid_cells_x, grid_cells_y)
-        if len(neighbourhood_averaged_cubes) > 1:
-            mask_cube, = neighbourhood_averaged_cubes.extract('mask_data')
-            mask_cube = self.remove_halo_from_cube(
-                mask_cube, grid_cells_x, grid_cells_y)
-            with np.errstate(invalid='ignore', divide='ignore'):
-                divided_data = np.true_divide(
-                    neighbourhood_averaged_cube.data, mask_cube.data)
-                divided_data[~np.isfinite(divided_data)] = np.nan
-                neighbourhood_averaged_cube.data = divided_data
-            if self.re_mask:
-                original_mask_cube, = (
-                    pre_neighbourhood_cubes.extract('mask_data'))
-                neighbourhood_averaged_cube.data = np.ma.masked_array(
-                    neighbourhood_averaged_cube.data,
-                    mask=np.logical_not(original_mask_cube.data.squeeze()))
+        if self.re_mask and mask.data.min() < 1.0:
+            neighbourhood_averaged_cube.data = np.ma.masked_array(
+                neighbourhood_averaged_cube.data,
+                mask=np.logical_not(mask.data.squeeze()))
         # Add clipping
         if self.sum_or_fraction == "fraction":
-            original_cube, = pre_neighbourhood_cubes.extract(cube_name)
             minimum_value = np.nanmin(original_cube.data)
             maximum_value = np.nanmax(original_cube.data)
             neighbourhood_averaged_cube = (
@@ -608,16 +655,19 @@ class SquareNeighbourhood(object):
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis='y'),
                                        cube.coord(axis='x')]):
-            cubes_to_sum = (
-                self._set_up_cubes_to_be_neighbourhooded(cube_slice,
-                                                         mask_cube))
-            neighbourhood_averaged_cubes = (
+            (cube_slice, mask, nan_array) = (
+                self.set_up_cubes_to_be_neighbourhooded(cube_slice,
+                                                        mask_cube))
+            neighbourhood_averaged_cube = (
                 self._pad_and_calculate_neighbourhood(
-                    cubes_to_sum, grid_cells_x, grid_cells_y))
+                    cube_slice, mask,
+                    grid_cells_x, grid_cells_y))
             neighbourhood_averaged_cube = (
                 self._remove_padding_and_mask(
-                    neighbourhood_averaged_cubes, cubes_to_sum, cube.name(),
+                    neighbourhood_averaged_cube,
+                    cube_slice, mask,
                     grid_cells_x, grid_cells_y))
+            neighbourhood_averaged_cube.data[nan_array.astype(bool)] = np.nan
             result_slices.append(neighbourhood_averaged_cube)
 
         neighbourhood_averaged_cube = result_slices.merge_cube()

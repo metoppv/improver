@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,17 +34,17 @@
 @test "wind downscaling wind_speed " {
   TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/with_realization/"
+  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
 
   # Run wind downscaling processing and check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      1500 "$TEST_DIR/output.nc"
+      1500 "$TEST_DIR/output.nc" --output_height_level "1000" --output_height_level_units "cm"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
+      "$IMPROVER_ACC_TEST_DIR/wind_downscaling/single_level/kgo.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

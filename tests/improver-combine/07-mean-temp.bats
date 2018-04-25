@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,8 +39,8 @@
   run improver combine \
       --operation='mean' \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      "$IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0?00Z-PT000?H-temperature_at_screen_level.nc" \
-       "$TEST_DIR/output.nc"
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0?00Z-PT000?H-temperature_at_screen_level.nc \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

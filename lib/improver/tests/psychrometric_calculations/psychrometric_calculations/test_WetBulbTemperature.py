@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,6 @@
 """Unit tests for psychrometric_calculations WetBulbTemperature"""
 
 import unittest
-import warnings
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -40,6 +39,7 @@ from cf_units import Unit
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_cubes_for_wet_bulb_temperature():
@@ -92,16 +92,16 @@ class Test_check_range(Test_WetBulbTemperature):
 
     """Test function that checks temperatures fall within a suitable range."""
 
-    def test_basic(self):
+    @ManageWarnings(record=True)
+    def test_basic(self, warning_list=None):
         """Basic test that a warning is raised if temperatures fall outside the
         allowed range."""
 
-        with warnings.catch_warnings(record=True) as w_messages:
-            WetBulbTemperature.check_range(self.temperature,
-                                           270., 360.)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "Wet bulb temperatures are" in str(w_messages[0])
+        WetBulbTemperature.check_range(self.temperature,
+                                       270., 360.)
+        assert len(warning_list) == 1
+        assert issubclass(warning_list[0].category, UserWarning)
+        assert "Wet bulb temperatures are" in str(warning_list[0])
 
 
 class Test__lookup_svp(Test_WetBulbTemperature):
@@ -116,19 +116,17 @@ class Test__lookup_svp(Test_WetBulbTemperature):
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
 
-    def test_beyond_table_bounds(self):
+    @ManageWarnings(record=True)
+    def test_beyond_table_bounds(self, warning_list=None):
         """Extracting SVP values from the lookup table with temperatures beyond
         its valid range. Should return the nearest end of the table."""
         self.temperature.data[1] = 150.
         self.temperature.data[2] = 400.
         expected = [9.664590e-03, 9.664590e-03, 2.501530e+04]
-
-        with warnings.catch_warnings(record=True) as w_messages:
-            result = WetBulbTemperature()._lookup_svp(self.temperature)
-            assert len(w_messages) == 1
-            assert issubclass(w_messages[0].category, UserWarning)
-            assert "Wet bulb temperatures are" in str(w_messages[0])
-
+        result = WetBulbTemperature()._lookup_svp(self.temperature)
+        assert len(warning_list) == 1
+        assert issubclass(warning_list[0].category, UserWarning)
+        assert "Wet bulb temperatures are" in str(warning_list[0])
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
 

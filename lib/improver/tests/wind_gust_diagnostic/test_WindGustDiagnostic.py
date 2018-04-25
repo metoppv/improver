@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
-import warnings
 import numpy as np
 
 import iris
@@ -41,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from cf_units import Unit
 
 from improver.wind_gust_diagnostic import WindGustDiagnostic
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def create_cube_with_percentile_coord(data=None,
@@ -142,6 +142,8 @@ class Test_update_metadata_after_max(IrisTest):
 
     """Test the update_metadata_after_max method."""
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def setUp(self):
         """Create a cube."""
         data = np.zeros((2, 2, 2, 2))
@@ -154,8 +156,7 @@ class Test_update_metadata_after_max(IrisTest):
         self.perc_coord = DimCoord(percentile_values,
                                    long_name="percentile_over_nbhood",
                                    units="%")
-        with warnings.catch_warnings(record=True):
-            self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
+        self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
 
     def test_basic(self):
         """Test that the function returns a Cube. """
@@ -208,22 +209,21 @@ class Test_extract_percentile_data(IrisTest):
                                            self.wg_perc,
                                            "wind_speed_of_gust")
 
-    def test_warning_if_standard_names_do_not_match(self):
+    @ManageWarnings(record=True)
+    def test_warning_if_standard_names_do_not_match(self, warning_list=None):
         """Test it raises a warning if standard names do not match."""
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         warning_msg = ('Warning mismatching name for data expecting')
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            result, perc_coord = (
-                plugin.extract_percentile_data(self.cube_wg,
-                                               self.wg_perc,
-                                               "wind_speed"))
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
-            self.assertIsInstance(result, Cube)
-            self.assertIsInstance(perc_coord, iris.coords.Coord)
+        result, perc_coord = (
+            plugin.extract_percentile_data(self.cube_wg,
+                                           self.wg_perc,
+                                           "wind_speed"))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
 
     def test_fails_if_req_percentile_not_in_cube(self):
         """Test it raises a Value Error if req_perc not in cube."""
@@ -354,6 +354,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.attributes['wind_gust_diagnostic'],
                          'Typical gusts')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
-import argparse
+from improver.argparser import ArgParser
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -40,7 +40,7 @@ from improver.utilities.statistical_operations import \
 
 
 def main():
-    """
+    r"""
     Load arguments and run ProbabilitiesFromPercentiles plugin.
 
     Plugin generates probabilities at a fixed threshold (height) from a set of
@@ -64,7 +64,7 @@ def main():
         interpolated linearly to obtain a probability of snow level at / below
         the ground surface.
     """
-    parser = argparse.ArgumentParser(
+    parser = ArgParser(
         description="Calculate probability from a percentiled field at a "
         "2D threshold level.  Eg for 2D percentile levels at different "
         "heights, calculate probability that height is at ground level, where"
@@ -80,9 +80,9 @@ def main():
                         help="The output path for the processed NetCDF")
     parser.add_argument("--new_name", metavar="NEW_NAME", default=None,
                         type=str,
-                        help="Name for data in output cube.  Defaults to "
-                        "'probability_of_X', where X is the percentiles cube "
-                        "data name")
+                        help="Name for data in output file.  Defaults to "
+                        "'probability_of_X', where X is the name of the "
+                        "percentiled diagnostic.")
     args = parser.parse_args()
 
     threshold_cube = load_cube(args.threshold_filepath)

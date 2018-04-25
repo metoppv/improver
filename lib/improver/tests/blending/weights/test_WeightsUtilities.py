@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -313,6 +313,7 @@ class Test_process_coord(IrisTest):
              self.cube, self.coordinate, exp_coord_vals)
         self.assertAlmostEquals(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
+
 
 if __name__ == '__main__':
     unittest.main()

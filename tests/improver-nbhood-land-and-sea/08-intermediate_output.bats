@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,17 +36,14 @@
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes.
-  run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/topographic_bands_land.nc" "$TEST_DIR/output.nc" --radius=20000 --weights "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/weights_land.nc" --intermediate_filepaths "$TEST_DIR/land_out.nc" "$TEST_DIR/sea_out.nc"
+  run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/topographic_bands_land.nc" "$TEST_DIR/output.nc" --radius=20000 --weights "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/weights_land.nc" --intermediate_filepath "$TEST_DIR/land_out.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/land_out.nc" \
       "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/kgo_land.nc"
-  improver_compare_output "$TEST_DIR/sea_out.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/topographic_bands/kgo_sea.nc"
 
   rm "$TEST_DIR/land_out.nc"
-  rm "$TEST_DIR/sea_out.nc"
   rm "$TEST_DIR/output.nc"
   rmdir "$TEST_DIR"
 }

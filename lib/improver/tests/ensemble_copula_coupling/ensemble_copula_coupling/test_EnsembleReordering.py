@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (set_up_cube, set_up_temperature_cube,
                              add_forecast_reference_time_and_forecast_period)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__recycle_raw_ensemble_members(IrisTest):
@@ -592,6 +593,8 @@ class Test_process(IrisTest):
         self.post_processed_percentiles.coord(
             self.perc_coord).points = [10, 50, 90]
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_basic(self):
         """
         Test that the plugin returns an iris.cube.Cube and the cube has a
@@ -604,6 +607,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_works_for_different_percentile_coord(self):
         """Test that it still works for different percentile coordinate"""
         cube = self.post_processed_percentiles
@@ -615,6 +620,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_works_for_cubelist(self):
         """Test that the plugin works for a cubelist """
         plugin = Plugin()
@@ -627,6 +634,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_2d_cube_random_ordering(self):
         """
         Test that the plugin returns the correct cube data for a
@@ -657,6 +666,8 @@ class Test_process(IrisTest):
             np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences"])
     def test_2d_cube_recycling_raw_ensemble_members(self):
         """
         Test that the plugin returns the correct cube data for a

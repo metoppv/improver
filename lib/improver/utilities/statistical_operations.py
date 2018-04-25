@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ from improver.utilities.cube_checker import (find_percentile_coordinate,
 
 
 class ProbabilitiesFromPercentiles2D(object):
-    """
+    r"""
     Generate a 2-dimensional field of probabilities by interpolating a
     percentiled cube of data to required points.
 
@@ -77,7 +77,8 @@ class ProbabilitiesFromPercentiles2D(object):
         """
         Initialise class. Sets an inverse_ordering (bool) switch to true for
         cases where the percentiled data increases in the opposite sense to the
-        percentile coordinate.
+        percentile coordinate:
+
                 e.g.  0th Percentile - Value = 10
                      10th Percentile - Value = 5
                      20th Percentile - Value = 0

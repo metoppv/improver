@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ import cf_units
 import numpy as np
 
 from improver.database import SpotDatabase
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_spot_cube(point_data, validity_time=1487311200, forecast_period=0,
@@ -527,6 +528,9 @@ class Test_determine_schema(IrisTest):
                                    "index")
         self.dataframe = self.plugin.to_dataframe(cubes)
 
+    @ManageWarnings(
+        ignored_messages=["the 'flavor' parameter is deprecated"],
+        warning_types=[FutureWarning])
     def test_full_schema(self):
         """Basic test using a basic dataframe as input"""
         schema = self.plugin.determine_schema("improver")

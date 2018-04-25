@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -265,6 +265,7 @@ class Test_blend_percentiles(IrisTest):
             percentile_values, percentiles, weights)
         expected_result = np.array([5.0, 6.0, 7.0])
         self.assertArrayAlmostEqual(result, expected_result)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,14 +45,14 @@ usage: improver-nbhood-iterate-with-mask [-h]
 
 Apply the requested neighbourhood method via the
 ApplyNeighbourhoodProcessingWithAMask plugin to a file with one diagnostic
-cube in combination with a cube containing one or more masks. The cube
-containing the mask(s) may have an extra dimension compared to the input cube.
-In this case, the user specifies the name of the extra coordinate and this
-coordinate is iterated over so each mask is applied to the input cube
-separately. These masked cubes are concatenated together in the output cube,
-resulting in a cube that has been processed using multiple masks having gained
-the extra dimension from the cube. There is also an option to re-mask the
-output cube, so that after neighbourhood processing, non-zero values are only
+dataset in combination with a file containing one or more masks. The mask
+dataset may have an extra dimension compared to the input diagnostic. In this
+case, the user specifies the name of the extra coordinate and this coordinate
+is iterated over so each mask is applied to seperate slices over the input
+data. These intermediate masked datasets are then concatenated, resulting in a
+dataset that has been processed using multiple masks and has gained an extra
+dimension from the masking. There is also an option to re-mask the output
+dataset, so that after neighbourhood processing, non-zero values are only
 present for unmasked grid points. There is an alternative option of collapsing
 the dimension that we gain using this processing using a weighted average.
 
@@ -89,7 +89,7 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --re_mask             If re_mask is set (i.e. True), the output cube
+  --re_mask             If re_mask is set (i.e. True), the output data
                         following neighbourhood processing is re-masked. This
                         re-masking removes any values that have been generated
                         by neighbourhood processing at grid points that were

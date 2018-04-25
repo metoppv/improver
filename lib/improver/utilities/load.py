@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -65,7 +65,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     # Ensure the probabilistic coordinates are the first coordinates within a
     # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
-        cube, ["realization", "percentile_over", "probability"])
+        cube, ["realization", "percentile_over", "threshold"])
     # Ensure the y and x dimensions are the last dimensions within the cube.
     y_name = cube.coord(axis="y").name()
     x_name = cube.coord(axis="x").name()
@@ -77,7 +77,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
 
 
 def load_cubelist(filepath, constraints=None, no_lazy_load=False):
-    """Load the filepath(s) provided using Iris into a cubelist.
+    """Load the filepath(s) provided using Iris into a cubelist.  Loads
+    exactly one data cube per file.
 
     Args:
         filepath (str or list):

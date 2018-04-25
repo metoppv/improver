@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,6 @@ import datetime
 from datetime import time
 from datetime import timedelta
 import unittest
-import warnings
 import numpy as np
 
 import iris
@@ -53,6 +52,7 @@ from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 from improver.tests.spotdata.spotdata.test_common_functions import (
     Test_common_functions)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_cycletime_to_datetime(IrisTest):
@@ -185,7 +185,8 @@ class Test_forecast_period_coord(IrisTest):
         result = forecast_period_coord(cube, force_lead_time_calculation=True)
         self.assertEqual(result, expected_result)
 
-    def test_negative_forecast_periods_warning(self):
+    @ManageWarnings(record=True)
+    def test_negative_forecast_periods_warning(self, warning_list=None):
         """Test that a warning is raised if the point within the
         time coordinate is prior to the point within the
         forecast_reference_time, and therefore the forecast_period values that
@@ -196,13 +197,11 @@ class Test_forecast_period_coord(IrisTest):
         cube.coord("forecast_reference_time").points = 402295.0
         cube.coord("time").points = 402192.5
         msg = "The values for the time"
-        with warnings.catch_warnings(record=True) as warning_list:
-            warnings.simplefilter("always")
-            forecast_period_coord(cube)
-            self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
-                                for item in warning_list))
-            self.assertTrue(msg in str(warning_list[0]))
+        forecast_period_coord(cube)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(msg in str(warning_list[0]))
 
     def test_exception_raised(self):
         """Test that a CoordinateNotFoundError exception is raised if the
@@ -299,18 +298,18 @@ class Test_extract_cube_at_time(Test_common_functions):
         result = plugin(cubes, self.time_dt, self.time_extract)
         self.assertIsInstance(result, Cube)
 
-    def test_invalid_time(self):
+    @ManageWarnings(record=True)
+    def test_invalid_time(self, warning_list=None):
         """Case for a time that is unavailable within the diagnostic cube."""
         plugin = extract_cube_at_time
         time_dt = datetime.datetime(2017, 2, 18, 6, 0)
         time_extract = iris.Constraint(time=PartialDateTime(
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
         cubes = CubeList([self.cube])
-        with warnings.catch_warnings(record=True) as w_messages:
-            plugin(cubes, time_dt, time_extract)
-            self.assertTrue(len(w_messages), 1)
-            self.assertTrue(issubclass(w_messages[0].category, UserWarning))
-            self.assertTrue("Forecast time" in str(w_messages[0]))
+        plugin(cubes, time_dt, time_extract)
+        self.assertTrue(len(warning_list), 1)
+        self.assertTrue(issubclass(warning_list[0].category, UserWarning))
+        self.assertTrue("Forecast time" in str(warning_list[0]))
 
 
 class Test_set_utc_offset(IrisTest):

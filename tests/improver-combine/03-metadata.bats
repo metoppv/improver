@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata/prob_precip.json" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_0p1.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_1p0.nc" \
-       "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.

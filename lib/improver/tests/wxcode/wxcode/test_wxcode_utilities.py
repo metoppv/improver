@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -159,6 +159,7 @@ class Test_expand_nested_lists(IrisTest):
         result = expand_nested_lists(self.dictionary, 'list_of_lists')
         for val in result:
             self.assertEquals(val, 'a')
+
 
 if __name__ == '__main__':
     unittest.main()

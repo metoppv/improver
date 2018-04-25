@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -213,7 +213,6 @@ class PercentileBlendingAggregator(object):
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
         data = np.moveaxis(data, [perc_dim, axis], [1, 0])
-
         # Determine the rest of the shape
         shape = data.shape[2:]
         input_shape = [data.shape[0],
@@ -393,8 +392,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 Function to apply to the coordinate after collapsing the cube
                 to correct the values, for example for time windowing and
                 cycle averaging the follow function would adjust the time
-                coordinates.
-                    e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
+                coordinates, e.g. coord_adjust = lambda pnts: pnts[len(pnts)/2]
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
             coords_for_bounds_removal (None or list):
@@ -536,15 +534,26 @@ class WeightedBlendAcrossWholeDimension(object):
                 if perc_coord and self.mode == "weighted_mean":
                     percentiles = np.array(perc_coord.points, dtype=float)
                     perc_dim, = cube_thres.coord_dims(perc_coord.name())
+
+                    # The iris.analysis.Aggregator moves the coordinate being
+                    # collapsed to index=-1 in initialisation, before the
+                    # aggregation method is called. This reduces by 1 the index
+                    # of all coordinates with an initial index higher than the
+                    # collapsing coordinate. As we need to know the index of
+                    # the percentile coordinate at a later step, if it will be
+                    # changed by this process, we adjust our record (perc_dim)
+                    # here.
+                    if cube_thres.coord_dims(self.coord)[0] < perc_dim:
+                        perc_dim -= 1
+
                     # Set equal weights if none are provided
                     if weights is None:
                         num = len(cube_thres.coord(self.coord).points)
                         weights = np.ones(num) / float(num)
                     # Set up aggregator
                     PERCENTILE_BLEND = (Aggregator(
-                        'weighted_mean',
+                        'mean',  # Use CF-compliant cell method.
                         PercentileBlendingAggregator.aggregate))
-
                     cube_new = cube_thres.collapsed(self.coord,
                                                     PERCENTILE_BLEND,
                                                     arr_percent=percentiles,
@@ -574,7 +583,7 @@ class WeightedBlendAcrossWholeDimension(object):
                                 set(orig_cell_methods)).pop()
                     add_renamed_cell_method(cube_new,
                                             extra_cm,
-                                            'weighted_mean')
+                                            'mean')
 
                 # Else use the maximum probability aggregator.
                 elif self.mode == "weighted_maximum":
@@ -584,7 +593,7 @@ class WeightedBlendAcrossWholeDimension(object):
                         weights = np.ones(num) / float(num)
                     # Set up aggregator
                     MAX_PROBABILITY = (Aggregator(
-                        'weighted_maximum',
+                        'maximum',  # Use CF-compliant cell method.
                         MaxProbabilityAggregator.aggregate))
 
                     cube_new = cube_thres.collapsed(self.coord,

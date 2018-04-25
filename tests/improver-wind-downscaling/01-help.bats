@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,8 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-wind-downscaling [-h]
+                                 [--output_height_level OUTPUT_HEIGHT_LEVEL]
+                                 [--output_height_level_units OUTPUT_HEIGHT_LEVEL_UNITS]
                                  [--height_levels_filepath HEIGHT_LEVELS_FILE]
                                  [--veg_roughness_filepath VEGETATIVE_ROUGHNESS_LENGTH_FILE]
                                  WIND_SPEED_FILE AOS_FILE SIGMA_FILE
@@ -63,6 +65,17 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --output_height_level OUTPUT_HEIGHT_LEVEL
+                        If only a single height level is desired as output
+                        from wind-downscaling, this option can be used to
+                        select the height level. If no units are provided with
+                        the --output_height_level_units option, metres are
+                        assumed.
+  --output_height_level_units OUTPUT_HEIGHT_LEVEL_UNITS
+                        If a single height level is selected as output using
+                        the --output_height_level option, this additional
+                        argument may be used to specify the units of the value
+                        entered to select the level. e.g. hPa
   --height_levels_filepath HEIGHT_LEVELS_FILE
                         Location of file containing height levels coincident
                         with wind speed field.

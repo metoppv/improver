@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -227,12 +227,15 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         Initialise class.
 
         Keyword Args:
-            percentiles (list):
+            percentiles (list or float):
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
 
         """
-        self.percentiles = tuple(percentiles)
+        try:
+            self.percentiles = tuple(percentiles)
+        except TypeError:
+            self.percentiles = tuple([percentiles])
 
     def __repr__(self):
         """Represent the configured class instance as a string."""
@@ -462,9 +465,15 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 Each slice along this coordinate is identical.
         """
         pctcubelist = iris.cube.CubeList()
+        pct_coord_name = "percentiles_over_neighbourhood"
         for pct in self.percentiles:
             pctcube = cube.copy()
             pctcube.add_aux_coord(iris.coords.DimCoord(
-                pct, long_name="percentiles_over_neighbourhood", units='%'))
+                pct, long_name=pct_coord_name, units='%'))
             pctcubelist.append(pctcube)
-        return pctcubelist.merge_cube()
+        result = pctcubelist.merge_cube()
+        # If percentile coord is not already a dimension, promote it.
+        # This is required when self.percentiles is length 1.
+        if result.coord_dims(pct_coord_name) == ():
+            result = iris.util.new_axis(result, scalar_coord=pct_coord_name)
+        return result

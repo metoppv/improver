@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -833,6 +833,27 @@ def enforce_coordinate_ordering(
     elif anchor == "end":
         cube.transpose(remaining_coords+coord_dims)
     return cube
+
+
+def enforce_float32_precision(input_cubes):
+    """Take input cube of any precision and convert to float32.
+
+    Args:
+        input_cubes (list):
+            List containing one or more iris cubes to test if not float32
+            precision and downscale to float32 if necessary. If a list item
+            is not an Iris cube - then this item is skipped.
+            Note: The code will modify the cubes in-place.
+
+    """
+    # If single cube - place within list.
+    if isinstance(input_cubes, iris.cube.Cube):
+        input_cubes = [input_cubes]
+
+    for cube in input_cubes:
+        if isinstance(cube, iris.cube.Cube):  # Skip if not cube.
+            if cube.dtype != np.float32:
+                cube.data = cube.data.astype(np.float32)
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ from iris.coords import AuxCoord
 def make_constant_with_units(constant, units):
     """Make an iris.AuxCoord containing a constant with units."""
     return AuxCoord(constant, units=units)
+
 
 # Real Missing Data Indicator
 RMDI = -32767.0

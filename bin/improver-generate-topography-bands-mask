@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run topographic bands mask generation."""
 
-import argparse
+from improver.argparser import ArgParser
 import os
 import json
 
@@ -52,11 +52,11 @@ THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
-        description=('Read input orography and landmask fields. Return a '
-                     'a cube of masks, where each mask excludes data below '
-                     'or equal to the lower threshold, and excludes data above'
-                     ' the upper threshold.'))
+    parser = ArgParser(
+        description=('Reads input orography and landmask fields. Creates a '
+                     'series of masks, where each mask excludes data below or'
+                     ' equal to the lower threshold, and excludes data above '
+                     'the upper threshold.'))
     parser.add_argument('input_filepath_standard_orography',
                         metavar='INPUT_FILE_STANDARD_OROGRAPHY',
                         help=('A path to an input NetCDF orography file to '

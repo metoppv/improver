@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
-import argparse
+from improver.argparser import ArgParser
 import warnings
 
 from improver.percentile import PercentileConverter
@@ -45,12 +45,12 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments and get going."""
-    parser = argparse.ArgumentParser(
-        description="Calculate percentiled data over a cube coordinate by "
+    parser = ArgParser(
+        description="Calculate percentiled data over a given coordinate by "
         "collapsing that coordinate. Typically used to convert realization "
         "(member) data into percentiled data, but may calculate over any "
-        "dimension coordinate. Alternatively, calling this CLI with a cube "
-        "containing probabilities will convert those to percentiles using "
+        "dimension coordinate. Alternatively, calling this CLI with a dataset"
+        " containing probabilities will convert those to percentiles using "
         "the ensemble copula coupling plugin. If no particular percentiles "
         "are given at which to calculate values and no 'number of percentiles'"
         " to calculate are specified, the following defaults will be used: "

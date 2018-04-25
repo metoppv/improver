@@ -1,6 +1,6 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 #------------------------------------------------------------------------------
 # NAME
 #    improver tests - Run IMPROVER self-tests
@@ -25,10 +25,10 @@ function get_python_files {
                                                ! -name '*~' \)`
 }
 
-function improver_test_pep8 {
-    # PEP8 testing.
-    ${PEP8:-pep8} $FILES_TO_TEST
-    echo_ok "pep8"
+function improver_test_pycodestyle {
+    # Pycodestyle testing.
+    ${PYCODESTYLE:-pycodestyle} $FILES_TO_TEST
+    echo_ok "pycodestyle"
 }
 
 function improver_test_pylint {
@@ -81,7 +81,7 @@ function print_usage {
     cat <<'__USAGE__'
 improver tests [OPTIONS] [SUBTEST...]
 
-Run pep8, pylint, documentation, unit and CLI acceptance tests.
+Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --bats          Run CLI tests using BATS instead of the default prove
@@ -90,8 +90,8 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pep8, pylint, pylintE, doc, unit, cli.
-                    pep8, pylintE, doc, unit, and cli are the default tests.
+                    Valid names are: pycodestyle, pylint, pylintE, doc, unit, cli.
+                    pycodestyle, pylintE, doc, unit, and cli are the default tests.
     SUBCLI          Name(s) of cli subtests to run without running the rest.
                     Valid names are tasks which appear in /improver/tests/
                     without the "improver-" prefix. The default is to run all
@@ -132,7 +132,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        pep8|pylint|pylintE|doc|unit|cli)
+        pycodestyle|pylint|pylintE|doc|unit|cli)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
@@ -150,7 +150,7 @@ if [[ -n "$SUBTESTS" ]]; then
     TESTS="$SUBTESTS"
 else
     # Default tests.
-    TESTS="pep8 pylintE doc unit cli"
+    TESTS="pycodestyle pylintE doc unit cli"
 fi
 
 # If cli sub test is not specified by user, do all cli tests.

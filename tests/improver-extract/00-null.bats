@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,23 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "wind downscaling wind_speed " {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/veg/"
-
-  # Run wind downscaling processing with vegetable roughness option and 
-  # check it passes.
-  run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
-      "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
-      1500 "$TEST_DIR/output.nc" --veg_roughness_filepath "$test_path/veg.nc"
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+@test "extract no arguments" {
+  run improver extract
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-extract [-h] [--units UNITS [UNITS ...]]
+                        INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }
