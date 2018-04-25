@@ -192,7 +192,7 @@ class Test_correct_collapsed_coordinates(IrisTest):
         """Test that an exception is raised by Iris when we try to correct
            a coordinate that doesn't exist."""
         self.new_cube.remove_coord('forecast_period')
-        message = "Expected to find exactly 1  coordinate, but found none."
+        message = "Expected to find exactly 1 .* coordinate, but found none."
         with self.assertRaisesRegexp(CoordinateNotFoundError, message):
             self.plugin.correct_collapsed_coordinates(self.orig_cube,
                                                       self.new_cube,
