@@ -35,9 +35,10 @@ Unit tests for the
 """
 import unittest
 
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import InvalidCubeError
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -113,6 +114,18 @@ class Test_process(IrisTest):
         self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([0, 1, 2]))
+
+    def test_raises_exception_if_realization_already_exists(self):
+        """
+        Check that we raise an exception if a realization coordinate
+        already exists.
+        """
+        cube = self.current_temperature_cube
+        cube.add_aux_coord(AuxCoord(0, 'realization'))
+        plugin = Plugin()
+        msg = r"Cannot rebadge percentile coordinate to realization.*"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            result = plugin.process(cube)
 
 
 if __name__ == '__main__':

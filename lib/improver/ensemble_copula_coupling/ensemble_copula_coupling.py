@@ -38,7 +38,7 @@ from scipy.stats import norm
 
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
@@ -78,6 +78,9 @@ class RebadgePercentilesAsMembers(object):
             Cube containing a percentile coordinate, which will be rebadged as
             ensemble member.
 
+        Raises:
+            InvalidCubeError:
+                If the realization coordinate already exists on the cube.
         """
         percentile_coord = (
             find_percentile_coordinate(cube).name())
@@ -89,6 +92,18 @@ class RebadgePercentilesAsMembers(object):
 
         cube.coord(percentile_coord).points = (
             ensemble_member_numbers)
+
+        # we can't rebadge if the realization coordinate already exists:
+        try:
+            realization_coord = cube.coord('realization')
+        except CoordinateNotFoundError:
+            realization_coord = None
+
+        if realization_coord:
+            raise InvalidCubeError(
+                "Cannot rebadge percentile coordinate to realization "
+                "coordinate because a realization coordinate already exists.")
+
         cube.coord(percentile_coord).rename("realization")
         cube.coord("realization").units = "1"
 
