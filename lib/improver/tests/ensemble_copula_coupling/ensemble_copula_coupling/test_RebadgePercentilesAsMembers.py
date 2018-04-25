@@ -125,7 +125,7 @@ class Test_process(IrisTest):
         plugin = Plugin()
         msg = r"Cannot rebadge percentile coordinate to realization.*"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            result = plugin.process(cube)
+            plugin.process(cube)
 
 
 if __name__ == '__main__':
