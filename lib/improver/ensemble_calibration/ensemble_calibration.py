@@ -601,7 +601,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             truth_constr = iris.Constraint(
                 forecast_reference_time=historic_forecast_cube.coord(
                     "time").points)
-            truth_cube = truth_cubes.extract(truth_constr)
+            truth_cube = truth_cubes.extract(truth_constr) # BUG breaks in iris 2.0
 
             if truth_cube is None:
                 msg = ("Unable to calibrate for the time points {} "
