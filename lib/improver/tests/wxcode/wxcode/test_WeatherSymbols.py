@@ -45,8 +45,8 @@ from improver.wxcode.wxcode_utilities import WX_DICT
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_above_threshold_cube
 
-
-iris.FUTURE.netcdf_promote = True
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('netcdf_promote', True)
 
 
 def set_up_wxcubes():

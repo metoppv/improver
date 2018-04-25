@@ -34,7 +34,8 @@ import os
 import iris
 from iris import FUTURE
 
-FUTURE.netcdf_no_unlimited = True
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('netcdf_no_unlimited', True)
 
 
 class WriteOutput(object):

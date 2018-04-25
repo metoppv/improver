@@ -50,7 +50,8 @@ from improver.tests.utilities.test_cube_manipulation import (
     set_up_percentile_temperature_cube)
 
 
-iris.FUTURE.netcdf_no_unlimited = True
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('netcdf_no_unlimited', True)
 
 
 def create_sample_cube_with_additional_coordinate(

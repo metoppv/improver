@@ -38,7 +38,8 @@ from iris import FUTURE
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.cube_combiner import CubeCombiner
 
-FUTURE.netcdf_promote = True
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('netcdf_promote', True)
 
 
 class WindGustDiagnostic(object):

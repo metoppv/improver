@@ -54,6 +54,9 @@ from improver.tests.spotdata.spotdata.test_common_functions import (
     Test_common_functions)
 from improver.utilities.warnings_handler import ManageWarnings
 
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('cell_datetime_objects', True)
+
 
 class Test_cycletime_to_datetime(IrisTest):
 
@@ -247,8 +250,7 @@ class Test_datetime_constraint(Test_common_functions):
         time_limit = datetime.datetime(2017, 2, 17, 18, 0)
         expected_times = range(1487311200, 1487354400, 3600)
         dt_constraint = plugin(time_start, time_max=time_limit)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.long_cube.extract(dt_constraint)
+        result = self.long_cube.extract(dt_constraint)
         self.assertEqual(result.shape, (12, 12, 12))
         self.assertArrayEqual(result.coord('time').points,
                               expected_times)
@@ -263,16 +265,14 @@ class Test_datetime_constraint(Test_common_functions):
         """Test use of constraint at a time valid within the cube."""
         plugin = datetime_constraint
         dt_constraint = plugin(datetime.datetime(2017, 2, 17, 6, 0))
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.cube.extract(dt_constraint)
+        result = self.cube.extract(dt_constraint)
         self.assertIsInstance(result, Cube)
 
     def test_invalid_constraint(self):
         """Test use of constraint at a time invalid within the cube."""
         plugin = datetime_constraint
         dt_constraint = plugin(datetime.datetime(2017, 2, 17, 18, 0))
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            result = self.cube.extract(dt_constraint)
+        result = self.cube.extract(dt_constraint)
         self.assertNotIsInstance(result, Cube)
 
 

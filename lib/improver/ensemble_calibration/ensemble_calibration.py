@@ -46,6 +46,9 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('cell_datetime_objects', True)
+
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
     """
@@ -871,10 +874,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 forecast_predictor.coord("time").units.name,
                 forecast_predictor.coord("time").units.calendar)[0]
 
-            with iris.FUTURE.context(cell_datetime_objects=True):
-                constr = iris.Constraint(time=date)
-                forecast_predictor_at_date = forecast_predictor.extract(constr)
-                forecast_var_at_date = forecast_var.extract(constr)
+            constr = iris.Constraint(time=date)
+            forecast_predictor_at_date = forecast_predictor.extract(constr)
+            forecast_var_at_date = forecast_var.extract(constr)
 
             # If the coefficients are not available for the date, use the
             # raw ensemble forecast as the calibrated ensemble forecast.

@@ -49,6 +49,9 @@ from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
 from improver.utilities.save import save_netcdf
 
+import improver.utilities.iris_future
+improver.utilities.iris_future.set_future('cell_datetime_objects', True)
+
 
 class Test_read_input(IrisTest):
     """Test the reading of ancillary data files and creation of an ancillaries
@@ -108,14 +111,13 @@ class Test_read_input(IrisTest):
         surface_pressure.rename('surface_pressure')
 
         # Build reference copy of additional_data dictionary.
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            additional_data = {
-                'temperature_on_height_levels': CubeList(
-                    [temperature_on_height_levels]),
-                'pressure_on_height_levels': CubeList([
-                    pressure_on_height_levels]),
-                'surface_pressure': CubeList([surface_pressure])
-                }
+        additional_data = {
+            'temperature_on_height_levels': CubeList(
+                [temperature_on_height_levels]),
+            'pressure_on_height_levels': CubeList([
+                pressure_on_height_levels]),
+            'surface_pressure': CubeList([surface_pressure])
+            }
 
         self.data_directory = mkdtemp()
 
