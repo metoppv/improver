@@ -165,7 +165,7 @@ class Test_process(IrisTest):
         """Test it raises CoordinateNotFoundError if coord not in the cube."""
         coord = "notset"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        msg = ('Expected to find exactly 1  coordinate, but found none.')
+        msg = ('Expected to find exactly 1 .* coordinate, but found none.')
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
