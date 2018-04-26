@@ -60,13 +60,13 @@ class BasicThreshold(object):
         it is provided.
 
         The usage of fuzzy_factor is exemplified as follows:
-        
+
         For a 6 mm/hr threshold with a 0.75 fuzzy factor, a range of 25%
         around this threshold (between (6*0.75=) 4.5 and (6*(2-0.75)=) 7.5)
         would be generated. The probabilities of exceeding values within this
         range are scaled linearly, so that 4.5 mm/hr yields a thresholded value
         of 0 and 7.5 mm/hr yields a thresholded value of 1. Therefore, in this
-        case, the thresholded exceedance probabilities between 4.5 mm/hr and 
+        case, the thresholded exceedance probabilities between 4.5 mm/hr and
         7.5 mm/hr would follow the pattern:
 
          Data value | Probability
