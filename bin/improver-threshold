@@ -93,9 +93,8 @@ def main():
                         "if they fall within this fuzzy factor region. Fuzzy "
                         "factor must be in the range 0-1, with higher values "
                         "indicating a narrower fuzzy factor region / sharper "
-                        "threshold. NB A "
-                        "fuzzy factor cannot be used with a zero threshold "
-                        "or a threshold_config file.")
+                        "threshold. NB A fuzzy factor cannot be used with a "
+                        "zero threshold or a threshold_config file.")
 
     args = parser.parse_args()
 
