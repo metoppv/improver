@@ -599,10 +599,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 forecast_period_constr)
 
             # Extract truth matching the time of the historic forecast.
-            #reference_time = unit.num2date(
-            #    historic_forecast_cube.coord("time").points,
-            #    historic_forecast_cube.coord("time").units.name,
-            #    historic_forecast_cube.coord("time").units.calendar)
             reference_time = iris_time_to_datetime(
                 historic_forecast_cube.coord("time").copy())
             truth_constr = iris.Constraint(
