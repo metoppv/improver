@@ -871,10 +871,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 forecast_predictor.coord("time").units.name,
                 forecast_predictor.coord("time").units.calendar)[0]
 
-            with iris.FUTURE.context(cell_datetime_objects=True):
-                constr = iris.Constraint(time=date)
-                forecast_predictor_at_date = forecast_predictor.extract(constr)
-                forecast_var_at_date = forecast_var.extract(constr)
+            constr = iris.Constraint(time=date)
+            forecast_predictor_at_date = forecast_predictor.extract(constr)
+            forecast_var_at_date = forecast_var.extract(constr)
 
             # If the coefficients are not available for the date, use the
             # raw ensemble forecast as the calibrated ensemble forecast.

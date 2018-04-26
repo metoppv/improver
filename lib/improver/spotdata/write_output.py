@@ -32,9 +32,6 @@
 
 import os
 import iris
-from iris import FUTURE
-
-FUTURE.netcdf_no_unlimited = True
 
 
 class WriteOutput(object):

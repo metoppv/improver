@@ -109,8 +109,7 @@ class ExtractExtrema(object):
         period_cubes = CubeList()
         for period_start, period_end in zip(starts, ends):
             extrema_constraint = datetime_constraint(period_start, period_end)
-            with iris.FUTURE.context(cell_datetime_objects=True):
-                cube_over_period = local_tz_cube.extract(extrema_constraint)
+            cube_over_period = local_tz_cube.extract(extrema_constraint)
             if cube_over_period is not None:
                 # Ensure time dimension of resulting cube reflects period.
                 mid_time = dt_to_utc_hours(period_start +

@@ -112,8 +112,7 @@ def get_additional_diagnostics(diagnostic_name, diagnostic_data_path,
     cubes = load_cubelist(files_to_read)
 
     if time_extract is not None:
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cubes = cubes.extract(time_extract)
+        cubes = cubes.extract(time_extract)
         if not cubes:
             raise ValueError('No diagnostics match {}'.format(time_extract))
     return cubes

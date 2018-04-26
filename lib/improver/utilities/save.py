@@ -32,9 +32,6 @@
 
 import iris
 
-iris.FUTURE.netcdf_promote = True
-iris.FUTURE.netcdf_no_unlimited = True
-
 
 def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
