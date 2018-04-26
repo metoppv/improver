@@ -79,7 +79,15 @@ class Test_save_netcdf(IrisTest):
         self.assertTrue(os.path.exists(self.filepath))
 
     def test_basic_cube_list(self):
-        """ Test functionality for saving iris.cube.CubeList """
+        """
+        Test functionality for saving iris.cube.CubeList
+
+        Both cubes are saved into one single file which breaks the convention
+        of one cube per file. Therefore can't use IMPROVER specific load
+        utilities since they don't have the ability to handle multiple
+        cubes in one file.
+
+        """
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
         read_cubes = iris.load(self.filepath)

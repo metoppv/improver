@@ -46,9 +46,6 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_above_threshold_cube
 
 
-iris.FUTURE.netcdf_promote = True
-
-
 def set_up_wxcubes():
     """Set up cubes required for Weather Symbols """
     data_snow = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,

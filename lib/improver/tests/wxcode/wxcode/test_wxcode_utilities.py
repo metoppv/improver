@@ -42,13 +42,14 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 from cf_units import Unit
 
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+
 from improver.wxcode.wxcode_utilities import (WX_DICT,
                                               add_wxcode_metadata,
                                               expand_nested_lists)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
-
-iris.FUTURE.netcdf_promote = True
 
 
 class Test_wx_dict(IrisTest):
@@ -126,8 +127,8 @@ class Test_add_wxcode_metadata(IrisTest):
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
         cube = add_wxcode_metadata(self.cube)
-        iris.save(cube, self.nc_file, unlimited_dimensions=[])
-        result = iris.load_cube(self.nc_file)
+        save_netcdf(cube, self.nc_file)
+        result = load_cube(self.nc_file)
         self.assertEqual(result.name(), 'weather_code')
         self.assertEqual(result.units, Unit("1"))
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
