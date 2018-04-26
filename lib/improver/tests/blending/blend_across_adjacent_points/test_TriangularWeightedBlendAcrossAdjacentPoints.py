@@ -183,7 +183,8 @@ class Test_correct_collapsed_coordinates(IrisTest):
                         standard_name="lwe_thickness_of_precipitation_amount")
         new_cube.add_dim_coord(DimCoord([0, 1, 2], "forecast_period",
                                         units="hours"), 0)
-        message = "New points shape must match existing points shape."
+
+        message = "Require data with shape"
         with self.assertRaisesRegexp(ValueError, message):
             self.plugin.correct_collapsed_coordinates(orig_cube, new_cube,
                                                       ['forecast_period'])
