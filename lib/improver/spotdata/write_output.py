@@ -32,7 +32,6 @@
 
 import os
 import iris
-from iris import FUTURE
 
 from improver.utilities.save import save_netcdf
 
