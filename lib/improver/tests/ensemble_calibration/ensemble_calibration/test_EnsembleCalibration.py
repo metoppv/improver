@@ -47,9 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 ignored_messages = ["Collapsing a non-contiguous coordinate.",
-                    "Not importing directory '/opt/scitools/environments/"
-                    "experimental_legacy/2018_04_06/lib/python2.7/site-"
-                    "packages/sphinxcontrib'"]
+                    "Not importing directory .*sphinxcontrib'"]
 warning_types = [UserWarning, ImportWarning]
 
 
