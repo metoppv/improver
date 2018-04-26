@@ -53,9 +53,6 @@ from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 from improver.spotdata.extract_data import ExtractData as Plugin
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 class Test_setup(IrisTest):
 

@@ -46,9 +46,6 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
     """

@@ -38,9 +38,6 @@ import os
 import iris
 from improver.utilities.load import load_cubelist
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 def get_method_prerequisites(method, diagnostic_data_path):
     """

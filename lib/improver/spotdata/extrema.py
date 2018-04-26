@@ -41,9 +41,6 @@ from improver.utilities.temporal import (iris_time_to_datetime,
                                          datetime_constraint,
                                          dt_to_utc_hours)
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 class ExtractExtrema(object):
     """Extract diagnostic maxima and minima in a given time period."""

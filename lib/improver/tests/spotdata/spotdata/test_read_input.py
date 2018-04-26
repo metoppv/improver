@@ -49,9 +49,6 @@ from improver.spotdata.read_input import get_method_prerequisites
 from improver.spotdata.read_input import get_additional_diagnostics
 from improver.utilities.save import save_netcdf
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 class Test_read_input(IrisTest):
     """Test the reading of ancillary data files and creation of an ancillaries

@@ -54,9 +54,6 @@ from improver.tests.spotdata.spotdata.test_common_functions import (
     Test_common_functions)
 from improver.utilities.warnings_handler import ManageWarnings
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 class Test_cycletime_to_datetime(IrisTest):
 

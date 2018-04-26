@@ -46,9 +46,6 @@ from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('cell_datetime_objects', True)
-
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.

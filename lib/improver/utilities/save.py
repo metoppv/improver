@@ -31,9 +31,6 @@
 """Module for saving netcdf cubes with desired attribute types."""
 
 import iris
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('netcdf_promote', True)
-improver.utilities.iris_future.set_future('netcdf_no_unlimited', True)
 
 
 def save_netcdf(cubelist, filename):

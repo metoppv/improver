@@ -33,13 +33,9 @@
 import numpy as np
 
 import iris
-from iris import FUTURE
 
 from improver.utilities.cube_metadata import (
     resolve_metadata_diff, amend_metadata)
-
-import improver.utilities.iris_future
-improver.utilities.iris_future.set_future('netcdf_promote', True)
 
 
 class CubeCombiner(object):
