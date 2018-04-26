@@ -598,10 +598,13 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 forecast_period_constr)
 
             # Extract truth matching the time of the historic forecast.
+            reference_time = unit.num2date(
+                historic_forecast_cube.coord("time").points,
+                historic_forecast_cube.coord("time").units.name,
+                historic_forecast_cube.coord("time").units.calendar)
             truth_constr = iris.Constraint(
-                forecast_reference_time=historic_forecast_cube.coord(
-                    "time").points)
-            truth_cube = truth_cubes.extract(truth_constr) # BUG breaks in iris 2.0
+                forecast_reference_time=reference_time)
+            truth_cube = truth_cubes.extract(truth_constr)
 
             if truth_cube is None:
                 msg = ("Unable to calibrate for the time points {} "

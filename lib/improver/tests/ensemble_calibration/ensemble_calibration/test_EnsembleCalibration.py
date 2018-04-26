@@ -46,13 +46,19 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
                              _create_historic_forecasts, _create_truth)
 from improver.utilities.warnings_handler import ManageWarnings
 
+ignored_messages = ["Collapsing a non-contiguous coordinate.",
+                    "Not importing directory '/opt/scitools/environments/"
+                    "experimental_legacy/2018_04_06/lib/python2.7/site-"
+                    "packages/sphinxcontrib'"]
+warning_types = [UserWarning, ImportWarning]
+
 
 class Test_process(IrisTest):
 
     """Test the process plugin."""
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=ignored_messages, warning_types=warning_types)
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         self.current_temperature_forecast_cube = (
@@ -76,7 +82,7 @@ class Test_process(IrisTest):
             _create_truth(self.current_wind_speed_forecast_cube))
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=ignored_messages, warning_types=warning_types)
     def test_basic_temperature(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -169,7 +175,7 @@ class Test_process(IrisTest):
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=ignored_messages, warning_types=warning_types)
     def test_temperature_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -336,7 +342,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=ignored_messages, warning_types=warning_types)
     def test_alternative_calibration_name(self):
         """
         Test that the plugin returns an iris.cube.CubeList.
