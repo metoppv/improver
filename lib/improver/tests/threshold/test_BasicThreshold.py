@@ -144,7 +144,7 @@ class Test_process(IrisTest):
 
         # cube to test unit conversion
         rate_data = np.zeros((5, 5))
-        rate_data[2][2] = 1.39e-6  # ~ 5 mm/hr
+        rate_data[2][2] = 1.39e-6  # 5.004 mm/hr
         rate_cube = Cube(rate_data, 'rainfall_rate', units='m s-1',
                          dim_coords_and_dims=[(latitude, 0), (longitude, 1)])
         self.rate_cube = rate_cube
@@ -423,7 +423,10 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_unit_conversion(self):
-        """Test data are correctly thresholded with different units"""
+        """Test data are correctly thresholded when the threshold is given in
+        units different from that of the input cube.  In this test two
+        thresholds (of 4 and 6 mm/h) are used on a 5x5 cube where the
+        central data point value is 1.39e-6 m/s (~ 5 mm/h)."""
         expected_result_array = np.zeros((2, 5, 5))
         expected_result_array[0][2][2] = 1.
         plugin = Threshold([4.0, 6.0], threshold_units='mm h-1')
@@ -433,7 +436,9 @@ class Test_process(IrisTest):
     def test_threshold_unit_conversion_fuzzy_factor(self):
         """Test for sensible fuzzy factor behaviour when units of threshold
         are different from input cube.  A fuzzy factor of 0.75 is equivalent
-        to bounds +/- 25% around the threshold in the given units."""
+        to bounds +/- 25% around the threshold in the given units.  So for a
+        threshold of 4 (6) mm/h, the thresholded exceedance probabilities
+        increase linearly from 0 at 3 (4.5) mm/h to 1 at 5 (7.5) mm/h."""
         expected_result_array = np.zeros((2, 5, 5))
         expected_result_array[0][2][2] = 1.
         expected_result_array[1][2][2] = 0.168

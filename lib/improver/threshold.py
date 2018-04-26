@@ -227,8 +227,12 @@ class BasicThreshold(object):
         # apply fuzzy thresholding
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
+            # if upper and lower bounds are equal, set a deterministic 0/1
+            # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
                 truth_value = cube.data > threshold
+            # otherwise, scale exceedance probabilities linearly between 0/1
+            # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
                 truth_value = np.where(
                     cube.data < threshold,
@@ -242,10 +246,12 @@ class BasicThreshold(object):
                             clip=True),
                 )
             truth_value = truth_value.astype(input_cube_dtype)
+            # if requirement is for probabilities below threshold (rather than
+            # above), invert the exceedance probability
             if self.below_thresh_ok:
                 truth_value = 1. - truth_value
-            cube.data = truth_value
 
+            cube.data = truth_value
             coord = iris.coords.DimCoord(threshold,
                                          long_name="threshold",
                                          units=cube.units)
