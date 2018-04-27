@@ -159,14 +159,13 @@ class Test_setup(IrisTest):
             dim_coords_and_dims=[(time, 0), (latitude, 1), (longitude, 2)],
             units="hPa")
 
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            ad = {
-                'temperature_on_height_levels':
-                    temperature_on_height_levels.extract(time_extract),
-                'pressure_on_height_levels':
-                    pressure_on_height_levels.extract(time_extract),
-                'surface_pressure': surface_pressure.extract(time_extract)
-                }
+        ad = {
+            'temperature_on_height_levels':
+                temperature_on_height_levels.extract(time_extract),
+            'pressure_on_height_levels':
+                pressure_on_height_levels.extract(time_extract),
+            'surface_pressure': surface_pressure.extract(time_extract)
+            }
 
         sites = OrderedDict()
         sites.update(
@@ -205,8 +204,7 @@ class Test_setup(IrisTest):
     def return_type(self, method, ancillary_data, additional_data, **kwargs):
         """Test that the plugin returns an iris.cube.Cube."""
         plugin = Plugin(method)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = self.cube.extract(self.time_extract)
+        cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, **kwargs)
 
@@ -216,8 +214,7 @@ class Test_setup(IrisTest):
                         expected, **kwargs):
         """Test that the plugin returns the correct value."""
         plugin = Plugin(method)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = self.cube.extract(self.time_extract)
+        cube = self.cube.extract(self.time_extract)
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, **kwargs)
 
@@ -268,8 +265,7 @@ class Test_setup(IrisTest):
         self.neighbour_list['j'] = 11
 
         plugin = Plugin(method)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = cube.extract(self.time_extract)
+        cube = cube.extract(self.time_extract)
 
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, **kwargs)
@@ -309,8 +305,7 @@ class Test_ExtractData(Test_setup):
 
         plugin = Plugin('quantum_interpolation')
         msg = 'Unknown method'
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = self.cube.extract(self.time_extract)
+        cube = self.cube.extract(self.time_extract)
         with self.assertRaisesRegexp(AttributeError, msg):
             plugin.process(cube, self.sites, self.neighbour_list, {}, None,
                            **self.kwargs)
@@ -475,8 +470,7 @@ class Test_model_level_temperature_lapse_rate(Test_setup):
         t_data.resize((3, 20, 20))
 
         self.ad['temperature_on_height_levels'].data = t_data
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube = self.cube.extract(self.time_extract)
+        cube = self.cube.extract(self.time_extract)
         cube.data = cube.data*0.0
 
         self.sites['100']['altitude'] = -90.

@@ -108,14 +108,13 @@ class Test_read_input(IrisTest):
         surface_pressure.rename('surface_pressure')
 
         # Build reference copy of additional_data dictionary.
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            additional_data = {
-                'temperature_on_height_levels': CubeList(
-                    [temperature_on_height_levels]),
-                'pressure_on_height_levels': CubeList([
-                    pressure_on_height_levels]),
-                'surface_pressure': CubeList([surface_pressure])
-                }
+        additional_data = {
+            'temperature_on_height_levels': CubeList(
+                [temperature_on_height_levels]),
+            'pressure_on_height_levels': CubeList([
+                pressure_on_height_levels]),
+            'surface_pressure': CubeList([surface_pressure])
+            }
 
         self.data_directory = mkdtemp()
 
