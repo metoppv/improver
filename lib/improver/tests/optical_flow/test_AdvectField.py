@@ -93,10 +93,8 @@ class Test_process(IrisTest):
         vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
         vel_y.rename("advection_velocity_y")
         self.plugin = AdvectField(vel_x, vel_y)
-
         # NOTE doesn't ufield usually refer to wind in x dirn and vfield
         # to wind in y dirn? This is not behaving as expected...
-
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
@@ -110,12 +108,6 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test output cube data is as expected"""
-        """
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 2., 3.],
-                                    [0., 1., 2.],
-                                    [0., 0., 1.]])
-        """
         # NOTE currently failing - u/v ambiguity
         expected_output = np.array([[0., 0., 0.],
                                     [0., 0., 0.],
@@ -127,12 +119,6 @@ class Test_process(IrisTest):
     def test_background_values(self):
         """Test output cube data is padded as expected where source grid
         points are out of bounds"""
-        """
-        expected_output = np.array([[-1., -1., -1.],
-                                    [-1., 2., 3.],
-                                    [-1., 1., 2.],
-                                    [-1., 0., 1.]])
-        """
         # NOTE currently failing - u/v ambiguity
         expected_output = np.array([[-1., -1., -1.],
                                     [-1., -1., -1.],
