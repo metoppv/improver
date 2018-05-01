@@ -37,11 +37,6 @@ import iris
 import numpy as np
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
 
-#import scipy.linalg
-#import scipy.ndimage
-#import scipy.ndimage.filters
-#import scipy.signal
-
 
 class AdvectField(object):
     """
@@ -87,7 +82,7 @@ class AdvectField(object):
             dt (int):
                 Advection time step TODO units
             bgd (float):
-                ???
+                ??? TODO find out!
 
         Returns:
             advected_cube (iris.cube.Cube):
