@@ -33,8 +33,10 @@ This module defines optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
 
-import iris
 import numpy as np
+import iris
+#from datetime import timedelta
+
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
 
 
@@ -59,14 +61,18 @@ class AdvectField(object):
         """
 
         # check input velocity cubes have the same coordinates TODO error type?
-        if find_dimension_coordinate_mismatch(vel_x, vel_y):
-            raise ValueError('Velocity cubes on unmatched grids')
+        if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
+                vel_x.coord(axis="y") != vel_y.coord(axis="y")):
+            raise ValueError("Velocity cubes on unmatched grids")
+
+        vel_x.convert_units('m s-1')
+        vel_y.convert_units('m s-1')
 
         self.vel_x = vel_x
         self.vel_y = vel_y
 
-        self.x_coord = vel_x.coord("x")
-        self.y_coord = vel_x.coord("y")
+        self.x_coord = vel_x.coord(axis="x")
+        self.y_coord = vel_x.coord(axis="y")
 
 
     def process(self, cube, dt=1, bgd=0.0):
@@ -79,8 +85,8 @@ class AdvectField(object):
         Args:
             cube (iris.cube.Cube):
                 The cube containing data to be advected
-            dt (int):
-                Advection time step TODO units
+            dt (datetime.timedelta):
+                Advection time step
             bgd (float):
                 ??? TODO find out!
 
@@ -90,9 +96,10 @@ class AdvectField(object):
         """
 
         # check coordinates TODO error type?
-        if cube.coord("x") != self.x_coord or cube.coord("y") != self.y_coord:
-            raise ValueError('Input data grid does not match advection '
-                             'velocities')
+        if (cube.coord(axis="x") != self.x_coord or
+                cube.coord(axis="y") != self.y_coord):
+            raise ValueError("Input data grid does not match advection "
+                             "velocities")
 
         adv_field = np.zeros(cube.data.shape)
 
@@ -100,9 +107,10 @@ class AdvectField(object):
         # TODO basic unit tests, then refactor with eg sensible treatment of time coordinates
         ydim, xdim = cube.data.shape
         (ygrid, xgrid) = np.meshgrid(np.arange(xdim),
-                                    np.arange(ydim))
-        oldx_frac = -self.vel_x.data * dt + xgrid.astype(float)
-        oldy_frac = -self.vel_y.data * dt + ygrid.astype(float)
+                                     np.arange(ydim))
+    
+        oldx_frac = -self.vel_x.data * dt.total_seconds() + xgrid.astype(float)
+        oldy_frac = -self.vel_y.data * dt.total_seconds() + ygrid.astype(float)
         adv_field = np.full(cube.data.shape, bgd)
         cond1 = (oldx_frac >= 0.) & (oldy_frac >= 0.) & (
                 oldx_frac < ydim) & (oldy_frac < xdim)
