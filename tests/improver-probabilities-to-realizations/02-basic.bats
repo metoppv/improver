@@ -29,29 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "probabilities-to-members -h" {
-  run improver probabilities-to-members -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "probabilities-to-realizations input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  run improver probabilities-to-realizations  \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-usage: improver-probabilities-to-members [-h]
-                                         [--no-of-members NUMBER_OF_MEMBERS]
-                                         INPUT_FILE OUTPUT_FILE
 
-Convert a dataset containing probabilities into one containing ensemble
-members.
-
-positional arguments:
-  INPUT_FILE            A path to an input NetCDF file to be processed
-  OUTPUT_FILE           The output path for the processed NetCDF
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --no-of-members NUMBER_OF_MEMBERS
-                        Optional definition of the number of ensemble members
-                        to be generated. These are generated through an
-                        intermediate percentile representation. These
-                        percentiles will be distributed regularly with the aim
-                        of dividing into blocks of equal probability.
-__HELP__
-  [[ "$output" == "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

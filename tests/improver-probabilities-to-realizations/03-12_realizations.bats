@@ -29,14 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "probabilities-to-members no arguments" {
-  run improver probabilities-to-members
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-probabilities-to-members [-h]
-                                         [--no-of-members NUMBER_OF_MEMBERS]
-                                         INPUT_FILE OUTPUT_FILE
-improver-probabilities-to-members: error: too few arguments
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "probabilities-to-realizations --no-of-realizations=12 input output" {
+  TEST_DIR=$(mktemp -d)
+  improver_check_skip_acceptance
+
+  run improver probabilities-to-realizations --no-of-realizations=12 \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/12_realizations/input.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/12_realizations/kgo.nc"
+  rm "$TEST_DIR/output.nc"
+  rmdir "$TEST_DIR"
 }

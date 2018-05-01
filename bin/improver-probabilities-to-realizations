@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to convert from probabilities to ensemble member data."""
+"""Script to convert from probabilities to ensemble realization data."""
 
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -39,13 +39,13 @@ from improver.utilities.save import save_netcdf
 
 
 def main():
-    """Load in arguments to convert from probabilities to ensemble members."""
+    """Convert from probabilities to ensemble realizations via a CLI."""
 
     cli_specific_arguments = [
-        (['--no-of-members'],
-         {'metavar': 'NUMBER_OF_MEMBERS', 'default': None, 'type': int,
+        (['--no-of-realizations'],
+         {'metavar': 'NUMBER_OF_REALIZATIONS', 'default': None, 'type': int,
           'help': (
-            'Optional definition of the number of ensemble members to be '
+            'Optional definition of the number of ensemble realizations to be '
             'generated. These are generated through an intermediate '
             'percentile representation. These percentiles will be distributed '
             'regularly with the aim of dividing into blocks of equal '
@@ -56,14 +56,14 @@ def main():
                       'specific_arguments': cli_specific_arguments,
                       'description': ('Convert a dataset containing '
                                       'probabilities into one containing '
-                                      'ensemble members.')}
+                                      'ensemble realizations.')}
 
     args = ArgParser(**cli_definition).parse_args()
 
     cube = load_cube(args.input_filepath)
 
     cube = GeneratePercentilesFromProbabilities().process(
-            cube, no_of_percentiles=args.no_of_members)
+            cube, no_of_percentiles=args.no_of_realizations)
     cube = RebadgePercentilesAsMembers().process(cube)
 
     save_netcdf(cube, args.output_filepath)

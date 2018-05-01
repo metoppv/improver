@@ -29,20 +29,29 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "probabilities-to-members --no-of-members=12 input output" {
-  TEST_DIR=$(mktemp -d)
-  improver_check_skip_acceptance
-
-  run improver probabilities-to-members --no-of-members=12 \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-members/12_members/input.nc" \
-      "$TEST_DIR/output.nc"
+@test "probabilities-to-realizations -h" {
+  run improver probabilities-to-realizations -h
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-probabilities-to-realizations [-h]
+                                              [--no-of-realizations NUMBER_OF_REALIZATIONS]
+                                              INPUT_FILE OUTPUT_FILE
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-members/12_members/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+Convert a dataset containing probabilities into one containing ensemble
+realizations.
+
+positional arguments:
+  INPUT_FILE            A path to an input NetCDF file to be processed
+  OUTPUT_FILE           The output path for the processed NetCDF
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --no-of-realizations NUMBER_OF_REALIZATIONS
+                        Optional definition of the number of ensemble
+                        realizations to be generated. These are generated
+                        through an intermediate percentile representation.
+                        These percentiles will be distributed regularly with
+                        the aim of dividing into blocks of equal probability.
+__HELP__
+  [[ "$output" == "$expected" ]]
 }
