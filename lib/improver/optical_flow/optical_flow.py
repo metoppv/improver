@@ -35,9 +35,7 @@ classes for advection nowcasting of precipitation fields.
 
 import numpy as np
 import iris
-#from datetime import timedelta
-
-from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
+from iris.exceptions import InvalidCubeError
 
 
 class AdvectField(object):
@@ -55,17 +53,17 @@ class AdvectField(object):
 
         Args:
             vel_x (iris.cube.Cube):
-                Cube containing a 2D array of velocities along the x 
+                Cube containing a 2D array of velocities along the x
                 coordinate axis
             vel_y (numpy.ndarray):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
         """
 
-        # check input velocity cubes have the same coordinates TODO error type?
+        # check input velocity cubes have the same coordinates
         if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
                 vel_x.coord(axis="y") != vel_y.coord(axis="y")):
-            raise ValueError("Velocity cubes on unmatched grids")
+            raise InvalidCubeError("Velocity cubes on unmatched grids")
 
         vel_x.convert_units('m s-1')
         vel_y.convert_units('m s-1')
@@ -76,71 +74,56 @@ class AdvectField(object):
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
 
-
-    def process(self, cube, timestep, bgd=0.0):
-
+    @staticmethod
+    def _advect_field(data, grid_vel_x, grid_vel_y, timestep, bgd):
         """
-        Extrapolates spatial data from an input cube using advection
-        velocities.  NOTE currently assumes data indexing from top left.
+        Performs a dimensionless grid-based extrapolation of spatial data
+        using advection velocities via a backwards method.
 
-        The cube is expected to be in a projection such that grid spacing
-        is the same at all points in the domain.
+        NOTE currently assumes positive y-velocity DOWNWARDS from top left
+        NOTE potential x/y u/v bug / confusion
 
         Args:
-            cube (iris.cube.Cube):
-                The cube containing data to be advected
-            timestep (datetime.timedelta):
-                Advection time step
+            data (numpy.ndarray):
+                2D numpy data array to be advected
+            grid_vel_x (numpy.ndarray):
+                Velocity in the x direction (in grid points per second)
+            grid_vel_y (numpy.ndarray):
+                Velocity in the y direction (in grid points per second)
+            timestep (int):
+                Advection time step in seconds
             bgd (float):
                 Default output value for spatial points where data cannot be
                 extrapolated (source is out of bounds)
 
         Returns:
-            advected_cube (iris.cube.Cube):
-                New cube with updated time and extrapolated data
+            adv_field (numpy.ndarray):
+                2D float array of advected data values
         """
 
-        # check coordinates TODO error type?
-        if (cube.coord(axis="x") != self.x_coord or
-                cube.coord(axis="y") != self.y_coord):
-            raise ValueError("Input data grid does not match advection "
-                             "velocities")
-
-        # derive velocities in "grid squares per second"
-        def grid_spacing(coord):
-            new_coord = coord.copy()
-            new_coord.convert_units('m')
-            return float(np.diff((new_coord).points)[0])
-
-        grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
-        grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
-
         # initialise advected field with "background" default value
-        # TODO Do we want this boundary behaviour?
-        adv_field = np.full(cube.data.shape, bgd)
+        adv_field = np.full(data.shape, bgd)
 
-        # copied from Martina's code
-        # TODO basic unit tests, then refactor with eg sensible treatment of time coordinates
-        ydim, xdim = cube.data.shape
+        # set up grids of data coordinates (NOTE indexed from top left)
+        ydim, xdim = data.shape
         (ygrid, xgrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
-    
+
         # For each grid point on the output field, trace its (x,y) "source"
         # location backwards using advection velocities.  The source location
         # is generally fractional: eg with advection velocities of 0.5 grid
         # squares per second, the value at [2, 2] is represented by the value
         # that was at [1.5, 1.5] 1 second ago.
-        oldx_frac = -grid_vel_x * timestep.total_seconds() + xgrid.astype(float)
-        oldy_frac = -grid_vel_y * timestep.total_seconds() + ygrid.astype(float)
+        oldx_frac = -grid_vel_x * timestep + xgrid.astype(float)
+        oldy_frac = -grid_vel_y * timestep + ygrid.astype(float)
 
         # For all the points where fractional source coordinates are within
         # the bounds of the field, set the output field to 0
-
         def point_in_bounds(x, y, nx, ny):
             return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
 
-        #cond1 = (oldx_frac >= 0.) & (oldy_frac >= 0.) & (
-        #         oldx_frac < ydim) & (oldy_frac < xdim)
+        # NOTE my translation is correct but what's being done here doesn't
+        # make sense
         cond1 = point_in_bounds(oldy_frac, oldx_frac, xdim, ydim)
         adv_field[cond1] = 0
 
@@ -150,17 +133,9 @@ class AdvectField(object):
         oldy_u = oldy_frac.astype(int)
         oldy_d = oldy_u + 1
         y_frac_d = oldy_frac - oldy_u.astype(float)
-        #cond2 = ((oldx_l >= 0) & (oldy_u >= 0) & (oldx_l < ydim) &
-        #        (oldy_u < xdim) & cond1)
         cond2 = point_in_bounds(oldy_u, oldx_l, xdim, ydim) & cond1
-        #cond3 = ((oldx_r >= 0) & (oldy_u >= 0) & (oldx_r < ydim) &
-        #        (oldy_u < xdim) & cond1)
         cond3 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
-        #cond4 = ((oldx_l >= 0) & (oldy_d >= 0) & (oldx_l < ydim) &
-        #        (oldy_d < xdim) & cond1)
         cond4 = point_in_bounds(oldy_d, oldx_l, xdim, ydim) & cond1
-        #cond5 = ((oldx_r >= 0) & (oldy_d >= 0) & (oldx_r < ydim) &
-        #        (oldy_d < xdim) & cond1)
         cond5 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
         for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
             xorig = xgrid[cond]
@@ -186,11 +161,57 @@ class AdvectField(object):
                 xc = oldx_r[cond]
                 yc = oldy_d[cond]
             adv_field[xorig, yorig] = (
-                adv_field[xorig, yorig] + cube.data[xc, yc] *
+                adv_field[xorig, yorig] + data[xc, yc] *
                 xfr[xorig, yorig]*yfr[xorig, yorig])
 
-        adv_cube = iris.cube.Cube(data=adv_field)
-        
-        # TODO update time coordinate on advected cube
+        return adv_field
 
-        return adv_cube
+    def process(self, cube, timestep, bgd=0.0):
+
+        """
+        Extrapolates input cube data and updates validity time.
+
+        The cube is expected to be in a projection such that grid spacing
+        is the same at all points in the domain.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube containing data to be advected
+            timestep (datetime.timedelta):
+                Advection time step
+            bgd (float):
+                Default output value for spatial points where data cannot be
+                extrapolated (source is out of bounds)
+
+        Returns:
+            advected_cube (iris.cube.Cube):
+                New cube with updated time and extrapolated data
+        """
+
+        # check coordinates
+        if (cube.coord(axis="x") != self.x_coord or
+                cube.coord(axis="y") != self.y_coord):
+            raise InvalidCubeError("Input data grid does not match advection "
+                                   "velocities")
+
+        # derive velocities in "grid squares per second"
+        def grid_spacing(coord):
+            new_coord = coord.copy()
+            new_coord.convert_units('m')
+            return float(np.diff((new_coord).points)[0])
+
+        grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
+        grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
+
+        step_seconds = timestep.total_seconds()
+
+        # TODO do we want to handle cubes with multiple fields?
+        advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
+                                           step_seconds, bgd)
+
+        # create new cube with advected data
+        advected_cube = cube.copy(data=advected_data)
+
+        # TODO update time coordinate on advected cube?
+
+        return advected_cube
