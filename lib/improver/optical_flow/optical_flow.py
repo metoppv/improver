@@ -81,8 +81,7 @@ class AdvectField(object):
 
         """
         Extrapolates spatial data from an input cube using advection
-        velocities.  Performs "backwards" advection TODO update with
-        details.
+        velocities.  NOTE currently assumes data indexing from top left.
 
         The cube is expected to be in a projection such that grid spacing
         is the same at all points in the domain.
@@ -93,7 +92,8 @@ class AdvectField(object):
             timestep (datetime.timedelta):
                 Advection time step
             bgd (float):
-                ??? TODO find out!
+                Default output value for spatial points where data cannot be
+                extrapolated (source is out of bounds)
 
         Returns:
             advected_cube (iris.cube.Cube):
@@ -112,13 +112,12 @@ class AdvectField(object):
             new_coord.convert_units('m')
             return float(np.diff((new_coord).points)[0])
 
-        grid_spacing_x = grid_spacing(cube.coord(axis="x"))
-        grid_spacing_y = grid_spacing(cube.coord(axis="y"))
+        grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
+        grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
-        grid_vel_x = self.vel_x.data / grid_spacing_x
-        grid_vel_y = self.vel_y.data / grid_spacing_y
-
-        #adv_field = np.zeros(cube.data.shape)
+        # initialise advected field with "background" default value
+        # TODO Do we want this boundary behaviour?
+        adv_field = np.full(cube.data.shape, bgd)
 
         # copied from Martina's code
         # TODO basic unit tests, then refactor with eg sensible treatment of time coordinates
@@ -126,28 +125,43 @@ class AdvectField(object):
         (ygrid, xgrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
     
+        # For each grid point on the output field, trace its (x,y) "source"
+        # location backwards using advection velocities.  The source location
+        # is generally fractional: eg with advection velocities of 0.5 grid
+        # squares per second, the value at [2, 2] is represented by the value
+        # that was at [1.5, 1.5] 1 second ago.
         oldx_frac = -grid_vel_x * timestep.total_seconds() + xgrid.astype(float)
         oldy_frac = -grid_vel_y * timestep.total_seconds() + ygrid.astype(float)
 
-        adv_field = np.full(cube.data.shape, bgd)
+        # For all the points where fractional source coordinates are within
+        # the bounds of the field, set the output field to 0
 
-        cond1 = (oldx_frac >= 0.) & (oldy_frac >= 0.) & (
-                 oldx_frac < ydim) & (oldy_frac < xdim)
+        def point_in_bounds(x, y, nx, ny):
+            return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
+
+        #cond1 = (oldx_frac >= 0.) & (oldy_frac >= 0.) & (
+        #         oldx_frac < ydim) & (oldy_frac < xdim)
+        cond1 = point_in_bounds(oldy_frac, oldx_frac, xdim, ydim)
         adv_field[cond1] = 0
+
         oldx_l = oldx_frac.astype(int)
         oldx_r = oldx_l + 1
         x_frac_r = oldx_frac - oldx_l.astype(float)
         oldy_u = oldy_frac.astype(int)
         oldy_d = oldy_u + 1
         y_frac_d = oldy_frac - oldy_u.astype(float)
-        cond2 = ((oldx_l >= 0) & (oldy_u >= 0) & (oldx_l < ydim) &
-                (oldy_u < xdim) & cond1)
-        cond3 = ((oldx_r >= 0) & (oldy_u >= 0) & (oldx_r < ydim) &
-                (oldy_u < xdim) & cond1)
-        cond4 = ((oldx_l >= 0) & (oldy_d >= 0) & (oldx_l < ydim) &
-                (oldy_d < xdim) & cond1)
-        cond5 = ((oldx_r >= 0) & (oldy_d >= 0) & (oldx_r < ydim) &
-                (oldy_d < xdim) & cond1)
+        #cond2 = ((oldx_l >= 0) & (oldy_u >= 0) & (oldx_l < ydim) &
+        #        (oldy_u < xdim) & cond1)
+        cond2 = point_in_bounds(oldy_u, oldx_l, xdim, ydim) & cond1
+        #cond3 = ((oldx_r >= 0) & (oldy_u >= 0) & (oldx_r < ydim) &
+        #        (oldy_u < xdim) & cond1)
+        cond3 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
+        #cond4 = ((oldx_l >= 0) & (oldy_d >= 0) & (oldx_l < ydim) &
+        #        (oldy_d < xdim) & cond1)
+        cond4 = point_in_bounds(oldy_d, oldx_l, xdim, ydim) & cond1
+        #cond5 = ((oldx_r >= 0) & (oldy_d >= 0) & (oldx_r < ydim) &
+        #        (oldy_d < xdim) & cond1)
+        cond5 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
         for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
             xorig = xgrid[cond]
             yorig = ygrid[cond]

@@ -40,20 +40,20 @@ from iris.tests import IrisTest
 
 from improver.optical_flow.optical_flow import AdvectField
 
-def set_up_xy_velocity_cube(name, coord_points=None, val_units='m s-1'):
-    """Set up a 3x3 cube of simple velocities (no convergence / divergence)"""
-    data = np.ones(shape=(3, 3))
-    if coord_points is None:
-        coord_points = 0.6*np.arange(3)
-    x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
-    y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='km')
+def set_up_xy_velocity_cube(name, coord_points_y=None, val_units='m s-1'):
+    """Set up a 3x4 cube of simple velocities (no convergence / divergence)"""
+    data = np.ones(shape=(4, 3))
+    coord_points_x = 0.6*np.arange(3)
+    if coord_points_y is None:        
+        coord_points_y = 0.6*np.arange(4)
+    x_coord = DimCoord(coord_points_x, 'projection_x_coordinate', units='km')
+    y_coord = DimCoord(coord_points_y, 'projection_y_coordinate', units='km')
     cube = iris.cube.Cube(data, long_name=name, units=val_units,
                           dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
     return cube
 
 
 class Test__init__(IrisTest):
-
     """Test class initialisation"""
 
     def test_basic(self):
@@ -76,14 +76,13 @@ class Test__init__(IrisTest):
         """Test error is raised if x- and y- velocity grids are mismatched"""
         vel_x = set_up_xy_velocity_cube("advection_velocity_x")
         vel_y = set_up_xy_velocity_cube("advection_velocity_y",
-                                        coord_points=2*np.arange(3))
+                                        coord_points_y=2*np.arange(4))
         msg = "Velocity cubes on unmatched grids"
         with self.assertRaisesRegexp(ValueError, msg):
             plugin = AdvectField(vel_x, vel_y)
 
 
 class Test_process(IrisTest):
-
     """Test cube data is correctly advected"""
 
     def setUp(self):
@@ -92,7 +91,8 @@ class Test_process(IrisTest):
         vel_y = set_up_xy_velocity_cube("advection_velocity_y")
         self.plugin = AdvectField(vel_x, vel_y)
        
-        data = np.array([[1., 2., 3.],
+        data = np.array([[2., 3., 4.],
+                         [1., 2., 3.],
                          [0., 1., 2.],
                          [0., 0., 1.]])
         self.cube = iris.cube.Cube(data, standard_name='rainfall_rate',
@@ -106,10 +106,22 @@ class Test_process(IrisTest):
     def test_values(self):
         """Test output cube data is as expected"""
         expected_output = np.array([[0., 0., 0.],
+                                    [0., 2., 3.],
                                     [0., 1., 2.],
                                     [0., 0., 1.]])
         result = self.plugin.process(self.cube, self.timestep)
         self.assertArrayAlmostEqual(result.data, expected_output)
+
+    def test_background_values(self):
+        """Test output cube data is padded as expected where source grid
+        points are out of bounds"""
+        expected_output = np.array([[-1., -1., -1.],
+                                    [-1., 2., 3.],
+                                    [-1., 1., 2.],
+                                    [-1., 0., 1.]])
+        result = self.plugin.process(self.cube, self.timestep, bgd=-1.)
+        self.assertArrayAlmostEqual(result.data, expected_output)
+
 
     def test_validity_time(self):
         """Test output cube time is correctly updated"""
