@@ -44,9 +44,9 @@ def set_up_xy_velocity_cube(name, coord_points=None, val_units='m s-1'):
     """Set up a 3x3 cube of simple velocities (no convergence / divergence)"""
     data = np.ones(shape=(3, 3))
     if coord_points is None:
-        coord_points = np.arange(3)
-    x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='m')
-    y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='m')
+        coord_points = 0.6*np.arange(3)
+    x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
+    y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='km')
     cube = iris.cube.Cube(data, long_name=name, units=val_units,
                           dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
     return cube
@@ -101,14 +101,14 @@ class Test_process(IrisTest):
                                    (self.plugin.x_coord, 1)])
         # TODO add time coordinate
 
-        self.timestep = datetime.timedelta(seconds=1)
+        self.timestep = datetime.timedelta(seconds=600)
 
     def test_values(self):
         """Test output cube data is as expected"""
         expected_output = np.array([[0., 0., 0.],
                                     [0., 1., 2.],
                                     [0., 0., 1.]])
-        result = self.plugin.process(self.cube, dt=self.timestep)
+        result = self.plugin.process(self.cube, self.timestep)
         self.assertArrayAlmostEqual(result.data, expected_output)
 
     def test_validity_time(self):

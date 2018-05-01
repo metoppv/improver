@@ -49,7 +49,9 @@ class AdvectField(object):
     def __init__(self, vel_x, vel_y):
 
         """
-        Initialises the plugin TODO velocity units in "time steps"
+        Initialises the plugin.  Velocities are expected to be on a regular
+        grid (such that grid spacing in metres is the same at all points in
+        the domain).
 
         Args:
             vel_x (iris.cube.Cube):
@@ -75,17 +77,20 @@ class AdvectField(object):
         self.y_coord = vel_x.coord(axis="y")
 
 
-    def process(self, cube, dt=1, bgd=0.0):
+    def process(self, cube, timestep, bgd=0.0):
 
         """
         Extrapolates spatial data from an input cube using advection
         velocities.  Performs "backwards" advection TODO update with
         details.
 
+        The cube is expected to be in a projection such that grid spacing
+        is the same at all points in the domain.
+
         Args:
             cube (iris.cube.Cube):
                 The cube containing data to be advected
-            dt (datetime.timedelta):
+            timestep (datetime.timedelta):
                 Advection time step
             bgd (float):
                 ??? TODO find out!
@@ -101,7 +106,19 @@ class AdvectField(object):
             raise ValueError("Input data grid does not match advection "
                              "velocities")
 
-        adv_field = np.zeros(cube.data.shape)
+        # derive velocities in "grid squares per second"
+        def grid_spacing(coord):
+            new_coord = coord.copy()
+            new_coord.convert_units('m')
+            return float(np.diff((new_coord).points)[0])
+
+        grid_spacing_x = grid_spacing(cube.coord(axis="x"))
+        grid_spacing_y = grid_spacing(cube.coord(axis="y"))
+
+        grid_vel_x = self.vel_x.data / grid_spacing_x
+        grid_vel_y = self.vel_y.data / grid_spacing_y
+
+        #adv_field = np.zeros(cube.data.shape)
 
         # copied from Martina's code
         # TODO basic unit tests, then refactor with eg sensible treatment of time coordinates
@@ -109,11 +126,13 @@ class AdvectField(object):
         (ygrid, xgrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
     
-        oldx_frac = -self.vel_x.data * dt.total_seconds() + xgrid.astype(float)
-        oldy_frac = -self.vel_y.data * dt.total_seconds() + ygrid.astype(float)
+        oldx_frac = -grid_vel_x * timestep.total_seconds() + xgrid.astype(float)
+        oldy_frac = -grid_vel_y * timestep.total_seconds() + ygrid.astype(float)
+
         adv_field = np.full(cube.data.shape, bgd)
+
         cond1 = (oldx_frac >= 0.) & (oldy_frac >= 0.) & (
-                oldx_frac < ydim) & (oldy_frac < xdim)
+                 oldx_frac < ydim) & (oldy_frac < xdim)
         adv_field[cond1] = 0
         oldx_l = oldx_frac.astype(int)
         oldx_r = oldx_l + 1
