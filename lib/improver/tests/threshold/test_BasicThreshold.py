@@ -122,21 +122,32 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
+
+        latitude = DimCoord(np.linspace(-45.0, 45.0, 5), 'latitude',
+                            units='degrees')
+        longitude = DimCoord(np.linspace(120, 180, 5), 'longitude',
+                             units='degrees')
+
         self.fuzzy_factor = 0.5
         data = np.zeros((1, 5, 5))
         data[0][2][2] = 0.5  # ~2 mm/hr
         cube = Cube(data, standard_name="precipitation_amount",
                     units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 5), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 5), 'longitude',
-                                    units='degrees'), 2)
+        cube.add_dim_coord(latitude, 1)
+        cube.add_dim_coord(longitude, 2)
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
         cube.add_dim_coord(DimCoord([402192.5],
                                     "time", units=tunit), 0)
         self.cube = cube
+
+        # cube to test unit conversion
+        rate_data = np.zeros((5, 5))
+        rate_data[2][2] = 1.39e-6  # 5.004 mm/hr
+        rate_cube = Cube(rate_data, 'rainfall_rate', units='m s-1',
+                         dim_coords_and_dims=[(latitude, 0), (longitude, 1)])
+        self.rate_cube = rate_cube
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -409,6 +420,31 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_unit_conversion(self):
+        """Test data are correctly thresholded when the threshold is given in
+        units different from that of the input cube.  In this test two
+        thresholds (of 4 and 6 mm/h) are used on a 5x5 cube where the
+        central data point value is 1.39e-6 m/s (~ 5 mm/h)."""
+        expected_result_array = np.zeros((2, 5, 5))
+        expected_result_array[0][2][2] = 1.
+        plugin = Threshold([4.0, 6.0], threshold_units='mm h-1')
+        result = plugin.process(self.rate_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_unit_conversion_fuzzy_factor(self):
+        """Test for sensible fuzzy factor behaviour when units of threshold
+        are different from input cube.  A fuzzy factor of 0.75 is equivalent
+        to bounds +/- 25% around the threshold in the given units.  So for a
+        threshold of 4 (6) mm/h, the thresholded exceedance probabilities
+        increase linearly from 0 at 3 (4.5) mm/h to 1 at 5 (7.5) mm/h."""
+        expected_result_array = np.zeros((2, 5, 5))
+        expected_result_array[0][2][2] = 1.
+        expected_result_array[1][2][2] = 0.168
+        plugin = Threshold([4.0, 6.0], threshold_units='mm h-1',
+                           fuzzy_factor=0.75)
+        result = plugin.process(self.rate_cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_point_nan(self):

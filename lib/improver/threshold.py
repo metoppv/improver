@@ -50,10 +50,34 @@ class BasicThreshold(object):
     """
 
     def __init__(self, thresholds, fuzzy_factor=None,
-                 fuzzy_bounds=None,
+                 fuzzy_bounds=None, threshold_units=None,
                  below_thresh_ok=False):
         """
-        Set up for processing an in-or-out of threshold field.
+        Set up for processing an in-or-out of threshold field, including the
+        generation of fuzzy_bounds which are required to threshold an input
+        cube (through self.process(cube)).  If fuzzy_factor is not None, fuzzy
+        bounds are calculated using the threshold value in the units in which
+        it is provided.
+
+        The usage of fuzzy_factor is exemplified as follows:
+
+        For a 6 mm/hr threshold with a 0.75 fuzzy factor, a range of 25%
+        around this threshold (between (6*0.75=) 4.5 and (6*(2-0.75)=) 7.5)
+        would be generated. The probabilities of exceeding values within this
+        range are scaled linearly, so that 4.5 mm/hr yields a thresholded value
+        of 0 and 7.5 mm/hr yields a thresholded value of 1. Therefore, in this
+        case, the thresholded exceedance probabilities between 4.5 mm/hr and
+        7.5 mm/hr would follow the pattern:
+
+         Data value | Probability
+        ------------|-------------
+            4.5     |   0
+            5.0     |   0.167
+            5.5     |   0.333
+            6.0     |   0.5
+            6.5     |   0.667
+            7.0     |   0.833
+            7.5     |   1.0
 
         Args:
             thresholds (list of floats or float):
@@ -63,14 +87,16 @@ class BasicThreshold(object):
             fuzzy_factor (float):
                 Specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
-                distance above threshold.
-                If None, no fuzzy_factor is applied.
+                distance above threshold. If None, no fuzzy_factor is applied.
             fuzzy_bounds (list of tuples):
                 Lower and upper bounds for fuzziness.
                 List should be of same length as thresholds.
                 Each entry in list should be a tuple of two floats
                 representing the lower and upper bounds respectively.
                 If None, no fuzzy_bounds are applied.
+            threshold_units (string):
+                Units of the threshold values. If not provided the units are
+                assumed to be the same as those of the input cube.
             below_thresh_ok (boolean):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
@@ -83,11 +109,18 @@ class BasicThreshold(object):
             ValueError: If both fuzzy_factor and fuzzy_bounds are set
                         as this is ambiguous.
         """
-        # Ensure iterable threshold list provided, even if it's a single value.
+        # ensure threshold is a list, even if only a single value is provided
         self.thresholds = thresholds
         if np.isscalar(thresholds):
             self.thresholds = [thresholds]
 
+        # if necessary, set threshold units
+        if threshold_units is None:
+            self.threshold_units = None
+        else:
+            self.threshold_units = Unit(threshold_units)
+
+        # read fuzzy factor or set (default) to 1 (no smoothing)
         fuzzy_factor_loc = 1.
         if fuzzy_factor is not None:
             if fuzzy_bounds is not None:
@@ -103,6 +136,11 @@ class BasicThreshold(object):
                     "Invalid threshold with fuzzy factor: cannot use a "
                     "multiplicative fuzzy factor with threshold == 0")
             fuzzy_factor_loc = fuzzy_factor
+
+        # Set fuzzy-bounds.  If neither fuzzy_factor nor fuzzy_bounds is set,
+        # both lower_thr and upper_thr default to the threshold value.  A test
+        # of this equality is used later to determine whether to process with
+        # a sharp threshold or fuzzy bounds.
         if fuzzy_bounds is None:
             self.fuzzy_bounds = []
             for thr in self.thresholds:
@@ -113,10 +151,12 @@ class BasicThreshold(object):
                 self.fuzzy_bounds.append((lower_thr, upper_thr))
         else:
             self.fuzzy_bounds = fuzzy_bounds
-        # Ensure fuzzy_bounds is a list, even if a single tuple is
-        # supplied.
+
+        # ensure fuzzy_bounds is a list of tuples
         if isinstance(fuzzy_bounds, tuple):
             self.fuzzy_bounds = [fuzzy_bounds]
+
+        # check that thresholds and fuzzy_bounds are self-consistent
         for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
             assert len(bounds) == 2, (
                 "Invalid bounds for one threshold: {}. "
@@ -141,7 +181,9 @@ class BasicThreshold(object):
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
-        fuzzy_bounds are supplied.
+        fuzzy_bounds are supplied.  If the plugin has a "threshold_units"
+        member, this is used to convert both thresholds and fuzzy bounds into
+        the units of the input cube.
 
         Args:
             input_cube (iris.cube.Cube):
@@ -173,10 +215,24 @@ class BasicThreshold(object):
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
+        # if necessary, convert thresholds and fuzzy bounds into cube units
+        if self.threshold_units is not None:
+            self.thresholds = [self.threshold_units.convert(threshold,
+                                                            input_cube.units)
+                               for threshold in self.thresholds]
+            self.fuzzy_bounds = [tuple([
+                self.threshold_units.convert(threshold, input_cube.units)
+                for threshold in bounds]) for bounds in self.fuzzy_bounds]
+
+        # apply fuzzy thresholding
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
+            # if upper and lower bounds are equal, set a deterministic 0/1
+            # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
                 truth_value = cube.data > threshold
+            # otherwise, scale exceedance probabilities linearly between 0/1
+            # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
                 truth_value = np.where(
                     cube.data < threshold,
@@ -190,10 +246,12 @@ class BasicThreshold(object):
                             clip=True),
                 )
             truth_value = truth_value.astype(input_cube_dtype)
+            # if requirement is for probabilities below threshold (rather than
+            # above), invert the exceedance probability
             if self.below_thresh_ok:
                 truth_value = 1. - truth_value
-            cube.data = truth_value
 
+            cube.data = truth_value
             coord = iris.coords.DimCoord(threshold,
                                          long_name="threshold",
                                          units=cube.units)
