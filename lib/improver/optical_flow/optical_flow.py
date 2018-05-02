@@ -34,8 +34,11 @@ classes for advection nowcasting of precipitation fields.
 """
 
 import numpy as np
+import time
 import iris
+from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 class AdvectField(object):
@@ -81,6 +84,8 @@ class AdvectField(object):
         using advection velocities via a backwards method.
 
         NOTE currently assumes positive y-velocity DOWNWARDS from top left
+        NOTE assumes grid indexing [y, x] - TODO enforce on read
+            (velocities & cubes)
 
         Args:
             data (numpy.ndarray):
@@ -103,7 +108,7 @@ class AdvectField(object):
         # initialise advected field with "background" default value
         adv_field = np.full(data.shape, bgd)
 
-        # set up grids of data coordinates (NOTE indexed from top left)
+        # set up grids of data coordinates
         ydim, xdim = data.shape
         (xgrid, ygrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
@@ -124,17 +129,25 @@ class AdvectField(object):
         cond1 = point_in_bounds(oldx_frac, oldy_frac, xdim, ydim)
         adv_field[cond1] = 0
 
+        # Find the integer points surrounding the fractional source coordinates
+        # and check they are in bounds
         oldx_l = oldx_frac.astype(int)
         oldx_r = oldx_l + 1
-        x_frac_r = oldx_frac - oldx_l.astype(float)
         oldy_u = oldy_frac.astype(int)
         oldy_d = oldy_u + 1
-        y_frac_d = oldy_frac - oldy_u.astype(float)
+
         cond2 = point_in_bounds(oldx_l, oldy_u, xdim, ydim) & cond1
         cond3 = point_in_bounds(oldx_l, oldy_d, xdim, ydim) & cond1
         cond4 = point_in_bounds(oldx_r, oldy_u, xdim, ydim) & cond1
         cond5 = point_in_bounds(oldx_r, oldy_d, xdim, ydim) & cond1
+
+        # Calculate the distance-weighted fractional contribution of points
+        # from "above" (downwards and rightwards of the source coordinates)
+        x_frac_r = oldx_frac - oldx_l.astype(float)
+        y_frac_d = oldy_frac - oldy_u.astype(float)
+
         for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
+            print ii, cond
             xorig = xgrid[cond]
             yorig = ygrid[cond]
             if ii == 2:
@@ -202,13 +215,19 @@ class AdvectField(object):
 
         step_seconds = timestep.total_seconds()
 
-        # TODO do we want to handle cubes with multiple fields?
+        # TODO do we want to handle cubes with multiple fields (> 2D)?
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
                                            step_seconds, bgd)
 
         # create new cube with advected data
         advected_cube = cube.copy(data=advected_data)
 
-        # TODO update time coordinate on advected cube?
+        # update output cube validity time (NOTE assumes time is present and is scalar coord)
+        original_time, = iris_time_to_datetime(cube.coord("time"))
+        new_time = time.mktime((original_time + timestep).timetuple())
+        new_time_coord = DimCoord(new_time, standard_name="time", 
+                                  units='seconds since 1970-01-01 00:00:00')
+        new_time_coord.convert_units(cube.coord("time").units)
+        advected_cube.coord("time").points = new_time_coord.points
 
         return advected_cube

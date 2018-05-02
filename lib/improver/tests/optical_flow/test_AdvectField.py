@@ -39,6 +39,7 @@ from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
+from improver.utilities.temporal import iris_time_to_datetime
 from improver.optical_flow.optical_flow import AdvectField
 
 
@@ -85,7 +86,7 @@ class Test__init__(IrisTest):
 
 
 class Test__advect_field(IrisTest):
-    """Test cube data is correctly advected"""
+    """Test dimensionless gridded data is correctly advected"""
 
     def setUp(self):
         """Set up dimensionless velocity arrays and gridded data"""
@@ -93,27 +94,40 @@ class Test__advect_field(IrisTest):
         vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
         self.dummy_plugin = AdvectField(vel_x, vel_y)
 
-        self.grid_vel_x = vel_x.data
-        self.grid_vel_y = vel_y.data
+        self.grid_vel_x = 0.5*vel_x.data
+        self.grid_vel_y = 0.5*vel_y.data
         self.data = np.array([[2., 3., 4.],
                               [1., 2., 3.],
                               [0., 1., 2.],
                               [0., 0., 1.]])
 
     def test_basic(self):
-        """Test data is advected by 1 grid point per second along each axis"""
+        """Test data is advected correctly (by 1 and 2 grid points along the x
+        and y axes respectively)"""
         expected_output = np.array([[0., 0., 0.],
                                     [0., 0., 0.],
                                     [0., 2., 3.],
                                     [0., 1., 2.]])
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, 1., 0.)
+            self.data, self.grid_vel_x, self.grid_vel_y, 2., 0.)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_partial(self):
+        """Test advection by a quarter of a grid point in the x direction and
+        one grid point in the y direction"""
+        expected_output = np.array([[0., 0., 0.],
+                                    [0., 2.75, 3.75],
+                                    [0., 1.75, 2.75],
+                                    [0., 0.75, 1.75]])
+        result = self.dummy_plugin._advect_field(
+            self.data, self.grid_vel_x, 2.*self.grid_vel_y, 0.5, 0.)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
 class Test_process(IrisTest):
-    """Test cube data is correctly advected"""
+    """Test dimensioned cube data is correctly advected"""
 
     def setUp(self):
         """Set up plugin instance and a cube to advect"""
@@ -129,6 +143,11 @@ class Test_process(IrisTest):
             data, standard_name='rainfall_rate', units='mm h-1',
             dim_coords_and_dims=[(self.plugin.y_coord, 0),
                                  (self.plugin.x_coord, 1)])
+
+        # input time: [datetime.datetime(2018, 2, 20, 4, 0)]
+        time_coord = DimCoord(1519099200, standard_name="time",
+                              units='seconds since 1970-01-01 00:00:00')
+        self.cube.add_aux_coord(time_coord)
 
         self.timestep = datetime.timedelta(seconds=600)
 
@@ -169,8 +188,14 @@ class Test_process(IrisTest):
             self.plugin.process(cube, self.timestep)
 
     def test_validity_time(self):
-        """Placeholder: test output cube time is correctly updated"""
-        pass
+        """Test output cube time is correctly updated"""
+        result = self.plugin.process(self.cube, self.timestep)
+        output_cube_time, = iris_time_to_datetime(result.coord("time"))
+        self.assertEqual(output_cube_time.year, 2018)
+        self.assertEqual(output_cube_time.month, 02)
+        self.assertEqual(output_cube_time.day, 20)
+        self.assertEqual(output_cube_time.hour, 4)
+        self.assertEqual(output_cube_time.minute, 10)
 
 
 if __name__ == '__main__':
