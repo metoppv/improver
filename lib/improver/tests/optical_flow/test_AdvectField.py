@@ -85,6 +85,40 @@ class Test__init__(IrisTest):
             plugin = AdvectField(vel_x, vel_y)
 
 
+class Test__check_input_coords(IrisTest):
+    """Test cubes with inappropriate coordinates are rejected"""
+
+    def setUp(self):
+        """Set up dummy cube and plugin instance"""
+        self.valid = set_up_xy_velocity_cube("advection_velocity_x")
+        self.plugin = AdvectField(self.valid, self.valid)
+
+    def test_missing_spatial_dimension(self):
+        """Test rejects cube missing y axis"""
+        invalid_1d = self.valid[0]
+        invalid_1d.remove_coord("projection_y_coordinate")
+
+        with self.assertRaises(InvalidCubeError):
+            self.plugin._check_input_coords(invalid_1d)
+
+    def test_spatial_dimensions(self):
+        """Test rejects cube with multiple realizations"""
+        v1 = self.valid.copy()
+        v1.add_aux_coord(DimCoord(1, standard_name="realization"))
+        v2 = self.valid.copy()
+        v2.add_aux_coord(DimCoord(2, standard_name="realization"))
+        invalid_3d, = (iris.cube.CubeList([v1, v2])).merge()
+        msg = "Cube has 3"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            self.plugin._check_input_coords(invalid_3d)
+
+    def test_time(self):
+        """Test rejects cube without time coord"""
+        msg = "Input cube has no time coordinate"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            self.plugin._check_input_coords(self.valid, time=True)
+
+
 class Test__advect_field(IrisTest):
     """Test dimensionless gridded data is correctly advected"""
 
@@ -145,9 +179,9 @@ class Test_process(IrisTest):
                                  (self.plugin.x_coord, 1)])
 
         # input time: [datetime.datetime(2018, 2, 20, 4, 0)]
-        time_coord = DimCoord(1519099200, standard_name="time",
-                              units='seconds since 1970-01-01 00:00:00')
-        self.cube.add_aux_coord(time_coord)
+        self.time_coord = DimCoord(1519099200, standard_name="time",
+                                   units='seconds since 1970-01-01 00:00:00')
+        self.cube.add_aux_coord(self.time_coord)
 
         self.timestep = datetime.timedelta(seconds=600)
 
@@ -183,6 +217,8 @@ class Test_process(IrisTest):
         cube = iris.cube.Cube(np.zeros(shape=(4, 5)),
                               standard_name='rainfall_rate', units='mm h-1',
                               dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        cube.add_aux_coord(self.time_coord)
+
         msg = "Input data grid does not match advection velocities"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             self.plugin.process(cube, self.timestep)

@@ -38,6 +38,9 @@ import time
 import iris
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
+from iris.exceptions import CoordinateNotFoundError
+
+from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.temporal import iris_time_to_datetime
 
 
@@ -63,7 +66,12 @@ class AdvectField(object):
                 coordinate axis
         """
 
-        # check input velocity cubes have the same coordinates
+        # check each input velocity cube has precisely two non-scalar
+        # dimension coordinates (spatial x/y)
+        self._check_input_coords(vel_x)
+        self._check_input_coords(vel_y)
+        
+        # check input velocity cubes have the same spatial coordinates
         if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
                 vel_x.coord(axis="y") != vel_y.coord(axis="y")):
             raise InvalidCubeError("Velocity cubes on unmatched grids")
@@ -76,6 +84,41 @@ class AdvectField(object):
 
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
+
+    @staticmethod
+    def _check_input_coords(cube, time=None):
+        """
+        Checks an input cube has precisely two non-scalar dimension coordinates
+        (spatial x/y).  If time is set to True, checks for a scalar time
+        coordinate (can be dim or aux).
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube to be checked
+            time (bool):
+                Flag to check for a scalar time coordinate
+
+        Raises:
+            InvalidCubeError if coordinate requirements are not met
+        """
+        # check that cube has both x and y axes
+        try:
+            check_for_x_and_y_axes(cube)
+        except ValueError as msg:
+            raise InvalidCubeError(msg)
+
+        # check that cube data has only two non-scalar dimensions
+        data_shape = np.array(cube.shape)
+        non_scalar_coords = np.sum(np.where(data_shape > 1, 1, 0))
+        if non_scalar_coords > 2:
+            raise InvalidCubeError('Cube has {:d} (more than 2) non-scalar '
+                                   'coordinates'.format(non_scalar_coords))
+
+        if time:
+            try:
+                time_coord = cube.coord("time")
+            except CoordinateNotFoundError:
+                raise InvalidCubeError('Input cube has no time coordinate')
 
     @staticmethod
     def _advect_field(data, grid_vel_x, grid_vel_y, timestep, bgd):
@@ -179,14 +222,15 @@ class AdvectField(object):
     def process(self, cube, timestep, bgd=0.0):
 
         """
-        Extrapolates input cube data and updates validity time.
-
-        The cube is expected to be in a projection such that grid spacing
-        is the same at all points in the domain.
+        Extrapolates input cube data and updates validity time.  The input
+        cube should have precisely two non-scalar dimension coordinates
+        (spatial x/y), and is expected to be in a projection such that grid
+        spacing is the same (or very close) at all points within the spatial
+        domain.  The input cube should also have a "time" coordinate.
 
         Args:
             cube (iris.cube.Cube):
-                The cube containing data to be advected
+                The 2D cube containing data to be advected
             timestep (datetime.timedelta):
                 Advection time step
             bgd (float):
@@ -197,8 +241,11 @@ class AdvectField(object):
             advected_cube (iris.cube.Cube):
                 New cube with updated time and extrapolated data
         """
+        # check that the input cube has precisely two non-scalar dimension
+        # coordinates (spatial x/y) and one time coordinate
+        self._check_input_coords(cube, time=True)
 
-        # check coordinates
+        # check spatial coordinates match those of plugin velocities
         if (cube.coord(axis="x") != self.x_coord or
                 cube.coord(axis="y") != self.y_coord):
             raise InvalidCubeError("Input data grid does not match advection "
