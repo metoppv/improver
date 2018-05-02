@@ -84,6 +84,34 @@ class Test__init__(IrisTest):
             plugin = AdvectField(vel_x, vel_y)
 
 
+class Test__advect_field(IrisTest):
+    """Test cube data is correctly advected"""
+
+    def setUp(self):
+        """Set up dimensionless velocity arrays and gridded data"""
+        vel_x = set_up_xy_velocity_cube("advection_velocity_x")
+        vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
+        self.dummy_plugin = AdvectField(vel_x, vel_y)
+
+        self.grid_vel_x = vel_x.data
+        self.grid_vel_y = vel_y.data
+        self.data = np.array([[2., 3., 4.],
+                              [1., 2., 3.],
+                              [0., 1., 2.],
+                              [0., 0., 1.]])
+
+    def test_basic(self):
+        """Test data is advected by 1 grid point per second along each axis"""
+        expected_output = np.array([[0., 0., 0.],
+                                    [0., 0., 0.],
+                                    [0., 2., 3.],
+                                    [0., 1., 2.]])
+        result = self.dummy_plugin._advect_field(
+            self.data, self.grid_vel_x, self.grid_vel_y, 1., 0.)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+
 class Test_process(IrisTest):
     """Test cube data is correctly advected"""
 
@@ -93,8 +121,6 @@ class Test_process(IrisTest):
         vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
         vel_y.rename("advection_velocity_y")
         self.plugin = AdvectField(vel_x, vel_y)
-        # NOTE doesn't ufield usually refer to wind in x dirn and vfield
-        # to wind in y dirn? This is not behaving as expected...
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
@@ -108,7 +134,6 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test output cube data is as expected"""
-        # NOTE currently failing - u/v ambiguity
         expected_output = np.array([[0., 0., 0.],
                                     [0., 0., 0.],
                                     [0., 2., 3.],
@@ -119,7 +144,6 @@ class Test_process(IrisTest):
     def test_background_values(self):
         """Test output cube data is padded as expected where source grid
         points are out of bounds"""
-        # NOTE currently failing - u/v ambiguity
         expected_output = np.array([[-1., -1., -1.],
                                     [-1., -1., -1.],
                                     [-1., 2., 3.],

@@ -81,7 +81,6 @@ class AdvectField(object):
         using advection velocities via a backwards method.
 
         NOTE currently assumes positive y-velocity DOWNWARDS from top left
-        NOTE potential x/y u/v bug / confusion
 
         Args:
             data (numpy.ndarray):
@@ -106,7 +105,7 @@ class AdvectField(object):
 
         # set up grids of data coordinates (NOTE indexed from top left)
         ydim, xdim = data.shape
-        (ygrid, xgrid) = np.meshgrid(np.arange(xdim),
+        (xgrid, ygrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
 
         # For each grid point on the output field, trace its (x,y) "source"
@@ -122,9 +121,7 @@ class AdvectField(object):
         def point_in_bounds(x, y, nx, ny):
             return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
 
-        # NOTE my translation is correct but what's being done here doesn't
-        # make sense
-        cond1 = point_in_bounds(oldy_frac, oldx_frac, xdim, ydim)
+        cond1 = point_in_bounds(oldx_frac, oldy_frac, xdim, ydim)
         adv_field[cond1] = 0
 
         oldx_l = oldx_frac.astype(int)
@@ -133,10 +130,10 @@ class AdvectField(object):
         oldy_u = oldy_frac.astype(int)
         oldy_d = oldy_u + 1
         y_frac_d = oldy_frac - oldy_u.astype(float)
-        cond2 = point_in_bounds(oldy_u, oldx_l, xdim, ydim) & cond1
-        cond3 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
-        cond4 = point_in_bounds(oldy_d, oldx_l, xdim, ydim) & cond1
-        cond5 = point_in_bounds(oldy_d, oldx_r, xdim, ydim) & cond1
+        cond2 = point_in_bounds(oldx_l, oldy_u, xdim, ydim) & cond1
+        cond3 = point_in_bounds(oldx_l, oldy_d, xdim, ydim) & cond1
+        cond4 = point_in_bounds(oldx_r, oldy_u, xdim, ydim) & cond1
+        cond5 = point_in_bounds(oldx_r, oldy_d, xdim, ydim) & cond1
         for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
             xorig = xgrid[cond]
             yorig = ygrid[cond]
@@ -160,9 +157,9 @@ class AdvectField(object):
                 yfr = y_frac_d
                 xc = oldx_r[cond]
                 yc = oldy_d[cond]
-            adv_field[xorig, yorig] = (
-                adv_field[xorig, yorig] + data[xc, yc] *
-                xfr[xorig, yorig]*yfr[xorig, yorig])
+            adv_field[yorig, xorig] = (
+                adv_field[yorig, xorig] + data[yc, xc] *
+                xfr[yorig, xorig]*yfr[yorig, xorig])
 
         return adv_field
 
