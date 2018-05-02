@@ -51,7 +51,6 @@ class AdvectField(object):
     """
 
     def __init__(self, vel_x, vel_y):
-
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
@@ -70,7 +69,7 @@ class AdvectField(object):
         # dimension coordinates (spatial x/y)
         self._check_input_coords(vel_x)
         self._check_input_coords(vel_y)
-        
+
         # check input velocity cubes have the same spatial coordinates
         if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
                 vel_x.coord(axis="y") != vel_y.coord(axis="y")):
@@ -89,8 +88,8 @@ class AdvectField(object):
     def _check_input_coords(cube, time=None):
         """
         Checks an input cube has precisely two non-scalar dimension coordinates
-        (spatial x/y).  If time is set to True, checks for a scalar time
-        coordinate (can be dim or aux).
+        (spatial x/y), or raises an error.  If "time" is set to True, raises an
+        error if no scalar time coordinate is present.
 
         Args:
             cube (iris.cube.Cube):
@@ -126,7 +125,8 @@ class AdvectField(object):
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.
 
-        NOTE currently assumes positive y-velocity DOWNWARDS from top left
+        NOTE currently assumes positive y-velocity DOWNWARDS from top left -
+            is this correct?  Or is this just a terminology hiccup?
         NOTE assumes grid indexing [y, x] - TODO enforce on read
             (velocities & cubes)
 
@@ -148,10 +148,10 @@ class AdvectField(object):
                 2D float array of advected data values
         """
 
-        # initialise advected field with "background" default value
+        # Initialise advected field with "background" default value
         adv_field = np.full(data.shape, bgd)
 
-        # set up grids of data coordinates
+        # Set up grids of data coordinates
         ydim, xdim = data.shape
         (xgrid, ygrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
@@ -189,22 +189,27 @@ class AdvectField(object):
         x_frac_r = oldx_frac - oldx_l.astype(float)
         y_frac_d = oldy_frac - oldy_u.astype(float)
 
+        # Calculate the distance-weighted fractional contribution of points
+        # from "below" (upwards and leftwards of the source coordinates)
+        x_frac_l = 1. - x_frac_r
+        y_frac_u = 1. - y_frac_d
+
+        # Advect data from the four source points onto output grid
         for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
-            print ii, cond
             xorig = xgrid[cond]
             yorig = ygrid[cond]
             if ii == 2:
-                xfr = 1.-x_frac_r
-                yfr = 1.-y_frac_d
+                xfr = x_frac_l
+                yfr = y_frac_u
                 xc = oldx_l[cond]
                 yc = oldy_u[cond]
             elif ii == 3:
                 xfr = x_frac_r
-                yfr = 1. - y_frac_d
+                yfr = y_frac_u
                 xc = oldx_r[cond]
                 yc = oldy_u[cond]
             elif ii == 4:
-                xfr = 1.-x_frac_r
+                xfr = x_frac_l
                 yfr = y_frac_d
                 xc = oldx_l[cond]
                 yc = oldy_d[cond]
@@ -220,7 +225,6 @@ class AdvectField(object):
         return adv_field
 
     def process(self, cube, timestep, bgd=0.0):
-
         """
         Extrapolates input cube data and updates validity time.  The input
         cube should have precisely two non-scalar dimension coordinates
@@ -242,7 +246,7 @@ class AdvectField(object):
                 New cube with updated time and extrapolated data
         """
         # check that the input cube has precisely two non-scalar dimension
-        # coordinates (spatial x/y) and one time coordinate
+        # coordinates (spatial x/y) and a scalar time coordinate
         self._check_input_coords(cube, time=True)
 
         # check spatial coordinates match those of plugin velocities
@@ -260,19 +264,15 @@ class AdvectField(object):
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
-        step_seconds = timestep.total_seconds()
-
-        # TODO do we want to handle cubes with multiple fields (> 2D)?
+        # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           step_seconds, bgd)
-
-        # create new cube with advected data
+                                           timestep.total_seconds(), bgd)
         advected_cube = cube.copy(data=advected_data)
 
-        # update output cube validity time (NOTE assumes time is present and is scalar coord)
+        # increment output cube time
         original_time, = iris_time_to_datetime(cube.coord("time"))
         new_time = time.mktime((original_time + timestep).timetuple())
-        new_time_coord = DimCoord(new_time, standard_name="time", 
+        new_time_coord = DimCoord(new_time, standard_name="time",
                                   units='seconds since 1970-01-01 00:00:00')
         new_time_coord.convert_units(cube.coord("time").units)
         advected_cube.coord("time").points = new_time_coord.points
