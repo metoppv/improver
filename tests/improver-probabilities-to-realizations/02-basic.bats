@@ -36,7 +36,7 @@
   improver_check_skip_acceptance
 
   run improver probabilities-to-realizations  \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
