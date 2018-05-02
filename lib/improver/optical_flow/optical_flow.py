@@ -32,15 +32,14 @@
 This module defines optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
-
-import numpy as np
+import cf_units
 import time
+import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
-from improver.utilities.temporal import iris_time_to_datetime
 
 
 class AdvectField(object):
@@ -271,11 +270,10 @@ class AdvectField(object):
         advected_cube = cube.copy(data=advected_data)
 
         # increment output cube time
-        original_time, = iris_time_to_datetime(cube.coord("time"))
-        new_time = time.mktime((original_time + timestep).timetuple())
-        new_time_coord = DimCoord(new_time, standard_name="time",
-                                  units='seconds since 1970-01-01 00:00:00')
-        new_time_coord.convert_units(cube.coord("time").units)
-        advected_cube.coord("time").points = new_time_coord.points
+        original_datetime, = \
+            (cube.coord("time").units).num2date(cube.coord("time").points)
+        new_datetime = original_datetime + timestep
+        new_time = (cube.coord("time").units).date2num(new_datetime)
+        advected_cube.coord("time").points = new_time
 
         return advected_cube

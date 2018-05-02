@@ -31,15 +31,14 @@
 """ Unit tests for the optical_flow.AdvectField plugin """
 
 import datetime
-import numpy as np
 import unittest
+import numpy as np
 
 import iris
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
-from improver.utilities.temporal import iris_time_to_datetime
 from improver.optical_flow.optical_flow import AdvectField
 
 
@@ -226,7 +225,8 @@ class Test_process(IrisTest):
     def test_validity_time(self):
         """Test output cube time is correctly updated"""
         result = self.plugin.process(self.cube, self.timestep)
-        output_cube_time, = iris_time_to_datetime(result.coord("time"))
+        output_cube_time, = \
+            (result.coord("time").units).num2date(result.coord("time").points)
         self.assertEqual(output_cube_time.year, 2018)
         self.assertEqual(output_cube_time.month, 02)
         self.assertEqual(output_cube_time.day, 20)
