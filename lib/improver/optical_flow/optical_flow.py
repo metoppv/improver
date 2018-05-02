@@ -35,7 +35,6 @@ classes for advection nowcasting of precipitation fields.
 
 import numpy as np
 import time
-import iris
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.exceptions import CoordinateNotFoundError
@@ -85,16 +84,16 @@ class AdvectField(object):
         self.y_coord = vel_x.coord(axis="y")
 
     @staticmethod
-    def _check_input_coords(cube, time=None):
+    def _check_input_coords(cube, require_time=None):
         """
         Checks an input cube has precisely two non-scalar dimension coordinates
-        (spatial x/y), or raises an error.  If "time" is set to True, raises an
-        error if no scalar time coordinate is present.
+        (spatial x/y), or raises an error.  If "require_time" is set to True,
+        raises an error if no scalar time coordinate is present.
 
         Args:
             cube (iris.cube.Cube):
                 Cube to be checked
-            time (bool):
+            require_time (bool):
                 Flag to check for a scalar time coordinate
 
         Raises:
@@ -167,6 +166,7 @@ class AdvectField(object):
         # For all the points where fractional source coordinates are within
         # the bounds of the field, set the output field to 0
         def point_in_bounds(x, y, nx, ny):
+            """Check a point lies within defined bounds"""
             return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
 
         cond1 = point_in_bounds(oldx_frac, oldy_frac, xdim, ydim)
@@ -247,7 +247,7 @@ class AdvectField(object):
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
-        self._check_input_coords(cube, time=True)
+        self._check_input_coords(cube, require_time=True)
 
         # check spatial coordinates match those of plugin velocities
         if (cube.coord(axis="x") != self.x_coord or
