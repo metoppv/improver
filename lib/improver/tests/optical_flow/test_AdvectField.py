@@ -116,7 +116,7 @@ class Test__check_input_coords(IrisTest):
         """Test rejects cube without time coord"""
         msg = "Input cube has no time coordinate"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            self.plugin._check_input_coords(self.valid, time=True)
+            self.plugin._check_input_coords(self.valid, require_time=True)
 
 
 class Test__advect_field(IrisTest):

@@ -112,9 +112,9 @@ class AdvectField(object):
             raise InvalidCubeError('Cube has {:d} (more than 2) non-scalar '
                                    'coordinates'.format(non_scalar_coords))
 
-        if time:
+        if require_time:
             try:
-                time_coord = cube.coord("time")
+                _ = cube.coord("time")
             except CoordinateNotFoundError:
                 raise InvalidCubeError('Input cube has no time coordinate')
 
@@ -257,6 +257,7 @@ class AdvectField(object):
 
         # derive velocities in "grid squares per second"
         def grid_spacing(coord):
+            """Calculate grid spacing along a given spatial axis"""
             new_coord = coord.copy()
             new_coord.convert_units('m')
             return float(np.diff((new_coord).points)[0])
