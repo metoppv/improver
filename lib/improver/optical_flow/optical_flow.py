@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-This module defines optical flow velocity calculation and extrapolation
+This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
 import cf_units
@@ -118,7 +118,42 @@ class AdvectField(object):
                 raise InvalidCubeError('Input cube has no time coordinate')
 
     @staticmethod
-    def _advect_field(data, grid_vel_x, grid_vel_y, timestep, bgd):
+    def _increment_output_array(indata, outdata, cond, xdest_grid, ydest_grid,
+                                xsrc_grid, ysrc_grid, x_frac, y_frac):
+        """
+        Calculate and add contribution to the advected array from one source
+        grid point.
+
+        Args:
+            indata (numpy.ndarray):
+                2D numpy array of source data to be advected
+            outdata (numpy.ndarray):
+                2D numpy array for advected output
+            cond (numpy.ndarray):
+                2D boolean mask of points to be processed
+            xdest_grid (numpy.ndarray):
+                Integer x-coordinates of all points on destination grid
+            ydest_grid (numpy.ndarray):
+                Integer y-coordinates of all points on destination grid
+            xsrc_grid (numpy.ndarray):
+                Integer x-coordinates of all points on source grid
+            ysrc_grid (numpy.ndarray):
+                Integer y-coordinates of all points on source grid
+            x_frac (numpy.ndarray):
+                Fractional contribution to destination grid of source data
+                advected along the x-axis
+            y_frac (numpy.ndarray):
+                Fractional contribution to destination grid of source data
+                advected along the y-axis
+        """
+        xdest = xdest_grid[cond]
+        ydest = ydest_grid[cond]
+        xsrc = xsrc_grid[cond]
+        ysrc = ysrc_grid[cond]
+        outdata[ydest, xdest] += (
+            indata[ysrc, xsrc] * x_frac[ydest, xdest] * y_frac[ydest, xdest])
+
+    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep, bgd):
         """
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.
@@ -184,42 +219,21 @@ class AdvectField(object):
         cond5 = point_in_bounds(oldx_r, oldy_d, xdim, ydim) & cond1
 
         # Calculate the distance-weighted fractional contribution of points
-        # from "above" (downwards and rightwards of the source coordinates)
+        # surrounding the source coordinates
         x_frac_r = oldx_frac - oldx_l.astype(float)
-        y_frac_d = oldy_frac - oldy_u.astype(float)
-
-        # Calculate the distance-weighted fractional contribution of points
-        # from "below" (upwards and leftwards of the source coordinates)
         x_frac_l = 1. - x_frac_r
+        y_frac_d = oldy_frac - oldy_u.astype(float)
         y_frac_u = 1. - y_frac_d
 
-        # Advect data from the four source points onto output grid
-        for ii, cond in enumerate([cond2, cond3, cond4, cond5], 2):
-            xorig = xgrid[cond]
-            yorig = ygrid[cond]
-            if ii == 2:
-                xfr = x_frac_l
-                yfr = y_frac_u
-                xc = oldx_l[cond]
-                yc = oldy_u[cond]
-            elif ii == 3:
-                xfr = x_frac_r
-                yfr = y_frac_u
-                xc = oldx_r[cond]
-                yc = oldy_u[cond]
-            elif ii == 4:
-                xfr = x_frac_l
-                yfr = y_frac_d
-                xc = oldx_l[cond]
-                yc = oldy_d[cond]
-            elif ii == 5:
-                xfr = x_frac_r
-                yfr = y_frac_d
-                xc = oldx_r[cond]
-                yc = oldy_d[cond]
-            adv_field[yorig, xorig] = (
-                adv_field[yorig, xorig] + data[yc, xc] *
-                xfr[yorig, xorig]*yfr[yorig, xorig])
+        # Advect data from each of the four source points onto the output grid
+        self._increment_output_array(data, adv_field, cond2, xgrid, ygrid,
+                                     oldx_l, oldy_u, x_frac_l, y_frac_u)
+        self._increment_output_array(data, adv_field, cond3, xgrid, ygrid,
+                                     oldx_r, oldy_u, x_frac_r, y_frac_u)
+        self._increment_output_array(data, adv_field, cond4, xgrid, ygrid,
+                                     oldx_l, oldy_d, x_frac_l, y_frac_d)
+        self._increment_output_array(data, adv_field, cond5, xgrid, ygrid,
+                                     oldx_r, oldy_d, x_frac_r, y_frac_d)
 
         return adv_field
 
@@ -269,7 +283,7 @@ class AdvectField(object):
                                            timestep.total_seconds(), bgd)
         advected_cube = cube.copy(data=advected_data)
 
-        # increment output cube time
+        # increment output cube time NOTE will need fixing for Iris 2
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
