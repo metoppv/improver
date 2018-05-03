@@ -102,11 +102,11 @@ class Test__check_input_coords(IrisTest):
 
     def test_spatial_dimensions(self):
         """Test rejects cube with multiple realizations"""
-        v1 = self.valid.copy()
-        v1.add_aux_coord(DimCoord(1, standard_name="realization"))
-        v2 = self.valid.copy()
-        v2.add_aux_coord(DimCoord(2, standard_name="realization"))
-        invalid_3d, = (iris.cube.CubeList([v1, v2])).merge()
+        vel1 = self.valid.copy()
+        vel1.add_aux_coord(DimCoord(1, standard_name="realization"))
+        vel2 = self.valid.copy()
+        vel2.add_aux_coord(DimCoord(2, standard_name="realization"))
+        invalid_3d, = (iris.cube.CubeList([vel1, vel2])).merge()
         msg = "Cube has 3"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             self.plugin._check_input_coords(invalid_3d)

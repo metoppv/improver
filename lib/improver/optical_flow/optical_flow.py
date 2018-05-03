@@ -56,7 +56,7 @@ class AdvectField(object):
             vel_x (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the x
                 coordinate axis
-            vel_y (numpy.ndarray):
+            vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
         """
