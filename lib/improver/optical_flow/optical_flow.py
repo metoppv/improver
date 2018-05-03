@@ -159,9 +159,6 @@ class AdvectField(object):
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.
 
-        NOTE currently assumes positive y-velocity DOWNWARDS from top left -
-            is this correct?  Or is this just a terminology hiccup?
-
         Args:
             data (numpy.ndarray):
                 2D numpy data array to be advected
