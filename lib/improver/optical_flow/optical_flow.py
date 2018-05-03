@@ -32,14 +32,12 @@
 This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
-import cf_units
-import time
 import numpy as np
-from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class AdvectField(object):
@@ -76,11 +74,14 @@ class AdvectField(object):
         vel_x.convert_units('m s-1')
         vel_y.convert_units('m s-1')
 
-        self.vel_x = vel_x
-        self.vel_y = vel_y
-
+        # enforce y/x coordinate ordering (required by _advect_field())
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
+
+        self.vel_x = enforce_coordinate_ordering(
+            vel_x, [self.y_coord.name(), self.x_coord.name()], anchor="end")
+        self.vel_y = enforce_coordinate_ordering(
+            vel_y, [self.y_coord.name(), self.x_coord.name()], anchor="end")
 
     @staticmethod
     def _check_input_coords(cube, require_time=None):
@@ -122,7 +123,7 @@ class AdvectField(object):
                                 xsrc_grid, ysrc_grid, x_frac, y_frac):
         """
         Calculate and add contribution to the advected array from one source
-        grid point.
+        grid point, for all points where boolean condition "cond" is valid.
 
         Args:
             indata (numpy.ndarray):
@@ -141,10 +142,10 @@ class AdvectField(object):
                 Integer y-coordinates of all points on source grid
             x_frac (numpy.ndarray):
                 Fractional contribution to destination grid of source data
-                advected along the x-axis
+                advected along the x-axis.  Positive definite.
             y_frac (numpy.ndarray):
                 Fractional contribution to destination grid of source data
-                advected along the y-axis
+                advected along the y-axis.  Positive definite.
         """
         xdest = xdest_grid[cond]
         ydest = ydest_grid[cond]
@@ -160,8 +161,6 @@ class AdvectField(object):
 
         NOTE currently assumes positive y-velocity DOWNWARDS from top left -
             is this correct?  Or is this just a terminology hiccup?
-        NOTE assumes grid indexing [y, x] - TODO enforce on read
-            (velocities & cubes)
 
         Args:
             data (numpy.ndarray):
@@ -184,7 +183,7 @@ class AdvectField(object):
         # Initialise advected field with "background" default value
         adv_field = np.full(data.shape, bgd)
 
-        # Set up grids of data coordinates
+        # Set up grids of data coordinates (meshgrid inverts coordinate order)
         ydim, xdim = data.shape
         (xgrid, ygrid) = np.meshgrid(np.arange(xdim),
                                      np.arange(ydim))
@@ -267,6 +266,10 @@ class AdvectField(object):
                 cube.coord(axis="y") != self.y_coord):
             raise InvalidCubeError("Input data grid does not match advection "
                                    "velocities")
+
+        # enforce y/x coordinate ordering (required by _advect_field())
+        cube = enforce_coordinate_ordering(
+            cube, [self.y_coord.name(), self.x_coord.name()], anchor="end")
 
         # derive velocities in "grid squares per second"
         def grid_spacing(coord):

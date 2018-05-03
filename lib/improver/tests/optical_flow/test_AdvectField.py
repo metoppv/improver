@@ -81,7 +81,7 @@ class Test__init__(IrisTest):
                                         coord_points_y=2*np.arange(4))
         msg = "Velocity cubes on unmatched grids"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            plugin = AdvectField(vel_x, vel_y)
+            _ = AdvectField(vel_x, vel_y)
 
 
 class Test__check_input_coords(IrisTest):
@@ -116,6 +116,53 @@ class Test__check_input_coords(IrisTest):
         msg = "Input cube has no time coordinate"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             self.plugin._check_input_coords(self.valid, require_time=True)
+
+
+class Test__increment_output_array(IrisTest):
+    """Test correct calculation and increments"""
+
+    def setUp(self):
+        """Create input arrays"""
+        vel_x = set_up_xy_velocity_cube("advection_velocity_x")
+        vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
+        self.dummy_plugin = AdvectField(vel_x, vel_y)
+
+        self.data = np.array([[2., 3., 4.],
+                              [1., 2., 3.],
+                              [0., 1., 2.],
+                              [0., 0., 1.]])
+        (self.xgrid, self.ygrid) = np.meshgrid(np.arange(3),
+                                               np.arange(4))
+
+    def test_basic(self):
+        """Test one increment from the points negative x-wards and positive
+        y-wards on the source grid, with different directional weightings"""
+        xsrc = np.array([[-1, 0, 1],
+                         [-1, 0, 1],
+                         [-1, 0, 1],
+                         [-1, 0, 1]])
+        ysrc = np.array([[1, 1, 1],
+                         [2, 2, 2],
+                         [3, 3, 3],
+                         [4, 4, 4]])
+        cond = np.array([[False, True, True],
+                         [False, True, True],
+                         [False, True, True],
+                         [False, False, False]])
+        xfrac = np.full((4, 3), 0.5)
+        yfrac = np.full((4, 3), 0.75)
+        outdata = np.zeros(shape=(4, 3))
+
+        expected_output = np.array([[0., 0.375, 0.750],
+                                    [0., 0.000, 0.375],
+                                    [0., 0.000, 0.000],
+                                    [0., 0.000, 0.000]])
+
+        self.dummy_plugin._increment_output_array(
+            self.data, outdata, cond, self.xgrid, self.ygrid,
+            xsrc, ysrc, xfrac, yfrac)
+
+        self.assertArrayAlmostEqual(outdata, expected_output)
 
 
 class Test__advect_field(IrisTest):
