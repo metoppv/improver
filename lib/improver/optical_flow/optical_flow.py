@@ -291,7 +291,7 @@ class AdvectField(object):
                                            timestep.total_seconds(), bgd)
         advected_cube = cube.copy(data=advected_data)
 
-        # increment output cube time NOTE will need fixing for Iris 2
+        # increment output cube time
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
