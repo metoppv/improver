@@ -152,7 +152,7 @@ class AdvectField(object):
         xsrc = xsrc_grid[cond]
         ysrc = ysrc_grid[cond]
         outdata[ydest, xdest] += (
-            indata[ysrc, xsrc] * x_weight[ydest, xdest] * y_weight[ydest, xdest])
+            indata[ysrc, xsrc]*x_weight[ydest, xdest]*y_weight[ydest, xdest])
 
     def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep, bgd):
         """
