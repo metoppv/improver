@@ -37,7 +37,6 @@ from iris.exceptions import InvalidCubeError
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class AdvectField(object):
@@ -74,14 +73,12 @@ class AdvectField(object):
         vel_x.convert_units('m s-1')
         vel_y.convert_units('m s-1')
 
-        # enforce y/x coordinate ordering (required by _advect_field())
+        self.vel_x = vel_x
+        self.vel_y = vel_y
+
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
 
-        self.vel_x = enforce_coordinate_ordering(
-            vel_x, [self.y_coord.name(), self.x_coord.name()], anchor="end")
-        self.vel_y = enforce_coordinate_ordering(
-            vel_y, [self.y_coord.name(), self.x_coord.name()], anchor="end")
 
     @staticmethod
     def _check_input_coords(cube, require_time=None):
@@ -129,7 +126,8 @@ class AdvectField(object):
             indata (numpy.ndarray):
                 2D numpy array of source data to be advected
             outdata (numpy.ndarray):
-                2D numpy array for advected output
+                2D numpy array for advected output, modified in place by
+                this method (is both input and output).
             cond (numpy.ndarray):
                 2D boolean mask of points to be processed
             xdest_grid (numpy.ndarray):
@@ -271,10 +269,6 @@ class AdvectField(object):
                 cube.coord(axis="y") != self.y_coord):
             raise InvalidCubeError("Input data grid does not match advection "
                                    "velocities")
-
-        # enforce y/x coordinate ordering (required by _advect_field())
-        cube = enforce_coordinate_ordering(
-            cube, [self.y_coord.name(), self.x_coord.name()], anchor="end")
 
         # derive velocities in "grid squares per second"
         def grid_spacing(coord):

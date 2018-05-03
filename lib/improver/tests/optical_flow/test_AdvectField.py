@@ -85,7 +85,7 @@ class Test__init__(IrisTest):
 
 
 class Test__check_input_coords(IrisTest):
-    """Test cubes with inappropriate coordinates are rejected"""
+    """Tests for the _check_input_coords method"""
 
     def setUp(self):
         """Set up dummy cube and plugin instance"""
@@ -96,11 +96,16 @@ class Test__check_input_coords(IrisTest):
         """Test rejects cube missing y axis"""
         invalid_1d = self.valid[0]
         invalid_1d.remove_coord("projection_y_coordinate")
-
         with self.assertRaises(InvalidCubeError):
             self.plugin._check_input_coords(invalid_1d)
 
-    def test_spatial_dimensions(self):
+    def test_additional_scalar_dimension(self):
+        """Test accepts cube with single realization coordinate"""
+        vel = self.valid.copy()
+        vel.add_aux_coord(DimCoord(1, standard_name="realization"))
+        self.plugin._check_input_coords(vel)
+
+    def test_additional_nonscalar_dimension(self):
         """Test rejects cube with multiple realizations"""
         vel1 = self.valid.copy()
         vel1.add_aux_coord(DimCoord(1, standard_name="realization"))
@@ -119,7 +124,7 @@ class Test__check_input_coords(IrisTest):
 
 
 class Test__increment_output_array(IrisTest):
-    """Test correct calculation and increments"""
+    """Tests for the _increment_output_array method"""
 
     def setUp(self):
         """Create input arrays"""
@@ -162,11 +167,12 @@ class Test__increment_output_array(IrisTest):
             self.data, outdata, cond, self.xgrid, self.ygrid,
             xsrc, ysrc, xfrac, yfrac)
 
+        self.assertIsInstance(outdata, np.ndarray)
         self.assertArrayAlmostEqual(outdata, expected_output)
 
 
 class Test__advect_field(IrisTest):
-    """Test dimensionless gridded data is correctly advected"""
+    """Tests for the _advect_field method"""
 
     def setUp(self):
         """Set up dimensionless velocity arrays and gridded data"""
@@ -182,6 +188,12 @@ class Test__advect_field(IrisTest):
                               [0., 0., 1.]])
 
     def test_basic(self):
+        """Test function returns an array"""
+        result = self.dummy_plugin._advect_field(
+            self.data, self.grid_vel_x, self.grid_vel_y, 2., 0.)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_advect_integer_grid_point(self):
         """Test data is advected correctly (by 1 and 2 grid points along the x
         and y axes respectively)"""
         expected_output = np.array([[0., 0., 0.],
@@ -190,10 +202,9 @@ class Test__advect_field(IrisTest):
                                     [0., 1., 2.]])
         result = self.dummy_plugin._advect_field(
             self.data, self.grid_vel_x, self.grid_vel_y, 2., 0.)
-        self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_output)
 
-    def test_partial(self):
+    def test_advect_partial_grid_point(self):
         """Test advection by a quarter of a grid point in the x direction and
         one grid point in the y direction"""
         expected_output = np.array([[0., 0., 0.],
@@ -232,6 +243,11 @@ class Test_process(IrisTest):
         self.timestep = datetime.timedelta(seconds=600)
 
     def test_basic(self):
+        """Test plugin returns a cube"""
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_advected_values(self):
         """Test output cube data is as expected"""
         expected_output = np.array([[0., 0., 0.],
                                     [0., 0., 0.],
@@ -252,8 +268,14 @@ class Test_process(IrisTest):
 
     def test_time_step(self):
         """Test outputs are OK for a time step with non-second components"""
-        expected_output = np.zeros(shape=(4, 3))
-        result = self.plugin.process(self.cube, datetime.timedelta(hours=1))
+        vel_x = self.plugin.vel_x.copy(data=self.plugin.vel_x.data / 6.)
+        vel_y = self.plugin.vel_y.copy(data=self.plugin.vel_y.data / 6.)
+        plugin = AdvectField(vel_x, vel_y)
+        expected_output = np.array([[0., 0., 0.],
+                                    [0., 0., 0.],
+                                    [0., 2., 3.],
+                                    [0., 1., 2.]])
+        result = plugin.process(self.cube, datetime.timedelta(hours=1))
         self.assertArrayAlmostEqual(result.data, expected_output)
 
     def test_raises_grid_mismatch_error(self):
@@ -275,7 +297,7 @@ class Test_process(IrisTest):
         output_cube_time, = \
             (result.coord("time").units).num2date(result.coord("time").points)
         self.assertEqual(output_cube_time.year, 2018)
-        self.assertEqual(output_cube_time.month, 02)
+        self.assertEqual(output_cube_time.month, 2)
         self.assertEqual(output_cube_time.day, 20)
         self.assertEqual(output_cube_time.hour, 4)
         self.assertEqual(output_cube_time.minute, 10)
