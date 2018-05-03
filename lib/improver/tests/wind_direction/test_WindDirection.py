@@ -43,24 +43,14 @@ from cf_units import Unit
 from improver.wind_direction import WindDirection
 from improver.utilities.warnings_handler import ManageWarnings
 
-
-class Test__repr__(IrisTest):
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(WindDirection())
-        msg = ('<WindDirection>')
-        self.assertEqual(result, msg)
-
-
+# Data to test complex/degree handling functions.
 # The two degree/complex arrays are directly equivalent.
-degree_angles = np.array([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120,
+DEGREE_ANGLES = np.array([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120,
                           130, 140, 150, 160, 170, 180, 190, 200, 210, 220,
                           230, 240, 250, 260, 270, 280, 290, 300, 310, 320,
                           330, 340, 350])
 
-complex_angles = np.array([1.0+0j, 0.984807753+0.173648178j,
+COMPLEX_ANGLES = np.array([1.0+0j, 0.984807753+0.173648178j,
                            0.939692621+0.342020143j, 0.866025404+0.5j,
                            0.766044443+0.642787610j,
                            0.642787610+0.766044443j,
@@ -82,6 +72,37 @@ complex_angles = np.array([1.0+0j, 0.984807753+0.173648178j,
                            0.5-0.866025404j, 0.642787610-0.766044443j,
                            0.766044443-0.642787610j, 0.866025404-0.5j,
                            0.939692621-0.342020143j, 0.984807753-0.173648178j])
+
+# Data to test the ensemble averaging codes.
+# First element - two angles set at 90 and 270 degrees.
+WIND_DIR_DEG = np.array([[[90.0, 50.0],
+                          [270.0, 350.0]],
+                         [[270.0, 60.0],
+                          [290.0, 10.0]]])
+
+WIND_DIR_DEG_MEAN = np.array([[180.0, 55.0],
+                              [280.0, 0.0]])
+
+WIND_DIR_COMPLEX = np.array([[[6.12323400e-17+1.0j, 0.642787610+0.76604444j],
+                              [-1.83697020e-16-1.0j, 0.984807753-0.17364818j]],
+                             [[-1.83697020e-16-1.0j, 0.5+0.8660254j],
+                              [0.342020143-0.93969262j,
+                               0.984807753+0.17364818j]]])
+
+WIND_DIR_COMPLEX_MEAN = np.array([[-6.12323400e-17+0j,
+                                   0.571393805+0.816034923j],
+                                  [0.171010072-0.969846310j,
+                                   0.984807753-0j]])
+
+
+class Test__repr__(IrisTest):
+    """Test the repr method."""
+
+    def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(WindDirection())
+        msg = ('<WindDirection>')
+        self.assertEqual(result, msg)
 
 
 # Test the complex number handling functions.
@@ -106,35 +127,34 @@ class Test_deg_to_complex(IrisTest):
 
     def test_converts_array(self):
         """Tests that array of floats is converted to complex array."""
-        result = WindDirection().deg_to_complex(degree_angles)
+        result = WindDirection().deg_to_complex(DEGREE_ANGLES)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, complex_angles)
+        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
 
 
 class Test_complex_to_deg(IrisTest):
     """Test the complex_to_deg function."""
 
-    def test_converts_single(self):
-        """Tests that complex value is converted to degrees."""
-        expected_out = 270.0
-        result = WindDirection().complex_to_deg(0-1j)
-        self.assertEqual(result, expected_out)
+    def test_fails_if_data_is_not_array(self):
+        """Test code raises a Type Error if input data not an array."""
+        input_data = 0-1j
+        msg = ('Input data is not a numpy array, but'
+               ' {}'.format(type(input_data)))
+        with self.assertRaisesRegexp(TypeError, msg):
+            WindDirection().complex_to_deg(input_data)
 
     def test_handles_angle_wrap(self):
         """Test that code correctly handles 360 and 0 degrees."""
-        expected_out = 0.0
-        result = WindDirection().complex_to_deg(1+0j)  # Complex for 0 deg.
-        self.assertAlmostEqual(result, expected_out)
-
-        expected_out = 0.0
-        result = WindDirection().complex_to_deg(1-0j)  # Complex for 360 deg.
-        self.assertAlmostEqual(result, expected_out)
+        # Input is complex for 0 and 360 deg - both should return 0.0.
+        input_data = np.array([1+0j, 1-0j])
+        result = WindDirection().complex_to_deg(input_data)
+        self.failUnless((result == 0.0).all())
 
     def test_converts_array(self):
         """Tests that array of complex values are converted to degrees."""
-        result = WindDirection().complex_to_deg(complex_angles)
+        result = WindDirection().complex_to_deg(COMPLEX_ANGLES)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, degree_angles)
+        self.assertArrayAlmostEqual(result, DEGREE_ANGLES)
 
 
 class Test_find_r_values(IrisTest):
@@ -149,33 +169,10 @@ class Test_find_r_values(IrisTest):
 
     def test_converts_array(self):
         """Test that code can find r-values from array of complex numbers."""
-        expected_out = np.ones(complex_angles.shape, dtype=np.float32)
-        result = WindDirection().find_r_values(complex_angles)
+        expected_out = np.ones(COMPLEX_ANGLES.shape, dtype=np.float32)
+        result = WindDirection().find_r_values(COMPLEX_ANGLES)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
-
-
-# Test the ensemble averaging codes.
-# First element - two angles set at 90 and 270 degrees.
-wind_dir_deg = np.array([[[90.0, 50.0],
-                          [270.0, 350.0]],
-                         [[270.0, 60.0],
-                          [290.0, 10.0]]])
-
-wind_dir_deg_mean = np.array([[180.0, 55.0],
-                              [280.0, 0.0]])
-
-wind_dir_complex = np.array([
-                          [[6.12323400e-17+1.0j, 0.642787610+0.76604444j],
-                           [-1.83697020e-16-1.0j, 0.984807753-0.17364818j]],
-                          [[-1.83697020e-16-1.0j, 0.5+0.8660254j],
-                           [0.342020143-0.93969262j, 0.984807753+0.17364818j]]
-                             ])
-
-wind_dir_complex_mean = np.array([
-                         [-6.12323400e-17+0j, 0.571393805+0.816034923j],
-                         [0.171010072-0.969846310j, 0.984807753-0j]
-                                 ])
 
 
 class Test_calc_polar_mean_std_dev(IrisTest):
@@ -187,11 +184,12 @@ class Test_calc_polar_mean_std_dev(IrisTest):
         meaningless. This code calculates the standard deviation about
         mean point."""
 
-        expected_out = np.array([[0.29289322, 0.95638061],
-                                 [0.91284426,  0.91284426]])
+        expected_out = np.array([[0.0, 0.95638061],
+                                 [0.91284426, 0.91284426]])
 
-        result = WindDirection().calc_polar_mean_std_dev(wind_dir_complex,
-                                                         wind_dir_deg_mean)
+        result = WindDirection().calc_polar_mean_std_dev(WIND_DIR_COMPLEX,
+                                                         WIND_DIR_DEG_MEAN,
+                                                         0)
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -208,9 +206,9 @@ class Test_wind_dir_decider(IrisTest):
         expected_out = np.array([[90.0, 55.0],
                                  [280.0, 0.0]])
 
-        result = WindDirection.wind_dir_decider(wind_dir_deg,
-                                                wind_dir_deg_mean,
-                                                wind_dir_complex_mean)
+        result = WindDirection.wind_dir_decider(WIND_DIR_DEG,
+                                                WIND_DIR_DEG_MEAN,
+                                                WIND_DIR_COMPLEX_MEAN)
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -252,7 +250,7 @@ class Test_process(IrisTest):
                                          (time, 1),
                                          (latitude, 2),
                                          (longitude, 3)],
-                                        units="degree")
+                    units="degree")
 
         self.cube = cube
 
@@ -269,7 +267,7 @@ class Test_process(IrisTest):
         msg = ('Wind direction input is not a cube, but'
                ' {0:s}'.format(type(input_data)))
         with self.assertRaisesRegexp(TypeError, msg):
-            result = WindDirection().process(input_data)
+            WindDirection().process(input_data)
 
     def test_return_single_precision(self):
         """Test that the function returns data of float32."""
@@ -307,6 +305,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(wind_mean, expected_wind_mean)
         self.assertArrayAlmostEqual(r_vals, expected_r_vals)
         self.assertArrayAlmostEqual(std_dev, expected_std_dev)
+
 
 if __name__ == '__main__':
     unittest.main()

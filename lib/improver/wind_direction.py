@@ -38,16 +38,47 @@ from improver.utilities.cube_manipulation import enforce_float32_precision
 class WindDirection(object):
     """Plugin to calculate average wind direction from ensemble members.
 
-    This holds the function to calculate the average wind direction
-    from ensemble members using a complex numbers approach.
+    Science background:
+    Taking an average wind direction is tricky since an average of two wind
+    directions at 10 and 350 degrees is 180 when it should be 0 degrees.
+    Converting the wind direction angles to complex numbers allows us to
+    find a useful numerical average.
 
+    z = a + bi
+    a = r*Cos(theta)
+    b = r*Sin(theta)
+    r = radius
+    The average of two complex numbers is NOT the ANGLE between two points
+    it is the MIDPOINT in cartesian space.
+    Therefore if there are two data points with radius=1 at 90 and 270 degrees
+    then the midpoint is at (0,0) with radius=0 and therefore its average angle
+    is meaningless.
 
+               N
+               |
+    W---x------o------x---E
+               |
+               S
+
+    In the rare case that a meaningless complex average is calculated, the
+    code rejects the calculated complex average and simply uses the wind
+    direction taken from the first ensemble member.
+
+    The steps are:
+    1) Take data from all ensemble members.
+    2) Convert the wind direction angles to complex numbers.
+    3) Find complex average and their radius values.
+    4) Convert the complex average back into degrees.
+    5) If any point has an radius of nearly zero - replace the
+       calculated average with the wind direction from the first ensemble.
+    6) Calculate the standard deviation of the wind direction.
+
+    Step 6 still needs more development so it is only included in the code
+    as a placeholder.
     """
 
     def __init__(self):
-        """
-        Initialise class.
-        """
+        """Initialise class."""
         pass
 
     def __repr__(self):
@@ -56,68 +87,126 @@ class WindDirection(object):
         return desc
 
     @staticmethod
-    def deg_to_complex(angle_deg, r=1):
-        """Takes an array or float containing an angle in degrees
-           and returns a complex equivalent.
-           The r value can be used to weigh values - but it is set
-           to 1 for now. """
+    def deg_to_complex(angle_deg, radius=1):
+        """Converts degrees to complex values.
+
+        The radius value can be used to weigh values - but it is set
+        to 1 for now.
+
+        Args:
+            angle_deg (np.ndarray or float):
+                3D array or float - wind direction angles in degrees.
+            radius (np.ndarray):
+                3D array or float - radius value for each point.
+
+        Returns:
+            (np.ndarray or float):
+                3D array or float - wind direction translated to
+                complex numbers.
+        """
 
         # Convert from degrees to radians.
         angle_rad = np.deg2rad(angle_deg)
 
-        # Derive real and imaginary components.
-        a = r*np.cos(angle_rad)
-        b = r*np.sin(angle_rad)
+        # Derive real and imaginary components (also known as a and b)
+        real = radius*np.cos(angle_rad)
+        imag = radius*np.sin(angle_rad)
 
         # Combine components into a complex number and return.
-        return a + 1j*b
+        return real + 1j*imag
 
     @staticmethod
     def complex_to_deg(complex_in):
-        """Take complex number and find angle in degrees from 360.
-           the "np.angle" function returns negative numbers when the input
-           is greater than 180. Therefore additional processing is needed
-           to ensure that the angle is between 0-359."""
+        """Converts complex to degrees.
+
+        The "np.angle" function returns negative numbers when the input
+        is greater than 180. Therefore additional processing is needed
+        to ensure that the angle is between 0-359.
+
+        Args:
+            complex_in (np.ndarray):
+                3D array - wind direction angles in
+                complex number form.
+
+        Returns:
+            angle (np.ndarray):
+                3D array - wind direction in angle form
+
+        Raises
+        ------
+        TypeError: If complex_in is not an array.
+
+        """
+
+        if not isinstance(complex_in, np.ndarray):
+            msg = "Input data is not a numpy array, but {}"
+            raise TypeError(msg.format(type(complex_in)))
 
         angle = np.angle(complex_in, deg=True)
 
-        # If the input is an array then need to use native np.functions
-        # for speed rather than applying vector functions to the array.
-        if type(angle) is np.ndarray:
+        # If angle negative value - add 360 degrees.
+        angle = np.where(angle < 0, angle+360, angle)
 
-            # If angle negative value - add 360 degrees.
-            angle = np.where(angle < 0, angle+360, angle)
+        # If angle == 360 - set to zero degrees.
+        # Due to floating point - need to round value before using
+        # equal operator.
+        round_angle = np.around(angle, 2)
+        angle = np.where(round_angle == 360, 0.0, angle)
 
-            # If angle == 360 - set to zero degrees.
-            # Due to floating point - need to round value before using
-            # equal operator.
-            round_angle = np.around(angle, 2)
-            angle = np.where(round_angle == 360, 0.0, angle)
-        else:
-            if angle < 0:
-                angle = angle + 360.0
-            if round(angle, 2) == 360.00:
-                angle = 0.0
         return angle
 
     @staticmethod
     def find_r_values(complex_in):
-        """Takes input wind direction in complex values and returns array
-           containing r values using Pythagoras theorem."""
+        """Find radius values from complex numbers.
+
+        Takes input wind direction in complex values and returns array
+        containing r values using Pythagoras theorem.
+
+        Args:
+            angle_deg (np.ndarray or float):
+                3D array or float - wind direction angles in complex numbers.
+
+        Returns:
+            (np.ndarray or float):
+                3D array or float - Radius values extracts from
+                complex numbers.
+        """
 
         return np.sqrt(np.square(complex_in.real)+np.square(complex_in.imag))
 
     @staticmethod
-    def calc_polar_mean_std_dev(wind_dir_complex, wind_dir_deg_mean):
-        """The averaged wind direction complex values have r values
-           between 0-1. So we need to recalculate the complex values so they
-           retain their angle but r is fixed as r=1. They can then be used to
-           find the distance between the average angle and the other
-           wind direction data points. From this information - we can calculate
-           a confidence value."""
+    def calc_polar_mean_std_dev(wind_dir_complex, wind_dir_deg_mean,
+                                realization_axis):
+        """Find standard deviation of polar numbers.
+
+        The average wind direction complex values represent the midpoint
+        between the different values and so have r values between 0-1.
+
+        1) From wind_dir_deg_mean - create a new set of complex values.
+           Therefore they will have the same angle but r is fixed as r=1.
+        2) Use fixed-r average complex values to find the distance between the
+           mean point and all the wind direction values
+        3) Find the average distance between the mean point and the wind
+           direction values. Large average distance == low confidence.
+        4) Normalise the average distance values to produce a confidence
+           value that is equivalent to the standard deviation
+
+        Args:
+            wind_dir_complex (np.ndarray):
+                3D array - wind direction angles in complex numbers.
+            wind_dir_deg_mean (np.ndarray):
+                3D array - average wind direction in angles.
+            realization_axis (int):
+                Axis over which to average the arrays over.
+
+        Returns:
+            dist_from_mean_norm (np.ndarray):
+                3D array - The average distance from mean normalised - used
+                as a confidence value.
+        """
 
         wind_dir_complex_mean_fixr = WindDirection.deg_to_complex(
-                                                             wind_dir_deg_mean)
+            wind_dir_deg_mean)
 
         # Find difference in the distance between all the observed points and
         # mean point with fixed r=1.
@@ -133,13 +222,26 @@ class WindDirection(object):
                                  np.square(difference.imag))
 
         # Find average distance.
-        dist_from_mean_avg = np.mean(dist_from_mean, axis=0)
+        dist_from_mean_avg = np.mean(dist_from_mean, axis=realization_axis)
 
         # If we have two points at opposite ends of the compass
         # (eg. 270 and 90), then their separation distance is 2.
         # Normalise the array using 2 as the maximum possible value.
         dist_from_mean_norm = 1 - dist_from_mean_avg*0.5
 
+        # HOWEVER - the above equation doesn't quite work! With two points
+        # directly opposte (270 and 90) it returns a confidence value
+        # of 0.29289322 instead of zero.
+        #
+        # angle  | confidence
+        # 270/90 | 0.29289322
+        # 270/89 | 0.295985
+        # 270/88 | 0.299091
+        # 270/87 | 0.30221
+        # 270/86 | 0.305342
+        # Therefore any confidence value below 0.295 will be set to zero.
+        dist_from_mean_norm = np.where(dist_from_mean_norm < 0.295,
+                                       0.0, dist_from_mean_norm)
         return dist_from_mean_norm
 
     @staticmethod
@@ -149,7 +251,22 @@ class WindDirection(object):
            is essentially meaningless.
            We therefore subistuite this meaningless average wind
            direction value for the wind direction taken from the first
-           ensemble member."""
+           ensemble member.
+
+        Args:
+            wind_dir_deg (np.ndarray):
+                3D array - wind direction angle in degrees.
+            wind_dir_deg_mean (np.ndarray):
+                3D array - average wind direction angle in degrees.
+            r_vals (np.ndarray):
+                3D array - Radius taken from average complex wind direction
+                angle.
+
+        Returns:
+            reprocessed_wind_dir_mean (np.ndarray):
+                3D array - Wind direction degrees where ambigious values have
+                been replaced with data from first ensemble member.
+        """
 
         # Threshold r value.
         r_thresh = 0.01
@@ -184,6 +301,12 @@ class WindDirection(object):
             result (iris.cube.Cube):
                 Cube containing the wind direction averaged from the
                 ensemble members.
+            r_vals (np.ndarray):
+                3D array - Radius taken from average complex wind direction
+                angle.
+            polar_mean_std_dev (np.ndarray):
+                3D array - The average distance from mean normalised - used
+                as a confidence value.
 
         Raises
         ------
@@ -205,16 +328,22 @@ class WindDirection(object):
 
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
         x_coord_name = cube_ens_wdir.coord(axis="x").name()
-        wind_dir_deg = next(cube_ens_wdir.slices(["realization",
-                                                  y_coord_name,
-                                                  x_coord_name])).data
+
+        time_slice = next(cube_ens_wdir.slices(["realization",
+                                                y_coord_name,
+                                                x_coord_name]))
+
+        # Find axis over which to average data.
+        realization_axis = time_slice.coord_dims('realization')[0]
+        wind_dir_deg = time_slice.data
 
         # Convert wind direction from degrees to complex numbers.
         wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
 
         # Find the complex average - which actually signifies a point between
         # all of the data points in POLAR co-cordinates (not degrees).
-        wind_dir_complex_mean = np.mean(wind_dir_complex, axis=0)
+        wind_dir_complex_mean = np.mean(wind_dir_complex,
+                                        axis=realization_axis)
 
         # Convert complex average to degrees to produce average wind direction.
         wind_dir_deg_mean = WindDirection.complex_to_deg(wind_dir_complex_mean)
@@ -223,9 +352,10 @@ class WindDirection(object):
         r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
         # Calculate standard deviation from polar mean.
+        # ToDo: This will still need some work to produce more accurate
+        #       confidence values. This is the subject of another ticket.
         polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
-                                                             wind_dir_complex,
-                                                             wind_dir_deg_mean)
+            wind_dir_complex, wind_dir_deg_mean, realization_axis)
 
         # Finds any meaningless averages and subistuite with
         # the wind direction taken from the first ensemble member.
