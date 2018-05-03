@@ -45,6 +45,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, rename_coordinate, check_predictor_of_mean_flag)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -598,9 +599,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 forecast_period_constr)
 
             # Extract truth matching the time of the historic forecast.
+            reference_time = iris_time_to_datetime(
+                historic_forecast_cube.coord("time").copy())
             truth_constr = iris.Constraint(
-                forecast_reference_time=historic_forecast_cube.coord(
-                    "time").points)
+                forecast_reference_time=reference_time)
             truth_cube = truth_cubes.extract(truth_constr)
 
             if truth_cube is None:
@@ -866,15 +868,11 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 forecast_predictors.slices_over("time"),
                 forecast_vars.slices_over("time")):
 
-            date = unit.num2date(
-                forecast_predictor.coord("time").points,
-                forecast_predictor.coord("time").units.name,
-                forecast_predictor.coord("time").units.calendar)[0]
-
-            with iris.FUTURE.context(cell_datetime_objects=True):
-                constr = iris.Constraint(time=date)
-                forecast_predictor_at_date = forecast_predictor.extract(constr)
-                forecast_var_at_date = forecast_var.extract(constr)
+            date = iris_time_to_datetime(
+                forecast_predictor.coord("time").copy())[0]
+            constr = iris.Constraint(time=date)
+            forecast_predictor_at_date = forecast_predictor.extract(constr)
+            forecast_var_at_date = forecast_var.extract(constr)
 
             # If the coefficients are not available for the date, use the
             # raw ensemble forecast as the calibrated ensemble forecast.
