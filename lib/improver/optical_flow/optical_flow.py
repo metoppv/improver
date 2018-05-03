@@ -120,7 +120,7 @@ class AdvectField(object):
 
     @staticmethod
     def _increment_output_array(indata, outdata, cond, xdest_grid, ydest_grid,
-                                xsrc_grid, ysrc_grid, x_frac, y_frac):
+                                xsrc_grid, ysrc_grid, x_weight, y_weight):
         """
         Calculate and add contribution to the advected array from one source
         grid point, for all points where boolean condition "cond" is valid.
@@ -140,10 +140,10 @@ class AdvectField(object):
                 Integer x-coordinates of all points on source grid
             ysrc_grid (numpy.ndarray):
                 Integer y-coordinates of all points on source grid
-            x_frac (numpy.ndarray):
+            x_weight (numpy.ndarray):
                 Fractional contribution to destination grid of source data
                 advected along the x-axis.  Positive definite.
-            y_frac (numpy.ndarray):
+            y_weight (numpy.ndarray):
                 Fractional contribution to destination grid of source data
                 advected along the y-axis.  Positive definite.
         """
@@ -152,7 +152,7 @@ class AdvectField(object):
         xsrc = xsrc_grid[cond]
         ysrc = ysrc_grid[cond]
         outdata[ydest, xdest] += (
-            indata[ysrc, xsrc] * x_frac[ydest, xdest] * y_frac[ydest, xdest])
+            indata[ysrc, xsrc] * x_weight[ydest, xdest] * y_weight[ydest, xdest])
 
     def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep, bgd):
         """
@@ -193,46 +193,54 @@ class AdvectField(object):
         # is generally fractional: eg with advection velocities of 0.5 grid
         # squares per second, the value at [2, 2] is represented by the value
         # that was at [1.5, 1.5] 1 second ago.
-        oldx_frac = -grid_vel_x * timestep + xgrid.astype(float)
-        oldy_frac = -grid_vel_y * timestep + ygrid.astype(float)
+        xsrc_point_frac = -grid_vel_x * timestep + xgrid.astype(float)
+        ysrc_point_frac = -grid_vel_y * timestep + ygrid.astype(float)
 
         # For all the points where fractional source coordinates are within
         # the bounds of the field, set the output field to 0
         def point_in_bounds(x, y, nx, ny):
-            """Check a point lies within defined bounds"""
+            """Check point (y, x) lies within defined bounds"""
             return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
 
-        cond1 = point_in_bounds(oldx_frac, oldy_frac, xdim, ydim)
+        cond1 = point_in_bounds(xsrc_point_frac, ysrc_point_frac, xdim, ydim)
         adv_field[cond1] = 0
 
         # Find the integer points surrounding the fractional source coordinates
         # and check they are in bounds
-        oldx_l = oldx_frac.astype(int)
-        oldx_r = oldx_l + 1
-        oldy_u = oldy_frac.astype(int)
-        oldy_d = oldy_u + 1
+        xsrc_point_lower = xsrc_point_frac.astype(int)
+        xsrc_point_upper = xsrc_point_lower + 1
+        ysrc_point_lower = ysrc_point_frac.astype(int)
+        ysrc_point_upper = ysrc_point_lower + 1
 
-        cond2 = point_in_bounds(oldx_l, oldy_u, xdim, ydim) & cond1
-        cond3 = point_in_bounds(oldx_l, oldy_d, xdim, ydim) & cond1
-        cond4 = point_in_bounds(oldx_r, oldy_u, xdim, ydim) & cond1
-        cond5 = point_in_bounds(oldx_r, oldy_d, xdim, ydim) & cond1
+        cond2 = point_in_bounds(xsrc_point_lower, ysrc_point_lower,
+                                xdim, ydim) & cond1
+        cond3 = point_in_bounds(xsrc_point_lower, ysrc_point_upper,
+                                xdim, ydim) & cond1
+        cond4 = point_in_bounds(xsrc_point_upper, ysrc_point_lower,
+                                xdim, ydim) & cond1
+        cond5 = point_in_bounds(xsrc_point_upper, ysrc_point_upper,
+                                xdim, ydim) & cond1
 
         # Calculate the distance-weighted fractional contribution of points
         # surrounding the source coordinates
-        x_frac_r = oldx_frac - oldx_l.astype(float)
-        x_frac_l = 1. - x_frac_r
-        y_frac_d = oldy_frac - oldy_u.astype(float)
-        y_frac_u = 1. - y_frac_d
+        x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
+        x_weight_lower = 1. - x_weight_upper
+        y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
+        y_weight_lower = 1. - y_weight_upper
 
         # Advect data from each of the four source points onto the output grid
         self._increment_output_array(data, adv_field, cond2, xgrid, ygrid,
-                                     oldx_l, oldy_u, x_frac_l, y_frac_u)
+                                     xsrc_point_lower, ysrc_point_lower,
+                                     x_weight_lower, y_weight_lower)
         self._increment_output_array(data, adv_field, cond3, xgrid, ygrid,
-                                     oldx_r, oldy_u, x_frac_r, y_frac_u)
+                                     xsrc_point_upper, ysrc_point_lower,
+                                     x_weight_upper, y_weight_lower)
         self._increment_output_array(data, adv_field, cond4, xgrid, ygrid,
-                                     oldx_l, oldy_d, x_frac_l, y_frac_d)
+                                     xsrc_point_lower, ysrc_point_upper,
+                                     x_weight_lower, y_weight_upper)
         self._increment_output_array(data, adv_field, cond5, xgrid, ygrid,
-                                     oldx_r, oldy_d, x_frac_r, y_frac_d)
+                                     xsrc_point_upper, ysrc_point_upper,
+                                     x_weight_upper, y_weight_upper)
 
         return adv_field
 
