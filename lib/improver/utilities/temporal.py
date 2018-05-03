@@ -155,11 +155,10 @@ def forecast_period_coord(
         except ValueError as err:
             msg = "For forecast_reference_time: {}".format(err)
             raise ValueError(msg)
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            time_points = np.array(
-                [c.point for c in t_coord.cells()])
-            forecast_reference_time_points = np.array(
-                [c.point for c in fr_coord.cells()])
+        time_points = np.array(
+            [c.point for c in t_coord.cells()])
+        forecast_reference_time_points = np.array(
+            [c.point for c in fr_coord.cells()])
         required_lead_times = (
             time_points - forecast_reference_time_points)
         # Convert the timedeltas to a total in seconds.
@@ -279,8 +278,7 @@ def extract_cube_at_time(cubes, time, time_extract):
 
     """
     try:
-        with iris.FUTURE.context(cell_datetime_objects=True):
-            cube_in, = cubes.extract(time_extract)
+        cube_in, = cubes.extract(time_extract)
         return cube_in
     except ValueError:
         msg = ('Forecast time {} not found within data cubes.'.format(

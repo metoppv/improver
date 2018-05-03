@@ -33,11 +33,8 @@
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
-from iris import FUTURE
 
 from improver.constants import DEFAULT_PERCENTILES
-
-FUTURE.netcdf_promote = True
 
 
 class PercentileConverter(object):

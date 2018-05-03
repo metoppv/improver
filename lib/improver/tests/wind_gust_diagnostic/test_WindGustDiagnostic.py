@@ -169,7 +169,7 @@ class Test_update_metadata_after_max(IrisTest):
         """Test that the metadata is set as expected """
         plugin = WindGustDiagnostic(50.0, 80.0)
         result = plugin.update_metadata_after_max(self.cube, self.perc_coord)
-        msg = 'Expected to find exactly 1  coordinate, but found none.'
+        msg = 'Expected to find exactly 1 .* coordinate, but found none.'
         with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
             result.coord(self.perc_coord)
 

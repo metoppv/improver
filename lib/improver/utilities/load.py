@@ -37,8 +37,6 @@ from iris.exceptions import ConstraintMismatchError
 
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-iris.FUTURE.netcdf_promote = True
-
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath provided using Iris into a cube.

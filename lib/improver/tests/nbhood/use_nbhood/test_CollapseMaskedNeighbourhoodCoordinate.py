@@ -198,7 +198,7 @@ class Test_renormalize_weights(IrisTest):
         nbhooded_cube = self.weights_cube.copy()
         plugin = CollapseMaskedNeighbourhoodCoordinate("kitten",
                                                        self.weights_cube)
-        message = "Expected to find exactly 1  coordinate, but found none."
+        message = "Expected to find exactly 1 .* coordinate, but found none."
         with self.assertRaisesRegexp(CoordinateNotFoundError, message):
             plugin.renormalize_weights(nbhooded_cube)
 
