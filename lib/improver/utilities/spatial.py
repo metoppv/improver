@@ -32,6 +32,7 @@
 
 import copy
 import iris
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -196,17 +197,12 @@ class DifferenceBetweenAdjacentGridSquares(object):
         # Add metadata to indicate that a difference has been calculated.
         # TODO: update metadata for difference and add metadata for gradient
         #       when proper conventions have been agreed upon.
-        # if not self.is_gradient:
-        #     cell_method = CellMethod("difference", coords=[coord_name],
-        #                              intervals='1 grid length')
-        #     diff_cube.add_cell_method(cell_method)
-        #     diff_cube.attributes["form_of_difference"] = (
-        #         "forward_difference")
-
-        diff_cube.attributes["spp__form_of_difference"] = (
-            "spv__forward_difference")
-        diff_cube.attributes["spp__with_respect_to"] = coord_name
-
+        if not self.is_gradient:
+            cell_method = CellMethod("difference", coords=[coord_name],
+                                     intervals='1 grid length')
+            diff_cube.add_cell_method(cell_method)
+            diff_cube.attributes["form_of_difference"] = (
+                "forward_difference")
         diff_cube.rename('difference_of_' + cube.name())
         return diff_cube
 

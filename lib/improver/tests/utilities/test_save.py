@@ -97,8 +97,8 @@ class Test_save_netcdf(IrisTest):
         print(read_cubes)
         print(read_cubes[0])
         self.assertIsInstance(read_cubes, iris.cube.CubeList)
-        # Length of read_cubes now 3 as Iris 2 saves metadata as separate cube
-        # rather than as attributes on other other cubes in
+        # Length of read_cubes now increased to 3 as Iris 2 saves metadata
+        # as separate cube rather than as attributes on other other cubes in
         # the file (Iris 1.13)
         self.assertEqual(len(read_cubes), 3)
 
