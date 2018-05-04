@@ -52,6 +52,7 @@ def set_up_test_cube():
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
     cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['source_realizations'] = np.arange(12)
+    cube.attributes['spp__form_of_difference'] = 'spv__forward_difference'
     return cube
 
 
@@ -62,7 +63,8 @@ class Test_save_netcdf(IrisTest):
     def setUp(self):
         """ Set up cube to write, read and check """
         self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
-                                'Conventions', 'institution', 'history']
+                                'Conventions', 'institution', 'history',
+                                'bald__isPrefixedBy']
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_test_cube()
@@ -91,8 +93,14 @@ class Test_save_netcdf(IrisTest):
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
         read_cubes = iris.load(self.filepath)
+        print('cubes:')
+        print(read_cubes)
+        print(read_cubes[0])
         self.assertIsInstance(read_cubes, iris.cube.CubeList)
-        self.assertEqual(len(read_cubes), 2)
+        # Length of read_cubes now 3 as Iris 2 saves metadata as separate cube
+        # rather than as attributes on other other cubes in
+        # the file (Iris 1.13)
+        self.assertEqual(len(read_cubes), 3)
 
     def test_cube_data(self):
         """ Test valid cube can be read from saved file """
@@ -144,7 +152,8 @@ class Test_save_netcdf(IrisTest):
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
         global_keys = Dataset(self.filepath, mode='r').ncattrs()
-        self.assertEqual(len(global_keys), 1)
+        # impro-511
+        self.assertEqual(len(global_keys), 2)
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys))
 
