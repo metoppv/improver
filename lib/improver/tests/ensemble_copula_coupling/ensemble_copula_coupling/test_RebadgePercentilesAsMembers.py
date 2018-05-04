@@ -35,9 +35,10 @@ Unit tests for the
 """
 import unittest
 
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+from iris.exceptions import InvalidCubeError
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -49,9 +50,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 
 class Test_process(IrisTest):
 
-    """
-    Test the process method of the RebadgePercentilesAsMembers plugin.
-    """
+    """Test the process method of the RebadgePercentilesAsMembers plugin."""
 
     def setUp(self):
         """Set up temperature cube for testing."""
@@ -64,11 +63,9 @@ class Test_process(IrisTest):
         self.current_temperature_cube = cube
 
     def test_basic(self):
-        """
-        Test that a cube is produced is produced and the realization
+        """Test that a cube is produced is produced and the realization
         coordinate is a dimension coordinate, after the percentile coordinate
-        is rebadged.
-        """
+        is rebadged."""
         cube = self.current_temperature_cube
         plugin = Plugin()
         result = plugin.process(cube)
@@ -76,10 +73,8 @@ class Test_process(IrisTest):
         self.assertIsInstance(result.coord("realization"), DimCoord)
 
     def test_specify_member_numbers(self):
-        """
-        Use the ensemble_member_numbers optional argument to specify particular
-        values for the ensemble member numbers.
-        """
+        """Use the ensemble_member_numbers optional argument to specify
+        particular values for the ensemble member numbers."""
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile_over_realization").points)
         ensemble_member_numbers = np.arange(plen)+12
@@ -90,10 +85,8 @@ class Test_process(IrisTest):
             result.coord("realization").points, np.array([12, 13, 14]))
 
     def test_number_of_members(self):
-        """
-        Check the values for the realization coordinate generated without
-        specifying the ensemble_member_numbers argument.
-        """
+        """Check the values for the realization coordinate generated without
+        specifying the ensemble_member_numbers argument."""
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile_over_realization").points)
         plugin = Plugin()
@@ -103,7 +96,7 @@ class Test_process(IrisTest):
             result.coord("realization").points, np.array([0, 1, 2]))
 
     def test_still_works_if_percentile_coord_is_different(self):
-        """Check this still works if a different percentile coord used"""
+        """Check this still works if a different percentile coord used."""
         cube = self.current_temperature_cube
         cube.coord("percentile_over_realization").rename(
             "percentile_over_nbhood")
@@ -113,6 +106,16 @@ class Test_process(IrisTest):
         self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([0, 1, 2]))
+
+    def test_raises_exception_if_realization_already_exists(self):
+        """Check that we raise an exception if a realization coordinate already
+        exists."""
+        cube = self.current_temperature_cube
+        cube.add_aux_coord(AuxCoord(0, 'realization'))
+        plugin = Plugin()
+        msg = r"Cannot rebadge percentile coordinate to realization.*"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            plugin.process(cube)
 
 
 if __name__ == '__main__':
