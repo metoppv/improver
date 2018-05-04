@@ -51,20 +51,19 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test advection velocity in the x-direction"""
 
-        first_input = np.array([[4., 5., 6.],
-                                [3., 4., 5.],
-                                [2., 3., 4.],
-                                [1., 2., 3.]])
+        first_input = np.broadcast_to(
+            np.array([2., 3., 2., 1., 2., 3., 4., 3., 2., 1.]), (10, 10))
+        print first_input
 
-        second_input = np.array([[3., 4., 5.],
-                                 [2., 3., 4.],
-                                 [1., 2., 3.],
-                                 [0., 1., 2.]])
+        second_input = np.broadcast_to(
+            np.array([1., 2., 3., 2., 1., 2., 3., 4., 3., 2.]), (10, 10))
+        print second_input
 
-        expected_ucomp = np.ones((4, 3))
-        expected_vcomp = np.zeros((4, 3))
+        expected_ucomp = np.ones((10, 10))
+        expected_vcomp = np.zeros((10, 10))
     
-        plugin = OpticalFlow(data1=first_input, data2=second_input, kernel=1, myboxsize=3, iterations=1, pointweight=1)
+        plugin = OpticalFlow(data1=first_input, data2=second_input,
+                             kernel=3, myboxsize=3, iterations=10)
 
         """
         NOTE by experimentation:
