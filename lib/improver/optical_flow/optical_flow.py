@@ -196,45 +196,28 @@ class AdvectField(object):
             """Check point (y, x) lies within defined bounds"""
             return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
 
-        cond1 = point_in_bounds(xsrc_point_frac, ysrc_point_frac, xdim, ydim)
-        adv_field[cond1] = 0
+        cond_pt = point_in_bounds(xsrc_point_frac, ysrc_point_frac, xdim, ydim)
+        adv_field[cond_pt] = 0
 
         # Find the integer points surrounding the fractional source coordinates
-        # and check they are in bounds
         xsrc_point_lower = xsrc_point_frac.astype(int)
-        xsrc_point_upper = xsrc_point_lower + 1
         ysrc_point_lower = ysrc_point_frac.astype(int)
-        ysrc_point_upper = ysrc_point_lower + 1
-
-        cond2 = point_in_bounds(xsrc_point_lower, ysrc_point_lower,
-                                xdim, ydim) & cond1
-        cond3 = point_in_bounds(xsrc_point_lower, ysrc_point_upper,
-                                xdim, ydim) & cond1
-        cond4 = point_in_bounds(xsrc_point_upper, ysrc_point_lower,
-                                xdim, ydim) & cond1
-        cond5 = point_in_bounds(xsrc_point_upper, ysrc_point_upper,
-                                xdim, ydim) & cond1
+        x_points = [xsrc_point_lower, xsrc_point_lower + 1]
+        y_points = [ysrc_point_lower, ysrc_point_lower + 1]
 
         # Calculate the distance-weighted fractional contribution of points
         # surrounding the source coordinates
         x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
-        x_weight_lower = 1. - x_weight_upper
         y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
-        y_weight_lower = 1. - y_weight_upper
+        x_weights = [1. - x_weight_upper, x_weight_upper]
+        y_weights = [1. - y_weight_upper, y_weight_upper]
 
         # Advect data from each of the four source points onto the output grid
-        self._increment_output_array(data, adv_field, cond2, xgrid, ygrid,
-                                     xsrc_point_lower, ysrc_point_lower,
-                                     x_weight_lower, y_weight_lower)
-        self._increment_output_array(data, adv_field, cond3, xgrid, ygrid,
-                                     xsrc_point_lower, ysrc_point_upper,
-                                     x_weight_lower, y_weight_upper)
-        self._increment_output_array(data, adv_field, cond4, xgrid, ygrid,
-                                     xsrc_point_upper, ysrc_point_lower,
-                                     x_weight_upper, y_weight_lower)
-        self._increment_output_array(data, adv_field, cond5, xgrid, ygrid,
-                                     xsrc_point_upper, ysrc_point_upper,
-                                     x_weight_upper, y_weight_upper)
+        for xpt, xwt in zip(x_points, x_weights):
+            for ypt, ywt in zip(y_points, y_weights):
+                cond = point_in_bounds(xpt, ypt, xdim, ydim) & cond_pt
+                self._increment_output_array(data, adv_field, cond, xgrid,
+                                             ygrid, xpt, ypt, xwt, ywt)
 
         return adv_field
 
