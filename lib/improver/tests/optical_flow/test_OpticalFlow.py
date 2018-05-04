@@ -32,49 +32,59 @@
 
 import datetime
 import unittest
+import warnings
 import numpy as np
 
 import iris
 from iris.tests import IrisTest
 
 from improver.optical_flow.optical_flow import OpticalFlow
-#import sys
-#sys.path.append('/home/h04/csand/IMPROVER/IMPRO623/from_Martina_copy')
-#from Decomposition_2017_modified import OFC as OpticalFlow
-
-
 
 class Test__init__(IrisTest):
     """Test class initialisation"""
 
-    """
-    DUMMY CLASS - provides baseline for Martina's code functionality
-    that I can modify as I refactor.  (TODO get this working...)
-    """
+    def test_basic(self):
+        """Test initialisation and types"""
+        plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+        self.assertIsInstance(plugin.kernel, int)
+        self.assertIsInstance(plugin.boxsize, int)
+        self.assertIsInstance(plugin.iterations, int)
+        self.assertIsInstance(plugin.pointweight, float)
+        self.assertIsNone(plugin.ucomp)
+        self.assertIsNone(plugin.vcomp)        
+
+
+class Test_process(IrisTest):
+    """Test the process method"""
+
+    def setUp(self):
+        """Set up plugin options and input rainfall-like matrices that produce
+        non-singular outputs.  Large matrices with zeros are needed for the
+        algorithm to be stable."""
+
+        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+
+        self.first_input = np.zeros((16, 16))
+        self.first_input[1:8, 2:9] = 1.
+        self.first_input[2:6, 3:7] = 2.
+        self.first_input[3:5, 4:6] = 3.
+        #print self.first_input
+        #print "\n"
+        self.second_input = np.zeros((16, 16))
+        self.second_input[2:9, 1:8] = 1.
+        self.second_input[3:7, 2:6] = 2.
+        self.second_input[4:6, 3:5] = 3.
+        #print self.second_input
+        #print "\n"
 
     def test_basic(self):
-        """Test advection velocity in the x-direction"""
-
-        first_input = np.broadcast_to(
-            np.array([2., 3., 4., 5., 6., 5., 4., 3., 2., 1.]), (10, 10))
-        second_input = np.broadcast_to(
-            np.array([1., 2., 3., 4., 5., 6., 5., 4., 3., 2.]), (10, 10))
-
-        expected_ucomp = np.ones((10, 10))
-        expected_vcomp = np.zeros((10, 10))
-    
-        plugin = OpticalFlow(data1=first_input, data2=second_input,
-                             kernel=3, myboxsize=3, iterations=10)
-
-        """
-        NOTE by experimentation:
-            - Minimum stable value for "myboxsize" is 3 - will need to use large arrays for unit testing
-            - TODO read the documentation!
-
-        """
-
-        print plugin.ucomp[0:2, :]
-        print plugin.vcomp[0:2, :]
+        """Test outputs are of the correct type and value"""
+        self.plugin.process(self.first_input, self.second_input)
+        self.assertIsInstance(self.plugin.ucomp, np.ndarray)
+        self.assertIsInstance(self.plugin.vcomp, np.ndarray)
+        # NOTE x/y axis inversion - will need to fix this...
+        self.assertAlmostEqual(np.mean(self.plugin.ucomp), 0.95435266462)
+        self.assertAlmostEqual(np.mean(self.plugin.vcomp), -0.95435266462)
 
 
 if __name__ == '__main__':

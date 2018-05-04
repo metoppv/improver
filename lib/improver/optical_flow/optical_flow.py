@@ -32,6 +32,7 @@
 This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
+import warnings
 import numpy as np
 
 import scipy.linalg
@@ -291,21 +292,17 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, data1=None, data2=None, kernel=7, myboxsize=30,
-                 iterations=100, smethod=2, pointweight=0.1):
+    def __init__(self, kernel=7, boxsize=30, iterations=100, smethod=2,
+                 pointweight=0.1):
         """
-        On initialization, the u- and v- component of the advection velocity field
-        are calculated, given the two input fields.
+        Initialise the class with smoothing parameters for estimating gridded
+        u- and v- velocities TODO update this docstring
 
         input:
-            data1: 2D np.array
-                first time slice
-            data2: 2D np.array
-                second time slice
             kernel: integer
                 kernel size (radius) for use to smooth the data for partial
                 derivative estimaten. If box smoothing is used, half box size
-            myboxsize: integer
+            boxsize: integer
                 side length of box size in which points are evaluated to have
                 the same velocity
             iterations: integer
@@ -319,23 +316,14 @@ class OpticalFlow(object):
                 when doing the smart smoothing. 0.1 is the original steps value
         """
         # need to calculate a suitable kernel size given dt (what is expected
-        # movement between slices)
-        # and expected velocities
-        if data1 is not None:
-            d1n2 = self.smoothing(data1, kernel, method=smethod)
-            d2n2 = self.smoothing(data2, kernel, method=smethod)
-            xdif_t = self.totx(d1n2, d2n2, 0)
-            ydif_t = self.totx(d1n2, d2n2, 1)
-            tdif_t = self.totx(d1n2, d2n2, 2)
-            print 'part deriv x:', xdif_t[0:2, :]
-            print 'part deriv y:', ydif_t[0:2, :]
-            print 'part deriv t:', tdif_t[0:2, :]
-            self.ucomp, self.vcomp = self.makeofc(
-                xdif_t, ydif_t, tdif_t, myboxsize, d1n2, d2n2, iterations,
-                pweight=pointweight)
-        else:
-            self.ucomp = None
-            self.vcomp = None
+        # movement between slices) and expected velocities (Martina's TODO)
+        self.kernel = kernel
+        self.boxsize = boxsize
+        self.smoothing_method = smethod
+        self.iterations = iterations
+        self.pointweight = pointweight
+        self.ucomp = None
+        self.vcomp = None
 
     @staticmethod
     def mdiffx(xfield):
@@ -596,18 +584,18 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def makeofc(self, xdif_t, ydif_t, tdif_t, myboxsize, d1, d2,
+    def makeofc(self, xdif_t, ydif_t, tdif_t, boxsize, d1, d2,
                 iterations=50, pweight=0.1):
         """
         This implements the OFC algorithm, assuming all points in a box with
-        myboxsize sidelength have the same velocity components.
+        boxsize sidelength have the same velocity components.
         """
 
         # (a) make subboxes
         # pweight = 0.1 # this is the weight given to the point as opposed to
         # its neigbours
         xdif_tb, ydif_tb, tdif_tb, weight_tb = self.makesubboxes(
-            xdif_t, ydif_t, tdif_t, d1, d2, myboxsize)
+            xdif_t, ydif_t, tdif_t, d1, d2, boxsize)
         uvec = []
         vvec = []
         # (b) solve ofc on subboxes
@@ -616,8 +604,11 @@ class OpticalFlow(object):
             II, dd = self.makeIandDmat(xdif, ydif, tdif)
             try:
                 u = self.calcU(II, dd)
-            except:
+            except Exception as err:
                 u = [0, 0]
+                warnings.warn('Encountered "{}: {}" in calcU() - setting '
+                              'velocities to zero'.format(type(err).__name__,
+                                                          err.message))
             uvec.append(u[0])
             vvec.append(u[1])
         uvec = np.array(uvec)
@@ -625,8 +616,8 @@ class OpticalFlow(object):
         # print uvec
         weight_tb = np.array(weight_tb)
         # (c) reorder block velocities in 2D
-        myshape = [int((xdif_t.shape[0]-1)/myboxsize) + 1,
-                   int((xdif_t.shape[1]-1)/myboxsize) + 1]
+        myshape = [int((xdif_t.shape[0]-1)/boxsize) + 1,
+                   int((xdif_t.shape[1]-1)/boxsize) + 1]
         umat = uvec.reshape(myshape)
         vmat = vvec.reshape(myshape)
         # pause()
@@ -647,10 +638,39 @@ class OpticalFlow(object):
                                             pweight)
             conv_vec.append((abs(umatold-umatn)).sum())
         # (e) rebin block velocities to 2D field velocities
-        umat_f, vmat_f = self.rebinvel(umatn, vmatn, myboxsize, myshape,
+        umat_f, vmat_f = self.rebinvel(umatn, vmatn, boxsize, myshape,
                                        xdif_t.shape)
-        smn = int(myboxsize/3)
+        smn = int(boxsize/3)
         umat_f = self.smoothing(umat_f, smn, method=1)
         vmat_f = self.smoothing(vmat_f, smn, method=1)
 
         return umat_f, vmat_f
+
+    def process(self, data1, data2):
+        """
+        Calculates advection velocities from two input fields using plugin
+        parameters.  Sets these as plugin variables - this is OK, have some
+        access methods rather than returning two cubes
+
+        TODO update to work with (input and output) cubes and dimensioned time
+        differences
+
+        Args:
+            data1 (np.ndarray):
+                2D input data array from time 1
+            data2 (np.ndarray):
+                2D input data array from time 2                   
+
+        Also TODO: resolve x/y bug(s)
+        """
+
+        d1n2 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
+        d2n2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
+        xdif_t = self.totx(d1n2, d2n2, 0)
+        ydif_t = self.totx(d1n2, d2n2, 1)
+        tdif_t = self.totx(d1n2, d2n2, 2)
+        # TODO hardcoded assumption of (x, y) coordinate ordering
+        self.ucomp, self.vcomp = self.makeofc(
+            xdif_t, ydif_t, tdif_t, self.boxsize, d1n2, d2n2, self.iterations,
+            pweight=self.pointweight)
+
