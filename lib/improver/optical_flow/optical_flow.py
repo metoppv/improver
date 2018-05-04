@@ -80,7 +80,7 @@ class AdvectField(object):
         self.y_coord = vel_x.coord(axis="y")
 
     @staticmethod
-    def _check_input_coords(cube, require_time=None):
+    def _check_input_coords(cube, require_time=False):
         """
         Checks an input cube has precisely two non-scalar dimension coordinates
         (spatial x/y), or raises an error.  If "require_time" is set to True,
@@ -151,7 +151,8 @@ class AdvectField(object):
         outdata[ydest, xdest] += (
             indata[ysrc, xsrc]*x_weight[ydest, xdest]*y_weight[ydest, xdest])
 
-    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep, bgd):
+    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep,
+                      fill_value):
         """
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.
@@ -165,7 +166,7 @@ class AdvectField(object):
                 Velocity in the y direction (in grid points per second)
             timestep (int):
                 Advection time step in seconds
-            bgd (float):
+            fill_value (float):
                 Default output value for spatial points where data cannot be
                 extrapolated (source is out of bounds)
 
@@ -174,8 +175,8 @@ class AdvectField(object):
                 2D float array of advected data values
         """
 
-        # Initialise advected field with "background" default value
-        adv_field = np.full(data.shape, bgd)
+        # Initialise advected field with default fill_value
+        adv_field = np.full(data.shape, fill_value)
 
         # Set up grids of data coordinates (meshgrid inverts coordinate order)
         ydim, xdim = data.shape
@@ -221,7 +222,7 @@ class AdvectField(object):
 
         return adv_field
 
-    def process(self, cube, timestep, bgd=0.0):
+    def process(self, cube, timestep, fill_value=0.0):
         """
         Extrapolates input cube data and updates validity time.  The input
         cube should have precisely two non-scalar dimension coordinates
@@ -234,7 +235,7 @@ class AdvectField(object):
                 The 2D cube containing data to be advected
             timestep (datetime.timedelta):
                 Advection time step
-            bgd (float):
+            fill_value (float):
                 Default output value for spatial points where data cannot be
                 extrapolated (source is out of bounds)
 
@@ -264,7 +265,8 @@ class AdvectField(object):
 
         # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           timestep.total_seconds(), bgd)
+                                           timestep.total_seconds(),
+                                           fill_value)
         advected_cube = cube.copy(data=advected_data)
 
         # increment output cube time

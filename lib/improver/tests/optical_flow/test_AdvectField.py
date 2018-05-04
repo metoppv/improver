@@ -267,14 +267,14 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube, self.timestep)
         self.assertArrayAlmostEqual(result.data, expected_output)
 
-    def test_background_values(self):
+    def test_fill_values(self):
         """Test output cube data is padded as expected where source grid
         points are out of bounds"""
         expected_output = np.array([[-1., -1., -1.],
                                     [-1., -1., -1.],
                                     [-1., 2., 3.],
                                     [-1., 1., 2.]])
-        result = self.plugin.process(self.cube, self.timestep, bgd=-1.)
+        result = self.plugin.process(self.cube, self.timestep, fill_value=-1.)
         self.assertArrayAlmostEqual(result.data, expected_output)
 
     def test_time_step(self):
