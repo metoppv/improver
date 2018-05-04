@@ -40,6 +40,11 @@ from iris.tests import IrisTest
 
 from improver.optical_flow.optical_flow import OpticalFlow
 
+
+
+
+
+
 class Test__init__(IrisTest):
     """Test class initialisation"""
 
@@ -52,6 +57,65 @@ class Test__init__(IrisTest):
         self.assertIsInstance(plugin.pointweight, float)
         self.assertIsNone(plugin.ucomp)
         self.assertIsNone(plugin.vcomp)        
+
+
+class OpticalFlowUtilityTest(IrisTest):
+    """Class with shared matrix definitions for utility tests"""
+
+    def setUp(self):
+        """Set up input matrices and dummy plugin"""
+        self.first_input = np.array([[1., 2., 3., 4., 5.],
+                                     [0., 1., 2., 3., 4.],
+                                     [0., 0., 1., 2., 3.]])
+
+        self.second_input = np.array([[0., 1., 2., 3., 4.],
+                                      [0., 0., 1., 2., 3.],
+                                      [0., 0., 0., 1., 2.]])
+
+class Test_mdiff(OpticalFlowUtilityTest):
+    """Test mdiff function"""
+
+    def test_basic(self):
+        """This diffs the field along the first axis NOTE y, not x!"""
+        expected_output = np.array([[0., 0., 0., 0., 0.],
+                                    [0., -1., -1., -1., -1.],
+                                    [0., -0.5, -1., -1., -1.]])
+        result = OpticalFlow().mdiff(self.first_input)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+
+class Test_totx(OpticalFlowUtilityTest):
+    """Test calculation of partial derivatives"""
+
+    def test_basic(self):
+        """Test output type"""
+        result = OpticalFlow().totx(self.first_input, self.second_input, 0)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_x_axis(self):
+        """Test derivative along the x-axis (TODO hardcoded 0)"""
+        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+                                    [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
+                                    [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
+        result = OpticalFlow().totx(self.first_input, self.second_input, 0)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_y_axis(self):
+        """Test derivative along the y-axis (TODO hardcoded 1)"""
+        expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
+                                    [0.2500, 0.6875, 0.9375, 1.0, 0.50],
+                                    [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
+        result = OpticalFlow().totx(self.first_input, self.second_input, 1)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_t_axis(self):
+        """Test derivative in time"""
+        expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
+                                    [0.2500, 0.6875, 0.9375, 1.0, 0.50],
+                                    [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
+        result = OpticalFlow().totx(self.first_input, self.second_input, 2)
+
 
 
 class Test_process(IrisTest):

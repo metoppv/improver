@@ -326,10 +326,18 @@ class OpticalFlow(object):
         self.vcomp = None
 
     @staticmethod
-    def mdiffx(xfield):
+    def mdiff(xfield):
         """
         This function implements
-        x_i+1,j+1 = 0.5[(x_i+1,j - x_i,j) + (x_i+1,j+1 -x_i+1,j+1)]
+        x_i+1,j+1 = 0.5[(x_i+1,j - x_i,j) + (x_i+1,j+1 - x_i,j+1)]
+
+        NOTE CS: method
+            - diffs along axis 0 (array loses 1 element along axis 0)
+            - averages diffs along axis 1 (array loses 1 element along axis 1)
+            - zero-pads row and column zero, and puts diffs in higher array pos
+
+        TODO figure out how to pass axis in as an argument
+        TODO there must be a standard numpy function for the array averaging!
         """
         d_1 = np.diff(xfield, axis=0)
         d_2 = d_1[:, 1:]
@@ -338,46 +346,42 @@ class OpticalFlow(object):
         d_3[1:, 1:] = (d_1 + d_2)*0.5
         return d_3
 
-    def mdifftx(self, xfield, yfield):
+    def mdiff_spatial(self, data1, data2, axis=0):
         """
-        This function makes (time) average of the x derivative (averaged in y),
-        where the two input fields are time slices. Returned is time average
+        This function makes (time) average of one spatial derivative (averaged
+        over the other), where the two input fields are time slices.
         """
-        d_1 = self.mdiffx(xfield)
-        d_2 = self.mdiffx(yfield)
+        if axis == 1:
+            data1 = data1.transpose()
+            data2 = data2.transpose()
+            d_1 = self.mdiff(data1).transpose()
+            d_2 = self.mdiff(data2).transpose()
+        else:
+            d_1 = self.mdiff(data1)
+            d_2 = self.mdiff(data2)
         return (d_1 + d_2)*0.5
 
-    def mdiffty(self, xfield, yfield):
-        """
-        This function returns analogous to mdifftx time averaged y derivative
-        (averaged in x) where the two input fields are the time slices.
-        """
-        x_1 = xfield.transpose()
-        y_1 = yfield.transpose()
-        intm = self.mdifftx(x_1, y_1)
-        return intm.transpose()
-
     @staticmethod
-    def mdifftt(xfield, yfield):
+    def mdifftt(data1, data2):
         """ this corresponds to Eq. 31 - 34 in steps document """
-        d_1 = yfield - xfield
+        d_1 = data2 - data1
         d_2 = d_1[1:, :-1]
         d_3 = d_1[:-1, 1:]
         d_4 = d_1[1:, 1:]
         d_1 = d_1[:-1, :-1]
-        d_5 = np.zeros(xfield.shape)
+        d_5 = np.zeros(data1.shape)
         d_5[1:, 1:] = (d_1+d_2+d_3+d_4)*0.25
         return d_5
 
-    def totx(self, xfield, yfield, xty):
+    def totx(self, data1, data2, xty):
         """ this corresponds to Eq. 35 - 37 in steps document """
         if xty == 0:  # this is for x derivative
-            m_1 = self.mdifftx(xfield, yfield)
+            m_1 = self.mdiff_spatial(data1, data2)
         elif xty == 1:  # this is for y derivative
-            m_1 = self.mdiffty(xfield, yfield)
+            m_1 = self.mdiff_spatial(data1, data2, axis=1)
         elif xty == 2:  # this is for t derivative
-            m_1 = self.mdifftt(xfield, yfield)
-        m_0 = np.zeros([xfield.shape[0]+1, xfield.shape[1]+1])
+            m_1 = self.mdifftt(data1, data2)
+        m_0 = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
         m_0[:-1, :-1] = m_1
         m_2 = m_0[1:, :-1]
         m_3 = m_0[:-1, 1:]
@@ -516,8 +520,7 @@ class OpticalFlow(object):
     @staticmethod
     def smallkernel():
         '''
-        kernel representing the weighting implemented in steps. Used if
-        the smartsmooth is used in the convolution mode (i.e. asinsteps=False)
+        kernel representing the weighting implemented in STEPS
         '''
         mkernel = np.array([[0.5, 1, 0.5], [1, 0, 1], [0.5, 1, 0.5]])/6.
         return mkernel
@@ -664,13 +667,17 @@ class OpticalFlow(object):
         Also TODO: resolve x/y bug(s)
         """
 
+        # Smooth input data using one of two scipy kernel-based methods
         d1n2 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
         d2n2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
+
+        # Calculate partial derivatives of the smoothed input fields
+        # TODO hardcoded assumption of (x, y) coordinate ordering  
         xdif_t = self.totx(d1n2, d2n2, 0)
         ydif_t = self.totx(d1n2, d2n2, 1)
         tdif_t = self.totx(d1n2, d2n2, 2)
-        # TODO hardcoded assumption of (x, y) coordinate ordering
+
+        # Calculate advection velocities
         self.ucomp, self.vcomp = self.makeofc(
             xdif_t, ydif_t, tdif_t, self.boxsize, d1n2, d2n2, self.iterations,
             pweight=self.pointweight)
-
