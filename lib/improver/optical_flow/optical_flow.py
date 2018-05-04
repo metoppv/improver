@@ -227,11 +227,11 @@ class AdvectField(object):
                                      xsrc_point_lower, ysrc_point_lower,
                                      x_weight_lower, y_weight_lower)
         self._increment_output_array(data, adv_field, cond3, xgrid, ygrid,
-                                     xsrc_point_upper, ysrc_point_lower,
-                                     x_weight_upper, y_weight_lower)
-        self._increment_output_array(data, adv_field, cond4, xgrid, ygrid,
                                      xsrc_point_lower, ysrc_point_upper,
                                      x_weight_lower, y_weight_upper)
+        self._increment_output_array(data, adv_field, cond4, xgrid, ygrid,
+                                     xsrc_point_upper, ysrc_point_lower,
+                                     x_weight_upper, y_weight_lower)
         self._increment_output_array(data, adv_field, cond5, xgrid, ygrid,
                                      xsrc_point_upper, ysrc_point_upper,
                                      x_weight_upper, y_weight_upper)

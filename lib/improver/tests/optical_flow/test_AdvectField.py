@@ -186,11 +186,12 @@ class Test__advect_field(IrisTest):
                               [1., 2., 3.],
                               [0., 1., 2.],
                               [0., 0., 1.]])
+        self.timestep = 2.
 
     def test_basic(self):
         """Test function returns an array"""
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, 2., 0.)
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
         self.assertIsInstance(result, np.ndarray)
 
     def test_advect_integer_grid_point(self):
@@ -201,7 +202,7 @@ class Test__advect_field(IrisTest):
                                     [0., 2., 3.],
                                     [0., 1., 2.]])
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, 2., 0.)
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_advect_partial_grid_point(self):
@@ -213,7 +214,17 @@ class Test__advect_field(IrisTest):
                                     [0., 0.75, 1.75]])
         result = self.dummy_plugin._advect_field(
             self.data, self.grid_vel_x, 2.*self.grid_vel_y, 0.5, 0.)
-        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_negative_advection_velocities(self):
+        """Test data is advected correctly in the negative x direction"""
+        expected_output = np.array([[0., 0., 0.],
+                                    [0., 0., 0.],
+                                    [3., 4., 0.],
+                                    [2., 3., 0.]])
+        self.grid_vel_x *= -1.
+        result = self.dummy_plugin._advect_field(
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
