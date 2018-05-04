@@ -38,6 +38,10 @@ import iris
 from iris.tests import IrisTest
 
 from improver.optical_flow.optical_flow import OpticalFlow
+#import sys
+#sys.path.append('/home/h04/csand/IMPROVER/IMPRO623/from_Martina_copy')
+#from Decomposition_2017_modified import OFC as OpticalFlow
+
 
 
 class Test__init__(IrisTest):
@@ -52,12 +56,9 @@ class Test__init__(IrisTest):
         """Test advection velocity in the x-direction"""
 
         first_input = np.broadcast_to(
-            np.array([2., 3., 2., 1., 2., 3., 4., 3., 2., 1.]), (10, 10))
-        print first_input
-
+            np.array([2., 3., 4., 5., 6., 5., 4., 3., 2., 1.]), (10, 10))
         second_input = np.broadcast_to(
-            np.array([1., 2., 3., 2., 1., 2., 3., 4., 3., 2.]), (10, 10))
-        print second_input
+            np.array([1., 2., 3., 4., 5., 6., 5., 4., 3., 2.]), (10, 10))
 
         expected_ucomp = np.ones((10, 10))
         expected_vcomp = np.zeros((10, 10))
@@ -72,8 +73,8 @@ class Test__init__(IrisTest):
 
         """
 
-        print plugin.ucomp
-        print plugin.vcomp
+        print plugin.ucomp[0:2, :]
+        print plugin.vcomp[0:2, :]
 
 
 if __name__ == '__main__':

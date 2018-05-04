@@ -327,6 +327,9 @@ class OpticalFlow(object):
             xdif_t = self.totx(d1n2, d2n2, 0)
             ydif_t = self.totx(d1n2, d2n2, 1)
             tdif_t = self.totx(d1n2, d2n2, 2)
+            print 'part deriv x:', xdif_t[0:2, :]
+            print 'part deriv y:', ydif_t[0:2, :]
+            print 'part deriv t:', tdif_t[0:2, :]
             self.ucomp, self.vcomp = self.makeofc(
                 xdif_t, ydif_t, tdif_t, myboxsize, d1n2, d2n2, iterations,
                 pweight=pointweight)
@@ -593,21 +596,18 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def makeofc(self, xdif_t, ydif_t, tdif_t, subboxsize, d1, d2,
+    def makeofc(self, xdif_t, ydif_t, tdif_t, myboxsize, d1, d2,
                 iterations=50, pweight=0.1):
         """
-        this implements the OFC algorithm, assuming all points in a box with
-        subboxsize sidelength have the same velocity components.
-
-        NOTE CS: the following code executes regardless of "asinsteps" value...
-        (was default False - I removed this option)
+        This implements the OFC algorithm, assuming all points in a box with
+        myboxsize sidelength have the same velocity components.
         """
-        # This part is for doing it the way it is done in STEPS----------------
+
         # (a) make subboxes
         # pweight = 0.1 # this is the weight given to the point as opposed to
         # its neigbours
         xdif_tb, ydif_tb, tdif_tb, weight_tb = self.makesubboxes(
-            xdif_t, ydif_t, tdif_t, d1, d2, subboxsize)
+            xdif_t, ydif_t, tdif_t, d1, d2, myboxsize)
         uvec = []
         vvec = []
         # (b) solve ofc on subboxes
@@ -625,8 +625,8 @@ class OpticalFlow(object):
         # print uvec
         weight_tb = np.array(weight_tb)
         # (c) reorder block velocities in 2D
-        myshape = [int((xdif_t.shape[0]-1)/subboxsize) + 1,
-                   int((xdif_t.shape[1]-1)/subboxsize) + 1]
+        myshape = [int((xdif_t.shape[0]-1)/myboxsize) + 1,
+                   int((xdif_t.shape[1]-1)/myboxsize) + 1]
         umat = uvec.reshape(myshape)
         vmat = vvec.reshape(myshape)
         # pause()
@@ -647,10 +647,10 @@ class OpticalFlow(object):
                                             pweight)
             conv_vec.append((abs(umatold-umatn)).sum())
         # (e) rebin block velocities to 2D field velocities
-        umat_f, vmat_f = self.rebinvel(umatn, vmatn, subboxsize, myshape,
+        umat_f, vmat_f = self.rebinvel(umatn, vmatn, myboxsize, myshape,
                                        xdif_t.shape)
-        smn = int(subboxsize/3)
+        smn = int(myboxsize/3)
         umat_f = self.smoothing(umat_f, smn, method=1)
         vmat_f = self.smoothing(vmat_f, smn, method=1)
-        # ---------------------------------------------------------------------
+
         return umat_f, vmat_f
