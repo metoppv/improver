@@ -35,7 +35,7 @@ import unittest
 from cf_units import Unit
 import iris
 from iris.cube import Cube
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.tests import IrisTest
 import numpy as np
 from numpy import ma
@@ -107,20 +107,16 @@ class Test_create_difference_cube(IrisTest):
         """Test that the result has the expected metadata."""
         diff_array = np.array([[1, 2, 3],
                                [3, 6, 9]])
-        # cell_method = CellMethod(
-        #     "difference", coords=["projection_y_coordinate"],
-        #     intervals='1 grid length')
+        cell_method = CellMethod(
+            "difference", coords=["projection_y_coordinate"],
+            intervals='1 grid length')
         result = self.plugin.create_difference_cube(
             self.cube, "projection_y_coordinate", diff_array)
-        self.assertEqual(result.attributes["spp__form_of_difference"],
-                         "spv__forward_difference")
-        self.assertEqual(result.attributes["spp__with_respect_to"],
-                         "projection_y_coordinate")
-        # self.assertEqual(
-        #     result.cell_methods[0], cell_method)
-        # self.assertEqual(
-        #     result.attributes["form_of_difference"],
-        #     "forward_difference")
+        self.assertEqual(
+            result.cell_methods[0], cell_method)
+        self.assertEqual(
+            result.attributes["form_of_difference"],
+            "forward_difference")
         self.assertEqual(result.name(), 'difference_of_wind_speed')
 
     def test_othercoords(self):
