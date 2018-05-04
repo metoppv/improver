@@ -196,6 +196,7 @@ class Test_calc_polar_mean_std_dev(IrisTest):
 
 
 class Test_wind_dir_decider(IrisTest):
+    """Test the wind_dir_decider function."""
 
     def test_runs_function(self):
         """First element has two angles directly opposite (90 & 270 degs).
@@ -215,6 +216,7 @@ class Test_wind_dir_decider(IrisTest):
 
 
 class Test_process(IrisTest):
+    """Test entire code handles a cube correctly."""
 
     def setUp(self):
         """Create a cube with collapsable coordinates."""
@@ -252,14 +254,16 @@ class Test_process(IrisTest):
                                          (longitude, 3)],
                     units="degree")
 
-        self.cube = cube
+        self.cube = cube[:, 0, :, :]  # Demotes time dimension.
 
     def test_basic(self):
         """Test that the plugin returns expected data types. """
-        result_cube, r_vals, std_dev = WindDirection().process(self.cube)
-        self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(r_vals, np.ndarray)
-        self.assertIsInstance(std_dev, np.ndarray)
+        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
+            self.cube)
+
+        self.assertIsInstance(result_cube[0], Cube)
+        self.assertIsInstance(r_vals_cube[0], Cube)
+        self.assertIsInstance(std_dev_cube[0], Cube)
 
     def test_fails_if_data_is_not_cube(self):
         """Test code raises a Type Error if input cube is not a cube."""
@@ -272,9 +276,12 @@ class Test_process(IrisTest):
     def test_return_single_precision(self):
         """Test that the function returns data of float32."""
 
-        result_cube, r_vals, std_dev = WindDirection().process(self.cube)
-        result = result_cube.data
-        result = result[0]
+        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
+            self.cube)
+
+        result = result_cube[0]
+        r_vals = r_vals_cube[0]
+        std_dev = std_dev_cube[0]
         self.assertEqual(result.dtype, np.float32)
         self.assertEqual(r_vals.dtype, np.float32)
         self.assertEqual(std_dev.dtype, np.float32)
@@ -295,14 +302,17 @@ class Test_process(IrisTest):
                                      [1.0, 1.0, 1.0, 0.84808648],
                                      [0.75270665, 0.83861077, 1.0, 1.0]])
 
-        result_cube, r_vals, std_dev = WindDirection().process(self.cube)
-        result = result_cube.data
-        wind_mean = result[0]  # Extracts first element (time) from list.
+        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
+            self.cube)
+
+        result = result_cube[0].data  # Extract first element from cubelist.
+        r_vals = r_vals_cube[0].data
+        std_dev = std_dev_cube[0].data
 
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
         self.assertIsInstance(std_dev, np.ndarray)
-        self.assertArrayAlmostEqual(wind_mean, expected_wind_mean)
+        self.assertArrayAlmostEqual(result, expected_wind_mean)
         self.assertArrayAlmostEqual(r_vals, expected_r_vals)
         self.assertArrayAlmostEqual(std_dev, expected_std_dev)
 

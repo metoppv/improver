@@ -75,6 +75,7 @@ class WindDirection(object):
 
     Step 6 still needs more development so it is only included in the code
     as a placeholder.
+
     """
 
     def __init__(self):
@@ -103,6 +104,7 @@ class WindDirection(object):
             (np.ndarray or float):
                 3D array or float - wind direction translated to
                 complex numbers.
+
         """
 
         # Convert from degrees to radians.
@@ -233,13 +235,14 @@ class WindDirection(object):
         # directly opposte (270 and 90) it returns a confidence value
         # of 0.29289322 instead of zero.
         #
-        # angle  | confidence
+        # angles | confidence
         # 270/90 | 0.29289322
         # 270/89 | 0.295985
         # 270/88 | 0.299091
         # 270/87 | 0.30221
         # 270/86 | 0.305342
-        # Therefore any confidence value below 0.295 will be set to zero.
+        # Therefore any confidence value below 0.295 should be set to zero.
+        # This is a hacky solution - there will be a different solution.
         dist_from_mean_norm = np.where(dist_from_mean_norm < 0.295,
                                        0.0, dist_from_mean_norm)
         return dist_from_mean_norm
@@ -321,47 +324,66 @@ class WindDirection(object):
         # Force input cube to float32.
         enforce_float32_precision(cube_ens_wdir)
 
-        # Creates result cube - copies input and removes realization dimension.
-        for cube_mean_wdir in cube_ens_wdir.slices_over("realization"):
-            cube_mean_wdir.remove_coord('realization')
-            break
+        # Creates cubelists to hold data.
+        wdir_cube_list = iris.cube.CubeList()
+        r_vals_cube_list = iris.cube.CubeList()
+        std_dev_cube_list = iris.cube.CubeList()
 
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
         x_coord_name = cube_ens_wdir.coord(axis="x").name()
+        for slice_ens_wdir in cube_ens_wdir.slices(["realization",
+                                                    y_coord_name,
+                                                    x_coord_name]):
+            # Extract wind direction data.
+            wind_dir_deg = slice_ens_wdir.data
+            realization_axis = slice_ens_wdir.coord_dims('realization')[0]
 
-        time_slice = next(cube_ens_wdir.slices(["realization",
-                                                y_coord_name,
-                                                x_coord_name]))
+            # Copies input cube and remove realization dimension to create
+            # cubes for storing results.
+            slice_mean_wdir = next(slice_ens_wdir.slices_over("realization"))
+            slice_mean_wdir.remove_coord('realization')
+            slice_r_vals = slice_mean_wdir.copy()
+            slice_std_dev = slice_mean_wdir.copy()
 
-        # Find axis over which to average data.
-        realization_axis = time_slice.coord_dims('realization')[0]
-        wind_dir_deg = time_slice.data
+            # Convert wind direction from degrees to complex numbers.
+            wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
 
-        # Convert wind direction from degrees to complex numbers.
-        wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
+            # Find the complex average -  which actually signifies a point
+            # between all of the data points in POLAR co-cordinates.
+            # NOT the average DEGREE ANGLE.
+            wind_dir_complex_mean = np.mean(wind_dir_complex,
+                                            axis=realization_axis)
 
-        # Find the complex average - which actually signifies a point between
-        # all of the data points in POLAR co-cordinates (not degrees).
-        wind_dir_complex_mean = np.mean(wind_dir_complex,
-                                        axis=realization_axis)
+            # Convert complex average values to degrees to produce average
+            # wind direction.
+            wind_dir_deg_mean = WindDirection.complex_to_deg(
+                wind_dir_complex_mean)
 
-        # Convert complex average to degrees to produce average wind direction.
-        wind_dir_deg_mean = WindDirection.complex_to_deg(wind_dir_complex_mean)
+            # Find radius values for wind direction average.
+            r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
-        # Find r values for wind direction average.
-        r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
+            # Calculate standard deviation from polar mean.
+            # ToDo: This will still need some work to produce more accurate
+            #       confidence values. This is the subject of another ticket.
+            polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
+                wind_dir_complex, wind_dir_deg_mean, realization_axis)
 
-        # Calculate standard deviation from polar mean.
-        # ToDo: This will still need some work to produce more accurate
-        #       confidence values. This is the subject of another ticket.
-        polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
-            wind_dir_complex, wind_dir_deg_mean, realization_axis)
+            # Finds any meaningless averages and subistuite with
+            # the wind direction taken from the first ensemble member.
+            wind_dir_deg_mean = WindDirection.wind_dir_decider(
+                wind_dir_deg, wind_dir_deg_mean, r_vals)
 
-        # Finds any meaningless averages and subistuite with
-        # the wind direction taken from the first ensemble member.
-        wind_dir_deg_mean = WindDirection.wind_dir_decider(wind_dir_deg,
-                                                           wind_dir_deg_mean,
-                                                           r_vals)
+            # Save data into cubes.
+            slice_mean_wdir.data = wind_dir_deg_mean
+            slice_r_vals.data = r_vals
+            slice_std_dev.data = polar_mean_std_dev
+            # Append to cubelists.
+            wdir_cube_list.append(slice_mean_wdir)
+            r_vals_cube_list.append(slice_r_vals)
+            std_dev_cube_list.append(slice_std_dev)
 
-        cube_mean_wdir.data[0] = wind_dir_deg_mean
-        return cube_mean_wdir, r_vals, polar_mean_std_dev
+        # Combine cubelists into cube and outputs.
+        cube_mean_wdir = wdir_cube_list.concatenate()
+        cube_r_vals = r_vals_cube_list.concatenate()
+        cube_polar_mean_std_dev = std_dev_cube_list.concatenate()
+        return cube_mean_wdir, cube_r_vals, cube_polar_mean_std_dev
