@@ -79,7 +79,6 @@ class AdvectField(object):
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
 
-
     @staticmethod
     def _check_input_coords(cube, require_time=None):
         """

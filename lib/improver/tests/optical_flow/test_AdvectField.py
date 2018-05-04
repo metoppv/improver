@@ -268,14 +268,13 @@ class Test_process(IrisTest):
 
     def test_time_step(self):
         """Test outputs are OK for a time step with non-second components"""
-        vel_x = self.plugin.vel_x.copy(data=self.plugin.vel_x.data / 6.)
-        vel_y = self.plugin.vel_y.copy(data=self.plugin.vel_y.data / 6.)
-        plugin = AdvectField(vel_x, vel_y)
+        self.plugin.vel_x.data = self.plugin.vel_x.data / 6.
+        self.plugin.vel_y.data = self.plugin.vel_y.data / 6.
         expected_output = np.array([[0., 0., 0.],
                                     [0., 0., 0.],
                                     [0., 2., 3.],
                                     [0., 1., 2.]])
-        result = plugin.process(self.cube, datetime.timedelta(hours=1))
+        result = self.plugin.process(self.cube, datetime.timedelta(hours=1))
         self.assertArrayAlmostEqual(result.data, expected_output)
 
     def test_raises_grid_mismatch_error(self):
