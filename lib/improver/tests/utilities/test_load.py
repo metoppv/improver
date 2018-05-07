@@ -225,6 +225,11 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 4)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 5)
 
+    def test_attributes(self):
+        """Test that metadata attributes are successfully striped out."""
+        result = load_cube(self.filepath)
+        self.assertNotIn('bald__isPrefixedBy', result.attributes.keys())
+
     def test_no_lazy_load(self):
         """Test that the cube returned upon loading does not contain
         lazy data."""

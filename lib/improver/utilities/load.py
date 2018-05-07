@@ -59,7 +59,15 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
+    # Remove metadata prefix cube if present
+    constraints = iris.Constraint(
+        cube_func=lambda cube: cube.long_name != 'prefixes') & constraints
     cube = iris.load_cube(filepath, constraint=constraints)
+
+    # Remove metadata prefix cube attributes
+    if 'bald__isPrefixedBy' in cube.attributes.keys():
+        cube.attributes.pop('bald__isPrefixedBy')
+
     # Ensure the probabilistic coordinates are the first coordinates within a
     # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
@@ -75,12 +83,12 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
 
 
 def load_cubelist(filepath, constraints=None, no_lazy_load=False):
-    """Load the filepath(s) provided using Iris into a cubelist.  Loads
-    exactly one data cube per file.
+    """Load one cube from each of the filepath(s) provided using Iris into
+    a cubelist.
 
     Args:
         filepath (str or list):
-            Filepath(s) that will be loaded.
+            Filepath(s) that will be loaded, each containing a single cube.
         constraints (iris.Constraint, str or None):
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
@@ -103,7 +111,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
     else:
         filepaths = filepath
 
-    # Constuct a cubelist using the load_cube function.
+    # Construct a cubelist using the load_cube function.
     cubelist = iris.cube.CubeList([])
     for filepath in filepaths:
         try:
