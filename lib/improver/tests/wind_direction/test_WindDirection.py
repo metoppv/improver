@@ -33,15 +33,12 @@
 import unittest
 import numpy as np
 
-import iris
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError
 from cf_units import Unit
 
 from improver.wind_direction import WindDirection
-from improver.utilities.warnings_handler import ManageWarnings
 
 # Data to test complex/degree handling functions.
 # The two degree/complex arrays are directly equivalent.
@@ -93,6 +90,9 @@ WIND_DIR_COMPLEX_MEAN = np.array([[-6.12323400e-17+0j,
                                    0.571393805+0.816034923j],
                                   [0.171010072-0.969846310j,
                                    0.984807753-0j]])
+
+WIND_DIR_R_VALS = np.array([[6.12323400e-17, 0.996194698],
+                            [0.984807753, 0.984807753]])
 
 
 class Test__repr__(IrisTest):
@@ -189,7 +189,8 @@ class Test_calc_polar_mean_std_dev(IrisTest):
 
         result = WindDirection().calc_polar_mean_std_dev(WIND_DIR_COMPLEX,
                                                          WIND_DIR_DEG_MEAN,
-                                                         0)
+                                                         WIND_DIR_R_VALS,
+                                                         0.01, 0)
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -209,7 +210,7 @@ class Test_wind_dir_decider(IrisTest):
 
         result = WindDirection.wind_dir_decider(WIND_DIR_DEG,
                                                 WIND_DIR_DEG_MEAN,
-                                                WIND_DIR_COMPLEX_MEAN)
+                                                WIND_DIR_R_VALS, 0.01)
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -261,9 +262,9 @@ class Test_process(IrisTest):
         result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
             self.cube)
 
-        self.assertIsInstance(result_cube[0], Cube)
-        self.assertIsInstance(r_vals_cube[0], Cube)
-        self.assertIsInstance(std_dev_cube[0], Cube)
+        self.assertIsInstance(result_cube, Cube)
+        self.assertIsInstance(r_vals_cube, Cube)
+        self.assertIsInstance(std_dev_cube, Cube)
 
     def test_fails_if_data_is_not_cube(self):
         """Test code raises a Type Error if input cube is not a cube."""
@@ -279,12 +280,9 @@ class Test_process(IrisTest):
         result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
             self.cube)
 
-        result = result_cube[0]
-        r_vals = r_vals_cube[0]
-        std_dev = std_dev_cube[0]
-        self.assertEqual(result.dtype, np.float32)
-        self.assertEqual(r_vals.dtype, np.float32)
-        self.assertEqual(std_dev.dtype, np.float32)
+        self.assertEqual(result_cube.dtype, np.float32)
+        self.assertEqual(r_vals_cube.dtype, np.float32)
+        self.assertEqual(std_dev_cube.dtype, np.float32)
 
     def test_returns_expected_values(self):
         """Test that the function returns correct 2D arrays of floats. """
@@ -305,9 +303,9 @@ class Test_process(IrisTest):
         result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
             self.cube)
 
-        result = result_cube[0].data  # Extract first element from cubelist.
-        r_vals = r_vals_cube[0].data
-        std_dev = std_dev_cube[0].data
+        result = result_cube.data
+        r_vals = r_vals_cube.data
+        std_dev = std_dev_cube.data
 
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)

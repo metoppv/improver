@@ -178,7 +178,7 @@ class WindDirection(object):
 
     @staticmethod
     def calc_polar_mean_std_dev(wind_dir_complex, wind_dir_deg_mean,
-                                realization_axis):
+                                r_vals, r_thresh, realization_axis):
         """Find standard deviation of polar numbers.
 
         The average wind direction complex values represent the midpoint
@@ -198,6 +198,11 @@ class WindDirection(object):
                 3D array - wind direction angles in complex numbers.
             wind_dir_deg_mean (np.ndarray):
                 3D array - average wind direction in angles.
+            r_vals (np.ndarray):
+                3D array - Radius taken from average complex wind direction
+                angle.
+            r_thresh (float):
+                Any r value below threshold is regarded as meaningless.
             realization_axis (int):
                 Axis over which to average the arrays over.
 
@@ -231,24 +236,22 @@ class WindDirection(object):
         # Normalise the array using 2 as the maximum possible value.
         dist_from_mean_norm = 1 - dist_from_mean_avg*0.5
 
-        # HOWEVER - the above equation doesn't quite work! With two points
-        # directly opposte (270 and 90) it returns a confidence value
-        # of 0.29289322 instead of zero.
+        # With two points directly opposte (270 and 90) it returns a confidence
+        # value of 0.29289322 instead of zero.
         #
         # angles | confidence
         # 270/90 | 0.29289322
         # 270/89 | 0.295985
         # 270/88 | 0.299091
         # 270/87 | 0.30221
-        # 270/86 | 0.305342
-        # Therefore any confidence value below 0.295 should be set to zero.
-        # This is a hacky solution - there will be a different solution.
-        dist_from_mean_norm = np.where(dist_from_mean_norm < 0.295,
+        # Therefore any confidence value where the r is less than the threshold
+        # should be set to zero.
+        dist_from_mean_norm = np.where(r_vals < r_thresh,
                                        0.0, dist_from_mean_norm)
         return dist_from_mean_norm
 
     @staticmethod
-    def wind_dir_decider(wind_dir_deg, wind_dir_deg_mean, r_vals):
+    def wind_dir_decider(wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
@@ -264,15 +267,14 @@ class WindDirection(object):
             r_vals (np.ndarray):
                 3D array - Radius taken from average complex wind direction
                 angle.
+            r_thresh (float):
+                Any r value below threshold is regarded as meaningless.
 
         Returns:
             reprocessed_wind_dir_mean (np.ndarray):
                 3D array - Wind direction degrees where ambigious values have
                 been replaced with data from first ensemble member.
         """
-
-        # Threshold r value.
-        r_thresh = 0.01
 
         # Mask True if r values below threshold.
         where_low_r = np.where(r_vals < r_thresh, True, False)
@@ -291,7 +293,8 @@ class WindDirection(object):
 
         return reprocessed_wind_dir_mean
 
-    def process(self, cube_ens_wdir):
+    @staticmethod
+    def process(cube_ens_wdir):
         """
         Create a cube containing the wind direction averaged over the ensemble
         members.
@@ -316,6 +319,10 @@ class WindDirection(object):
         TypeError: If cube_wdir is not a cube.
 
         """
+
+        # Any points where the r-values are below the threshold is regarded as
+        # containing ambigous data.
+        r_thresh = 0.01
 
         if not isinstance(cube_ens_wdir, iris.cube.Cube):
             msg = "Wind direction input is not a cube, but {}"
@@ -363,15 +370,16 @@ class WindDirection(object):
             r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
             # Calculate standard deviation from polar mean.
-            # ToDo: This will still need some work to produce more accurate
-            #       confidence values. This is the subject of another ticket.
+            # ToDo: This will still need some further investigation.
+            #        This is will be the subject of another ticket.
             polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
-                wind_dir_complex, wind_dir_deg_mean, realization_axis)
+                wind_dir_complex, wind_dir_deg_mean, r_vals, r_thresh,
+                realization_axis)
 
             # Finds any meaningless averages and subistuite with
             # the wind direction taken from the first ensemble member.
             wind_dir_deg_mean = WindDirection.wind_dir_decider(
-                wind_dir_deg, wind_dir_deg_mean, r_vals)
+                wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh)
 
             # Save data into cubes.
             slice_mean_wdir.data = wind_dir_deg_mean
@@ -383,7 +391,14 @@ class WindDirection(object):
             std_dev_cube_list.append(slice_std_dev)
 
         # Combine cubelists into cube and outputs.
-        cube_mean_wdir = wdir_cube_list.concatenate()
-        cube_r_vals = r_vals_cube_list.concatenate()
-        cube_polar_mean_std_dev = std_dev_cube_list.concatenate()
+        cube_mean_wdir = wdir_cube_list.merge_cube()
+        cube_r_vals = r_vals_cube_list.merge_cube()
+        cube_polar_mean_std_dev = std_dev_cube_list.merge_cube()
+
+        # Change cube identifiers.
+        cube_mean_wdir.long_name = "Average wind direction"
+        cube_r_vals.long_name = "Avg wind dir r-vals"
+        cube_r_vals.units = None
+        cube_polar_mean_std_dev.long_name = "Avg wind dir std dev"
+        cube_polar_mean_std_dev.units = None
         return cube_mean_wdir, cube_r_vals, cube_polar_mean_std_dev
