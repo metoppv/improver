@@ -147,6 +147,27 @@ class Test_mdiff_temporal(OpticalFlowUtilityTest):
         self.assertArrayAlmostEqual(result, expected_output)
 
 
+class Test_makesubboxes(OpticalFlowUtilityTest):
+    """Test makesubboxes function"""
+
+    def test_basic(self):
+        """Test for correct output types"""
+        field = np.ones(shape=self.first_input.shape)
+        boxes, weights = OpticalFlow().makesubboxes(
+            field, self.first_input, self.second_input, 2)
+        self.assertIsInstance(boxes, list)
+        self.assertIsInstance(weights, np.ndarray)
+
+    def test_weights(self):
+        """Test output weights values"""
+        expected_weights = np.array([0.54216664, 0.95606307, 0.917915, 0.,
+                                     0.46473857, 0.54216664])
+        field = np.ones(shape=self.first_input.shape)
+        _, weights = OpticalFlow().makesubboxes(
+            field, self.first_input, self.second_input, 2)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+
 class Test_process(IrisTest):
     """Test the process method"""
 

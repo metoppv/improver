@@ -401,6 +401,47 @@ class OpticalFlow(object):
         return self.corner(tdiff)
 
     @staticmethod
+    def makesubboxes(field, data1, data2, boxsize):
+        """
+        Generate a list of sliding "boxes" of size boxsize*boxsize from the
+        input field, along with weights based on data "intensity" values at
+        times 1 and 2.
+
+        Args:
+            field (np.ndarray):
+                Input field (partial derivative)
+            data1 (np.ndarray):
+                2D spatial data array from time 1
+            data2 (np.ndarray):
+                2D spatial data array from time 2
+            boxsize (int):
+                Size of boxes to be output
+
+        Returns:
+            boxes (list):
+                List of np.ndarrays of size boxsize*boxsize containing slices
+                of data from input field.
+            weights (np.ndarray):
+                1D numpy array containing weights values associated with each
+                listed box.
+        """
+        boxes = []
+        weights = []
+        weighting_factor = 0.5 / boxsize**2.
+        for i in range(0, field.shape[0], boxsize):
+            for j in range(0, field.shape[1], boxsize):
+                boxes.append(field[i:i+boxsize, j:j+boxsize])
+                weight = weighting_factor*(
+                    (data1[i:i+boxsize, j:j+boxsize]).sum() +
+                    (data2[i:i+boxsize, j:j+boxsize]).sum())
+                weight = 1. - np.exp(-1.*weight/0.8)
+                weights.append(weight)
+        weights = np.array(weights)
+        weights[weights < 0.01] = 0
+        return boxes, weights
+
+
+    @staticmethod
     def makeIandDmat(d_u, d_v, d_t):
         """ this corresponds to Eq. 17 in steps document """
         d_u = d_u.flatten()
@@ -421,39 +462,6 @@ class OpticalFlow(object):
         m_2 = IItrans.dot(dd)
         myreturn = -m1inv.dot(m_2)
         return myreturn[0, 0], myreturn[1, 0]
-
-    @staticmethod
-    def makesubboxes(xfield, yfield, tfield, d_1, d_2, boxsize):
-        """
-        This function makes a list of subboxes with dimension boxsize*boxsize
-        of inputfields x,y and t.
-        It returns the lists of these subboxes, where the faster varying index
-        is the second index in the original fields.
-        The original input fields are used to calculate the weight for each
-        such subbox.
-        """
-        xdif_tb = []
-        ydif_tb = []
-        tdif_tb = []
-        weight_tb = []
-        for startx in range(0, xfield.shape[0], boxsize):
-            for starty in range(0, xfield.shape[1], boxsize):
-                xdif_tb.append(
-                    xfield[startx:startx+boxsize, starty:starty+boxsize])
-                ydif_tb.append(
-                    yfield[startx:startx+boxsize, starty:starty+boxsize])
-                tdif_tb.append(
-                    tfield[startx:startx+boxsize, starty:starty+boxsize])
-                newweight = ((
-                    (d_1[startx:startx+boxsize, starty:starty+boxsize]).sum() +
-                    (d_2[startx:startx+boxsize, starty:starty+boxsize]).sum())
-                    / boxsize/boxsize/2.0)
-                # this is the weight used in steps
-                newweight = 1.0-np.exp(-newweight/0.8)
-                weight_tb.append(newweight)
-        weight_tb = np.array(weight_tb)
-        weight_tb[weight_tb < 0.01] = 0
-        return xdif_tb, ydif_tb, tdif_tb, weight_tb
 
     @staticmethod
     def rebinvel(xfield, yfield, boxsize, myshape, origshape):
@@ -598,18 +606,18 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def makeofc(self, xdif_t, ydif_t, tdif_t, boxsize, d1, d2,
-                iterations=50, pweight=0.1):
+    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t, boxsize,
+                                       d1, d2, iterations=50, pweight=0.1):
         """
         This implements the OFC algorithm, assuming all points in a box with
         boxsize sidelength have the same velocity components.
         """
 
         # (a) make subboxes
-        # pweight = 0.1 # this is the weight given to the point as opposed to
-        # its neigbours
-        xdif_tb, ydif_tb, tdif_tb, weight_tb = self.makesubboxes(
-            xdif_t, ydif_t, tdif_t, d1, d2, boxsize)
+        xdif_tb, weight_tb = self.makesubboxes(xdif_t, d1, d2, boxsize)
+        ydif_tb, _ = self.makesubboxes(ydif_t, d1, d2, boxsize)
+        tdif_tb, _ = self.makesubboxes(tdif_t, d1, d2, boxsize)
+
         uvec = []
         vvec = []
         # (b) solve ofc on subboxes
@@ -673,22 +681,22 @@ class OpticalFlow(object):
             data1 (np.ndarray):
                 2D input data array from time 1
             data2 (np.ndarray):
-                2D input data array from time 2                   
+                2D input data array from time 2
 
         Also TODO: resolve x/y bug(s)
         """
 
         # Smooth input data using one of two scipy kernel-based methods
-        d1n2 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
-        d2n2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
+        data1 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
+        data2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO hardcoded assumption of (x, y) coordinate ordering  
-        xdif_t = self.mdiff_spatial(d1n2, d2n2, 0)
-        ydif_t = self.mdiff_spatial(d1n2, d2n2, 1)
-        tdif_t = self.mdiff_temporal(d1n2, d2n2)
+        partialIx_dt = self.mdiff_spatial(data1, data2, 0)
+        partialIy_dt = self.mdiff_spatial(data1, data2, 1)
+        partialIt_dt = self.mdiff_temporal(data1, data2)
 
         # Calculate advection velocities
-        self.ucomp, self.vcomp = self.makeofc(
-            xdif_t, ydif_t, tdif_t, self.boxsize, d1n2, d2n2, self.iterations,
-            pweight=self.pointweight)
+        self.ucomp, self.vcomp = self.calculate_advection_velocities(
+            partialIx_dt, partialIy_dt, partialIt_dt, self.boxsize,
+            data1, data2, self.iterations, pweight=self.pointweight)
