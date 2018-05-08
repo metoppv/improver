@@ -440,28 +440,41 @@ class OpticalFlow(object):
         weights[weights < 0.01] = 0
         return boxes, weights
 
-
     @staticmethod
-    def makeIandDmat(d_u, d_v, d_t):
-        """ this corresponds to Eq. 17 in steps document """
-        d_u = d_u.flatten()
-        d_v = d_v.flatten()
-        d_t = d_t.flatten()
-        II_mat = (np.array([d_u, d_v])).transpose()
-        return II_mat, d_t
+    def solve_for_uv(I_xy, I_t):
+        """
+        Solve the system of linear equations for u and v using matrix
+        inversion (equation 19 in STEPS document.  This is frequently singular,
+        eg in the presence of too many zeros or other cases where the matrix
+        II_mat cannot be inverted.  In these cases, returns 0.
 
-    @staticmethod
-    def calcU(II_mat, dd):
-        """ this corresponds to Eq. 19 in steps document """
-        # there is a problem here if I have many fewer pixels with intensity
-        # in here than pixels with
-        dd = dd.reshape([dd.size, 1])
-        IItrans = II_mat.transpose()
-        m_1 = IItrans.dot(II_mat)
-        m1inv = np.linalg.inv(m_1)
-        m_2 = IItrans.dot(dd)
-        myreturn = -m1inv.dot(m_2)
-        return myreturn[0, 0], myreturn[1, 0]
+        NOTE (Martina): there is a problem here if I have many fewer pixels
+        with intensity here than pixels with (zeros?)
+
+        Args:
+            I_xy (np.ndarray):
+                2-column matrix containing partial field derivatives dI/dx
+                (first column) and dI/dy (second column)
+            I_t (np.ndarray):
+                1-column matrix containing partial field derivatives dI/dt
+
+        Returns:
+            velocity (np.ndarray):
+                2-column matrix (u, v) containing scalar wind velocities
+        """
+        I_t = I_t.reshape([I_t.size, 1])
+        m1 = (I_xy.transpose()).dot(I_xy)
+        try:
+            m1_inv = np.linalg.inv(m1)
+        except Exception as err:
+            warnings.warn('Encountered "{}: {}" in solve_for_uv() - setting '
+                            'velocities to zero'.format(type(err).__name__,
+                                                        err.message))
+            velocity = np.array([0, 0])
+        else:
+            m2 = (I_xy.transpose()).dot(I_t)
+            velocity = -m1_inv.dot(m2)[:, 0]
+        return velocity
 
     @staticmethod
     def rebinvel(xfield, yfield, boxsize, myshape, origshape):
@@ -606,43 +619,71 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t, boxsize,
-                                       d1, d2, iterations=50, pweight=0.1):
+    def calculate_advection_velocities(self, data1, data2, xdif_t, ydif_t,
+                                       tdif_t, boxsize, iterations=50,
+                                       pweight=0.1):
         """
         This implements the OFC algorithm, assuming all points in a box with
         boxsize sidelength have the same velocity components.
+
+        Args:
+            data1 (np.ndarray):
+                2D array of data I(x, y, t1)
+            data2 (np.ndarray):
+                2D array of data I(x, y, t2)
+            xdif_t (np.ndarray):
+                2D array of partial derivatives dI/dx
+            ydif_t (np.ndarray):
+                2D array of partial derivatives dI/dy
+            tdif_t (np.ndarray):
+                2D array of partial derivatives dI/dt
+            boxsize (int):
+                Side of subboxes over which velocity is assumed equal
+            iterations (int):
+                Number of iterations of smoothing to perform after initial
+                velocity calculation
+            pweight (float):
+                TODO explain...
+
+        Returns:
+            umat_f (np.ndarray):
+                2D array of velocities in the x-direction
+            vmat_f (np.ndarray):
+                2D array of velocities in the y-direction
         """
 
         # (a) make subboxes
-        xdif_tb, weight_tb = self.makesubboxes(xdif_t, d1, d2, boxsize)
-        ydif_tb, _ = self.makesubboxes(ydif_t, d1, d2, boxsize)
-        tdif_tb, _ = self.makesubboxes(tdif_t, d1, d2, boxsize)
+        xdif_tb, weight_tb = self.makesubboxes(xdif_t, data1, data2, boxsize)
+        ydif_tb, _ = self.makesubboxes(ydif_t, data1, data2, boxsize)
+        tdif_tb, _ = self.makesubboxes(tdif_t, data1, data2, boxsize)
 
+        # (b) solve optical flow velocity calculation on subboxes
         uvec = []
         vvec = []
-        # (b) solve ofc on subboxes
         for xdif, ydif, tdif in zip(
                 xdif_tb, ydif_tb, tdif_tb):
-            II, dd = self.makeIandDmat(xdif, ydif, tdif)
-            try:
-                u = self.calcU(II, dd)
-            except Exception as err:
-                u = [0, 0]
-                warnings.warn('Encountered "{}: {}" in calcU() - setting '
-                              'velocities to zero'.format(type(err).__name__,
-                                                          err.message))
-            uvec.append(u[0])
-            vvec.append(u[1])
+
+            # Create system of linear equations to solve for each subbox
+            I_x = xdif.flatten()
+            I_y = ydif.flatten()
+            I_t = tdif.flatten()
+            I_xy = (np.array([I_x, I_y])).transpose()
+
+            # Solve equations for u and v through matrix inversion
+            u, v = self.solve_for_uv(I_xy, I_t)
+            uvec.append(u)
+            vvec.append(v)
+
         uvec = np.array(uvec)
         vvec = np.array(vvec)
-        # print uvec
-        weight_tb = np.array(weight_tb)
-        # (c) reorder block velocities in 2D
+
+        # (c) reshape velocity arrays to match input data arrays, assigning
+        #     calculated velocities to the central point in each block
         myshape = [int((xdif_t.shape[0]-1)/boxsize) + 1,
                    int((xdif_t.shape[1]-1)/boxsize) + 1]
         umat = uvec.reshape(myshape)
         vmat = vvec.reshape(myshape)
-        # pause()
+
         weights = weight_tb.reshape(myshape)
         # 03.11.2016 build in a check to detect insane velocities and put them
         # to an average of neigbouring
@@ -677,6 +718,9 @@ class OpticalFlow(object):
         TODO update to work with (input and output) cubes and dimensioned time
         differences
 
+        TODO option to populate class members data1 and data2 on initialisation
+        (class members simplifies code, initialisation permits full testing)
+
         Args:
             data1 (np.ndarray):
                 2D input data array from time 1
@@ -692,11 +736,11 @@ class OpticalFlow(object):
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO hardcoded assumption of (x, y) coordinate ordering  
-        partialIx_dt = self.mdiff_spatial(data1, data2, 0)
-        partialIy_dt = self.mdiff_spatial(data1, data2, 1)
-        partialIt_dt = self.mdiff_temporal(data1, data2)
+        partialI_dx = self.mdiff_spatial(data1, data2, 0)
+        partialI_dy = self.mdiff_spatial(data1, data2, 1)
+        partialI_dt = self.mdiff_temporal(data1, data2)
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.calculate_advection_velocities(
-            partialIx_dt, partialIy_dt, partialIt_dt, self.boxsize,
-            data1, data2, self.iterations, pweight=self.pointweight)
+            data1, data2, partialI_dx, partialI_dy, partialI_dt,
+            self.boxsize, self.iterations, pweight=self.pointweight)

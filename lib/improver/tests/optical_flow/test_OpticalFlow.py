@@ -168,6 +168,28 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
+class Test_solve_for_uv(IrisTest):
+    """Test solve_for_uv function"""
+
+    def setUp(self):
+        """Define input matrices"""
+        self.I_xy = np.array([[2., 3.,],
+                              [1., -2.,]])
+        self.I_t = np.array([-8., 3.])
+
+    def test_basic(self):
+        """Test for correct output types"""
+        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
+        self.assertIsInstance(u, float)
+        self.assertIsInstance(v, float)
+        
+    def test_values(self):
+        """Test output values"""
+        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
+        self.assertAlmostEqual(u, 1.)
+        self.assertAlmostEqual(v, 2.)
+
+
 class Test_process(IrisTest):
     """Test the process method"""
 
@@ -182,14 +204,11 @@ class Test_process(IrisTest):
         self.first_input[1:8, 2:9] = 1.
         self.first_input[2:6, 3:7] = 2.
         self.first_input[3:5, 4:6] = 3.
-        #print self.first_input
-        #print "\n"
+
         self.second_input = np.zeros((16, 16))
         self.second_input[2:9, 1:8] = 1.
         self.second_input[3:7, 2:6] = 2.
         self.second_input[4:6, 3:5] = 3.
-        #print self.second_input
-        #print "\n"
 
     def test_basic(self):
         """Test outputs are of the correct type and value"""
