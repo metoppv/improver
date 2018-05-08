@@ -445,8 +445,7 @@ class OpticalFlow(object):
         """
         Solve the system of linear equations for u and v using matrix
         inversion (equation 19 in STEPS document.  This is frequently singular,
-        eg in the presence of too many zeros or other cases where the matrix
-        II_mat cannot be inverted.  In these cases, returns 0.
+        eg in the presence of too many zeroes.  In these cases, returns 0.
 
         NOTE (Martina): there is a problem here if I have many fewer pixels
         with intensity here than pixels with (zeros?)
@@ -466,10 +465,8 @@ class OpticalFlow(object):
         m1 = (I_xy.transpose()).dot(I_xy)
         try:
             m1_inv = np.linalg.inv(m1)
-        except Exception as err:
-            warnings.warn('Encountered "{}: {}" in solve_for_uv() - setting '
-                            'velocities to zero'.format(type(err).__name__,
-                                                        err.message))
+        except np.linalg.LinAlgError:
+            # if matrix is not invertible, set velocities to zero
             velocity = np.array([0, 0])
         else:
             m2 = (I_xy.transpose()).dot(I_t)
