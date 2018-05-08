@@ -226,7 +226,7 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 5)
 
     def test_attributes(self):
-        """Test that metadata attributes are successfully striped out."""
+        """Test that metadata attributes are successfully stripped out."""
         result = load_cube(self.filepath)
         self.assertNotIn('bald__isPrefixedBy', result.attributes.keys())
 

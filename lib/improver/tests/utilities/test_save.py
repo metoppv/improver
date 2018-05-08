@@ -52,7 +52,6 @@ def set_up_test_cube():
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
     cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['source_realizations'] = np.arange(12)
-    cube.attributes['spp__form_of_difference'] = 'spv__forward_difference'
     return cube
 
 
