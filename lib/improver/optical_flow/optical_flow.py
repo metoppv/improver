@@ -325,10 +325,37 @@ class OpticalFlow(object):
         self.ucomp = None
         self.vcomp = None
 
+    @staticmethod
+    def corner(data, axis=None):
+        """
+        Calculates the average of four corner points at each point on a grid.
+        If axis is not None, only averages over the spatial axis specified.
+        
+        Args:
+            data (np.ndarray):
+                2D gridded data (dimensions M x N)
+            axis (int or None):
+                Optional (0 or 1): average over 2 adjacent points along the
+                specified axis, rather than all 4 corners
+        Returns:
+            corners (np.ndarray):
+                2D gridded interpolated average (dimensions M-1 x N-1 if
+                axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
+        """
+        if axis is None:
+            corners = 0.25*(data[1:, :-1] + data[:-1, 1:] +
+                            data[1:, 1:] + data[:-1, :-1])
+        elif axis == 0:
+            corners = 0.5*(data[:-1, :] + data[1:, :])
+        elif axis == 1:
+            corners = 0.5*(data[:, :-1] + data[:, 1:])
+        return corners
+
     def mdiff_spatial(self, data1, data2, axis):
         """
         Calculate the average over two input fields of one spatial derivative,
-        averaged over the other spatial dimension.
+        averaged over the other spatial dimension.  Pad with zeros in both
+        dimensions, and smooth.
 
         Args:
             data1 (np.ndarray):
@@ -337,45 +364,41 @@ class OpticalFlow(object):
                 2D spatial data array from time 2
             axis (int):
                 Axis over which to calculate the spatial derivative (0 or 1)
+
+        Returns:
+            padded_derivative (np.ndarray):
+                Smoothed spatial derivative
         """
         outdata = []
         for data in [data1, data2]:
             diffs = np.diff(data, axis=axis)
             average_diffs = np.zeros(data.shape)
-            if axis == 0:
-                average_diffs[1:, 1:] = 0.5*(diffs[:, :-1] + diffs[:, 1:])
-            elif axis == 1:
-                average_diffs[1:, 1:] = 0.5*(diffs[:-1, :] + diffs[1:, :])
+            average_diffs[1:, 1:] = self.corner(diffs, axis=1-axis)
             outdata.append(average_diffs)
-        return 0.5*(outdata[0] + outdata[1])
+        xdiff = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
+        xdiff[:-1, :-1] = 0.5*(outdata[0] + outdata[1])
+        return self.corner(xdiff)
 
-    @staticmethod
-    def mdifftt(data1, data2):
-        """ this corresponds to Eq. 31 - 34 in steps document """
-        d_1 = data2 - data1
-        d_2 = d_1[1:, :-1]
-        d_3 = d_1[:-1, 1:]
-        d_4 = d_1[1:, 1:]
-        d_1 = d_1[:-1, :-1]
-        d_5 = np.zeros(data1.shape)
-        d_5[1:, 1:] = (d_1+d_2+d_3+d_4)*0.25
-        return d_5
+    def mdiff_temporal(self, data1, data2):
+        """ 
+        Calculate the partial derivative of two fields over time.  Take the
+        difference between time-separated fields data1 and data2, then average
+        over the two spatial dimensions, regrid to a zero-padded output
+        array, and smooth.
 
-    def totx(self, data1, data2, xty):
-        """ this corresponds to Eq. 35 - 37 in steps document """
-        if xty == 0:  # this is for x derivative
-            m_1 = self.mdiff_spatial(data1, data2, 0)
-        elif xty == 1:  # this is for y derivative
-            m_1 = self.mdiff_spatial(data1, data2, 1)
-        elif xty == 2:  # this is for t derivative
-            m_1 = self.mdifftt(data1, data2)
-        m_0 = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
-        m_0[:-1, :-1] = m_1
-        m_2 = m_0[1:, :-1]
-        m_3 = m_0[:-1, 1:]
-        m_4 = m_0[1:, 1:]
-        m_1 = m_0[:-1, :-1]
-        return (m_1+m_2+m_3+m_4)*0.25
+        Args:
+            data1 (np.ndarray):
+                2D spatial data array from time 1
+            data2 (np.ndarray):
+                2D spatial data array from time 2
+        Returns:
+            tdiff (np.ndarray):
+                Smoothed temporal derivative
+        """
+        tstep = data2 - data1
+        tdiff = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
+        tdiff[1:-1, 1:-1] = self.corner(tstep)
+        return self.corner(tdiff)
 
     @staticmethod
     def makeIandDmat(d_u, d_v, d_t):
@@ -661,9 +684,9 @@ class OpticalFlow(object):
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO hardcoded assumption of (x, y) coordinate ordering  
-        xdif_t = self.totx(d1n2, d2n2, 0)
-        ydif_t = self.totx(d1n2, d2n2, 1)
-        tdif_t = self.totx(d1n2, d2n2, 2)
+        xdif_t = self.mdiff_spatial(d1n2, d2n2, 0)
+        ydif_t = self.mdiff_spatial(d1n2, d2n2, 1)
+        tdif_t = self.mdiff_temporal(d1n2, d2n2)
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.makeofc(

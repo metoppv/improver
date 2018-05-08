@@ -68,6 +68,37 @@ class OpticalFlowUtilityTest(IrisTest):
                                       [0., 0., 1., 2., 3.],
                                       [0., 0., 0., 1., 2.]])
 
+class Test_corner(OpticalFlowUtilityTest):
+    """Test corner averaging function"""
+
+    def test_basic(self):
+        """Test result is of correct type and shape"""
+        result = OpticalFlow().corner(self.first_input)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertSequenceEqual(result.shape, (2, 4))
+
+    def test_values(self):
+        """Test output values"""
+        expected_output = np.array([[1., 2., 3., 4.],
+                                    [0.25, 1., 2., 3.]])
+        result = OpticalFlow().corner(self.first_input)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_first_axis(self):
+        """Test averaging over first axis"""
+        expected_output = np.array([[0.5, 1.5, 2.5, 3.5, 4.5],
+                                    [0.0, 0.5, 1.5, 2.5, 3.5]])
+        result = OpticalFlow().corner(self.first_input, axis=0)
+        self.assertArrayAlmostEqual(result, expected_output)
+        
+    def test_second_axis(self):
+        """Test averaging over second axis"""
+        expected_output = np.array([[1.5, 2.5, 3.5, 4.5],
+                                    [0.5, 1.5, 2.5, 3.5],
+                                    [0.0, 0.5, 1.5, 2.5]])
+        result = OpticalFlow().corner(self.first_input, axis=1)
+        self.assertArrayAlmostEqual(result, expected_output)
+
 
 class Test_mdiff_spatial(OpticalFlowUtilityTest):
     """Test mdiff_spatial function"""
@@ -80,54 +111,40 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
 
     def test_default(self):
         """Test output values for axis=0"""
-        expected_output = np.array([[0., 0., 0., 0., 0.],
-                                    [0., -0.75, -1., -1., -1.],
-                                    [0., -0.25, -0.75, -1., -1.]])
+        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+                                    [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
+                                    [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
         result = OpticalFlow().mdiff_spatial(self.first_input,
                                              self.second_input, 0)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_transpose(self):
         """Test output values for axis=1"""
-        expected_output = np.array([[0., 0.00, 0.00, 0., 0.],
-                                    [0., 0.75, 1.00, 1., 1.],
-                                    [0., 0.25, 0.75, 1., 1.]])
+        expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
+                                    [0.2500, 0.6875, 0.9375, 1.0, 0.50],
+                                    [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
         result = OpticalFlow().mdiff_spatial(self.first_input,
                                              self.second_input, 1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
-class Test_totx(OpticalFlowUtilityTest):
-    """Test calculation of partial derivatives"""
-
+class Test_mdiff_temporal(OpticalFlowUtilityTest):
+    """Test mdiff_temporal function"""
+        
     def test_basic(self):
-        """Test output type"""
-        result = OpticalFlow().totx(self.first_input, self.second_input, 0)
+        """Test for correct output type"""
+        result = OpticalFlow().mdiff_temporal(self.first_input,
+                                              self.second_input)
         self.assertIsInstance(result, np.ndarray)
-
-    def test_x_axis(self):
-        """Test derivative along the x-axis (TODO hardcoded 0)"""
+        
+    def test_values(self):
+        """Test output values"""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
-        result = OpticalFlow().totx(self.first_input, self.second_input, 0)
+        result = OpticalFlow().mdiff_temporal(self.first_input,
+                                              self.second_input)
         self.assertArrayAlmostEqual(result, expected_output)
-
-    def test_y_axis(self):
-        """Test derivative along the y-axis (TODO hardcoded 1)"""
-        expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
-                                    [0.2500, 0.6875, 0.9375, 1.0, 0.50],
-                                    [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
-        result = OpticalFlow().totx(self.first_input, self.second_input, 1)
-        self.assertArrayAlmostEqual(result, expected_output)
-
-    def test_t_axis(self):
-        """Test derivative in time"""
-        expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
-                                    [0.2500, 0.6875, 0.9375, 1.0, 0.50],
-                                    [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
-        result = OpticalFlow().totx(self.first_input, self.second_input, 2)
-
 
 
 class Test_process(IrisTest):
