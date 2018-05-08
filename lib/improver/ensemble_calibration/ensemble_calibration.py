@@ -46,6 +46,12 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.warnings_handler import ManageWarnings
+
+IGNORED_MESSAGES = ["The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "Not importing directory .*sphinxcontrib'"]
+WARNING_TYPES = [FutureWarning, RuntimeWarning, ImportWarning]
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -318,6 +324,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def __init__(self, distribution, desired_units,
                  predictor_of_mean_flag="mean"):
         """

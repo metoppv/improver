@@ -102,7 +102,10 @@ class Test_process(IrisTest):
         ignored_messages=["The statsmodels can not be imported",
                           "Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in"
-                          " convergence"])
+                          " convergence",
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold "])
     def test_basic_temperature_members(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -150,6 +153,8 @@ class Test_process(IrisTest):
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported",
                           "Collapsing a non-contiguous coordinate.",
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the accepted threshold",
                           "Minimisation did not result in"
                           " convergence"])
     def test_basic_wind_speed_members(self):
@@ -202,10 +207,17 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
-        ignored_messages=["The statsmodels can not be imported",
+        ignored_messages=["\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold ",
+                          "The pandas.core.datetools module is deprecated",
+                          "numpy.dtype size changed",
+                          "Not importing directory .*sphinxcontrib'",
                           "Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in"
-                          " convergence"])
+                          " convergence"],
+        warning_types=[UserWarning, FutureWarning, RuntimeWarning,
+                       ImportWarning, UserWarning, UserWarning])
     def test_temperature_members_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -287,10 +299,17 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
-        ignored_messages=["The statsmodels can not be imported",
+        ignored_messages=["\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold ",
+                          "The pandas.core.datetools module is deprecated",
+                          "numpy.dtype size changed",
+                          "Not importing directory .*sphinxcontrib'",
                           "Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in"
-                          " convergence"])
+                          " convergence"],
+        warning_types=[UserWarning, FutureWarning, RuntimeWarning,
+                       ImportWarning, UserWarning, UserWarning])
     def test_wind_speed_members_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
