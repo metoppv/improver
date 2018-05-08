@@ -41,10 +41,6 @@ from iris.tests import IrisTest
 from improver.optical_flow.optical_flow import OpticalFlow
 
 
-
-
-
-
 class Test__init__(IrisTest):
     """Test class initialisation"""
 
@@ -72,16 +68,32 @@ class OpticalFlowUtilityTest(IrisTest):
                                       [0., 0., 1., 2., 3.],
                                       [0., 0., 0., 1., 2.]])
 
-class Test_mdiff(OpticalFlowUtilityTest):
-    """Test mdiff function"""
+
+class Test_mdiff_spatial(OpticalFlowUtilityTest):
+    """Test mdiff_spatial function"""
 
     def test_basic(self):
-        """This diffs the field along the first axis NOTE y, not x!"""
-        expected_output = np.array([[0., 0., 0., 0., 0.],
-                                    [0., -1., -1., -1., -1.],
-                                    [0., -0.5, -1., -1., -1.]])
-        result = OpticalFlow().mdiff(self.first_input)
+        """Test for correct output type"""
+        result = OpticalFlow().mdiff_spatial(self.first_input,
+                                             self.second_input, 0)
         self.assertIsInstance(result, np.ndarray)
+
+    def test_default(self):
+        """Test output values for axis=0"""
+        expected_output = np.array([[0., 0., 0., 0., 0.],
+                                    [0., -0.75, -1., -1., -1.],
+                                    [0., -0.25, -0.75, -1., -1.]])
+        result = OpticalFlow().mdiff_spatial(self.first_input,
+                                             self.second_input, 0)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_transpose(self):
+        """Test output values for axis=1"""
+        expected_output = np.array([[0., 0.00, 0.00, 0., 0.],
+                                    [0., 0.75, 1.00, 1., 1.],
+                                    [0., 0.25, 0.75, 1., 1.]])
+        result = OpticalFlow().mdiff_spatial(self.first_input,
+                                             self.second_input, 1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 

@@ -325,41 +325,29 @@ class OpticalFlow(object):
         self.ucomp = None
         self.vcomp = None
 
-    @staticmethod
-    def mdiff(xfield):
+    def mdiff_spatial(self, data1, data2, axis):
         """
-        This function implements
-        x_i+1,j+1 = 0.5[(x_i+1,j - x_i,j) + (x_i+1,j+1 - x_i,j+1)]
+        Calculate the average over two input fields of one spatial derivative,
+        averaged over the other spatial dimension.
 
-        NOTE CS: method
-            - diffs along axis 0 (array loses 1 element along axis 0)
-            - averages diffs along axis 1 (array loses 1 element along axis 1)
-            - zero-pads row and column zero, and puts diffs in higher array pos
-
-        TODO figure out how to pass axis in as an argument
-        TODO there must be a standard numpy function for the array averaging!
+        Args:
+            data1 (np.ndarray):
+                2D spatial data array from time 1
+            data2 (np.ndarray):
+                2D spatial data array from time 2
+            axis (int):
+                Axis over which to calculate the spatial derivative (0 or 1)
         """
-        d_1 = np.diff(xfield, axis=0)
-        d_2 = d_1[:, 1:]
-        d_1 = d_1[:, :-1]
-        d_3 = np.zeros(xfield.shape)
-        d_3[1:, 1:] = (d_1 + d_2)*0.5
-        return d_3
-
-    def mdiff_spatial(self, data1, data2, axis=0):
-        """
-        This function makes (time) average of one spatial derivative (averaged
-        over the other), where the two input fields are time slices.
-        """
-        if axis == 1:
-            data1 = data1.transpose()
-            data2 = data2.transpose()
-            d_1 = self.mdiff(data1).transpose()
-            d_2 = self.mdiff(data2).transpose()
-        else:
-            d_1 = self.mdiff(data1)
-            d_2 = self.mdiff(data2)
-        return (d_1 + d_2)*0.5
+        outdata = []
+        for data in [data1, data2]:
+            diffs = np.diff(data, axis=axis)
+            average_diffs = np.zeros(data.shape)
+            if axis == 0:
+                average_diffs[1:, 1:] = 0.5*(diffs[:, :-1] + diffs[:, 1:])
+            elif axis == 1:
+                average_diffs[1:, 1:] = 0.5*(diffs[:-1, :] + diffs[1:, :])
+            outdata.append(average_diffs)
+        return 0.5*(outdata[0] + outdata[1])
 
     @staticmethod
     def mdifftt(data1, data2):
@@ -376,9 +364,9 @@ class OpticalFlow(object):
     def totx(self, data1, data2, xty):
         """ this corresponds to Eq. 35 - 37 in steps document """
         if xty == 0:  # this is for x derivative
-            m_1 = self.mdiff_spatial(data1, data2)
+            m_1 = self.mdiff_spatial(data1, data2, 0)
         elif xty == 1:  # this is for y derivative
-            m_1 = self.mdiff_spatial(data1, data2, axis=1)
+            m_1 = self.mdiff_spatial(data1, data2, 1)
         elif xty == 2:  # this is for t derivative
             m_1 = self.mdifftt(data1, data2)
         m_0 = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
