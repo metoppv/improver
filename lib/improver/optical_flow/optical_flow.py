@@ -292,34 +292,37 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, kernel=7, boxsize=30, iterations=100, smethod=2,
-                 pointweight=0.1):
+    def __init__(self, kernel=7, boxsize=30, smethod='box', pointweight=0.1,
+                 iterations=100):
         """
         Initialise the class with smoothing parameters for estimating gridded
-        u- and v- velocities TODO update this docstring
+        u- and v- velocities via optical flow.
 
         input:
-            kernel: integer
+            kernel (int):
                 kernel size (radius) for use to smooth the data for partial
                 derivative estimaten. If box smoothing is used, half box size
-            boxsize: integer
-                side length of box size in which points are evaluated to have
-                the same velocity
-            iterations: integer
+            boxsize (int):
+                Square box size in which points are assumed to have the same
+                velocity to enable matrix inversion (solve_for_uv()).
+            iterations (int):
                 number of smart smoothing iterations to perform
-            smethod: 1 or 2
-                smoothing method to be used for smoothing for the calculation
-                of the partial derivatives, 1 is box smoothing as in steps
-                2 is kernel smoothing
+            smethod (str):
+                Smoothing method to be used on input fields prior to
+                calculating partial derivatives.  Can be 'box' (as used in
+                STEPS) or 'kernel' (as used in post-calculation smoothing).
             pointweight: float
-                weight given to the velocity of the point (box)
-                when doing the smart smoothing. 0.1 is the original steps value
+                Weight given to the velocity of the point (box) when doing the
+                smart smoothing after velocity calculation. 0.1 is the original
+                STEPS value.
+            iterations (int):
+                Number of iterations to perform in post-calculation smoothing
 
-        need to calculate a suitable kernel size given dt (what is expected
-        movement between slices) and expected velocities (Martina's TODO)
+        Martina's TODO: need to calculate a suitable kernel size given dt (what
+        is expected movement between slices) and expected velocities
         """
 
-        # initialise smoothing parameters for pre- and post- calculation
+        # initialise parameters for pre- and post- calculation smoothing
         self.kernel = kernel
         self.boxsize = boxsize
         self.smoothing_method = smethod
@@ -436,9 +439,10 @@ class OpticalFlow(object):
     @staticmethod
     def solve_for_uv(I_xy, I_t):
         """
-        Solve the system of linear equations for u and v using matrix
-        inversion (equation 19 in STEPS document.  This is frequently singular,
-        eg in the presence of too many zeroes.  In these cases, returns 0.
+        Solve the system of linear simultaneous equations for u and v using
+        matrix inversion (equation 19 in STEPS document.  This is frequently
+        singular, eg in the presence of too many zeroes.  In these cases,
+        the function returns velocities of 0.
 
         NOTE (Martina): there is a problem here if I have many fewer pixels
         with intensity here than pixels with (zeros?)
@@ -496,15 +500,15 @@ class OpticalFlow(object):
         kernel /= kernel.sum()   # kernel should sum to 1!
         return kernel
 
-    def smoothing(self, d_x, sidel, method=2):
+    def smoothing(self, d_x, sidel, method='box'):
         '''
         smoothing used to apply on the field to estimate partial derivatives
         '''
-        if method == 1:
+        if method == 'kernel':
             kernel = self.makekernel(sidel)
             dxn = scipy.signal.convolve2d(d_x, kernel, mode='same',
                                           boundary="symm")
-        elif method == 2:  # type of smoothing used in steps
+        elif method == 'box':  # type of smoothing used in steps
             dxn = scipy.ndimage.filters.uniform_filter(d_x, size=sidel*2+1,
                                                        mode='nearest')
         return dxn
@@ -663,7 +667,6 @@ class OpticalFlow(object):
         vvec = np.array(vvec)
 
         # NOTE GOT TO HERE (Tues 08/05/18)
-        # TODO split out remainder into "post-calculation smoothing" function?
 
         # (c) reshape velocity arrays to match input data arrays, assigning
         #     calculated velocities to the central point in each block
@@ -679,6 +682,9 @@ class OpticalFlow(object):
         umat[flag] = 0
         vmat[flag] = 0
         weights[flag] = 0
+
+        # TODO split out remainder into "post-calculation smoothing" function
+
         # (d) do some smart smoothing
         conv_vec = []
         umatn = np.copy(umat)
@@ -692,8 +698,8 @@ class OpticalFlow(object):
         umat_f, vmat_f = self.rebinvel(umatn, vmatn, boxsize, myshape,
                                        xdif_t.shape)
         smn = int(boxsize/3)
-        umat_f = self.smoothing(umat_f, smn, method=1)
-        vmat_f = self.smoothing(vmat_f, smn, method=1)
+        umat_f = self.smoothing(umat_f, smn, method='kernel')
+        vmat_f = self.smoothing(vmat_f, smn, method='kernel')
 
         return umat_f, vmat_f
 
