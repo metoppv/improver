@@ -31,10 +31,10 @@
 """Module containing wind direction averaging plugins."""
 
 import iris
+from iris.coords import CellMethod
 import numpy as np
 from improver.utilities.cube_manipulation import enforce_float32_precision
 
-from iris.coords import CellMethod, DimCoord
 
 class WindDirection(object):
     """Plugin to calculate average wind direction from ensemble members.
@@ -43,19 +43,19 @@ class WindDirection(object):
     Taking an average wind direction is tricky since an average of two wind
     directions at 10 and 350 degrees is 180 when it should be 0 degrees.
     Converting the wind direction angles to complex numbers allows us to
-    find a useful numerical average.
-    ::
+    find a useful numerical average. ::
+
         z = a + bi
         a = r*Cos(theta)
         b = r*Sin(theta)
         r = radius
-    
+
     The average of two complex numbers is NOT the ANGLE between two points
     it is the MIDPOINT in cartesian space.
     Therefore if there are two data points with radius=1 at 90 and 270 degrees
     then the midpoint is at (0,0) with radius=0 and therefore its average angle
-    is meaningless.
-    ::
+    is meaningless. ::
+
                    N
                    |
         W---x------o------x---E
@@ -399,7 +399,8 @@ class WindDirection(object):
         cube_polar_mean_std_dev = std_dev_cube_list.merge_cube()
 
         # Change cube identifiers.
-        cube_mean_wdir.add_cell_method(CellMethod("mean", coords="realization"))
+        cube_mean_wdir.add_cell_method(CellMethod("mean",
+                                                  coords="realization"))
         cube_r_vals.long_name = "Avg wind dir r-vals"
         cube_r_vals.units = None
         cube_polar_mean_std_dev.long_name = "Avg wind dir std dev"
