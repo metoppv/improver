@@ -336,6 +336,27 @@ class OpticalFlow(object):
         self.vcomp = None
 
     @staticmethod
+    def makekernel(msize):
+        """ make a kernel to smooth the input fields """
+        temp = 1 - np.abs(np.linspace(-1, 1, msize*2+1))
+        kernel = temp.reshape(msize*2+1, 1) * temp.reshape(1, msize*2+1)
+        kernel /= kernel.sum()   # kernel should sum to 1!
+        return kernel
+
+    def smoothing(self, d_x, sidel, method='box'):
+        '''
+        smoothing used to apply on the field to estimate partial derivatives
+        '''
+        if method == 'kernel':
+            kernel = self.makekernel(sidel)
+            dxn = scipy.signal.convolve2d(d_x, kernel, mode='same',
+                                          boundary="symm")
+        elif method == 'box':  # type of smoothing used in steps
+            dxn = scipy.ndimage.filters.uniform_filter(d_x, size=sidel*2+1,
+                                                       mode='nearest')
+        return dxn
+
+    @staticmethod
     def corner(data, axis=None):
         """
         Calculates the average of four corner points at each point on a grid.
@@ -492,26 +513,7 @@ class OpticalFlow(object):
                        jj*boxsize:(jj+1)*boxsize] = yfield[ii, jj]
         return umat_t, vmat_t
 
-    @staticmethod
-    def makekernel(msize):
-        """ make a kernel to smooth the input fields """
-        temp = 1 - np.abs(np.linspace(-1, 1, msize*2+1))
-        kernel = temp.reshape(msize*2+1, 1) * temp.reshape(1, msize*2+1)
-        kernel /= kernel.sum()   # kernel should sum to 1!
-        return kernel
 
-    def smoothing(self, d_x, sidel, method='box'):
-        '''
-        smoothing used to apply on the field to estimate partial derivatives
-        '''
-        if method == 'kernel':
-            kernel = self.makekernel(sidel)
-            dxn = scipy.signal.convolve2d(d_x, kernel, mode='same',
-                                          boundary="symm")
-        elif method == 'box':  # type of smoothing used in steps
-            dxn = scipy.ndimage.filters.uniform_filter(d_x, size=sidel*2+1,
-                                                       mode='nearest')
-        return dxn
 
     @staticmethod
     def setupweightgrid(field):
@@ -613,8 +615,32 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t, boxsize,
-                                       iterations=50, pweight=0.1):
+    def smooth_advection_velocities(self, umat, vmat, weights, inshape):
+        """
+        Perform post-calculation "smart smoothing" of advection velocity
+        fields, accounting for zeros and reducting their weight in the final
+        output.
+
+        """
+        conv_vec = []
+        umatn = np.copy(umat)
+        vmatn = np.copy(vmat)
+        for _ in range(self.iterations):
+            umatold = umatn
+            umatn, vmatn = self.smartsmooth(umat, vmat, umatn, vmatn, weights,
+                                            self.pointweight)
+            conv_vec.append((abs(umatold-umatn)).sum())
+        # (e) rebin block velocities to 2D field velocities
+        umat_f, vmat_f = self.rebinvel(umatn, vmatn, self.boxsize, inshape,
+                                       self.data1.shape)
+        smn = int(self.boxsize/3)
+        umat_f = self.smoothing(umat_f, smn, method='kernel')
+        vmat_f = self.smoothing(vmat_f, smn, method='kernel')
+
+        return umat_f, vmat_f
+
+
+    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t):
         """
         This implements the OFC algorithm, assuming all points in a box with
         "boxsize" sidelength have the same velocity components.
@@ -626,13 +652,6 @@ class OpticalFlow(object):
                 2D array of partial derivatives dI/dy
             tdif_t (np.ndarray):
                 2D array of partial derivatives dI/dt
-            boxsize (int):
-                Side of subboxes over which velocity is assumed equal
-            iterations (int):
-                Number of iterations of smoothing to perform after initial
-                velocity calculation
-            pweight (float):
-                TODO explain...
 
         Returns:
             umat_f (np.ndarray):
@@ -642,13 +661,12 @@ class OpticalFlow(object):
         """
 
         # (a) make subboxes
-        xdif_tb, weight_tb = self.makesubboxes(xdif_t, boxsize)
-        ydif_tb, _ = self.makesubboxes(ydif_t, boxsize)
-        tdif_tb, _ = self.makesubboxes(tdif_t, boxsize)
+        xdif_tb, weight_tb = self.makesubboxes(xdif_t, self.boxsize)
+        ydif_tb, _ = self.makesubboxes(ydif_t, self.boxsize)
+        tdif_tb, _ = self.makesubboxes(tdif_t, self.boxsize)
 
         # (b) solve optical flow velocity calculation on subboxes
-        uvec = []
-        vvec = []
+        velocity = ([], [])
         for xdif, ydif, tdif in zip(
                 xdif_tb, ydif_tb, tdif_tb):
 
@@ -660,47 +678,28 @@ class OpticalFlow(object):
 
             # Solve equations for u and v through matrix inversion
             u, v = self.solve_for_uv(I_xy, I_t)
-            uvec.append(u)
-            vvec.append(v)
+            velocity[0].append(u)
+            velocity[1].append(v)
 
-        uvec = np.array(uvec)
-        vvec = np.array(vvec)
+        # (c) reshape velocity arrays to match subbox arrays, assigning
+        #     calculated velocities to the central point in each block ???
+        newshape = [int((xdif_t.shape[0]-1)/self.boxsize) + 1,
+                    int((xdif_t.shape[1]-1)/self.boxsize) + 1]
+        umat = np.array(velocity[0]).reshape(newshape)
+        vmat = np.array(velocity[1]).reshape(newshape)
+        weights = weight_tb.reshape(newshape)
 
-        # NOTE GOT TO HERE (Tues 08/05/18)
-
-        # (c) reshape velocity arrays to match input data arrays, assigning
-        #     calculated velocities to the central point in each block
-        myshape = [int((xdif_t.shape[0]-1)/boxsize) + 1,
-                   int((xdif_t.shape[1]-1)/boxsize) + 1]
-        umat = uvec.reshape(myshape)
-        vmat = vvec.reshape(myshape)
-
-        weights = weight_tb.reshape(myshape)
-        # 03.11.2016 build in a check to detect insane velocities and put them
-        # to an average of neigbouring
+        # (d) check for extreme velocities and set to zero
+        # TODO don't understand this... what do velocity values have to do
+        # with array shape?
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
         umat[flag] = 0
         vmat[flag] = 0
         weights[flag] = 0
 
-        # TODO split out remainder into "post-calculation smoothing" function
-
-        # (d) do some smart smoothing
-        conv_vec = []
-        umatn = np.copy(umat)
-        vmatn = np.copy(vmat)
-        for _ in range(iterations):
-            umatold = umatn
-            umatn, vmatn = self.smartsmooth(umat, vmat, umatn, vmatn, weights,
-                                            pweight)
-            conv_vec.append((abs(umatold-umatn)).sum())
-        # (e) rebin block velocities to 2D field velocities
-        umat_f, vmat_f = self.rebinvel(umatn, vmatn, boxsize, myshape,
-                                       xdif_t.shape)
-        smn = int(boxsize/3)
-        umat_f = self.smoothing(umat_f, smn, method='kernel')
-        vmat_f = self.smoothing(vmat_f, smn, method='kernel')
-
+        # (e) smooth and reshape velocity arrays, giving less weight to zeros
+        umat_f, vmat_f = self.smooth_advection_velocities(umat, vmat, weights,
+                                                          newshape)
         return umat_f, vmat_f
 
     def process(self, data1, data2):
@@ -721,17 +720,18 @@ class OpticalFlow(object):
         Also TODO: resolve x/y bug(s)
         """
 
-        # Smooth input data using one of two scipy kernel-based methods
-        self.data1 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
-        self.data2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
+        # Smooth input data
+        self.data1 = self.smoothing(data1, self.kernel,
+                                    method=self.smoothing_method)
+        self.data2 = self.smoothing(data2, self.kernel,
+                                    method=self.smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
-        # TODO hardcoded assumption of (x, y) coordinate ordering  
+        # TODO fix hardcoded assumption of (x, y) coordinate ordering
         partialI_dx = self.mdiff_spatial(axis=0)
         partialI_dy = self.mdiff_spatial(axis=1)
         partialI_dt = self.mdiff_temporal()
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.calculate_advection_velocities(
-            partialI_dx, partialI_dy, partialI_dt, self.boxsize,
-            self.iterations, pweight=self.pointweight)
+            partialI_dx, partialI_dy, partialI_dt)
