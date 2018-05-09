@@ -41,6 +41,42 @@ from iris.tests import IrisTest
 from improver.optical_flow.optical_flow import OpticalFlow
 
 
+class OpticalFlowUtilityTest(IrisTest):
+    """Class with shared plugin definition for utility tests"""
+
+    def setUp(self):
+        """Set up dummy plugin and populate data members"""
+        self.plugin = OpticalFlow()
+        self.plugin.data1 = np.array([[1., 2., 3., 4., 5.],
+                                      [0., 1., 2., 3., 4.],
+                                      [0., 0., 1., 2., 3.]])
+        self.plugin.data2 = np.array([[0., 1., 2., 3., 4.],
+                                      [0., 0., 1., 2., 3.],
+                                      [0., 0., 0., 1., 2.]])
+
+
+class OpticalFlowTest(IrisTest):
+    """Class with shared matrix and plugin definitions for tests
+    requiring larger input arrays"""
+
+    def setUp(self):
+        """Set up plugin options and input rainfall-like matrices that produce
+        non-singular outputs.  Large matrices with zeros are needed for the
+        smoothing algorithms to behave sensibly."""
+
+        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+
+        self.first_input = np.zeros((16, 16))
+        self.first_input[1:8, 2:9] = 1.
+        self.first_input[2:6, 3:7] = 2.
+        self.first_input[3:5, 4:6] = 3.
+
+        self.second_input = np.zeros((16, 16))
+        self.second_input[2:9, 1:8] = 1.
+        self.second_input[3:7, 2:6] = 2.
+        self.second_input[4:6, 3:5] = 3.
+
+
 class Test__init__(IrisTest):
     """Test class initialisation"""
 
@@ -52,21 +88,7 @@ class Test__init__(IrisTest):
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.pointweight, float)
         self.assertIsNone(plugin.ucomp)
-        self.assertIsNone(plugin.vcomp)        
-
-
-class OpticalFlowUtilityTest(IrisTest):
-    """Class with shared matrix definitions for utility tests"""
-
-    def setUp(self):
-        """Set up dummy plugin and populate data members"""
-        self.plugin = OpticalFlow()
-        self.plugin.data1 = np.array([[1., 2., 3., 4., 5.],
-                                      [0., 1., 2., 3., 4.],
-                                      [0., 0., 1., 2., 3.]])
-        self.plugin.data2 = np.array([[0., 1., 2., 3., 4.],
-                                      [0., 0., 1., 2., 3.],
-                                      [0., 0., 0., 1., 2.]])
+        self.assertIsNone(plugin.vcomp)
 
 
 class Test_corner(OpticalFlowUtilityTest):
@@ -184,25 +206,24 @@ class Test_solve_for_uv(IrisTest):
         self.assertAlmostEqual(v, 2.)
 
 
-class Test_process(IrisTest):
+class Test_smooth_advection_velocities(OpticalFlowTest):
+    """Test smoothing of advection velocities"""
+
+    def test_basic(self):
+        """Test for correct output types"""
+        # TODO
+        pass
+
+
+
+class Test_calculate_advection_velocities(IrisTest):
+    """Test calculation of advection velocity fields"""
+    # TODO
+    pass
+
+
+class Test_process(OpticalFlowTest):
     """Test the process method"""
-
-    def setUp(self):
-        """Set up plugin options and input rainfall-like matrices that produce
-        non-singular outputs.  Large matrices with zeros are needed for the
-        algorithm to be stable."""
-
-        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
-
-        self.first_input = np.zeros((16, 16))
-        self.first_input[1:8, 2:9] = 1.
-        self.first_input[2:6, 3:7] = 2.
-        self.first_input[3:5, 4:6] = 3.
-
-        self.second_input = np.zeros((16, 16))
-        self.second_input[2:9, 1:8] = 1.
-        self.second_input[3:7, 2:6] = 2.
-        self.second_input[4:6, 3:5] = 3.
 
     def test_basic(self):
         """Test outputs are of the correct type and value"""

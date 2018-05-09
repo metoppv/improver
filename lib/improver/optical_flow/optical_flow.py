@@ -304,7 +304,8 @@ class OpticalFlow(object):
                 derivative estimaten. If box smoothing is used, half box size
             boxsize (int):
                 Square box size in which points are assumed to have the same
-                velocity to enable matrix inversion (solve_for_uv()).
+                velocity to enable matrix inversion (solve_for_uv()).  Minimum
+                value 3.
             iterations (int):
                 number of smart smoothing iterations to perform
             smethod (str):
@@ -555,7 +556,7 @@ class OpticalFlow(object):
 
     def find_neighbour_image(self, field, ww=None):
         '''
-        this can replace the cumbersome for loops in the smart smooth.
+        this can replace the cumbersome "for" loops in the smart smooth.
         However, it does handle edges not exactly the right way.
         From http://stackoverflow.com/questions/22669252/
         how-exactly-does-the-re%E2%80%8C%E2%80%8Bflect-mode-for-
@@ -619,8 +620,20 @@ class OpticalFlow(object):
         """
         Perform post-calculation "smart smoothing" of advection velocity
         fields, accounting for zeros and reducting their weight in the final
-        output.
+        output.  Regrids from "box grid" (on which OFC equations are solved)
+        to input data grid.
 
+        Args:
+            umat (np.ndarray):
+                Velocities in the x-direction on box grid
+            vmat (np.ndarray):
+                Velocities in the y-direction on box grid
+
+        Returns:
+            umat_f (np.ndarray):
+                Smoothed velocities in the x-direction on input data grid
+            vmat_f (np.ndarray):
+                Smoothed velocities in the y-direction on input data grid
         """
         conv_vec = []
         umatn = np.copy(umat)
@@ -681,8 +694,7 @@ class OpticalFlow(object):
             velocity[0].append(u)
             velocity[1].append(v)
 
-        # (c) reshape velocity arrays to match subbox arrays, assigning
-        #     calculated velocities to the central point in each block ???
+        # (c) reshape velocity arrays to match array of subbox central points
         newshape = [int((xdif_t.shape[0]-1)/self.boxsize) + 1,
                     int((xdif_t.shape[1]-1)/self.boxsize) + 1]
         umat = np.array(velocity[0]).reshape(newshape)
@@ -697,7 +709,7 @@ class OpticalFlow(object):
         vmat[flag] = 0
         weights[flag] = 0
 
-        # (e) smooth and reshape velocity arrays, giving less weight to zeros
+        # (e) smooth and reshape velocity arrays to match input data grid
         umat_f, vmat_f = self.smooth_advection_velocities(umat, vmat, weights,
                                                           newshape)
         return umat_f, vmat_f
