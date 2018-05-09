@@ -314,14 +314,21 @@ class OpticalFlow(object):
             pointweight: float
                 weight given to the velocity of the point (box)
                 when doing the smart smoothing. 0.1 is the original steps value
+
+        need to calculate a suitable kernel size given dt (what is expected
+        movement between slices) and expected velocities (Martina's TODO)
         """
-        # need to calculate a suitable kernel size given dt (what is expected
-        # movement between slices) and expected velocities (Martina's TODO)
+
+        # initialise smoothing parameters for pre- and post- calculation
         self.kernel = kernel
         self.boxsize = boxsize
         self.smoothing_method = smethod
         self.iterations = iterations
         self.pointweight = pointweight
+
+        # initialise input data and output velocity fields
+        self.data1 = None
+        self.data2 = None
         self.ucomp = None
         self.vcomp = None
 
@@ -351,17 +358,13 @@ class OpticalFlow(object):
             corners = 0.5*(data[:, :-1] + data[:, 1:])
         return corners
 
-    def mdiff_spatial(self, data1, data2, axis):
+    def mdiff_spatial(self, axis=0):
         """
         Calculate the average over two input fields of one spatial derivative,
         averaged over the other spatial dimension.  Pad with zeros in both
         dimensions, and smooth.
 
         Args:
-            data1 (np.ndarray):
-                2D spatial data array from time 1
-            data2 (np.ndarray):
-                2D spatial data array from time 2
             axis (int):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
@@ -370,38 +373,32 @@ class OpticalFlow(object):
                 Smoothed spatial derivative
         """
         outdata = []
-        for data in [data1, data2]:
+        for data in [self.data1, self.data2]:
             diffs = np.diff(data, axis=axis)
             average_diffs = np.zeros(data.shape)
             average_diffs[1:, 1:] = self.corner(diffs, axis=1-axis)
             outdata.append(average_diffs)
-        xdiff = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
+        xdiff = np.zeros([self.data1.shape[0]+1, self.data1.shape[1]+1])
         xdiff[:-1, :-1] = 0.5*(outdata[0] + outdata[1])
         return self.corner(xdiff)
 
-    def mdiff_temporal(self, data1, data2):
+    def mdiff_temporal(self):
         """ 
         Calculate the partial derivative of two fields over time.  Take the
         difference between time-separated fields data1 and data2, then average
         over the two spatial dimensions, regrid to a zero-padded output
         array, and smooth.
 
-        Args:
-            data1 (np.ndarray):
-                2D spatial data array from time 1
-            data2 (np.ndarray):
-                2D spatial data array from time 2
         Returns:
             tdiff (np.ndarray):
                 Smoothed temporal derivative
         """
-        tstep = data2 - data1
-        tdiff = np.zeros([data1.shape[0]+1, data1.shape[1]+1])
+        tstep = self.data2 - self.data1
+        tdiff = np.zeros([self.data1.shape[0]+1, self.data1.shape[1]+1])
         tdiff[1:-1, 1:-1] = self.corner(tstep)
         return self.corner(tdiff)
 
-    @staticmethod
-    def makesubboxes(field, data1, data2, boxsize):
+    def makesubboxes(self, field, boxsize):
         """
         Generate a list of sliding "boxes" of size boxsize*boxsize from the
         input field, along with weights based on data "intensity" values at
@@ -410,10 +407,6 @@ class OpticalFlow(object):
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
-            data1 (np.ndarray):
-                2D spatial data array from time 1
-            data2 (np.ndarray):
-                2D spatial data array from time 2
             boxsize (int):
                 Size of boxes to be output
 
@@ -432,8 +425,8 @@ class OpticalFlow(object):
             for j in range(0, field.shape[1], boxsize):
                 boxes.append(field[i:i+boxsize, j:j+boxsize])
                 weight = weighting_factor*(
-                    (data1[i:i+boxsize, j:j+boxsize]).sum() +
-                    (data2[i:i+boxsize, j:j+boxsize]).sum())
+                    (self.data1[i:i+boxsize, j:j+boxsize]).sum() +
+                    (self.data2[i:i+boxsize, j:j+boxsize]).sum())
                 weight = 1. - np.exp(-1.*weight/0.8)
                 weights.append(weight)
         weights = np.array(weights)
@@ -616,18 +609,13 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
-    def calculate_advection_velocities(self, data1, data2, xdif_t, ydif_t,
-                                       tdif_t, boxsize, iterations=50,
-                                       pweight=0.1):
+    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t, boxsize,
+                                       iterations=50, pweight=0.1):
         """
         This implements the OFC algorithm, assuming all points in a box with
-        boxsize sidelength have the same velocity components.
+        "boxsize" sidelength have the same velocity components.
 
         Args:
-            data1 (np.ndarray):
-                2D array of data I(x, y, t1)
-            data2 (np.ndarray):
-                2D array of data I(x, y, t2)
             xdif_t (np.ndarray):
                 2D array of partial derivatives dI/dx
             ydif_t (np.ndarray):
@@ -650,9 +638,9 @@ class OpticalFlow(object):
         """
 
         # (a) make subboxes
-        xdif_tb, weight_tb = self.makesubboxes(xdif_t, data1, data2, boxsize)
-        ydif_tb, _ = self.makesubboxes(ydif_t, data1, data2, boxsize)
-        tdif_tb, _ = self.makesubboxes(tdif_t, data1, data2, boxsize)
+        xdif_tb, weight_tb = self.makesubboxes(xdif_t, boxsize)
+        ydif_tb, _ = self.makesubboxes(ydif_t, boxsize)
+        tdif_tb, _ = self.makesubboxes(tdif_t, boxsize)
 
         # (b) solve optical flow velocity calculation on subboxes
         uvec = []
@@ -673,6 +661,9 @@ class OpticalFlow(object):
 
         uvec = np.array(uvec)
         vvec = np.array(vvec)
+
+        # NOTE GOT TO HERE (Tues 08/05/18)
+        # TODO split out remainder into "post-calculation smoothing" function?
 
         # (c) reshape velocity arrays to match input data arrays, assigning
         #     calculated velocities to the central point in each block
@@ -715,9 +706,6 @@ class OpticalFlow(object):
         TODO update to work with (input and output) cubes and dimensioned time
         differences
 
-        TODO option to populate class members data1 and data2 on initialisation
-        (class members simplifies code, initialisation permits full testing)
-
         Args:
             data1 (np.ndarray):
                 2D input data array from time 1
@@ -728,16 +716,16 @@ class OpticalFlow(object):
         """
 
         # Smooth input data using one of two scipy kernel-based methods
-        data1 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
-        data2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
+        self.data1 = self.smoothing(data1, self.kernel, method=self.smoothing_method)
+        self.data2 = self.smoothing(data2, self.kernel, method=self.smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO hardcoded assumption of (x, y) coordinate ordering  
-        partialI_dx = self.mdiff_spatial(data1, data2, 0)
-        partialI_dy = self.mdiff_spatial(data1, data2, 1)
-        partialI_dt = self.mdiff_temporal(data1, data2)
+        partialI_dx = self.mdiff_spatial(axis=0)
+        partialI_dy = self.mdiff_spatial(axis=1)
+        partialI_dt = self.mdiff_temporal()
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.calculate_advection_velocities(
-            data1, data2, partialI_dx, partialI_dy, partialI_dt,
-            self.boxsize, self.iterations, pweight=self.pointweight)
+            partialI_dx, partialI_dy, partialI_dt, self.boxsize,
+            self.iterations, pweight=self.pointweight)

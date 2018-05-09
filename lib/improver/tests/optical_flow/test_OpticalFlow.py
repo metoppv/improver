@@ -59,21 +59,22 @@ class OpticalFlowUtilityTest(IrisTest):
     """Class with shared matrix definitions for utility tests"""
 
     def setUp(self):
-        """Set up input matrices and dummy plugin"""
-        self.first_input = np.array([[1., 2., 3., 4., 5.],
-                                     [0., 1., 2., 3., 4.],
-                                     [0., 0., 1., 2., 3.]])
-
-        self.second_input = np.array([[0., 1., 2., 3., 4.],
+        """Set up dummy plugin and populate data members"""
+        self.plugin = OpticalFlow()
+        self.plugin.data1 = np.array([[1., 2., 3., 4., 5.],
+                                      [0., 1., 2., 3., 4.],
+                                      [0., 0., 1., 2., 3.]])
+        self.plugin.data2 = np.array([[0., 1., 2., 3., 4.],
                                       [0., 0., 1., 2., 3.],
                                       [0., 0., 0., 1., 2.]])
+
 
 class Test_corner(OpticalFlowUtilityTest):
     """Test corner averaging function"""
 
     def test_basic(self):
         """Test result is of correct type and shape"""
-        result = OpticalFlow().corner(self.first_input)
+        result = self.plugin.corner(self.plugin.data1)
         self.assertIsInstance(result, np.ndarray)
         self.assertSequenceEqual(result.shape, (2, 4))
 
@@ -81,14 +82,14 @@ class Test_corner(OpticalFlowUtilityTest):
         """Test output values"""
         expected_output = np.array([[1., 2., 3., 4.],
                                     [0.25, 1., 2., 3.]])
-        result = OpticalFlow().corner(self.first_input)
+        result = self.plugin.corner(self.plugin.data1)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_first_axis(self):
         """Test averaging over first axis"""
         expected_output = np.array([[0.5, 1.5, 2.5, 3.5, 4.5],
                                     [0.0, 0.5, 1.5, 2.5, 3.5]])
-        result = OpticalFlow().corner(self.first_input, axis=0)
+        result = self.plugin.corner(self.plugin.data1, axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
         
     def test_second_axis(self):
@@ -96,7 +97,7 @@ class Test_corner(OpticalFlowUtilityTest):
         expected_output = np.array([[1.5, 2.5, 3.5, 4.5],
                                     [0.5, 1.5, 2.5, 3.5],
                                     [0.0, 0.5, 1.5, 2.5]])
-        result = OpticalFlow().corner(self.first_input, axis=1)
+        result = self.plugin.corner(self.plugin.data1, axis=1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
@@ -105,8 +106,7 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
 
     def test_basic(self):
         """Test for correct output type"""
-        result = OpticalFlow().mdiff_spatial(self.first_input,
-                                             self.second_input, 0)
+        result = self.plugin.mdiff_spatial(axis=0)
         self.assertIsInstance(result, np.ndarray)
 
     def test_default(self):
@@ -114,8 +114,7 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
-        result = OpticalFlow().mdiff_spatial(self.first_input,
-                                             self.second_input, 0)
+        result = self.plugin.mdiff_spatial(axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_transpose(self):
@@ -123,8 +122,7 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
         expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
                                     [0.2500, 0.6875, 0.9375, 1.0, 0.50],
                                     [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
-        result = OpticalFlow().mdiff_spatial(self.first_input,
-                                             self.second_input, 1)
+        result = self.plugin.mdiff_spatial(axis=1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
@@ -133,8 +131,7 @@ class Test_mdiff_temporal(OpticalFlowUtilityTest):
         
     def test_basic(self):
         """Test for correct output type"""
-        result = OpticalFlow().mdiff_temporal(self.first_input,
-                                              self.second_input)
+        result = self.plugin.mdiff_temporal()
         self.assertIsInstance(result, np.ndarray)
         
     def test_values(self):
@@ -142,8 +139,7 @@ class Test_mdiff_temporal(OpticalFlowUtilityTest):
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
-        result = OpticalFlow().mdiff_temporal(self.first_input,
-                                              self.second_input)
+        result = self.plugin.mdiff_temporal()
         self.assertArrayAlmostEqual(result, expected_output)
 
 
@@ -152,9 +148,8 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
 
     def test_basic(self):
         """Test for correct output types"""
-        field = np.ones(shape=self.first_input.shape)
-        boxes, weights = OpticalFlow().makesubboxes(
-            field, self.first_input, self.second_input, 2)
+        field = np.ones(shape=self.plugin.data1.shape)
+        boxes, weights = self.plugin.makesubboxes(field, 2)
         self.assertIsInstance(boxes, list)
         self.assertIsInstance(weights, np.ndarray)
 
@@ -162,9 +157,8 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
         """Test output weights values"""
         expected_weights = np.array([0.54216664, 0.95606307, 0.917915, 0.,
                                      0.46473857, 0.54216664])
-        field = np.ones(shape=self.first_input.shape)
-        _, weights = OpticalFlow().makesubboxes(
-            field, self.first_input, self.second_input, 2)
+        field = np.ones(shape=self.plugin.data1.shape)
+        _, weights = self.plugin.makesubboxes(field, 2)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
