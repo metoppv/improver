@@ -42,7 +42,8 @@ from netCDF4 import Dataset
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.utilities.save import append_metadata_cube
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 
 
@@ -56,7 +57,6 @@ def set_up_test_cube():
 
 
 class Test_save_netcdf(IrisTest):
-
     """ Test function to save iris cubes as NetCDF files. """
 
     def setUp(self):
@@ -151,6 +151,50 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(len(global_keys), 2)
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys))
+
+
+class Test_append_metadata_cube(IrisTest):
+    """Test that appropriate metadata cube and attributes have been appended
+            to the cubes in the cube list"""
+
+    def setUp(self):
+        """ Set up cube to write, read and check """
+        self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
+                                'Conventions', 'institution', 'history',
+                                'bald__isPrefixedBy']
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        self.cube = set_up_test_cube()
+
+    def tearDown(self):
+        """ Remove temporary directories created for testing. """
+        call(['rm', '-f', self.filepath])
+        call(['rmdir', self.directory])
+
+    def test_bald_attribute_added(self):
+        """Test that the bald__isPrefixedBy attribute is added to each cube
+        and points to prefix_list"""
+        cube_list = ([self.cube, self.cube])
+        metadata_cubelist = append_metadata_cube(cube_list)
+        for cube in metadata_cubelist:
+            self.assertTrue(
+                cube.attributes['bald__isPrefixedBy']
+                is 'prefix_list')
+
+    def test_prefix_cube_attributes(self):
+        """Test that metadata prefix cube contains the correct attributes"""
+        prefix_dict = {
+            'spp__': 'http://reference.metoffice.gov.uk/statistical-process'
+                     '/properties/',
+            'bald__isPrefixedBy': 'prefix_list',
+            'bald__': 'http://binary-array-ld.net/latest/',
+            'spv__': 'http://reference.metoffice.gov.uk/statistical-process'
+                     '/values/',
+            'rdf__': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+            'spd__': 'http://reference.metoffice.gov.uk/statistical-process'
+                     '/def/'}
+        metadata_cubelist = append_metadata_cube([])
+        self.assertDictEqual(metadata_cubelist[0].attributes, prefix_dict)
 
 
 if __name__ == '__main__':

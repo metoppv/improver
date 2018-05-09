@@ -231,8 +231,8 @@ class Test_load_cube(IrisTest):
         result = load_cube(self.filepath)
         self.assertNotIn('bald__isPrefixedBy', result.attributes.keys())
 
-    def test_no_prefix_cube(self):
-        """Test metadata prefix cube discarded during load"""
+    def test_prefix_cube_removed(self):
+        """Test metadata prefix cube is discarded during load"""
         msg = "no cubes found"
         with self.assertRaisesRegexp(ConstraintMismatchError, msg):
             load_cube(self.filepath, 'prefixes')
