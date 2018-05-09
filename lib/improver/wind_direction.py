@@ -34,6 +34,7 @@ import iris
 import numpy as np
 from improver.utilities.cube_manipulation import enforce_float32_precision
 
+from iris.coords import CellMethod, DimCoord
 
 class WindDirection(object):
     """Plugin to calculate average wind direction from ensemble members.
@@ -43,28 +44,30 @@ class WindDirection(object):
     directions at 10 and 350 degrees is 180 when it should be 0 degrees.
     Converting the wind direction angles to complex numbers allows us to
     find a useful numerical average.
-
-    z = a + bi
-    a = r*Cos(theta)
-    b = r*Sin(theta)
-    r = radius
+    ::
+        z = a + bi
+        a = r*Cos(theta)
+        b = r*Sin(theta)
+        r = radius
+    
     The average of two complex numbers is NOT the ANGLE between two points
     it is the MIDPOINT in cartesian space.
     Therefore if there are two data points with radius=1 at 90 and 270 degrees
     then the midpoint is at (0,0) with radius=0 and therefore its average angle
     is meaningless.
-
-               N
-               |
-    W---x------o------x---E
-               |
-               S
+    ::
+                   N
+                   |
+        W---x------o------x---E
+                   |
+                   S
 
     In the rare case that a meaningless complex average is calculated, the
     code rejects the calculated complex average and simply uses the wind
     direction taken from the first ensemble member.
 
     The steps are:
+
     1) Take data from all ensemble members.
     2) Convert the wind direction angles to complex numbers.
     3) Find complex average and their radius values.
@@ -97,8 +100,10 @@ class WindDirection(object):
         Args:
             angle_deg (np.ndarray or float):
                 3D array or float - wind direction angles in degrees.
+
+        Keyword Args:
             radius (np.ndarray):
-                3D array or float - radius value for each point.
+                3D array or float - radius value for each point, default=1.
 
         Returns:
             (np.ndarray or float):
@@ -165,7 +170,7 @@ class WindDirection(object):
         containing r values using Pythagoras theorem.
 
         Args:
-            angle_deg (np.ndarray or float):
+            complex_in (np.ndarray or float):
                 3D array or float - wind direction angles in complex numbers.
 
         Returns:
@@ -261,11 +266,11 @@ class WindDirection(object):
 
         Args:
             wind_dir_deg (np.ndarray):
-                3D array - wind direction angle in degrees.
+                3D array - wind direction angles from ensembles (in degrees).
             wind_dir_deg_mean (np.ndarray):
-                3D array - average wind direction angle in degrees.
+                2D array - average wind direction angle (in degrees).
             r_vals (np.ndarray):
-                3D array - Radius taken from average complex wind direction
+                2D array - Radius taken from average complex wind direction
                 angle.
             r_thresh (float):
                 Any r value below threshold is regarded as meaningless.
@@ -349,8 +354,6 @@ class WindDirection(object):
             # cubes for storing results.
             slice_mean_wdir = next(slice_ens_wdir.slices_over("realization"))
             slice_mean_wdir.remove_coord('realization')
-            slice_r_vals = slice_mean_wdir.copy()
-            slice_std_dev = slice_mean_wdir.copy()
 
             # Convert wind direction from degrees to complex numbers.
             wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
@@ -370,7 +373,7 @@ class WindDirection(object):
             r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
             # Calculate standard deviation from polar mean.
-            # ToDo: This will still need some further investigation.
+            # TODO: This will still need some further investigation.
             #        This is will be the subject of another ticket.
             polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
                 wind_dir_complex, wind_dir_deg_mean, r_vals, r_thresh,
@@ -381,24 +384,25 @@ class WindDirection(object):
             wind_dir_deg_mean = WindDirection.wind_dir_decider(
                 wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh)
 
-            # Save data into cubes.
+            # Save data into cubes (create new cubes for r and std dev data).
             slice_mean_wdir.data = wind_dir_deg_mean
-            slice_r_vals.data = r_vals
-            slice_std_dev.data = polar_mean_std_dev
+            slice_r_vals = slice_mean_wdir.copy(data=r_vals)
+            slice_std_dev = slice_mean_wdir.copy(data=polar_mean_std_dev)
             # Append to cubelists.
             wdir_cube_list.append(slice_mean_wdir)
             r_vals_cube_list.append(slice_r_vals)
             std_dev_cube_list.append(slice_std_dev)
 
-        # Combine cubelists into cube and outputs.
+        # Combine cubelists into cube.
         cube_mean_wdir = wdir_cube_list.merge_cube()
         cube_r_vals = r_vals_cube_list.merge_cube()
         cube_polar_mean_std_dev = std_dev_cube_list.merge_cube()
 
         # Change cube identifiers.
-        cube_mean_wdir.long_name = "Average wind direction"
+        cube_mean_wdir.add_cell_method(CellMethod("mean", coords="realization"))
         cube_r_vals.long_name = "Avg wind dir r-vals"
         cube_r_vals.units = None
         cube_polar_mean_std_dev.long_name = "Avg wind dir std dev"
         cube_polar_mean_std_dev.units = None
+
         return cube_mean_wdir, cube_r_vals, cube_polar_mean_std_dev
