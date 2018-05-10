@@ -514,42 +514,11 @@ class OpticalFlow(object):
                        jj*boxsize:(jj+1)*boxsize] = yfield[ii, jj]
         return umat_t, vmat_t
 
-
-
-    @staticmethod
-    def setupweightgrid(field):
-        '''
-        setup a weightfield:
-        0 ---------------0
-        |2.5 4 ---- 4 2.5|
-        |4   6 -----6   4|
-        ||   |      |   ||
-        ||   |      |   ||
-        |4   6 -----6   4|
-        |2.5 4------4 2.5|
-        0----------------0
-        '''
-        xdim, ydim = field.shape+np.array([2, 2])
-        zz = np.ones([xdim, ydim])
-        zz[0, :] = 0
-        zz[:, 0] = 0
-        zz[-1, :] = 0
-        zz[:, -1] = 0  # halo points
-        zz = zz * 6.  # field points
-        zz[1, 1:-1] = 4.
-        zz[1:-1, 1] = 4.
-        zz[-2, 1:-1] = 4.
-        zz[1:-1, -2] = 4  # edge points
-        zz[1, 1] = 2.5
-        zz[-2, -2] = 2.5
-        zz[1, -2] = 2.5
-        zz[-2, 1] = 2.5  # corner ps
-        return zz, xdim, ydim
-
     @staticmethod
     def smallkernel():
         '''
         kernel representing the weighting implemented in STEPS
+        TODO this is not a static method, it is a global constant!
         '''
         mkernel = np.array([[0.5, 1, 0.5], [1, 0, 1], [0.5, 1, 0.5]])/6.
         return mkernel
@@ -628,7 +597,10 @@ class OpticalFlow(object):
                 Velocities in the x-direction on box grid
             vmat (np.ndarray):
                 Velocities in the y-direction on box grid
-
+            weights (np.ndarray):
+                Weights TODO ???
+            inshape (tuple):
+                Required shape of output array?
         Returns:
             umat_f (np.ndarray):
                 Smoothed velocities in the x-direction on input data grid
@@ -644,6 +616,7 @@ class OpticalFlow(object):
                                             self.pointweight)
             conv_vec.append((abs(umatold-umatn)).sum())
         # (e) rebin block velocities to 2D field velocities
+        # BUG I think this has hardcoded the x/y axis order assumption too...
         umat_f, vmat_f = self.rebinvel(umatn, vmatn, self.boxsize, inshape,
                                        self.data1.shape)
         smn = int(self.boxsize/3)

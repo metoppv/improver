@@ -206,14 +206,41 @@ class Test_solve_for_uv(IrisTest):
         self.assertAlmostEqual(v, 2.)
 
 
-class Test_smooth_advection_velocities(OpticalFlowTest):
+class Test_smooth_advection_velocities(IrisTest):
     """Test smoothing of advection velocities"""
+
+    def setUp(self):
+        """Define input matrices and dummy plugin"""
+        self.umat = np.array([[1., 0., 0., 0., 0.],
+                              [1., 1., 0., 0., 0.],
+                              [2., 1., 1., 0., 0.],
+                              [3., 2., 1., 1., 0.]])
+
+        self.vmat = np.array([[3., 2., 1., 0., 0.],
+                              [2., 1., 0., 0., 0.],
+                              [1., 0., 0., 0., 0.],
+                              [0., 0., 0., 1., 0.]])
+
+        self.weights = 0.3*np.multiply(self.umat, self.vmat)
+        self.plugin = OpticalFlow(boxsize=3, kernel=3)
+        self.plugin.data1 = np.zeros((14, 15))
 
     def test_basic(self):
         """Test for correct output types"""
-        # TODO
-        pass
+        umat, _ = self.plugin.smooth_advection_velocities(
+            self.umat, self.vmat, self.weights, self.umat.shape)
+        self.assertIsInstance(umat, np.ndarray)
+        self.assertSequenceEqual(umat.shape, (14, 15))
 
+    def test_values(self):
+        """Test output matrices have expected values"""
+        umat, vmat = self.plugin.smooth_advection_velocities(
+            self.umat, self.vmat, self.weights, self.umat.shape)
+        self.assertArrayAlmostEqual(umat[-1], np.zeros((15,)))
+        self.assertArrayAlmostEqual(vmat[-1], np.zeros((15,)))
+
+        print umat[0]
+        print vmat[0]
 
 
 class Test_calculate_advection_velocities(IrisTest):
