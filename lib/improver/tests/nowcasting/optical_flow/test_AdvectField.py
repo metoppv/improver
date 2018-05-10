@@ -39,7 +39,7 @@ from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
-from improver.optical_flow.optical_flow import AdvectField
+from improver.nowcasting.optical_flow import AdvectField
 
 
 def set_up_xy_velocity_cube(name, coord_points_y=None, val_units='m s-1'):

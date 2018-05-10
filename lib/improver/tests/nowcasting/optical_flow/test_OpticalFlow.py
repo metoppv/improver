@@ -38,7 +38,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.optical_flow.optical_flow import OpticalFlow
+from improver.nowcasting.optical_flow import OpticalFlow
 
 
 class OpticalFlowUtilityTest(IrisTest):
