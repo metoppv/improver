@@ -373,6 +373,8 @@ class OpticalFlow(object):
             corners (np.ndarray):
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
+
+        TODO consider using np.interp()
         """
         if axis is None:
             corners = 0.25*(data[1:, :-1] + data[:-1, 1:] +
@@ -462,7 +464,7 @@ class OpticalFlow(object):
     def solve_for_uv(I_xy, I_t):
         """
         Solve the system of linear simultaneous equations for u and v using
-        matrix inversion (equation 19 in STEPS document.  This is frequently
+        matrix inversion (equation 19 in STEPS document).  This is frequently
         singular, eg in the presence of too many zeroes.  In these cases,
         the function returns velocities of 0.
 
@@ -491,29 +493,7 @@ class OpticalFlow(object):
             m2 = (I_xy.transpose()).dot(I_t)
             velocity = -m1_inv.dot(m2)[:, 0]
         return velocity
-
-    @staticmethod
-    def rebinvel(xfield, yfield, boxsize, myshape, origshape):
-        """
-        in: xfield, yfield  : u and v box velocity fields
-            boxsize   : side length in pixels of each velocity box
-            myshape   : shape of the field in velocity box units
-            origshape : shape of the field in pixels
-        out:  umat_t  : u velocity field
-            vmat_t  : v velocity field
-        Function to reshape the velocity vectors containing the box velocities,
-        to velocity pixel maps
-        """
-        umat_t = np.zeros(origshape)
-        vmat_t = np.zeros(origshape)
-        for ii in range(myshape[0]):
-            for jj in range(myshape[1]):  # size limited to origshape
-                umat_t[ii*boxsize:(ii+1)*boxsize,
-                       jj*boxsize:(jj+1)*boxsize] = xfield[ii, jj]
-                vmat_t[ii*boxsize:(ii+1)*boxsize,
-                       jj*boxsize:(jj+1)*boxsize] = yfield[ii, jj]
-        return umat_t, vmat_t
-
+ 
     @staticmethod
     def smallkernel():
         '''
@@ -585,6 +565,28 @@ class OpticalFlow(object):
                                                pweight*w[abs(w) > 0])
         return xsm, ysm
 
+    @staticmethod
+    def rebinvel(xfield, yfield, boxsize, myshape, origshape):
+        """
+        in: xfield, yfield  : u and v box velocity fields
+            boxsize   : side length in pixels of each velocity box
+            myshape   : shape of the field in velocity box units
+            origshape : shape of the field in pixels
+        out:  umat_t  : u velocity field
+            vmat_t  : v velocity field
+        Function to reshape the velocity vectors containing the box velocities,
+        to velocity pixel maps
+        """
+        umat_t = np.zeros(origshape)
+        vmat_t = np.zeros(origshape)
+        for ii in range(myshape[0]):
+            for jj in range(myshape[1]):  # size limited to origshape
+                umat_t[ii*boxsize:(ii+1)*boxsize,
+                       jj*boxsize:(jj+1)*boxsize] = xfield[ii, jj]
+                vmat_t[ii*boxsize:(ii+1)*boxsize,
+                       jj*boxsize:(jj+1)*boxsize] = yfield[ii, jj]
+        return umat_t, vmat_t
+
     def smooth_advection_velocities(self, umat, vmat, weights, inshape):
         """
         Perform post-calculation "smart smoothing" of advection velocity
@@ -646,12 +648,12 @@ class OpticalFlow(object):
                 2D array of velocities in the y-direction
         """
 
-        # (a) make subboxes
+        # (a) Create subboxes over which velocity is constant
         xdif_tb, weight_tb = self.makesubboxes(xdif_t, self.boxsize)
         ydif_tb, _ = self.makesubboxes(ydif_t, self.boxsize)
         tdif_tb, _ = self.makesubboxes(tdif_t, self.boxsize)
 
-        # (b) solve optical flow velocity calculation on subboxes
+        # (b) Solve optical flow velocity calculation on each subbox
         velocity = ([], [])
         for xdif, ydif, tdif in zip(
                 xdif_tb, ydif_tb, tdif_tb):
@@ -667,16 +669,15 @@ class OpticalFlow(object):
             velocity[0].append(u)
             velocity[1].append(v)
 
-        # (c) reshape velocity arrays to match array of subbox central points
+        # (c) Reshape velocity arrays to match array of subbox central points
         newshape = [int((xdif_t.shape[0]-1)/self.boxsize) + 1,
                     int((xdif_t.shape[1]-1)/self.boxsize) + 1]
         umat = np.array(velocity[0]).reshape(newshape)
         vmat = np.array(velocity[1]).reshape(newshape)
         weights = weight_tb.reshape(newshape)
 
-        # (d) check for extreme velocities and set to zero
-        # TODO don't understand this... what do velocity values have to do
-        # with array shape?
+        # (d) Check for extreme velocities (advection over a significant
+        #     proportion of the domain size) and set to zero
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
         umat[flag] = 0
         vmat[flag] = 0

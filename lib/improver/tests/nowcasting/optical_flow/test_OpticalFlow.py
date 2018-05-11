@@ -66,15 +66,19 @@ class OpticalFlowTest(IrisTest):
 
         self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
 
+        rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.]])
+
         self.first_input = np.zeros((16, 16))
-        self.first_input[1:8, 2:9] = 1.
-        self.first_input[2:6, 3:7] = 2.
-        self.first_input[3:5, 4:6] = 3.
+        self.first_input[1:8, 2:9] = rainfall_block
 
         self.second_input = np.zeros((16, 16))
-        self.second_input[2:9, 1:8] = 1.
-        self.second_input[3:7, 2:6] = 2.
-        self.second_input[4:6, 3:5] = 3.
+        self.second_input[2:9, 1:8] = rainfall_block
 
 
 class Test__init__(IrisTest):
