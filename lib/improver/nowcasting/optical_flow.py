@@ -292,7 +292,7 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, kernel=7, boxsize=30, smethod='box', pointweight=0.1,
+    def __init__(self, kernel=7, smethod='box', boxsize=30, point_weight=0.1,
                  iterations=100):
         """
         Initialise the class with smoothing parameters for estimating gridded
@@ -300,19 +300,17 @@ class OpticalFlow(object):
 
         input:
             kernel (int):
-                kernel size (radius) for use to smooth the data for partial
-                derivative estimaten. If box smoothing is used, half box size
-            boxsize (int):
-                Square box size in which points are assumed to have the same
-                velocity to enable matrix inversion (solve_for_uv()).  Minimum
-                value 3.
-            iterations (int):
-                number of smart smoothing iterations to perform
+                Kernel size (radius) over which to smooth input data before
+                estimating partial derivatives.
             smethod (str):
-                Smoothing method to be used on input fields prior to
-                calculating partial derivatives.  Can be 'box' (as used in
-                STEPS) or 'kernel' (as used in post-calculation smoothing).
-            pointweight: float
+                Smoothing method to be used on input fields before estimating
+                partial derivatives.  Can be square 'box' (as used in STEPS) or
+                circular 'kernel' (used in post-calculation smoothing).
+            boxsize (int):
+                Square box size over which all data points are assumed to have
+                the same velocity to enable matrix inversion (solve_for_uv()).
+                Minimum value 3.
+            point_weight: float
                 Weight given to the velocity of the point (box) when doing the
                 smart smoothing after velocity calculation. 0.1 is the original
                 STEPS value.
@@ -324,45 +322,101 @@ class OpticalFlow(object):
         """
 
         # initialise parameters for pre- and post- calculation smoothing
-        self.kernel = kernel
+
+        self.data_smoothing_radius = kernel
+        self.data_smoothing_method = smethod
+
         self.boxsize = boxsize
-        self.smoothing_method = smethod
         self.iterations = iterations
-        self.pointweight = pointweight
+        self.point_weight = point_weight
+
+        # define kernel for post-calculation velocity smoothing as used in STEPS
+        self.small_kernel = np.array([[0.5, 1, 0.5],
+                                      [1.0, 0, 1.0],
+                                      [0.5, 1, 0.5]])/6.
 
         # initialise input data and output velocity fields
         self.data1 = None
         self.data2 = None
+        self.shape = None
         self.ucomp = None
         self.vcomp = None
 
     @staticmethod
-    def makekernel(msize):
-        """ make a kernel to smooth the input fields """
-        temp = 1 - np.abs(np.linspace(-1, 1, msize*2+1))
-        kernel = temp.reshape(msize*2+1, 1) * temp.reshape(1, msize*2+1)
-        kernel /= kernel.sum()   # kernel should sum to 1!
-        return kernel
+    def solve_for_uv(I_xy, I_t):
+        """
+        Solve the system of linear simultaneous equations for u and v using
+        matrix inversion (equation 19 in STEPS document).  This is frequently
+        singular, eg in the presence of too many zeroes.  In these cases,
+        the function returns velocities of 0.
 
-    def smoothing(self, d_x, sidel, method='box'):
-        '''
-        smoothing used to apply on the field to estimate partial derivatives
-        '''
-        if method == 'kernel':
-            kernel = self.makekernel(sidel)
-            dxn = scipy.signal.convolve2d(d_x, kernel, mode='same',
-                                          boundary="symm")
-        elif method == 'box':  # type of smoothing used in steps
-            dxn = scipy.ndimage.filters.uniform_filter(d_x, size=sidel*2+1,
-                                                       mode='nearest')
-        return dxn
+        NOTE (Martina): there is a problem here if I have many fewer pixels
+        with intensity here than pixels with (zeros?)
+
+        Args:
+            I_xy (np.ndarray):
+                2-column matrix containing partial field derivatives dI/dx
+                (first column) and dI/dy (second column)
+            I_t (np.ndarray):
+                1-column matrix containing partial field derivatives dI/dt
+
+        Returns:
+            velocity (np.ndarray):
+                2-column matrix (u, v) containing scalar wind velocities
+        """
+        I_t = I_t.reshape([I_t.size, 1])
+        m1 = (I_xy.transpose()).dot(I_xy)
+        try:
+            m1_inv = np.linalg.inv(m1)
+        except np.linalg.LinAlgError:
+            # if matrix is not invertible, set velocities to zero
+            velocity = np.array([0, 0])
+        else:
+            m2 = (I_xy.transpose()).dot(I_t)
+            velocity = -m1_inv.dot(m2)[:, 0]
+        return velocity
+
+    @staticmethod
+    def makekernel(radius):
+        """
+        Make a circular kernel to smooth an input field.  The output is
+        zero-padded, so a radius of 1 gives the kernel: 
+
+            [[ 0.  0.  0.]
+             [ 0.  1.  0.]
+             [ 0.  0.  0.]]
+
+        which has no effect on the input field.
+
+        Radius 2 kernel:
+
+            [[ 0.      0.      0.      0.      0.    ]
+             [ 0.      0.0625  0.125   0.0625  0.    ]
+             [ 0.      0.125   0.25    0.125   0.    ]
+             [ 0.      0.0625  0.125   0.0625  0.    ]
+             [ 0.      0.      0.      0.      0.    ]]
+
+        TODO markup for sensible sphinx rendering
+
+        Args:
+            radius (int):
+                Radius of required kernel
+
+        Returns:
+            kernel (np.ndarray):
+                Normalised array of shape (radius*2+1, radius*2+1)
+        """
+        temp = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
+        kernel = temp.reshape(radius*2+1, 1) * temp.reshape(1, radius*2+1)
+        kernel /= kernel.sum()
+        return kernel
 
     @staticmethod
     def corner(data, axis=None):
         """
         Calculates the average of four corner points at each point on a grid.
         If axis is not None, only averages over the spatial axis specified.
-        
+
         Args:
             data (np.ndarray):
                 2D gridded data (dimensions M x N)
@@ -405,12 +459,12 @@ class OpticalFlow(object):
             average_diffs = np.zeros(data.shape)
             average_diffs[1:, 1:] = self.corner(diffs, axis=1-axis)
             outdata.append(average_diffs)
-        xdiff = np.zeros([self.data1.shape[0]+1, self.data1.shape[1]+1])
+        xdiff = np.zeros([self.shape[0]+1, self.shape[1]+1])
         xdiff[:-1, :-1] = 0.5*(outdata[0] + outdata[1])
         return self.corner(xdiff)
 
     def mdiff_temporal(self):
-        """ 
+        """
         Calculate the partial derivative of two fields over time.  Take the
         difference between time-separated fields data1 and data2, then average
         over the two spatial dimensions, regrid to a zero-padded output
@@ -421,7 +475,7 @@ class OpticalFlow(object):
                 Smoothed temporal derivative
         """
         tstep = self.data2 - self.data1
-        tdiff = np.zeros([self.data1.shape[0]+1, self.data1.shape[1]+1])
+        tdiff = np.zeros([self.shape[0]+1, self.shape[1]+1])
         tdiff[1:-1, 1:-1] = self.corner(tstep)
         return self.corner(tdiff)
 
@@ -460,56 +514,65 @@ class OpticalFlow(object):
         weights[weights < 0.01] = 0
         return boxes, weights
 
-    @staticmethod
-    def solve_for_uv(I_xy, I_t):
+    def regrid_velocities(self, umat, vmat):
         """
-        Solve the system of linear simultaneous equations for u and v using
-        matrix inversion (equation 19 in STEPS document).  This is frequently
-        singular, eg in the presence of too many zeroes.  In these cases,
-        the function returns velocities of 0.
+        Regrids calculated velocities from "box grid" (on which OFC equations
+        are solved) to input data grid.
 
-        NOTE (Martina): there is a problem here if I have many fewer pixels
-        with intensity here than pixels with (zeros?)
+        in: umat, vmat  : u and v box velocity fields
+        out:  umat_t  : u velocity field
+            vmat_t  : v velocity field
+        Function to reshape the velocity vectors containing the box velocities,
+        to velocity pixel maps
+        """
+        umat_t = np.zeros(self.shape)
+        vmat_t = np.zeros(self.shape)
+        for ii in range(umat.shape[0]):
+            for jj in range(umat.shape[1]):
+                umat_t[ii*self.boxsize:(ii+1)*self.boxsize,
+                       jj*self.boxsize:(jj+1)*self.boxsize] = umat[ii, jj]
+                vmat_t[ii*self.boxsize:(ii+1)*self.boxsize,
+                       jj*self.boxsize:(jj+1)*self.boxsize] = vmat[ii, jj]
+        return umat_t, vmat_t
+
+    def smoothing(self, field, radius, method='box'):
+        """
+        Smoothing method using a square ('box') or circular kernel.  Kernel
+        smoothing with a radius of 1 has no effect.
 
         Args:
-            I_xy (np.ndarray):
-                2-column matrix containing partial field derivatives dI/dx
-                (first column) and dI/dy (second column)
-            I_t (np.ndarray):
-                1-column matrix containing partial field derivatives dI/dt
+            field (np.ndarray):
+                Input field to be smoothed
+            radius (int):
+                Kernel radius or half box size for smoothing
+            method (str):
+                Method to use: 'box' or 'kernel'
 
         Returns:
-            velocity (np.ndarray):
-                2-column matrix (u, v) containing scalar wind velocities
+            smoothed_field (np.ndarray):
+                Smoothed data on input-shaped grid
         """
-        I_t = I_t.reshape([I_t.size, 1])
-        m1 = (I_xy.transpose()).dot(I_xy)
-        try:
-            m1_inv = np.linalg.inv(m1)
-        except np.linalg.LinAlgError:
-            # if matrix is not invertible, set velocities to zero
-            velocity = np.array([0, 0])
-        else:
-            m2 = (I_xy.transpose()).dot(I_t)
-            velocity = -m1_inv.dot(m2)[:, 0]
-        return velocity
- 
-    @staticmethod
-    def smallkernel():
-        '''
-        kernel representing the weighting implemented in STEPS
-        TODO this is not a static method, it is a global constant!
-        '''
-        mkernel = np.array([[0.5, 1, 0.5], [1, 0, 1], [0.5, 1, 0.5]])/6.
-        return mkernel
+        if method == 'kernel':
+            kernel = self.makekernel(radius)
+            print kernel
+            smoothed_field = scipy.signal.convolve2d(
+                field, kernel, mode='same', boundary="symm")
+        elif method == 'box':  # type of smoothing used in steps
+            smoothed_field = scipy.ndimage.filters.uniform_filter(
+                field, size=radius*2+1, mode='nearest')
+        return smoothed_field
 
-    def find_neighbour_image(self, field, ww=None):
-        '''
-        this can replace the cumbersome "for" loops in the smart smooth.
-        However, it does handle edges not exactly the right way.
-        From http://stackoverflow.com/questions/22669252/
-        how-exactly-does-the-re%E2%80%8C%E2%80%8Bflect-mode-for-
-        scipy%E2%80%8C%E2%80%8Bs-ndimage-filters-wo%E2%80%8C%E2%80%8Brk:
+    def smart_smoothing(self, xo, yo, x, y, w):
+        """
+        implements the smart smoothing (i.e. 0 that are 0 because there is no
+        structure to calculate the advection from, are not included in the
+        smoothing of the velocity field) as in steps
+
+        NOTE The use of "scipy.ndimage.convolve" avoids "for" loops in this
+        routine, but does not handle edges perfectly.  From
+        http://stackoverflow.com/questions/22669252/how-exactly-does-the-re
+        %E2%80%8C%E2%80%8Bflect-mode-for- scipy%E2%80%8C%E2%80%8Bs-ndimage-
+        filters-wo%E2%80%8C%E2%80%8Brk:
 
         mode       |   Ext   |         Input          |   Ext
         -----------+---------+------------------------+---------
@@ -518,35 +581,18 @@ class OpticalFlow(object):
         'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
         'constant' | 0  0  0 | 1  2  3  4  5  6  7  8 | 0  0  0
         'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
-        Hence, the mode that corresponds most closely to the for loop solution
-        is "mirror" (or reflect) reflect is the default, I leave it with that).
-        '''
-        mkernel = self.smallkernel()
-        if ww is None:
-            wfield = field
-        else:
-            wfield = field*ww
-        ofield = scipy.ndimage.convolve(wfield, mkernel)
-        return ofield
 
-    def smartsmooth(self, xo, yo, x, y, w, pweight):
+        Hence "mirror" or "reflect" provide the most appropriate functionality.
+        As "reflect" is the default this is used here.
         """
-        implements the smart smoothing (i.e. 0 that are 0 because there is no
-        structure to calculate the advection from, are not included in the
-        smoothing of the velocity field) as in steps
-        """
-        xnew = np.zeros(x.shape)
-        ynew = np.zeros(y.shape)
-        wnew = np.zeros(w.shape)
-        xsm = np.zeros(x.shape)
-        ysm = np.zeros(y.shape)
-        nweight = 1.0 - pweight
 
-        xnew = self.find_neighbour_image(x, w)
-        ynew = self.find_neighbour_image(y, w)
-        wnew = self.find_neighbour_image(w)
-        xsm = self.find_neighbour_image(x)
-        ysm = self.find_neighbour_image(y)
+        xnew = scipy.ndimage.convolve(w*x, self.small_kernel)
+        ynew = scipy.ndimage.convolve(w*y, self.small_kernel)
+        wnew = scipy.ndimage.convolve(w, self.small_kernel)
+        xsm = scipy.ndimage.convolve(x, self.small_kernel)
+        ysm = scipy.ndimage.convolve(y, self.small_kernel)
+
+        neighbour_weight = 1.0 - self.point_weight
 
         # xsm will stay as the normal (unweighted average) for all points
         # where the neigbours have no weight and the point has no weight
@@ -557,42 +603,20 @@ class OpticalFlow(object):
         # if the point itself has weight, I use a weighted sum of the neigbour
         # points and the point (however, it is not the point in iteration, it
         # is the original value!)
-        xsm[abs(w) > 0] = (xnew[abs(w) > 0]*nweight + pweight * xo[abs(w) > 0]
-                           * w[abs(w) > 0]) / (nweight*wnew[abs(w) > 0] +
-                                               pweight*w[abs(w) > 0])
-        ysm[abs(w) > 0] = (ynew[abs(w) > 0]*nweight + pweight * yo[abs(w) > 0]
-                           * w[abs(w) > 0]) / (nweight*wnew[abs(w) > 0] +
-                                               pweight*w[abs(w) > 0])
+        xsm[abs(w) > 0] = (xnew[abs(w) > 0]*neighbour_weight + self.point_weight * xo[abs(w) > 0]
+                           * w[abs(w) > 0]) / (neighbour_weight*wnew[abs(w) > 0] +
+                                               self.point_weight*w[abs(w) > 0])
+        ysm[abs(w) > 0] = (ynew[abs(w) > 0]*neighbour_weight + self.point_weight * yo[abs(w) > 0]
+                           * w[abs(w) > 0]) / (neighbour_weight*wnew[abs(w) > 0] +
+                                               self.point_weight*w[abs(w) > 0])
         return xsm, ysm
 
-    @staticmethod
-    def rebinvel(xfield, yfield, boxsize, myshape, origshape):
+    def smooth_advection_velocities(self, umat, vmat, weights):
         """
-        in: xfield, yfield  : u and v box velocity fields
-            boxsize   : side length in pixels of each velocity box
-            myshape   : shape of the field in velocity box units
-            origshape : shape of the field in pixels
-        out:  umat_t  : u velocity field
-            vmat_t  : v velocity field
-        Function to reshape the velocity vectors containing the box velocities,
-        to velocity pixel maps
-        """
-        umat_t = np.zeros(origshape)
-        vmat_t = np.zeros(origshape)
-        for ii in range(myshape[0]):
-            for jj in range(myshape[1]):  # size limited to origshape
-                umat_t[ii*boxsize:(ii+1)*boxsize,
-                       jj*boxsize:(jj+1)*boxsize] = xfield[ii, jj]
-                vmat_t[ii*boxsize:(ii+1)*boxsize,
-                       jj*boxsize:(jj+1)*boxsize] = yfield[ii, jj]
-        return umat_t, vmat_t
-
-    def smooth_advection_velocities(self, umat, vmat, weights, inshape):
-        """
-        Perform post-calculation "smart smoothing" of advection velocity
-        fields, accounting for zeros and reducting their weight in the final
-        output.  Regrids from "box grid" (on which OFC equations are solved)
-        to input data grid.
+        Perform iterative "smart smoothing" of advection velocity fields,
+        accounting for zeros and reducting their weight in the final output.
+        Then regrid from "box grid" (on which OFC equations are solved) to
+        input data grid, and perform one final pass simple kernel smoothing.
 
         Args:
             umat (np.ndarray):
@@ -600,33 +624,26 @@ class OpticalFlow(object):
             vmat (np.ndarray):
                 Velocities in the y-direction on box grid
             weights (np.ndarray):
-                Weights TODO ???
-            inshape (tuple):
-                Required shape of output array?
+                Weights for smart smoothing
         Returns:
             umat_f (np.ndarray):
                 Smoothed velocities in the x-direction on input data grid
             vmat_f (np.ndarray):
                 Smoothed velocities in the y-direction on input data grid
         """
-        conv_vec = []
         umatn = np.copy(umat)
         vmatn = np.copy(vmat)
         for _ in range(self.iterations):
-            umatold = umatn
-            umatn, vmatn = self.smartsmooth(umat, vmat, umatn, vmatn, weights,
-                                            self.pointweight)
-            conv_vec.append((abs(umatold-umatn)).sum())
-        # (e) rebin block velocities to 2D field velocities
-        # BUG I think this has hardcoded the x/y axis order assumption too...
-        umat_f, vmat_f = self.rebinvel(umatn, vmatn, self.boxsize, inshape,
-                                       self.data1.shape)
+            umatn, vmatn = self.smart_smoothing(umat, vmat, umatn, vmatn,
+                                                weights)
+
+        # reshape smoothed box velocity arrays to match input data grid
+        umat_f, vmat_f = self.regrid_velocities(umatn, vmatn)
         smn = int(self.boxsize/3)
         umat_f = self.smoothing(umat_f, smn, method='kernel')
         vmat_f = self.smoothing(vmat_f, smn, method='kernel')
 
         return umat_f, vmat_f
-
 
     def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t):
         """
@@ -648,7 +665,7 @@ class OpticalFlow(object):
                 2D array of velocities in the y-direction
         """
 
-        # (a) Create subboxes over which velocity is constant
+        # (a) List subboxes over which velocity is constant
         xdif_tb, weight_tb = self.makesubboxes(xdif_t, self.boxsize)
         ydif_tb, _ = self.makesubboxes(ydif_t, self.boxsize)
         tdif_tb, _ = self.makesubboxes(tdif_t, self.boxsize)
@@ -684,9 +701,9 @@ class OpticalFlow(object):
         weights[flag] = 0
 
         # (e) smooth and reshape velocity arrays to match input data grid
-        umat_f, vmat_f = self.smooth_advection_velocities(umat, vmat, weights,
-                                                          newshape)
-        return umat_f, vmat_f
+        umat, vmat = self.smooth_advection_velocities(umat, vmat, weights)
+
+        return umat, vmat
 
     def process(self, data1, data2):
         """
@@ -707,10 +724,11 @@ class OpticalFlow(object):
         """
 
         # Smooth input data
-        self.data1 = self.smoothing(data1, self.kernel,
-                                    method=self.smoothing_method)
-        self.data2 = self.smoothing(data2, self.kernel,
-                                    method=self.smoothing_method)
+        self.shape = data1.shape  # TODO error if shapes don't match?
+        self.data1 = self.smoothing(data1, self.data_smoothing_radius,
+                                    method=self.data_smoothing_method)
+        self.data2 = self.smoothing(data2, self.data_smoothing_radius,
+                                    method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO fix hardcoded assumption of (x, y) coordinate ordering

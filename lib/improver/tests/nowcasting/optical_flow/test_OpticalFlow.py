@@ -41,8 +41,67 @@ from iris.tests import IrisTest
 from improver.nowcasting.optical_flow import OpticalFlow
 
 
+class Test__init__(IrisTest):
+    """Test class initialisation"""
+
+    def test_basic(self):
+        """Test initialisation and types"""
+        plugin = OpticalFlow()
+        self.assertIsInstance(plugin.kernel, int)
+        self.assertIsInstance(plugin.boxsize, int)
+        self.assertIsInstance(plugin.iterations, int)
+        self.assertIsInstance(plugin.point_weight, float)
+        self.assertIsInstance(plugin.small_kernel, np.ndarray)
+        self.assertIsNone(plugin.data1)
+        self.assertIsNone(plugin.data2)
+        self.assertIsNone(plugin.shape)
+        self.assertIsNone(plugin.ucomp)
+        self.assertIsNone(plugin.vcomp)
+
+
+class Test_solve_for_uv(IrisTest):
+    """Test solve_for_uv function"""
+
+    def setUp(self):
+        """Define input matrices"""
+        self.I_xy = np.array([[2., 3.],
+                              [1., -2.]])
+        self.I_t = np.array([-8., 3.])
+
+    def test_basic(self):
+        """Test for correct output types"""
+        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
+        self.assertIsInstance(u, float)
+        self.assertIsInstance(v, float)
+
+    def test_values(self):
+        """Test output values"""
+        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
+        self.assertAlmostEqual(u, 1.)
+        self.assertAlmostEqual(v, 2.)
+
+
+class Test_makekernel(IrisTest):
+    """Test makekernel function"""
+
+    def test_basic(self):
+        """Test for correct output type"""
+        result = OpticalFlow().makekernel(2)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_values(self):
+        """Test output values"""
+        expected_output = np.array([[0., 0., 0., 0., 0.],
+                                    [0., 0.0625, 0.1250, 0.0625, 0.],
+                                    [0., 0.1250, 0.2500, 0.1250, 0.],
+                                    [0., 0.0625, 0.1250, 0.0625, 0.],
+                                    [0., 0., 0., 0., 0.]])
+        result = OpticalFlow().makekernel(2)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+
 class OpticalFlowUtilityTest(IrisTest):
-    """Class with shared plugin definition for utility tests"""
+    """Class with shared plugin definition for small utility tests"""
 
     def setUp(self):
         """Set up dummy plugin and populate data members"""
@@ -53,46 +112,7 @@ class OpticalFlowUtilityTest(IrisTest):
         self.plugin.data2 = np.array([[0., 1., 2., 3., 4.],
                                       [0., 0., 1., 2., 3.],
                                       [0., 0., 0., 1., 2.]])
-
-
-class OpticalFlowTest(IrisTest):
-    """Class with shared matrix and plugin definitions for tests
-    requiring larger input arrays"""
-
-    def setUp(self):
-        """Set up plugin options and input rainfall-like matrices that produce
-        non-singular outputs.  Large matrices with zeros are needed for the
-        smoothing algorithms to behave sensibly."""
-
-        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
-
-        rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
-                                   [1., 2., 2., 2., 2., 1., 1.],
-                                   [1., 2., 3., 3., 2., 1., 1.],
-                                   [1., 2., 3., 3., 2., 1., 1.],
-                                   [1., 2., 2., 2., 2., 1., 1.],
-                                   [1., 1., 1., 1., 1., 1., 1.],
-                                   [1., 1., 1., 1., 1., 1., 1.]])
-
-        self.first_input = np.zeros((16, 16))
-        self.first_input[1:8, 2:9] = rainfall_block
-
-        self.second_input = np.zeros((16, 16))
-        self.second_input[2:9, 1:8] = rainfall_block
-
-
-class Test__init__(IrisTest):
-    """Test class initialisation"""
-
-    def test_basic(self):
-        """Test initialisation and types"""
-        plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
-        self.assertIsInstance(plugin.kernel, int)
-        self.assertIsInstance(plugin.boxsize, int)
-        self.assertIsInstance(plugin.iterations, int)
-        self.assertIsInstance(plugin.pointweight, float)
-        self.assertIsNone(plugin.ucomp)
-        self.assertIsNone(plugin.vcomp)
+        self.plugin.shape = self.plugin.data1.shape
 
 
 class Test_corner(OpticalFlowUtilityTest):
@@ -117,7 +137,7 @@ class Test_corner(OpticalFlowUtilityTest):
                                     [0.0, 0.5, 1.5, 2.5, 3.5]])
         result = self.plugin.corner(self.plugin.data1, axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
-        
+
     def test_second_axis(self):
         """Test averaging over second axis"""
         expected_output = np.array([[1.5, 2.5, 3.5, 4.5],
@@ -154,12 +174,12 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
 
 class Test_mdiff_temporal(OpticalFlowUtilityTest):
     """Test mdiff_temporal function"""
-        
+
     def test_basic(self):
         """Test for correct output type"""
         result = self.plugin.mdiff_temporal()
         self.assertIsInstance(result, np.ndarray)
-        
+
     def test_values(self):
         """Test output values"""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
@@ -188,30 +208,8 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
-class Test_solve_for_uv(IrisTest):
-    """Test solve_for_uv function"""
-
-    def setUp(self):
-        """Define input matrices"""
-        self.I_xy = np.array([[2., 3.,],
-                              [1., -2.,]])
-        self.I_t = np.array([-8., 3.])
-
-    def test_basic(self):
-        """Test for correct output types"""
-        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
-        self.assertIsInstance(u, float)
-        self.assertIsInstance(v, float)
-        
-    def test_values(self):
-        """Test output values"""
-        u, v = OpticalFlow().solve_for_uv(self.I_xy, self.I_t)
-        self.assertAlmostEqual(u, 1.)
-        self.assertAlmostEqual(v, 2.)
-
-
-class Test_smooth_advection_velocities(IrisTest):
-    """Test smoothing of advection velocities"""
+class OpticalFlowVelocityTest(IrisTest):
+    """Class with shared plugin definition for velocity smoothing tests"""
 
     def setUp(self):
         """Define input matrices and dummy plugin"""
@@ -226,34 +224,179 @@ class Test_smooth_advection_velocities(IrisTest):
                               [0., 0., 0., 1., 0.]])
 
         self.weights = 0.3*np.multiply(self.umat, self.vmat)
-        self.plugin = OpticalFlow(boxsize=3, kernel=3)
-        self.plugin.data1 = np.zeros((14, 15))
+        self.plugin = OpticalFlow(boxsize=3, kernel=3, iterations=10)
+        self.plugin.data1 = np.zeros((12, 15))
+        self.plugin.shape = self.plugin.data1.shape
+
+
+class Test_regrid_velocities(OpticalFlowVelocityTest):
+    """Test regrid_velocities function"""
+
+    def test_basic(self):
+        """Test for correct output types"""
+        umat, _ = self.plugin.regrid_velocities(self.umat, self.vmat)
+        self.assertIsInstance(umat, np.ndarray)
+        self.assertSequenceEqual(umat.shape, (12, 15))
+
+    def test_values(self):
+        """Test output matrices have expected values"""
+        expected_umat = np.array(
+            [[1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.]])
+
+        expected_vmat = np.array(
+            [[3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.],
+             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.]])
+
+        umat, vmat = self.plugin.regrid_velocities(self.umat, self.vmat)
+
+        self.assertArrayAlmostEqual(umat, expected_umat)
+        self.assertArrayAlmostEqual(vmat, expected_vmat)
+
+
+class Test_smoothing(OpticalFlowVelocityTest):
+    """Test simple smoothing function"""
+
+    def test_basic(self):
+        """Test for correct output types"""
+        output = self.plugin.smoothing(self.umat, 2)
+        self.assertIsInstance(output, np.ndarray)
+
+    def test_box_smoothing(self):
+        """Test smoothing over square box (default)"""
+        expected_output = np.array([[0.84, 0.60, 0.36, 0.12, 0.04],
+                                    [1.20, 0.92, 0.60, 0.28, 0.12],
+                                    [1.56, 1.24, 0.84, 0.44, 0.20],
+                                    [1.92, 1.56, 1.08, 0.60, 0.28]])
+
+        output = self.plugin.smoothing(self.umat, 2)
+        self.assertArrayAlmostEqual(output, expected_output)
+
+    def test_kernel_smoothing(self):
+        """Test smoothing over circular kernel"""
+        expected_output = np.array([[0.8125, 0.3750, 0.0625, 0., 0.],
+                                    [1.1250, 0.7500, 0.3125, 0.0625, 0.],
+                                    [1.8125, 1.3125, 0.7500, 0.3125, 0.0625],
+                                    [2.5000, 1.8125, 1.1250, 0.6250, 0.1875]])
+
+        output = self.plugin.smoothing(self.umat, 2, method='kernel')
+        self.assertArrayAlmostEqual(output, expected_output)
+
+    def test_null_behaviour(self):
+        """Test smoothing with a kernel radius of 1 has no effect"""
+        output = self.plugin.smoothing(self.umat, 1, method='kernel')
+        self.assertArrayAlmostEqual(output, self.umat)
+
+
+class Test_smart_smoothing(OpticalFlowVelocityTest):
+    """Test smart smoothing function"""
+
+    def test_basic(self):
+        """Test for correct output types"""
+        umat, _ = self.plugin.smart_smoothing(
+            self.umat, self.vmat, self.umat, self.vmat, self.weights)
+        self.assertIsInstance(umat, np.ndarray)
+        self.assertSequenceEqual(umat.shape, self.umat.shape)
+
+    def test_values(self):
+        """Test output matrices have expected values"""
+        expected_umat = np.array([[1., 1., 1., 0., 0.],
+                                  [1.25352113, 1.19354839, 1., 0.08333333, 0.],
+                                  [1.48780488, 1.50000000, 1., 1.00000000, 1.],
+                                  [2., 2., 1., 1., 1.]])
+
+        expected_vmat = np.array([[2.69230769, 2.53846154, 1., 0.25000000, 0.],
+                                  [2.04225352, 1.96774194, 1., 0.08333333, 0.],
+                                  [1.43902439, 1.25000000, 1., 1., 1.],
+                                  [1., 1., 1., 1., 1.]])
+
+        umat, vmat = self.plugin.smart_smoothing(
+            self.umat, self.vmat, self.umat, self.vmat, self.weights)
+        self.assertArrayAlmostEqual(umat, expected_umat)
+        self.assertArrayAlmostEqual(vmat, expected_vmat)
+
+
+class Test_smooth_advection_velocities(OpticalFlowVelocityTest):
+    """Test smoothing of advection velocities"""
 
     def test_basic(self):
         """Test for correct output types"""
         umat, _ = self.plugin.smooth_advection_velocities(
-            self.umat, self.vmat, self.weights, self.umat.shape)
+            self.umat, self.vmat, self.weights)
         self.assertIsInstance(umat, np.ndarray)
-        self.assertSequenceEqual(umat.shape, (14, 15))
+        self.assertSequenceEqual(umat.shape, (12, 15))
 
     def test_values(self):
         """Test output matrices have expected values"""
+        first_row_u = np.array(
+            [1.124620, 1.124620, 1.124620, 1.145532, 1.145532,
+             1.145532, 1.192604, 1.192604, 1.192604, 1.050985,
+             1.050985, 1.050985, 0.967760, 0.967760, 0.967760])
+
+        first_row_v = np.array(
+            [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
+             2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
+             1.589809, 1.589809, 1.331045, 1.331045, 1.331045])
+
         umat, vmat = self.plugin.smooth_advection_velocities(
-            self.umat, self.vmat, self.weights, self.umat.shape)
-        self.assertArrayAlmostEqual(umat[-1], np.zeros((15,)))
-        self.assertArrayAlmostEqual(vmat[-1], np.zeros((15,)))
-
-        print umat[0]
-        print vmat[0]
+            self.umat, self.vmat, self.weights)
+        self.assertArrayAlmostEqual(umat[0], first_row_u)
+        self.assertArrayAlmostEqual(vmat[0], first_row_v)
 
 
-class Test_calculate_advection_velocities(IrisTest):
+class OpticalFlowProcessTest(IrisTest):
+    """Class with shared matrix and plugin definitions for full process tests
+    requiring larger input arrays"""
+
+    def setUp(self):
+        """Set up plugin options and input rainfall-like matrices that produce
+        non-singular outputs.  Large matrices with zeros are needed for the
+        smoothing algorithms to behave sensibly."""
+
+        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+
+        rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.]])
+
+        self.first_input = np.zeros((16, 16))
+        self.first_input[1:8, 2:9] = rainfall_block
+
+        self.second_input = np.zeros((16, 16))
+        self.second_input[2:9, 1:8] = rainfall_block
+
+
+class Test_calculate_advection_velocities(OpticalFlowProcessTest):
     """Test calculation of advection velocity fields"""
     # TODO
     pass
 
 
-class Test_process(OpticalFlowTest):
+class Test_process(OpticalFlowProcessTest):
     """Test the process method"""
 
     def test_basic(self):
