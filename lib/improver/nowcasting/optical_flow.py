@@ -45,6 +45,41 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 
 
+def check_input_coords(cube, require_time=False):
+    """
+    Checks an input cube has precisely two non-scalar dimension coordinates
+    (spatial x/y), or raises an error.  If "require_time" is set to True,
+    raises an error if no scalar time coordinate is present.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+        require_time (bool):
+            Flag to check for a scalar time coordinate
+
+    Raises:
+        InvalidCubeError if coordinate requirements are not met
+    """
+    # check that cube has both x and y axes
+    try:
+        check_for_x_and_y_axes(cube)
+    except ValueError as msg:
+        raise InvalidCubeError(msg)
+
+    # check that cube data has only two non-scalar dimensions
+    data_shape = np.array(cube.shape)
+    non_scalar_coords = np.sum(np.where(data_shape > 1, 1, 0))
+    if non_scalar_coords > 2:
+        raise InvalidCubeError('Cube has {:d} (more than 2) non-scalar '
+                                'coordinates'.format(non_scalar_coords))
+
+    if require_time:
+        try:
+            _ = cube.coord("time")
+        except CoordinateNotFoundError:
+            raise InvalidCubeError('Input cube has no time coordinate')
+
+
 class AdvectField(object):
     """
     Class to advect a 2D spatial field given velocities along the two vector
@@ -68,8 +103,8 @@ class AdvectField(object):
 
         # check each input velocity cube has precisely two non-scalar
         # dimension coordinates (spatial x/y)
-        self._check_input_coords(vel_x)
-        self._check_input_coords(vel_y)
+        check_input_coords(vel_x)
+        check_input_coords(vel_y)
 
         # check input velocity cubes have the same spatial coordinates
         if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
@@ -84,41 +119,6 @@ class AdvectField(object):
 
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
-
-    @staticmethod
-    def _check_input_coords(cube, require_time=False):
-        """
-        Checks an input cube has precisely two non-scalar dimension coordinates
-        (spatial x/y), or raises an error.  If "require_time" is set to True,
-        raises an error if no scalar time coordinate is present.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube to be checked
-            require_time (bool):
-                Flag to check for a scalar time coordinate
-
-        Raises:
-            InvalidCubeError if coordinate requirements are not met
-        """
-        # check that cube has both x and y axes
-        try:
-            check_for_x_and_y_axes(cube)
-        except ValueError as msg:
-            raise InvalidCubeError(msg)
-
-        # check that cube data has only two non-scalar dimensions
-        data_shape = np.array(cube.shape)
-        non_scalar_coords = np.sum(np.where(data_shape > 1, 1, 0))
-        if non_scalar_coords > 2:
-            raise InvalidCubeError('Cube has {:d} (more than 2) non-scalar '
-                                   'coordinates'.format(non_scalar_coords))
-
-        if require_time:
-            try:
-                _ = cube.coord("time")
-            except CoordinateNotFoundError:
-                raise InvalidCubeError('Input cube has no time coordinate')
 
     @staticmethod
     def _increment_output_array(indata, outdata, cond, xdest_grid, ydest_grid,
@@ -251,7 +251,7 @@ class AdvectField(object):
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
-        self._check_input_coords(cube, require_time=True)
+        check_input_coords(cube, require_time=True)
 
         # check spatial coordinates match those of plugin velocities
         if (cube.coord(axis="x") != self.x_coord or
@@ -299,16 +299,16 @@ class OpticalFlow(object):
 
         input:
             kernel (int):
-                Kernel size (radius) over which to smooth input data before
-                estimating partial derivatives.
+                Kernel size (radius) in km over which to smooth input data
+                before estimating partial derivatives.
             smethod (str):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
             boxsize (int):
-                Square box size over which all data points are assumed to have
-                the same velocity to enable matrix inversion (solve_for_uv()).
-                Minimum value 3.
+                Square box size in km over which all data points are assumed
+                to have the same velocity to enable matrix inversion
+                (solve_for_uv()).  Should not be less than 3 grid squares
             point_weight: float
                 Weight given to the velocity of a point (box), as opposed to
                 its neighbours, when doing the smart smoothing after velocity
@@ -321,20 +321,20 @@ class OpticalFlow(object):
         """
 
         # parameters for input data smoothing
-        self.data_smoothing_radius = kernel
+        self.data_smoothing_radius_km = kernel
+        self.data_smoothing_radius = None
         self.data_smoothing_method = smethod
 
         # parameters for velocity calculation and "smart smoothing"
-        self.boxsize = boxsize
+        self.boxsize_km = boxsize
+        self.boxsize = None
         self.iterations = iterations
         self.point_weight = point_weight
 
-        # input data and output velocity fields
+        # input data fields and shape
         self.data1 = None
         self.data2 = None
         self.shape = None
-        self.ucomp = None
-        self.vcomp = None
 
     @staticmethod
     def corner(data, axis=None):
@@ -680,37 +680,113 @@ class OpticalFlow(object):
 
         return umat, vmat
 
-    def process(self, data1, data2):
+    def process_dimensionless(self, data1, data2, xaxis, yaxis):
         """
-        Calculates advection velocities from two input fields using plugin
-        parameters.  Sets these as plugin variables - this is OK, have some
-        access methods rather than returning two cubes
-
-        TODO update to work with (input and output) cubes and dimensioned time
-        differences
+        Calculates dimensionless advection velocities from two input fields.
 
         Args:
             data1 (np.ndarray):
                 2D input data array from time 1
             data2 (np.ndarray):
                 2D input data array from time 2
+            xaxis (int):
+                Index of x coordinate axis
+            yaxis (int):
+                Index of y coordinate axis
 
-        Also TODO: resolve x/y bug(s)
+        Returns:
+            ucomp (np.ndarray):
+                Advection velocity in the x direction in "grid squares per
+                time step"
+            vcomp (np.ndarray):
+                Advection velocity in the y direction in "grid squares per
+                time step"
         """
-
         # Smooth input data
-        self.shape = data1.shape  # TODO throw error if shapes don't match?
+        self.shape = data1.shape
         self.data1 = self.smooth(data1, self.data_smoothing_radius,
                                  method=self.data_smoothing_method)
         self.data2 = self.smooth(data2, self.data_smoothing_radius,
                                  method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
-        # TODO fix hardcoded assumption of (x, y) coordinate ordering
-        partial_dx = self._partial_derivative_spatial(axis=0)
-        partial_dy = self._partial_derivative_spatial(axis=1)
+        partial_dx = self._partial_derivative_spatial(axis=xaxis)
+        partial_dy = self._partial_derivative_spatial(axis=yaxis)
         partial_dt = self._partial_derivative_temporal()
 
         # Calculate advection velocities
-        self.ucomp, self.vcomp = self.calculate_advection_velocities(
+        ucomp, vcomp = self.calculate_advection_velocities(
             partial_dx, partial_dy, partial_dt)
+
+        return ucomp, vcomp
+
+    def process(self, cube1, cube2):
+        """
+        Extracts data from input cubes, performs dimensionless advection
+        velocity calculation, and creates new cubes with advection velocities
+        in metres per second.  Each input cube should have precisely two
+        non-scalar dimension coordinates (spatial x/y), and are expected to be
+        in a projection such that grid spacing is the same (or very close) at
+        all points within the spatial domain.  Each input cube must also have
+        a scalar "time" coordinate.
+
+        Args:
+            cube1 (iris.cube.Cube):
+                2D cube from (earlier) time 1
+            cube2 (iris.cube.Cube):
+                2D cube from (later) time 2
+        """
+
+        # check cubes have exactly two spatial dimension coordinates and a
+        # scalar time coordinate
+        check_input_coords(cube1, require_time=True)
+        check_input_coords(cube2, require_time=True)
+
+        # check cube dimensions match
+        if (cube1.coord(axis="x") != cube2.coord(axis="x") or
+                cube1.coord(axis="y") != cube2.coord(axis="y")):
+            raise InvalidCubeError("Input cubes on unmatched grids")
+
+        # check time difference is positive
+        tdiff, = cube2.coord("time").points - cube1.coord("time").points
+        if tdiff.seconds <= 0:
+            raise InvalidCubeError("Expected positive time difference cube2 - "
+                                   "cube1; got {} s".format(tdiff.seconds))
+
+        # extract spatial grid length
+        new_coord = cube1.coord(axis='x').copy()
+        new_coord.convert_units('km')
+        grid_length_km = float(np.diff((new_coord).points)[0])
+
+        # convert plugin parameters to grid square units
+        self.data_smoothing_radius = \
+            self.data_smoothing_radius_km / grid_length_km
+        self.boxsize = self.boxsize_km / grid_length_km
+
+        # calculate dimensionless advection velocities
+        ucomp, vcomp = self.process_dimensionless(cube1.data, cube2.data, 1, 0)
+
+        # convert dimensionless velocities to metres per second
+        for vel in [ucomp, vcomp]:
+            vel /= (1000.*grid_length_km)
+            vel *= tdiff.seconds
+
+        # create velocity output cubes based on metadata from later input cube
+        x_coord = cube2.coord(axis="x")
+        y_coord = cube2.coord(axis="y")
+        t_coord = cube2.coord("time")
+
+        ucube = iris.cube.Cube(ucomp, long_name="advection_velocity_x",
+                               units="m s-1",
+                               dim_coords_and_dims=[(y_coord, 0),
+                                                    (x_coord, 1)])
+        ucube.add_aux_coord(t_coord)
+
+        vcube = iris.cube.Cube(vcomp, long_name="advection_velocity_y",
+                               units="m s-1",
+                               dim_coords_and_dims=[(y_coord, 0),
+                                                    (x_coord, 1)])
+        vcube.add_aux_coord(t_coord)
+
+        return ucube, vcube
+

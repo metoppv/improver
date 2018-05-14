@@ -47,16 +47,16 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test initialisation and types"""
         plugin = OpticalFlow()
-        self.assertIsInstance(plugin.data_smoothing_radius, int)
+        self.assertIsInstance(plugin.data_smoothing_radius_km, int)
+        self.assertIsNone(plugin.data_smoothing_radius)
         self.assertIsInstance(plugin.data_smoothing_method, str)
-        self.assertIsInstance(plugin.boxsize, int)
+        self.assertIsInstance(plugin.boxsize_km, int)
+        self.assertIsNone(plugin.boxsize)
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.point_weight, float)
         self.assertIsNone(plugin.data1)
         self.assertIsNone(plugin.data2)
         self.assertIsNone(plugin.shape)
-        self.assertIsNone(plugin.ucomp)
-        self.assertIsNone(plugin.vcomp)
 
 
 class Test_makekernel(IrisTest):
@@ -214,7 +214,9 @@ class OpticalFlowVelocityTest(IrisTest):
                               [0., 0., 0., 1., 0.]])
 
         self.weights = 0.3*np.multiply(self.umat, self.vmat)
-        self.plugin = OpticalFlow(boxsize=3, kernel=3, iterations=10)
+        self.plugin = OpticalFlow(iterations=10)
+        self.plugin.data_smoothing_radius = 3
+        self.plugin.boxsize = 3
         self.plugin.data1 = np.zeros((12, 15))
         self.plugin.shape = self.plugin.data1.shape
 
@@ -350,7 +352,9 @@ class Test_calculate_advection_velocities(IrisTest):
         non-singular outputs.  Large matrices with zeros are needed for the
         smoothing algorithms to behave sensibly."""
 
-        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+        self.plugin = OpticalFlow(iterations=10)
+        self.plugin.data_smoothing_radius = 3
+        self.plugin.boxsize = 3
 
         rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
                                    [1., 2., 2., 2., 2., 1., 1.],
@@ -388,15 +392,17 @@ class Test_calculate_advection_velocities(IrisTest):
         self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
 
 
-class Test_process(IrisTest):
-    """Test the process method"""
+class Test_process_dimensionless(IrisTest):
+    """Test the process_dimensionless method"""
 
     def setUp(self):
         """Set up plugin options and input rainfall-like matrices that produce
         non-singular outputs.  Large matrices with zeros are needed for the
         smoothing algorithms to behave sensibly."""
 
-        self.plugin = OpticalFlow(kernel=3, boxsize=3, iterations=10)
+        self.plugin = OpticalFlow(iterations=10)
+        self.plugin.data_smoothing_radius = 3
+        self.plugin.boxsize = 3
 
         rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
                                    [1., 2., 2., 2., 2., 1., 1.],
@@ -414,12 +420,21 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test outputs are of the correct type and value"""
-        self.plugin.process(self.first_input, self.second_input)
-        self.assertIsInstance(self.plugin.ucomp, np.ndarray)
-        self.assertIsInstance(self.plugin.vcomp, np.ndarray)
-        # NOTE x/y axis inversion - will need to fix this...
-        self.assertAlmostEqual(np.mean(self.plugin.ucomp), 0.95435266462)
-        self.assertAlmostEqual(np.mean(self.plugin.vcomp), -0.95435266462)
+        ucomp, vcomp = self.plugin.process_dimensionless(
+            self.first_input, self.second_input, 0, 1)
+        self.assertIsInstance(ucomp, np.ndarray)
+        self.assertIsInstance(vcomp, np.ndarray)
+        self.assertAlmostEqual(np.mean(ucomp), 0.95435266462)
+        self.assertAlmostEqual(np.mean(vcomp), -0.95435266462)
+
+    def test_axis_inversion(self):
+        """Test inverting x and y axis indices gives the correct result"""
+        ucomp, vcomp = self.plugin.process_dimensionless(
+            self.first_input, self.second_input, 1, 0)
+        self.assertAlmostEqual(np.mean(ucomp), -0.95435266462)
+        self.assertAlmostEqual(np.mean(vcomp), 0.95435266462)
+
+
 
 
 if __name__ == '__main__':

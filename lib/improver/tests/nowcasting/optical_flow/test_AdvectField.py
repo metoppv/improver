@@ -84,45 +84,6 @@ class Test__init__(IrisTest):
             _ = AdvectField(vel_x, vel_y)
 
 
-class Test__check_input_coords(IrisTest):
-    """Tests for the _check_input_coords method"""
-
-    def setUp(self):
-        """Set up dummy cube and plugin instance"""
-        self.valid = set_up_xy_velocity_cube("advection_velocity_x")
-        self.plugin = AdvectField(self.valid, self.valid)
-
-    def test_missing_spatial_dimension(self):
-        """Test rejects cube missing y axis"""
-        invalid_1d = self.valid[0]
-        invalid_1d.remove_coord("projection_y_coordinate")
-        with self.assertRaises(InvalidCubeError):
-            self.plugin._check_input_coords(invalid_1d)
-
-    def test_additional_scalar_dimension(self):
-        """Test accepts cube with single realization coordinate"""
-        vel = self.valid.copy()
-        vel.add_aux_coord(DimCoord(1, standard_name="realization"))
-        self.plugin._check_input_coords(vel)
-
-    def test_additional_nonscalar_dimension(self):
-        """Test rejects cube with multiple realizations"""
-        vel1 = self.valid.copy()
-        vel1.add_aux_coord(DimCoord(1, standard_name="realization"))
-        vel2 = self.valid.copy()
-        vel2.add_aux_coord(DimCoord(2, standard_name="realization"))
-        invalid_3d, = (iris.cube.CubeList([vel1, vel2])).merge()
-        msg = "Cube has 3"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
-            self.plugin._check_input_coords(invalid_3d)
-
-    def test_time(self):
-        """Test rejects cube without time coord"""
-        msg = "Input cube has no time coordinate"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
-            self.plugin._check_input_coords(self.valid, require_time=True)
-
-
 class Test__increment_output_array(IrisTest):
     """Tests for the _increment_output_array method"""
 
