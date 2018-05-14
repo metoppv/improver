@@ -324,7 +324,7 @@ class OpticalFlow(object):
         self.data_smoothing_radius = kernel
         self.data_smoothing_method = smethod
 
-        # parameters for velocity calculation and smoothing
+        # parameters for velocity calculation and "smart smoothing"
         self.boxsize = boxsize
         self.iterations = iterations
         self.point_weight = point_weight
@@ -362,11 +362,11 @@ class OpticalFlow(object):
             corners = 0.5*(data[:, :-1] + data[:, 1:])
         return corners
 
-    def mdiff_spatial(self, axis=0):
+    def _partial_derivative_spatial(self, axis=0):
         """
         Calculate the average over two input fields of one spatial derivative,
         averaged over the other spatial dimension.  Pad with zeros in both
-        dimensions, and smooth.
+        dimensions, then smooth to original grid shape
 
         Args:
             axis (int):
@@ -378,15 +378,13 @@ class OpticalFlow(object):
         """
         outdata = []
         for data in [self.data1, self.data2]:
-            diffs = np.diff(data, axis=axis)
-            average_diffs = np.zeros(data.shape)
-            average_diffs[1:, 1:] = self.corner(diffs, axis=1-axis)
-            outdata.append(average_diffs)
-        xdiff = np.zeros([self.shape[0]+1, self.shape[1]+1])
-        xdiff[:-1, :-1] = 0.5*(outdata[0] + outdata[1])
-        return self.corner(xdiff)
+            diffs = self.corner(np.diff(data, axis=axis), axis=1-axis)
+            outdata.append(diffs)
+        smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
+        smoothed_diffs[1:-1, 1:-1] = 0.5*(outdata[0] + outdata[1])
+        return self.corner(smoothed_diffs)
 
-    def mdiff_temporal(self):
+    def _partial_derivative_temporal(self):
         """
         Calculate the partial derivative of two fields over time.  Take the
         difference between time-separated fields data1 and data2, then average
@@ -397,16 +395,15 @@ class OpticalFlow(object):
             tdiff (np.ndarray):
                 Smoothed temporal derivative
         """
-        tstep = self.data2 - self.data1
-        tdiff = np.zeros([self.shape[0]+1, self.shape[1]+1])
-        tdiff[1:-1, 1:-1] = self.corner(tstep)
-        return self.corner(tdiff)
+        tdiff = self.data2 - self.data1
+        smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
+        smoothed_diffs[1:-1, 1:-1] = self.corner(tdiff)
+        return self.corner(smoothed_diffs)
 
-    def makesubboxes(self, field, boxsize):
+    def _make_subboxes(self, field, boxsize):
         """
         Generate a list of sliding "boxes" of size boxsize*boxsize from the
-        input field, along with weights based on data "intensity" values at
-        times 1 and 2.
+        input field, along with weights based on data values at times 1 and 2.
 
         Args:
             field (np.ndarray):
@@ -437,40 +434,42 @@ class OpticalFlow(object):
         weights[weights < 0.01] = 0
         return boxes, weights
 
-    def regrid_velocities(self, umat, vmat):
+    def _regrid_box_velocities(self, box_velocity):
         """
         Regrids calculated velocities from "box grid" (on which OFC equations
         are solved) to input data grid.
 
-        in: umat, vmat  : u and v box velocity fields
-        out:  umat_t  : u velocity field
-            vmat_t  : v velocity field
-        Function to reshape the velocity vectors containing the box velocities,
-        to velocity pixel maps
+        Args:
+            box_velocity (np.ndarray):
+                Velocity of subbox on box grid
+
+        Returns:
+            grid_velocity (np.ndarray):
+                Velocity on original data grid
         """
-        umat_t = np.zeros(self.shape)
-        vmat_t = np.zeros(self.shape)
-        for ii in range(umat.shape[0]):
-            for jj in range(umat.shape[1]):
-                umat_t[ii*self.boxsize:(ii+1)*self.boxsize,
-                       jj*self.boxsize:(jj+1)*self.boxsize] = umat[ii, jj]
-                vmat_t[ii*self.boxsize:(ii+1)*self.boxsize,
-                       jj*self.boxsize:(jj+1)*self.boxsize] = vmat[ii, jj]
-        return umat_t, vmat_t
+        grid_velocity = np.zeros(self.shape)
+        for i in range(box_velocity.shape[0]):
+            for j in range(box_velocity.shape[1]):
+                grid_velocity[i*self.boxsize:(i+1)*self.boxsize,
+                              j*self.boxsize:(j+1)*self.boxsize] = \
+                    box_velocity[i, j]
+        return grid_velocity
 
     @staticmethod
     def makekernel(radius):
         """
-        Make a circular kernel to smooth an input field.  Used in
-        self.smoothing() with method='kernel'.  The output array is
-        zero-padded, so a radius of 1 gives the kernel: 
+        Make a pseudo-circular kernel of radius "radius" to smooth an input
+        field (used in self.smoothing() with method='kernel').  The output
+        array is zero-padded, so a radius of 1 gives the kernel:
+        ::
 
             [[ 0.  0.  0.]
              [ 0.  1.  0.]
              [ 0.  0.  0.]]
 
-        which has no effect on the input field.  The smallest output
-        kernel of radius 2 gives:
+        which has no effect on the input field.  The smallest valid radius
+        of 2 gives the kernel:
+        ::
 
             [[ 0.      0.      0.      0.      0.    ]
              [ 0.      0.0625  0.125   0.0625  0.    ]
@@ -478,20 +477,13 @@ class OpticalFlow(object):
              [ 0.      0.0625  0.125   0.0625  0.    ]
              [ 0.      0.      0.      0.      0.    ]]
 
-        Args:
-            radius (int):
-                Radius of required kernel
-
-        Returns:
-            kernel (np.ndarray):
-                Normalised array of shape (radius*2+1, radius*2+1)
         """
         temp = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
         kernel = temp.reshape(radius*2+1, 1) * temp.reshape(1, radius*2+1)
         kernel /= kernel.sum()
         return kernel
 
-    def smoothing(self, field, radius, method='box'):
+    def smooth(self, field, radius, method='box'):
         """
         Smoothing method using a square ('box') or circular kernel.  Kernel
         smoothing with a radius of 1 has no effect.
@@ -502,7 +494,7 @@ class OpticalFlow(object):
             radius (int):
                 Kernel radius or half box size for smoothing
             method (str):
-                Method to use: 'box' or 'kernel'
+                Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
             smoothed_field (np.ndarray):
@@ -512,13 +504,12 @@ class OpticalFlow(object):
             kernel = self.makekernel(radius)
             smoothed_field = scipy.signal.convolve2d(
                 field, kernel, mode='same', boundary="symm")
-        elif method == 'box':  # type of smoothing used in steps
+        elif method == 'box':
             smoothed_field = scipy.ndimage.filters.uniform_filter(
                 field, size=radius*2+1, mode='nearest')
         return smoothed_field
 
-    def smart_smoothing(self, umat_point, vmat_point, umat_iter, vmat_iter,
-                        weights):
+    def _smart_smooth(self, vel_point, vel_iter, weights):
         """
         Performs a single iteration of "smart smoothing" over a point and its
         neighbours as implemented in STEPS.  This smoothing (through the
@@ -527,14 +518,10 @@ class OpticalFlow(object):
         structure from which to calculate advection velocities.
 
         Args:
-            umat_point (np.ndarray):
-                Original unsmoothed velocity in the x direction
-            vmat_point (np.ndarray):
-                Original unsmoothed velocity in the y direction
-            umat_iter (np.ndarray):
-                Latest iteration of velocity in the x direction
-            vmat_iter (np.ndarray):
-                Latest iteration of velocity in the y direction
+            vel_point (np.ndarray):
+                Original unsmoothed velocity
+            vel_iter (np.ndarray):
+                Latest iteration of smart-smoothed velocity
             weights (np.ndarray):
                 Weight of each grid point for averaging
         """
@@ -544,15 +531,12 @@ class OpticalFlow(object):
                                      [0.5, 1, 0.5]])/6.
 
         # smooth input velocities and weights
-        umat_neighbour = scipy.ndimage.convolve(weights*umat_iter,
-                                                neighbour_kernel)
-        vmat_neighbour = scipy.ndimage.convolve(weights*vmat_iter,
-                                                neighbour_kernel)
+        vel_neighbour = scipy.ndimage.convolve(weights*vel_iter,
+                                               neighbour_kernel)
         neighbour_weights = scipy.ndimage.convolve(weights, neighbour_kernel)
 
         # initialise output velocities from latest iteration
-        umat = scipy.ndimage.convolve(umat_iter, neighbour_kernel)
-        vmat = scipy.ndimage.convolve(vmat_iter, neighbour_kernel)
+        vel = scipy.ndimage.convolve(vel_iter, neighbour_kernel)
 
         # create "point" and "neighbour" validity masks using original and
         # kernel-smoothed weights
@@ -561,8 +545,7 @@ class OpticalFlow(object):
 
         # where neighbouring points have weight, set up a "background" of
         # weighted average neighbouring values
-        umat[nmask] = umat_neighbour[nmask] / neighbour_weights[nmask]
-        vmat[nmask] = vmat_neighbour[nmask] / neighbour_weights[nmask]
+        vel[nmask] = vel_neighbour[nmask] / neighbour_weights[nmask]
 
         # where a point has weight, calculate a weighted sum of the original
         # (uniterated) point value and its smoothed neighbours
@@ -570,140 +553,130 @@ class OpticalFlow(object):
         pweight = self.point_weight * weights
         norm = nweight * neighbour_weights + pweight
 
-        umat[pmask] = (umat_neighbour[pmask] * nweight +
-                       umat_point[pmask] * pweight[pmask]) / norm[pmask]
-        vmat[pmask] = (vmat_neighbour[pmask] * nweight +
-                       vmat_point[pmask] * pweight[pmask]) / norm[pmask]
+        vel[pmask] = (vel_neighbour[pmask] * nweight +
+                      vel_point[pmask] * pweight[pmask]) / norm[pmask]
+        return vel
 
-        return umat, vmat
-
-    def smooth_advection_velocities(self, umat, vmat, weights):
+    def _smooth_advection_velocities(self, box_velocity, weights):
         """
-        Perform iterative "smart smoothing" of advection velocity fields,
+        Performs iterative "smart smoothing" of advection velocity fields,
         accounting for zeros and reducting their weight in the final output.
         Then regrid from "box grid" (on which OFC equations are solved) to
         input data grid, and perform one final pass simple kernel smoothing.
 
         Args:
-            umat (np.ndarray):
-                Velocities in the x-direction on box grid
-            vmat (np.ndarray):
-                Velocities in the y-direction on box grid
+            box_velocity (np.ndarray):
+                Velocities on box grid
             weights (np.ndarray):
                 Weights for smart smoothing
         Returns:
-            umat_f (np.ndarray):
-                Smoothed velocities in the x-direction on input data grid
-            vmat_f (np.ndarray):
-                Smoothed velocities in the y-direction on input data grid
+            grid_velocity (np.ndarray):
+                Smoothed velocities on input data grid
         """
-        umat_orig = np.copy(umat)
-        vmat_orig = np.copy(vmat)
+        v_orig = np.copy(box_velocity)
 
         # iteratively smooth umat and vmat
         for _ in range(self.iterations):
-            umat, vmat = self.smart_smoothing(umat_orig, vmat_orig, umat, vmat,
-                                              weights)
+            box_velocity = self._smart_smooth(v_orig, box_velocity, weights)
 
         # reshape smoothed box velocity arrays to match input data grid
-        umat_f, vmat_f = self.regrid_velocities(umat, vmat)
-        smn = int(self.boxsize/3)
-        umat_f = self.smoothing(umat_f, smn, method='kernel')
-        vmat_f = self.smoothing(vmat_f, smn, method='kernel')
+        grid_velocity = self._regrid_box_velocities(box_velocity)
 
-        return umat_f, vmat_f
+        # smooth regridded velocities
+        kernelsize = int(self.boxsize/3)
+        grid_velocity = self.smooth(grid_velocity, kernelsize, method='kernel')
+        return grid_velocity
 
     @staticmethod
-    def solve_for_uv(I_xy, I_t):
+    def solve_for_uv(deriv_xy, deriv_t):
         """
         Solve the system of linear simultaneous equations for u and v using
         matrix inversion (equation 19 in STEPS document).  This is frequently
         singular, eg in the presence of too many zeroes.  In these cases,
         the function returns velocities of 0.
 
-        NOTE (Martina): there is a problem here if I have many fewer pixels
-        with intensity here than pixels with (zeros?)
-
         Args:
-            I_xy (np.ndarray):
-                2-column matrix containing partial field derivatives dI/dx
-                (first column) and dI/dy (second column)
-            I_t (np.ndarray):
-                1-column matrix containing partial field derivatives dI/dt
+            deriv_xy (np.ndarray):
+                2-column matrix containing partial field derivatives d/dx
+                (first column) and d/dy (second column)
+            deriv_t (np.ndarray):
+                1-column matrix containing partial field derivatives d/dt
 
         Returns:
             velocity (np.ndarray):
                 2-column matrix (u, v) containing scalar wind velocities
         """
-        I_t = I_t.reshape([I_t.size, 1])
-        m1 = (I_xy.transpose()).dot(I_xy)
+        deriv_t = deriv_t.reshape([deriv_t.size, 1])
+        m_to_invert = (deriv_xy.transpose()).dot(deriv_xy)
         try:
-            m1_inv = np.linalg.inv(m1)
+            m_inverted = np.linalg.inv(m_to_invert)
         except np.linalg.LinAlgError:
             # if matrix is not invertible, set velocities to zero
             velocity = np.array([0, 0])
         else:
-            m2 = (I_xy.transpose()).dot(I_t)
-            velocity = -m1_inv.dot(m2)[:, 0]
+            scale = (deriv_xy.transpose()).dot(deriv_t)
+            velocity = -m_inverted.dot(scale)[:, 0]
         return velocity
 
-    def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t):
+    def calculate_advection_velocities(self, partial_dx, partial_dy,
+                                       partial_dt):
         """
         This implements the OFC algorithm, assuming all points in a box with
         "boxsize" sidelength have the same velocity components.
 
         Args:
-            xdif_t (np.ndarray):
-                2D array of partial derivatives dI/dx
-            ydif_t (np.ndarray):
-                2D array of partial derivatives dI/dy
-            tdif_t (np.ndarray):
-                2D array of partial derivatives dI/dt
+            partial_dx (np.ndarray):
+                2D array of partial input field derivatives d/dx
+            partial_dy (np.ndarray):
+                2D array of partial input field derivatives d/dy
+            partial_dt (np.ndarray):
+                2D array of partial input field derivatives d/dt
 
         Returns:
-            umat_f (np.ndarray):
+            umat (np.ndarray):
                 2D array of velocities in the x-direction
-            vmat_f (np.ndarray):
+            vmat (np.ndarray):
                 2D array of velocities in the y-direction
         """
 
-        # (a) List subboxes over which velocity is constant
-        xdif_tb, weight_tb = self.makesubboxes(xdif_t, self.boxsize)
-        ydif_tb, _ = self.makesubboxes(ydif_t, self.boxsize)
-        tdif_tb, _ = self.makesubboxes(tdif_t, self.boxsize)
+        # (a) Generate lists of subboxes over which velocity is constant
+        dx_boxed, box_weights = self._make_subboxes(partial_dx, self.boxsize)
+        dy_boxed, _ = self._make_subboxes(partial_dy, self.boxsize)
+        dt_boxed, _ = self._make_subboxes(partial_dt, self.boxsize)
 
         # (b) Solve optical flow velocity calculation on each subbox
         velocity = ([], [])
-        for xdif, ydif, tdif in zip(
-                xdif_tb, ydif_tb, tdif_tb):
+        for deriv_x, deriv_y, deriv_t in zip(dx_boxed, dy_boxed, dt_boxed):
 
-            # Create system of linear equations to solve for each subbox
-            I_x = xdif.flatten()
-            I_y = ydif.flatten()
-            I_t = tdif.flatten()
-            I_xy = (np.array([I_x, I_y])).transpose()
+            # Flatten arrays to create the system of linear simultaneous
+            # equations to solve for this subbox
+            deriv_x = deriv_x.flatten()
+            deriv_y = deriv_y.flatten()
+            deriv_t = deriv_t.flatten()
+            deriv_xy = (np.array([deriv_x, deriv_y])).transpose()
 
             # Solve equations for u and v through matrix inversion
-            u, v = self.solve_for_uv(I_xy, I_t)
+            u, v = self.solve_for_uv(deriv_xy, deriv_t)
             velocity[0].append(u)
             velocity[1].append(v)
 
         # (c) Reshape velocity arrays to match array of subbox central points
-        newshape = [int((xdif_t.shape[0]-1)/self.boxsize) + 1,
-                    int((xdif_t.shape[1]-1)/self.boxsize) + 1]
+        newshape = [int((self.shape[0]-1)/self.boxsize) + 1,
+                    int((self.shape[1]-1)/self.boxsize) + 1]
         umat = np.array(velocity[0]).reshape(newshape)
         vmat = np.array(velocity[1]).reshape(newshape)
-        weights = weight_tb.reshape(newshape)
+        weights = box_weights.reshape(newshape)
 
-        # (d) Check for extreme velocities (advection over a significant
-        #     proportion of the domain size) and set to zero
+        # (d) Check for extreme velocities (advection displacement over a
+        #     significant proportion of the domain size) and set to zero
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
         umat[flag] = 0
         vmat[flag] = 0
         weights[flag] = 0
 
         # (e) smooth and reshape velocity arrays to match input data grid
-        umat, vmat = self.smooth_advection_velocities(umat, vmat, weights)
+        umat = self._smooth_advection_velocities(umat, weights)
+        vmat = self._smooth_advection_velocities(vmat, weights)
 
         return umat, vmat
 
@@ -726,17 +699,17 @@ class OpticalFlow(object):
         """
 
         # Smooth input data
-        self.shape = data1.shape  # TODO error if shapes don't match?
-        self.data1 = self.smoothing(data1, self.data_smoothing_radius,
-                                    method=self.data_smoothing_method)
-        self.data2 = self.smoothing(data2, self.data_smoothing_radius,
-                                    method=self.data_smoothing_method)
+        self.shape = data1.shape  # TODO throw error if shapes don't match?
+        self.data1 = self.smooth(data1, self.data_smoothing_radius,
+                                 method=self.data_smoothing_method)
+        self.data2 = self.smooth(data2, self.data_smoothing_radius,
+                                 method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO fix hardcoded assumption of (x, y) coordinate ordering
-        partial_dx = self.mdiff_spatial(axis=0)
-        partial_dy = self.mdiff_spatial(axis=1)
-        partial_dt = self.mdiff_temporal()
+        partial_dx = self._partial_derivative_spatial(axis=0)
+        partial_dy = self._partial_derivative_spatial(axis=1)
+        partial_dt = self._partial_derivative_temporal()
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.calculate_advection_velocities(

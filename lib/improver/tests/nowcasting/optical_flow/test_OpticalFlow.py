@@ -125,20 +125,21 @@ class Test_corner(OpticalFlowUtilityTest):
         self.assertArrayAlmostEqual(result, expected_output)
 
 
-class Test_mdiff_spatial(OpticalFlowUtilityTest):
-    """Test mdiff_spatial function"""
+class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
+    """Test _partial_derivative_spatial function"""
 
     def test_basic(self):
-        """Test for correct output type"""
-        result = self.plugin.mdiff_spatial(axis=0)
+        """Test for correct output type and shape"""
+        result = self.plugin._partial_derivative_spatial(axis=0)
         self.assertIsInstance(result, np.ndarray)
+        self.assertSequenceEqual(result.shape, self.plugin.shape)
 
     def test_default(self):
         """Test output values for axis=0"""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
-        result = self.plugin.mdiff_spatial(axis=0)
+        result = self.plugin._partial_derivative_spatial(axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_transpose(self):
@@ -146,34 +147,35 @@ class Test_mdiff_spatial(OpticalFlowUtilityTest):
         expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
                                     [0.2500, 0.6875, 0.9375, 1.0, 0.50],
                                     [0.0625, 0.2500, 0.4375, 0.5, 0.25]])
-        result = self.plugin.mdiff_spatial(axis=1)
+        result = self.plugin._partial_derivative_spatial(axis=1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
-class Test_mdiff_temporal(OpticalFlowUtilityTest):
-    """Test mdiff_temporal function"""
+class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
+    """Test _partial_derivative_temporal function"""
 
     def test_basic(self):
-        """Test for correct output type"""
-        result = self.plugin.mdiff_temporal()
+        """Test for correct output type and shape"""
+        result = self.plugin._partial_derivative_temporal()
         self.assertIsInstance(result, np.ndarray)
+        self.assertSequenceEqual(result.shape, self.plugin.shape)
 
     def test_values(self):
         """Test output values"""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
-        result = self.plugin.mdiff_temporal()
+        result = self.plugin._partial_derivative_temporal()
         self.assertArrayAlmostEqual(result, expected_output)
 
 
-class Test_makesubboxes(OpticalFlowUtilityTest):
-    """Test makesubboxes function"""
+class Test__make_subboxes(OpticalFlowUtilityTest):
+    """Test _make_subboxes function"""
 
     def test_basic(self):
         """Test for correct output types"""
         field = np.ones(shape=self.plugin.data1.shape)
-        boxes, weights = self.plugin.makesubboxes(field, 2)
+        boxes, weights = self.plugin._make_subboxes(field, 2)
         self.assertIsInstance(boxes, list)
         self.assertIsInstance(weights, np.ndarray)
 
@@ -182,7 +184,7 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
         expected_weights = np.array([0.54216664, 0.95606307, 0.917915, 0.,
                                      0.46473857, 0.54216664])
         field = np.ones(shape=self.plugin.data1.shape)
-        _, weights = self.plugin.makesubboxes(field, 2)
+        _, weights = self.plugin._make_subboxes(field, 2)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
@@ -208,17 +210,17 @@ class OpticalFlowVelocityTest(IrisTest):
         self.plugin.shape = self.plugin.data1.shape
 
 
-class Test_regrid_velocities(OpticalFlowVelocityTest):
-    """Test regrid_velocities function"""
+class Test__regrid_box_velocities(OpticalFlowVelocityTest):
+    """Test _regrid_box_velocities function"""
 
     def test_basic(self):
         """Test for correct output types"""
-        umat, _ = self.plugin.regrid_velocities(self.umat, self.vmat)
+        umat = self.plugin._regrid_box_velocities(self.umat)
         self.assertIsInstance(umat, np.ndarray)
         self.assertSequenceEqual(umat.shape, (12, 15))
 
     def test_values(self):
-        """Test output matrices have expected values"""
+        """Test output matrix values"""
         expected_umat = np.array(
             [[1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
              [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
@@ -233,67 +235,50 @@ class Test_regrid_velocities(OpticalFlowVelocityTest):
              [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
              [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.]])
 
-        expected_vmat = np.array(
-            [[3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [3., 3., 3., 2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.],
-             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 1., 1., 0., 0., 0.]])
-
-        umat, vmat = self.plugin.regrid_velocities(self.umat, self.vmat)
-
+        umat = self.plugin._regrid_box_velocities(self.umat)
         self.assertArrayAlmostEqual(umat, expected_umat)
-        self.assertArrayAlmostEqual(vmat, expected_vmat)
 
 
-class Test_smoothing(OpticalFlowVelocityTest):
-    """Test simple smoothing function"""
+class Test_smooth(OpticalFlowVelocityTest):
+    """Test simple smooth function"""
 
     def test_basic(self):
         """Test for correct output types"""
-        output = self.plugin.smoothing(self.umat, 2)
+        output = self.plugin.smooth(self.umat, 2)
         self.assertIsInstance(output, np.ndarray)
 
-    def test_box_smoothing(self):
-        """Test smoothing over square box (default)"""
+    def test_box_smooth(self):
+        """Test smooth over square box (default)"""
         expected_output = np.array([[0.84, 0.60, 0.36, 0.12, 0.04],
                                     [1.20, 0.92, 0.60, 0.28, 0.12],
                                     [1.56, 1.24, 0.84, 0.44, 0.20],
                                     [1.92, 1.56, 1.08, 0.60, 0.28]])
 
-        output = self.plugin.smoothing(self.umat, 2)
+        output = self.plugin.smooth(self.umat, 2)
         self.assertArrayAlmostEqual(output, expected_output)
 
-    def test_kernel_smoothing(self):
-        """Test smoothing over circular kernel"""
+    def test_kernel_smooth(self):
+        """Test smooth over circular kernel"""
         expected_output = np.array([[0.8125, 0.3750, 0.0625, 0., 0.],
                                     [1.1250, 0.7500, 0.3125, 0.0625, 0.],
                                     [1.8125, 1.3125, 0.7500, 0.3125, 0.0625],
                                     [2.5000, 1.8125, 1.1250, 0.6250, 0.1875]])
 
-        output = self.plugin.smoothing(self.umat, 2, method='kernel')
+        output = self.plugin.smooth(self.umat, 2, method='kernel')
         self.assertArrayAlmostEqual(output, expected_output)
 
     def test_null_behaviour(self):
-        """Test smoothing with a kernel radius of 1 has no effect"""
-        output = self.plugin.smoothing(self.umat, 1, method='kernel')
+        """Test smooth with a kernel radius of 1 has no effect"""
+        output = self.plugin.smooth(self.umat, 1, method='kernel')
         self.assertArrayAlmostEqual(output, self.umat)
 
 
-class Test_smart_smoothing(OpticalFlowVelocityTest):
-    """Test smart smoothing function"""
+class Test__smart_smooth(OpticalFlowVelocityTest):
+    """Test _smart_smooth function"""
 
     def test_basic(self):
         """Test for correct output types"""
-        umat, _ = self.plugin.smart_smoothing(
-            self.umat, self.vmat, self.umat, self.vmat, self.weights)
+        umat = self.plugin._smart_smooth(self.umat, self.umat, self.weights)
         self.assertIsInstance(umat, np.ndarray)
         self.assertSequenceEqual(umat.shape, self.umat.shape)
 
@@ -303,43 +288,26 @@ class Test_smart_smoothing(OpticalFlowVelocityTest):
                                   [1.25352113, 1.19354839, 1., 0.08333333, 0.],
                                   [1.48780488, 1.50000000, 1., 1.00000000, 1.],
                                   [2., 2., 1., 1., 1.]])
-
-        expected_vmat = np.array([[2.69230769, 2.53846154, 1., 0.25000000, 0.],
-                                  [2.04225352, 1.96774194, 1., 0.08333333, 0.],
-                                  [1.43902439, 1.25000000, 1., 1., 1.],
-                                  [1., 1., 1., 1., 1.]])
-
-        umat, vmat = self.plugin.smart_smoothing(
-            self.umat, self.vmat, self.umat, self.vmat, self.weights)
+        umat = self.plugin._smart_smooth(self.umat, self.umat, self.weights)
         self.assertArrayAlmostEqual(umat, expected_umat)
-        self.assertArrayAlmostEqual(vmat, expected_vmat)
 
 
-class Test_smooth_advection_velocities(OpticalFlowVelocityTest):
+class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
     """Test smoothing of advection velocities"""
 
     def test_basic(self):
         """Test for correct output types"""
-        umat, _ = self.plugin.smooth_advection_velocities(
-            self.umat, self.vmat, self.weights)
-        self.assertIsInstance(umat, np.ndarray)
-        self.assertSequenceEqual(umat.shape, (12, 15))
+        vmat = self.plugin._smooth_advection_velocities(self.vmat, self.weights)
+        self.assertIsInstance(vmat, np.ndarray)
+        self.assertSequenceEqual(vmat.shape, (12, 15))
 
     def test_values(self):
         """Test output matrices have expected values"""
-        first_row_u = np.array(
-            [1.124620, 1.124620, 1.124620, 1.145532, 1.145532,
-             1.145532, 1.192604, 1.192604, 1.192604, 1.050985,
-             1.050985, 1.050985, 0.967760, 0.967760, 0.967760])
-
         first_row_v = np.array(
             [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
              2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
              1.589809, 1.589809, 1.331045, 1.331045, 1.331045])
-
-        umat, vmat = self.plugin.smooth_advection_velocities(
-            self.umat, self.vmat, self.weights)
-        self.assertArrayAlmostEqual(umat[0], first_row_u)
+        vmat = self.plugin._smooth_advection_velocities(self.vmat, self.weights)
         self.assertArrayAlmostEqual(vmat[0], first_row_v)
 
 
@@ -392,9 +360,9 @@ class Test_calculate_advection_velocities(IrisTest):
         second_input[2:9, 1:8] = rainfall_block
         self.plugin.data2 = second_input
 
-        self.partial_dx = self.plugin.mdiff_spatial(axis=1)
-        self.partial_dy = self.plugin.mdiff_spatial(axis=0)
-        self.partial_dt = self.plugin.mdiff_temporal()
+        self.partial_dx = self.plugin._partial_derivative_spatial(axis=1)
+        self.partial_dy = self.plugin._partial_derivative_spatial(axis=0)
+        self.partial_dt = self.plugin._partial_derivative_temporal()
 
     def test_basic(self):
         """Test outputs are of the correct type"""
