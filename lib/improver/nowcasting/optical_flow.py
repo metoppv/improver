@@ -310,72 +310,31 @@ class OpticalFlow(object):
                 the same velocity to enable matrix inversion (solve_for_uv()).
                 Minimum value 3.
             point_weight: float
-                Weight given to the velocity of the point (box) when doing the
-                smart smoothing after velocity calculation. 0.1 is the original
-                STEPS value.
+                Weight given to the velocity of a point (box), as opposed to
+                its neighbours, when doing the smart smoothing after velocity
+                calculation.
             iterations (int):
-                Number of iterations to perform in post-calculation smoothing
+                Number of iterations to perform in post-calculation smoothing.
 
         Martina's TODO: need to calculate a suitable kernel size given dt (what
         is expected movement between slices) and expected velocities
         """
 
-        # initialise parameters for pre- and post- calculation smoothing
-
+        # parameters for input data smoothing
         self.data_smoothing_radius = kernel
         self.data_smoothing_method = smethod
 
+        # parameters for velocity calculation and smoothing
         self.boxsize = boxsize
         self.iterations = iterations
         self.point_weight = point_weight
 
-        # define kernel for post-calculation velocity smoothing as used in STEPS
-        self.small_kernel = np.array([[0.5, 1, 0.5],
-                                      [1.0, 0, 1.0],
-                                      [0.5, 1, 0.5]])/6.
-
-        # initialise input data and output velocity fields
+        # input data and output velocity fields
         self.data1 = None
         self.data2 = None
         self.shape = None
         self.ucomp = None
         self.vcomp = None
-
-
-    @staticmethod
-    def makekernel(radius):
-        """
-        Make a circular kernel to smooth an input field.  The output is
-        zero-padded, so a radius of 1 gives the kernel: 
-
-            [[ 0.  0.  0.]
-             [ 0.  1.  0.]
-             [ 0.  0.  0.]]
-
-        which has no effect on the input field.
-
-        Radius 2 kernel:
-
-            [[ 0.      0.      0.      0.      0.    ]
-             [ 0.      0.0625  0.125   0.0625  0.    ]
-             [ 0.      0.125   0.25    0.125   0.    ]
-             [ 0.      0.0625  0.125   0.0625  0.    ]
-             [ 0.      0.      0.      0.      0.    ]]
-
-        TODO markup for sensible sphinx rendering
-
-        Args:
-            radius (int):
-                Radius of required kernel
-
-        Returns:
-            kernel (np.ndarray):
-                Normalised array of shape (radius*2+1, radius*2+1)
-        """
-        temp = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
-        kernel = temp.reshape(radius*2+1, 1) * temp.reshape(1, radius*2+1)
-        kernel /= kernel.sum()
-        return kernel
 
     @staticmethod
     def corner(data, axis=None):
@@ -499,6 +458,39 @@ class OpticalFlow(object):
                        jj*self.boxsize:(jj+1)*self.boxsize] = vmat[ii, jj]
         return umat_t, vmat_t
 
+    @staticmethod
+    def makekernel(radius):
+        """
+        Make a circular kernel to smooth an input field.  Used in
+        self.smoothing() with method='kernel'.  The output array is
+        zero-padded, so a radius of 1 gives the kernel: 
+
+            [[ 0.  0.  0.]
+             [ 0.  1.  0.]
+             [ 0.  0.  0.]]
+
+        which has no effect on the input field.  The smallest output
+        kernel of radius 2 gives:
+
+            [[ 0.      0.      0.      0.      0.    ]
+             [ 0.      0.0625  0.125   0.0625  0.    ]
+             [ 0.      0.125   0.25    0.125   0.    ]
+             [ 0.      0.0625  0.125   0.0625  0.    ]
+             [ 0.      0.      0.      0.      0.    ]]
+
+        Args:
+            radius (int):
+                Radius of required kernel
+
+        Returns:
+            kernel (np.ndarray):
+                Normalised array of shape (radius*2+1, radius*2+1)
+        """
+        temp = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
+        kernel = temp.reshape(radius*2+1, 1) * temp.reshape(1, radius*2+1)
+        kernel /= kernel.sum()
+        return kernel
+
     def smoothing(self, field, radius, method='box'):
         """
         Smoothing method using a square ('box') or circular kernel.  Kernel
@@ -525,37 +517,20 @@ class OpticalFlow(object):
                 field, size=radius*2+1, mode='nearest')
         return smoothed_field
 
-    def smart_smoothing(self, umat_orig, vmat_orig, umat_iter, vmat_iter,
+    def smart_smoothing(self, umat_point, vmat_point, umat_iter, vmat_iter,
                         weights):
         """
-        Performs a single iteration of "smart smoothing" as in STEPS.  This
-        smoothing ignores advection velocities which are identically zero,
-        as these are assumed to occur only where there is no rainfall structure
-        from which to calculate advection velocities.  All other velocities
-        are expected to be non-zero due to previous smoothing.
-
-        NOTE The use of "scipy.ndimage.convolve" avoids "for" loops in this
-        routine, but does not handle edges perfectly.  From
-        http://stackoverflow.com/questions/22669252/how-exactly-does-the-re
-        %E2%80%8C%E2%80%8Bflect-mode-for- scipy%E2%80%8C%E2%80%8Bs-ndimage-
-        filters-wo%E2%80%8C%E2%80%8Brk:
-
-        mode       |   Ext   |         Input          |   Ext
-        -----------+---------+------------------------+---------
-        'mirror'   | 4  3  2 | 1  2  3  4  5  6  7  8 | 7  6  5
-        'reflect'  | 3  2  1 | 1  2  3  4  5  6  7  8 | 8  7  6
-        'nearest'  | 1  1  1 | 1  2  3  4  5  6  7  8 | 8  8  8
-        'constant' | 0  0  0 | 1  2  3  4  5  6  7  8 | 0  0  0
-        'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
-
-        Hence "mirror" or "reflect" provide the most appropriate functionality.
-        The default ("reflect") is used here.
+        Performs a single iteration of "smart smoothing" over a point and its
+        neighbours as implemented in STEPS.  This smoothing (through the
+        "weights" argument) ignores advection velocities which are identically
+        zero, as these are assumed to occur only where there is no rainfall
+        structure from which to calculate advection velocities.
 
         Args:
-            umat_orig (np.ndarray):
-                Unsmoothed velocity in the x direction
-            vmat_orig (np.ndarray):
-                Unsmoothed velocity in the y direction
+            umat_point (np.ndarray):
+                Original unsmoothed velocity in the x direction
+            vmat_point (np.ndarray):
+                Original unsmoothed velocity in the y direction
             umat_iter (np.ndarray):
                 Latest iteration of velocity in the x direction
             vmat_iter (np.ndarray):
@@ -563,38 +538,42 @@ class OpticalFlow(object):
             weights (np.ndarray):
                 Weight of each grid point for averaging
         """
+        # define kernel for neighbour weighting
+        neighbour_kernel = np.array([[0.5, 1, 0.5],
+                                     [1.0, 0, 1.0],
+                                     [0.5, 1, 0.5]])/6.
 
         # smooth input velocities and weights
-        umat_smoothed = scipy.ndimage.convolve(weights*umat_iter,
-                                                self.small_kernel)
-        vmat_smoothed = scipy.ndimage.convolve(weights*vmat_iter,
-                                                self.small_kernel)
-        smoothed_weights = scipy.ndimage.convolve(weights, self.small_kernel)
+        umat_neighbour = scipy.ndimage.convolve(weights*umat_iter,
+                                                neighbour_kernel)
+        vmat_neighbour = scipy.ndimage.convolve(weights*vmat_iter,
+                                                neighbour_kernel)
+        neighbour_weights = scipy.ndimage.convolve(weights, neighbour_kernel)
 
         # initialise output velocities from latest iteration
-        umat = scipy.ndimage.convolve(umat_iter, self.small_kernel)
-        vmat = scipy.ndimage.convolve(vmat_iter, self.small_kernel)
+        umat = scipy.ndimage.convolve(umat_iter, neighbour_kernel)
+        vmat = scipy.ndimage.convolve(vmat_iter, neighbour_kernel)
 
         # create "point" and "neighbour" validity masks using original and
         # kernel-smoothed weights
         pmask = abs(weights) > 0
-        nmask = abs(smoothed_weights) > 0
+        nmask = abs(neighbour_weights) > 0
 
         # where neighbouring points have weight, set up a "background" of
         # weighted average neighbouring values
-        umat[nmask] = umat_smoothed[nmask] / smoothed_weights[nmask]
-        vmat[nmask] = vmat_smoothed[nmask] / smoothed_weights[nmask]
+        umat[nmask] = umat_neighbour[nmask] / neighbour_weights[nmask]
+        vmat[nmask] = vmat_neighbour[nmask] / neighbour_weights[nmask]
 
         # where a point has weight, calculate a weighted sum of the original
         # (uniterated) point value and its smoothed neighbours
-        neighbour_weight = 1.0 - self.point_weight
-        point_weight = self.point_weight * weights
-        norm = neighbour_weight * smoothed_weights + point_weight
+        nweight = 1.0 - self.point_weight
+        pweight = self.point_weight * weights
+        norm = nweight * neighbour_weights + pweight
 
-        umat[pmask] = (umat_smoothed[pmask] * neighbour_weight +
-                       umat_orig[pmask] * point_weight[pmask]) / norm[pmask]
-        vmat[pmask] = (vmat_smoothed[pmask] * neighbour_weight +
-                       vmat_orig[pmask] * point_weight[pmask]) / norm[pmask]
+        umat[pmask] = (umat_neighbour[pmask] * nweight +
+                       umat_point[pmask] * pweight[pmask]) / norm[pmask]
+        vmat[pmask] = (vmat_neighbour[pmask] * nweight +
+                       vmat_point[pmask] * pweight[pmask]) / norm[pmask]
 
         return umat, vmat
 

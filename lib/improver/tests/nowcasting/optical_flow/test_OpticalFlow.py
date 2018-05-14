@@ -52,7 +52,6 @@ class Test__init__(IrisTest):
         self.assertIsInstance(plugin.boxsize, int)
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.point_weight, float)
-        self.assertIsInstance(plugin.small_kernel, np.ndarray)
         self.assertIsNone(plugin.data1)
         self.assertIsNone(plugin.data2)
         self.assertIsNone(plugin.shape)
