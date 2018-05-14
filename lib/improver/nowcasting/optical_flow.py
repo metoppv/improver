@@ -342,39 +342,6 @@ class OpticalFlow(object):
         self.ucomp = None
         self.vcomp = None
 
-    @staticmethod
-    def solve_for_uv(I_xy, I_t):
-        """
-        Solve the system of linear simultaneous equations for u and v using
-        matrix inversion (equation 19 in STEPS document).  This is frequently
-        singular, eg in the presence of too many zeroes.  In these cases,
-        the function returns velocities of 0.
-
-        NOTE (Martina): there is a problem here if I have many fewer pixels
-        with intensity here than pixels with (zeros?)
-
-        Args:
-            I_xy (np.ndarray):
-                2-column matrix containing partial field derivatives dI/dx
-                (first column) and dI/dy (second column)
-            I_t (np.ndarray):
-                1-column matrix containing partial field derivatives dI/dt
-
-        Returns:
-            velocity (np.ndarray):
-                2-column matrix (u, v) containing scalar wind velocities
-        """
-        I_t = I_t.reshape([I_t.size, 1])
-        m1 = (I_xy.transpose()).dot(I_xy)
-        try:
-            m1_inv = np.linalg.inv(m1)
-        except np.linalg.LinAlgError:
-            # if matrix is not invertible, set velocities to zero
-            velocity = np.array([0, 0])
-        else:
-            m2 = (I_xy.transpose()).dot(I_t)
-            velocity = -m1_inv.dot(m2)[:, 0]
-        return velocity
 
     @staticmethod
     def makekernel(radius):
@@ -554,7 +521,6 @@ class OpticalFlow(object):
         """
         if method == 'kernel':
             kernel = self.makekernel(radius)
-            print kernel
             smoothed_field = scipy.signal.convolve2d(
                 field, kernel, mode='same', boundary="symm")
         elif method == 'box':  # type of smoothing used in steps
@@ -645,6 +611,40 @@ class OpticalFlow(object):
 
         return umat_f, vmat_f
 
+    @staticmethod
+    def solve_for_uv(I_xy, I_t):
+        """
+        Solve the system of linear simultaneous equations for u and v using
+        matrix inversion (equation 19 in STEPS document).  This is frequently
+        singular, eg in the presence of too many zeroes.  In these cases,
+        the function returns velocities of 0.
+
+        NOTE (Martina): there is a problem here if I have many fewer pixels
+        with intensity here than pixels with (zeros?)
+
+        Args:
+            I_xy (np.ndarray):
+                2-column matrix containing partial field derivatives dI/dx
+                (first column) and dI/dy (second column)
+            I_t (np.ndarray):
+                1-column matrix containing partial field derivatives dI/dt
+
+        Returns:
+            velocity (np.ndarray):
+                2-column matrix (u, v) containing scalar wind velocities
+        """
+        I_t = I_t.reshape([I_t.size, 1])
+        m1 = (I_xy.transpose()).dot(I_xy)
+        try:
+            m1_inv = np.linalg.inv(m1)
+        except np.linalg.LinAlgError:
+            # if matrix is not invertible, set velocities to zero
+            velocity = np.array([0, 0])
+        else:
+            m2 = (I_xy.transpose()).dot(I_t)
+            velocity = -m1_inv.dot(m2)[:, 0]
+        return velocity
+
     def calculate_advection_velocities(self, xdif_t, ydif_t, tdif_t):
         """
         This implements the OFC algorithm, assuming all points in a box with
@@ -732,10 +732,10 @@ class OpticalFlow(object):
 
         # Calculate partial derivatives of the smoothed input fields
         # TODO fix hardcoded assumption of (x, y) coordinate ordering
-        partialI_dx = self.mdiff_spatial(axis=0)
-        partialI_dy = self.mdiff_spatial(axis=1)
-        partialI_dt = self.mdiff_temporal()
+        partial_dx = self.mdiff_spatial(axis=0)
+        partial_dy = self.mdiff_spatial(axis=1)
+        partial_dt = self.mdiff_temporal()
 
         # Calculate advection velocities
         self.ucomp, self.vcomp = self.calculate_advection_velocities(
-            partialI_dx, partialI_dy, partialI_dt)
+            partial_dx, partial_dy, partial_dt)
