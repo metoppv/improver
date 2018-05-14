@@ -37,7 +37,6 @@ import numpy as np
 
 import scipy.linalg
 import scipy.ndimage
-import scipy.ndimage.filters
 import scipy.signal
 
 from iris.exceptions import InvalidCubeError
@@ -394,8 +393,6 @@ class OpticalFlow(object):
             corners (np.ndarray):
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
-
-        TODO consider using np.interp()
         """
         if axis is None:
             corners = 0.25*(data[1:, :-1] + data[:-1, 1:] +
@@ -528,11 +525,14 @@ class OpticalFlow(object):
                 field, size=radius*2+1, mode='nearest')
         return smoothed_field
 
-    def smart_smoothing(self, xo, yo, x, y, w):
+    def smart_smoothing(self, umat_orig, vmat_orig, umat_iter, vmat_iter,
+                        weights):
         """
-        implements the smart smoothing (i.e. 0 that are 0 because there is no
-        structure to calculate the advection from, are not included in the
-        smoothing of the velocity field) as in steps
+        Performs a single iteration of "smart smoothing" as in STEPS.  This
+        smoothing ignores advection velocities which are identically zero,
+        as these are assumed to occur only where there is no rainfall structure
+        from which to calculate advection velocities.  All other velocities
+        are expected to be non-zero due to previous smoothing.
 
         NOTE The use of "scipy.ndimage.convolve" avoids "for" loops in this
         routine, but does not handle edges perfectly.  From
@@ -549,33 +549,54 @@ class OpticalFlow(object):
         'wrap'     | 6  7  8 | 1  2  3  4  5  6  7  8 | 1  2  3
 
         Hence "mirror" or "reflect" provide the most appropriate functionality.
-        As "reflect" is the default this is used here.
+        The default ("reflect") is used here.
+
+        Args:
+            umat_orig (np.ndarray):
+                Unsmoothed velocity in the x direction
+            vmat_orig (np.ndarray):
+                Unsmoothed velocity in the y direction
+            umat_iter (np.ndarray):
+                Latest iteration of velocity in the x direction
+            vmat_iter (np.ndarray):
+                Latest iteration of velocity in the y direction
+            weights (np.ndarray):
+                Weight of each grid point for averaging
         """
 
-        xnew = scipy.ndimage.convolve(w*x, self.small_kernel)
-        ynew = scipy.ndimage.convolve(w*y, self.small_kernel)
-        wnew = scipy.ndimage.convolve(w, self.small_kernel)
-        xsm = scipy.ndimage.convolve(x, self.small_kernel)
-        ysm = scipy.ndimage.convolve(y, self.small_kernel)
+        # smooth input velocities and weights
+        umat_smoothed = scipy.ndimage.convolve(weights*umat_iter,
+                                                self.small_kernel)
+        vmat_smoothed = scipy.ndimage.convolve(weights*vmat_iter,
+                                                self.small_kernel)
+        smoothed_weights = scipy.ndimage.convolve(weights, self.small_kernel)
 
+        # initialise output velocities from latest iteration
+        umat = scipy.ndimage.convolve(umat_iter, self.small_kernel)
+        vmat = scipy.ndimage.convolve(vmat_iter, self.small_kernel)
+
+        # create "point" and "neighbour" validity masks using original and
+        # kernel-smoothed weights
+        pmask = abs(weights) > 0
+        nmask = abs(smoothed_weights) > 0
+
+        # where neighbouring points have weight, set up a "background" of
+        # weighted average neighbouring values
+        umat[nmask] = umat_smoothed[nmask] / smoothed_weights[nmask]
+        vmat[nmask] = vmat_smoothed[nmask] / smoothed_weights[nmask]
+
+        # where a point has weight, calculate a weighted sum of the original
+        # (uniterated) point value and its smoothed neighbours
         neighbour_weight = 1.0 - self.point_weight
+        point_weight = self.point_weight * weights
+        norm = neighbour_weight * smoothed_weights + point_weight
 
-        # xsm will stay as the normal (unweighted average) for all points
-        # where the neigbours have no weight and the point has no weight
-        # below, everywhere where the neigbours have weight, I replace the
-        # value with the weighted average of the neigbours
-        xsm[abs(wnew) > 0] = xnew[abs(wnew) > 0]/wnew[abs(wnew) > 0]
-        ysm[abs(wnew) > 0] = ynew[abs(wnew) > 0]/wnew[abs(wnew) > 0]
-        # if the point itself has weight, I use a weighted sum of the neigbour
-        # points and the point (however, it is not the point in iteration, it
-        # is the original value!)
-        xsm[abs(w) > 0] = (xnew[abs(w) > 0]*neighbour_weight + self.point_weight * xo[abs(w) > 0]
-                           * w[abs(w) > 0]) / (neighbour_weight*wnew[abs(w) > 0] +
-                                               self.point_weight*w[abs(w) > 0])
-        ysm[abs(w) > 0] = (ynew[abs(w) > 0]*neighbour_weight + self.point_weight * yo[abs(w) > 0]
-                           * w[abs(w) > 0]) / (neighbour_weight*wnew[abs(w) > 0] +
-                                               self.point_weight*w[abs(w) > 0])
-        return xsm, ysm
+        umat[pmask] = (umat_smoothed[pmask] * neighbour_weight +
+                       umat_orig[pmask] * point_weight[pmask]) / norm[pmask]
+        vmat[pmask] = (vmat_smoothed[pmask] * neighbour_weight +
+                       vmat_orig[pmask] * point_weight[pmask]) / norm[pmask]
+
+        return umat, vmat
 
     def smooth_advection_velocities(self, umat, vmat, weights):
         """
@@ -597,14 +618,16 @@ class OpticalFlow(object):
             vmat_f (np.ndarray):
                 Smoothed velocities in the y-direction on input data grid
         """
-        umatn = np.copy(umat)
-        vmatn = np.copy(vmat)
+        umat_orig = np.copy(umat)
+        vmat_orig = np.copy(vmat)
+
+        # iteratively smooth umat and vmat
         for _ in range(self.iterations):
-            umatn, vmatn = self.smart_smoothing(umat, vmat, umatn, vmatn,
-                                                weights)
+            umat, vmat = self.smart_smoothing(umat_orig, vmat_orig, umat, vmat,
+                                              weights)
 
         # reshape smoothed box velocity arrays to match input data grid
-        umat_f, vmat_f = self.regrid_velocities(umatn, vmatn)
+        umat_f, vmat_f = self.regrid_velocities(umat, vmat)
         smn = int(self.boxsize/3)
         umat_f = self.smoothing(umat_f, smn, method='kernel')
         vmat_f = self.smoothing(vmat_f, smn, method='kernel')

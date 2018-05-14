@@ -188,7 +188,8 @@ class Test_makesubboxes(OpticalFlowUtilityTest):
 
 
 class OpticalFlowVelocityTest(IrisTest):
-    """Class with shared plugin definition for velocity smoothing tests"""
+    """Class with shared plugin definition for velocity smoothing and
+    regridding tests"""
 
     def setUp(self):
         """Define input matrices and dummy plugin"""
@@ -392,11 +393,9 @@ class Test_calculate_advection_velocities(IrisTest):
         second_input[2:9, 1:8] = rainfall_block
         self.plugin.data2 = second_input
 
-        # NOTE fix x/y axis inversion - coord naming...
-        self.partial_dx = self.plugin.mdiff_spatial(axis=0)
-        self.partial_dy = self.plugin.mdiff_spatial(axis=1)
+        self.partial_dx = self.plugin.mdiff_spatial(axis=1)
+        self.partial_dy = self.plugin.mdiff_spatial(axis=0)
         self.partial_dt = self.plugin.mdiff_temporal()
-
 
     def test_basic(self):
         """Test outputs are of the correct type"""
@@ -409,8 +408,8 @@ class Test_calculate_advection_velocities(IrisTest):
         """Test output values"""
         umat, vmat = self.plugin.calculate_advection_velocities(
             self.partial_dx, self.partial_dy, self.partial_dt)
-        self.assertAlmostEqual(np.mean(umat), 0.121514428331)
-        self.assertAlmostEqual(np.mean(vmat), -0.121514428331)
+        self.assertAlmostEqual(np.mean(umat), -0.121514428331)
+        self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
 
 
 class Test_process(IrisTest):
@@ -436,7 +435,6 @@ class Test_process(IrisTest):
 
         self.second_input = np.zeros((16, 16))
         self.second_input[2:9, 1:8] = rainfall_block
-
 
     def test_basic(self):
         """Test outputs are of the correct type and value"""
