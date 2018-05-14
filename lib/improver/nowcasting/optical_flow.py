@@ -735,6 +735,12 @@ class OpticalFlow(object):
                 2D cube from (earlier) time 1
             cube2 (iris.cube.Cube):
                 2D cube from (later) time 2
+
+        Returns:
+            ucube (iris.cube.Cube):
+                2D cube of advection velocities in the x-direction
+            vcube (iris.cube.Cube):
+                2D cube of advection velocities in the y-direction
         """
 
         # check cubes have exactly two spatial dimension coordinates and a
@@ -764,7 +770,11 @@ class OpticalFlow(object):
         self.boxsize = self.boxsize_km / grid_length_km
 
         # calculate dimensionless advection velocities
-        ucomp, vcomp = self.process_dimensionless(cube1.data, cube2.data, 1, 0)
+        data1 = next(cube1.slices([cube1.coord(axis='y'),
+                                   cube1.coord(axis='x')])).data
+        data2 = next(cube2.slices([cube2.coord(axis='y'),
+                                   cube2.coord(axis='x')])).data
+        ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
 
         # convert dimensionless velocities to metres per second
         for vel in [ucomp, vcomp]:
@@ -787,6 +797,8 @@ class OpticalFlow(object):
                                dim_coords_and_dims=[(y_coord, 0),
                                                     (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
+
+        # TODO global attributes?
 
         return ucube, vcube
 
