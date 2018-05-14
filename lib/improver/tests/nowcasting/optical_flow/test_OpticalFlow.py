@@ -42,7 +42,7 @@ from improver.nowcasting.optical_flow import OpticalFlow
 
 
 class Test__init__(IrisTest):
-    """Test class initialisation"""
+    """Test OpticalFlow class initialisation"""
 
     def test_basic(self):
         """Test initialisation and types"""
@@ -134,7 +134,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertSequenceEqual(result.shape, self.plugin.shape)
 
-    def test_default(self):
+    def test_first_axis(self):
         """Test output values for axis=0"""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
@@ -142,7 +142,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
         result = self.plugin._partial_derivative_spatial(axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
 
-    def test_transpose(self):
+    def test_second_axis(self):
         """Test output values for axis=1"""
         expected_output = np.array([[0.1875, 0.4375, 0.5000, 0.5, 0.25],
                                     [0.2500, 0.6875, 0.9375, 1.0, 0.50],
@@ -174,17 +174,26 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
 
     def test_basic(self):
         """Test for correct output types"""
-        field = np.ones(shape=self.plugin.data1.shape)
-        boxes, weights = self.plugin._make_subboxes(field, 2)
+        boxes, weights = self.plugin._make_subboxes(self.plugin.data1, 2)
         self.assertIsInstance(boxes, list)
+        self.assertIsInstance(boxes[0], np.ndarray)
         self.assertIsInstance(weights, np.ndarray)
 
-    def test_weights(self):
+    def test_box_list(self):
+        """Test function carves up array as expected"""
+        expected_boxes = \
+            [np.array([[1., 2.], [0., 1.]]), np.array([[3., 4.], [2., 3.]]),
+             np.array([[5.], [4.]]), np.array([[0., 0.]]),
+             np.array([[1., 2.]]), np.array([[3.]])]
+        boxes, _ = self.plugin._make_subboxes(self.plugin.data1, 2)
+        for box, ebox in zip(boxes, expected_boxes):
+            self.assertArrayAlmostEqual(box, ebox)
+
+    def test_weights_values(self):
         """Test output weights values"""
         expected_weights = np.array([0.54216664, 0.95606307, 0.917915, 0.,
                                      0.46473857, 0.54216664])
-        field = np.ones(shape=self.plugin.data1.shape)
-        _, weights = self.plugin._make_subboxes(field, 2)
+        _, weights = self.plugin._make_subboxes(self.plugin.data1, 2)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
