@@ -310,7 +310,8 @@ class OpticalFlow(object):
                 Square box size in km over which all data points are assumed
                 to have the same velocity to enable matrix inversion
                 (solve_for_uv()).  Should not be less than 3x the grid length
-                of the input data cube.
+                of the input data cube.  Must be larger than the kernel radius
+                used to smooth the input data fields.
             point_weight (float):
                 Weight given to the velocity of a point (box), as opposed to
                 its neighbours, when doing the smart smoothing after velocity
@@ -332,6 +333,13 @@ class OpticalFlow(object):
         self.boxsize = None
         self.iterations = iterations
         self.point_weight = point_weight
+
+        # fail if data smoothing radius is larger than box size on which
+        # optical flow velocities are calculated - not sensible parameters!
+        if self.data_smoothing_radius_km > self.boxsize_km:
+            msg = "Data smoothing radius {} exceeds velocity box size {}"
+            raise ValueError(msg.format(self.data_smoothing_radius_km,
+                                        self.boxsize_km))
 
         # input data fields and shape
         self.data1 = None
@@ -785,21 +793,17 @@ class OpticalFlow(object):
             int(self.data_smoothing_radius_km / grid_length_km)
         self.boxsize = int(self.boxsize_km / grid_length_km)
 
-        # raise warnings if self.boxsize or self.data_smoothing_radius are too
-        # small TODO sensible numbers ... < 3 fails to converge but this may
-        # not be the actual sensible minimum
+        # fail verbosely if self.boxsize or self.data_smoothing_radius are too
+        # small and will trigger silent failures downstream
+        # (boxsize >= data_smoothing_radius is enforced in initialisation)
         if self.data_smoothing_radius < 3:
-            msg = ("Input data smoothing radius {} too small - advection "
-                   "vectors may not be calculable")
-            warnings.warn(msg.format(self.data_smoothing_radius))
+            msg = ("Input data smoothing radius {} too small (minimum 3 "
+                   "grid squares)")
+            raise ValueError(msg.format(self.data_smoothing_radius))
 
-        if self.boxsize < 3:
-            msg = ("Grid box size {} too small for stable matrix inversion - "
-                   "advection vectors may not be calculable")
-            warnings.warn(msg.format(self.boxsize))
-
-        # TODO ACTUALLY fail if self.boxsize < 3?  This will likely cause
-        # silent failure anyway at the post-regridding velocity smoothing step
+        # TODO raise further warnings if data_smoothing_radius or boxsize
+        # have values (to be determined) that are scientifically questionable.
+        # Here if dimensionless; at initialisation if dimensioned.
 
         # calculate dimensionless advection velocities
         data1 = next(cube1.slices([cube1.coord(axis='y'),

@@ -58,6 +58,12 @@ class Test__init__(IrisTest):
         self.assertIsNone(plugin.data2)
         self.assertIsNone(plugin.shape)
 
+    def test_unsuitable_parameters(self):
+        """Test raises error if plugin is initialised with unsuitable
+        parameter values"""
+        with self.assertRaises(ValueError):
+            _ = OpticalFlow(data_smoothing_radius=10, boxsize=5)
+
 
 class Test_makekernel(IrisTest):
     """Test makekernel function"""
@@ -493,6 +499,13 @@ class Test_process(IrisTest):
         ucube, vcube = self.plugin.process(self.cube1, self.cube2)
         self.assertAlmostEqual(np.mean(ucube.data), -2.17862386456)
         self.assertAlmostEqual(np.mean(vcube.data), 2.17862386456)
+
+    def test_error_small_kernel(self):
+        """Test failure if data smoothing radius is too small"""
+        plugin = OpticalFlow(data_smoothing_radius=3, boxsize=6)
+        msg = "Input data smoothing radius 1 too small "
+        with self.assertRaisesRegexp(ValueError, msg):
+            _ = plugin.process(self.cube1, self.cube2)
 
     def test_error_unmatched_coords(self):
         """Test failure if cubes are provided on unmatched grids"""
