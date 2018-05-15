@@ -47,10 +47,10 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test initialisation and types"""
         plugin = OpticalFlow()
-        self.assertIsInstance(plugin.data_smoothing_radius_km, int)
+        self.assertIsInstance(plugin.data_smoothing_radius_km, float)
         self.assertIsNone(plugin.data_smoothing_radius)
         self.assertIsInstance(plugin.data_smoothing_method, str)
-        self.assertIsInstance(plugin.boxsize_km, int)
+        self.assertIsInstance(plugin.boxsize_km, float)
         self.assertIsNone(plugin.boxsize)
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.point_weight, float)
@@ -444,7 +444,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
-        self.plugin = OpticalFlow(kernel=6, boxsize=6)
+        self.plugin = OpticalFlow(data_smoothing_radius=6, boxsize=6)
 
         coord_points = 2*np.arange(16)
         x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')

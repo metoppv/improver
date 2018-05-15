@@ -291,30 +291,30 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, kernel=7, smethod='box', boxsize=30, point_weight=0.1,
-                 iterations=100):
+    def __init__(self, data_smoothing_radius=7., data_smoothing_method='box',
+                 boxsize=30., point_weight=0.1, iterations=100):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
 
         input:
-            kernel (int):
-                Kernel size (radius) in km over which to smooth input data
-                before estimating partial derivatives.  Should not be less
-                than 3x the grid length of the input data cube.
-            smethod (str):
+            data_smoothing_radius (float):
+                Kernel radius in km over which to smooth input data before
+                estimating partial derivatives.  Should not be less than 3x
+                the grid length of the input data cube.
+            data_smoothing_method (str):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
-            boxsize (int):
+            boxsize (float):
                 Square box size in km over which all data points are assumed
                 to have the same velocity to enable matrix inversion
                 (solve_for_uv()).  Should not be less than 3x the grid length
                 of the input data cube.
-            point_weight: float
+            point_weight (float):
                 Weight given to the velocity of a point (box), as opposed to
                 its neighbours, when doing the smart smoothing after velocity
-                calculation.
+                calculation.  Values 0-1.
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
 
@@ -323,9 +323,9 @@ class OpticalFlow(object):
         """
 
         # parameters for input data smoothing
-        self.data_smoothing_radius_km = kernel
+        self.data_smoothing_radius_km = data_smoothing_radius
         self.data_smoothing_radius = None
-        self.data_smoothing_method = smethod
+        self.data_smoothing_method = data_smoothing_method
 
         # parameters for velocity calculation and "smart smoothing"
         self.boxsize_km = boxsize
@@ -375,7 +375,7 @@ class OpticalFlow(object):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
-            padded_derivative (np.ndarray):
+            (np.ndarray):
                 Smoothed spatial derivative
         """
         outdata = []
@@ -394,7 +394,7 @@ class OpticalFlow(object):
         array, and smooth.
 
         Returns:
-            tdiff (np.ndarray):
+            (np.ndarray):
                 Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
@@ -480,10 +480,11 @@ class OpticalFlow(object):
              [ 0.      0.      0.      0.      0.    ]]
 
         """
-        temp = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
-        kernel = temp.reshape(radius*2+1, 1) * temp.reshape(1, radius*2+1)
-        kernel /= kernel.sum()
-        return kernel
+        kernel_1d = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
+        kernel_2d = kernel_1d.reshape(radius*2+1, 1) * \
+            kernel_1d.reshape(1, radius*2+1)
+        kernel_2d /= kernel_2d.sum()
+        return kernel_2d
 
     def smooth(self, field, radius, method='box'):
         """
