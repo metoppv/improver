@@ -39,6 +39,8 @@ from iris.coords import DimCoord
 from cf_units import Unit
 
 from improver.wind_direction import WindDirection
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import set_up_temperature_cube
 
 # Data to test complex/degree handling functions.
 # The two degree/complex arrays are directly equivalent.
@@ -175,19 +177,19 @@ class Test_find_r_values(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
 
-class Test_calc_polar_mean_std_dev(IrisTest):
+class Test_calc_confidence_measure(IrisTest):
     """Test the calc_avg_dist_mean function returns confidence values."""
 
     def test_returns_confidence(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
-        meaningless. This code calculates the standard deviation about
-        mean point."""
+        meaningless. This code calculates a confidence measure based on how
+        far the individual ensemble members are away from the mean point."""
 
         expected_out = np.array([[0.0, 0.95638061],
                                  [0.91284426, 0.91284426]])
 
-        result = WindDirection().calc_polar_mean_std_dev(WIND_DIR_COMPLEX,
+        result = WindDirection().calc_confidence_measure(WIND_DIR_COMPLEX,
                                                          WIND_DIR_DEG_MEAN,
                                                          WIND_DIR_R_VALS,
                                                          0.01, 0)
@@ -259,12 +261,12 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns expected data types. """
-        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
-            self.cube)
+        result_cube, r_vals_cube, confidence_measure_cube = (
+            WindDirection().process(self.cube))
 
         self.assertIsInstance(result_cube, Cube)
         self.assertIsInstance(r_vals_cube, Cube)
-        self.assertIsInstance(std_dev_cube, Cube)
+        self.assertIsInstance(confidence_measure_cube, Cube)
 
     def test_fails_if_data_is_not_cube(self):
         """Test code raises a Type Error if input cube is not a cube."""
@@ -274,45 +276,55 @@ class Test_process(IrisTest):
         with self.assertRaisesRegexp(TypeError, msg):
             WindDirection().process(input_data)
 
+    def test_fails_if_data_is_not_convertible_to_degrees(self):
+        """Test code raises a ValueError if input cube is not convertible to
+        degrees."""
+        cube = set_up_temperature_cube()
+        msg = 'Input cube cannot be converted to degrees'
+        with self.assertRaisesRegexp(ValueError, msg):
+            WindDirection().process(cube)
+
     def test_return_single_precision(self):
         """Test that the function returns data of float32."""
 
-        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
-            self.cube)
+        result_cube, r_vals_cube, confidence_measure_cube = (
+            WindDirection().process(self.cube))
 
         self.assertEqual(result_cube.dtype, np.float32)
         self.assertEqual(r_vals_cube.dtype, np.float32)
-        self.assertEqual(std_dev_cube.dtype, np.float32)
+        self.assertEqual(confidence_measure_cube.dtype, np.float32)
 
     def test_returns_expected_values(self):
         """Test that the function returns correct 2D arrays of floats. """
 
-        expected_wind_mean = np.array([[176.63627625, 46.00244522, 90.0, 90.0],
-                                       [170.0, 170.0, 47.0, 36.54423141],
-                                       [333.41320801, 320.03521729, 10.0,
-                                        10.0]])
+        expected_wind_mean = (
+            np.array([[176.63627625, 46.00244522, 90.0, 90.0],
+                      [170.0, 170.0, 47.0, 36.54423141],
+                      [333.41320801, 320.03521729, 10.0, 10.0]]))
 
         expected_r_vals = np.array([[0.5919044, 0.99634719, 0.2, 0.6],
                                     [1.0, 1.0, 1.0, 0.92427504],
                                     [0.87177974, 0.91385943, 1.0, 1.0]])
 
-        expected_std_dev = np.array([[0.73166388, 0.95813018, 0.6, 0.8],
-                                     [1.0, 1.0, 1.0, 0.84808648],
-                                     [0.75270665, 0.83861077, 1.0, 1.0]])
+        expected_confidence_measure = (
+            np.array([[0.73166388, 0.95813018, 0.6, 0.8],
+                      [1.0, 1.0, 1.0, 0.84808648],
+                      [0.75270665, 0.83861077, 1.0, 1.0]]))
 
-        result_cube, r_vals_cube, std_dev_cube = WindDirection().process(
-            self.cube)
+        result_cube, r_vals_cube, confidence_measure_cube = (
+            WindDirection().process(self.cube))
 
         result = result_cube.data
         r_vals = r_vals_cube.data
-        std_dev = std_dev_cube.data
+        confidence_measure = confidence_measure_cube.data
 
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
-        self.assertIsInstance(std_dev, np.ndarray)
+        self.assertIsInstance(confidence_measure, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_wind_mean)
         self.assertArrayAlmostEqual(r_vals, expected_r_vals)
-        self.assertArrayAlmostEqual(std_dev, expected_std_dev)
+        self.assertArrayAlmostEqual(
+            confidence_measure, expected_confidence_measure)
 
 
 if __name__ == '__main__':

@@ -33,6 +33,7 @@
 import iris
 from iris.coords import CellMethod
 import numpy as np
+from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import enforce_float32_precision
 
 
@@ -74,7 +75,7 @@ class WindDirection(object):
     4) Convert the complex average back into degrees.
     5) If any point has an radius of nearly zero - replace the
        calculated average with the wind direction from the first ensemble.
-    6) Calculate the standard deviation of the wind direction.
+    6) Calculate the confidence measure of the wind direction.
 
     Step 6 still needs more development so it is only included in the code
     as a placeholder.
@@ -182,21 +183,22 @@ class WindDirection(object):
         return np.sqrt(np.square(complex_in.real)+np.square(complex_in.imag))
 
     @staticmethod
-    def calc_polar_mean_std_dev(wind_dir_complex, wind_dir_deg_mean,
+    def calc_confidence_measure(wind_dir_complex, wind_dir_deg_mean,
                                 r_vals, r_thresh, realization_axis):
-        """Find standard deviation of polar numbers.
+        """Find confidence measure of polar numbers.
 
         The average wind direction complex values represent the midpoint
         between the different values and so have r values between 0-1.
 
         1) From wind_dir_deg_mean - create a new set of complex values.
            Therefore they will have the same angle but r is fixed as r=1.
-        2) Use fixed-r average complex values to find the distance between the
-           mean point and all the wind direction values
+        2) Find the distance between the mean point and all the ensemble member
+           wind direction complex values.
         3) Find the average distance between the mean point and the wind
            direction values. Large average distance == low confidence.
-        4) Normalise the average distance values to produce a confidence
-           value that is equivalent to the standard deviation
+        4) A confidence value that is between 1 for confident (small spread in
+           ensemble members) and 0 for no-confidence. Set to 0 if r value is
+           below threshold as any r value is regarded as meaningless.
 
         Args:
             wind_dir_complex (np.ndarray):
@@ -241,8 +243,9 @@ class WindDirection(object):
         # Normalise the array using 2 as the maximum possible value.
         dist_from_mean_norm = 1 - dist_from_mean_avg*0.5
 
-        # With two points directly opposte (270 and 90) it returns a confidence
-        # value of 0.29289322 instead of zero.
+        # With two points directly opposite (270 and 90) it returns a
+        # confidence value of 0.29289322 instead of zero due to precision
+        # error.
         #
         # angles | confidence
         # 270/90 | 0.29289322
@@ -260,7 +263,7 @@ class WindDirection(object):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
-           We therefore subistuite this meaningless average wind
+           We therefore substitute this meaningless average wind
            direction value for the wind direction taken from the first
            ensemble member.
 
@@ -300,22 +303,21 @@ class WindDirection(object):
 
     @staticmethod
     def process(cube_ens_wdir):
-        """
-        Create a cube containing the wind direction averaged over the ensemble
-        members.
+        """Create a cube containing the wind direction averaged over the
+        ensemble members.
 
         Args:
-            cube_wdir (iris.cube.Cube):
+            cube_ens_wdir (iris.cube.Cube):
                 Cube containing wind direction from multiple ensemble members.
 
         Returns:
-            result (iris.cube.Cube):
+            cube_mean_wdir (iris.cube.Cube):
                 Cube containing the wind direction averaged from the
                 ensemble members.
-            r_vals (np.ndarray):
+            cube_r_vals (np.ndarray):
                 3D array - Radius taken from average complex wind direction
                 angle.
-            polar_mean_std_dev (np.ndarray):
+            cube_confidence_measure (np.ndarray):
                 3D array - The average distance from mean normalised - used
                 as a confidence value.
 
@@ -333,13 +335,19 @@ class WindDirection(object):
             msg = "Wind direction input is not a cube, but {}"
             raise TypeError(msg.format(type(cube_ens_wdir)))
 
+        try:
+            cube_ens_wdir.convert_units("degrees")
+        except ValueError as err:
+            msg = "Input cube cannot be converted to degrees: {}".format(err)
+            raise ValueError(msg)
+
         # Force input cube to float32.
         enforce_float32_precision(cube_ens_wdir)
 
         # Creates cubelists to hold data.
         wdir_cube_list = iris.cube.CubeList()
         r_vals_cube_list = iris.cube.CubeList()
-        std_dev_cube_list = iris.cube.CubeList()
+        confidence_measure_cube_list = iris.cube.CubeList()
 
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
         x_coord_name = cube_ens_wdir.coord(axis="x").name()
@@ -348,18 +356,18 @@ class WindDirection(object):
                                                     x_coord_name]):
             # Extract wind direction data.
             wind_dir_deg = slice_ens_wdir.data
-            realization_axis = slice_ens_wdir.coord_dims('realization')[0]
+            realization_axis = slice_ens_wdir.coord_dims("realization")[0]
 
             # Copies input cube and remove realization dimension to create
             # cubes for storing results.
             slice_mean_wdir = next(slice_ens_wdir.slices_over("realization"))
-            slice_mean_wdir.remove_coord('realization')
+            slice_mean_wdir.remove_coord("realization")
 
             # Convert wind direction from degrees to complex numbers.
             wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
 
             # Find the complex average -  which actually signifies a point
-            # between all of the data points in POLAR co-cordinates.
+            # between all of the data points in POLAR coordinates.
             # NOT the average DEGREE ANGLE.
             wind_dir_complex_mean = np.mean(wind_dir_complex,
                                             axis=realization_axis)
@@ -372,38 +380,47 @@ class WindDirection(object):
             # Find radius values for wind direction average.
             r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
-            # Calculate standard deviation from polar mean.
+            # Calculate the confidence measure based on the difference
+            # between the complex average and the individual ensemble members.
             # TODO: This will still need some further investigation.
             #        This is will be the subject of another ticket.
-            polar_mean_std_dev = WindDirection.calc_polar_mean_std_dev(
+            confidence_measure = WindDirection.calc_confidence_measure(
                 wind_dir_complex, wind_dir_deg_mean, r_vals, r_thresh,
                 realization_axis)
 
-            # Finds any meaningless averages and subistuite with
+            # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble member.
             wind_dir_deg_mean = WindDirection.wind_dir_decider(
                 wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh)
 
-            # Save data into cubes (create new cubes for r and std dev data).
+            # Save data into cubes (create new cubes for r and
+            # confidence measure data).
             slice_mean_wdir.data = wind_dir_deg_mean
             slice_r_vals = slice_mean_wdir.copy(data=r_vals)
-            slice_std_dev = slice_mean_wdir.copy(data=polar_mean_std_dev)
+            slice_confidence_measure = (
+                slice_mean_wdir.copy(data=confidence_measure))
             # Append to cubelists.
             wdir_cube_list.append(slice_mean_wdir)
             r_vals_cube_list.append(slice_r_vals)
-            std_dev_cube_list.append(slice_std_dev)
+            confidence_measure_cube_list.append(slice_confidence_measure)
 
         # Combine cubelists into cube.
         cube_mean_wdir = wdir_cube_list.merge_cube()
         cube_r_vals = r_vals_cube_list.merge_cube()
-        cube_polar_mean_std_dev = std_dev_cube_list.merge_cube()
+        cube_confidence_measure = confidence_measure_cube_list.merge_cube()
+
+        # Check that the dimensionality of coordinates of the output cube
+        # matches the input cube.
+        first_slice = next(cube_ens_wdir.slices_over(["realization"]))
+        cube_mean_wdir = check_cube_coordinates(first_slice, cube_mean_wdir)
 
         # Change cube identifiers.
         cube_mean_wdir.add_cell_method(CellMethod("mean",
                                                   coords="realization"))
-        cube_r_vals.long_name = "Avg wind dir r-vals"
+        cube_r_vals.long_name = "radius_of_complex_average_wind_from_direction"
         cube_r_vals.units = None
-        cube_polar_mean_std_dev.long_name = "Avg wind dir std dev"
-        cube_polar_mean_std_dev.units = None
+        cube_confidence_measure.long_name = (
+            "confidence_measure_of_wind_from_direction")
+        cube_confidence_measure.units = None
 
-        return cube_mean_wdir, cube_r_vals, cube_polar_mean_std_dev
+        return cube_mean_wdir, cube_r_vals, cube_confidence_measure
