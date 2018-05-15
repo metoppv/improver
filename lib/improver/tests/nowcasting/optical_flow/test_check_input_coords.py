@@ -50,7 +50,6 @@ class Test_check_input_coords(IrisTest):
     def setUp(self):
         """Set up dummy cube and plugin instance"""
         self.valid = set_up_xy_velocity_cube("advection_velocity_x")
-        #self.plugin = AdvectField(self.valid, self.valid)
 
     def test_missing_spatial_dimension(self):
         """Test rejects cube missing y axis"""

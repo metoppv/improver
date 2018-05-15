@@ -36,6 +36,8 @@ import warnings
 import numpy as np
 
 import iris
+from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import OpticalFlow
@@ -87,9 +89,11 @@ class OpticalFlowUtilityTest(IrisTest):
         self.plugin.data1 = np.array([[1., 2., 3., 4., 5.],
                                       [0., 1., 2., 3., 4.],
                                       [0., 0., 1., 2., 3.]])
+
         self.plugin.data2 = np.array([[0., 1., 2., 3., 4.],
                                       [0., 0., 1., 2., 3.],
                                       [0., 0., 0., 1., 2.]])
+
         self.plugin.shape = self.plugin.data1.shape
 
 
@@ -308,7 +312,8 @@ class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
 
     def test_basic(self):
         """Test for correct output types"""
-        vmat = self.plugin._smooth_advection_velocities(self.vmat, self.weights)
+        vmat = self.plugin._smooth_advection_velocities(self.vmat,
+                                                        self.weights)
         self.assertIsInstance(vmat, np.ndarray)
         self.assertSequenceEqual(vmat.shape, (12, 15))
 
@@ -318,7 +323,8 @@ class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
             [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
              2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
              1.589809, 1.589809, 1.331045, 1.331045, 1.331045])
-        vmat = self.plugin._smooth_advection_velocities(self.vmat, self.weights)
+        vmat = self.plugin._smooth_advection_velocities(self.vmat,
+                                                        self.weights)
         self.assertArrayAlmostEqual(vmat[0], first_row_v)
 
 
@@ -435,6 +441,91 @@ class Test_process_dimensionless(IrisTest):
         self.assertAlmostEqual(np.mean(vcomp), 0.95435266462)
 
 
+class Test_process(IrisTest):
+    """Test the process method"""
+
+    def setUp(self):
+        """Set up plugin and input rainfall-like cubes"""
+        self.plugin = OpticalFlow(kernel=6, boxsize=6)
+
+        coord_points = 2*np.arange(16)
+        x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
+        y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='km')
+
+        rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 3., 3., 2., 1., 1.],
+                                   [1., 2., 2., 2., 2., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.],
+                                   [1., 1., 1., 1., 1., 1., 1.]])
+
+        data1 = np.zeros((16, 16))
+        data1[1:8, 2:9] = rainfall_block
+        self.cube1 = iris.cube.Cube(
+            data1, standard_name='rainfall_rate', units='mm h-1',
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        # time1: [datetime.datetime(2018, 2, 20, 4, 0)]
+        time1 = DimCoord(1519099200, standard_name="time",
+                         units='seconds since 1970-01-01 00:00:00')
+        self.cube1.add_aux_coord(time1)
+
+        data2 = np.zeros((16, 16))
+        data2[2:9, 1:8] = rainfall_block
+        self.cube2 = iris.cube.Cube(
+            data2, standard_name='rainfall_rate', units='mm h-1',
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        # time2: [datetime.datetime(2018, 2, 20, 4, 15)]
+        time2 = DimCoord(1519100100, standard_name="time",
+                         units='seconds since 1970-01-01 00:00:00')
+        self.cube2.add_aux_coord(time2)
+
+    def test_basic(self):
+        """Test correct output types and metadata"""
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2)
+        for cube in [ucube, vcube]:
+            self.assertIsInstance(cube, iris.cube.Cube)
+            self.assertEqual(cube.coord("time")[0],
+                             self.cube2.coord("time")[0])
+            self.assertEqual(cube.units, "m s-1")
+            self.assertIn("advection_velocity_", cube.name())
+
+    def test_values(self):
+        """Test velocity values are as expected (in m/s)"""
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2)
+        self.assertAlmostEqual(np.mean(ucube.data), -2.17862386456)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.17862386456)
+
+    def test_error_unmatched_coords(self):
+        """Test failure if cubes are provided on unmatched grids"""
+        cube2 = self.cube2.copy()
+        for ax in ["x", "y"]:
+            cube2.coord(axis=ax).points = 4*np.arange(16)
+        msg = "Input cubes on unmatched grids"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            _ = self.plugin.process(self.cube1, cube2)
+
+    def test_error_no_time_difference(self):
+        """Test failure if two cubes are provided with the same time"""
+        msg = "Expected positive time difference "
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            _ = self.plugin.process(self.cube1, self.cube1)
+
+    def test_error_negative_time_difference(self):
+        """Test failure if cubes are provided in the wrong order"""
+        msg = "Expected positive time difference "
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            _ = self.plugin.process(self.cube2, self.cube1)
+
+    def test_error_irregular_grid(self):
+        """Test failure if cubes have different x/y grid lengths"""
+        cube1 = self.cube1.copy()
+        cube2 = self.cube2.copy()
+        for cube in [cube1, cube2]:
+            cube.coord(axis="y").points = 4*np.arange(16)
+        msg = "Input cube has different grid spacing in x and y"
+        with self.assertRaisesRegexp(InvalidCubeError, msg):
+            _ = self.plugin.process(cube1, cube2)
 
 
 if __name__ == '__main__':

@@ -39,8 +39,8 @@ import scipy.linalg
 import scipy.ndimage
 import scipy.signal
 
-from iris.exceptions import InvalidCubeError
-from iris.exceptions import CoordinateNotFoundError
+import iris
+from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 
@@ -71,7 +71,7 @@ def check_input_coords(cube, require_time=False):
     non_scalar_coords = np.sum(np.where(data_shape > 1, 1, 0))
     if non_scalar_coords > 2:
         raise InvalidCubeError('Cube has {:d} (more than 2) non-scalar '
-                                'coordinates'.format(non_scalar_coords))
+                               'coordinates'.format(non_scalar_coords))
 
     if require_time:
         try:
@@ -300,7 +300,8 @@ class OpticalFlow(object):
         input:
             kernel (int):
                 Kernel size (radius) in km over which to smooth input data
-                before estimating partial derivatives.
+                before estimating partial derivatives.  Should not be less
+                than 3x the grid length of the input data cube.
             smethod (str):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
@@ -308,7 +309,8 @@ class OpticalFlow(object):
             boxsize (int):
                 Square box size in km over which all data points are assumed
                 to have the same velocity to enable matrix inversion
-                (solve_for_uv()).  Should not be less than 3 grid squares
+                (solve_for_uv()).  Should not be less than 3x the grid length
+                of the input data cube.
             point_weight: float
                 Weight given to the velocity of a point (box), as opposed to
                 its neighbours, when doing the smart smoothing after velocity
@@ -754,20 +756,44 @@ class OpticalFlow(object):
             raise InvalidCubeError("Input cubes on unmatched grids")
 
         # check time difference is positive
-        tdiff, = cube2.coord("time").points - cube1.coord("time").points
-        if tdiff.seconds <= 0:
-            raise InvalidCubeError("Expected positive time difference cube2 - "
-                                   "cube1; got {} s".format(tdiff.seconds))
+        time1 = (cube1.coord("time").units).num2date(
+            cube1.coord("time").points[0])
+        time2 = (cube2.coord("time").units).num2date(
+            cube2.coord("time").points[0])
+        cube_time_diff = time2 - time1
+        if cube_time_diff.total_seconds() <= 0:
+            msg = "Expected positive time difference cube2 - cube1: got {} s"
+            raise InvalidCubeError(msg.format(cube_time_diff.seconds))
 
         # extract spatial grid length
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
         grid_length_km = float(np.diff((new_coord).points)[0])
 
+        # check x and y have the same grid length - fail if not
+        new_coord = cube1.coord(axis='y').copy()
+        new_coord.convert_units('km')
+        grid_length_y_km = float(np.diff((new_coord).points)[0])
+        if not np.isclose(grid_length_y_km, grid_length_km):
+            raise InvalidCubeError("Input cube has different grid spacing in "
+                                   "x and y")
+
         # convert plugin parameters to grid square units
         self.data_smoothing_radius = \
-            self.data_smoothing_radius_km / grid_length_km
-        self.boxsize = self.boxsize_km / grid_length_km
+            int(self.data_smoothing_radius_km / grid_length_km)
+        self.boxsize = int(self.boxsize_km / grid_length_km)
+
+        # raise warnings if self.boxsize or self.data_smoothing_radius are too
+        # small TODO should boxsize be an error?
+        if self.data_smoothing_radius < 3:
+            msg = ("Input data smoothing radius {} too small - advection "
+                   "vectors may not be calculable")
+            warnings.warn(msg.format(self.data_smoothing_radius))
+
+        if self.boxsize < 3:
+            msg = ("Grid box size {} too small for stable matrix inversion - "
+                   "advection vectors may not be calculable")
+            warnings.warn(msg.format(self.boxsize))
 
         # calculate dimensionless advection velocities
         data1 = next(cube1.slices([cube1.coord(axis='y'),
@@ -778,8 +804,8 @@ class OpticalFlow(object):
 
         # convert dimensionless velocities to metres per second
         for vel in [ucomp, vcomp]:
-            vel /= (1000.*grid_length_km)
-            vel *= tdiff.seconds
+            vel *= (1000.*grid_length_km)
+            vel /= cube_time_diff.total_seconds()
 
         # create velocity output cubes based on metadata from later input cube
         x_coord = cube2.coord(axis="x")
@@ -798,7 +824,4 @@ class OpticalFlow(object):
                                                     (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
 
-        # TODO global attributes?
-
         return ucube, vcube
-
