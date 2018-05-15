@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for the optical_flow.OpticalFlow plugin """
 
-import datetime
 import unittest
-import warnings
 import numpy as np
 
 import iris
 from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import OpticalFlow

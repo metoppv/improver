@@ -30,9 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for optical flow utilities """
 
-import datetime
 import unittest
-import numpy as np
 
 import iris
 from iris.coords import DimCoord
