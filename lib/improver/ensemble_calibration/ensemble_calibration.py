@@ -50,8 +50,9 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["The pandas.core.datetools module is deprecated",
                     "numpy.dtype size changed",
-                    "Not importing directory .*sphinxcontrib'"]
-WARNING_TYPES = [FutureWarning, RuntimeWarning, ImportWarning]
+                    "Not importing directory .*sphinxcontrib'",
+                    "The statsmodels can not be imported"]
+WARNING_TYPES = [FutureWarning, RuntimeWarning, ImportWarning, ImportWarning]
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -367,7 +368,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "the individual ensemble members. "
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
-                warnings.warn(msg)
+                warnings.warn(msg, ImportWarning)
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):
