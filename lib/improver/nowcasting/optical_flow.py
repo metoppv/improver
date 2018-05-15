@@ -584,7 +584,8 @@ class OpticalFlow(object):
         # reshape smoothed box velocity arrays to match input data grid
         grid_velocity = self._regrid_box_velocities(box_velocity)
 
-        # smooth regridded velocities
+        # smooth regridded velocities to remove box edge discontinuities
+        # this will fail if boxsize < 3
         kernelsize = int(self.boxsize/3)
         grid_velocity = self.smooth(grid_velocity, kernelsize, method='kernel')
         return grid_velocity
@@ -784,7 +785,8 @@ class OpticalFlow(object):
         self.boxsize = int(self.boxsize_km / grid_length_km)
 
         # raise warnings if self.boxsize or self.data_smoothing_radius are too
-        # small TODO should boxsize be an error?
+        # small TODO sensible numbers ... < 3 fails to converge but this may
+        # not be the actual sensible minimum
         if self.data_smoothing_radius < 3:
             msg = ("Input data smoothing radius {} too small - advection "
                    "vectors may not be calculable")
@@ -794,6 +796,9 @@ class OpticalFlow(object):
             msg = ("Grid box size {} too small for stable matrix inversion - "
                    "advection vectors may not be calculable")
             warnings.warn(msg.format(self.boxsize))
+
+        # TODO ACTUALLY fail if self.boxsize < 3?  This will likely cause
+        # silent failure anyway at the post-regridding velocity smoothing step
 
         # calculate dimensionless advection velocities
         data1 = next(cube1.slices([cube1.coord(axis='y'),
@@ -812,16 +817,14 @@ class OpticalFlow(object):
         y_coord = cube2.coord(axis="y")
         t_coord = cube2.coord("time")
 
-        ucube = iris.cube.Cube(ucomp, long_name="advection_velocity_x",
-                               units="m s-1",
-                               dim_coords_and_dims=[(y_coord, 0),
-                                                    (x_coord, 1)])
+        ucube = iris.cube.Cube(
+            ucomp, long_name="advection_velocity_x", units="m s-1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
 
-        vcube = iris.cube.Cube(vcomp, long_name="advection_velocity_y",
-                               units="m s-1",
-                               dim_coords_and_dims=[(y_coord, 0),
-                                                    (x_coord, 1)])
+        vcube = iris.cube.Cube(
+            vcomp, long_name="advection_velocity_y", units="m s-1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
 
         return ucube, vcube
