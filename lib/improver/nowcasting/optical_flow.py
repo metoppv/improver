@@ -32,7 +32,6 @@
 This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting of precipitation fields.
 """
-import warnings
 import numpy as np
 
 import scipy.linalg
