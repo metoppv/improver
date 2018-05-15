@@ -33,7 +33,7 @@
   run improver extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]]
+usage: improver-extract [-h] [--units UNITS [UNITS ...]] [--ignore-failure]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 
 Extracts subset of data from a single input file, subject to equality-based
@@ -60,6 +60,8 @@ optional arguments:
                         not ideal (eg for float equality). If used, this list
                         must match the CONSTRAINTS list in order and length
                         (with null values set to None).
+  --ignore-failure      Option to ignore constraint match failure and return
+                        the input cube.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

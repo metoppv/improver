@@ -63,13 +63,18 @@ def main():
                         'units are not ideal (eg for float equality). If '
                         'used, this list must match the CONSTRAINTS list in '
                         'order and length (with null values set to None).')
+    parser.add_argument('--ignore-failure', action='store_true', default=False,
+                        help='Option to ignore constraint match failure and '
+                        'return the input cube.')
     args = parser.parse_args()
 
     cube = load_cube(args.input_file)
 
     output_cube = extract_subcube(cube, args.constraints, args.units)
 
-    if output_cube is None:
+    if output_cube is None and args.ignore_failure:
+        save_netcdf(cube, args.output_file)
+    elif output_cube is None:
         msg = ("Constraint(s) could not be matched in input cube")
         raise ValueError(msg)
     else:
