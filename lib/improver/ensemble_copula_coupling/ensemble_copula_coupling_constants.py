@@ -67,7 +67,7 @@ BOUNDS_FOR_ECDF = {
     "lwe_snowfall_rate": Bounds((0, 0.00001), "m s-1"),
     "lwe_snowfall_rate_in_vicinity": Bounds((0, 0.00001), "m s-1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
-    "temperature_at_screen_level_nighttime_min": (  
+    "temperature_at_screen_level_nighttime_min": (
         Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
     "temperature_at_screen_level_daytime_max": (
         Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin"))
