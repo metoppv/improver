@@ -53,13 +53,13 @@ def set_up_test_cube():
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
     cube.attributes['source_realizations'] = np.arange(12)
     # Desired attributes that will be global in netCDF file
-    cube.attributes['Conventions'] = 'CF-1.5'
+    cube.attributes['title'] = 'Operational MOGREPS-UK Forecast Model'
+    cube.attributes['um_version'] = '10.4'
     cube.attributes['grid_id'] = 'enukx_standard_v1'
     cube.attributes['source'] = 'Met Office Unified Model'
+    cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['institution'] = 'Met Office'
     cube.attributes['history'] = ''
-    cube.attributes['um_version'] = '10.4'
-    cube.attributes['title'] = 'Operational MOGREPS-UK Forecast Model'
 
     return cube
 
@@ -204,6 +204,23 @@ class Test_append_metadata_cube(IrisTest):
                      '/def/'}
         metadata_cubelist = append_metadata_cube([], self.global_keys_ref)
         self.assertDictEqual(metadata_cubelist[0].attributes, prefix_dict)
+
+    def test_global_attributes_present(self):
+        """Test that desired global attributes are added to the prefix cube
+        so that Iris2 keeps these attributes global in any resultant
+        netCDF file saved using these cubes"""
+
+        cube_list = ([self.cube, self.cube])
+
+        metadata_cubelist = append_metadata_cube(
+            cube_list, self.global_keys_ref)
+
+        keys_in_prefix_cube = metadata_cubelist[2].attributes
+        prefix_global_keys = [
+            k for k in keys_in_prefix_cube.keys() if k in self.global_keys_ref]
+
+        self.assertListEqual(
+            sorted(self.global_keys_ref), sorted(prefix_global_keys))
 
 
 if __name__ == '__main__':
