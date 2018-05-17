@@ -42,6 +42,7 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
+  cp $TEST_DIR/output.nc /data/users/mabaker
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/kgo.nc"

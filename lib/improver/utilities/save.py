@@ -51,8 +51,6 @@ def append_metadata_cube(cubelist, global_keys):
     for cube in cubelist:
         keys = cube.attributes
         keys_for_global_attr = {k for k in keys.keys() if k in global_keys}
-        # Produce a dictionary from the set above
-        keys_for_global_attr = dict.fromkeys(keys_for_global_attr, '')
 
     # Set up a basic prefix cube
     prefix_cube = iris.cube.Cube(0, long_name='prefixes',
@@ -62,8 +60,8 @@ def append_metadata_cube(cubelist, global_keys):
     # these attributes as global in a resulting netCDF file, so add all of the
     # global attributes to the prefix cube (otherwise they will be made
     # variables in the netCDF file).
-    for key, value in keys_for_global_attr.items():
-        prefix_cube.attributes[key] = value
+    for key in keys_for_global_attr:
+        prefix_cube.attributes[key] = cube.attributes[key]
 
     # Add metadata prefix attributes to the prefix cube
     prefix_cube.attributes['spp__'] = \

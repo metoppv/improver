@@ -156,7 +156,7 @@ class Test_save_netcdf(IrisTest):
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
         global_keys = Dataset(self.filepath, mode='r').ncattrs()
-        self.assertEqual(len(global_keys), 2)
+        self.assertEqual(len(global_keys), 8)
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys))
 
