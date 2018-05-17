@@ -48,6 +48,7 @@ def append_metadata_cube(cubelist, global_keys):
     """
     keys_for_global_attr = {}
 
+    # Collect keys from each cubes attributes that match with global_keys
     for cube in cubelist:
         keys = cube.attributes
         keys_for_global_attr = {k for k in keys.keys() if k in global_keys}
