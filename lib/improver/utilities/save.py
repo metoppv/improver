@@ -46,23 +46,17 @@ def append_metadata_cube(cubelist):
 
     keys_for_global_attr = {}
 
+    global_keys = ['um_version', 'institution', 'source', 'grid_id', 'history',
+                   'Conventions', 'title']
+
+    for cube in cubelist:
+        keys = cube.attributes
+        keys_for_global_attr = {k for k in keys.keys() if k in global_keys}
+        keys_for_global_attr = dict.fromkeys(keys_for_global_attr, '')
+
     # Set up a basic prefix cube
     prefix_cube = iris.cube.Cube(0, long_name='prefixes',
                                  var_name='prefix_list')
-
-    # Iterate through the cubelist cubes attributes (using dictionary
-    # comprehension), collecting attributes that we want to be global
-    # attributes in a resulting netCDF file.
-    for cube in cubelist:
-        keys = cube.attributes
-        keys_for_global_attr = {k: v for k, v in keys.items()
-                                if k is 'um_version'
-                                or k is 'institution'
-                                or k is 'source'
-                                or k is 'grid_id'
-                                or k is 'history'
-                                or k is 'Conventions'
-                                or k is 'title'}
 
     # Attributes have to appear on all cubes in a cubelist for Iris 2 to save
     # these attributes as global in a resulting netCDF file, so add all of the
