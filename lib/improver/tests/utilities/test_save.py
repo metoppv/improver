@@ -183,7 +183,8 @@ class Test_append_metadata_cube(IrisTest):
         """Test that the bald__isPrefixedBy attribute is added to each cube
         and points to prefix_list"""
         cube_list = ([self.cube, self.cube])
-        metadata_cubelist = append_metadata_cube(cube_list)
+        metadata_cubelist = append_metadata_cube(
+            cube_list, self.global_keys_ref)
         for cube in metadata_cubelist:
             self.assertTrue(
                 cube.attributes['bald__isPrefixedBy']
@@ -201,7 +202,7 @@ class Test_append_metadata_cube(IrisTest):
             'rdf__': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
             'spd__': 'http://reference.metoffice.gov.uk/statistical-process'
                      '/def/'}
-        metadata_cubelist = append_metadata_cube([])
+        metadata_cubelist = append_metadata_cube([], self.global_keys_ref)
         self.assertDictEqual(metadata_cubelist[0].attributes, prefix_dict)
 
 

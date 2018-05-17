@@ -33,25 +33,25 @@
 import iris
 
 
-def append_metadata_cube(cubelist):
+def append_metadata_cube(cubelist, global_keys):
     """ Create a metadata cube associated with statistical
         post-processing attributes of the input cube list.
 
     Args:
         cubelist (iris.cube.CubeList):
             List of cubes to be saved
+        global_keys (list):
+            List of attributes to be treated as global across cubes and within
+            any netCDF files produced using these cubes.
     Returns:
         iris.cube.Cubelist with appended metadata cube
     """
-
     keys_for_global_attr = {}
-
-    global_keys = ['um_version', 'institution', 'source', 'grid_id', 'history',
-                   'Conventions', 'title']
 
     for cube in cubelist:
         keys = cube.attributes
         keys_for_global_attr = {k for k in keys.keys() if k in global_keys}
+        # Produce a dictionary from the set above
         keys_for_global_attr = dict.fromkeys(keys_for_global_attr, '')
 
     # Set up a basic prefix cube
@@ -107,6 +107,6 @@ def save_netcdf(cubelist, filename):
                   for key in cube.attributes.keys()
                   if key not in global_keys}
 
-    cubelist = append_metadata_cube(cubelist)
+    cubelist = append_metadata_cube(cubelist, global_keys)
 
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys)
