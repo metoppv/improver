@@ -68,7 +68,7 @@ def append_metadata_cube(cubelist):
     # these attributes as global in a resulting netCDF file, so add all of the
     # global attributes to the prefix cube (otherwise they will be made
     # variables in the netCDF file).
-    for key, value in keys_for_global_attr.iteritems():
+    for key, value in keys_for_global_attr.items():
         prefix_cube.attributes[key] = value
 
     # Add metadata prefix attributes to the prefix cube
