@@ -51,8 +51,16 @@ def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
     data = (np.linspace(-45.0, 45.0, 9).reshape(1, 1, 3, 3) + 273.15)
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
-    cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['source_realizations'] = np.arange(12)
+    # Desired attributes that will be global in netCDF file
+    cube.attributes['Conventions'] = 'CF-1.5'
+    cube.attributes['grid_id'] = 'enukx_standard_v1'
+    cube.attributes['source'] = 'Met Office Unified Model'
+    cube.attributes['institution'] = 'Met Office'
+    cube.attributes['history'] = ''
+    cube.attributes['um_version'] = '10.4'
+    cube.attributes['title'] = 'Operational MOGREPS-UK Forecast Model'
+
     return cube
 
 

@@ -43,8 +43,35 @@ def append_metadata_cube(cubelist):
     Returns:
         iris.cube.Cubelist with appended metadata cube
     """
+
+    keys_for_global_attr = {}
+
+    # Set up a basic prefix cube
     prefix_cube = iris.cube.Cube(0, long_name='prefixes',
                                  var_name='prefix_list')
+
+    # Iterate through the cubelist cubes attributes (using dictionary
+    # comprehension), collecting attributes that we want to be global
+    # attributes in a resulting netCDF file.
+    for cube in cubelist:
+        keys = cube.attributes
+        keys_for_global_attr = {k: v for k, v in keys.items()
+                                if k is 'um_version'
+                                or k is 'institution'
+                                or k is 'source'
+                                or k is 'grid_id'
+                                or k is 'history'
+                                or k is 'Conventions'
+                                or k is 'title'}
+
+    # Attributes have to appear on all cubes in a cubelist for Iris 2 to save
+    # these attributes as global in a resulting netCDF file, so add all of the
+    # global attributes to the prefix cube (otherwise they will be made
+    # variables in the netCDF file).
+    for key, value in keys_for_global_attr.iteritems():
+        prefix_cube.attributes[key] = value
+
+    # Add metadata prefix attributes to the prefix cube
     prefix_cube.attributes['spp__'] = \
         'http://reference.metoffice.gov.uk/statistical-process/properties/'
     prefix_cube.attributes['spv__'] = \
@@ -57,6 +84,7 @@ def append_metadata_cube(cubelist):
 
     cubelist = list(cubelist)
     cubelist.append(prefix_cube)
+    # bald__isPrefixedBy should be an attribute on all the cubes
     for cube in cubelist:
         cube.attributes['bald__isPrefixedBy'] = 'prefix_list'
 
