@@ -335,6 +335,8 @@ class Test_compute_initial_guess(IrisTest):
 
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
+        current_forecast_predictor.data = (
+            current_forecast_predictor.data.filled())
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"

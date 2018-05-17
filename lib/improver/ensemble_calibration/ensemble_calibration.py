@@ -46,6 +46,16 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.warnings_handler import ManageWarnings
+
+IGNORED_MESSAGES = ["The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "Not importing directory .*sphinxcontrib'",
+                    "The statsmodels can not be imported",
+                    "invalid escape sequence",
+                    "can't resolve package from"]
+WARNING_TYPES = [FutureWarning, RuntimeWarning, ImportWarning, ImportWarning,
+                 DeprecationWarning, ImportWarning]
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):

@@ -36,6 +36,7 @@ import unittest
 from unittest.mock import patch
 
 from improver.argparser import ArgParser
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 # We might one day want to move this up to a more central place.
@@ -311,6 +312,8 @@ class Test_wrong_args_error(unittest.TestCase):
 
     """Test the wrong_args_error method."""
 
+    @ManageWarnings(
+        ignored_messages=["unclosed file"], warning_types=[ResourceWarning])
     def test_error_raised(self, args='foo', method='bar'):
         """Test that an exception is raised containing the args and method."""
 
