@@ -367,7 +367,7 @@ class Test_process(IrisTest):
         desired_units = "degreesC"
         plugin = Plugin(calibration_method, distribution, desired_units)
         msg = "unknown"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(
                 self.current_temperature_forecast_cube,
                 self.historic_temperature_forecast_cube,

@@ -174,7 +174,7 @@ def nearest_n_neighbours(i, j, no_neighbours, exclude_self=False):
                  for a in range(-delta_neighbours, delta_neighbours+1)
                  for b in range(-delta_neighbours, delta_neighbours+1)]
     if exclude_self is True:
-        n_indices.pop(no_neighbours/2)
+        n_indices.pop(no_neighbours//2)
     return np.array(
         [np.array(n_indices)[:, 0], np.array(n_indices)[:, 1]]
         ).astype(int).tolist()
@@ -216,8 +216,8 @@ def node_edge_check(node_list, cube):
             node_list[k, min_list] = node_list[k, min_list] + coord_max
             node_list[k, max_list] = node_list[k, max_list] - coord_max
         else:
-            node_list = np.delete(node_list,
-                                  np.hstack((min_list, max_list)), 1)
+            indices_for_removal = np.hstack((min_list, max_list)).astype(int)
+            node_list = np.delete(node_list, indices_for_removal, 1)
 
     return node_list.tolist()
 
@@ -264,7 +264,7 @@ def list_entry_from_index(list_in, index_in):
         list:
             The extracted value returned as a list.
     """
-    return list(zip(*list_in)[index_in])
+    return list(list(zip(*list_in))[index_in])
 
 
 def construct_neighbour_hash(neighbour_finding):
@@ -342,7 +342,7 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
 
     """
     ad_extracted = {}
-    for key in additional_diagnostics.keys():
+    for key in list(additional_diagnostics.keys()):
         cubes = additional_diagnostics[key]
         ad_extracted[key] = extract_cube_at_time(cubes, time, time_extract)
     return ad_extracted

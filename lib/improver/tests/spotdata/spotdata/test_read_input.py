@@ -192,8 +192,8 @@ class Test_get_method_prerequisites(Test_read_input):
         method = 'model_level_temperature_lapse_rate'
         result = get_method_prerequisites(method, self.data_directory)
 
-        self.assertArrayEqual(expected.keys(), result.keys())
-        for diagnostic in expected.keys():
+        self.assertArrayEqual(list(expected.keys()), list(result.keys()))
+        for diagnostic in list(expected.keys()):
             self.assertArrayEqual(expected[diagnostic][0].data,
                                   result[diagnostic][0].data)
 
@@ -225,7 +225,7 @@ class Test_get_additional_diagnostics(Test_read_input):
 
         diagnostic_name = 'temperature_on_height_levels'
         msg = 'The relevant data files for'
-        with self.assertRaisesRegexp(IOError, msg):
+        with self.assertRaisesRegex(IOError, msg):
             get_additional_diagnostics(diagnostic_name, 'not_a_valid_path')
 
     def test_available_data_files_with_time_extraction(self):
@@ -248,7 +248,7 @@ class Test_get_additional_diagnostics(Test_read_input):
         diagnostic_name = 'temperature_on_height_levels'
         msg = 'No diagnostics match .*'
         time_extract = Constraint(time=PartialDateTime(2018, 1, 1, 0))
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             get_additional_diagnostics(diagnostic_name, self.data_directory,
                                        time_extract=time_extract)
 

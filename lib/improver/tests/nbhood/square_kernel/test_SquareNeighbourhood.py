@@ -54,7 +54,7 @@ class Test__init__(IrisTest):
         in for sum_or_fraction."""
         sum_or_fraction = "nonsense"
         msg = "option is invalid"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             SquareNeighbourhood(sum_or_fraction=sum_or_fraction)
 
 
@@ -160,7 +160,7 @@ class Test_pad_coord(IrisTest):
         width = 1
         method = "add"
         msg = "Non-uniform increments between grid points"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             SquareNeighbourhood.pad_coord(coord, width, method)
 
     def test_remove(self):
@@ -909,9 +909,16 @@ class Test_run(IrisTest):
                [1.0000, 1.000000, 0.714286, 0.571429, 0.25],
                [np.nan, 1.000000, 0.666667, 0.571429, 0.25],
                [np.nan, 1.000000, 0.750000, 0.750000, 0.50]]]])
+        expected_mask_array = np.array(
+            [[[[True, True, False, False, True],
+               [True, False, False, False, True],
+               [True, True, False, False, False],
+               [True, True, False, False, True],
+               [True, True, False, False, True]]]])
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.data, expected_array)
+        self.assertArrayAlmostEqual(result.data.mask, expected_mask_array)
 
     def test_masked_array_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a

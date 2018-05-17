@@ -87,7 +87,7 @@ class Test_common_functions(IrisTest):
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
         long_time_coord = DimCoord(
-            range(1487311200, 1487397600, 3600),
+            list(range(1487311200, 1487397600, 3600)),
             standard_name='time',
             units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
                                 calendar='gregorian'))
@@ -159,7 +159,7 @@ class Test_conditional_list_extract(Test_common_functions):
 
         """
         plugin = ConditionalListExtract('less_than')
-        expected = [sorted(range(0, 4)*12), range(0, 12)*4]
+        expected = [sorted(list(range(0, 4))*12), list(range(0, 12))*4]
         result = plugin.process(self.data, self.data_indices, 2)
         self.assertArrayEqual(expected, result)
 
@@ -170,7 +170,7 @@ class Test_conditional_list_extract(Test_common_functions):
 
         """
         plugin = ConditionalListExtract('greater_than')
-        expected = [sorted(range(8, 12)*12), range(0, 12)*4]
+        expected = [sorted(list(range(8, 12))*12), list(range(0, 12))*4]
         result = plugin.process(self.data, self.data_indices, 2)
         self.assertArrayEqual(expected, result)
 
@@ -181,7 +181,7 @@ class Test_conditional_list_extract(Test_common_functions):
 
         """
         plugin = ConditionalListExtract('equal_to')
-        expected = [sorted(range(4, 8)*12), range(0, 12)*4]
+        expected = [sorted(list(range(4, 8))*12), list(range(0, 12))*4]
         result = plugin.process(self.data, self.data_indices, 2)
         self.assertArrayEqual(expected, result)
 
@@ -192,7 +192,8 @@ class Test_conditional_list_extract(Test_common_functions):
 
         """
         plugin = ConditionalListExtract('not_equal_to')
-        expected = [sorted((range(0, 4) + range(8, 12))*12), range(0, 12)*8]
+        expected = [sorted((list(range(0, 4)) + list(range(8, 12)))*12),
+                    list(range(0, 12))*8]
         result = plugin.process(self.data, self.data_indices, 2)
         self.assertArrayEqual(expected, result)
 
@@ -200,7 +201,7 @@ class Test_conditional_list_extract(Test_common_functions):
         """Test that the plugin copes with an unknown method."""
         plugin = ConditionalListExtract('not_to')
         msg = 'Unknown method'
-        with self.assertRaisesRegexp(AttributeError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
             plugin.process(self.data, self.data_indices, 2)
 
 
@@ -230,7 +231,7 @@ class Test_nearest_n_neighbours(Test_common_functions):
         """Test function rejects invalid numbers of neighbours."""
         plugin = nearest_n_neighbours
         msg = 'Invalid nearest'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin(10, 10, 7)
 
 
@@ -397,7 +398,7 @@ class Test_index_of_minimum_difference(Test_common_functions):
         """Test function when finding the index in a subset of the list."""
         plugin = index_of_minimum_difference
         test_list = [-10, 10, -1.5, 1.5, -0.6, 0.4]
-        subset = range(0, 5)
+        subset = list(range(0, 5))
         expected = 4  # index of value -0.6 as 0.4 is not in the sublist.
         result = plugin(test_list, subset_list=subset)
         self.assertEqual(expected, result)
@@ -437,7 +438,7 @@ class Test_list_entry_from_index(Test_common_functions):
     def test_ND_list(self):
         """Test in a ND list, where here N=10."""
         plugin = list_entry_from_index
-        test_list = [range(0, 5)]*10
+        test_list = [list(range(0, 5))]*10
         index = 3
         expected = [3]*10
         result = plugin(test_list, index)

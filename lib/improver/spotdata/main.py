@@ -149,11 +149,11 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         ancillary_data=ancillary_data, **neighbour_kwargs)
 
     # Set up site-grid point neighbour lists for all IGPS methods being used.
-    for key in diagnostics.keys():
+    for key in list(diagnostics.keys()):
         neighbour_finding = diagnostics[key]['neighbour_finding']
         neighbour_hash = construct_neighbour_hash(neighbour_finding)
         # Check if defined neighbour method results already exist.
-        if neighbour_hash not in neighbours.keys():
+        if neighbour_hash not in list(neighbours.keys()):
             # If not, find neighbours with new method.
             neighbours[neighbour_hash] = (
                 PointSelection(**neighbour_finding).process(
@@ -167,14 +167,15 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         # Process diagnostics on separate threads if multiprocessing is
         # selected. Determine number of diagnostics to establish
         # multiprocessing pool size.
-        n_diagnostic_threads = min(len(diagnostics.keys()), mp.cpu_count())
+        n_diagnostic_threads = (
+            min(len(list(diagnostics.keys())), mp.cpu_count()))
 
         # Establish multiprocessing pool - each diagnostic processed on its
         # own thread.
         diagnostic_pool = mp.Pool(processes=n_diagnostic_threads)
 
         diagnostic_keys = [
-            diagnostic_name for diagnostic_name in diagnostics.keys()]
+            diagnostic_name for diagnostic_name in list(diagnostics.keys())]
 
         result = (
             diagnostic_pool.map_async(
@@ -192,7 +193,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         # Process diagnostics serially on one thread.
         resulting_cubes = CubeList()
         extrema_cubes = CubeList()
-        for key in diagnostics.keys():
+        for key in list(diagnostics.keys()):
             resulting_cube, extrema_cubelist = (
                 process_diagnostic(
                     diagnostics, neighbours, sites,

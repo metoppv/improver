@@ -125,7 +125,8 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
 
     cube.add_dim_coord(
         DimCoord(
-            range(num_realization_points), standard_name='realization'), 0)
+            list(range(num_realization_points)),
+            standard_name='realization'), 0)
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
     cube.add_dim_coord(DimCoord(time_points,
@@ -272,7 +273,7 @@ class Test__init__(IrisTest):
         radii = [10000, 20000, 30000]
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood()
             NBHood(neighbourhood_method, radii, lead_times=lead_times)
 
@@ -357,7 +358,7 @@ class Test__find_radii(IrisTest):
         result = plugin._find_radii(num_ens)
         expected_result = 3563.8181771801998
         self.assertIsInstance(result, float)
-        self.assertAlmostEquals(result, expected_result)
+        self.assertAlmostEqual(result, expected_result)
 
     def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
@@ -420,14 +421,14 @@ class Test_process(IrisTest):
         neighbourhood_method = 'nonsense'
         radii = 10000
         msg = "is not valid as a neighbourhood_method"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             NBHood(neighbourhood_method, radii).process(self.cube)
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
         self.cube.data[0][0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood
             NBHood(neighbourhood_method, self.RADIUS).process(self.cube)
 
@@ -436,7 +437,7 @@ class Test_process(IrisTest):
         self.cube.attributes.update({'source_realizations': [0, 1, 2, 3]})
         msg = ('Realizations and attribute source_realizations should not'
                ' both be set')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood()
             NBHood(neighbourhood_method, self.RADIUS).process(self.cube)
 

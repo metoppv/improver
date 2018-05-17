@@ -122,7 +122,7 @@ class PointSelection(object):
 
         """
         if self.method == 'fast_nearest_neighbour':
-            if 'orography' in ancillary_data.keys():
+            if 'orography' in list(ancillary_data.keys()):
                 orography = ancillary_data['orography'].data
             else:
                 orography = None
@@ -182,7 +182,7 @@ class PointSelection(object):
         iname = cube.coord(axis='y').name()
         jname = cube.coord(axis='x').name()
 
-        for i_site, site in enumerate(sites.itervalues()):
+        for i_site, site in enumerate(sites.values()):
             latitude, longitude, altitude = (site['latitude'],
                                              site['longitude'],
                                              site['altitude'])
@@ -269,7 +269,7 @@ class PointSelection(object):
         else:
             neighbours = default_neighbours
 
-        for i_site, site in enumerate(sites.itervalues()):
+        for i_site, site in enumerate(sites.values()):
 
             altitude = site['altitude']
 

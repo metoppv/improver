@@ -37,6 +37,5 @@ expected="usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
                        [--max_forecast_leadtime MAX_LEADTIME]
                        (--sqlite | --csv)
                        INPUT_FILES OUTPUT_FILE
-improver-spotdb: error: too few arguments"
   [[ "$output" =~ "$expected" ]]
 }

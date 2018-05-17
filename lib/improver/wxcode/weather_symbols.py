@@ -79,7 +79,7 @@ class WeatherSymbols(object):
                 The error includes details of which fields are missing.
         """
         missing_data = []
-        for query in self.queries.itervalues():
+        for query in self.queries.values():
             diagnostics = expand_nested_lists(query, 'diagnostic_fields')
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
             conditions = expand_nested_lists(query, 'diagnostic_conditions')
@@ -340,7 +340,7 @@ class WeatherSymbols(object):
         route = route + [start]
         if start == end:
             return [route]
-        if start not in graph.keys():
+        if start not in list(graph.keys()):
             return []
 
         routes = []
@@ -394,12 +394,12 @@ class WeatherSymbols(object):
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
-                 for key in self.queries.keys()}
+                 for key in list(self.queries.keys())}
 
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []
-        for item in self.queries.itervalues():
-            for value in item.itervalues():
+        for item in self.queries.values():
+            for value in item.values():
                 if isinstance(value, int):
                     defined_symbols.append(value)
 

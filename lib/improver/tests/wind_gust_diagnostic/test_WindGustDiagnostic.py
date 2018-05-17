@@ -170,7 +170,7 @@ class Test_update_metadata_after_max(IrisTest):
         plugin = WindGustDiagnostic(50.0, 80.0)
         result = plugin.update_metadata_after_max(self.cube, self.perc_coord)
         msg = 'Expected to find exactly 1 .* coordinate, but found none.'
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             result.coord(self.perc_coord)
 
 
@@ -203,8 +203,8 @@ class Test_extract_percentile_data(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Expecting wind_speed_of_gust data to be an instance of '
                'iris.cube.Cube but is'
-               ' {0:s}.'.format(type(self.wg_perc)))
-        with self.assertRaisesRegexp(TypeError, msg):
+               ' {0:s}.'.format(str(type(self.wg_perc))))
+        with self.assertRaisesRegex(TypeError, msg):
             plugin.extract_percentile_data(self.wg_perc,
                                            self.wg_perc,
                                            "wind_speed_of_gust")
@@ -229,7 +229,7 @@ class Test_extract_percentile_data(IrisTest):
         """Test it raises a Value Error if req_perc not in cube."""
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not find required percentile')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.extract_percentile_data(self.cube_wg,
                                            20.0,
                                            "wind_speed_of_gust")
@@ -289,7 +289,7 @@ class Test_process(IrisTest):
                                               perc_name='percentile_dummy'))
         msg = ('Percentile coord of wind-gust data'
                'does not match coord of wind-speed data')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
 
     def test_raises_error_for_no_time_coord(self):
@@ -300,7 +300,7 @@ class Test_process(IrisTest):
         cube_wg = iris.util.squeeze(cube_wg)
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, cube_ws)
 
     def test_raises_error_points_mismatch_and_no_bounds(self):
@@ -309,7 +309,7 @@ class Test_process(IrisTest):
         cube_wg.coord('time').points = [402192.5, 402194.5]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
 
     def test_raises_error_points_mismatch_and_bounds(self):
@@ -320,7 +320,7 @@ class Test_process(IrisTest):
                                         [402192.0, 402193.0]]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
 
     def test_raises_error_points_mismatch_and_invalid_bounds(self):
@@ -330,7 +330,7 @@ class Test_process(IrisTest):
         cube_wg.coord('time').bounds = [[402191.5], [402193.5]]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
 
     def test_no_raises_error_if_ws_point_in_bounds(self):

@@ -33,7 +33,7 @@
 
 import os
 import unittest
-from mock import patch
+from unittest.mock import patch
 
 from improver.argparser import ArgParser
 
@@ -80,7 +80,7 @@ class Test_init(QuietTestCase):
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None, specific_arguments=None)
             args = parser.parse_args()
-            args = vars(args).keys()
+            args = list(vars(args).keys())
             self.assertEqual(len(args), 0)
 
     def test_create_argparser_only_compulsory_arguments(self):
@@ -96,8 +96,8 @@ class Test_init(QuietTestCase):
                    compulsory_arguments):
             parser = ArgParser(central_arguments=None, specific_arguments=None)
             args = parser.parse_args()
-            args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo'])
+            args = list(vars(args).keys())
+            self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_fails_with_unknown_centralized_argument(self):
         """Test that we raise an exception when attempting to retrieve
@@ -131,8 +131,8 @@ class Test_init(QuietTestCase):
                 parser = ArgParser(central_arguments=['foo'],
                                    specific_arguments=None)
                 args = parser.parse_args()
-                args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo'])
+                args = list(vars(args).keys())
+                self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_only_specific_arguments(self):
         """Test that creating an ArgParser with only specific arguments
@@ -149,8 +149,8 @@ class Test_init(QuietTestCase):
             parser = ArgParser(central_arguments=None,
                                specific_arguments=specific_arguments)
             args = parser.parse_args()
-            args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo'])
+            args = list(vars(args).keys())
+            self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_compulsory_and_centralized_arguments(self):
         """Test that creating an ArgParser with compulsory and centralized
@@ -168,8 +168,8 @@ class Test_init(QuietTestCase):
                 parser = ArgParser(central_arguments=['bar'],
                                    specific_arguments=None)
                 args = parser.parse_args()
-                args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo', 'bar'])
+                args = list(vars(args).keys())
+                self.assertCountEqual(args, ['foo', 'bar'])
 
     def test_create_argparser_compulsory_and_specfic_arguments(self):
         """Test that creating an ArgParser with compulsory and specific
@@ -186,8 +186,8 @@ class Test_init(QuietTestCase):
             parser = ArgParser(central_arguments=None,
                                specific_arguments=specific_arguments)
             args = parser.parse_args()
-            args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo', 'bar'])
+            args = list(vars(args).keys())
+            self.assertCountEqual(args, ['foo', 'bar'])
 
     def test_create_argparser_all_arguments(self):
         """Test that creating an ArgParser with compulsory, centralized and
@@ -206,8 +206,8 @@ class Test_init(QuietTestCase):
                 parser = ArgParser(central_arguments=['bar'],
                                    specific_arguments=specific_arguments)
                 args = parser.parse_args()
-                args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo', 'bar', 'baz'])
+                args = list(vars(args).keys())
+                self.assertCountEqual(args, ['foo', 'bar', 'baz'])
 
 
 class Test_add_arguments(QuietTestCase):
@@ -233,9 +233,9 @@ class Test_add_arguments(QuietTestCase):
 
         parser.add_arguments(args_to_add)
         result_args = parser.parse_args()
-        result_args = vars(result_args).keys()
+        result_args = list(vars(result_args).keys())
         # we could also add compulsory arguments to expected_namespace_keys
-        # and then assertItemsEqual - (order unimportant), but this
+        # and then assertCountEqual - (order unimportant), but this
         # is unnecessary - just use loop:
         # (or we could patch compulsory arguments to be an empty dictionary)
         for expected_arg in expected_namespace_keys:
@@ -254,7 +254,7 @@ class Test_add_arguments(QuietTestCase):
 
         parser.add_arguments(args_to_add)
         result_args = parser.parse_args()
-        result_args = vars(result_args).keys()
+        result_args = list(vars(result_args).keys())
         self.assertIn(expected_arg, result_args)
 
     def test_adding_argument_with_defined_kwargs_dict_has_defualt(self):

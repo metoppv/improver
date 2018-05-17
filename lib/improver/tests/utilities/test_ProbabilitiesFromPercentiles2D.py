@@ -51,7 +51,7 @@ def set_up_percentiles_cube():
     """ Set up 3D cube with percentiles of height """
 
     test_data = np.full((5, 4, 4), -1, dtype=float)
-    for i in xrange(5):
+    for i in range(5):
         test_data[i].fill(100*i + 200)
 
     percentiles = DimCoord(np.linspace(0, 100, 5), long_name="percentiles",
@@ -131,7 +131,7 @@ class Test__init__(IrisTest):
         percentiles_cube = set_up_percentiles_cube()
         percentiles_cube = percentiles_cube[0]
         msg = "Percentile coordinate has only one value. Interpolation"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             ProbabilitiesFromPercentiles2D(percentiles_cube)
 
 
@@ -306,7 +306,7 @@ class Test_process(IrisTest):
         the units of cubes that have incompatible units."""
         self.orography_cube.units = 'K'
         msg = "Unable to convert from"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             self.plugin_instance.process(self.orography_cube)
 
     def test_preservation_of_dimensions(self):

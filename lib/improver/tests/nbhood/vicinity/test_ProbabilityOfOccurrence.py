@@ -53,7 +53,7 @@ class Test__init__(IrisTest):
         distance = 2000
         radius = 2000
         msg = "Only a square neighbourhood is accepted"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             ProbabilityOfOccurrence(distance, "circular", radius)
 
 

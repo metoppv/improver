@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for nbhood.ApplyNeighbourhoodProcessingWithAMask."""
 
-
+from collections import OrderedDict
 import unittest
 
 import iris
@@ -62,7 +62,7 @@ def add_dimensions_to_cube(cube, new_dims):
         cube (iris.cube.Cube):
             The iris cube with the additional dimensions added.
     """
-    for dim_name, dim_size in new_dims.iteritems():
+    for dim_name, dim_size in new_dims.items():
         cubes = iris.cube.CubeList()
         for i in range(dim_size):
             threshold_coord = DimCoord([i], long_name=dim_name)
@@ -202,8 +202,8 @@ class Test_process(IrisTest):
            input cube, apart from the additional topographic zone coordinate.
         """
         self.cube.remove_coord("realization")
-        cube = add_dimensions_to_cube(self.cube,
-                                      {"realization": 4, "threshold": 3})
+        cube = add_dimensions_to_cube(
+            self.cube, OrderedDict([("threshold", 3), ("realization", 4)]))
         coord_for_masking = "topographic_zone"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(

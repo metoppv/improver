@@ -52,7 +52,7 @@ class Test__init__(IrisTest):
         in for sum_or_fraction."""
         sum_or_fraction = "nonsense"
         msg = "option is invalid"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             CircularNeighbourhood(sum_or_fraction=sum_or_fraction)
 
 
@@ -345,7 +345,7 @@ class Test_run(IrisTest):
             zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
         msg = ("The use of a mask cube with a circular kernel is "
                "not yet implemented.")
-        with self.assertRaisesRegexp(NotImplementedError, msg):
+        with self.assertRaisesRegex(NotImplementedError, msg):
             CircularNeighbourhood().run(cube, self.RADIUS, mask_cube=cube)
 
 

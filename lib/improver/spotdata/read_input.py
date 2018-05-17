@@ -63,7 +63,7 @@ def get_method_prerequisites(method, diagnostic_data_path):
         }
 
     additional_diagnostics = {}
-    if method in prereq.keys():
+    if method in list(prereq.keys()):
         for item in prereq[method]:
             additional_diagnostics[item] = get_additional_diagnostics(
                 item, diagnostic_data_path)

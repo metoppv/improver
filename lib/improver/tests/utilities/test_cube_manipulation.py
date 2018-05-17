@@ -243,7 +243,7 @@ class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
             DimCoord([0], "forecast_period", units="hours"))
 
         msg = "The master coordinate for associating other coordinates"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _associate_any_coordinate_with_master_coordinate(
                 cube1, master_coord="time",
                 coordinates=["forecast_reference_time", "forecast_period"])
@@ -424,7 +424,7 @@ class Test_concatenate_cubes(IrisTest):
         """
         cubes = iris.cube.CubeList([self.cube, self.cube])
         msg = "An unexpected problem prevented concatenation."
-        with self.assertRaisesRegexp(ConcatenateError, msg):
+        with self.assertRaisesRegex(ConcatenateError, msg):
             concatenate_cubes(cubes)
 
     def test_cubelist_type_and_data(self):
@@ -490,7 +490,7 @@ class Test_concatenate_cubes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube2, cube3])
         msg = "failed to concatenate into a single cube"
-        with self.assertRaisesRegexp(ConcatenateError, msg):
+        with self.assertRaisesRegex(ConcatenateError, msg):
             concatenate_cubes(cubelist, coords_to_slice_over=["time"])
 
     def test_cubelist_slice_over_time_only(self):
@@ -625,7 +625,7 @@ class Test_merge_cubes(IrisTest):
         """Test that merging identical cubes fails."""
         cubes = iris.cube.CubeList([self.cube, self.cube])
         msg = "failed to merge into a single cube"
-        with self.assertRaisesRegexp(DuplicateDataError, msg):
+        with self.assertRaisesRegex(DuplicateDataError, msg):
             merge_cubes(cubes)
 
     def test_lagged_ukv(self):
@@ -704,14 +704,14 @@ class Test_equalise_cubes(IrisTest):
                                     np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", result[0].attributes.keys())
-        self.assertNotIn("title", result[1].attributes.keys())
-        self.assertAlmostEquals(result[0].attributes["grid_id"],
-                                result[1].attributes["grid_id"])
+        self.assertNotIn("title", list(result[0].attributes.keys()))
+        self.assertNotIn("title", list(result[1].attributes.keys()))
+        self.assertAlmostEqual(result[0].attributes["grid_id"],
+                               result[1].attributes["grid_id"])
         self.assertEqual(result[0].attributes["grid_id"],
                          'ukx_standard_v1')
-        self.assertNotIn("history", result[0].attributes.keys())
-        self.assertNotIn("history", result[1].attributes.keys())
+        self.assertNotIn("history", list(result[0].attributes.keys()))
+        self.assertNotIn("history", list(result[1].attributes.keys()))
 
     def test_strip_var_names(self):
         """Test that the utility removes var names"""
@@ -736,8 +736,8 @@ class Test_equalise_cubes(IrisTest):
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
         result = equalise_cubes(cubelist)
         self.assertEqual(len(result), 4)
-        self.assertAlmostEquals(result[3].coord('model_realization').points,
-                                1002.0)
+        self.assertAlmostEqual(result[3].coord('model_realization').points,
+                               1002.0)
 
 
 class Test__equalise_cube_attributes(IrisTest):
@@ -763,8 +763,8 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
-        self.assertNotIn("history", result[0].attributes.keys())
-        self.assertNotIn("history", result[1].attributes.keys())
+        self.assertNotIn("history", list(result[0].attributes.keys()))
+        self.assertNotIn("history", list(result[1].attributes.keys()))
 
     def test_cubelist_no_history_removal(self):
         """Test that the utility does not remove history attribute,
@@ -779,8 +779,8 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
-        self.assertIn("history", result[0].attributes.keys())
-        self.assertIn("history", result[1].attributes.keys())
+        self.assertIn("history", list(result[0].attributes.keys()))
+        self.assertIn("history", list(result[1].attributes.keys()))
 
     def test_cubelist_grid_id_same(self):
         """Test that the utility updates grid_id if in list and not matching"""
@@ -846,10 +846,10 @@ class Test__equalise_cube_attributes(IrisTest):
 
         result = _equalise_cube_attributes(cubelist)
 
-        self.assertIn("grid_id", result[0].attributes.keys())
+        self.assertIn("grid_id", list(result[0].attributes.keys()))
         self.assertEqual(result[0].attributes["grid_id"],
                          'ukx_standard_v1')
-        self.assertIn("grid_id", result[1].attributes.keys())
+        self.assertIn("grid_id", list(result[1].attributes.keys()))
         self.assertEqual(result[1].attributes["grid_id"],
                          'unknown_grid')
 
@@ -893,8 +893,8 @@ class Test__equalise_cube_attributes(IrisTest):
                                     np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", result[0].attributes.keys())
-        self.assertNotIn("title", result[1].attributes.keys())
+        self.assertNotIn("title", list(result[0].attributes.keys()))
+        self.assertNotIn("title", list(result[1].attributes.keys()))
 
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):
@@ -916,9 +916,9 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
         self.assertNotIn("unknown_attribute",
-                         result[0].attributes.keys())
+                         list(result[0].attributes.keys()))
         self.assertNotIn("unknown_attribute",
-                         result[1].attributes.keys())
+                         list(result[1].attributes.keys()))
 
 
 class Test__equalise_cube_coords(IrisTest):
@@ -949,7 +949,7 @@ class Test__equalise_cube_coords(IrisTest):
         cube2.remove_coord("threshold")
         cubes = iris.cube.CubeList([cube1, cube2])
         msg = "threshold coordinates must match to merge"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _equalise_cube_coords(cubes)
 
     def test_model_id_without_realization(self):
@@ -987,7 +987,7 @@ class Test__equalise_cube_coords(IrisTest):
         cube2.remove_coord("realization")
         cubes = iris.cube.CubeList([cube1, cube2])
         msg = "Model_id has more than one point"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _equalise_cube_coords(cubes)
 
     def test_model_id_with_realization_in_cube(self):
@@ -1100,7 +1100,7 @@ class Test_compare_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_attributes(cubelist)
         self.assertIsInstance(result, list)
-        self.assertAlmostEquals(result, [{}, {}])
+        self.assertAlmostEqual(result, [{}, {}])
 
     @ManageWarnings(record=True)
     def test_warning(self, warning_list=None):
@@ -1112,7 +1112,7 @@ class Test_compare_attributes(IrisTest):
         warning_msg = "Only a single cube so no differences will be found "
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertAlmostEquals(result, [])
+        self.assertAlmostEqual(result, [])
 
     def test_history_attribute(self):
         """Test that the utility returns diff when history do not match"""
@@ -1134,14 +1134,14 @@ class Test_compare_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube_no_attributes,
                                        self.cube, self.cube_ukv])
         result = compare_attributes(cubelist)
-        self.assertAlmostEquals(result,
-                                [{},
-                                 {'grid_id': 'enukx_standard_v1',
-                                  'title':
-                                  'Operational Mogreps UK Model Forecast'},
-                                 {'grid_id': 'ukvx_standard_v1',
-                                  'title':
-                                  'Operational UKV Model Forecast'}])
+        self.assertAlmostEqual(result,
+                               [{},
+                                {'grid_id': 'enukx_standard_v1',
+                                 'title':
+                                 'Operational Mogreps UK Model Forecast'},
+                                {'grid_id': 'ukvx_standard_v1',
+                                 'title':
+                                 'Operational UKV Model Forecast'}])
 
 
 class Test_compare_coords(IrisTest):
@@ -1169,7 +1169,7 @@ class Test_compare_coords(IrisTest):
         warning_msg = "Only a single cube so no differences will be found "
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertAlmostEquals(result, [])
+        self.assertAlmostEqual(result, [])
 
     def test_first_cube_has_extra_dimension_coordinates(self):
         """Test for comparing coordinate between cubes, where the first
@@ -1366,7 +1366,7 @@ class Test_add_renamed_cell_method(IrisTest):
         self.cube.cell_methods = ()
         message = ('Input Cell_method is not an instance of '
                    'iris.coord.CellMethod')
-        with self.assertRaisesRegexp(TypeError, message):
+        with self.assertRaisesRegex(TypeError, message):
             add_renamed_cell_method(self.cube, 'not_a_cell_method',
                                     'weighted_mean')
 
@@ -1664,7 +1664,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected.transpose([2, 3, 0, 1])
         cube = self.cube.copy()
         msg = "More than 1 coordinate"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             enforce_coordinate_ordering(cube, ["l", "e"])
 
     def test_include_extra_coordinates(self):
@@ -1705,7 +1705,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         cube = self.cube[0, :, :, :]
         cube.remove_coord("realization")
         msg = "The requested coordinate"
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             enforce_coordinate_ordering(
                 cube, "realization", raise_exception=True)
 

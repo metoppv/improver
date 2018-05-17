@@ -135,7 +135,7 @@ class Test_from_file(Test_ImportSiteData):
         self.save_json(self.site_data)
 
         msg = 'longitude and latitude must be defined'
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             Plugin(self.method).process(self.site_path)
 
     def test_no_longitude(self):
@@ -149,7 +149,7 @@ class Test_from_file(Test_ImportSiteData):
         self.save_json(self.site_data)
 
         msg = 'longitude and latitude must be defined'
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             Plugin(self.method).process(self.site_path)
 
     def test_unequal_lat_lon(self):
@@ -161,7 +161,7 @@ class Test_from_file(Test_ImportSiteData):
         self.site_data[0].pop('longitude')
         self.save_json(self.site_data)
         msg = 'Unequal no. of latitudes (.*) and longitudes'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Plugin(self.method).process(self.site_path)
 
     def test_only_lat_lon(self):

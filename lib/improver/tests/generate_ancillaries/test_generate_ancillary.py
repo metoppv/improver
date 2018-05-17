@@ -79,9 +79,9 @@ class Test__make_mask_cube(IrisTest):
         """test checking that an exception is raised when the _make_mask_cube
         method is called with an incorrect number of bounds."""
         emsg = "should have only an upper and lower limit"
-        with self.assertRaisesRegexp(TypeError, emsg):
+        with self.assertRaisesRegex(TypeError, emsg):
             _make_mask_cube(self.mask, self.coords, [0], self.units)
-        with self.assertRaisesRegexp(TypeError, emsg):
+        with self.assertRaisesRegex(TypeError, emsg):
             _make_mask_cube(self.mask,
                             self.coords,
                             [0, 2, 4], self.units)
@@ -90,7 +90,7 @@ class Test__make_mask_cube(IrisTest):
         """test checking that an exception is raised when the _make_mask_cube
         method is called with only an upper bound."""
         emsg = "should have both an upper and lower limit"
-        with self.assertRaisesRegexp(TypeError, emsg):
+        with self.assertRaisesRegex(TypeError, emsg):
             _make_mask_cube(self.mask,  self.coords,
                             [None, self.upper], self.units)
 

@@ -106,7 +106,7 @@ class Test_get_ancillary_data(IrisTest):
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIsInstance(result, dict)
-        for item in result.values():
+        for item in list(result.values()):
             self.assertIsInstance(item, Cube)
 
     def test_read_orography(self):
@@ -114,7 +114,7 @@ class Test_get_ancillary_data(IrisTest):
 
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
-        self.assertIn('orography', result.keys())
+        self.assertIn('orography', list(result.keys()))
         self.assertIsInstance(result['orography'], Cube)
         self.assertArrayEqual(result['orography'].data, self.orography.data)
 
@@ -123,7 +123,7 @@ class Test_get_ancillary_data(IrisTest):
         land constraint condition."""
 
         result = Plugin(self.diagnostics, self.directory)
-        self.assertIn('land_mask', result.keys())
+        self.assertIn('land_mask', list(result.keys()))
         self.assertIsInstance(result['land_mask'], Cube)
         self.assertArrayEqual(result['land_mask'].data, self.land.data)
 
@@ -134,7 +134,7 @@ class Test_get_ancillary_data(IrisTest):
         Call(['rm', self.orography_path])
         diagnostics = {}
         msg = 'Orography file not found.'
-        with self.assertRaisesRegexp(IOError, msg):
+        with self.assertRaisesRegex(IOError, msg):
             Plugin(diagnostics, self.directory)
 
     def test_missing_land_mask(self):
@@ -143,7 +143,7 @@ class Test_get_ancillary_data(IrisTest):
 
         Call(['rm', self.land_path])
         msg = 'Land mask file not found.'
-        with self.assertRaisesRegexp(IOError, msg):
+        with self.assertRaisesRegex(IOError, msg):
             Plugin(self.diagnostics, self.directory)
 
 

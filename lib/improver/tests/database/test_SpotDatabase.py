@@ -177,7 +177,7 @@ class Test_check_input_dimensions(IrisTest):
                    "coord_to_slice_over must only have one point in. "
                    "Dimension '1' has length '2' and is associated with the "
                    "'percentile' coordinate.")
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             self.plugin.check_input_dimensions(self.cubes[0])
 
     def test_no_exception_if_pivot_dim_set(self):
@@ -201,7 +201,7 @@ class Test_check_input_dimensions(IrisTest):
                   "coord_to_slice_over must only have one point in. "\
                   "Dimension '2' has length '3' and is associated with the "\
                   "'index' coordinate."
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             plugin.check_input_dimensions(cubes[0])
 
 
@@ -565,7 +565,7 @@ class Test_process(IrisTest):
                               "improver", "time", "index")
         message = ("Unrecognised output type. Current options are 'sqlite'"
                    " or 'csv', 'kitten' given.")
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             plugin.process(self.cubes)
 
 

@@ -112,7 +112,8 @@ class FrictionVelocity(object):
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
         numerator = self.u_href[self.mask]
-        denominator = np.log(self.h_ref[self.mask] / self.z_0[self.mask])
+        with np.errstate(invalid='ignore'):
+            denominator = np.log(self.h_ref[self.mask] / self.z_0[self.mask])
         ustar[self.mask] = VONKARMAN * (numerator / denominator)
         return ustar
 
@@ -711,13 +712,13 @@ class RoughnessCorrection(object):
         try:
             xname = cube.coord(axis="x").name()
         except CoordinateNotFoundError as exc:
-            print("'{0}' while xname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
+            print(("'{0}' while xname setting. Args: {1}.".format(exc,
+                                                                  exc.args)))
         try:
             yname = cube.coord(axis="y").name()
         except CoordinateNotFoundError as exc:
-            print("'{0}' while yname setting. Args: {1}.".format(exc.message,
-                                                                 exc.args))
+            print(("'{0}' while yname setting. Args: {1}.".format(exc,
+                                                                  exc.args)))
         if clist.intersection(self.zcoordnames):
             zname = list(clist.intersection(self.zcoordnames))[0]
         else:

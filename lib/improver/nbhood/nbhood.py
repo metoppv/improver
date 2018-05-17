@@ -239,8 +239,8 @@ class BaseNeighbourhoodProcessing(object):
                 # neighbourhood, and then apply the neighbourhood
                 # processing method to smooth the field.
                 for cube_slice, radius in (
-                        zip(cube_realization.slices_over("time"),
-                            required_radii)):
+                        list(zip(cube_realization.slices_over("time"),
+                             required_radii))):
                     cube_slice = self.neighbourhood_method.run(
                         cube_slice, radius, mask_cube=mask_cube)
                     cubes_time.append(cube_slice)
@@ -313,7 +313,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
-                       neighbourhood_method, methods.keys()))
+                       neighbourhood_method, list(methods.keys())))
             raise KeyError(msg)
 
 
@@ -385,5 +385,5 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         except KeyError:
             msg = ("The neighbourhood_method requested: {} is not a "
                    "supported method. Please choose from: {}".format(
-                       neighbourhood_method, methods.keys()))
+                       neighbourhood_method, list(methods.keys())))
             raise KeyError(msg)

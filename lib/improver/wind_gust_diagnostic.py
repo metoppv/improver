@@ -148,7 +148,7 @@ class WindGustDiagnostic(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('Expecting {0:s} data to be an instance of '
                    'iris.cube.Cube but is'
-                   ' {1:s}.'.format(standard_name, type(cube)))
+                   ' {1:s}.'.format(standard_name, str(type(cube))))
             raise TypeError(msg)
         perc_coord = find_percentile_coordinate(cube)
         if cube.standard_name != standard_name:

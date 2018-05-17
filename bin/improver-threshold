@@ -115,17 +115,17 @@ def main():
                 thresholds_from_file = json.load(input_file)
             thresholds = []
             fuzzy_bounds = []
-            for key in thresholds_from_file.keys():
+            for key in list(thresholds_from_file.keys()):
                 thresholds.append(float(key))
                 fuzzy_bounds.append(tuple(thresholds_from_file[key]))
         except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(err)(err.message + " in JSON file {}. \nHINT: Try "
+            raise type(err)(err + " in JSON file {}. \nHINT: Try "
                             "adding a zero after the decimal point.".format(
                                 args.threshold_config))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(err)(err.message + " in JSON file {}".format(
+            raise type(err)(err + " in JSON file {}".format(
                 args.threshold_config))
     else:
         thresholds = args.threshold_values

@@ -349,7 +349,7 @@ class ChooseDefaultWeightsLinear(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
-                   ' {0:s}'.format(type(cube)))
+                   ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
         (num_of_weights,
@@ -443,7 +443,7 @@ class ChooseDefaultWeightsNonLinear(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
-                   ' {0:s}'.format(type(cube)))
+                   ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
         (num_of_weights,
@@ -550,7 +550,7 @@ class ChooseDefaultWeightsTriangular(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
-                   ' {0:s}'.format(type(cube)))
+                   ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
         cube_coord = cube.coord(coord_name)
@@ -568,6 +568,6 @@ class ChooseDefaultWeightsTriangular(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         msg = ("<ChooseDefaultTriangularWeights width={:4.1f},"
-               " parameters_units={:s}>")
+               " parameters_units={}>")
         desc = msg.format(self.width, self.parameters_units)
         return desc

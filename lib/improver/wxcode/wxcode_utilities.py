@@ -65,7 +65,7 @@ _WX_DICT_IN = {0: 'Clear_Night',
                29: 'Thunder_Shower_Day',
                30: 'Thunder'}
 
-WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
+WX_DICT = OrderedDict(sorted(list(_WX_DICT_IN.items()), key=lambda t: t[0]))
 
 
 def add_wxcode_metadata(cube):
@@ -81,9 +81,9 @@ def add_wxcode_metadata(cube):
     cube.standard_name = None
     cube.var_name = None
     cube.units = "1"
-    wx_keys = np.array(WX_DICT.keys())
+    wx_keys = np.array(list(WX_DICT.keys()))
     cube.attributes.update({'weather_code': wx_keys})
-    wxstring = " ".join(WX_DICT.values())
+    wxstring = " ".join(list(WX_DICT.values()))
     cube.attributes.update({'weather_code_meaning': wxstring})
     return cube
 

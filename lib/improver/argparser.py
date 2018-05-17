@@ -138,7 +138,7 @@ class ArgParser(ArgumentParser):
             specific_arguments = []
 
         # argspecs of the compulsory arguments (no switch here)
-        compulsory_arguments = ArgParser.COMPULSORY_ARGUMENTS.values()
+        compulsory_arguments = list(ArgParser.COMPULSORY_ARGUMENTS.values())
 
         # get argspecs of the central arguments from the list of keys passed in
         central_arguments = [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for

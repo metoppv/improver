@@ -166,7 +166,7 @@ class Test_check_input_cubes(IrisTest):
         plugin = WeatherSymbols()
         cubes = self.cubes.pop()
         msg = 'Weather Symbols input cubes are missing'
-        with self.assertRaisesRegexp(IOError, msg):
+        with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
 
     def test_raises_error_missing_threshold(self):
@@ -175,7 +175,7 @@ class Test_check_input_cubes(IrisTest):
         cubes = self.cubes
         cubes[0] = cubes[0][0]
         msg = 'Weather Symbols input cubes are missing'
-        with self.assertRaisesRegexp(IOError, msg):
+        with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
 
     def test_incorrect_units(self):
@@ -185,7 +185,7 @@ class Test_check_input_cubes(IrisTest):
 
         msg = "Unable to convert from"
         self.cubes[0].coord('threshold').units = Unit('mm kg-1')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.check_input_cubes(self.cubes)
 
 
@@ -197,7 +197,7 @@ class Test_invert_condition(IrisTest):
         """Test that the invert_condition method returns a tuple of strings."""
         plugin = WeatherSymbols()
         tree = plugin.queries
-        result = plugin.invert_condition(tree[tree.keys()[0]])
+        result = plugin.invert_condition(tree[list(tree.keys())[0]])
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], str)
@@ -434,8 +434,8 @@ class Test_create_symbol_cube(IrisTest):
         self.cube = set_up_probability_above_threshold_cube(data,
                                                             'air_temperature',
                                                             'K')
-        self.wxcode = np.array(WX_DICT.keys())
-        self.wxmeaning = " ".join(WX_DICT.values())
+        self.wxcode = np.array(list(WX_DICT.keys()))
+        self.wxmeaning = " ".join(list(WX_DICT.values()))
 
     def test_basic(self):
         """Test construct_extract_constraint method returns a iris.Constraint.
@@ -455,8 +455,8 @@ class Test_process(IrisTest):
     def setUp(self):
         """ Set up wxcubes for testing. """
         self.cubes = set_up_wxcubes()
-        self.wxcode = np.array(WX_DICT.keys())
-        self.wxmeaning = " ".join(WX_DICT.values())
+        self.wxcode = np.array(list(WX_DICT.keys()))
+        self.wxmeaning = " ".join(list(WX_DICT.values()))
 
     def test_basic(self):
         """Test process returns a weather code cube with right values. """

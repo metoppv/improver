@@ -227,7 +227,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.cube.copy(), self.cube.copy(), lower_threshold,
             higher_threshold)
         msg = "A value of infinity was found"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
                 self.neighbourhood_method,
@@ -244,7 +244,7 @@ class Test__calculate_convective_ratio(IrisTest):
             higher_threshold)
         radii = 4000.0
         msg = "A value of greater than 1.0 was found"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             DiagnoseConvectivePrecipitation(
                 self.lower_threshold, self.higher_threshold,
                 self.neighbourhood_method, radii,

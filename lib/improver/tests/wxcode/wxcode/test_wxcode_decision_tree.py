@@ -107,7 +107,7 @@ class Test_wxcode_decision_tree(IrisTest):
         for node in tree:
             succeed = tree[node]['succeed']
             if isinstance(succeed, str):
-                self.assertEqual(succeed in tree.keys(), True)
+                self.assertEqual(succeed in list(tree.keys()), True)
             fail = tree[node]['fail']
             if isinstance(fail, str):
                 self.assertEqual(fail in tree, True)

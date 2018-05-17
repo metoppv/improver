@@ -226,7 +226,7 @@ class CubeCombiner(object):
 
         # If cube has coord bounds that we want to expand
         if expanded_coord:
-            for coord, treatment in expanded_coord.iteritems():
+            for coord, treatment in expanded_coord.items():
                 result = self.expand_bounds(result,
                                             cube_list,
                                             coord=coord,

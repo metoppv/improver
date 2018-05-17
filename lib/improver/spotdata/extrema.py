@@ -192,7 +192,7 @@ def make_local_time_cube(cube):
     # to latest time UTC +14 in far east. Ignores half hour time zones.
     local_time_min = int(hour_coordinates.points[0]-12)
     local_time_max = int(hour_coordinates.points[-1]+14)
-    local_times = range(local_time_min, local_time_max+1, 1)
+    local_times = list(range(local_time_min, local_time_max+1, 1))
 
     # Create iris.coord.DimCoord of local times.
     local_time_coord = DimCoord(local_times, standard_name='time',
@@ -203,7 +203,7 @@ def make_local_time_cube(cube):
 
     # Create ascending indices to help with filling new_data array.
     n_sites = cube.data.shape[1]
-    row_index = range(0, n_sites)
+    row_index = list(range(0, n_sites))
 
     # Loop through times in UTC and displace data in array so that each datum
     # sits at its local time.

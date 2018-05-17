@@ -793,7 +793,7 @@ class Test__apply_params(IrisTest):
         plugin = Plugin(self.cube, optimised_coeffs,
                         coeff_names)
         msg = "Number of coefficient names"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             dummy_result = plugin._apply_params(
                 predictor_cube, variance_cube, optimised_coeffs,
                 coeff_names, predictor_of_mean_flag)

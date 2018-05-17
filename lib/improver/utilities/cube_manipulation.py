@@ -466,9 +466,9 @@ def compare_attributes(cubes):
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
-        common_keys = cubes[0].attributes.keys()
+        common_keys = list(cubes[0].attributes.keys())
         for cube in cubes[1:]:
-            cube_keys = cube.attributes.keys()
+            cube_keys = list(cube.attributes.keys())
             common_keys = [
                 key for key in common_keys
                 if (key in cube_keys and
@@ -476,7 +476,7 @@ def compare_attributes(cubes):
 
         for i, cube in enumerate(cubes):
             unmatching_attributes.append(dict())
-            for key in cube.attributes.keys():
+            for key in list(cube.attributes.keys()):
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
                                                      cube.attributes[key]})
@@ -765,12 +765,12 @@ def enforce_coordinate_ordering(
     # Determine coordinate indices for use in creating a dictionary.
     # These indices are either relative to the start or end of the available
     # dimension coordinates.
-    coord_indices = np.array(range(len(coord_names)))
+    coord_indices = np.array(list(range(len(coord_names))))
     if anchor == "end":
         coord_indices = sorted(len(cube.dim_coords) - coord_indices)
-    coord_dict = dict(zip(coord_names, coord_indices))
+    coord_dict = dict(list(zip(coord_names, coord_indices)))
 
-    for coord_name in coord_dict.keys():
+    for coord_name in list(coord_dict.keys()):
         # Deal with the coord_name being a partial match to the actual
         # coordinate name.
         if cube.coords(coord_name):
@@ -814,7 +814,7 @@ def enforce_coordinate_ordering(
     # Get the dimensions for the coordinates that have not been requested.
     remaining_coords = []
     for acoord in cube.coords(dim_coords=True):
-        if acoord.name() not in coord_dict.keys():
+        if acoord.name() not in list(coord_dict.keys()):
             remaining_coords.append(cube.coord_dims(acoord)[0])
     remaining_coords = list(set(remaining_coords))
 
@@ -822,7 +822,7 @@ def enforce_coordinate_ordering(
     # getting the keys from the dictionary that have been sorted by the values.
     coord_dims = []
     for coord_name, _ in sorted(
-            coord_dict.items(), key=operator.itemgetter(1)):
+            list(coord_dict.items()), key=operator.itemgetter(1)):
         if cube.coords(coord_name, dim_coords=True):
             coord_dims.append(cube.coord_dims(coord_name)[0])
 

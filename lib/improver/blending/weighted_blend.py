@@ -416,7 +416,7 @@ class WeightedBlendAcrossWholeDimension(object):
         """Represent the configured plugin instance as a string."""
         description = ('<WeightedBlendAcrossWholeDimension:'
                        ' coord = {0:s}, weighting_mode = {1:s},'
-                       ' coord_adjust = {2:s}>')
+                       ' coord_adjust = {2}>')
         return description.format(self.coord, self.mode, self.coord_adjust)
 
     def process(self, cube, weights=None):
@@ -457,7 +457,7 @@ class WeightedBlendAcrossWholeDimension(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
-                   ' {0:s}.'.format(type(cube)))
+                   ' {0:s}.'.format(str(type(cube))))
             raise TypeError(msg)
 
         # Check that the points within the time coordinate are equal
@@ -503,9 +503,10 @@ class WeightedBlendAcrossWholeDimension(object):
                 msg = ('The weights array must match the shape '
                        'of the coordinate in the input cube; '
                        'weight shape is '
-                       '{0:s}'.format(np.array(weights).shape) +
+                       '{0:s}'.format(str(np.array(weights).shape)) +
                        ', cube shape is '
-                       '{0:s}'.format(cube.coord(self.coord).points.shape))
+                       '{0:s}'.format(
+                           str(cube.coord(self.coord).points.shape)))
                 raise ValueError(msg)
 
         # If coord to blend over is a scalar_coord warn

@@ -99,8 +99,8 @@ class Test_add_wxcode_metadata(IrisTest):
                          2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
         self.cube = set_up_cube(data, 'air_temperature', 'K',
                                 realizations=np.array([0, 1]))
-        self.wxcode = np.array(WX_DICT.keys())
-        self.wxmeaning = " ".join(WX_DICT.values())
+        self.wxcode = np.array(list(WX_DICT.keys()))
+        self.wxmeaning = " ".join(list(WX_DICT.values()))
         self.data_directory = mkdtemp()
         self.nc_file = self.data_directory + '/wxcode.nc'
         Call(['touch', self.nc_file])
@@ -153,13 +153,13 @@ class Test_expand_nested_lists(IrisTest):
         """Testexpand_nested_lists returns a expanded list if given a list."""
         result = expand_nested_lists(self.dictionary, 'list')
         for val in result:
-            self.assertEquals(val, 'a')
+            self.assertEqual(val, 'a')
 
     def test_list_of_lists(self):
         """Returns a expanded list if given a list of lists."""
         result = expand_nested_lists(self.dictionary, 'list_of_lists')
         for val in result:
-            self.assertEquals(val, 'a')
+            self.assertEqual(val, 'a')
 
 
 if __name__ == '__main__':

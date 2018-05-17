@@ -102,7 +102,7 @@ def save_netcdf(cubelist, filename):
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'institution', 'history', 'bald__isPrefixedBy']
     local_keys = {key for cube in cubelist
-                  for key in cube.attributes.keys()
+                  for key in list(cube.attributes.keys())
                   if key not in global_keys}
 
     cubelist = append_metadata_cube(cubelist, global_keys)

@@ -66,7 +66,7 @@ class Test_check_for_x_and_y_axes(IrisTest):
             break
         sliced_cube.remove_coord("projection_y_coordinate")
         msg = "The cube does not contain the expected"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             check_for_x_and_y_axes(sliced_cube)
 
     def test_no_x_coordinate(self):
@@ -77,7 +77,7 @@ class Test_check_for_x_and_y_axes(IrisTest):
             break
         sliced_cube.remove_coord("projection_x_coordinate")
         msg = "The cube does not contain the expected"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             check_for_x_and_y_axes(sliced_cube)
 
 
@@ -142,7 +142,7 @@ class Test_check_cube_coordinates(IrisTest):
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
         msg = 'is not within the permitted exceptions'
-        with self.assertRaisesRegexp(iris.exceptions.InvalidCubeError, msg):
+        with self.assertRaisesRegex(iris.exceptions.InvalidCubeError, msg):
             check_cube_coordinates(
                 cube, new_cube)
 
@@ -155,7 +155,7 @@ class Test_check_cube_coordinates(IrisTest):
         cube = iris.util.squeeze(cube)
         exception_coordinates = ["height"]
         msg = 'is not within the permitted exceptions'
-        with self.assertRaisesRegexp(iris.exceptions.InvalidCubeError, msg):
+        with self.assertRaisesRegex(iris.exceptions.InvalidCubeError, msg):
             check_cube_coordinates(
                 cube, new_cube, exception_coordinates=exception_coordinates)
 
@@ -167,8 +167,8 @@ class Test_check_cube_coordinates(IrisTest):
         new_cube = iris.util.squeeze(cube)
         new_cube.remove_coord('realization')
         msg = 'The number of dimension coordinates within the new cube'
-        with self.assertRaisesRegexp(iris.exceptions.CoordinateNotFoundError,
-                                     msg):
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
+                                    msg):
             check_cube_coordinates(cube, new_cube)
 
 
@@ -248,8 +248,8 @@ class Test_find_percentile_coordinate(IrisTest):
         """Test it raises a Type Error if cube is not a cube."""
         msg = ('Expecting data to be an instance of '
                'iris.cube.Cube but is'
-               ' {0:s}.'.format(type(self.wg_perc)))
-        with self.assertRaisesRegexp(TypeError, msg):
+               ' {0:s}.'.format(str(type(self.wg_perc))))
+        with self.assertRaisesRegex(TypeError, msg):
             find_percentile_coordinate(self.wg_perc)
 
     def test_fails_if_no_perc_coord(self):
@@ -257,7 +257,7 @@ class Test_find_percentile_coordinate(IrisTest):
         msg = ('No percentile coord found on')
         cube = self.cube_wg
         cube.remove_coord("percentile_over_dummy")
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             find_percentile_coordinate(cube)
 
     def test_fails_if_too_many_perc_coord(self):
@@ -269,7 +269,7 @@ class Test_find_percentile_coordinate(IrisTest):
                                  long_name='percentile_over_realization',
                                  units='no_unit'))
         cube.add_aux_coord(new_perc_coord)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
 
 

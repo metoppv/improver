@@ -106,7 +106,7 @@ class Test_add_coord(IrisTest):
         cube = iris.util.squeeze(cube)
         changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
         msg = 'Trying to add new coord but no points defined'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
 
     def test_fails_points_greater_than_1(self):
@@ -117,7 +117,7 @@ class Test_add_coord(IrisTest):
         cube = iris.util.squeeze(cube)
         changes = {'points': [0.1, 2.0]}
         msg = 'Can not add a coordinate of length > 1'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
 
     @ManageWarnings(record=True)
@@ -167,7 +167,7 @@ class Test_update_coord(IrisTest):
         cube = create_cube_with_threshold()
         changes = 'delete'
         msg = "Can only remove a coordinate of length 1"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             update_coord(cube, 'time', changes)
 
     @ManageWarnings(record=True)
@@ -188,7 +188,7 @@ class Test_update_coord(IrisTest):
         cube = create_cube_with_threshold()
         changes = {'points': [2.0, 3.0]}
         msg = "Mismatch in points in existing coord and updated metadata"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             update_coord(cube, 'threshold', changes)
 
     def test_coords_update_fail_bounds(self):
@@ -196,7 +196,7 @@ class Test_update_coord(IrisTest):
         cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
         changes = {'bounds': [0.1, 2.0]}
         msg = "The shape of the bounds array should be"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             update_coord(cube, 'threshold', changes)
 
     def test_coords_update_bounds_succeed(self):
@@ -214,7 +214,7 @@ class Test_update_coord(IrisTest):
         cube.coord('threshold').guess_bounds()
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0], [3.0, 4.0]]}
         msg = "Mismatch in bounds in existing coord and updated metadata"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             update_coord(cube, 'threshold', changes)
 
     @ManageWarnings(record=True)
@@ -419,7 +419,7 @@ class Test_resolve_metadata_diff(IrisTest):
         cube1 = create_cube_with_threshold()
         cube2 = create_cube_with_threshold(threshold_values=[1.0, 2.0])
         msg = "Can not combine cubes, mismatching shapes"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             resolve_metadata_diff(cube1, cube2)
 
     def test_mismatching_coords_1d_coord_pos0_on_cube1(self):

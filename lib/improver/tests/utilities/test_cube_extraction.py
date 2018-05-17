@@ -86,7 +86,7 @@ class Test_create_range_constraint(IrisTest):
         values = "[0.03:0.1]"
         result = create_range_constraint(coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
@@ -97,7 +97,7 @@ class Test_create_range_constraint(IrisTest):
         values = "0.03:0.1"
         result = create_range_constraint(coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
@@ -130,8 +130,8 @@ class Test_parse_constraint_list(IrisTest):
         """ Test simple key-value splitting with no units """
         result, udict = parse_constraint_list(self.constraints)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(
-            result._coord_values.keys(), ["threshold", "percentile"])
+        self.assertCountEqual(
+            list(result._coord_values.keys()), ["threshold", "percentile"])
         cdict = result._coord_values
         self.assertEqual(cdict["percentile"], 10)
         self.assertEqual(cdict["threshold"], 0.1)
@@ -149,13 +149,13 @@ class Test_parse_constraint_list(IrisTest):
         """ Test units list containing "None" elements is correctly parsed """
         _, udict = parse_constraint_list(self.constraints, units=self.units)
         self.assertEqual(udict["threshold"], "mm h-1")
-        self.assertNotIn("percentile", udict.keys())
+        self.assertNotIn("percentile", list(udict.keys()))
 
     def test_unmatched_units(self):
         """ Test for ValueError if units list does not match constraints """
         units = ["mm h-1"]
         msg = "units list must match constraints"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             parse_constraint_list(self.constraints, units=units)
 
     def test_list_constraint(self):
@@ -171,7 +171,7 @@ class Test_parse_constraint_list(IrisTest):
         result, _ = parse_constraint_list(constraints)
         self.assertIsInstance(result, iris._constraints.ConstraintCombination)
         cdict = result.rhs._coord_values
-        self.assertEqual(cdict.keys(), ["threshold"])
+        self.assertEqual(list(cdict.keys()), ["threshold"])
         precip_cube = set_up_precip_probability_cube()
         precip_cube.coord("threshold").convert_units("mm h-1")
         result_cube = precip_cube.extract(result)

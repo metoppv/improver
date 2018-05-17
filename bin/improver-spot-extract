@@ -233,7 +233,7 @@ def main():
 
     # Loop through the requested diagnostics and load data the essential data
     # and any additional data that is required.
-    for diagnostic_key in diagnostics.keys():
+    for diagnostic_key in list(diagnostics.keys()):
         diagnostic_name_in_filename = (
             diagnostics[diagnostic_key]["name_in_filename"])
         files_to_read = (

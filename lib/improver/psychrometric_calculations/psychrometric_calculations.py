@@ -496,8 +496,8 @@ class WetBulbTemperature(object):
             relative_humidity_over_levels = relative_humidity.slices_over(
                 level_coord)
             pressure_over_levels = pressure.slices_over(level_coord)
-            slices = zip(temperature_over_levels,
-                         relative_humidity_over_levels, pressure_over_levels)
+            slices = list(zip(temperature_over_levels,
+                          relative_humidity_over_levels, pressure_over_levels))
         elif len(vertical_coords) > 0 and len(set(vertical_coords)) != 1:
             raise ValueError('WetBulbTemperature: Cubes have differing '
                              'vertical coordinates.')

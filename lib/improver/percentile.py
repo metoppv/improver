@@ -63,7 +63,7 @@ class PercentileConverter(object):
         """
         if not isinstance(collapse_coord, list):
             collapse_coord = [collapse_coord]
-        if not all([isinstance(test_coord, basestring)
+        if not all([isinstance(test_coord, str)
                     for test_coord in collapse_coord]):
             raise TypeError('collapse_coord is {!r}, which is not a string '
                             'as is expected.'.format(collapse_coord))

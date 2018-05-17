@@ -247,16 +247,16 @@ class ExtractData(object):
         # Build the new auxiliary coordinates.
         crds = self._aux_coords_to_make()
         aux_crds = []
-        for key, kwargs in zip(crds.keys(), crds.itervalues()):
-            aux_data = np.array([entry[key] for entry in sites.itervalues()])
+        for key, kwargs in zip(list(crds.keys()), iter(crds.values())):
+            aux_data = np.array([entry[key] for entry in sites.values()])
             crd = build_coordinate(aux_data, long_name=key, **kwargs)
             aux_crds.append(crd)
 
         # Construct zipped lists of coordinates and indices. New aux coords are
         # associated with the index dimension.
         n_dim_coords = len(dim_coords)
-        dim_coords = zip(dim_coords, range(n_dim_coords))
-        aux_coords = zip(aux_crds, [n_dim_coords-1]*len(aux_crds))
+        dim_coords = list(zip(dim_coords, list(range(n_dim_coords))))
+        aux_coords = list(zip(aux_crds, [n_dim_coords-1]*len(aux_crds)))
 
         # Copy other cube metadata.
         metadata_dict = copy.deepcopy(cube.metadata._asdict())
@@ -344,7 +344,7 @@ class ExtractData(object):
 
         data = np.empty(shape=(len(sites)), dtype=float)
 
-        for i_site, site in enumerate(sites.itervalues()):
+        for i_site, site in enumerate(sites.values()):
             i, j = neighbours['i'][i_site], neighbours['j'][i_site]
 
             altitude = site['altitude']

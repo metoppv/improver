@@ -147,9 +147,9 @@ class ImportSiteData(object):
 
         """
         latitude_entries = [i_site for (i_site, site) in enumerate(site_data)
-                            if 'latitude' in site.keys()]
+                            if 'latitude' in list(site.keys())]
         longitude_entries = [i_site for (i_site, site) in enumerate(site_data)
-                             if 'longitude' in site.keys()]
+                             if 'longitude' in list(site.keys())]
 
         if not latitude_entries or not longitude_entries:
             raise KeyError('longitude and latitude must be defined for '
@@ -177,20 +177,21 @@ class ImportSiteData(object):
         self.altitudes = np.full(n_sites, np.nan)
         self.wmo_site = np.full(n_sites, 0, dtype=int)
         for i_site, site in enumerate(site_data):
-            if 'altitude' in site.keys() and site['altitude'] is not None:
+            if ('altitude' in list(site.keys()) and
+                    site['altitude'] is not None):
                 self.altitudes[i_site] = site['altitude']
-            if 'wmo_id' in site.keys() and site['wmo_id'] is not None:
+            if 'wmo_id' in list(site.keys()) and site['wmo_id'] is not None:
                 self.wmo_site[i_site] = site['wmo_id']
 
         # Identify UTC offset if it is provided in the input, otherwise set it
         # based upon site longitude.
         self.utc_offsets = np.full(n_sites, np.nan)
         for i_site, site in enumerate(site_data):
-            if 'gmtoffset' in site.keys():
+            if 'gmtoffset' in list(site.keys()):
                 self.utc_offsets[i_site] = site['gmtoffset']
-            elif 'utcoffset' in site.keys():
+            elif 'utcoffset' in list(site.keys()):
                 self.utc_offsets[i_site] = site['utcoffset']
-            elif 'utc_offset' in site.keys():
+            elif 'utc_offset' in list(site.keys()):
                 self.utc_offsets[i_site] = site['utc_offset']
 
             # If it's not been set, set it with the longitude based method.
