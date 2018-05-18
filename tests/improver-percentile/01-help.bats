@@ -33,7 +33,7 @@
   run improver percentile -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-percentile [-h]
+usage: improver-percentile [-h] [--profile] [--profile_file PROFILE_FILE]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
                            [--percentiles PERCENTILES [PERCENTILES ...] |
                            --no-of-percentiles NUMBER_OF_PERCENTILES]
@@ -54,6 +54,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]
                         Coordinate or coordinates over which to collapse data
                         and calculate percentiles; e.g. 'realization' or

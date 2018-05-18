@@ -33,18 +33,23 @@
   run improver gradient -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-gradient [-h] [--force] INPUT_FILE OUTPUT_FILE
+usage: improver-gradient [-h] [--profile] [--profile_file PROFILE_FILE]
+                         [--force]
+                         INPUT_FILE OUTPUT_FILE
 
 Read the input field, and calculate the gradient in x and y directions.
 
 positional arguments:
-  INPUT_FILE   A path to an input NetCDF file to be processed
-  OUTPUT_FILE  The output path for the processed NetCDF
+  INPUT_FILE            A path to an input NetCDF file to be processed
+  OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
-  -h, --help   show this help message and exit
-  --force      If True, ancillaries will be generated even if doing so will
-               overwrite existing files.
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+  --force               If True, ancillaries will be generated even if doing
+                        so will overwrite existing files.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

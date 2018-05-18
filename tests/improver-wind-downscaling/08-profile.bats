@@ -29,15 +29,32 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood-vicinity no arguments" {
-  run improver nbhood-vicinity
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood-vicinity [-h] [--profile] [--profile_file PROFILE_FILE]
-                                [--neighbourhood_shape NEIGHBOURHOOD_SHAPE]
-                                [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                                [--ens_factor ENS_FACTOR] [--weighted_mode]
-                                VICINITY_DISTANCE INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wind downscaling profiling " {
+  improver_check_skip_acceptance
+  test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/basic/"
+
+  # Run wind downscaling processing and check it gives profile info on pass.
+  run improver wind-downscaling --profile "$test_path/input.nc" "$test_path/a_over_s.nc" \
+      "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
+      1500 "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" =~ [0-9]+\ function\ calls\ .+\ in\ [0-9.]+\ seconds ]]
+
+  # Run wind downscaling processing and check it gives profile info on fail.
+  run improver wind-downscaling --profile apple banana \
+      cherry durian elderberry 42 fig
+  [[ "$status" -eq 1 ]]
+  [[ "$output" =~ [0-9]+\ function\ calls\ .+\ in\ [0-9.]+\ seconds ]]
+
+  # Run wind downscaling processing and dump to a profile file.
+  run improver wind-downscaling --profile_file="$TEST_DIR/out.prof" "$test_path/input.nc" \
+      "$test_path/a_over_s.nc" "$test_path/sigma.nc" \
+      "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" 1500 \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+  run $BATS_TEST_DIRNAME/bin/check_profile_file "$TEST_DIR/out.prof"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" =~ [0-9]+\ function\ calls\ .+\ in\ [0-9.]+\ seconds ]]  
 }

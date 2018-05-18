@@ -33,7 +33,9 @@
   run improver blend-adjacent-points -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-blend-adjacent-points [-h] [--parameter_unit UNIT_STRING]
+usage: improver-blend-adjacent-points [-h] [--profile]
+                                      [--profile_file PROFILE_FILE]
+                                      [--parameter_unit UNIT_STRING]
                                       [--calendar CALENDAR]
                                       COORDINATE_TO_BLEND_OVER
                                       WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
@@ -62,6 +64,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --parameter_unit UNIT_STRING
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00.

@@ -33,7 +33,8 @@
   run improver extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]] [--ignore-failure]
+usage: improver-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+                        [--units UNITS [UNITS ...]] [--ignore-failure]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 
 Extracts subset of data from a single input file, subject to equality-based
@@ -54,6 +55,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --units UNITS [UNITS ...]
                         Optional: units of coordinate constraint(s) to be
                         applied, for use when the input coordinate units are

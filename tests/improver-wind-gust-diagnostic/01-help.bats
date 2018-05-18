@@ -33,7 +33,9 @@
   run improver wind-gust-diagnostic -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wind-gust-diagnostic [-h] [--percentile_gust PERCENTILE_GUST]
+usage: improver-wind-gust-diagnostic [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
+                                     [--percentile_gust PERCENTILE_GUST]
                                      [--percentile_ws PERCENTILE_WIND_SPEED]
                                      INPUT_FILE_GUST INPUT_FILE_WINDSPEED
                                      OUTPUT_FILE
@@ -53,6 +55,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --percentile_gust PERCENTILE_GUST
                         Percentile of wind-gust required. Default=50.0
   --percentile_ws PERCENTILE_WIND_SPEED

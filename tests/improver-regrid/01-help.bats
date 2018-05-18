@@ -33,8 +33,8 @@
   run improver regrid -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-regrid [-h] [--nearest]
-                       [--extrapolation_mode EXTRAPOLATION_MODE]
+usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
+                       [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
                        SOURCE_DATA TARGET_GRID OUTPUT_FILE
 
 Regrid data from source_data on to the grid contained within target_grid using
@@ -49,6 +49,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --nearest             If True, regridding will be performed using
                         iris.analysis.Nearest() instead of Linear(). Use for
                         less continuous fields, e.g. precipitation.

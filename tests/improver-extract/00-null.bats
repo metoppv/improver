@@ -33,7 +33,8 @@
   run improver extract
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-extract [-h] [--units UNITS [UNITS ...]] [--ignore-failure]
+usage: improver-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+                        [--units UNITS [UNITS ...]] [--ignore-failure]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 __TEXT__
   [[ "$output" =~ "$expected" ]]

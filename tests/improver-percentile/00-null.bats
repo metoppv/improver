@@ -32,7 +32,7 @@
 @test "percentile no arguments" {
   run improver percentile
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-percentile [-h]
+  expected="usage: improver-percentile [-h] [--profile] [--profile_file PROFILE_FILE]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
                            [--percentiles PERCENTILES [PERCENTILES ...] |
                            --no-of-percentiles NUMBER_OF_PERCENTILES]

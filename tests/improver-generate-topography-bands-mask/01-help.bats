@@ -4,7 +4,8 @@
   run improver generate-topography-bands-mask -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-generate-topography-bands-mask [-h]
+usage: improver-generate-topography-bands-mask [-h] [--profile]
+                                               [--profile_file PROFILE_FILE]
                                                [--input_filepath_landmask INPUT_FILE_LAND]
                                                [--force]
                                                [--thresholds_filepath THRESHOLDS_FILEPATH]
@@ -23,6 +24,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --input_filepath_landmask INPUT_FILE_LAND
                         A path to an input NetCDF land mask file to be
                         processed. If provided, sea points will be set to zero

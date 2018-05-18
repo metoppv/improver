@@ -32,7 +32,8 @@
 @test "ensemble-calibration no arguments" {
   run improver ensemble-calibration
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-ensemble-calibration [-h]
+  expected="usage: improver-ensemble-calibration [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
                                      [--num_realizations NUMBER_OF_REALIZATIONS]

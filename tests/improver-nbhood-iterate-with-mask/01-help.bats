@@ -33,7 +33,8 @@
   run improver nbhood-iterate-with-mask -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-  usage: improver-nbhood-iterate-with-mask [-h]
+usage: improver-nbhood-iterate-with-mask [-h] [--profile]
+                                         [--profile_file PROFILE_FILE]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--ens_factor ENS_FACTOR]
                                          [--sum_or_fraction {sum,fraction}]
@@ -66,6 +67,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --radius RADIUS       The radius (in m) for neighbourhood processing.
   --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS
                         The radii for neighbourhood processing and the

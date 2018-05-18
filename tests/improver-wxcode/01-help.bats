@@ -33,7 +33,7 @@
   run improver wxcode -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wxcode [-h]
+usage: improver-wxcode [-h] [--profile] [--profile_file PROFILE_FILE]
                        INPUT_FILES INPUT_FILES INPUT_FILES INPUT_FILES
                        INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE
 
@@ -50,11 +50,14 @@ be converted:
  - probability_of_lwe_snowfall_rate_in_vicinity; thresholds: above 0.1 (mm hr-1), above 1.0 (mm hr-1)
 
 positional arguments:
-  INPUT_FILES  Paths to files containing the required input diagnostics.
-  OUTPUT_FILE  The output path for the processed NetCDF.
+  INPUT_FILES           Paths to files containing the required input diagnostics.
+  OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
-  -h, --help   show this help message and exit
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

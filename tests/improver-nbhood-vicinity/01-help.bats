@@ -33,7 +33,7 @@
   run improver nbhood-vicinity -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-nbhood-vicinity [-h]
+usage: improver-nbhood-vicinity [-h] [--profile] [--profile_file PROFILE_FILE]
                                 [--neighbourhood_shape NEIGHBOURHOOD_SHAPE]
                                 [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                 [--ens_factor ENS_FACTOR] [--weighted_mode]
@@ -51,6 +51,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --neighbourhood_shape NEIGHBOURHOOD_SHAPE
                         The shape of the neighbourhood to apply in
                         neighbourhood processing. Only a "square"

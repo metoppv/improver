@@ -33,7 +33,8 @@
   run improver ecc
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
+usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
+                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]

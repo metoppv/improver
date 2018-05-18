@@ -33,7 +33,8 @@
   run improver threshold -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
+usage: improver-threshold [-h] [--profile] [--profile_file PROFILE_FILE]
+                          [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
@@ -54,6 +55,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --threshold_config THRESHOLD_CONFIG
                         Threshold configuration JSON file containing
                         thresholds and fuzzy bounds. Best used in combination

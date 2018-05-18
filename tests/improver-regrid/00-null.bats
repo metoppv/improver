@@ -33,8 +33,8 @@
   run improver regrid
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-regrid [-h] [--nearest]
-                       [--extrapolation_mode EXTRAPOLATION_MODE]
+usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
+                       [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
                        SOURCE_DATA TARGET_GRID OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]

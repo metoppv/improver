@@ -33,7 +33,9 @@
   run improver weighted-blending -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-weighted-blending [-h] [--coord_exp_val COORD_EXPECTED_VALUES]
+usage: improver-weighted-blending [-h] [--profile]
+                                  [--profile_file PROFILE_FILE]
+                                  [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
@@ -73,6 +75,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --coord_exp_val COORD_EXPECTED_VALUES
                         Optional string of expected coordinate points
                         seperated by , e.g. "1496289600, 1496293200"

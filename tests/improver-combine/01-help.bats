@@ -33,7 +33,8 @@
   run improver combine -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-combine [-h] [--operation OPERATION] [--new-name NEW_NAME]
+usage: improver-combine [-h] [--profile] [--profile_file PROFILE_FILE]
+                        [--operation OPERATION] [--new-name NEW_NAME]
                         [--metadata_jsonfile METADATA_JSONFILE]
                         [--warnings_on]
                         INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
@@ -51,6 +52,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --operation OPERATION
                         Operation to use in combining NetCDF datasets
                         Default=+ i.e. add

@@ -33,7 +33,8 @@
   run improver recursive-filter -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-recursive-filter [-h]
+usage: improver-recursive-filter [-h] [--profile]
+                                 [--profile_file PROFILE_FILE]
                                  [--input_filepath_alphas_x ALPHAS_X_FILE]
                                  [--input_filepath_alphas_y ALPHAS_Y_FILE]
                                  [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
@@ -58,6 +59,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --input_filepath_alphas_x ALPHAS_X_FILE
                         A path to a NetCDF file describing the alpha factors
                         to be used for smoothing in the x direction

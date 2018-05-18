@@ -33,7 +33,8 @@
   run improver ecc -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
+usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
+                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
@@ -50,6 +51,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --no_of_percentiles NUMBER_OF_PERCENTILES
                         The number of percentiles to be generated. This is
                         also equal to the number of ensemble realizations that

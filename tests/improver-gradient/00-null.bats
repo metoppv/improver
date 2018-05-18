@@ -32,6 +32,10 @@
 @test "gradient calculation no arguments" {
   run improver gradient
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-gradient [-h] [--force] INPUT_FILE OUTPUT_FILE"
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-gradient [-h] [--profile] [--profile_file PROFILE_FILE]
+                         [--force]
+                         INPUT_FILE OUTPUT_FILE
+__TEXT__
   [[ "$output" =~ "$expected" ]]
 }
