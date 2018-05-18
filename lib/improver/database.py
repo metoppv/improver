@@ -292,7 +292,6 @@ class SpotDatabase(object):
         # Find the number of columns which were indexes to index primary keys
         n_keys = len(new_df.columns) - len(self.df.columns)
         schema = pd.io.sql.get_schema(new_df, table,
-                                      flavor='sqlite',
                                       keys=new_df.columns[:n_keys])
         return schema
 
