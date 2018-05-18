@@ -1,4 +1,6 @@
-Reference issue if exists
+Addresses #GitHubissuenum
+
+Description
 
 Testing:
  - [ ] Ran tests and they passed OK
