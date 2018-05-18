@@ -46,6 +46,13 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.warnings_handler import ManageWarnings
+
+IGNORED_MESSAGES = ["The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "Not importing directory .*sphinxcontrib'",
+                    "The statsmodels can not be imported"]
+WARNING_TYPES = [FutureWarning, RuntimeWarning, ImportWarning, ImportWarning]
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -318,6 +325,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def __init__(self, distribution, desired_units,
                  predictor_of_mean_flag="mean"):
         """
@@ -359,7 +368,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "the individual ensemble members. "
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
-                warnings.warn(msg)
+                warnings.warn(msg, ImportWarning)
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):
