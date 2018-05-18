@@ -328,6 +328,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def __init__(self, distribution, desired_units,
                  predictor_of_mean_flag="mean"):
         """
@@ -369,7 +371,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "the individual ensemble members. "
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
-                warnings.warn(msg)
+                warnings.warn(msg, ImportWarning)
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):

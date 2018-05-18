@@ -150,7 +150,7 @@ class Test_complex_to_deg(IrisTest):
         # Input is complex for 0 and 360 deg - both should return 0.0.
         input_data = np.array([1+0j, 1-0j])
         result = WindDirection().complex_to_deg(input_data)
-        self.failUnless((result == 0.0).all())
+        self.assertTrue((result == 0.0).all())
 
     def test_converts_array(self):
         """Tests that array of complex values are converted to degrees."""
@@ -272,7 +272,7 @@ class Test_process(IrisTest):
         """Test code raises a Type Error if input cube is not a cube."""
         input_data = 50.0
         msg = ('Wind direction input is not a cube, but'
-               ' {0:s}'.format(type(input_data)))
+               ' {0:s}'.format(str(type(input_data))))
         with self.assertRaisesRegexp(TypeError, msg):
             WindDirection().process(input_data)
 

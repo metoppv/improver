@@ -49,9 +49,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
                              _create_historic_forecasts, _create_truth)
 from improver.utilities.warnings_handler import ManageWarnings
 
-IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
-                    "Not importing directory .*sphinxcontrib'"]
-WARNING_TYPES = [UserWarning, ImportWarning]
+IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate."]
+WARNING_TYPES = [UserWarning]
 
 
 class Test__init__(IrisTest):
@@ -469,8 +468,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Minimisation did not result in convergence",
-                          "Collapsing a non-contiguous coordinate.",
-                          "The statsmodels can not be imported"])
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold ",
+                          "Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_gaussian_distribution_members(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -513,8 +514,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Minimisation did not result in convergence",
-                          "Collapsing a non-contiguous coordinate.",
-                          "The statsmodels can not be imported"])
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold ",
+                          "Collapsing a non-contiguous coordinate."])
     def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
         """
         Ensure that the values generated within optimised_coeffs match the
