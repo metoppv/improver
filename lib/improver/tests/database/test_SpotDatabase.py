@@ -528,9 +528,6 @@ class Test_determine_schema(IrisTest):
                                    "index")
         self.dataframe = self.plugin.to_dataframe(cubes)
 
-    @ManageWarnings(
-        ignored_messages=["the 'flavor' parameter is deprecated"],
-        warning_types=[FutureWarning])
     def test_full_schema(self):
         """Basic test using a basic dataframe as input"""
         schema = self.plugin.determine_schema("improver")
