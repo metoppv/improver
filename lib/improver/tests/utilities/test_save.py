@@ -218,9 +218,11 @@ class Test_append_metadata_cube(IrisTest):
         keys_in_prefix_cube = metadata_cubelist[1].attributes
 
         prefix_global_keys = [
-            k for k in keys_in_prefix_cube.keys() if k in self.global_keys_ref]
+            k for k in keys_in_prefix_cube.keys()
+            if k in self.global_keys_ref]
         data_cube_global_keys = [
-            k for k in self.cube.attributes.keys() if k in self.global_keys_ref]
+            k for k in self.cube.attributes.keys()
+            if k in self.global_keys_ref]
 
         self.assertListEqual(
             sorted(prefix_global_keys), sorted(data_cube_global_keys))
