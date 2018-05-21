@@ -211,12 +211,12 @@ class Test_append_metadata_cube(IrisTest):
         netCDF file saved using these cubes"""
 
         cube_list = ([self.cube])
-
         metadata_cubelist = append_metadata_cube(
             cube_list, self.global_keys_ref)
 
         keys_in_prefix_cube = metadata_cubelist[1].attributes
 
+        # Get the global keys from both prefix and data cubes
         prefix_global_keys = [
             k for k in keys_in_prefix_cube.keys()
             if k in self.global_keys_ref]
@@ -224,8 +224,14 @@ class Test_append_metadata_cube(IrisTest):
             k for k in self.cube.attributes.keys()
             if k in self.global_keys_ref]
 
+        # Check the keys are the same for prefix and data cube
         self.assertListEqual(
             sorted(prefix_global_keys), sorted(data_cube_global_keys))
+
+        # Check the key values are the same for prefix and data cube.
+        for key in prefix_global_keys:
+            self.assertEqual(metadata_cubelist[-1].attributes[key],
+                             self.cube.attributes[key])
 
 
 if __name__ == '__main__':
