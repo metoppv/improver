@@ -293,6 +293,8 @@ class Test_make_local_time_cube(Test_extrema):
                          expected_first_time)
         self.assertEqual(result.coord('time').points[-1],
                          expected_last_time)
+        self.assertEqual(result.coord('forecast_reference_time').points[0],
+                         self.time_coord.points[0])
 
     def test_time_shifting(self):
         """Test that "temperature" data has been shifted to the correct local
