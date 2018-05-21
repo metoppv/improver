@@ -361,10 +361,12 @@ class OpticalFlow(object):
             self.boxsize_km, self.iterations, self.point_weight)
 
     @staticmethod
-    def corner(data, axis=None):
+    def interp_to_midpoint(data, axis=None):
         """
-        Calculates the average of four corner points at each point on a grid.
-        If axis is not None, only averages over the spatial axis specified.
+        Interpolates the average of four corner points at each grid point onto
+        a new grid of reduced dimensions.  If axis is not None, only averages
+        over the spatial axis specified.  If the input array has an axis of
+        length 1, this function returns an empty array: [].
 
         Args:
             data (np.ndarray):
@@ -373,24 +375,24 @@ class OpticalFlow(object):
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
-            corners (np.ndarray):
+            midpoints (np.ndarray):
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
         """
         if axis is None:
-            corners = 0.25*(data[1:, :-1] + data[:-1, 1:] +
-                            data[1:, 1:] + data[:-1, :-1])
+            midpoints = 0.25*(data[1:, :-1] + data[:-1, 1:] +
+                              data[1:, 1:] + data[:-1, :-1])
         elif axis == 0:
-            corners = 0.5*(data[:-1, :] + data[1:, :])
+            midpoints = 0.5*(data[:-1, :] + data[1:, :])
         elif axis == 1:
-            corners = 0.5*(data[:, :-1] + data[:, 1:])
-        return corners
+            midpoints = 0.5*(data[:, :-1] + data[:, 1:])
+        return midpoints
 
     def _partial_derivative_spatial(self, axis=0):
         """
-        Calculate the average over two input fields of one spatial derivative,
-        averaged over the other spatial dimension.  Pad with zeros in both
-        dimensions, then smooth to original grid shape
+        Calculate the average over the two class data fields of one spatial
+        derivative, averaged over the other spatial dimension.  Pad with zeros
+        in both dimensions, then smooth to the original grid shape.
 
         Args:
             axis (int):
@@ -402,18 +404,19 @@ class OpticalFlow(object):
         """
         outdata = []
         for data in [self.data1, self.data2]:
-            diffs = self.corner(np.diff(data, axis=axis), axis=1-axis)
+            diffs = self.interp_to_midpoint(
+                np.diff(data, axis=axis), axis=1-axis)
             outdata.append(diffs)
         smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
         smoothed_diffs[1:-1, 1:-1] = 0.5*(outdata[0] + outdata[1])
-        return self.corner(smoothed_diffs)
+        return self.interp_to_midpoint(smoothed_diffs)
 
     def _partial_derivative_temporal(self):
         """
         Calculate the partial derivative of two fields over time.  Take the
-        difference between time-separated fields data1 and data2, then average
+        difference between time-separated fields data1 and data2, average
         over the two spatial dimensions, regrid to a zero-padded output
-        array, and smooth.
+        array, and smooth to the original grid shape.
 
         Returns:
             (np.ndarray):
@@ -421,13 +424,15 @@ class OpticalFlow(object):
         """
         tdiff = self.data2 - self.data1
         smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
-        smoothed_diffs[1:-1, 1:-1] = self.corner(tdiff)
-        return self.corner(smoothed_diffs)
+        smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
+        return self.interp_to_midpoint(smoothed_diffs)
 
     def _make_subboxes(self, field, boxsize):
         """
-        Generate a list of sliding "boxes" of size boxsize*boxsize from the
-        input field, along with weights based on data values at times 1 and 2.
+        Generate a list of non-overlapping "boxes" of size boxsize*boxsize
+        from the input field, along with weights based on data values at times
+        1 and 2.  The final boxes in the list will be smaller if the size of
+        the data field is not an exact multiple of "boxsize".
 
         Args:
             field (np.ndarray):

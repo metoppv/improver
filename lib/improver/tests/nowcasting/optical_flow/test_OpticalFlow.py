@@ -62,7 +62,7 @@ class Test__init__(IrisTest):
         """Test raises error if plugin is initialised with unsuitable
         parameter values"""
         with self.assertRaises(ValueError):
-            _ = OpticalFlow(data_smoothing_radius=10, boxsize=5)
+            _ = OpticalFlow(data_smoothing_radius=10, boxsize=9.9)
 
 
 class Test__repr__(IrisTest):
@@ -113,12 +113,12 @@ class OpticalFlowUtilityTest(IrisTest):
         self.plugin.shape = self.plugin.data1.shape
 
 
-class Test_corner(OpticalFlowUtilityTest):
-    """Test corner averaging function"""
+class Test_interp_to_midpoint(OpticalFlowUtilityTest):
+    """Test interp_to_midpoint averaging function"""
 
     def test_basic(self):
         """Test result is of correct type and shape"""
-        result = self.plugin.corner(self.plugin.data1)
+        result = self.plugin.interp_to_midpoint(self.plugin.data1)
         self.assertIsInstance(result, np.ndarray)
         self.assertSequenceEqual(result.shape, (2, 4))
 
@@ -126,14 +126,14 @@ class Test_corner(OpticalFlowUtilityTest):
         """Test output values"""
         expected_output = np.array([[1., 2., 3., 4.],
                                     [0.25, 1., 2., 3.]])
-        result = self.plugin.corner(self.plugin.data1)
+        result = self.plugin.interp_to_midpoint(self.plugin.data1)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_first_axis(self):
         """Test averaging over first axis"""
         expected_output = np.array([[0.5, 1.5, 2.5, 3.5, 4.5],
                                     [0.0, 0.5, 1.5, 2.5, 3.5]])
-        result = self.plugin.corner(self.plugin.data1, axis=0)
+        result = self.plugin.interp_to_midpoint(self.plugin.data1, axis=0)
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_second_axis(self):
@@ -141,7 +141,20 @@ class Test_corner(OpticalFlowUtilityTest):
         expected_output = np.array([[1.5, 2.5, 3.5, 4.5],
                                     [0.5, 1.5, 2.5, 3.5],
                                     [0.0, 0.5, 1.5, 2.5]])
-        result = self.plugin.corner(self.plugin.data1, axis=1)
+        result = self.plugin.interp_to_midpoint(self.plugin.data1, axis=1)
+        self.assertArrayAlmostEqual(result, expected_output)
+
+    def test_array_too_small(self):
+        """Test returns empty array if averaging over an axis of length 1"""
+        small_array = self.plugin.data1[0, :].reshape((1, 5))
+        result = self.plugin.interp_to_midpoint(small_array)
+        self.assertFalse(result)
+
+    def test_small_array_single_axis(self):
+        """Test sensible output if averaging over one valid axis"""
+        expected_output = np.array([[1.5, 2.5, 3.5, 4.5]])
+        small_array = self.plugin.data1[0, :].reshape((1, 5))
+        result = self.plugin.interp_to_midpoint(small_array, axis=1)
         self.assertArrayAlmostEqual(result, expected_output)
 
 
@@ -181,7 +194,9 @@ class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
         self.assertSequenceEqual(result.shape, self.plugin.shape)
 
     def test_values(self):
-        """Test output values"""
+        """Test output values.  Note this is NOT the same function as
+        _partial_derivative_spatial(axis=0), the output arrays are the same
+        as a result of the choice of data."""
         expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
