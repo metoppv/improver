@@ -43,7 +43,7 @@ from improver.nowcasting.optical_flow import check_input_coords
 
 
 class Test_check_input_coords(IrisTest):
-    """Tests for the _check_input_coords method"""
+    """Tests for the check_input_coords function"""
 
     def setUp(self):
         """Set up dummy cube and plugin instance"""

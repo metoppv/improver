@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 This module defines the optical flow velocity calculation and extrapolation
-classes for advection nowcasting of precipitation fields.
+classes for advection nowcasting.
 """
 import numpy as np
 
@@ -118,6 +118,11 @@ class AdvectField(object):
 
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = ('<AdvectField>')
+        return result
 
     @staticmethod
     def _increment_output_array(indata, outdata, cond, xdest_grid, ydest_grid,
@@ -336,7 +341,8 @@ class OpticalFlow(object):
         # fail if data smoothing radius is larger than box size on which
         # optical flow velocities are calculated - not sensible parameters!
         if self.data_smoothing_radius_km > self.boxsize_km:
-            msg = "Data smoothing radius {} exceeds velocity box size {}"
+            msg = ('Data smoothing radius {} must not exceed velocity box '
+                   'size {}')
             raise ValueError(msg.format(self.data_smoothing_radius_km,
                                         self.boxsize_km))
 
@@ -344,6 +350,15 @@ class OpticalFlow(object):
         self.data1 = None
         self.data2 = None
         self.shape = None
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
+                  'data_smoothing_method: {}, boxsize_km: {}, '
+                  'iterations: {}, point_weight: {}>')
+        return result.format(
+            self.data_smoothing_radius_km, self.data_smoothing_method,
+            self.boxsize_km, self.iterations, self.point_weight)
 
     @staticmethod
     def corner(data, axis=None):
@@ -534,6 +549,10 @@ class OpticalFlow(object):
                 Latest iteration of smart-smoothed velocity
             weights (np.ndarray):
                 Weight of each grid point for averaging
+
+        Returns:
+            vel (np.ndarray):
+                Next iteration of smart-smoothed velocity
         """
         # define kernel for neighbour weighting
         neighbour_kernel = np.array([[0.5, 1, 0.5],
@@ -576,7 +595,7 @@ class OpticalFlow(object):
 
         Args:
             box_velocity (np.ndarray):
-                Velocities on box grid
+                Velocities on box grid (modified by this function)
             weights (np.ndarray):
                 Weights for smart smoothing
         Returns:
@@ -792,9 +811,10 @@ class OpticalFlow(object):
             int(self.data_smoothing_radius_km / grid_length_km)
         self.boxsize = int(self.boxsize_km / grid_length_km)
 
-        # fail verbosely if self.boxsize or self.data_smoothing_radius are too
-        # small and will trigger silent failures downstream
-        # (boxsize >= data_smoothing_radius is enforced in initialisation)
+        # Fail verbosely if self.data_smoothing_radius is too small and will
+        # trigger silent failures downstream. (Note that self.boxsize < 3 will
+        # also trigger silent failures, but this is caught indirectly by
+        # enoforcing boxsize > data_smoothing_radius at initialisation.)
         if self.data_smoothing_radius < 3:
             msg = ("Input data smoothing radius {} too small (minimum 3 "
                    "grid squares)")

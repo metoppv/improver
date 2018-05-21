@@ -84,6 +84,17 @@ class Test__init__(IrisTest):
             _ = AdvectField(vel_x, vel_y)
 
 
+class Test__repr__(IrisTest):
+    """Test class representation"""
+
+    def test_basic(self):
+        """Test string representation"""
+        vel_x = set_up_xy_velocity_cube("advection_velocity_x")
+        vel_y = set_up_xy_velocity_cube("advection_velocity_y")
+        result = str(AdvectField(vel_x, vel_y))
+        self.assertEqual(result, '<AdvectField>')
+
+
 class Test__increment_output_array(IrisTest):
     """Tests for the _increment_output_array method"""
 

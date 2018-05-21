@@ -65,6 +65,18 @@ class Test__init__(IrisTest):
             _ = OpticalFlow(data_smoothing_radius=10, boxsize=5)
 
 
+class Test__repr__(IrisTest):
+    """Test string representation"""
+
+    def test_basic(self):
+        """Test string representation"""
+        expected_string = ('<OpticalFlow: data_smoothing_radius_km: 7.0, '
+                           'data_smoothing_method: box, boxsize_km: 30.0, '
+                           'iterations: 100, point_weight: 0.1>')
+        result = str(OpticalFlow())
+        self.assertEqual(result, expected_string)
+
+
 class Test_makekernel(IrisTest):
     """Test makekernel function"""
 
@@ -450,7 +462,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
-        self.plugin = OpticalFlow(data_smoothing_radius=6, boxsize=6)
+        self.plugin = OpticalFlow(data_smoothing_radius=6, boxsize=6,
+                                  iterations=10)
 
         coord_points = 2*np.arange(16)
         x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
@@ -497,8 +510,8 @@ class Test_process(IrisTest):
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
         ucube, vcube = self.plugin.process(self.cube1, self.cube2)
-        self.assertAlmostEqual(np.mean(ucube.data), -2.17862386456)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.17862386456)
+        self.assertAlmostEqual(np.mean(ucube.data), -2.12078369915)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.12078369915)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
