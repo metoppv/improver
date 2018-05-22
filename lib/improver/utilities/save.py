@@ -75,7 +75,6 @@ def append_metadata_cube(cubelist, global_keys):
         'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
     prefix_cube.attributes['bald__'] = 'http://binary-array-ld.net/latest/'
 
-    cubelist = list(cubelist)
     cubelist.append(prefix_cube)
     # bald__isPrefixedBy should be an attribute on all the cubes
     for cube in cubelist:
