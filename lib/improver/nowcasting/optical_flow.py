@@ -363,10 +363,11 @@ class OpticalFlow(object):
     @staticmethod
     def interp_to_midpoint(data, axis=None):
         """
-        Interpolates the average of four corner points at each grid point onto
-        a new grid of reduced dimensions.  If axis is not None, only averages
-        over the spatial axis specified.  If the input array has an axis of
-        length 1, this function returns an empty array: [].
+        Interpolates to the x-y mid-point resulting in a new grid with
+        dimensions reduced in length by one.  If axis is not None, the
+        interpolation is performed only over the one spatial axis
+        specified.  If the input array has an axis of length 1, the
+        attempt to interpolate returns an empty array: [].
 
         Args:
             data (np.ndarray):
@@ -463,26 +464,23 @@ class OpticalFlow(object):
         weights[weights < 0.01] = 0
         return boxes, weights
 
-    def _regrid_box_velocities(self, box_velocity):
+    def _box_to_grid(self, box_data):
         """
         Regrids calculated velocities from "box grid" (on which OFC equations
         are solved) to input data grid.
 
         Args:
-            box_velocity (np.ndarray):
+            box_data (np.ndarray):
                 Velocity of subbox on box grid
 
         Returns:
-            grid_velocity (np.ndarray):
+            grid_data (np.ndarray):
                 Velocity on original data grid
         """
-        grid_velocity = np.zeros(self.shape)
-        for i in range(box_velocity.shape[0]):
-            for j in range(box_velocity.shape[1]):
-                grid_velocity[i*self.boxsize:(i+1)*self.boxsize,
-                              j*self.boxsize:(j+1)*self.boxsize] = \
-                    box_velocity[i, j]
-        return grid_velocity
+        grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
+                              self.boxsize, axis=1)
+        grid_data = grid_data[:self.shape[0], :self.shape[1]]
+        return grid_data
 
     @staticmethod
     def makekernel(radius):
@@ -614,7 +612,7 @@ class OpticalFlow(object):
             box_velocity = self._smart_smooth(v_orig, box_velocity, weights)
 
         # reshape smoothed box velocity arrays to match input data grid
-        grid_velocity = self._regrid_box_velocities(box_velocity)
+        grid_velocity = self._box_to_grid(box_velocity)
 
         # smooth regridded velocities to remove box edge discontinuities
         # this will fail if boxsize < 3

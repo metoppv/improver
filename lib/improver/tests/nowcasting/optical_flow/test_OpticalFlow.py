@@ -252,36 +252,36 @@ class OpticalFlowVelocityTest(IrisTest):
         self.plugin = OpticalFlow(iterations=10)
         self.plugin.data_smoothing_radius = 3
         self.plugin.boxsize = 3
-        self.plugin.data1 = np.zeros((12, 15))
+        # NOTE data dimensions are NOT exact multiples of box size
+        self.plugin.data1 = np.zeros((11, 14))
         self.plugin.shape = self.plugin.data1.shape
 
 
-class Test__regrid_box_velocities(OpticalFlowVelocityTest):
-    """Test _regrid_box_velocities function"""
+class Test__box_to_grid(OpticalFlowVelocityTest):
+    """Test _box_to_grid function"""
 
     def test_basic(self):
         """Test for correct output types"""
-        umat = self.plugin._regrid_box_velocities(self.umat)
+        umat = self.plugin._box_to_grid(self.umat)
         self.assertIsInstance(umat, np.ndarray)
-        self.assertSequenceEqual(umat.shape, (12, 15))
+        self.assertSequenceEqual(umat.shape, (11, 14))
 
     def test_values(self):
         """Test output matrix values"""
         expected_umat = np.array(
-            [[1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
-             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
-             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
-             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0.]])
+            [[1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0.],
+             [2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0.],
+             [3., 3., 3., 2., 2., 2., 1., 1., 1., 1., 1., 1., 0., 0.]])
 
-        umat = self.plugin._regrid_box_velocities(self.umat)
+        umat = self.plugin._box_to_grid(self.umat)
         self.assertArrayAlmostEqual(umat, expected_umat)
 
 
@@ -346,14 +346,14 @@ class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
         vmat = self.plugin._smooth_advection_velocities(self.vmat,
                                                         self.weights)
         self.assertIsInstance(vmat, np.ndarray)
-        self.assertSequenceEqual(vmat.shape, (12, 15))
+        self.assertSequenceEqual(vmat.shape, (11, 14))
 
     def test_values(self):
         """Test output matrices have expected values"""
         first_row_v = np.array(
             [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
              2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
-             1.589809, 1.589809, 1.331045, 1.331045, 1.331045])
+             1.589809, 1.589809, 1.331045, 1.331045])
         vmat = self.plugin._smooth_advection_velocities(self.vmat,
                                                         self.weights)
         self.assertArrayAlmostEqual(vmat[0], first_row_v)
