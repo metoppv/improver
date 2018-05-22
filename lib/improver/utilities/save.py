@@ -33,6 +33,56 @@
 import iris
 
 
+def append_metadata_cube(cubelist, global_keys):
+    """ Create a metadata cube associated with statistical
+        post-processing attributes of the input cube list.
+
+    Args:
+        cubelist (iris.cube.CubeList):
+            List of cubes to be saved
+        global_keys (list):
+            List of attributes to be treated as global across cubes and within
+            any netCDF files produced using these cubes.
+    Returns:
+        iris.cube.Cubelist with appended metadata cube
+    """
+    keys_for_global_attr = {}
+
+    # Collect keys from each cubes attributes that match with global_keys
+    for cube in cubelist:
+        keys = cube.attributes
+        keys_for_global_attr = {k for k in keys.keys() if k in global_keys}
+
+    # Set up a basic prefix cube
+    prefix_cube = iris.cube.Cube(0, long_name='prefixes',
+                                 var_name='prefix_list')
+
+    # Attributes have to appear on all cubes in a cubelist for Iris 2 to save
+    # these attributes as global in a resulting netCDF file, so add all of the
+    # global attributes to the prefix cube (otherwise they will be made
+    # variables in the netCDF file).
+    for key in keys_for_global_attr:
+        prefix_cube.attributes[key] = cube.attributes[key]
+
+    # Add metadata prefix attributes to the prefix cube
+    prefix_cube.attributes['spp__'] = \
+        'http://reference.metoffice.gov.uk/statistical-process/properties/'
+    prefix_cube.attributes['spv__'] = \
+        'http://reference.metoffice.gov.uk/statistical-process/values/'
+    prefix_cube.attributes['spd__'] = \
+        'http://reference.metoffice.gov.uk/statistical-process/def/'
+    prefix_cube.attributes['rdf__'] = \
+        'http://www.w3.org/1999/02/22-rdf-syntax-ns#'
+    prefix_cube.attributes['bald__'] = 'http://binary-array-ld.net/latest/'
+
+    cubelist.append(prefix_cube)
+    # bald__isPrefixedBy should be an attribute on all the cubes
+    for cube in cubelist:
+        cube.attributes['bald__isPrefixedBy'] = 'prefix_list'
+
+    return cubelist
+
+
 def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
 
@@ -50,9 +100,11 @@ def save_netcdf(cubelist, filename):
         cubelist = [cubelist]
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
-                   'institution', 'history']
+                   'institution', 'history', 'bald__isPrefixedBy']
     local_keys = {key for cube in cubelist
                   for key in cube.attributes.keys()
                   if key not in global_keys}
+
+    cubelist = append_metadata_cube(cubelist, global_keys)
 
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys)

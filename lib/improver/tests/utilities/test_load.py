@@ -38,6 +38,7 @@ from tempfile import mkdtemp
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
+from iris.exceptions import ConstraintMismatchError
 import numpy as np
 
 from improver.utilities.load import load_cube, load_cubelist
@@ -224,6 +225,17 @@ class Test_load_cube(IrisTest):
         self.assertEqual(result.coord_dims("time")[0], 3)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 4)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 5)
+
+    def test_attributes(self):
+        """Test that metadata attributes are successfully stripped out."""
+        result = load_cube(self.filepath)
+        self.assertNotIn('bald__isPrefixedBy', result.attributes.keys())
+
+    def test_prefix_cube_removed(self):
+        """Test metadata prefix cube is discarded during load"""
+        msg = "no cubes found"
+        with self.assertRaisesRegexp(ConstraintMismatchError, msg):
+            load_cube(self.filepath, 'prefixes')
 
     def test_no_lazy_load(self):
         """Test that the cube returned upon loading does not contain
