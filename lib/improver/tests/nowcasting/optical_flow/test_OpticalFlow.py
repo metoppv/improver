@@ -381,6 +381,50 @@ class Test_solve_for_uv(IrisTest):
         self.assertAlmostEqual(v, 2.)
 
 
+class Test_extreme_value_check(IrisTest):
+    """Test extreme_value_check function"""
+
+    def setUp(self):
+        """Define some test velocity matrices"""
+        self.umat = 0.2*np.arange(12).reshape((3, 4))
+        self.vmat = -0.1*np.ones((3, 4), dtype=float)
+        self.weights = np.full((3, 4), 0.5)
+
+    def test_basic(self):
+        """Test for correct output types"""
+        OpticalFlow().extreme_value_check(self.umat, self.vmat, self.weights)
+        self.assertIsInstance(self.umat, np.ndarray)
+        self.assertIsInstance(self.vmat, np.ndarray)
+        self.assertIsInstance(self.weights, np.ndarray)
+
+    def test_values(self):
+        """Test extreme data values are infilled with zeros"""
+        expected_umat = np.array([[0., 0.2, 0.4, 0.6],
+                                  [0.8, 0., 0., 0.],
+                                  [0., 0., 0., 0.]])
+        expected_vmat = np.array([[-0.1, -0.1, -0.1, -0.1],
+                                  [-0.1, 0., 0., 0.],
+                                  [0., 0., 0., 0.]])
+        expected_weights = np.array([[0.5, 0.5, 0.5, 0.5],
+                                     [0.5, 0., 0., 0.],
+                                     [0., 0., 0., 0.]])
+        OpticalFlow().extreme_value_check(self.umat, self.vmat, self.weights)
+        self.assertArrayAlmostEqual(self.umat, expected_umat)
+        self.assertArrayAlmostEqual(self.vmat, expected_vmat)
+        self.assertArrayAlmostEqual(self.weights, expected_weights)
+
+    def test_null_behaviour(self):
+        """Test reasonable data values are preserved"""
+        umat = 0.5*np.ones((3, 4), dtype=float)
+        expected_umat = np.copy(umat)
+        expected_vmat = np.copy(self.vmat)
+        expected_weights = np.copy(self.weights)
+        OpticalFlow().extreme_value_check(umat, self.vmat, self.weights)
+        self.assertArrayAlmostEqual(umat, expected_umat)
+        self.assertArrayAlmostEqual(self.vmat, expected_vmat)
+        self.assertArrayAlmostEqual(self.weights, expected_weights)
+
+
 class Test_calculate_displacement_vectors(IrisTest):
     """Test calculation of advection displacement vectors"""
 

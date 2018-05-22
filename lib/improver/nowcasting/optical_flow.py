@@ -651,6 +651,26 @@ class OpticalFlow(object):
             velocity = -m_inverted.dot(scale)[:, 0]
         return velocity
 
+    @staticmethod
+    def extreme_value_check(umat, vmat, weights):
+        """
+        Checks for displacement vectors that exceed 1/3 of the dimensions
+        of the input data matrix.  Replaces these extreme values and their
+        smoothing weights with zeros.  Modifies ALL input arrays in place.
+
+        Args:
+            umat (np.ndarray):
+                Displacement vectors in the x direction
+            vmat (np.ndarray):
+                Displacement vectors in the y direction
+            weights (np.ndarray):
+                Weights for smart smoothing
+        """
+        flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
+        umat[flag] = 0
+        vmat[flag] = 0
+        weights[flag] = 0
+
     def calculate_displacement_vectors(self, partial_dx, partial_dy,
                                        partial_dt):
         """
@@ -702,10 +722,7 @@ class OpticalFlow(object):
 
         # (d) Check for extreme advection displacements (over a significant
         #     proportion of the domain size) and set to zero
-        flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
-        umat[flag] = 0
-        vmat[flag] = 0
-        weights[flag] = 0
+        self.extreme_value_check(umat, vmat, weights)
 
         # (e) smooth and reshape displacement arrays to match input data grid
         umat = self._smooth_advection_fields(umat, weights)
