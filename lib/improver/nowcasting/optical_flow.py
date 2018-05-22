@@ -466,16 +466,16 @@ class OpticalFlow(object):
 
     def _box_to_grid(self, box_data):
         """
-        Regrids calculated velocities from "box grid" (on which OFC equations
-        are solved) to input data grid.
+        Regrids calculated displacements from "box grid" (on which OFC
+        equations are solved) to input data grid.
 
         Args:
             box_data (np.ndarray):
-                Velocity of subbox on box grid
+                Displacement of subbox on box grid
 
         Returns:
             grid_data (np.ndarray):
-                Velocity on original data grid
+                Displacement on original data grid
         """
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
                               self.boxsize, axis=1)
@@ -541,33 +541,33 @@ class OpticalFlow(object):
         """
         Performs a single iteration of "smart smoothing" over a point and its
         neighbours as implemented in STEPS.  This smoothing (through the
-        "weights" argument) ignores advection velocities which are identically
-        zero, as these are assumed to occur only where there is no rainfall
-        structure from which to calculate advection velocities.
+        "weights" argument) ignores advection displacements which are
+        identically zero, as these are assumed to occur only where there is no
+        data structure from which to calculate displacements.
 
         Args:
             vel_point (np.ndarray):
-                Original unsmoothed velocity
+                Original unsmoothed data
             vel_iter (np.ndarray):
-                Latest iteration of smart-smoothed velocity
+                Latest iteration of smart-smoothed displacement
             weights (np.ndarray):
                 Weight of each grid point for averaging
 
         Returns:
             vel (np.ndarray):
-                Next iteration of smart-smoothed velocity
+                Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
         neighbour_kernel = np.array([[0.5, 1, 0.5],
                                      [1.0, 0, 1.0],
                                      [0.5, 1, 0.5]])/6.
 
-        # smooth input velocities and weights
+        # smooth input data and weights fields
         vel_neighbour = scipy.ndimage.convolve(weights*vel_iter,
                                                neighbour_kernel)
         neighbour_weights = scipy.ndimage.convolve(weights, neighbour_kernel)
 
-        # initialise output velocities from latest iteration
+        # initialise output data from latest iteration
         vel = scipy.ndimage.convolve(vel_iter, neighbour_kernel)
 
         # create "point" and "neighbour" validity masks using original and
@@ -589,36 +589,36 @@ class OpticalFlow(object):
                       vel_point[pmask] * pweight[pmask]) / norm[pmask]
         return vel
 
-    def _smooth_advection_velocities(self, box_velocity, weights):
+    def _smooth_advection_fields(self, box_data, weights):
         """
-        Performs iterative "smart smoothing" of advection velocity fields,
+        Performs iterative "smart smoothing" of advection displacement fields,
         accounting for zeros and reducting their weight in the final output.
         Then regrid from "box grid" (on which OFC equations are solved) to
         input data grid, and perform one final pass simple kernel smoothing.
 
         Args:
-            box_velocity (np.ndarray):
-                Velocities on box grid (modified by this function)
+            box_data (np.ndarray):
+                Displacements on box grid (modified by this function)
             weights (np.ndarray):
                 Weights for smart smoothing
         Returns:
-            grid_velocity (np.ndarray):
-                Smoothed velocities on input data grid
+            grid_data (np.ndarray):
+                Smoothed displacement vectors on input data grid
         """
-        v_orig = np.copy(box_velocity)
+        v_orig = np.copy(box_data)
 
         # iteratively smooth umat and vmat
         for _ in range(self.iterations):
-            box_velocity = self._smart_smooth(v_orig, box_velocity, weights)
+            box_data = self._smart_smooth(v_orig, box_data, weights)
 
         # reshape smoothed box velocity arrays to match input data grid
-        grid_velocity = self._box_to_grid(box_velocity)
+        grid_data = self._box_to_grid(box_data)
 
         # smooth regridded velocities to remove box edge discontinuities
         # this will fail if boxsize < 3
         kernelsize = int(self.boxsize/3)
-        grid_velocity = self.smooth(grid_velocity, kernelsize, method='kernel')
-        return grid_velocity
+        grid_data = self.smooth(grid_data, kernelsize, method='kernel')
+        return grid_data
 
     @staticmethod
     def solve_for_uv(deriv_xy, deriv_t):
@@ -626,7 +626,7 @@ class OpticalFlow(object):
         Solve the system of linear simultaneous equations for u and v using
         matrix inversion (equation 19 in STEPS document).  This is frequently
         singular, eg in the presence of too many zeroes.  In these cases,
-        the function returns velocities of 0.
+        the function returns displacements of 0.
 
         Args:
             deriv_xy (np.ndarray):
@@ -637,7 +637,7 @@ class OpticalFlow(object):
 
         Returns:
             velocity (np.ndarray):
-                2-column matrix (u, v) containing scalar wind velocities
+                2-column matrix (u, v) containing scalar displacement values
         """
         deriv_t = deriv_t.reshape([deriv_t.size, 1])
         m_to_invert = (deriv_xy.transpose()).dot(deriv_xy)
@@ -651,11 +651,11 @@ class OpticalFlow(object):
             velocity = -m_inverted.dot(scale)[:, 0]
         return velocity
 
-    def calculate_advection_velocities(self, partial_dx, partial_dy,
+    def calculate_displacement_vectors(self, partial_dx, partial_dy,
                                        partial_dt):
         """
         This implements the OFC algorithm, assuming all points in a box with
-        "boxsize" sidelength have the same velocity components.
+        "boxsize" sidelength have the same displacement components.
 
         Args:
             partial_dx (np.ndarray):
@@ -667,9 +667,9 @@ class OpticalFlow(object):
 
         Returns:
             umat (np.ndarray):
-                2D array of velocities in the x-direction
+                2D array of displacements in the x-direction
             vmat (np.ndarray):
-                2D array of velocities in the y-direction
+                2D array of displacements in the y-direction
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
@@ -677,7 +677,7 @@ class OpticalFlow(object):
         dy_boxed, _ = self._make_subboxes(partial_dy, self.boxsize)
         dt_boxed, _ = self._make_subboxes(partial_dt, self.boxsize)
 
-        # (b) Solve optical flow velocity calculation on each subbox
+        # (b) Solve optical flow displacement calculation on each subbox
         velocity = ([], [])
         for deriv_x, deriv_y, deriv_t in zip(dx_boxed, dy_boxed, dt_boxed):
 
@@ -693,29 +693,30 @@ class OpticalFlow(object):
             velocity[0].append(u)
             velocity[1].append(v)
 
-        # (c) Reshape velocity arrays to match array of subbox central points
+        # (c) Reshape displacement arrays to match array of subbox points
         newshape = [int((self.shape[0]-1)/self.boxsize) + 1,
                     int((self.shape[1]-1)/self.boxsize) + 1]
         umat = np.array(velocity[0]).reshape(newshape)
         vmat = np.array(velocity[1]).reshape(newshape)
         weights = box_weights.reshape(newshape)
 
-        # (d) Check for extreme velocities (advection displacement over a
-        #     significant proportion of the domain size) and set to zero
+        # (d) Check for extreme advection displacements (over a significant
+        #     proportion of the domain size) and set to zero
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
         umat[flag] = 0
         vmat[flag] = 0
         weights[flag] = 0
 
-        # (e) smooth and reshape velocity arrays to match input data grid
-        umat = self._smooth_advection_velocities(umat, weights)
-        vmat = self._smooth_advection_velocities(vmat, weights)
+        # (e) smooth and reshape displacement arrays to match input data grid
+        umat = self._smooth_advection_fields(umat, weights)
+        vmat = self._smooth_advection_fields(vmat, weights)
 
         return umat, vmat
 
     def process_dimensionless(self, data1, data2, xaxis, yaxis):
         """
-        Calculates dimensionless advection velocities from two input fields.
+        Calculates dimensionless advection displacements between two input
+        fields.
 
         Args:
             data1 (np.ndarray):
@@ -729,11 +730,9 @@ class OpticalFlow(object):
 
         Returns:
             ucomp (np.ndarray):
-                Advection velocity in the x direction in "grid squares per
-                time step"
+                Advection displacement (grid squares) in the x direction
             vcomp (np.ndarray):
-                Advection velocity in the y direction in "grid squares per
-                time step"
+                Advection displacement (grid squares) in the y direction
         """
         # Smooth input data
         self.shape = data1.shape
@@ -747,8 +746,8 @@ class OpticalFlow(object):
         partial_dy = self._partial_derivative_spatial(axis=yaxis)
         partial_dt = self._partial_derivative_temporal()
 
-        # Calculate advection velocities
-        ucomp, vcomp = self.calculate_advection_velocities(
+        # Calculate advection displacements
+        ucomp, vcomp = self.calculate_displacement_vectors(
             partial_dx, partial_dy, partial_dt)
 
         return ucomp, vcomp
@@ -756,12 +755,12 @@ class OpticalFlow(object):
     def process(self, cube1, cube2):
         """
         Extracts data from input cubes, performs dimensionless advection
-        velocity calculation, and creates new cubes with advection velocities
-        in metres per second.  Each input cube should have precisely two
-        non-scalar dimension coordinates (spatial x/y), and are expected to be
-        in a projection such that grid spacing is the same (or very close) at
-        all points within the spatial domain.  Each input cube must also have
-        a scalar "time" coordinate.
+        displacement calculation, and creates new cubes with advection
+        velocities in metres per second.  Each input cube should have precisely
+        two non-scalar dimension coordinates (spatial x/y), and are expected to
+        be in a projection such that grid spacing is the same (or very close)
+        at all points within the spatial domain.  Each input cube must also
+        have a scalar "time" coordinate.
 
         Args:
             cube1 (iris.cube.Cube):
@@ -827,14 +826,14 @@ class OpticalFlow(object):
         # have values (to be determined) that are scientifically questionable.
         # Here if dimensionless; at initialisation if dimensioned.
 
-        # calculate dimensionless advection velocities
+        # calculate dimensionless displacement between the two input fields
         data1 = next(cube1.slices([cube1.coord(axis='y'),
                                    cube1.coord(axis='x')])).data
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
         ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
 
-        # convert dimensionless velocities to metres per second
+        # convert displacements to velocities in metres per second
         for vel in [ucomp, vcomp]:
             vel *= (1000.*grid_length_km)
             vel /= cube_time_diff.total_seconds()

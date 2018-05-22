@@ -232,9 +232,9 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
-class OpticalFlowVelocityTest(IrisTest):
-    """Class with shared plugin definition for velocity smoothing and
-    regridding tests"""
+class OpticalFlowDisplacementTest(IrisTest):
+    """Class with shared plugin definition for smoothing and regridding
+    tests"""
 
     def setUp(self):
         """Define input matrices and dummy plugin"""
@@ -257,7 +257,7 @@ class OpticalFlowVelocityTest(IrisTest):
         self.plugin.shape = self.plugin.data1.shape
 
 
-class Test__box_to_grid(OpticalFlowVelocityTest):
+class Test__box_to_grid(OpticalFlowDisplacementTest):
     """Test _box_to_grid function"""
 
     def test_basic(self):
@@ -285,7 +285,7 @@ class Test__box_to_grid(OpticalFlowVelocityTest):
         self.assertArrayAlmostEqual(umat, expected_umat)
 
 
-class Test_smooth(OpticalFlowVelocityTest):
+class Test_smooth(OpticalFlowDisplacementTest):
     """Test simple smooth function"""
 
     def test_basic(self):
@@ -319,7 +319,7 @@ class Test_smooth(OpticalFlowVelocityTest):
         self.assertArrayAlmostEqual(output, self.umat)
 
 
-class Test__smart_smooth(OpticalFlowVelocityTest):
+class Test__smart_smooth(OpticalFlowDisplacementTest):
     """Test _smart_smooth function"""
 
     def test_basic(self):
@@ -338,13 +338,13 @@ class Test__smart_smooth(OpticalFlowVelocityTest):
         self.assertArrayAlmostEqual(umat, expected_umat)
 
 
-class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
-    """Test smoothing of advection velocities"""
+class Test__smooth_advection_fields(OpticalFlowDisplacementTest):
+    """Test smoothing of advection displacements"""
 
     def test_basic(self):
         """Test for correct output types"""
-        vmat = self.plugin._smooth_advection_velocities(self.vmat,
-                                                        self.weights)
+        vmat = self.plugin._smooth_advection_fields(self.vmat,
+                                                    self.weights)
         self.assertIsInstance(vmat, np.ndarray)
         self.assertSequenceEqual(vmat.shape, (11, 14))
 
@@ -354,8 +354,8 @@ class Test__smooth_advection_velocities(OpticalFlowVelocityTest):
             [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
              2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
              1.589809, 1.589809, 1.331045, 1.331045])
-        vmat = self.plugin._smooth_advection_velocities(self.vmat,
-                                                        self.weights)
+        vmat = self.plugin._smooth_advection_fields(self.vmat,
+                                                    self.weights)
         self.assertArrayAlmostEqual(vmat[0], first_row_v)
 
 
@@ -381,8 +381,8 @@ class Test_solve_for_uv(IrisTest):
         self.assertAlmostEqual(v, 2.)
 
 
-class Test_calculate_advection_velocities(IrisTest):
-    """Test calculation of advection velocity fields"""
+class Test_calculate_displacement_vectors(IrisTest):
+    """Test calculation of advection displacement vectors"""
 
     def setUp(self):
         """Set up plugin options and input rainfall-like matrices that produce
@@ -416,14 +416,14 @@ class Test_calculate_advection_velocities(IrisTest):
 
     def test_basic(self):
         """Test outputs are of the correct type"""
-        umat, _ = self.plugin.calculate_advection_velocities(
+        umat, _ = self.plugin.calculate_displacement_vectors(
             self.partial_dx, self.partial_dy, self.partial_dt)
         self.assertIsInstance(umat, np.ndarray)
         self.assertSequenceEqual(umat.shape, self.plugin.shape)
 
     def test_values(self):
         """Test output values"""
-        umat, vmat = self.plugin.calculate_advection_velocities(
+        umat, vmat = self.plugin.calculate_displacement_vectors(
             self.partial_dx, self.partial_dy, self.partial_dt)
         self.assertAlmostEqual(np.mean(umat), -0.121514428331)
         self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
