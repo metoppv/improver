@@ -49,8 +49,23 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
                              _create_historic_forecasts, _create_truth)
 from improver.utilities.warnings_handler import ManageWarnings
 
-IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate."]
-WARNING_TYPES = [UserWarning]
+
+IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
+                    "Not importing directory .*sphinxcontrib'",
+                    "The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "The statsmodels can not be imported",
+                    "invalid escape sequence",
+                    "can't resolve package from",
+                    "Collapsing a non-contiguous coordinate.",
+                    "Minimisation did not result in"
+                    " convergence",
+                    "\nThe final iteration resulted in a percentage "
+                    "change that is greater than the"
+                    " accepted threshold "]
+WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
+                 ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
+                 UserWarning, UserWarning]
 
 
 class Test__init__(IrisTest):
@@ -435,10 +450,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["\nThe final iteration resulted in a percentage "
-                          "change that is greater than the"
-                          " accepted threshold ",
-                          "Collapsing a non-contiguous coordinate."])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -467,11 +479,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["Minimisation did not result in convergence",
-                          "\nThe final iteration resulted in a percentage "
-                          "change that is greater than the"
-                          " accepted threshold ",
-                          "Collapsing a non-contiguous coordinate."])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_members(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -513,11 +521,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["Minimisation did not result in convergence",
-                          "\nThe final iteration resulted in a percentage "
-                          "change that is greater than the"
-                          " accepted threshold ",
-                          "Collapsing a non-contiguous coordinate."])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
         """
         Ensure that the values generated within optimised_coeffs match the

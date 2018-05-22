@@ -36,6 +36,6 @@ expected="usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
                        [--experiment_id EXPERIMENT_ID]
                        [--max_forecast_leadtime MAX_LEADTIME]
                        (--sqlite | --csv)
-                       INPUT_FILES OUTPUT_FILE
+                       INPUT_FILES OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }
