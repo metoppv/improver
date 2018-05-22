@@ -51,6 +51,10 @@ from improver.database import SpotDatabase
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+IGNORED_MESSAGES = ["invalid escape sequence"]
+WARNING_TYPES = [DeprecationWarning]
+
+
 def set_up_spot_cube(point_data, validity_time=1487311200, forecast_period=0,
                      number_of_sites=3):
     """Set up a spot data cube at a given validity time and forecast period for
@@ -435,6 +439,8 @@ class Test_to_dataframe(IrisTest):
         columns = ["time", "values"]
         self.input_df = pd.DataFrame(data, columns=columns)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_no_optional_args(self):
         """Test we create a datafram even when we have no optional
            arguements set"""
@@ -448,6 +454,8 @@ class Test_to_dataframe(IrisTest):
 
         assert_frame_equal(self.plugin.df, expected_df)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_all_optional_args(self):
         """Test we create a datafram even when we have all optional
            arguements set"""
@@ -469,6 +477,8 @@ class Test_to_dataframe(IrisTest):
         plugin.to_dataframe(self.cubelist)
         assert_frame_equal(plugin.df, expected_df)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_all_optional_args_multiple_input_cubes(self):
         """Test we create a dataframe even when we have no optional
            arguements set and multiple cubes"""
@@ -493,6 +503,8 @@ class Test_to_dataframe(IrisTest):
         assert_frame_equal(plugin.df, expected_df)
 
     @staticmethod
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_all_optional_args_multiple_sites():
         """Test we create a datafram even when we have all optional
            arguements set and multiple spots"""
@@ -528,6 +540,8 @@ class Test_determine_schema(IrisTest):
                                    "index")
         self.dataframe = self.plugin.to_dataframe(cubes)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_full_schema(self):
         """Basic test using a basic dataframe as input"""
         schema = self.plugin.determine_schema("improver")
@@ -551,6 +565,8 @@ class Test_process(IrisTest):
         Call(['rm', '-f', self.data_directory + '/test.csv'])
         Call(['rmdir', self.data_directory])
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_save_as_csv(self):
         """Basic test using a basic dataframe as input"""
         self.plugin.process(self.cubes)
@@ -559,6 +575,8 @@ class Test_process(IrisTest):
         expected_string = ',values\n1487311200,280.0\n'
         self.assertEqual(resulting_string, expected_string)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_unknown_output_type(self):
         """Test what happens if you give an unknown output type."""
         plugin = SpotDatabase("kitten", self.data_directory + "/test.csv",
