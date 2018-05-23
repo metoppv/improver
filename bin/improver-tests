@@ -52,7 +52,7 @@ function improver_test_doc {
 
 function improver_test_unit {
     # Unit tests.
-    python -m unittest discover -v
+    python -m unittest discover
     echo_ok "Unit tests"
 }
 
