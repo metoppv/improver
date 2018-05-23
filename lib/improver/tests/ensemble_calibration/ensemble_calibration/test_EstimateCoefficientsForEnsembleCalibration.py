@@ -116,7 +116,21 @@ class Test__init__(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Not importing directory .*sphinxcontrib'",
+                          "The pandas.core.datetools module is deprecated",
+                          "numpy.dtype size changed",
+                          "invalid escape sequence",
+                          "can't resolve package from",
+                          "Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in"
+                          " convergence",
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold "],
+        warning_types=[UserWarning, ImportWarning, FutureWarning,
+                       RuntimeWarning, DeprecationWarning, ImportWarning,
+                       UserWarning, UserWarning, UserWarning])
     def test_statsmodels_members(self, warning_list=None):
         """
         Test that the plugin raises the desired warning if the statsmodels
@@ -150,7 +164,6 @@ class Test__init__(IrisTest):
         if not statsmodels_found:
             plugin = Plugin(distribution, desired_units,
                             predictor_of_mean_flag=predictor_of_mean_flag)
-            print("warning_list = ", warning_list)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == ImportWarning
                                 for item in warning_list))
