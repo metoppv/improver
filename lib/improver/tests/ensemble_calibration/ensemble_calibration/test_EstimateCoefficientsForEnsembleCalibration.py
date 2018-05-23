@@ -150,6 +150,7 @@ class Test__init__(IrisTest):
         if not statsmodels_found:
             plugin = Plugin(distribution, desired_units,
                             predictor_of_mean_flag=predictor_of_mean_flag)
+            print("warning_list = ", warning_list)
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == ImportWarning
                                 for item in warning_list))
