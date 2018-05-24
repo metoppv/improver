@@ -295,14 +295,15 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, data_smoothing_radius=7., data_smoothing_method='box',
-                 boxsize=30., point_weight=0.1, iterations=100):
+    def __init__(self, data_smoothing_radius_km=7.,
+                 data_smoothing_method='box', boxsize_km=30.,
+                 point_weight=0.1, iterations=100):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
 
         input:
-            data_smoothing_radius (float):
+            data_smoothing_radius_km (float):
                 Kernel radius in km over which to smooth input data before
                 estimating partial derivatives.  Should not be less than 3x
                 the grid length of the input data cube.
@@ -310,7 +311,7 @@ class OpticalFlow(object):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
-            boxsize (float):
+            boxsize_km (float):
                 Square box size in km over which all data points are assumed
                 to have the same velocity to enable matrix inversion
                 (solve_for_uv()).  Should not be less than 3x the grid length
@@ -328,12 +329,12 @@ class OpticalFlow(object):
         """
 
         # parameters for input data smoothing
-        self.data_smoothing_radius_km = data_smoothing_radius
+        self.data_smoothing_radius_km = data_smoothing_radius_km
         self.data_smoothing_radius = None
         self.data_smoothing_method = data_smoothing_method
 
         # parameters for velocity calculation and "smart smoothing"
-        self.boxsize_km = boxsize
+        self.boxsize_km = boxsize_km
         self.boxsize = None
         self.iterations = iterations
         self.point_weight = point_weight
@@ -825,7 +826,7 @@ class OpticalFlow(object):
             raise InvalidCubeError("Input cube has different grid spacing in "
                                    "x and y")
 
-        # convert plugin parameters to grid square units
+        # calculate plugin parameters in grid square units
         self.data_smoothing_radius = \
             int(self.data_smoothing_radius_km / grid_length_km)
         self.boxsize = int(self.boxsize_km / grid_length_km)

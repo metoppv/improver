@@ -62,7 +62,7 @@ class Test__init__(IrisTest):
         """Test raises error if plugin is initialised with unsuitable
         parameter values"""
         with self.assertRaises(ValueError):
-            _ = OpticalFlow(data_smoothing_radius=10, boxsize=9.9)
+            _ = OpticalFlow(data_smoothing_radius_km=10, boxsize_km=9.9)
 
 
 class Test__repr__(IrisTest):
@@ -521,7 +521,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
-        self.plugin = OpticalFlow(data_smoothing_radius=6, boxsize=6,
+        self.plugin = OpticalFlow(data_smoothing_radius_km=6, boxsize_km=6,
                                   iterations=10)
 
         coord_points = 2*np.arange(16)
@@ -574,7 +574,7 @@ class Test_process(IrisTest):
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
-        plugin = OpticalFlow(data_smoothing_radius=3, boxsize=6)
+        plugin = OpticalFlow(data_smoothing_radius_km=3, boxsize_km=6)
         msg = "Input data smoothing radius 1 too small "
         with self.assertRaisesRegexp(ValueError, msg):
             _ = plugin.process(self.cube1, self.cube2)
