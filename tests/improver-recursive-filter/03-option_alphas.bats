@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "improver-recursive-filter input output --alphas_x --alphas_y --iterations" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="recursive-filter/option_alphas/kgo.nc"
 
   # Run recursive-filter processing and check it passes.
   run improver recursive-filter "$IMPROVER_ACC_TEST_DIR/recursive-filter/option_alphas/input.nc" \
@@ -44,7 +44,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-    "$IMPROVER_ACC_TEST_DIR/recursive-filter/option_alphas/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+    "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

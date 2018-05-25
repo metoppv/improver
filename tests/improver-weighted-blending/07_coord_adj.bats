@@ -32,19 +32,22 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "weighted-blending --linear coordinate input output coord_adj" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="weighted_blending/coord_adj/kgo.nc"
 
   # Run linear weighted blending with coord adj option.
   run improver weighted-blending 'linear' 'time' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc" \
       --coord_adj "lambda pnts: pnts[len(pnts)/2]"
-  [[ "$status" -eq 0 ]] 
+  [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/coord_adj/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

@@ -32,8 +32,10 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "spot-extract args kwargs" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO1="spot-extract/basic/model_level_kgo.nc"
+  KGO2="spot-extract/basic/model_level_air_temperature_max_kgo.nc"
+  KGO3="spot-extract/basic/model_level_air_temperature_min_kgo.nc"
 
   # Run spot-extract framework and check it passes. Using model-level derived
   # temperature lapse rate.
@@ -50,13 +52,18 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/temperature_at_screen_level.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_kgo.nc"
+                          "$IMPROVER_ACC_TEST_DIR/$KGO1"
   improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_max_kgo.nc"
+                          "$IMPROVER_ACC_TEST_DIR/$KGO2"
   improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_air_temperature_min_kgo.nc"
-  rm "$TEST_DIR/temperature_at_screen_level.nc"
-  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc"
-  rm "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc"
-  rmdir "$TEST_DIR"
+                          "$IMPROVER_ACC_TEST_DIR/$KGO3"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO1%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO1"
+    mkdir -p "$RECREATE_BATS_KGO/${KGO2%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO2"
+    mkdir -p "$RECREATE_BATS_KGO/${KGO3%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO3"
+  fi
 }

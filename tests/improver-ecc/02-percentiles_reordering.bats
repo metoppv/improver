@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast --random_seed 0 input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="ecc/percentiles_reordering/kgo.nc"
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then reorder the ensemble using the raw ensemble
@@ -47,7 +47,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

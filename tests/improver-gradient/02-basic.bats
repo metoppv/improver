@@ -32,17 +32,20 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "gradient input.nc output.nc" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path=$IMPROVER_ACC_TEST_DIR/gradient/basic/
+  KGO="gradient/basic/kgo.nc"
 
   # Calculate gradients of test input and check it passes.
-  run improver gradient "$test_path/input.nc" "$TEST_DIR/output.nc"
+  run improver gradient "$IMPROVER_ACC_TEST_DIR/gradient/basic/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

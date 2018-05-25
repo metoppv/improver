@@ -32,7 +32,6 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood-land-and-sea input mask output" --radius=20000 {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
 
   # Run neighbourhood processing and check it passes.
@@ -42,7 +41,4 @@
 A weights cube has been provided but will not
 __TEXT__
   [[ "$output" =~ "$expected" ]]
-
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
 }

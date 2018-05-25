@@ -71,7 +71,7 @@ setup() {
 
 teardown() {
   rm -f ${TEST_DIR}/*
-  rmdir "${TEST_DIR}"
+  rmdir ${TEST_DIR}
 }
 
 skip() {

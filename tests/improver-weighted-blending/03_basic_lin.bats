@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "weighted-blending linear coordinate input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="weighted_blending/basic_lin/kgo.nc"
 
   # Run weighted blending with linear weights and check it passes.
   run improver weighted-blending 'linear' 'time' 'weighted_mean' \
@@ -43,7 +43,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

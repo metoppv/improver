@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x 0.8 --alpha_y 0.8 --iterations 5 --re_mask --input_mask_filepath" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood/recursive/kgo_external_mask_no_re_mask_recursive_alpha.nc"
 
   # Run square neighbourhood processing, apply recursive filter and check it passes.
   run improver nbhood 'probabilities' 'square' --radius=20000 \
@@ -45,7 +45,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/recursive/kgo_external_mask_no_re_mask_recursive_alpha.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

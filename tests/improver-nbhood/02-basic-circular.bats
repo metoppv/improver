@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood 'circular' --radius=20000 input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood/basic/kgo_circular.nc"
 
   # Run circular neighbourhood processing and check it passes.
   run improver nbhood 'probabilities' 'circular' --radius=20000 --weighted_mode\
@@ -42,7 +42,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output_circular.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/basic/kgo_circular.nc"
-  rm "$TEST_DIR/output_circular.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

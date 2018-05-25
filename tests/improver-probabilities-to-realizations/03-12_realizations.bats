@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "probabilities-to-realizations --no-of-realizations=12 input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="probabilities-to-realizations/12_realizations/kgo.nc"
 
   run improver probabilities-to-realizations --no-of-realizations=12 \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
@@ -42,7 +42,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/12_realizations/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }
