@@ -32,7 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "cube-combiner" {
-  TEST_DIR=$(mktemp -d)
+#  TEST_DIR=$(mktemp -d)
+  KGO="combine/basic/kgo_cloud.nc"
   improver_check_skip_acceptance
 
   # Run cube-combiner processing and check it passes.
@@ -44,9 +45,14 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
+#  if [ -n "$RECREATE_BATS_KGO" ]; then
+#    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+#    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+#  fi
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/kgo_cloud.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+#  rm "$TEST_DIR/output.nc"
+#  rmdir "$TEST_DIR"
 }
