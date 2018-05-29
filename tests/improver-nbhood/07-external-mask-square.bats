@@ -47,8 +47,5 @@
       "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]
 
-  if [ -n "$RECREATE_BATS_KGO" ]; then
-    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
-  fi
+  improver_check_recreate_kgo "output.nc" $KGO
 }

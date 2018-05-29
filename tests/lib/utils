@@ -56,7 +56,7 @@ function improver_compare_output {
 function improver_check_recreate_kgo {
   # If RECREATE_BATS_KGO set, copy output files created by test to a
   # new set of KGO located at the path specified by RECREATE_BATS_KGO
-  if [ -n "$RECREATE_BATS_KGO" ]; then
+  if [[ -n "$RECREATE_BATS_KGO" ]]; then
     mkdir -p "$RECREATE_BATS_KGO/${2%/*}"
     cp "$TEST_DIR/$1" "$RECREATE_BATS_KGO/$2"
   fi

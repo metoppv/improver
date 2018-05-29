@@ -48,8 +48,5 @@
   improver_compare_output "$TEST_DIR/mean_and_variance.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 
-  if [ -n "$RECREATE_BATS_KGO" ]; then
-    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
-    cp "$TEST_DIR/mean_and_variance.nc" "$RECREATE_BATS_KGO/$KGO"
-  fi
+  improver_check_recreate_kgo "mean_and_variance.nc" $KGO
 }

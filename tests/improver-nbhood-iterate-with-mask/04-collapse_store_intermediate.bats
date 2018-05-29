@@ -51,10 +51,6 @@
   improver_compare_output "$TEST_DIR/output_pre_collapsed.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO2"
 
-  if [ -n "$RECREATE_BATS_KGO" ]; then
-    mkdir -p "$RECREATE_BATS_KGO/${KGO1%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO1"
-    mkdir -p "$RECREATE_BATS_KGO/${KGO2%/*}"
-    cp "$TEST_DIR/output_pre_collapsed.nc" "$RECREATE_BATS_KGO/$KGO2"
-  fi
+  improver_check_recreate_kgo "output.nc" $KGO1
+  improver_check_recreate_kgo "output_pre_collapsed.nc" $KGO2
 }

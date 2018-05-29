@@ -70,8 +70,10 @@ setup() {
 }
 
 teardown() {
-  rm -f ${TEST_DIR}/*
-  rmdir ${TEST_DIR}
+  if [ -n "$TEST_DIR" ]; then
+    rm -f ${TEST_DIR}/*
+    rmdir ${TEST_DIR}
+  fi
 }
 
 skip() {

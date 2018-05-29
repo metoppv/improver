@@ -58,12 +58,7 @@
   improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
                           "$IMPROVER_ACC_TEST_DIR/$KGO3"
 
-  if [ -n "$RECREATE_BATS_KGO" ]; then
-    mkdir -p "$RECREATE_BATS_KGO/${KGO1%/*}"
-    cp "$TEST_DIR/temperature_at_screen_level.nc" "$RECREATE_BATS_KGO/$KGO1"
-    mkdir -p "$RECREATE_BATS_KGO/${KGO2%/*}"
-    cp "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc" "$RECREATE_BATS_KGO/$KGO2"
-    mkdir -p "$RECREATE_BATS_KGO/${KGO3%/*}"
-    cp "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" "$RECREATE_BATS_KGO/$KGO3"
-  fi
+  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO1
+  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_max.nc" $KGO2
+  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_min.nc" $KGO3
 }
