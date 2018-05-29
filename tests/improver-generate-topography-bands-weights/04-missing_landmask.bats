@@ -32,7 +32,6 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "generate-topography-bands-weights input_orog.nc missing_landmask output.nc" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-weights/basic/
 
@@ -46,7 +45,6 @@
   read -d '' expected <<'__TEXT__' || true
 IOError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
 __TEXT__
-  rmdir "$TEST_DIR"
   [[ "$output" =~ "$expected" ]]
 
 }

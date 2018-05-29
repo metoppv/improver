@@ -32,11 +32,11 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wind downscaling wind_speed " {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path="$IMPROVER_ACC_TEST_DIR/wind_downscaling/veg/"
+  KGO="wind_downscaling/veg/kgo.nc"
 
-  # Run wind downscaling processing with vegetable roughness option and 
+  # Run wind downscaling processing with vegetable roughness option and
   # check it passes.
   run improver wind-downscaling "$test_path/input.nc" "$test_path/a_over_s.nc" \
       "$test_path/sigma.nc" "$test_path/highres_orog.nc" "$test_path/standard_orog.nc" \
@@ -45,7 +45,10 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }

@@ -60,10 +60,10 @@
 
   if [ -n "$RECREATE_BATS_KGO" ]; then
     mkdir -p "$RECREATE_BATS_KGO/${KGO1%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO1"
+    cp "$TEST_DIR/temperature_at_screen_level.nc" "$RECREATE_BATS_KGO/$KGO1"
     mkdir -p "$RECREATE_BATS_KGO/${KGO2%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO2"
+    cp "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc" "$RECREATE_BATS_KGO/$KGO2"
     mkdir -p "$RECREATE_BATS_KGO/${KGO3%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO3"
+    cp "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" "$RECREATE_BATS_KGO/$KGO3"
   fi
 }

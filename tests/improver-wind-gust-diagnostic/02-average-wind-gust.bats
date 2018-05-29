@@ -48,6 +48,6 @@
 
   if [ -n "$RECREATE_BATS_KGO" ]; then
     mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+    cp "$TEST_DIR/output_average.nc" "$RECREATE_BATS_KGO/$KGO"
   fi
 }

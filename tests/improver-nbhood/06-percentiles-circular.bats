@@ -47,6 +47,6 @@
 
   if [ -n "$RECREATE_BATS_KGO" ]; then
     mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
-    cp "$TEST_DIR/output.nc" "$RECREATE_BATS_KGO/$KGO"
+    cp "$TEST_DIR/output_circular_percentile.nc" "$RECREATE_BATS_KGO/$KGO"
   fi
 }

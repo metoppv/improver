@@ -32,8 +32,9 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "improver spotdb input output --experiment_id percentile_extract --sqlite" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="spotdb/basic/kgo.db"
+
   # In this test we use cmp not nccmp to compare database so skip if this isn't
   # available.
   if ! type -f cmp 1>/dev/null 2>&1; then
@@ -48,8 +49,11 @@
 
   # Run cmp to compare the output and kgo.
   cmp "$TEST_DIR/output.db" \
-      "$IMPROVER_ACC_TEST_DIR/spotdb/basic/kgo.db"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]
-  rm "$TEST_DIR/output.db"
-  rmdir "$TEST_DIR"
+
+  if [ -n "$RECREATE_BATS_KGO" ]; then
+    mkdir -p "$RECREATE_BATS_KGO/${KGO%/*}"
+    cp "$TEST_DIR/output.db" "$RECREATE_BATS_KGO/$KGO"
+  fi
 }
