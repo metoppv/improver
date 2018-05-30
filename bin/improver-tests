@@ -60,7 +60,7 @@ function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
 
-    if [[ -n "$RECREATE_BATS_KGO" ]]; then
+    if [[ -n ${RECREATE_BATS_KGO:-} ]]; then
         echo -e "\nSet to recreate KGO at path $RECREATE_BATS_KGO"
         echo -e "To unset this use: unset RECREATE_BATS_KGO \n\n"
         read -p "Press enter to continue"
