@@ -42,9 +42,9 @@
        "$TEST_DIR/output_extreme.nc"
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "output_extreme.nc" $KGO
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output_extreme.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
-
-  improver_check_recreate_kgo "output_extreme.nc" $KGO
 }

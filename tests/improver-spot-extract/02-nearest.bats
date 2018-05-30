@@ -50,6 +50,10 @@
       --altitudes 0 1 2 3 4 5
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO1
+  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_max.nc" $KGO2
+  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_min.nc" $KGO3
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/temperature_at_screen_level.nc" \
                           "$IMPROVER_ACC_TEST_DIR/$KGO1"
@@ -57,8 +61,4 @@
                           "$IMPROVER_ACC_TEST_DIR/$KGO2"
   improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
                           "$IMPROVER_ACC_TEST_DIR/$KGO3"
-
-  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO1
-  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_max.nc" $KGO2
-  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_min.nc" $KGO3
 }

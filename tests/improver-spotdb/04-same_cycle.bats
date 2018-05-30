@@ -47,10 +47,10 @@
        --experiment_id percentile_extract --csv
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "output.csv" $KGO
+
   # Run cmp to compare the output and kgo.
   cmp "$TEST_DIR/output.csv" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.csv" $KGO
 }
