@@ -75,7 +75,7 @@ def get_ancillary_data(diagnostics, ancillary_path):
 
     # Check if the land mask is used for any diagnostics.
     if any([(diagnostics[key]['neighbour_finding']['land_constraint'])
-            for key in diagnostics:
+            for key in diagnostics]):
         try:
             land = load_cube(
                 ancillary_path + '/land_mask.nc',

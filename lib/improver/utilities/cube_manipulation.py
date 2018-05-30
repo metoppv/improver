@@ -770,7 +770,7 @@ def enforce_coordinate_ordering(
         coord_indices = sorted(len(cube.dim_coords) - coord_indices)
     coord_dict = dict(list(zip(coord_names, coord_indices)))
 
-    for coord_name in coord_dict.keys():
+    for coord_name in list(coord_dict.keys()):
         # Deal with the coord_name being a partial match to the actual
         # coordinate name.
         if cube.coords(coord_name):

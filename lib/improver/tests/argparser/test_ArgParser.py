@@ -36,7 +36,6 @@ import unittest
 from unittest.mock import patch
 
 from improver.argparser import ArgParser
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 # We might one day want to move this up to a more central place.
@@ -314,8 +313,6 @@ class Test_wrong_args_error(unittest.TestCase):
 
     """Test the wrong_args_error method."""
 
-    @ManageWarnings(
-        ignored_messages=["unclosed file"], warning_types=[ResourceWarning])
     def test_error_raised(self, args='foo', method='bar'):
         """Test that an exception is raised containing the args and method."""
 
@@ -323,9 +320,10 @@ class Test_wrong_args_error(unittest.TestCase):
                method, args))
 
         # argparser will write to stderr independently of SystemExit
-        with patch('sys.stderr', open(os.devnull, 'w')):
-            with self.assertRaises(SystemExit, msg=msg):
-                ArgParser().wrong_args_error(args, method)
+        with open(os.devnull, 'w') as file_handle:
+            with patch('sys.stderr', file_handle):
+                with self.assertRaises(SystemExit, msg=msg):
+                    ArgParser().wrong_args_error(args, method)
 
 
 if __name__ == '__main__':

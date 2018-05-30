@@ -192,7 +192,7 @@ def make_local_time_cube(cube):
     # to latest time UTC +14 in far east. Ignores half hour time zones.
     local_time_min = int(hour_coordinates.points[0]-12)
     local_time_max = int(hour_coordinates.points[-1]+14)
-    local_times = list(range(local_time_min, local_time_max+1, 1))
+    local_times = range(local_time_min, local_time_max+1, 1)
 
     # Create iris.coord.DimCoord of local times.
     local_time_coord = DimCoord(local_times, standard_name='time',
