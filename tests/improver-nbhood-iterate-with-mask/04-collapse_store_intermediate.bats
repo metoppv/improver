@@ -45,12 +45,12 @@
      --intermediate_filepath "$TEST_DIR/output_pre_collapsed.nc"
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "output.nc" $KGO1
+  improver_check_recreate_kgo "output_pre_collapsed.nc" $KGO2
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO1"
   improver_compare_output "$TEST_DIR/output_pre_collapsed.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO2"
-
-  improver_check_recreate_kgo "output.nc" $KGO1
-  improver_check_recreate_kgo "output_pre_collapsed.nc" $KGO2
 }

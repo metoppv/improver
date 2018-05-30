@@ -41,9 +41,9 @@
       --coordinates realization --percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "output.nc" $KGO
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
-
-  improver_check_recreate_kgo "output.nc" $KGO
 }

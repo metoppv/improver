@@ -40,9 +40,9 @@
       "$IMPROVER_ACC_TEST_DIR/nbhood/basic/input_circular.nc" "$TEST_DIR/output_circular.nc"
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "output_circular.nc" $KGO
+
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output_circular.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
-
-  improver_check_recreate_kgo "output_circular.nc" $KGO
 }
