@@ -272,7 +272,7 @@ class Test_process(IrisTest):
         """Test code raises a Type Error if input cube is not a cube."""
         input_data = 50.0
         msg = ('Wind direction input is not a cube, but'
-               ' {0:s}'.format(str(type(input_data))))
+               ' {0}'.format(type(input_data)))
         with self.assertRaisesRegexp(TypeError, msg):
             WindDirection().process(input_data)
 

@@ -203,7 +203,7 @@ class Test_extract_percentile_data(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Expecting wind_speed_of_gust data to be an instance of '
                'iris.cube.Cube but is'
-               ' {0:s}.'.format(str(type(self.wg_perc))))
+               ' {0}.'.format(type(self.wg_perc)))
         with self.assertRaisesRegex(TypeError, msg):
             plugin.extract_percentile_data(self.wg_perc,
                                            self.wg_perc,

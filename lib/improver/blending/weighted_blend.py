@@ -457,7 +457,7 @@ class WeightedBlendAcrossWholeDimension(object):
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
                    'iris.cube.Cube but is'
-                   ' {0:s}.'.format(str(type(cube))))
+                   ' {}.'.format(type(cube)))
             raise TypeError(msg)
 
         # Check that the points within the time coordinate are equal

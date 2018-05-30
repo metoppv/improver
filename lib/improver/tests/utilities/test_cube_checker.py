@@ -248,7 +248,7 @@ class Test_find_percentile_coordinate(IrisTest):
         """Test it raises a Type Error if cube is not a cube."""
         msg = ('Expecting data to be an instance of '
                'iris.cube.Cube but is'
-               ' {0:s}.'.format(str(type(self.wg_perc))))
+               ' {}.'.format(type(self.wg_perc)))
         with self.assertRaisesRegex(TypeError, msg):
             find_percentile_coordinate(self.wg_perc)
 
