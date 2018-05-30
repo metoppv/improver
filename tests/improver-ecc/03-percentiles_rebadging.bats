@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="ecc/percentiles_rebadging/kgo.nc"
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then rebadge the percentiles to be ensemble
@@ -46,7 +46,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

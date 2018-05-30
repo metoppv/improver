@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood 'square' --radius=20000 input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood/mask/kgo_masked.nc"
 
   # Run square neighbourhood processing with masked data and check it passes.
   run improver nbhood 'probabilities' 'square' --radius=20000 --weighted_mode\
@@ -43,8 +43,8 @@
 
   # Run cmp -b to compare the output and kgo.
   cmp -b "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/kgo_masked.nc"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

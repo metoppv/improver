@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wind-gust-diagnostic" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="wind-gust-diagnostic/basic/kgo_average_wind_gust.nc"
 
   # Run wind-gust-diagnostic processing and check it passes.
   run improver wind-gust-diagnostic \
@@ -44,7 +44,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output_average.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wind-gust-diagnostic/basic/kgo_average_wind_gust.nc"
-  rm "$TEST_DIR/output_average.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output_average.nc" $KGO
 }

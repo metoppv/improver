@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "combine accumulation" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="combine/accum/kgo_accum.nc"
 
   # Run cube-combiner processing and check it passes.
   run improver combine \
@@ -44,7 +44,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/combine/accum/kgo_accum.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

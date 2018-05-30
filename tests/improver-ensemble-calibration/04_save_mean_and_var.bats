@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "ensemble-calibration emos gaussian save_mean_and_variance" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="ens_calib/gaussian/mandv_kgo.nc"
 
   # Run ensemble calibration with saving of mean and variance and check it passes.
   run improver ensemble-calibration 'ensemble model output statistics' 'K' \
@@ -46,8 +46,7 @@
 
   # Run nccmp to compare the output mean_and_variance and check it passes.
   improver_compare_output "$TEST_DIR/mean_and_variance.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ens_calib/gaussian/mandv_kgo.nc"
-  rm "$TEST_DIR/mean_and_variance.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "mean_and_variance.nc" $KGO
 }

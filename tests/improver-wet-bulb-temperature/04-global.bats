@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wet-bulb-temperature input1 input2 input3 output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="wet-bulb-temperature/global/kgo.nc"
 
   # Run wet-bulb-temperature calculation and check the result.
   run improver wet-bulb-temperature \
@@ -45,7 +45,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/global/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

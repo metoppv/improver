@@ -32,18 +32,19 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "wind direction" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
-  test_path="$IMPROVER_ACC_TEST_DIR/wind_direction/basic/"
+  KGO="wind_direction/basic/kgo.nc"
 
   # Run wind direction processing and check it passes.
-  run improver wind-direction "$test_path/input.nc" "$TEST_DIR/output.nc"
+  run improver wind-direction "$IMPROVER_ACC_TEST_DIR/wind_direction/basic/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" "$test_path/kgo.nc"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }
 

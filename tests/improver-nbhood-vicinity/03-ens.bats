@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood-vicinity 6000.0 input output --radius=20000 --ens_factor=1.5" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood-vicinity/ens/kgo.nc"
 
   # Run neighbourhood processing and check it passes.
   run improver nbhood-vicinity 6000.0 "$IMPROVER_ACC_TEST_DIR/nbhood-vicinity/ens/input.nc"\
@@ -42,7 +42,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood-vicinity/ens/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

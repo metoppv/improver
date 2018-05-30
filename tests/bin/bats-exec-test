@@ -66,11 +66,14 @@ run() {
 }
 
 setup() {
-  true
+  export TEST_DIR=$(mktemp -d)
 }
 
 teardown() {
-  true
+  if [ -n "$TEST_DIR" ]; then
+    rm -f ${TEST_DIR}/*
+    rmdir ${TEST_DIR}
+  fi
 }
 
 skip() {

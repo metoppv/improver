@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood 'topographic_zone' input mask output" --radius=10000 --collapse_dimension {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood-iterate-with-mask/basic_collapse_bands/kgo_collapsed.nc"
 
   # Run neighbourhood processing and check it passes.
   run improver nbhood-iterate-with-mask 'topographic_zone' \
@@ -45,7 +45,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic_collapse_bands/kgo_collapsed.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

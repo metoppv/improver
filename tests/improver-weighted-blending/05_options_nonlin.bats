@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "weighted-blending --nonlinear input output cval" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="weighted_blending/options_nonlin/kgo.nc"
 
   # Run weighted blending with non linear weights and sub-options and check it passes.
   run improver weighted-blending 'nonlinear' 'time' 'weighted_mean' --cval 1.0 \
@@ -43,7 +43,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/options_nonlin/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

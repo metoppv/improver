@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "nbhood-land-and-sea input mask output" --radius=20000 {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="nbhood-land-and-sea/no_topographic_bands/kgo.nc"
 
   # Run neighbourhood processing and check it passes.
   run improver nbhood-land-and-sea "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/input.nc" "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/ukvx_landmask.nc" "$TEST_DIR/output.nc" --radius=20000
@@ -41,7 +41,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/nbhood-land-and-sea/no_topographic_bands/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

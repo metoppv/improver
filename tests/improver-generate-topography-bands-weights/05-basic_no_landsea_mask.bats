@@ -32,19 +32,19 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "generate-topography-bands-weights input_orog.nc output.nc" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-weights/
+  KGO="generate-topography-bands-weights/basic_no_landsea_mask/kgo.nc"
 
   # Run topography band weights generation and check it passes.
   run improver generate-topography-bands-weights \
       "$test_path/basic/input_orog.nc" \
-      "$TEST_DIR/output.nc" 
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/basic_no_landsea_mask/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

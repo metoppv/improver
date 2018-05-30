@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "weighted-blending coordinate weighted_mean input output" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="blend_adjacent_points/basic_mean/kgo.nc"
 
   # Run weighted blending with weighted_mean mode and check it passes.
   run improver blend-adjacent-points 'forecast_period' 'weighted_mean' 3.0 \
@@ -44,7 +44,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

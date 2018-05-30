@@ -32,9 +32,9 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "generate-topography-bands-mask input_orog.nc input_land.nc output.nc" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
   test_path=$IMPROVER_ACC_TEST_DIR/generate-topography-bands-mask/basic/
+  KGO="generate-topography-bands-mask/basic/kgo_from_json_bounds.nc"
 
   # Run topography band mask generation and check it passes.
   run improver generate-topography-bands-mask \
@@ -46,7 +46,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$test_path/kgo_from_json_bounds.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }

@@ -32,8 +32,8 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "threshold input output 6.85 --threshold_units celsius" {
-  TEST_DIR=$(mktemp -d)
   improver_check_skip_acceptance
+  KGO="threshold/threshold_units/kgo.nc"
 
   # Run threshold processing and check it passes.
   run improver threshold \
@@ -43,7 +43,7 @@
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/threshold/threshold_units/kgo.nc"
-  rm "$TEST_DIR/output.nc"
-  rmdir "$TEST_DIR"
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
+  improver_check_recreate_kgo "output.nc" $KGO
 }
