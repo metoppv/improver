@@ -81,9 +81,9 @@ def add_wxcode_metadata(cube):
     cube.standard_name = None
     cube.var_name = None
     cube.units = "1"
-    wx_keys = np.array(list(WX_DICT.keys()))
+    wx_keys = np.array(WX_DICT)
     cube.attributes.update({'weather_code': wx_keys})
-    wxstring = " ".join(list(WX_DICT.values()))
+    wxstring = " ".join(WX_DICT.values())
     cube.attributes.update({'weather_code_meaning': wxstring})
     return cube
 

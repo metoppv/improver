@@ -149,7 +149,7 @@ class Test_parse_constraint_list(IrisTest):
         """ Test units list containing "None" elements is correctly parsed """
         _, udict = parse_constraint_list(self.constraints, units=self.units)
         self.assertEqual(udict["threshold"], "mm h-1")
-        self.assertNotIn("percentile", list(udict.keys()))
+        self.assertNotIn("percentile", udict.keys())
 
     def test_unmatched_units(self):
         """ Test for ValueError if units list does not match constraints """

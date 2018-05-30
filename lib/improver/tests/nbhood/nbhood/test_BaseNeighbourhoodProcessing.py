@@ -125,7 +125,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
 
     cube.add_dim_coord(
         DimCoord(
-            list(range(num_realization_points)),
+            range(num_realization_points),
             standard_name='realization'), 0)
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]

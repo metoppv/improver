@@ -192,8 +192,8 @@ class Test_get_method_prerequisites(Test_read_input):
         method = 'model_level_temperature_lapse_rate'
         result = get_method_prerequisites(method, self.data_directory)
 
-        self.assertArrayEqual(list(expected.keys()), list(result.keys()))
-        for diagnostic in list(expected.keys()):
+        self.assertArrayEqual(expected.keys(), result.keys())
+        for diagnostic in expected:
             self.assertArrayEqual(expected[diagnostic][0].data,
                                   result[diagnostic][0].data)
 

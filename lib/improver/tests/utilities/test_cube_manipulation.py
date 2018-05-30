@@ -704,14 +704,14 @@ class Test_equalise_cubes(IrisTest):
                                     np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", list(result[0].attributes.keys()))
-        self.assertNotIn("title", list(result[1].attributes.keys()))
+        self.assertNotIn("title", result[0].attributes)
+        self.assertNotIn("title", result[1].attributes)
         self.assertAlmostEqual(result[0].attributes["grid_id"],
                                result[1].attributes["grid_id"])
         self.assertEqual(result[0].attributes["grid_id"],
                          'ukx_standard_v1')
-        self.assertNotIn("history", list(result[0].attributes.keys()))
-        self.assertNotIn("history", list(result[1].attributes.keys()))
+        self.assertNotIn("history", result[0].attributes.keys())
+        self.assertNotIn("history", result[1].attributes.keys())
 
     def test_strip_var_names(self):
         """Test that the utility removes var names"""
@@ -763,8 +763,8 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
-        self.assertNotIn("history", list(result[0].attributes.keys()))
-        self.assertNotIn("history", list(result[1].attributes.keys()))
+        self.assertNotIn("history", result[0].attributes.keys())
+        self.assertNotIn("history", result[1].attributes.keys())
 
     def test_cubelist_no_history_removal(self):
         """Test that the utility does not remove history attribute,
@@ -779,8 +779,8 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
-        self.assertIn("history", list(result[0].attributes.keys()))
-        self.assertIn("history", list(result[1].attributes.keys()))
+        self.assertIn("history", result[0].attributes.keys())
+        self.assertIn("history", result[1].attributes.keys())
 
     def test_cubelist_grid_id_same(self):
         """Test that the utility updates grid_id if in list and not matching"""
@@ -846,10 +846,10 @@ class Test__equalise_cube_attributes(IrisTest):
 
         result = _equalise_cube_attributes(cubelist)
 
-        self.assertIn("grid_id", list(result[0].attributes.keys()))
+        self.assertIn("grid_id", result[0].attributes.keys())
         self.assertEqual(result[0].attributes["grid_id"],
                          'ukx_standard_v1')
-        self.assertIn("grid_id", list(result[1].attributes.keys()))
+        self.assertIn("grid_id", result[1].attributes.keys())
         self.assertEqual(result[1].attributes["grid_id"],
                          'unknown_grid')
 
@@ -893,8 +893,8 @@ class Test__equalise_cube_attributes(IrisTest):
                                     np.array([1000]))
         self.assertEqual(result[1].coord("model").points[0],
                          'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", list(result[0].attributes.keys()))
-        self.assertNotIn("title", list(result[1].attributes.keys()))
+        self.assertNotIn("title", result[0].attributes.keys())
+        self.assertNotIn("title", result[1].attributes.keys())
 
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):
@@ -916,9 +916,9 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
         self.assertNotIn("unknown_attribute",
-                         list(result[0].attributes.keys()))
+                         result[0].attributes.keys())
         self.assertNotIn("unknown_attribute",
-                         list(result[1].attributes.keys()))
+                         result[1].attributes.keys())
 
 
 class Test__equalise_cube_coords(IrisTest):

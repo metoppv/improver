@@ -876,7 +876,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
 
             # If the coefficients are not available for the date, use the
             # raw ensemble forecast as the calibrated ensemble forecast.
-            if date not in list(optimised_coeffs.keys()):
+            if date not in optimised_coeffs:
                 msg = ("Ensemble calibration not available "
                        "for forecasts with start time of {}. "
                        "Coefficients not available".format(
@@ -895,7 +895,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 # Assigning coefficients to coefficient names.
                 if len(optimised_coeffs_at_date) == len(coeff_names):
                     optimised_coeffs_at_date = dict(
-                        list(zip(coeff_names, optimised_coeffs_at_date)))
+                        zip(coeff_names, optimised_coeffs_at_date))
                 elif len(optimised_coeffs_at_date) > len(coeff_names):
                     excess_beta = (
                         optimised_coeffs_at_date[len(coeff_names):].tolist())

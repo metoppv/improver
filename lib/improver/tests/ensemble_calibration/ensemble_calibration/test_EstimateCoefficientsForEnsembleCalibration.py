@@ -429,7 +429,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         optimised_coeffs, coeff_names = result
         self.assertIsInstance(optimised_coeffs, dict)
         self.assertIsInstance(coeff_names, list)
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertEqual(
                 len(optimised_coeffs[key]), len(coeff_names))
 
@@ -459,7 +459,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
@@ -488,7 +488,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
@@ -530,7 +530,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
@@ -571,7 +571,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
@@ -623,7 +623,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
 
     @ManageWarnings(
@@ -652,7 +652,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
 
     @ManageWarnings(
@@ -681,7 +681,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs = result[0]
 
-        for key in list(optimised_coeffs.keys()):
+        for key in optimised_coeffs:
             self.assertArrayAlmostEqual(optimised_coeffs[key], data)
 
     def test_truth_data_is_none(self):

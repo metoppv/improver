@@ -106,7 +106,7 @@ class Test_get_ancillary_data(IrisTest):
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
         self.assertIsInstance(result, dict)
-        for item in list(result.values()):
+        for item in result.values():
             self.assertIsInstance(item, Cube)
 
     def test_read_orography(self):
@@ -114,7 +114,7 @@ class Test_get_ancillary_data(IrisTest):
 
         diagnostics = {}
         result = Plugin(diagnostics, self.directory)
-        self.assertIn('orography', list(result.keys()))
+        self.assertIn('orography', result)
         self.assertIsInstance(result['orography'], Cube)
         self.assertArrayEqual(result['orography'].data, self.orography.data)
 
@@ -123,7 +123,7 @@ class Test_get_ancillary_data(IrisTest):
         land constraint condition."""
 
         result = Plugin(self.diagnostics, self.directory)
-        self.assertIn('land_mask', list(result.keys()))
+        self.assertIn('land_mask', result)
         self.assertIsInstance(result['land_mask'], Cube)
         self.assertArrayEqual(result['land_mask'].data, self.land.data)
 

@@ -466,9 +466,9 @@ def compare_attributes(cubes):
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
-        common_keys = list(cubes[0].attributes.keys())
+        common_keys = cubes[0].attributes.keys()
         for cube in cubes[1:]:
-            cube_keys = list(cube.attributes.keys())
+            cube_keys = cube.attributes.keys()
             common_keys = [
                 key for key in common_keys
                 if (key in cube_keys and
@@ -476,7 +476,7 @@ def compare_attributes(cubes):
 
         for i, cube in enumerate(cubes):
             unmatching_attributes.append(dict())
-            for key in list(cube.attributes.keys()):
+            for key in cube.attributes:
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
                                                      cube.attributes[key]})
@@ -770,7 +770,7 @@ def enforce_coordinate_ordering(
         coord_indices = sorted(len(cube.dim_coords) - coord_indices)
     coord_dict = dict(list(zip(coord_names, coord_indices)))
 
-    for coord_name in list(coord_dict.keys()):
+    for coord_name in coord_dict.keys():
         # Deal with the coord_name being a partial match to the actual
         # coordinate name.
         if cube.coords(coord_name):

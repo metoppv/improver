@@ -340,7 +340,7 @@ class WeatherSymbols(object):
         route = route + [start]
         if start == end:
             return [route]
-        if start not in list(graph.keys()):
+        if start not in graph:
             return []
 
         routes = []
@@ -394,7 +394,7 @@ class WeatherSymbols(object):
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
-                 for key in list(self.queries.keys())}
+                 for key in self.queries}
 
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []
