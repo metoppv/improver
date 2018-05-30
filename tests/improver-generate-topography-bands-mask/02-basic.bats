@@ -38,7 +38,7 @@
 
   # Run topography band mask generation and check it passes.
   run improver generate-topography-bands-mask \
-      "$IMPROVER_ACC_TEST_DIR/generate-topography-bands-mask/basic/input_orog.nc" \
+      "$test_path/input_orog.nc" \
       "$TEST_DIR/output.nc" \
       --input_filepath_landmask "$test_path/input_land.nc"
   [[ "$status" -eq 0 ]]

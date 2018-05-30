@@ -59,6 +59,13 @@ function improver_test_unit {
 function improver_test_cli {
     # CLI testing.
     PATH="$IMPROVER_DIR/tests/bin/:$PATH"
+
+    if [[ -n "$RECREATE_BATS_KGO" ]]; then
+        echo -e "\nSet to recreate KGO at path $RECREATE_BATS_KGO"
+        echo -e "To unset this use: unset RECREATE_BATS_KGO \n\n"
+        read -p "Press enter to continue"
+    fi
+
     for SUBTEST in $CLISUBTEST; do
         test_dir=$IMPROVER_DIR/tests/improver-$SUBTEST/
         test_dir="$(echo -e "${test_dir}" | tr -d '[:space:]')"
