@@ -51,7 +51,8 @@ class QuietTestCase(unittest.TestCase):
         calls to sys.exit. Currently used to prevent
         ArgumentParser.parse_args() from writing its output to the screen and
         exiting early when using unittest discover."""
-        cls.stderr_patch = patch('sys.stderr', open(os.devnull, 'w'))
+        cls.file_handle = open(os.devnull, 'w')
+        cls.stderr_patch = patch('sys.stderr', cls.file_handle)
         cls.exit_patch = patch('sys.exit')
         cls.stderr_patch.start()
         cls.exit_patch.start()
@@ -60,6 +61,7 @@ class QuietTestCase(unittest.TestCase):
     def tearDownClass(cls):
         """Stop the patches which redirect stderr to /dev/null and prevents
         sys.exit from being called."""
+        cls.file_handle.close()
         cls.stderr_patch.stop()
         cls.exit_patch.stop()
 
