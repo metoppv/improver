@@ -343,3 +343,33 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
         msg = "Can not combine cubes, mismatching shapes"
         raise ValueError(msg)
     return result1, result2
+
+
+def delete_attributes(cube, patterns):
+    """
+    Delete attributes that are complete or partial matches to elements in the
+    list patterns.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which attributes are to be deleted.
+        patterns (list or tuple):
+            A list of strings that match or partially match the keys of
+            attributes to be deleted from the cube.
+    """
+
+    if not isinstance(patterns, (tuple, list)):
+        patterns = [patterns]
+
+    grid_attributes = []
+    for pattern in patterns:
+        grid_attributes.extend([k for k in cube.attributes if pattern in k])
+
+    grid_attributes = list(set(grid_attributes))
+
+    for key in grid_attributes:
+        try:
+            cube.attributes.pop(key)
+        except KeyError:
+            msg = 'Key: {} not found in cube attributes.'.format(key)
+            warnings.warn(msg)
