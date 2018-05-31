@@ -876,7 +876,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
 
             # If the coefficients are not available for the date, use the
             # raw ensemble forecast as the calibrated ensemble forecast.
-            if date not in optimised_coeffs:
+            if date not in optimised_coeffs.keys():
                 msg = ("Ensemble calibration not available "
                        "for forecasts with start time of {}. "
                        "Coefficients not available".format(

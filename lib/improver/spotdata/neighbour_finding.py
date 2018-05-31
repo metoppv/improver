@@ -122,7 +122,7 @@ class PointSelection(object):
 
         """
         if self.method == 'fast_nearest_neighbour':
-            if 'orography' in ancillary_data:
+            if 'orography' in ancillary_data.keys():
                 orography = ancillary_data['orography'].data
             else:
                 orography = None

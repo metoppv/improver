@@ -342,7 +342,7 @@ def extract_ad_at_time(additional_diagnostics, time, time_extract):
 
     """
     ad_extracted = {}
-    for key in additional_diagnostics:
+    for key in additional_diagnostics.keys():
         cubes = additional_diagnostics[key]
         ad_extracted[key] = extract_cube_at_time(cubes, time, time_extract)
     return ad_extracted

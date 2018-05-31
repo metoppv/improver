@@ -174,7 +174,7 @@ def apply_extraction(cube, constraint, units=None):
         output_cube = cube.extract(constraint)
     else:
         original_units = {}
-        for coord in units:
+        for coord in units.keys():
             original_units[coord] = cube.coord(coord).units
             cube.coord(coord).convert_units(units[coord])
         output_cube = cube.extract(constraint)

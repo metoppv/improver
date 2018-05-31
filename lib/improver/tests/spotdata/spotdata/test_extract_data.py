@@ -256,7 +256,7 @@ class Test_setup(IrisTest):
             ancillary_data['orography'] = ancillary_data['orography'].regrid(
                 new_cube, iris.analysis.Nearest())
         if additional_data is not None:
-            for ad in additional_data:
+            for ad in additional_data.keys():
                 additional_data[ad] = additional_data[ad].regrid(
                     new_cube, iris.analysis.Nearest())
 

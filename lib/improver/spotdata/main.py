@@ -149,7 +149,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         ancillary_data=ancillary_data, **neighbour_kwargs)
 
     # Set up site-grid point neighbour lists for all IGPS methods being used.
-    for key in diagnostics:
+    for key in diagnostics.keys():
         neighbour_finding = diagnostics[key]['neighbour_finding']
         neighbour_hash = construct_neighbour_hash(neighbour_finding)
         # Check if defined neighbour method results already exist.

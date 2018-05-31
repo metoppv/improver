@@ -115,7 +115,7 @@ def main():
                 thresholds_from_file = json.load(input_file)
             thresholds = []
             fuzzy_bounds = []
-            for key in thresholds_from_file:
+            for key in thresholds_from_file.keys():
                 thresholds.append(float(key))
                 fuzzy_bounds.append(tuple(thresholds_from_file[key]))
         except ValueError as err:

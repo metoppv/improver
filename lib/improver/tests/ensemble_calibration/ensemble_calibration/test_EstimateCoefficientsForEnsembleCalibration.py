@@ -429,7 +429,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         optimised_coeffs, coeff_names = result
         self.assertIsInstance(optimised_coeffs, dict)
         self.assertIsInstance(coeff_names, list)
-        for key in optimised_coeffs:
+        for key in optimised_coeffs.keys():
             self.assertEqual(
                 len(optimised_coeffs[key]), len(coeff_names))
 
