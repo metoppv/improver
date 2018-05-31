@@ -476,7 +476,7 @@ def compare_attributes(cubes):
 
         for i, cube in enumerate(cubes):
             unmatching_attributes.append(dict())
-            for key in cube.attributes:
+            for key in cube.attributes.keys():
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
                                                      cube.attributes[key]})
@@ -814,7 +814,7 @@ def enforce_coordinate_ordering(
     # Get the dimensions for the coordinates that have not been requested.
     remaining_coords = []
     for acoord in cube.coords(dim_coords=True):
-        if acoord.name() not in list(coord_dict.keys()):
+        if acoord.name() not in coord_dict.keys():
             remaining_coords.append(cube.coord_dims(acoord)[0])
     remaining_coords = list(set(remaining_coords))
 

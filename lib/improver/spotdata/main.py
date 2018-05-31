@@ -153,7 +153,7 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         neighbour_finding = diagnostics[key]['neighbour_finding']
         neighbour_hash = construct_neighbour_hash(neighbour_finding)
         # Check if defined neighbour method results already exist.
-        if neighbour_hash not in neighbours:
+        if neighbour_hash not in neighbours.keys():
             # If not, find neighbours with new method.
             neighbours[neighbour_hash] = (
                 PointSelection(**neighbour_finding).process(
