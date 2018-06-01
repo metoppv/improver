@@ -52,7 +52,16 @@ function improver_test_doc {
 
 function improver_test_unit {
     # Unit tests.
-    python -m unittest discover
+    if type -f coverage 1>/dev/null 2>&1; then
+        coverage run -m unittest discover
+        coverage xml
+        if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
+            # Report coverage to Codacy if possible.
+            python-codacy-coverage -r coverage.xml
+        fi
+    else
+        python -m unittest discover
+    fi
     echo_ok "Unit tests"
 }
 
