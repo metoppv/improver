@@ -66,7 +66,7 @@ class Test__init__(IrisTest):
         neighbourhood_method = 'nonsense'
         radii = 10000
         msg = 'The neighbourhood_method requested: '
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             NBHood(neighbourhood_method, radii)
 
 

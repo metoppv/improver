@@ -36,7 +36,6 @@
 usage: improver-probabilities-to-realizations [-h]
                                               [--no-of-realizations NUMBER_OF_REALIZATIONS]
                                               INPUT_FILE OUTPUT_FILE
-improver-probabilities-to-realizations: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

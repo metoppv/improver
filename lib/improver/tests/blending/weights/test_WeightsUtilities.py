@@ -117,20 +117,20 @@ class Test_normalise_weights(IrisTest):
         """Test that the resulting weights add up to one. """
         weights_in = np.array([1.0, 2.0, 3.0])
         result = WeightsUtilities.normalise_weights(weights_in)
-        self.assertAlmostEquals(result.sum(), 1.0)
+        self.assertAlmostEqual(result.sum(), 1.0)
 
     def test_fails_weight_less_than_zero(self):
         """Test it fails if weight less than zero. """
         weights_in = np.array([-1.0, 0.1])
         msg = ('Weights must be positive')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
     def test_fails_sum_equals_zero(self):
         """Test it fails if sum of input weights is zero. """
         weights_in = np.array([0.0, 0.0, 0.0])
         msg = ('Sum of weights must be > 0.0')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
     def test_returns_correct_values(self):
@@ -185,7 +185,7 @@ class Test_redistribute_weights(IrisTest):
         weights_in = np.array([3.0, 2.0, 1.0])
         missing_weights = np.ones(3)
         msg = ('Sum of weights must be 1.0')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.redistribute_weights(weights_in,
                                                   missing_weights)
 
@@ -194,7 +194,7 @@ class Test_redistribute_weights(IrisTest):
         weights_in = np.array([-0.1, 1.1])
         missing_weights = np.ones(2)
         msg = ('Weights should be positive or at least one > 0.0')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.redistribute_weights(weights_in,
                                                   missing_weights)
 
@@ -203,7 +203,7 @@ class Test_redistribute_weights(IrisTest):
         weights_in = np.array([0.7, 0.2, 0.1])
         missing_weights = np.ones(2)
         msg = ('Arrays weights and forecast_present not the same size')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.redistribute_weights(weights_in,
                                                   missing_weights)
 
@@ -242,7 +242,7 @@ class Test_redistribute_weights(IrisTest):
         weights_in = np.array([0.6, 0.3, 0.1])
         missing_weights = np.zeros(3)
         msg = 'None of the expected forecasts were found.'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.redistribute_weights(weights_in, missing_weights)
 
 
@@ -270,7 +270,7 @@ class Test_process_coord(IrisTest):
         """ Test process_cord fails if coord not in cube """
         msg = ('The coord for this plugin must be '
                'an existing coordinate in the input cube.')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(self.cube, 'not_in_cube', '0')
 
     def test_no_points_set_in_coord(self):
@@ -280,7 +280,7 @@ class Test_process_coord(IrisTest):
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(self.cube,
                                                           self.coordinate)
-        self.assertAlmostEquals(result_num_of_weights, expected_num)
+        self.assertAlmostEqual(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 
     def test_fails_less_points_in_coord(self):
@@ -288,7 +288,7 @@ class Test_process_coord(IrisTest):
         exp_coord_vals = self.exp_coord_vals[0]
         msg = ('The cube coordinate has more points '
                'than requested coord, ')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(self.cube, self.coordinate,
                                            exp_coord_vals)
 
@@ -297,7 +297,7 @@ class Test_process_coord(IrisTest):
         units = 'mm'
         exp_coord_vals = '402191.5, 402192.5, 402193.5'
         msg = ('Failed to convert coord units ')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(
                 self.cube, self.coordinate, exp_coord_vals, units)
 
@@ -311,7 +311,7 @@ class Test_process_coord(IrisTest):
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(
              self.cube, self.coordinate, exp_coord_vals)
-        self.assertAlmostEquals(result_num_of_weights, expected_num)
+        self.assertAlmostEqual(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 
 

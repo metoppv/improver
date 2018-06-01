@@ -97,7 +97,7 @@ class Test_to_dataframe(IrisTest):
                   "coord_to_slice_over must only have one point in. "\
                   "Dimension '1' has length '2' and is associated with the "\
                   "'percentile' coordinate."
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             plugin.to_dataframe(cubes)
 
     @staticmethod

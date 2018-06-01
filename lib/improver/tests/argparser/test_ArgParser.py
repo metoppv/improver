@@ -33,7 +33,7 @@
 
 import os
 import unittest
-from mock import patch
+from unittest.mock import patch
 
 from improver.argparser import ArgParser
 
@@ -50,7 +50,8 @@ class QuietTestCase(unittest.TestCase):
         calls to sys.exit. Currently used to prevent
         ArgumentParser.parse_args() from writing its output to the screen and
         exiting early when using unittest discover."""
-        cls.stderr_patch = patch('sys.stderr', open(os.devnull, 'w'))
+        cls.file_handle = open(os.devnull, 'w')
+        cls.stderr_patch = patch('sys.stderr', cls.file_handle)
         cls.exit_patch = patch('sys.exit')
         cls.stderr_patch.start()
         cls.exit_patch.start()
@@ -59,6 +60,7 @@ class QuietTestCase(unittest.TestCase):
     def tearDownClass(cls):
         """Stop the patches which redirect stderr to /dev/null and prevents
         sys.exit from being called."""
+        cls.file_handle.close()
         cls.stderr_patch.stop()
         cls.exit_patch.stop()
 
@@ -97,7 +99,7 @@ class Test_init(QuietTestCase):
             parser = ArgParser(central_arguments=None, specific_arguments=None)
             args = parser.parse_args()
             args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo'])
+            self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_fails_with_unknown_centralized_argument(self):
         """Test that we raise an exception when attempting to retrieve
@@ -132,7 +134,7 @@ class Test_init(QuietTestCase):
                                    specific_arguments=None)
                 args = parser.parse_args()
                 args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo'])
+                self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_only_specific_arguments(self):
         """Test that creating an ArgParser with only specific arguments
@@ -150,7 +152,7 @@ class Test_init(QuietTestCase):
                                specific_arguments=specific_arguments)
             args = parser.parse_args()
             args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo'])
+            self.assertCountEqual(args, ['foo'])
 
     def test_create_argparser_compulsory_and_centralized_arguments(self):
         """Test that creating an ArgParser with compulsory and centralized
@@ -169,7 +171,7 @@ class Test_init(QuietTestCase):
                                    specific_arguments=None)
                 args = parser.parse_args()
                 args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo', 'bar'])
+                self.assertCountEqual(args, ['foo', 'bar'])
 
     def test_create_argparser_compulsory_and_specfic_arguments(self):
         """Test that creating an ArgParser with compulsory and specific
@@ -187,7 +189,7 @@ class Test_init(QuietTestCase):
                                specific_arguments=specific_arguments)
             args = parser.parse_args()
             args = vars(args).keys()
-            self.assertItemsEqual(args, ['foo', 'bar'])
+            self.assertCountEqual(args, ['foo', 'bar'])
 
     def test_create_argparser_all_arguments(self):
         """Test that creating an ArgParser with compulsory, centralized and
@@ -207,7 +209,7 @@ class Test_init(QuietTestCase):
                                    specific_arguments=specific_arguments)
                 args = parser.parse_args()
                 args = vars(args).keys()
-                self.assertItemsEqual(args, ['foo', 'bar', 'baz'])
+                self.assertCountEqual(args, ['foo', 'bar', 'baz'])
 
 
 class Test_add_arguments(QuietTestCase):
@@ -235,7 +237,7 @@ class Test_add_arguments(QuietTestCase):
         result_args = parser.parse_args()
         result_args = vars(result_args).keys()
         # we could also add compulsory arguments to expected_namespace_keys
-        # and then assertItemsEqual - (order unimportant), but this
+        # and then assertCountEqual - (order unimportant), but this
         # is unnecessary - just use loop:
         # (or we could patch compulsory arguments to be an empty dictionary)
         for expected_arg in expected_namespace_keys:
@@ -318,9 +320,10 @@ class Test_wrong_args_error(unittest.TestCase):
                method, args))
 
         # argparser will write to stderr independently of SystemExit
-        with patch('sys.stderr', open(os.devnull, 'w')):
-            with self.assertRaises(SystemExit, msg=msg):
-                ArgParser().wrong_args_error(args, method)
+        with open(os.devnull, 'w') as file_handle:
+            with patch('sys.stderr', file_handle):
+                with self.assertRaises(SystemExit, msg=msg):
+                    ArgParser().wrong_args_error(args, method)
 
 
 if __name__ == '__main__':

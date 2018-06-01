@@ -88,7 +88,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
         msg = "Invalid grid: projection_x/y coords required"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 cube, self.DISTANCE, self.MAX_DISTANCE_IN_GRID_CELLS)
 
@@ -96,7 +96,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         """Test behaviour with a non-zero point with negative range."""
         distance = -1.0 * self.DISTANCE
         msg = "distance of -6100.0m gives a negative cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
@@ -104,7 +104,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         """Test behaviour with a non-zero point with zero range."""
         distance = 5
         msg = "Distance of 5m gives zero cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
@@ -113,7 +113,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         distance = 40000.0
         max_distance_in_grid_cells = 10
         msg = "distance of 40000.0m exceeds maximum grid cell extent"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, max_distance_in_grid_cells)
 
@@ -122,7 +122,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
            corner-to-corner distance of the domain."""
         distance = 42500.0
         msg = "Distance of 42500.0m exceeds max domain distance of "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
 
@@ -142,7 +142,7 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         projection_x_coordinate or projection_y_coordinate."""
         cube = set_up_cube_lat_long()
         msg = "Invalid grid"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
     def test_allow_negative_stride(self):
@@ -158,14 +158,14 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         """Test that the cube has equal intervals along the x or y axis."""
         cube = set_up_cube()
         msg = "Intervals between points along the "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
     def non_equal_area_grid(self):
         """Test that the cubes have an equal areas grid."""
         cube = set_up_cube()
         msg = "The size of the intervals along the x and y axis"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
 

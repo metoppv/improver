@@ -86,16 +86,8 @@ class Test_write_output(IrisTest):
 
         method = 'unknown_file_type'
         msg = 'Unknown method ".*" passed to WriteOutput.'
-        with self.assertRaisesRegexp(AttributeError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
             Plugin(method, self.data_directory).process(self.cube)
-
-    def test_invalid_output_path(self):
-        """Test attempt to write to unwritable location."""
-
-        method = 'as_netcdf'
-        msg = 'Permission denied'
-        with self.assertRaisesRegexp(IOError, msg):
-            Plugin(method, '/').process(self.cube)
 
 
 if __name__ == '__main__':

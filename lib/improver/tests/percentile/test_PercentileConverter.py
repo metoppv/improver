@@ -59,7 +59,7 @@ class Test_process(IrisTest):
               3 3 3 3
 
         """
-        data = [[range(0, 11, 1)]*11]*3
+        data = [[list(range(0, 11, 1))]*11]*3
         data = np.array(data).astype('float32')
         data.resize(3, 1, 11, 11)
 
@@ -154,7 +154,7 @@ class Test_process(IrisTest):
         collapse_coord = 'not_a_coordinate'
         plugin = PercentileConverter(collapse_coord)
         msg = "Coordinate "
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
     def test_invalid_collapse_coord_type(self):
@@ -164,7 +164,7 @@ class Test_process(IrisTest):
         """
         collapse_coord = self.cube
         msg = "collapse_coord is "
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             PercentileConverter(collapse_coord)
 
 

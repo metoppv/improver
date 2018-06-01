@@ -89,7 +89,7 @@ class ManageWarnings(object):
         Clears the hidden __warningregistry__ attribute from
         all imported modules.
         """
-        for mod in sys.modules.values():
+        for mod in list(sys.modules.values()):
             if hasattr(mod, '__warningregistry__'):
                 mod.__warningregistry__.clear()
 

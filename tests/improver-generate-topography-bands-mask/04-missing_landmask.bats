@@ -43,7 +43,7 @@
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-IOError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
+OSError: Loading land mask has been unsuccessful: One or more of the files specified did not exist
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

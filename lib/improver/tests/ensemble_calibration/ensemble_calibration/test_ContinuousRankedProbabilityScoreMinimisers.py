@@ -366,7 +366,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "foo"
         msg = "Distribution requested"
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
@@ -582,7 +582,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "foo"
         msg = "Distribution requested"
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)
@@ -610,7 +610,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         plugin = Plugin()
         distribution = "foo"
         msg = "Distribution requested"
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             plugin.crps_minimiser_wrapper(
                 initial_guess, forecast_predictor, truth, forecast_variance,
                 predictor_of_mean_flag, distribution)

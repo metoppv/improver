@@ -38,7 +38,6 @@ usage: improver-blend-adjacent-points [-h] [--parameter_unit UNIT_STRING]
                                       COORDINATE_TO_BLEND_OVER
                                       WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
                                       INPUT_FILE OUTPUT_FILE
-improver-blend-adjacent-points: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

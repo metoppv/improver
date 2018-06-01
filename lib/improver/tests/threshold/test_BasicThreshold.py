@@ -454,7 +454,7 @@ class Test_process(IrisTest):
         msg = "NaN detected in input cube data"
         plugin = Threshold(
             2.0, fuzzy_factor=self.fuzzy_factor, below_thresh_ok=True)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
 
     def test_threshold_zero_with_fuzzy_factor(self):
@@ -462,35 +462,35 @@ class Test_process(IrisTest):
         fuzzy factor (invalid)."""
         fuzzy_factor = 0.6
         msg = "Invalid threshold with fuzzy factor"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.0, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_minus_1(self):
         """Test when a fuzzy factor of minus 1 is given (invalid)."""
         fuzzy_factor = -1.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: -1.0"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_0(self):
         """Test when a fuzzy factor of zero is given (invalid)."""
         fuzzy_factor = 0.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 0.0"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_1(self):
         """Test when a fuzzy factor of unity is given (invalid)."""
         fuzzy_factor = 1.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 1.0"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_2(self):
         """Test when a fuzzy factor of 2 is given (invalid)."""
         fuzzy_factor = 2.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 2.0"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor)
 
     def test_fuzzy_factor_and_fuzzy_bounds(self):
@@ -499,7 +499,7 @@ class Test_process(IrisTest):
         fuzzy_bounds = (0.4, 0.8)
         msg = ("Invalid combination of keywords. Cannot specify "
                "fuzzy_factor and fuzzy_bounds together")
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(0.6, fuzzy_factor=fuzzy_factor,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -510,7 +510,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegexp(AssertionError, msg):
+        with self.assertRaisesRegex(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -521,7 +521,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegexp(AssertionError, msg):
+        with self.assertRaisesRegex(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -533,7 +533,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegexp(AssertionError, msg):
+        with self.assertRaisesRegex(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -545,7 +545,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegexp(AssertionError, msg):
+        with self.assertRaisesRegex(AssertionError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 

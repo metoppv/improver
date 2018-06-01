@@ -102,7 +102,7 @@ class Test__init__(IrisTest):
         """Test that the __init__ raises the right error"""
         message = ("weighting_mode: no_mode is not recognised, "
                    "must be either weighted_maximum or weighted_mean")
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             TriangularWeightedBlendAcrossAdjacentPoints(
                 'time', 3.0, 'hours', 'no_mode')
 
@@ -187,7 +187,7 @@ class Test_correct_collapsed_coordinates(IrisTest):
         # r added in front of error message string to make this a raw string
         # and avoid 'anomalous backslash in string' codacy and travis errors.
         message = r"Require data with shape \(3,\), got \(2,\)\."
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             self.plugin.correct_collapsed_coordinates(orig_cube, new_cube,
                                                       ['forecast_period'])
 
@@ -196,7 +196,7 @@ class Test_correct_collapsed_coordinates(IrisTest):
            a coordinate that doesn't exist."""
         self.new_cube.remove_coord('forecast_period')
         message = "Expected to find exactly 1 .* coordinate, but found none."
-        with self.assertRaisesRegexp(CoordinateNotFoundError, message):
+        with self.assertRaisesRegex(CoordinateNotFoundError, message):
             self.plugin.correct_collapsed_coordinates(self.orig_cube,
                                                       self.new_cube,
                                                       ['forecast_period'])

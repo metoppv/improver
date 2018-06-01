@@ -126,7 +126,7 @@ def main():
             orography, thresholds_dict, landmask=landmask)
         save_netcdf(result, args.output_filepath)
     else:
-        print 'File already exists here: ', args.output_filepath
+        print('File already exists here: ', args.output_filepath)
 
 
 if __name__ == "__main__":

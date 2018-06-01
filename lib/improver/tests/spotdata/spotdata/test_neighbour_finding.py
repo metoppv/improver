@@ -123,7 +123,7 @@ class Test_miscellaneous(Test_PointSelection):
         """
         plugin = Plugin('smallest distance')
         msg = 'Unknown method'
-        with self.assertRaisesRegexp(AttributeError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
             plugin.process(self.cube, self.sites, self.ancillary_data)
 
     def test_variable_no_neighbours(self):
@@ -154,7 +154,7 @@ class Test_miscellaneous(Test_PointSelection):
                         vertical_bias=None,
                         land_constraint=False)
         msg = 'Invalid nearest no'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube, self.sites, self.ancillary_data,
                            no_neighbours=20)
 

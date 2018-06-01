@@ -218,7 +218,7 @@ class Test_setup(IrisTest):
         result = plugin.process(cube, self.sites, self.neighbour_list,
                                 ancillary_data, additional_data, **kwargs)
 
-        self.assertAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def different_projection(self, method, ancillary_data, additional_data,
                              expected, **kwargs):
@@ -271,7 +271,7 @@ class Test_setup(IrisTest):
                                 ancillary_data, additional_data, **kwargs)
 
         self.assertEqual(cube.coord_system(), trg_crs_iris)
-        self.assertAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.coord(axis='y').name(), 'latitude')
         self.assertEqual(result.coord(axis='x').name(), 'longitude')
         self.assertAlmostEqual(result.coord(axis='y').points, 4.74)
@@ -306,7 +306,7 @@ class Test_ExtractData(Test_setup):
         plugin = Plugin('quantum_interpolation')
         msg = 'Unknown method'
         cube = self.cube.extract(self.time_extract)
-        with self.assertRaisesRegexp(AttributeError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
             plugin.process(cube, self.sites, self.neighbour_list, {}, None,
                            **self.kwargs)
 
@@ -330,7 +330,7 @@ class Test_make_cube(Test_setup):
         data = np.array([123])
         self.cube.remove_coord('forecast_reference_time')
         msg = 'No forecast reference time found on source cube.'
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin(self.cube, data, self.sites)
 
     def test_aux_coord_and_metadata(self):

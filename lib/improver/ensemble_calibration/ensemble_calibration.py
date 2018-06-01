@@ -359,7 +359,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "the individual ensemble members. "
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
-                warnings.warn(msg)
+                warnings.warn(msg, ImportWarning)
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):
@@ -900,7 +900,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     excess_beta = (
                         optimised_coeffs_at_date[len(coeff_names):].tolist())
                     optimised_coeffs_at_date = (
-                        dict(zip(coeff_names, optimised_coeffs_at_date)))
+                        dict(list(zip(coeff_names, optimised_coeffs_at_date))))
                     optimised_coeffs_at_date["beta"] = np.array(
                         [optimised_coeffs_at_date["beta"]]+excess_beta)
                 else:

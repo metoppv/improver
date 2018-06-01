@@ -75,7 +75,7 @@ class Test__init__(IrisTest):
         """Test that the __init__ raises an error when appropriate."""
         message = ("weighting_mode: not_a_method is not recognised, "
                    "must be either weighted_maximum or weighted_mean")
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             WeightedBlendAcrossWholeDimension('time', 'not_a_method')
 
 
@@ -166,7 +166,7 @@ class Test_process(IrisTest):
         coord = "notset"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         msg = ('Expected to find exactly 1 .* coordinate, but found none.')
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
     def test_fails_input_not_a_cube(self):
@@ -176,7 +176,7 @@ class Test_process(IrisTest):
         notacube = 0.0
         msg = ('The first argument must be an instance of ' +
                'iris.cube.Cube')
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             plugin.process(notacube)
 
     def test_fails_perc_coord_not_dim(self):
@@ -188,7 +188,7 @@ class Test_process(IrisTest):
                                         long_name="percentile_over_time"))
         msg = ('The percentile coord must be a dimension '
                'of the cube.')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(new_cube)
 
     def test_fails_only_one_percentile_value(self):
@@ -202,7 +202,7 @@ class Test_process(IrisTest):
                                         long_name="time"), 1)
         msg = ('Percentile coordinate does not have enough points'
                ' in order to blend. Must have at least 2 percentiles.')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(new_cube)
 
     def test_fails_weights_shape(self):
@@ -213,7 +213,7 @@ class Test_process(IrisTest):
         weights = [0.1, 0.2, 0.7]
         msg = ('The weights array must match the shape ' +
                'of the coordinate in the input cube')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube, weights)
 
     @ManageWarnings(
@@ -225,7 +225,7 @@ class Test_process(IrisTest):
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean',
                                                    coord_adjust)
         result = plugin.process(self.cube)
-        self.assertAlmostEquals(result.coord(coord).points, [402193.5])
+        self.assertAlmostEqual(result.coord(coord).points, [402193.5])
 
     def test_forecast_reference_time_exception(self):
         """Test that a ValueError is raised if the coordinate to be blended
@@ -234,7 +234,7 @@ class Test_process(IrisTest):
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         msg = ('For blending using the forecast_reference_time')
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
 
     @ManageWarnings(record=True)

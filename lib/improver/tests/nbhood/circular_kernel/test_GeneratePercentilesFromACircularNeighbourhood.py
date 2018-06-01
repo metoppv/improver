@@ -406,7 +406,7 @@ class Test_run(IrisTest):
         cube = set_up_cube_lat_long()
         msg = "Invalid grid: projection_x/y coords required"
         radius = 6000.
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
     def test_single_point_masked_to_null(self):
@@ -507,7 +507,7 @@ class Test_run(IrisTest):
         cube = self.cube
         radius = 0.
         msg = "Distance of {0}m gives zero cell extent".format(radius)
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
     def test_point_pair(self):
@@ -679,8 +679,8 @@ class Test_run(IrisTest):
         cube = self.cube
         radius = 50000.0
         msg = ("Distance of {}m exceeds max domain distance of "
-               "11313.708499m").format(radius)
-        with self.assertRaisesRegexp(ValueError, msg):
+               "11313.70849898476m").format(radius)
+        with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
     def test_mask_cube(self):
@@ -692,7 +692,7 @@ class Test_run(IrisTest):
         radius = 4000.
         msg = ("The use of a mask cube with a circular kernel is "
                "not yet implemented.")
-        with self.assertRaisesRegexp(NotImplementedError, msg):
+        with self.assertRaisesRegex(NotImplementedError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(
                 cube, radius, mask_cube=cube)
 
