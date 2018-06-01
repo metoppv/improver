@@ -33,7 +33,8 @@ install:
   - conda install -c conda-forge iris=2.0
 
   # Install our own extra dependencies (+ filelock for Iris test).
-  - conda install -c conda-forge filelock mock netcdf4=1.3.1 numpy=1.13.3 pycodestyle pylint pandas python-stratify sphinx=1.7.0
+  - conda install -c conda-forge filelock mock netcdf4=1.3.1 numpy=1.13.3 pycodestyle pylint pandas python-stratify sphinx=1.7.0 coverage
+  - pip install codacy-coverage
 
   # List the name and version of all the dependencies within the conda environment.
   - conda list
