@@ -247,8 +247,8 @@ class ExtractData(object):
         # Build the new auxiliary coordinates.
         crds = self._aux_coords_to_make()
         aux_crds = []
-        for key, kwargs in zip(crds.keys(), crds.itervalues()):
-            aux_data = np.array([entry[key] for entry in sites.itervalues()])
+        for key, kwargs in zip(crds.keys(), crds.values()):
+            aux_data = np.array([entry[key] for entry in sites.values()])
             crd = build_coordinate(aux_data, long_name=key, **kwargs)
             aux_crds.append(crd)
 
@@ -344,7 +344,7 @@ class ExtractData(object):
 
         data = np.empty(shape=(len(sites)), dtype=float)
 
-        for i_site, site in enumerate(sites.itervalues()):
+        for i_site, site in enumerate(sites.values()):
             i, j = neighbours['i'][i_site], neighbours['j'][i_site]
 
             altitude = site['altitude']

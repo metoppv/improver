@@ -135,7 +135,7 @@ class Test_renormalize_weights(IrisTest):
         nbhood_data[:] = np.nan
         nbhooded_cube = self.weights_cube.copy(nbhood_data)
         message = "Sum of weights must be > 0.0"
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             self.plugin.renormalize_weights(nbhooded_cube)
 
     def test_no_NaNs_in_nbhooded_cube_and_masked_weights(self):
@@ -199,7 +199,7 @@ class Test_renormalize_weights(IrisTest):
         plugin = CollapseMaskedNeighbourhoodCoordinate("kitten",
                                                        self.weights_cube)
         message = "Expected to find exactly 1 .* coordinate, but found none."
-        with self.assertRaisesRegexp(CoordinateNotFoundError, message):
+        with self.assertRaisesRegex(CoordinateNotFoundError, message):
             plugin.renormalize_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis_with_error(self):
@@ -210,7 +210,7 @@ class Test_renormalize_weights(IrisTest):
         plugin = CollapseMaskedNeighbourhoodCoordinate(
             "projection_x_coordinate", self.weights_cube)
         message = "Sum of weights must be > 0.0"
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             plugin.renormalize_weights(nbhooded_cube)
 
     def test_normalizing_along_another_axis(self):

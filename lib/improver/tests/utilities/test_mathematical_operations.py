@@ -74,7 +74,7 @@ class Test__init__(IrisTest):
         coord_name = "height"
         direction = "sideways"
         msg = "The specified direction of integration"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Integration(coord_name, direction_of_integration=direction)
 
 
@@ -485,7 +485,7 @@ class Test_perform_integration(IrisTest):
         start_point = 25.
         direction = "positive"
         msg = "No integration could be performed for"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Integration(
                 coord_name, start_point=start_point,
                 direction_of_integration=direction

@@ -210,7 +210,7 @@ class Test_forecast_period_coord(IrisTest):
         """
         cube = set_up_cube()
         msg = "The forecast period coordinate is not available"
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             forecast_period_coord(cube)
 
 
@@ -245,7 +245,7 @@ class Test_datetime_constraint(Test_common_functions):
         plugin = datetime_constraint
         time_start = datetime.datetime(2017, 2, 17, 6, 0)
         time_limit = datetime.datetime(2017, 2, 17, 18, 0)
-        expected_times = range(1487311200, 1487354400, 3600)
+        expected_times = list(range(1487311200, 1487354400, 3600))
         dt_constraint = plugin(time_start, time_max=time_limit)
         result = self.long_cube.extract(dt_constraint)
         self.assertEqual(result.shape, (12, 12, 12))
@@ -411,7 +411,7 @@ class Test_get_forecast_times(IrisTest):
 
         forecast_date = '17MARCH2017'
         msg = 'Date .* is in unexpected format'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             get_forecast_times(144, forecast_date=forecast_date,
                                forecast_time=6)
 

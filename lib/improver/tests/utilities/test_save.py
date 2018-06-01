@@ -120,7 +120,7 @@ class Test_save_netcdf(IrisTest):
         coord_names = [coord.name() for coord in cube.coords(dim_coords=True)]
         reference_names = [coord.name()
                            for coord in self.cube.coords(dim_coords=True)]
-        self.assertItemsEqual(coord_names, reference_names)
+        self.assertCountEqual(coord_names, reference_names)
 
     def test_cf_global_attributes(self):
         """ Test that a NetCDF file saved from one cube only contains the

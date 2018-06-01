@@ -64,7 +64,7 @@ def interrogate_decision_tree():
     # How the data has been thresholded relative to these thresholds.
     relative = {}
 
-    for query in queries.itervalues():
+    for query in queries.values():
         diagnostics = expand_nested_lists(query, 'diagnostic_fields')
         for index, diagnostic in enumerate(diagnostics):
             if diagnostic not in requirements:

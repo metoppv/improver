@@ -60,7 +60,7 @@ class Test__init__(IrisTest):
     def test_ignored_messages_not_list(self):
         """Test Raises type error if ignored_messages is not a list."""
         msg = "Expecting list of strings for ignored_messages"
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             ManageWarnings(ignored_messages="Wrong")
 
     def test_ignored_messages(self):
@@ -88,7 +88,7 @@ class Test__init__(IrisTest):
         messages = ["Testing", "Testing2"]
         warning_types = [UserWarning]
         msg = "Length of warning_types"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             ManageWarnings(ignored_messages=messages,
                            warning_types=warning_types)
 

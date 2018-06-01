@@ -752,7 +752,7 @@ class EnsembleReordering(object):
                 realization_list.append(mpoints[index % len(mpoints)])
 
             # Assume that the ensemble members are ascending linearly.
-            new_member_numbers = realization_list[0] + range(plen)
+            new_member_numbers = realization_list[0] + list(range(plen))
 
             # Extract the members required in the realization_list from
             # the raw_forecast_members. Edit the member number as appropriate

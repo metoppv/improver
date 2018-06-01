@@ -324,7 +324,7 @@ class Test_process(IrisTest):
             orography_data, "altitude", "m", realizations=np.array([0]),
             y_dimension_length=2, x_dimension_length=2)
         msg = "The input orography cube should be two-dimensional"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             self.plugin.process(orography, self.thresholds_dict, self.landmask)
 
     def test_data(self):

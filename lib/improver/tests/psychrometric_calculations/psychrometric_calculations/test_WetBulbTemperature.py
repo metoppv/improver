@@ -284,7 +284,7 @@ class Test_process(Test_WetBulbTemperature):
         temperature.coord('height').rename('pressure')
 
         msg = 'WetBulbTemperature: Cubes have differing'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(
                 temperature, relative_humidity, pressure)
 

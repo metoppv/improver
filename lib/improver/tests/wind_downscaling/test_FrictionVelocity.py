@@ -117,7 +117,7 @@ class Test_process(IrisTest):
         """Test when if different size arrays have been input"""
         u_href = np.full([3, 3], 10, dtype=float)
         msg = 'Different size input arrays u_href, h_ref, z_0, mask'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             FrictionVelocity(u_href, self.h_ref,
                              self.z_0, self.mask).process()
 

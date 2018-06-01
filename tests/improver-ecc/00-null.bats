@@ -40,7 +40,6 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     [--random_ordering] [--random_seed RANDOM_SEED]
                     [--member_numbers MEMBER_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
-improver-ecc: error: too few arguments
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

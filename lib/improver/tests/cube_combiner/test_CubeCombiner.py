@@ -58,7 +58,7 @@ class Test__init__(IrisTest):
     def test_raise_error_wrong_operation(self):
         """Test __init__ raises a ValueError for invalid operation"""
         msg = 'Unknown operation '
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             CubeCombiner('%')
 
 
@@ -138,7 +138,7 @@ class Test_expand_bounds(IrisTest):
         """Test that if an error is raised if a coordinate with more than
         one point is given"""
         emsg = 'the expand bounds function should only be used on a'
-        with self.assertRaisesRegexp(ValueError, emsg):
+        with self.assertRaisesRegex(ValueError, emsg):
             CubeCombiner.expand_bounds(self.cubelist[0],
                                        self.cubelist,
                                        'latitude',

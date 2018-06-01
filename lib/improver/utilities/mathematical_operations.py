@@ -165,11 +165,11 @@ class Integration(object):
         if self.direction_of_integration == "positive":
             integrated_cube = upper_bounds_cube.copy()
             integrated_cube.coord(self.coord_name_to_integrate).bounds = (
-                zip(lower_bounds, upper_bounds))
+                list(zip(lower_bounds, upper_bounds)))
         elif self.direction_of_integration == "negative":
             integrated_cube = lower_bounds_cube.copy()
             integrated_cube.coord(self.coord_name_to_integrate).bounds = (
-                zip(lower_bounds, upper_bounds))
+                list(zip(lower_bounds, upper_bounds)))
 
         integrated_cube.data = np.zeros(lower_bounds_cube.shape)
         return upper_bounds_cube, lower_bounds_cube, integrated_cube
@@ -207,10 +207,10 @@ class Integration(object):
 
         """
         # Create a zip for looping over.
-        levels_tuple = zip(
+        levels_tuple = list(zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
             lower_bounds_cube.slices_over(self.coord_name_to_integrate),
-            integrated_cube.slices_over(self.coord_name_to_integrate))
+            integrated_cube.slices_over(self.coord_name_to_integrate)))
 
         # Perform the integration
         stride_sum = 0

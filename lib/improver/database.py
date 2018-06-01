@@ -152,8 +152,8 @@ class SpotDatabase(object):
                     self.map_primary_index(df)
 
                 if self.column_dims and self.column_maps:
-                    for dim, col in itertools.izip_longest(self.column_dims,
-                                                           self.column_maps):
+                    for dim, col in itertools.zip_longest(self.column_dims,
+                                                          self.column_maps):
                         self.insert_extra_mapped_column(df, cube_slice, dim,
                                                         col)
                 try:
@@ -211,7 +211,7 @@ class SpotDatabase(object):
 
         """
         coords = cube.coord(self.pivot_dim).points
-        col_names = map(self.pivot_map, coords)
+        col_names = list(map(self.pivot_map, coords))
         dataframe.insert(1, self.pivot_dim, col_names)
         dataframe = dataframe.pivot(columns=self.pivot_dim, values='values')
         return dataframe
@@ -227,7 +227,7 @@ class SpotDatabase(object):
         """
         for mapping, function in zip(self.primary_map,
                                      self.primary_func):
-            dataframe.insert(0, mapping, map(function, dataframe.index))
+            dataframe.insert(0, mapping, list(map(function, dataframe.index)))
         dataframe.set_index(self.primary_map, inplace=True)
 
     @staticmethod

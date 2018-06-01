@@ -105,9 +105,11 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         lower_array = np.full(
-            forecast_at_percentiles[:, 0].shape, bounds_pairing[0])
+            forecast_at_percentiles[:, 0].shape, bounds_pairing[0],
+            dtype=np.float32)
         upper_array = np.full(
-            forecast_at_percentiles[:, 0].shape, bounds_pairing[1])
+            forecast_at_percentiles[:, 0].shape, bounds_pairing[1],
+            dtype=np.float32)
         plugin = Plugin()
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
             percentiles, forecast_at_percentiles, bounds_pairing)
@@ -126,7 +128,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         msg = "The end points added to the forecast at percentiles"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 percentiles, forecast_at_percentiles, bounds_pairing)
 
@@ -140,7 +142,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         msg = "The percentiles must be in ascending order"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 percentiles, forecast_at_percentiles, bounds_pairing)
 

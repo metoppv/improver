@@ -63,7 +63,7 @@ def main():
         land_binary_mask = CorrectLandSeaMask().process(landmask)
         save_netcdf(land_binary_mask, args.output_filepath)
     else:
-        print 'File already exists here: ', args.output_filepath
+        print('File already exists here: ', args.output_filepath)
 
 
 if __name__ == "__main__":

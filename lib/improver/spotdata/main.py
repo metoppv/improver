@@ -167,14 +167,14 @@ def run_spotdata(diagnostics, ancillary_data, sites, config_constants,
         # Process diagnostics on separate threads if multiprocessing is
         # selected. Determine number of diagnostics to establish
         # multiprocessing pool size.
-        n_diagnostic_threads = min(len(diagnostics.keys()), mp.cpu_count())
+        n_diagnostic_threads = (
+            min(len(diagnostics.keys())), mp.cpu_count())
 
         # Establish multiprocessing pool - each diagnostic processed on its
         # own thread.
         diagnostic_pool = mp.Pool(processes=n_diagnostic_threads)
 
-        diagnostic_keys = [
-            diagnostic_name for diagnostic_name in diagnostics.keys()]
+        diagnostic_keys = diagnostics.keys()
 
         result = (
             diagnostic_pool.map_async(

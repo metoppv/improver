@@ -55,7 +55,7 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         values = [0.03, 0.1]
         result = create_sorted_lambda_constraint(coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
@@ -66,7 +66,7 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         values = [0.1, 0.03]
         result = create_sorted_lambda_constraint(coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(result._coord_values.keys(), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 

@@ -114,7 +114,7 @@ class Test__init__(Test_RecursiveFilter):
         """Test when an alpha_x value > unity is given (invalid)."""
         alpha_x = 1.1
         msg = "Invalid alpha_x: must be > 0 and < 1: 1.1"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
                             iterations=None, edge_width=1)
 
@@ -122,7 +122,7 @@ class Test__init__(Test_RecursiveFilter):
         """Test when an alpha_x value <= zero is given (invalid)."""
         alpha_x = -0.5
         msg = "Invalid alpha_x: must be > 0 and < 1: -0.5"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
                             iterations=None, edge_width=1)
 
@@ -130,7 +130,7 @@ class Test__init__(Test_RecursiveFilter):
         """Test when an alpha_y value > unity is given (invalid)."""
         alpha_y = 1.1
         msg = "Invalid alpha_y: must be > 0 and < 1: 1.1"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
                             iterations=None, edge_width=1)
 
@@ -138,7 +138,7 @@ class Test__init__(Test_RecursiveFilter):
         """Test when an alpha_y value <= zero is given (invalid)."""
         alpha_y = -0.5
         msg = "Invalid alpha_y: must be > 0 and < 1: -0.5"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
                             iterations=None, edge_width=1)
 
@@ -146,7 +146,7 @@ class Test__init__(Test_RecursiveFilter):
         """Test when iterations value less than unity is given (invalid)."""
         iterations = 0
         msg = "Invalid number of iterations: must be >= 1: 0"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=None,
                             iterations=iterations, edge_width=1)
 
@@ -183,7 +183,7 @@ class Test__set_alphas(Test_RecursiveFilter):
         """Test that an error is raised if the alphas_cube is of a different
         shape to the data cube."""
         msg = "Dimensions of alphas array do not match dimensions "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter()._set_alphas(self.cube, None,
                                           self.alphas_cube_wrong_dims)
 
@@ -193,7 +193,7 @@ class Test__set_alphas(Test_RecursiveFilter):
         alpha = None
         alphas_cube = None
         msg = "A value for alpha must be set if alphas_cube is "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter()._set_alphas(self.cube, alpha, alphas_cube)
 
     def test_alphas_cube_and_alpha_both_set(self):
@@ -201,7 +201,7 @@ class Test__set_alphas(Test_RecursiveFilter):
         alpha = 0.5
         alphas_cube = self.alphas_cube
         msg = "A cube of alpha values and a single float value for"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter()._set_alphas(self.cube, alpha, alphas_cube)
 
 

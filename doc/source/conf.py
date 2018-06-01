@@ -364,7 +364,7 @@ napoleon_include_init_with_doc = True
 def run_apidoc(_):
     """Allow automatic running of sphinx-apidoc:
     Adapted from: https://github.com/rtfd/readthedocs.org/issues/1139"""
-    from sphinx.apidoc import main
+    from sphinx.ext.apidoc import main
 
     output_dir = os.path.dirname(os.path.abspath(__file__))
     exclude_dir = os.path.join(SOURCE_DIR, 'improver', 'tests')

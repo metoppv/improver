@@ -50,8 +50,21 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
-                    "Not importing directory .*sphinxcontrib'"]
-WARNING_TYPES = [UserWarning, ImportWarning]
+                    "Not importing directory .*sphinxcontrib'",
+                    "The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "The statsmodels can not be imported",
+                    "invalid escape sequence",
+                    "can't resolve package from",
+                    "Collapsing a non-contiguous coordinate.",
+                    "Minimisation did not result in"
+                    " convergence",
+                    "\nThe final iteration resulted in a percentage "
+                    "change that is greater than the"
+                    " accepted threshold "]
+WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
+                 ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
+                 UserWarning, UserWarning]
 
 
 class Test__init__(IrisTest):
@@ -102,7 +115,21 @@ class Test__init__(IrisTest):
 
     @ManageWarnings(
         record=True,
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Not importing directory .*sphinxcontrib'",
+                          "The pandas.core.datetools module is deprecated",
+                          "numpy.dtype size changed",
+                          "invalid escape sequence",
+                          "can't resolve package from",
+                          "Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in"
+                          " convergence",
+                          "\nThe final iteration resulted in a percentage "
+                          "change that is greater than the"
+                          " accepted threshold "],
+        warning_types=[UserWarning, ImportWarning, FutureWarning,
+                       RuntimeWarning, DeprecationWarning, ImportWarning,
+                       UserWarning, UserWarning, UserWarning])
     def test_statsmodels_members(self, warning_list=None):
         """
         Test that the plugin raises the desired warning if the statsmodels
@@ -137,7 +164,7 @@ class Test__init__(IrisTest):
             plugin = Plugin(distribution, desired_units,
                             predictor_of_mean_flag=predictor_of_mean_flag)
             self.assertTrue(len(warning_list) == 1)
-            self.assertTrue(any(item.category == UserWarning
+            self.assertTrue(any(item.category == ImportWarning
                                 for item in warning_list))
             self.assertTrue("The statsmodels can not be imported"
                             in str(warning_list[0]))
@@ -335,6 +362,8 @@ class Test_compute_initial_guess(IrisTest):
 
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
+        current_forecast_predictor.data = (
+            current_forecast_predictor.data.filled())
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
@@ -434,10 +463,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["\nThe final iteration resulted in a percentage "
-                          "change that is greater than the"
-                          " accepted threshold ",
-                          "Collapsing a non-contiguous coordinate."])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -466,9 +492,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["Minimisation did not result in convergence",
-                          "Collapsing a non-contiguous coordinate.",
-                          "The statsmodels can not be imported"])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_members(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -510,9 +534,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
-        ignored_messages=["Minimisation did not result in convergence",
-                          "Collapsing a non-contiguous coordinate.",
-                          "The statsmodels can not be imported"])
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
         """
         Ensure that the values generated within optimised_coeffs match the
@@ -570,7 +592,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
         msg = "Distribution requested"
-        with self.assertRaisesRegexp(KeyError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
 
@@ -677,7 +699,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, desired_units)
         msg = "The input data within the"
-        with self.assertRaisesRegexp(TypeError, msg):
+        with self.assertRaisesRegex(TypeError, msg):
             plugin.estimate_coefficients_for_ngr(
                 current_forecast, historic_forecasts, truth)
 
@@ -706,7 +728,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             current_forecast, historic_forecasts, truth)
         optimised_coeffs, coeff_names = result
         self.assertFalse(optimised_coeffs)
-        self.assertItemsEqual(coeff_names, desired_coeff_names)
+        self.assertCountEqual(coeff_names, desired_coeff_names)
 
     @ManageWarnings(record=True)
     def test_current_forecast_cubes_is_fake_catch_warning(self,

@@ -62,13 +62,13 @@ class Test_rescale(IrisTest):
     def test_zero_range_input(self):
         """Test that the method returns the expected error"""
         msg = "Cannot rescale a zero input range"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             rescale(self.cube.data, data_range=[0, 0])
 
     def test_zero_range_output(self):
         """Test that the method returns the expected error"""
         msg = "Cannot rescale a zero output range"
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             rescale(self.cube.data, scale_range=[4, 4])
 
     def test_rescaling_inrange(self):
