@@ -41,7 +41,7 @@ from cf_units import Unit
 
 from improver.utilities.cube_metadata import (
     add_coord, update_coord, update_attribute,
-    amend_metadata, resolve_metadata_diff)
+    amend_metadata, resolve_metadata_diff, delete_attributes)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -496,6 +496,61 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
+
+
+class Test_delete_attributes(IrisTest):
+
+    """Test the delete_attributes method."""
+
+    def setUp(self):
+        """Create a cube with attributes to be deleted."""
+        data = np.zeros((2, 2))
+        long_name = "probability_of_rainfall_rate"
+        units = "m s^-1"
+        attributes = {'title': 'This is a cube',
+                      'tithe': '10 percent',
+                      'mosg_model': 'gl_det',
+                      'mosg_grid_version': 1.0,
+                      'mosg_grid_name': 'global'}
+
+        self.cube = Cube(data, long_name=long_name, units=units)
+        self.cube.attributes = attributes
+
+    def test_basic(self):
+        """Test that an empty call leaves the cube unchanged."""
+        cube = self.cube.copy()
+        delete_attributes(cube, [])
+
+        self.assertDictEqual(self.cube.attributes, cube.attributes)
+
+    def test_accepts_string(self):
+        """Test that a single string passed as an argument works."""
+        attributes_to_delete = 'title'
+        attributes = self.cube.attributes
+        attributes.pop(attributes_to_delete)
+        delete_attributes(self.cube, attributes_to_delete)
+
+        self.assertDictEqual(attributes, self.cube.attributes)
+
+    def test_accepts_list_of_complete_matches(self):
+        """Test that a list of complete attribute names removes the expected
+        attributes."""
+        attributes_to_delete = ['title', 'tithe', 'mosg_model']
+        attributes = self.cube.attributes
+        for item in attributes_to_delete:
+            attributes.pop(item)
+        delete_attributes(self.cube, attributes_to_delete)
+
+        self.assertDictEqual(attributes, self.cube.attributes)
+
+    def test_accepts_list_of_partial_matches(self):
+        """Test that a list of partial patterns removes the expected
+        attributes."""
+        attributes_to_delete = ['tit', 'mosg_grid']
+        expected = {'mosg_model': 'gl_det'}
+        delete_attributes(self.cube, attributes_to_delete)
+
+        self.assertDictEqual(expected, self.cube.attributes)
 
 
 if __name__ == '__main__':
