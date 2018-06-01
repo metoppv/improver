@@ -56,6 +56,7 @@ function improver_test_unit {
         coverage run -m unittest discover
         echo "Generating coverage report"
         coverage xml
+        echo "FOOBAR is" ${FOOBAR:-}
         if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
             echo "Sending coverage report..."
             python-codacy-coverage -r coverage.xml
