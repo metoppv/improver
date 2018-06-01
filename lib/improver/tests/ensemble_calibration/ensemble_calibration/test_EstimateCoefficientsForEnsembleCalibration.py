@@ -49,7 +49,6 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
                              _create_historic_forecasts, _create_truth)
 from improver.utilities.warnings_handler import ManageWarnings
 
-
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
                     "Not importing directory .*sphinxcontrib'",
                     "The pandas.core.datetools module is deprecated",
