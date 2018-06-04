@@ -168,8 +168,6 @@ def main():
         thresholds, fuzzy_factor=args.fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
         below_thresh_ok=args.below_threshold).process(cube)
-    
-#    save_netcdf(result, args.output_filepath)
 
     if args.collapse_coord=="realization":
     # Fix default values for slope and y0val. The argparser default value isn't
@@ -197,7 +195,6 @@ def main():
 
     else:
         save_netcdf(result_no_realization, args.output_filepath) 
-    save_netcdf(result_no_realization, args.output_filepath)
 
 if __name__ == "__main__":
     main()

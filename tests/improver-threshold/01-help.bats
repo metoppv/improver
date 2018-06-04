@@ -89,28 +89,29 @@ optional arguments:
                         narrower fuzzy factor region / sharper threshold. NB A
                         fuzzy factor cannot be used with a zero threshold or a
                         threshold_config file.
-  --collapse-coord COLLAPSE COORD
-                        An optional ability to set which coordinate we want to 
+  --collapse-coord COLLAPSE-COORD
+                        An optional ability to set which coordinate we want to
                         collapse over. The default is set to None.
-  --coordinate_exp_val COORD_EXPECTED_VALUES
-                        Optional string of expected coordinate points seperated 
-                        by , e.g. "1496289600, 1496293200".
+  --coord_exp_val COORD_EXPECTED_VALUES
+                        Optional string of expected coordinate points
+                        seperated by, e.g. '1496289600, 1496293200'.
   --coordinate_unit UNIT_STRING
-                        Units for time coordinate. Default= hours since 
+                        Units for time coordinate. Default=hours since
                         1970-01-01 00:00:00
-  --slope LINEAR_SLOPE
-                        The slope of the line used for choosing default linear 
-                        weights. Only one of ynval and slope may be set. For 
+  --slope LINEAR_SLOPE  The slope of the line used for choosing default linear
+                        weights. Only one of ynval and slope may be set. For
                         realization collapse the default is set to 0.0
   --y0val LINEAR_STARTING_POINT
-                        The relative value of the weighting start point for 
-                        choosing default linear weights. This must be a 
-                        positive float or 0. For realization collapse a default 
-                        of 1.0 is set.
+                        The relative value of the weighting start point for
+                        choosing default linear weights. This must be a
+                        positive float or 0. For realization collapse a
+                        default of 1.0 is set.
   --weighting_mode WEIGHTED_BLEND_MODE
-                        The method used in the weighted blend, for realization 
-                        collapse the default is weighted_mean, which calculates 
-                        a normal weighted mean across the coordinate.
+                        The method used in the weighted blend, for realization
+                        collapse the default is weighted_mean, which
+                        calculates a normal weighted mean across the
+                        coordinate.
+
 
 __HELP__
   [[ "$output" == "$expected" ]]
