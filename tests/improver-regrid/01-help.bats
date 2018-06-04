@@ -53,10 +53,10 @@ optional arguments:
                         iris.analysis.Nearest() instead of Linear(). Use for
                         less continuous fields, e.g. precipitation.
   --extrapolation_mode EXTRAPOLATION_MODE
-                        Mode to use for extrapolating data in to regions
-                        beyond the limits of the source_data domain. Modes
-                        are: extrapolate - The extrapolation points will take
-                        their value from the nearest source point. nan - The
+                        Mode to use for extrapolating data into regions beyond
+                        the limits of the source_data domain. Modes are:
+                        extrapolate - The extrapolation points will take their
+                        value from the nearest source point. nan - The
                         extrapolation points will be be set to NaN. error - A
                         ValueError exception will be raised, notifying an
                         attempt to extrapolate. mask - The extrapolation

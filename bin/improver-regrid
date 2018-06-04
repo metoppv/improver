@@ -67,7 +67,7 @@ def main():
                               (['--extrapolation_mode'],
                                {'default': 'nanmask',
                                 'help': ('Mode to use for extrapolating data '
-                                         'in to regions beyond the limits of '
+                                         'into regions beyond the limits of '
                                          'the source_data domain. Modes are: '
                                          'extrapolate - The extrapolation '
                                          'points will take their value from '
