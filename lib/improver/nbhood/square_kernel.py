@@ -119,7 +119,7 @@ class SquareNeighbourhood(object):
         """
         summed_cube = cube.copy()
         if iscomplex:
-            data = cube.data
+            data = cube.data.astype(complex)
         else:
             data = cube.data.astype(np.longdouble)
         data_summed_along_y = np.cumsum(data, axis=0)
@@ -479,14 +479,15 @@ class SquareNeighbourhood(object):
 
             with np.errstate(invalid='ignore', divide='ignore'):
                 if iscomplex:
-                    cube.data = neighbourhood_total / neighbourhood_area
+                    cube.data = (neighbourhood_total.astype(complex) /
+                                 neighbourhood_area.astype(complex))
                 else:
                     cube.data = (neighbourhood_total.astype(float) /
                                  neighbourhood_area.astype(float))
                 cube.data[~np.isfinite(cube.data)] = np.nan
         elif self.sum_or_fraction == "sum":
             if iscomplex:
-                cube.data = neighbourhood_total
+                cube.data = neighbourhood_total.astype(complex)
             else:
                 cube.data = neighbourhood_total.astype(float)
 
