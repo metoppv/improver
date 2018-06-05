@@ -368,8 +368,4 @@ def delete_attributes(cube, patterns):
     grid_attributes = list(set(grid_attributes))
 
     for key in grid_attributes:
-        try:
-            cube.attributes.pop(key)
-        except KeyError:
-            msg = 'Key: {} not found in cube attributes.'.format(key)
-            warnings.warn(msg)
+        cube.attributes.pop(key)

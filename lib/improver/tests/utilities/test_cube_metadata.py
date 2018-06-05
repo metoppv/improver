@@ -34,6 +34,7 @@ import unittest
 import numpy as np
 
 import iris
+from copy import copy
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
@@ -526,7 +527,7 @@ class Test_delete_attributes(IrisTest):
     def test_accepts_string(self):
         """Test that a single string passed as an argument works."""
         attributes_to_delete = 'title'
-        attributes = self.cube.attributes
+        attributes = copy(self.cube.attributes)
         attributes.pop(attributes_to_delete)
         delete_attributes(self.cube, attributes_to_delete)
 
@@ -536,7 +537,7 @@ class Test_delete_attributes(IrisTest):
         """Test that a list of complete attribute names removes the expected
         attributes."""
         attributes_to_delete = ['title', 'tithe', 'mosg_model']
-        attributes = self.cube.attributes
+        attributes = copy(self.cube.attributes)
         for item in attributes_to_delete:
             attributes.pop(item)
         delete_attributes(self.cube, attributes_to_delete)
