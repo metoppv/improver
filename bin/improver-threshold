@@ -164,7 +164,7 @@ def main():
         thresholds = args.threshold_values
         fuzzy_bounds = None
 
-    result_no_realization = BasicThreshold(
+    result_no_collapse_coord = BasicThreshold(
         thresholds, fuzzy_factor=args.fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
         below_thresh_ok=args.below_threshold).process(cube)
@@ -184,18 +184,18 @@ def main():
         wrong_args_error calls)."""
 
         weights = ChooseDefaultWeightsLinear(args.y0val, slope).process(
-            result_no_realization, args.collapse_coord,
+            result_no_collapse_coord, args.collapse_coord,
             args.coord_exp_val, args.coordinate_unit)
 
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.collapse_coord, args.weighting_mode)
-        result_realization = BlendingPlugin.process(result_no_realization,
+        result_collapse_coord = BlendingPlugin.process(result_no_collapse_coord,
                                                     weights)
 
-        save_netcdf(result_realization, args.output_filepath)
+        save_netcdf(result_collapse_coord, args.output_filepath)
 
     else:
-        save_netcdf(result_no_realization, args.output_filepath)
+        save_netcdf(result_no_collapse_coord, args.output_filepath)
 
 
 if __name__ == "__main__":
