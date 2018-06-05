@@ -145,6 +145,40 @@ class Test_process(IrisTest):
                               [[-180., 180.]])
         self.assertArrayEqual(result.coord('latitude').bounds, [[-90., 90.]])
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_use_with_masked_data(self):
+        """
+        Test that the plugin handles masked data, this requiring the option
+        fast_percentile_method=False.
+
+        """
+        mask = np.zeros((3,1,11,11))
+        mask[:, :, :, 1:-1:2] = 1
+        masked_data = np.ma.array(self.cube.data, mask=mask)
+        cube = self.cube.copy(data=masked_data)
+        collapse_coord = 'longitude'
+
+        plugin = PercentileConverter(collapse_coord,
+                                     fast_percentile_method=False)
+        result = plugin.process(cube)
+
+        # Check percentile values.
+        self.assertArrayAlmostEqual(result.data[:, 0, 0, 0],
+                                    self.default_percentiles*0.1)
+        # Check coordinate name.
+        self.assertEqual(result.coords()[0].name(),
+                         'percentile_over_longitude')
+        # Check coordinate points.
+        self.assertArrayEqual(
+            result.coord('percentile_over_longitude').points,
+            [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
+        # Check resulting data shape.
+        self.assertEqual(result.data.shape, (15, 3, 1, 11))
+        # Check demoted longitude coordinate exists as scalar with bounds.
+        self.assertArrayEqual(result.coord('longitude').bounds,
+                              [[-180., 180.]])
+
     def test_unavailable_collapse_coord(self):
         """
         Test that the plugin handles a collapse_coord that is not
