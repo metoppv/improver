@@ -31,12 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "threshold linear realization weighted_mean input output 280" {
+@test "threshold input output 280" {
   improver_check_skip_acceptance
   KGO="threshold/coord_collapse/kgo.nc"
 
-  # Run threshold processing and check it passes.
-  run improver threshold 'linear' 'realization' 'weighted_mean' \
+  # Run threshold processing and check it passes, when using
+  # realiztion as the coordinate.
+  run improver threshold --collapse-coord='realization' \
       "$IMPROVER_ACC_TEST_DIR/threshold/coord_collapse/input.nc" "$TEST_DIR/output.nc" \
       280
   [[ "$status" -eq 0 ]]
