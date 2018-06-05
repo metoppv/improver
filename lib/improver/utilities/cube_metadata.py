@@ -234,10 +234,10 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
 
 
 def amend_metadata(cube,
-                   new_diagnostic_name,
-                   data_type,
-                   revised_coords,
-                   revised_attributes,
+                   new_diagnostic_name=None,
+                   data_type=None,
+                   revised_coords=None,
+                   revised_attributes=None,
                    warnings_on=False):
     """Amend the metadata in the combined cube.
 
@@ -263,8 +263,10 @@ def amend_metadata(cube,
 
     """
     result = cube
-    result.data = result.data.astype(data_type)
-    result.rename(new_diagnostic_name)
+    if data_type:
+        result.data = result.data.astype(data_type)
+    if new_diagnostic_name:
+        result.rename(new_diagnostic_name)
 
     if revised_coords is not None:
         for key in revised_coords:

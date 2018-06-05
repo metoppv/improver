@@ -36,7 +36,7 @@ import iris
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import delete_attributes
+from improver.utilities.cube_metadata import amend_metadata, delete_attributes
 
 
 def main():
@@ -105,7 +105,10 @@ def main():
             extrapolation_mode=args.extrapolation_mode)
 
     source_on_target = source_data.regrid(target_grid, regridder)
-    delete_attributes(source_on_target, ['mosg__grid', 'title'])
+    target_grid_attributes = {k: v for (k, v) in target_grid.attributes.items()
+                              if 'mosg__grid' in k}
+    amend_metadata(source_on_target, revised_attributes=target_grid_attributes)
+    delete_attributes(source_on_target, ['title'])
     save_netcdf(source_on_target, args.output_filepath)
 
 
