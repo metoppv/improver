@@ -153,7 +153,7 @@ class Test_process(IrisTest):
         fast_percentile_method=False.
 
         """
-        mask = np.zeros((3,1,11,11))
+        mask = np.zeros((3, 1, 11, 11))
         mask[:, :, :, 1:-1:2] = 1
         masked_data = np.ma.array(self.cube.data, mask=mask)
         cube = self.cube.copy(data=masked_data)
