@@ -102,14 +102,6 @@ def main():
                         help="An optional ability to set which coordinate "
                         "we want to collapse over. The default is set "
                         "to None.")
-    parser.add_argument("--coord_exp_val", metavar="COORD_EXPECTED_VALUES",
-                        type=str,
-                        help="Optional string of expected coordinate points "
-                        "seperated by, e.g. '1496289600, 1496293200'.")
-    parser.add_argument("--coordinate_unit", metavar="UNIT_STRING",
-                        default="hours since 1970-01-01 00:00:00",
-                        help="Units for time coordinate. Default=hours "
-                        "since 1970-01-01 00:00:00")
 
     args = parser.parse_args()
 
@@ -159,8 +151,7 @@ def main():
             collapse. This can be changed if other functionality needs to be
             implemented."""
         weights = ChooseDefaultWeightsLinear(y0val=1.0, slope=0.0).process(
-            result_no_collapse_coord, args.collapse_coord,
-            args.coord_exp_val, args.coordinate_unit)
+            result_no_collapse_coord, args.collapse_coord)
 
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.collapse_coord, weighting_mode='weighted_mean')

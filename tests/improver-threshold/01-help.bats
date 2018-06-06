@@ -37,8 +37,6 @@ usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
-                          [--coord_exp_val COORD_EXPECTED_VALUES]
-                          [--coordinate_unit UNIT_STRING]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]
 
@@ -89,12 +87,6 @@ optional arguments:
   --collapse-coord COLLAPSE-COORD
                         An optional ability to set which coordinate we want to
                         collapse over. The default is set to None.
-  --coord_exp_val COORD_EXPECTED_VALUES
-                        Optional string of expected coordinate points
-                        seperated by, e.g. '1496289600, 1496293200'.
-  --coordinate_unit UNIT_STRING
-                        Units for time coordinate. Default=hours since
-                        1970-01-01 00:00:00
 __HELP__
   [[ "$output" == "$expected" ]]
 }

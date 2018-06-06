@@ -36,8 +36,6 @@
                           [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
-                          [--coord_exp_val COORD_EXPECTED_VALUES]
-                          [--coordinate_unit UNIT_STRING]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]"
   [[ "$output" =~ "$expected" ]]
