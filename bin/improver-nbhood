@@ -197,14 +197,13 @@ def main():
 
     if args.degrees_as_complex:
         if args.neighbourhood_output == "percentiles":
-            parser.error('Cannot generate percentiles from complex wind '
-                         'directions')
+            parser.error('Cannot generate percentiles from complex numbers')
         if args.neighbourhood_shape == "circular":
-            parser.error('Cannot process complex wind directions with '
-                         'circular neighbourhoods')
+            parser.error('Cannot process complex numbers with circular '
+                         'neighbourhoods')
         if args.apply_recursive_filter:
-            parser.error('Cannot process complex wind directions with '
-                         'recursive filter')
+            parser.error('Cannot process complex numbers with recursive '
+                         'filter')
 
     cube = load_cube(args.input_filepath)
     if args.degrees_as_complex:
