@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--wind_direction] [--ens_factor ENS_FACTOR]
+                       [--degrees_as_complex] [--ens_factor ENS_FACTOR]
                        [--weighted_mode] [--sum_or_fraction {sum,fraction}]
                        [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]

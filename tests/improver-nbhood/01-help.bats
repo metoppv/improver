@@ -35,7 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--wind_direction] [--ens_factor ENS_FACTOR]
+                       [--degrees_as_complex] [--ens_factor ENS_FACTOR]
                        [--weighted_mode] [--sum_or_fraction {sum,fraction}]
                        [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
@@ -81,9 +81,9 @@ optional arguments:
                         For example: 10000,12000,14000 1,2,3 where a lead time
                         of 1 hour uses a radius of 10000m, a lead time of 2
                         hours uses a radius of 12000m, etc.
-  --wind_direction      Set this flag to process wind directions as complex
-                        numbers. Not compatible with circular kernel,
-                        percentiles or recursive filter.
+  --degrees_as_complex  Set this flag to process angles, eg wind directions,
+                        as complex numbers. Not compatible with circular
+                        kernel, percentiles or recursive filter.
   --ens_factor ENS_FACTOR
                         The factor with which to adjust the neighbourhood size
                         for more than one ensemble member. If ens_factor = 1.0
