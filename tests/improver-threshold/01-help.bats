@@ -39,9 +39,6 @@ usage: improver-threshold [-h] [--threshold_config THRESHOLD_CONFIG]
                           [--collapse-coord COLLAPSE-COORD]
                           [--coord_exp_val COORD_EXPECTED_VALUES]
                           [--coordinate_unit UNIT_STRING]
-                          [--slope LINEAR_SLOPE]
-                          [--y0val LINEAR_STARTING_POINT]
-                          [--weighting_mode WEIGHTED_BLEND_MODE]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]
 
@@ -98,21 +95,6 @@ optional arguments:
   --coordinate_unit UNIT_STRING
                         Units for time coordinate. Default=hours since
                         1970-01-01 00:00:00
-  --slope LINEAR_SLOPE  The slope of the line used for choosing default linear
-                        weights. Only one of ynval and slope may be set. For
-                        realization collapse the default is set to 0.0
-  --y0val LINEAR_STARTING_POINT
-                        The relative value of the weighting start point for
-                        choosing default linear weights. This must be a
-                        positive float or 0. For realization collapse a
-                        default of 1.0 is set.
-  --weighting_mode WEIGHTED_BLEND_MODE
-                        The method used in the weighted blend, for realization
-                        collapse the default is weighted_mean, which
-                        calculates a normal weighted mean across the
-                        coordinate.
-
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }

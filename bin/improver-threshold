@@ -110,24 +110,6 @@ def main():
                         default="hours since 1970-01-01 00:00:00",
                         help="Units for time coordinate. Default=hours "
                         "since 1970-01-01 00:00:00")
-    parser.add_argument("--slope", metavar="LINEAR_SLOPE", type=float,
-                        help="The slope of the line used for choosing "
-                        "default linear weights. Only one of ynval "
-                        "and slope may be set. For realization "
-                        "collapse the default is set to 0.0")
-    parser.add_argument("--y0val", metavar="LINEAR_STARTING_POINT",
-                        type=float,
-                        help="The relative value of the weighting start "
-                        "point for choosing default linear weights. "
-                        "This must be a positive float or 0. For "
-                        "realization collapse a default of 1.0 is "
-                        "set.")
-    parser.add_argument("--weighting_mode", metavar="WEIGHTED_BLEND_MODE",
-                        default="weighted_mean",
-                        help="The method used in the weighted blend, for "
-                        "realization collapse the default is "
-                        "weighted_mean, which calculates a normal "
-                        "weighted mean across the coordinate.")
 
     args = parser.parse_args()
 
@@ -169,33 +151,23 @@ def main():
         fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
         below_thresh_ok=args.below_threshold).process(cube)
 
-    if args.collapse_coord == "realization":
-        if args.slope:
-            slope = args.slope
-        else:
-            slope = 0.0
-        if args.y0val:
-            y0val = args.y0val
-        else:
-            y0val = 1.0
-        """ Fix default values for slope and y0val. The argparser default
-        value isn't used for this, because it would make it impossible to
-        tell whether a value was user inputted (which is needed for
-        wrong_args_error calls)."""
-
-        weights = ChooseDefaultWeightsLinear(args.y0val, slope).process(
+    if args.collapse_coord == "None":
+        save_netcdf(result_no_collapse_coord, args.output_filepath)
+    else:
+        """ This is where we fix values for y0val, slope and weighting_mode.
+            In this case they are fixed to the values required for realization
+            collapse. This can be changed if other functionality needs to be
+            implemented."""
+        weights = ChooseDefaultWeightsLinear(y0val=1.0, slope=0.0).process(
             result_no_collapse_coord, args.collapse_coord,
             args.coord_exp_val, args.coordinate_unit)
 
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            args.collapse_coord, args.weighting_mode)
-        result_collapse_coord = BlendingPlugin.process(result_no_collapse_coord,
-                                                    weights)
+            args.collapse_coord, weighting_mode='weighted_mean')
+        result_collapse_coord = BlendingPlugin.process(
+            result_no_collapse_coord, weights)
 
         save_netcdf(result_collapse_coord, args.output_filepath)
-
-    else:
-        save_netcdf(result_no_collapse_coord, args.output_filepath)
 
 
 if __name__ == "__main__":

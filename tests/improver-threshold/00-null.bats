@@ -38,9 +38,6 @@
                           [--collapse-coord COLLAPSE-COORD]
                           [--coord_exp_val COORD_EXPECTED_VALUES]
                           [--coordinate_unit UNIT_STRING]
-                          [--slope LINEAR_SLOPE]
-                          [--y0val LINEAR_STARTING_POINT]
-                          [--weighting_mode WEIGHTED_BLEND_MODE]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]"
   [[ "$output" =~ "$expected" ]]
