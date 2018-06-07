@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
+import numpy as np
+
 from improver.argparser import ArgParser
 import warnings
 
@@ -99,8 +101,16 @@ def main():
             raise ValueError("To collapse a coordinate to calculate "
                              "percentiles, a coordinate or list of "
                              "coordinates must be provided.")
+
+        # Switch back to use the slow scipy method if the cube contains masked
+        # data which the numpy method cannot handle.
+        fast_percentile_method = True
+        if np.ma.is_masked(cube.data):
+            fast_percentile_method = False
+
         result = PercentileConverter(
-            args.coordinates, percentiles=percentiles).process(cube)
+            args.coordinates, percentiles=percentiles,
+            fast_percentile_method=fast_percentile_method).process(cube)
 
     save_netcdf(result, args.output_filepath)
 
