@@ -115,8 +115,8 @@ class Test_process(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_valid_multi_coord_string_list(self):
-        """Test that the plugin handles a valid list of collapse_coords passed in
-        as a list of strings."""
+        """Test that the plugin handles a valid list of collapse_coords passed
+        in as a list of strings."""
 
         collapse_coord = ['longitude', 'latitude']
 
