@@ -62,9 +62,9 @@ optional arguments:
   --ens_factor ENS_FACTOR
                         The factor with which to adjust the neighbourhood size
                         for more than one ensemble realization. If ens_factor
-                        = 1.0 this essentially conserves ensemble
-                        realizationss if every grid square is considered to be
-                        the equivalent of an ensemble realization.Optional,
+                        = 1.0 this essentially conserves ensemble realizations
+                        if every grid square is considered to be the
+                        equivalent of an ensemble realization.Optional,
                         defaults to 1.0.
   --sum_or_fraction {sum,fraction}
                         The neighbourhood output can either be in the form of
