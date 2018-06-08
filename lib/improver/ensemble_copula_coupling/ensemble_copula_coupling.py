@@ -752,18 +752,20 @@ class EnsembleReordering(object):
                 realization_list.append(mpoints[index % len(mpoints)])
 
             # Assume that the ensemble realizations are ascending linearly.
-            new_member_numbers = realization_list[0] + list(range(plen))
+            new_realization_numbers = realization_list[0] + list(range(plen))
 
             # Extract the realizations required in the realization_list from
             # the raw_forecast_realizations. Edit the member number as
             # appropriate and append to a cubelist containing rebadged
             # raw ensemble realizations.
             for realization, index in zip(
-                    realization_list, new_member_numbers):
+                    realization_list, new_realization_numbers):
                 constr = iris.Constraint(realization=realization)
-                raw_forecast_member = raw_forecast_realizations.extract(constr)
-                raw_forecast_member.coord("realization").points = index
-                raw_forecast_realizations_extended.append(raw_forecast_member)
+                raw_forecast_realization = raw_forecast_realizations.extract(
+                    constr)
+                raw_forecast_realization.coord("realization").points = index
+                raw_forecast_realizations_extended.append(
+                    raw_forecast_realization)
             raw_forecast_realizations = (
                 concatenate_cubes(raw_forecast_realizations_extended))
         return raw_forecast_realizations
