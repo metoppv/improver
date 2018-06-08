@@ -577,9 +577,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             return optimised_coeffs, coeff_names
 
         rename_coordinate(
-            current_forecast_cubes, "ensemble_member_id", "realization")
+            current_forecast_cubes, "ensemble_realization_id", "realization")
         rename_coordinate(
-            historic_forecast_cubes, "ensemble_member_id", "realization")
+            historic_forecast_cubes, "ensemble_realization_id", "realization")
 
         current_forecast_cubes = concatenate_cubes(
             current_forecast_cubes)
@@ -808,7 +808,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 
         rename_coordinate(
-            self.current_forecast, "ensemble_member_id", "realization")
+            self.current_forecast, "ensemble_realization_id", "realization")
 
         current_forecast_cubes = concatenate_cubes(
             self.current_forecast)

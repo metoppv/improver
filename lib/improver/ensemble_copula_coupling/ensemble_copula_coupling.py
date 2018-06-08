@@ -70,13 +70,13 @@ class RebadgePercentilesAsRealizations(object):
     def process(cube, ensemble_realization_numbers=None):
         """
         Rebadge percentiles as ensemble realizations. The ensemble
-        member numbering will depend upon the number of percentiles in
+        realization numbering will depend upon the number of percentiles in
         the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
 
         Args:
             cube (Iris.cube.Cube):
             Cube containing a percentile coordinate, which will be rebadged as
-            ensemble member.
+            ensemble realization.
 
         Raises:
             InvalidCubeError:
@@ -715,7 +715,7 @@ class EnsembleReordering(object):
         realizations are recycled. This assumes that the identity of the
         ensemble realizations within the raw ensemble forecast is random, such
         that the raw ensemble realizations are exchangeable. If fewer
-        percentiles  are requested than ensemble members, then only the
+        percentiles  are requested than ensemble realizations, then only the
         first n ensemble realizations are used.
 
         Args:
@@ -746,8 +746,8 @@ class EnsembleReordering(object):
             realization_list = []
             mpoints = raw_forecast_realizations.coord("realization").points
             # Loop over the number of percentiles and finding the
-            # corresponding ensemble member number. The ensemble member
-            # numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
+            # corresponding ensemble realization number. The ensemble
+            # realization numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
             for index in range(plen):
                 realization_list.append(mpoints[index % len(mpoints)])
 
@@ -755,7 +755,7 @@ class EnsembleReordering(object):
             new_realization_numbers = realization_list[0] + list(range(plen))
 
             # Extract the realizations required in the realization_list from
-            # the raw_forecast_realizations. Edit the member number as
+            # the raw_forecast_realizations. Edit the realization number as
             # appropriate and append to a cubelist containing rebadged
             # raw ensemble realizations.
             for realization, index in zip(

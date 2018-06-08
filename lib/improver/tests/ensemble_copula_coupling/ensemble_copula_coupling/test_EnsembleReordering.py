@@ -701,7 +701,7 @@ class Test_process(IrisTest):
         will be the second ensemble realization data value within the
         post-processed realizations. The data values of 1 and 2 from the
         post-processed percentiles will then be split between the first
-        and third post-processed ensemble members.
+        and third post-processed ensemble realizations.
 
         """
         raw_data = np.array([[1],

@@ -84,10 +84,10 @@ class BaseNeighbourhoodProcessing(object):
                 in hours.
             ens_factor (float):
                 The factor with which to adjust the neighbourhood size
-                for more than one ensemble member.
+                for more than one ensemble realization.
                 If ens_factor = 1.0 this essentially conserves ensemble
                 realizations if every grid square is considered to be the
-                equivalent of an ensemble member.
+                equivalent of an ensemble realization.
                 Optional, defaults to 1.0
         """
         self.neighbourhood_method = neighbourhood_method
@@ -293,10 +293,10 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 in hours.
             ens_factor (float):
                 The factor with which to adjust the neighbourhood size
-                for more than one ensemble member.
+                for more than one ensemble realization.
                 If ens_factor = 1.0 this essentially conserves ensemble
                 realizations if every grid square is considered to be the
-                equivalent of an ensemble member.
+                equivalent of an ensemble realization.
                 Optional, defaults to 1.0
             percentiles (list):
                 Percentile values at which to calculate; if not provided uses
@@ -348,10 +348,10 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 in hours.
             ens_factor (float):
                 The factor with which to adjust the neighbourhood size
-                for more than one ensemble member.
+                for more than one ensemble realization.
                 If ens_factor = 1.0 this essentially conserves ensemble
                 realizations if every grid square is considered to be the
-                equivalent of an ensemble member.
+                equivalent of an ensemble realization.
                 Optional, defaults to 1.0
             weighted_mode (boolean):
                 If True, use a circle for neighbourhood kernel with
