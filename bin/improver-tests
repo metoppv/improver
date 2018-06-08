@@ -52,7 +52,10 @@ function improver_test_doc {
 
 function improver_test_unit {
     # Unit tests.
-    python -m unittest discover
+    if [[ -n $DEBUG_OPT ]]; then
+        VERBOSE_OPT='-v'
+    fi
+    python -m unittest discover ${VERBOSE_OPT:-}
     echo_ok "Unit tests"
 }
 
