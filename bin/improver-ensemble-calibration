@@ -51,12 +51,12 @@ def main():
 
        The mean and variance calculated by this plugin are passed to
        GeneratePercentilesFromMeanAndVariance and EnsembleReordering plugins
-       to regenerate members.
+       to regenerate realizations.
     """
     parser = ArgParser(
         description='Apply the requested ensemble calibration method using '
         'historical forecast and "truth" data. Then apply ensemble '
-        'copula coupling to regenerate ensemble members from output.')
+        'copula coupling to regenerate ensemble realizations from output.')
     # Arguments for EnsembleCalibration
     parser.add_argument('calibration_method',
                         metavar='ENSEMBLE_CALIBRATION_METHOD',
@@ -91,22 +91,22 @@ def main():
                         help='The output path for the processed NetCDF')
     # Optional arguments.
     parser.add_argument('--predictor_of_mean', metavar='CALIBRATE_MEAN_FLAG',
-                        choices=['mean', 'members'], default='mean',
+                        choices=['mean', 'realizations'], default='mean',
                         help='String to specify the input to calculate the '
                              'calibrated mean. Currently the ensemble mean '
-                             '("mean") and the ensemble members ("members") '
-                             'are supported as the predictors. Default: '
-                             '"mean".')
+                             '("mean") and the ensemble realizations '
+                             '("realizations") are supported as the '
+                             'predictors. Default: "mean".')
     parser.add_argument('--save_mean_variance', metavar='MEAN_VARIANCE_FILE',
                         default=False,
                         help='Option to save output mean and variance from '
                              'EnsembleCalibration plugin. If used, a path '
                              'to save the output to must be provided.')
-    parser.add_argument('--num_members', metavar='NUMBER_OF_MEMBERS',
+    parser.add_argument('--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
                         default=None,
                         help='Optional argument to specify the number of '
-                             'ensemble members to produce. Default will be '
-                             'the number in the raw input file.')
+                             'ensemble realizations to produce. Default will '
+                             'be the number in the raw input file.')
     parser.add_argument('--random_ordering', default=False,
                         action='store_true',
                         help='Option to reorder the post-processed forecasts '
@@ -128,9 +128,11 @@ def main():
     current_forecast = load_cube(args.input_filepath)
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
-    # Default number of ensemble members is the number in the raw forecast.
-    if not args.num_members:
-        args.num_members = len(current_forecast.coord('realization').points)
+    # Default number of ensemble realizations is the number in
+    # the raw forecast.
+    if not args.num_realizations:
+        args.num_realizations = len(
+            current_forecast.coord('realization').points)
 
     # Ensemble-Calibration to calculate the mean and variance.
     forecast_predictor_and_variance = EnsembleCalibration(
@@ -143,9 +145,9 @@ def main():
         mean_variance = iris.cube.CubeList(mean_variance)
         save_netcdf(mean_variance, args.save_mean_variance)
 
-    # Ensemble-Copula-Coupling to generate members from mean and variance.
+    # Ensemble-Copula-Coupling to generate realizations from mean and variance.
     percentiles = GeneratePercentilesFromMeanAndVariance().process(
-        forecast_predictor_and_variance, args.num_members)
+        forecast_predictor_and_variance, args.num_realizations)
     result = EnsembleReordering().process(percentiles, current_forecast,
                                           random_ordering=args.random_ordering,
                                           random_seed=args.random_seed)

@@ -35,7 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-wind-direction [-h] INPUT_FILE OUTPUT_FILE
 
-Run wind direction to calculate mean wind direction from ensemble members
+Run wind direction to calculate mean wind direction from ensemble realizations
 
 positional arguments:
   INPUT_FILE   A path to an input NetCDF file to be processed

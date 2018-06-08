@@ -35,7 +35,7 @@
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    RebadgePercentilesAsMembers, ResamplePercentiles, EnsembleReordering)
+    RebadgePercentilesAsRealizations, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -59,7 +59,7 @@ def main():
                         metavar='NUMBER_OF_PERCENTILES',
                         help='The number of percentiles to be generated. '
                              'This is also equal to the number of ensemble '
-                             'members that will be generated.')
+                             'realizations that will be generated.')
     parser.add_argument('--sampling_method', default='quantile',
                         const='quantile', nargs='?',
                         choices=['quantile', 'random'],
@@ -74,20 +74,21 @@ def main():
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument('--reordering', default=False, action='store_true',
-                       help='The option used to create ensemble members '
+                       help='The option used to create ensemble realizations '
                        'from percentiles by reordering the input '
                        'percentiles based on the order of the '
                        'raw ensemble forecast.')
     group.add_argument('--rebadging', default=False, action='store_true',
-                       help='The option used to create ensemble members '
+                       help='The option used to create ensemble realizations '
                        'from percentiles by rebadging the input '
                        'percentiles.')
 
-    # If reordering, can do so either based on original members, or randomly.
+    # If reordering, can do so either based on original realizations,
+    # or randomly.
     reordering = parser.add_argument_group(
         'Reordering options', 'Options for reordering the input percentiles '
         'using the raw ensemble forecast as required to create ensemble '
-        'members.')
+        'realizations.')
     reordering.add_argument('--raw_forecast_filepath',
                             metavar='RAW_FORECAST_FILE',
                             help='A path to an raw forecast NetCDF file to be '
@@ -110,11 +111,12 @@ def main():
 
     rebadging = parser.add_argument_group(
         'Rebadging options', 'Options for rebadging the input percentiles '
-        'as ensemble members.')
-    rebadging.add_argument('--member_numbers', default=None,
-                           metavar='MEMBER_NUMBERS',
-                           help='A list of ensemble member numbers to use '
-                           'when rebadging the percentiles into members.')
+        'as ensemble s.')
+    rebadging.add_argument('--realization_numbers', default=None,
+                           metavar='REALIZATION_NUMBERS',
+                           help='A list of ensemble realization numbers to '
+                                'use when rebadging the percentiles '
+                                'into realizations.')
 
     args = parser.parse_args()
 
@@ -124,8 +126,8 @@ def main():
     # Note: Shouldn't need to check that both/none are set, since they are
     # defined as mandatory, but mutually exclusive, options.
     if args.reordering:
-        if np.any([args.member_numbers]):
-            parser.wrong_args_error('member_numbers', 'reordering')
+        if np.any([args.realization_numbers]):
+            parser.wrong_args_error('realization_numbers', 'reordering')
     if args.rebadging:
         if np.any([args.raw_forecast_filepath, args.random_ordering]):
             parser.wrong_args_error(
@@ -146,8 +148,8 @@ def main():
             result_cube, raw_forecast, random_ordering=args.random_ordering,
             random_seed=args.random_seed)
     elif args.rebadging:
-        result_cube = RebadgePercentilesAsMembers().process(
-            result_cube, ensemble_member_numbers=args.member_numbers)
+        result_cube = RebadgePercentilesAsRealizations().process(
+            result_cube, ensemble_realization_numbers=args.realization_numbers)
 
     save_netcdf(result_cube, args.output_filepath)
 

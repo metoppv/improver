@@ -36,7 +36,7 @@
 usage: improver-ensemble-calibration [-h]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
-                                     [--num_members NUMBER_OF_MEMBERS]
+                                     [--num_realizations NUMBER_OF_REALIZATIONS]
                                      [--random_ordering]
                                      [--random_seed RANDOM_SEED]
                                      ENSEMBLE_CALIBRATION_METHOD
@@ -46,7 +46,7 @@ usage: improver-ensemble-calibration [-h]
 
 Apply the requested ensemble calibration method using historical forecast and
 "truth" data. Then apply ensemble copula coupling to regenerate ensemble
-members from output.
+realizations from output.
 
 positional arguments:
   ENSEMBLE_CALIBRATION_METHOD
@@ -74,16 +74,16 @@ optional arguments:
   --predictor_of_mean CALIBRATE_MEAN_FLAG
                         String to specify the input to calculate the
                         calibrated mean. Currently the ensemble mean ("mean")
-                        and the ensemble members ("members") are supported as
-                        the predictors. Default: "mean".
+                        and the ensemble realizations ("realizations") are
+                        supported as the predictors. Default: "mean".
   --save_mean_variance MEAN_VARIANCE_FILE
                         Option to save output mean and variance from
                         EnsembleCalibration plugin. If used, a path to save
                         the output to must be provided.
-  --num_members NUMBER_OF_MEMBERS
+  --num_realizations NUMBER_OF_REALIZATIONS
                         Optional argument to specify the number of ensemble
-                        members to produce. Default will be the number in the
-                        raw input file.
+                        realizations to produce. Default will be the number in
+                        the raw input file.
   --random_ordering     Option to reorder the post-processed forecasts
                         randomly. If not set, the ordering of the raw ensemble
                         is used.

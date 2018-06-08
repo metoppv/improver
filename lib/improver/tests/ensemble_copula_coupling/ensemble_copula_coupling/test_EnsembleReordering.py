@@ -48,10 +48,10 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-class Test__recycle_raw_ensemble_members(IrisTest):
+class Test__recycle_raw_ensemble_realizations(IrisTest):
 
     """
-    Test the _recycle_raw_ensemble_members
+    Test the _recycle_raw_ensemble_realizations
     method in the EnsembleReordering plugin.
     """
 
@@ -76,16 +76,16 @@ class Test__recycle_raw_ensemble_members(IrisTest):
     def test_realization_for_equal(self):
         """
         Test to check the behaviour whether the number of percentiles equals
-        the number of members. For when the length of the percentiles equals
-        the length of the members, check that the points of the realization
-        coordinate is as expected.
+        the number of realizations. For when the length of the percentiles
+        equals the length of the realizations, check that the points of the
+        realization coordinate is as expected.
         """
         data = [0, 1, 2]
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
+        raw_forecast_realizations = self.realization_cube
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -94,18 +94,18 @@ class Test__recycle_raw_ensemble_members(IrisTest):
     def test_realization_for_greater_than(self):
         """
         Test to check the behaviour whether the number of percentiles is
-        greater than the number of members. For when the length of the
-        percentiles is greater than the length of the members, check that the
-        points of the realization coordinate is as expected.
+        greater than the number of realizations. For when the length of the
+        percentiles is greater than the length of the realizations,
+        check that the points of the realization coordinate is as expected.
         """
         data = [12, 13, 14]
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        raw_forecast_members = raw_forecast_members[:2, :, :, :]
-        raw_forecast_members.coord("realization").points = [12, 13]
+        raw_forecast_realizations = self.realization_cube
+        raw_forecast_realizations = raw_forecast_realizations[:2, :, :, :]
+        raw_forecast_realizations.coord("realization").points = [12, 13]
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -114,18 +114,18 @@ class Test__recycle_raw_ensemble_members(IrisTest):
     def test_realization_for_less_than(self):
         """
         Test to check the behaviour whether the number of percentiles is
-        less than the number of members. For when the length of the
-        percentiles is less than the length of the members, check that the
-        points of the realization coordinate is as expected.
+        less than the number of realizations. For when the length of the
+        percentiles is less than the length of the realizations, check that
+        the points of the realization coordinate is as expected.
         """
         data = [0, 1]
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
+        raw_forecast_realizations = self.realization_cube
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
@@ -134,9 +134,9 @@ class Test__recycle_raw_ensemble_members(IrisTest):
     def test_realization_for_equal_check_data(self):
         """
         Test to check the behaviour whether the number of percentiles equals
-        the number of members. For when the length of the percentiles equals
-        the length of the members, check that the points of the realization
-        coordinate is as expected.
+        the number of realizations. For when the length of the percentiles
+        equals the length of the realizations, check that the points of the
+        realization coordinate is as expected.
         """
         data = [0, 1, 2]
         data = np.array([[[[4., 4.625, 5.25],
@@ -150,19 +150,19 @@ class Test__recycle_raw_ensemble_members(IrisTest):
                            [11.75, 12.375, 13.]]]])
 
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
+        raw_forecast_realizations = self.realization_cube
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
     def test_realization_for_greater_than_check_data(self):
         """
         Test to check the behaviour whether the number of percentiles is
-        greater than the number of members. For when the length of the
-        percentiles is greater than the length of the members, check that the
-        points of the realization coordinate is as expected.
+        greater than the number of realizations. For when the length of the
+        percentiles is greater than the length of the realizations, check
+        that the points of the realization coordinate is as expected.
         """
         data = np.array([[[[4., 4.625, 5.25],
                            [5.875, 6.5, 7.125],
@@ -174,22 +174,22 @@ class Test__recycle_raw_ensemble_members(IrisTest):
                            [5.875, 6.5, 7.125],
                            [7.75, 8.375, 9.]]]])
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        # Slice number of raw forecast members, so that there are fewer
-        # members than percentiles.
-        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        raw_forecast_realizations = self.realization_cube
+        # Slice number of raw forecast realizations, so that there are fewer
+        # realizations than percentiles.
+        raw_forecast_realizations = raw_forecast_realizations[:2, :, :, :]
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
     def test_realization_for_less_than_check_data(self):
         """
         Test to check the behaviour whether the number of percentiles is
-        less than the number of members. For when the length of the
-        percentiles is less than the length of the members, check that the
-        points of the realization coordinate is as expected.
+        less than the number of realizations. For when the length of the
+        percentiles is less than the length of the realizations, check that
+        the points of the realization coordinate is as expected.
         """
         data = np.array([[[[4., 4.625, 5.25],
                            [5.875, 6.5, 7.125],
@@ -198,21 +198,21 @@ class Test__recycle_raw_ensemble_members(IrisTest):
                            [7.875, 8.5, 9.125],
                            [9.75, 10.375, 11.]]]])
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
+        raw_forecast_realizations = self.realization_cube
         post_processed_forecast_percentiles = (
             post_processed_forecast_percentiles[:2, :, :, :])
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertArrayAlmostEqual(data, result.data)
 
-    def test_realization_for_greater_than_check_data_lots_of_members(self):
+    def test_realization_for_greater_than_check_data_many_realizations(self):
         """
         Test to check the behaviour whether the number of percentiles is
-        greater than the number of members. For when the length of the
-        percentiles is greater than the length of the members, check that the
-        points of the realization coordinate is as expected.
+        greater than the number of realizations. For when the length of the
+        percentiles is greater than the length of the realizations, check
+        that the points of the realization coordinate is as expected.
         """
         data = np.tile(np.linspace(5, 10, 9), 9).reshape(9, 1, 3, 3)
         data[0] -= 1
@@ -256,11 +256,11 @@ class Test__recycle_raw_ensemble_members(IrisTest):
                                [5.875, 6.5, 7.125],
                                [7.75, 8.375, 9.]]]])
         post_processed_forecast_percentiles = self.percentile_cube
-        raw_forecast_members = self.realization_cube
-        raw_forecast_members = raw_forecast_members[:2, :, :, :]
+        raw_forecast_realizations = self.realization_cube
+        raw_forecast_realizations = raw_forecast_realizations[:2, :, :, :]
         plu = Plugin()
-        result = plu._recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        result = plu._recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             self.perc_coord)
         self.assertArrayAlmostEqual(expected, result.data)
 
@@ -428,7 +428,7 @@ class Test_rank_ecc(IrisTest):
         """
         Test that the plugin returns the correct cube data for a
         3d input cube, when there are tied values witin the
-        raw ensemble members. As there are two possible options for the
+        raw ensemble realizations. As there are two possible options for the
         result data, as the tie is decided randomly, both possible result
         data options are checked.
         """
@@ -474,7 +474,7 @@ class Test_rank_ecc(IrisTest):
         """
         Test that the plugin returns the correct cube data for a
         3d input cube, when there are tied values witin the
-        raw ensemble members. The random seed is specified to ensure that
+        raw ensemble realizations. The random seed is specified to ensure that
         only one option, out of the two possible options will be returned.
         """
         raw_data = np.array(
@@ -668,16 +668,16 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
-    def test_2d_cube_recycling_raw_ensemble_members(self):
+    def test_2d_cube_recycling_raw_ensemble_realizations(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, if the number of raw ensemble members is fewer
+        2d input cube, if the number of raw ensemble realizations is fewer
         than the number of percentiles required, and therefore, raw
-        ensemble member recycling is required.
+        ensemble realization recycling is required.
 
-        Case where two raw ensemble members are exactly the same,
-        after the raw ensemble members have been recycled.
-        The number of raw ensemble members are recycled in order to match
+        Case where two raw ensemble realizations are exactly the same,
+        after the raw ensemble realizations have been recycled.
+        The number of raw ensemble realizations are recycled in order to match
         the number of percentiles.
 
         After recycling the raw _data will be
@@ -686,21 +686,22 @@ class Test_process(IrisTest):
                              [1]])
 
         If there's a tie, the re-ordering randomly allocates the ordering
-        for the data from the raw ensemble members, which is why there are
-        two possible options for the resulting post-processed ensemble members.
+        for the data from the raw ensemble realizations, which is why there are
+        two possible options for the resulting post-processed ensemble
+        realizations.
 
-        Raw ensemble members
+        Raw ensemble realizations
         1,  2
         Post-processed percentiles
         1,  2,  3
-        After recycling raw ensemble members
+        After recycling raw ensemble realizations
         1,  2,  1
-        As the second ensemble member(with a data value of 2), is the highest
-        value, the highest value from the post-processed percentiles will
-        be the second ensemble member data value within the post-processed
-        members. The data values of 1 and 2 from the post-processed
-        percentiles will then be split between the first and third
-        post-processed ensemble members.
+        As the second ensemble realization(with a data value of 2), is the
+        highest value, the highest value from the post-processed percentiles
+        will be the second ensemble realization data value within the
+        post-processed realizations. The data values of 1 and 2 from the
+        post-processed percentiles will then be split between the first
+        and third post-processed ensemble members.
 
         """
         raw_data = np.array([[1],

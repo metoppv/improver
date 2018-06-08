@@ -86,7 +86,7 @@ class BaseNeighbourhoodProcessing(object):
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
+                realizations if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
         """
@@ -111,7 +111,7 @@ class BaseNeighbourhoodProcessing(object):
 
         Args:
             num_ens (float):
-                Number of realizations or ensemble members.
+                Number of realizations or ensemble realizations.
             width (float):
                 radius or width appropriate for a single forecast in m.
 
@@ -128,16 +128,17 @@ class BaseNeighbourhoodProcessing(object):
         return new_width
 
     def _find_radii(self, num_ens, cube_lead_times=None):
-        """Revise radius or radii for found lead times and ensemble members
+        """Revise radius or radii for found lead times and ensemble
+        realizations
 
         If cube_lead_times is None just adjust for ensemble
-        members if necessary.
+        realizations if necessary.
         Otherwise interpolate to find radius at each cube
-        lead time and adjust for ensemble members if necessary.
+        lead time and adjust for ensemble realizations if necessary.
 
         Args:
             num_ens (float):
-                Number of ensemble members or realizations.
+                Number of ensemble realizations.
 
         Keyword Args:
             cube_lead_times (np.array):
@@ -294,7 +295,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
+                realizations if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
             percentiles (list):
@@ -349,7 +350,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
+                realizations if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
             weighted_mode (boolean):

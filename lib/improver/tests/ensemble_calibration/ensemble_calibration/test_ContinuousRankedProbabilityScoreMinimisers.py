@@ -53,8 +53,8 @@ class Test_normal_crps_minimiser(IrisTest):
 
     """
     Test minimising the CRPS for a normal distribution.
-    Either the ensemble mean or the individual ensemble members are used as
-    the predictors.
+    Either the ensemble mean or the individual ensemble realizations are
+    used as the predictors.
     """
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -93,10 +93,10 @@ class Test_normal_crps_minimiser(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_basic_members_predictor(self):
+    def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy float array with ensemble members
-        as predictor.
+        Test that the plugin returns a numpy float array with ensemble
+        realizations as predictor.
         """
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -116,7 +116,7 @@ class Test_normal_crps_minimiser(IrisTest):
 
         sqrt_pi = np.sqrt(np.pi).astype(np.float32)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         result = plugin.normal_crps_minimiser(
@@ -168,8 +168,8 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
 
     """
     Test minimising the crps for a truncated normal distribution.
-    Either the ensemble mean or the individual ensemble members are used as
-    the predictors.
+    Either the ensemble mean or the individual ensemble realizations are used
+    as the predictors.
     """
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -208,10 +208,10 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_basic_members_predictor(self):
+    def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array.
-        The ensemble members are the predictor.
+        The ensemble realizations are the predictor.
         """
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -231,7 +231,7 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
 
         sqrt_pi = np.sqrt(np.pi).astype(np.float32)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         result = plugin.truncated_normal_crps_minimiser(
@@ -283,8 +283,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     """
     Test minimising the CRPS for a normal distribution.
-    Either the ensemble mean or the individual ensemble members are used as
-    the predictors.
+    Either the ensemble mean or the individual ensemble realizations are used
+    as the predictors.
     """
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -317,10 +317,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
-    def test_basic_normal_members_predictor(self):
+    def test_basic_normal_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array.
-        The ensemble members are the predictor.
+        The ensemble realizations are the predictor.
         """
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -331,7 +331,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             "realization", iris.analysis.VARIANCE)
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         distribution = "gaussian"
@@ -406,12 +406,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
-    def test_normal_members_predictor_max_iterations(self):
+    def test_normal_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
-        equal to specific values, when the ensemble members are the predictor
-        assuming a truncated normal distribution and the value specified
-        for the MAX_ITERATIONS is overriden. The coefficients are
+        equal to specific values, when the ensemble realizations are the
+        predictor assuming a truncated normal distribution and the value
+        specified for the MAX_ITERATIONS is overriden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
@@ -424,7 +424,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             "realization", iris.analysis.VARIANCE)
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         plugin.MAX_ITERATIONS = 400
@@ -536,7 +536,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
-    def test_basic_truncated_normal_members_predictor(self):
+    def test_basic_truncated_normal_realizations_predictor(self):
         """Test that the plugin returns a numpy array."""
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
@@ -547,7 +547,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             "realization", iris.analysis.VARIANCE)
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         distribution = "truncated gaussian"
@@ -589,11 +589,11 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_truncated_normal_members_predictor_keyerror(self):
+    def test_truncated_normal_realizations_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a successful convergence,
         and that the object returned is an OptimizeResult object, when the
-        ensemble members are the predictor.
+        ensemble realizations are the predictor.
         """
         initial_guess = [
             -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
@@ -605,7 +605,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             "realization", iris.analysis.VARIANCE)
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         distribution = "foo"
@@ -650,12 +650,12 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
-    def test_truncated_normal_members_predictor_max_iterations(self):
+    def test_truncated_normal_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
-        equal to specific values, when the ensemble members are the predictor
-        assuming a truncated normal distribution and the value specified
-        for the MAX_ITERATIONS is overriden. The coefficients are
+        equal to specific values, when the ensemble realizations are the
+        predictor assuming a truncated normal distribution and the value
+        specified for the MAX_ITERATIONS is overriden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
@@ -668,7 +668,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             "realization", iris.analysis.VARIANCE)
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
         plugin.MAX_ITERATIONS = 400

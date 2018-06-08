@@ -97,15 +97,15 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Order of coefficients is [c, d, a, b].
             forecast_predictor (iris.cube.Cube):
                 Cube containing the fields to be used as the predictor,
-                either the ensemble mean or the ensemble members.
+                either the ensemble mean or the ensemble realizations.
             truth (iris.cube.Cube):
                 Cube containing the field, which will be used as truth.
             forecast_var (iris.cube.Cube):
                 Cube containg the field containing the ensemble variance.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
             distribution (String):
                 String used to access the appropriate minimisation function
                 within self.minimisation_dict.
@@ -159,7 +159,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             forecast_predictor_data = forecast_predictor.data.flatten()
             truth_data = truth.data.flatten()
             forecast_var_data = forecast_var.data.flatten()
-        elif predictor_of_mean_flag.lower() in ["members"]:
+        elif predictor_of_mean_flag.lower() in ["realizations"]:
             truth_data = truth.data.flatten()
             forecast_predictor = (
                 enforce_coordinate_ordering(
@@ -207,7 +207,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Order of coefficients is [c, d, a, b].
             forecast_predictor : Numpy array
                 Data to be used as the predictor,
-                either the ensemble mean or the ensemble members.
+                either the ensemble mean or the ensemble realizations.
             truth : Numpy array
                 Data to be used as truth.
             forecast_var : Numpy array
@@ -216,8 +216,8 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Square root of Pi
             predictor_of_mean_flag : String
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
 
         Returns:
             result (Float):
@@ -226,7 +226,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         """
         if predictor_of_mean_flag.lower() in ["mean"]:
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() in ["members"]:
+        elif predictor_of_mean_flag.lower() in ["realizations"]:
             beta = np.array([initial_guess[2]]+(initial_guess[3:]**2).tolist())
 
         new_col = np.ones(truth.shape)
@@ -263,7 +263,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Order of coefficients is [c, d, a, b].
             forecast_predictor (Numpy array):
                 Data to be used as the predictor,
-                either the ensemble mean or the ensemble members.
+                either the ensemble mean or the ensemble realizations.
             truth (Numpy array):
                 Data to be used as truth.
             forecast_var (Numpy array):
@@ -272,8 +272,8 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Square root of Pi
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
 
         Returns:
             result (Float):
@@ -282,7 +282,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         """
         if predictor_of_mean_flag.lower() in ["mean"]:
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() in ["members"]:
+        elif predictor_of_mean_flag.lower() in ["realizations"]:
             beta = np.array([initial_guess[2]]+(initial_guess[3:]**2).tolist())
 
         new_col = np.ones(truth.shape)
@@ -335,8 +335,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 converted as required.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
 
         """
         self.distribution = distribution
@@ -352,11 +352,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.sm = sm
         except ImportError:
             statsmodels_found = False
-            if predictor_of_mean_flag.lower() in ["members"]:
+            if predictor_of_mean_flag.lower() in ["realizations"]:
                 msg = (
                     "The statsmodels can not be imported. "
                     "Will not be able to calculate an initial guess from "
-                    "the individual ensemble members. "
+                    "the individual ensemble realizations. "
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
                 warnings.warn(msg, ImportWarning)
@@ -374,7 +374,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
     def compute_initial_guess(
             self, truth, forecast_predictor, predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag, no_of_members=None):
+            estimate_coefficients_from_linear_model_flag,
+            no_of_realizations=None):
         """
         Function to compute initial guess of the a and beta components of the
         EMOS coefficients by linear regression of the forecast predictor
@@ -390,17 +391,17 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 Cube containing the field, which will be used as truth.
             forecast_predictor (Iris cube):
                 Cube containing the fields to be used as the predictor,
-                either the ensemble mean or the ensemble members.
+                either the ensemble mean or the ensemble realizations.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
             estimate_coefficients_from_linear_model_flag (Logical):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
-            no_of_members (Int):
-                Number of members, if ensemble members are to be used as
-                predictors. Default is None.
+            no_of_realizations (Int):
+                Number of realizations, if ensemble realizations are to be
+                used as predictors. Default is None.
 
         Returns:
             initial_guess (List):
@@ -412,9 +413,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         if (predictor_of_mean_flag.lower() in ["mean"] and
                 not estimate_coefficients_from_linear_model_flag):
             initial_guess = [1, 1, 0, 1]
-        elif (predictor_of_mean_flag.lower() in ["members"] and
+        elif (predictor_of_mean_flag.lower() in ["realizations"] and
               not estimate_coefficients_from_linear_model_flag):
-            initial_guess = [1, 1, 0] + np.repeat(1, no_of_members).tolist()
+            initial_guess = [1, 1, 0] + np.repeat(
+                1, no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             if predictor_of_mean_flag.lower() in ["mean"]:
                 # Find all values that are not NaN.
@@ -433,7 +435,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                                 combined_not_nan],
                             truth.data.flatten()[combined_not_nan]))
                 initial_guess = [1, 1, intercept, gradient]
-            elif predictor_of_mean_flag.lower() in ["members"]:
+            elif predictor_of_mean_flag.lower() in ["realizations"]:
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
                     forecast_predictor = (
@@ -457,7 +459,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     initial_guess = [1, 1, intercept]+gradient.tolist()
                 else:
                     initial_guess = (
-                        [1, 1, 0] + np.repeat(1, no_of_members).tolist())
+                        [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
         return initial_guess
 
     def estimate_coefficients_for_ngr(
@@ -619,11 +621,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             truth_cube.convert_units(self.desired_units)
 
             if self.predictor_of_mean_flag.lower() in ["mean"]:
-                no_of_members = None
+                no_of_realizations = None
                 forecast_predictor = historic_forecast_cube.collapsed(
                     "realization", iris.analysis.MEAN)
-            elif self.predictor_of_mean_flag.lower() in ["members"]:
-                no_of_members = len(
+            elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+                no_of_realizations = len(
                     historic_forecast_cube.coord("realization").points)
                 forecast_predictor = historic_forecast_cube
 
@@ -638,7 +640,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     truth_cube, forecast_predictor,
                     self.predictor_of_mean_flag,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-                    no_of_members=no_of_members)
+                    no_of_realizations=no_of_realizations)
 
             if np.any(np.isnan(initial_guess)):
                 nan_in_initial_guess = True
@@ -682,8 +684,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 The name of each coefficient.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
 
         """
         self.current_forecast = current_forecast
@@ -793,10 +795,10 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             (tuple) : tuple containing:
                 **calibrated_forecast_predictor** (CubeList):
                     CubeList containing both the calibrated version of the
-                    ensemble predictor, either the ensemble mean/members.
+                    ensemble predictor, either the ensemble mean/realizations.
                 **calibrated_forecast_variance** (CubeList):
                     CubeList containing both the calibrated version of the
-                    ensemble variance, either the ensemble mean/members.
+                    ensemble variance, either the ensemble mean/realizations.
                 **calibrated_forecast_coefficients** (CubeList):
                     CubeList containing both the coefficients for calibrating
                     the ensemble.
@@ -814,7 +816,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         if self.predictor_of_mean_flag.lower() in ["mean"]:
             forecast_predictors = current_forecast_cubes.collapsed(
                 "realization", iris.analysis.MEAN)
-        elif self.predictor_of_mean_flag.lower() in ["members"]:
+        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
             forecast_predictors = current_forecast_cubes
 
         forecast_vars = current_forecast_cubes.collapsed(
@@ -837,7 +839,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Args:
             forecast_predictors (Iris cube):
                 Cube containing the forecast predictor e.g. ensemble mean
-                or ensemble members.
+                or ensemble realizations.
             forecast_vars (Iris cube.):
                 Cube containing the forecast variance e.g. ensemble variance.
             optimised_coeffs (List):
@@ -846,8 +848,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 Coefficient names.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
 
         Returns:
             (tuple) : tuple containing:
@@ -930,7 +932,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     predicted_mean = np.dot(all_data, beta)
                     calibrated_forecast_predictor_at_date = (
                         forecast_predictor_at_date)
-                elif predictor_of_mean_flag.lower() in ["members"]:
+                elif predictor_of_mean_flag.lower() in ["realizations"]:
                     # Calculate predicted mean = a + b*X, where X is the
                     # raw ensemble mean. In this case, b = beta^2.
                     beta = np.concatenate(
@@ -948,7 +950,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     all_data = (
                         np.column_stack((new_col, forecast_predictor_flat)))
                     predicted_mean = np.dot(all_data, beta)
-                    # Calculate mean of ensemble members, as only the
+                    # Calculate mean of ensemble realizations, as only the
                     # calibrated ensemble mean will be returned.
                     calibrated_forecast_predictor_at_date = (
                         forecast_predictor_at_date.collapsed(
@@ -1022,8 +1024,8 @@ class EnsembleCalibration(object):
                 converted as required.
             predictor_of_mean_flag (String):
                 String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble members
-                ("members") are supported as the predictors.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
         """
         self.calibration_method = calibration_method
         self.distribution = distribution

@@ -111,7 +111,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 The factor with which to adjust the neighbourhood size
                 for more than one ensemble member.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
+                realizations if every grid square is considered to be the
                 equivalent of an ensemble member.
                 Optional, defaults to 1.0
             weighted_mode (boolean):

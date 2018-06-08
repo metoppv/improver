@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_copula_coupling.RebadgePercentilesAsMembers` class.
+`ensemble_copula_coupling.RebadgePercentilesAsRealizations` class.
 
 """
 import unittest
@@ -42,7 +42,7 @@ from iris.exceptions import InvalidCubeError
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    RebadgePercentilesAsMembers as Plugin)
+    RebadgePercentilesAsRealizations as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (set_up_temperature_cube,
                              add_forecast_reference_time_and_forecast_period)
@@ -50,7 +50,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 
 class Test_process(IrisTest):
 
-    """Test the process method of the RebadgePercentilesAsMembers plugin."""
+    """Test the process method of the
+    RebadgePercentilesAsRealizations plugin."""
 
     def setUp(self):
         """Set up temperature cube for testing."""
@@ -72,21 +73,21 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("realization"), DimCoord)
 
-    def test_specify_member_numbers(self):
-        """Use the ensemble_member_numbers optional argument to specify
-        particular values for the ensemble member numbers."""
+    def test_specify_realization_numbers(self):
+        """Use the ensemble_realization_numbers optional argument to specify
+        particular values for the ensemble realization numbers."""
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile_over_realization").points)
-        ensemble_member_numbers = np.arange(plen)+12
+        ensemble_realization_numbers = np.arange(plen)+12
         plugin = Plugin()
-        result = plugin.process(cube, ensemble_member_numbers)
+        result = plugin.process(cube, ensemble_realization_numbers)
         self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([12, 13, 14]))
 
-    def test_number_of_members(self):
+    def test_number_of_realizations(self):
         """Check the values for the realization coordinate generated without
-        specifying the ensemble_member_numbers argument."""
+        specifying the ensemble_realization_numbers argument."""
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile_over_realization").points)
         plugin = Plugin()

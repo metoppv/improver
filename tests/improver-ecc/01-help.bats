@@ -38,7 +38,7 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
                     [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--member_numbers MEMBER_NUMBERS]
+                    [--realization_numbers REALIZATION_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 
 Apply Ensemble Copula Coupling to a file whose data can be loaded as a single
@@ -52,22 +52,22 @@ optional arguments:
   -h, --help            show this help message and exit
   --no_of_percentiles NUMBER_OF_PERCENTILES
                         The number of percentiles to be generated. This is
-                        also equal to the number of ensemble members that will
-                        be generated.
+                        also equal to the number of ensemble realizations that
+                        will be generated.
   --sampling_method [PERCENTILE_SAMPLING_METHOD]
                         Method to be used for generating the list of
                         percentiles with forecasts generated at each
                         percentile. The options are "quantile" and "random".
                         "quantile" is the default option.
-  --reordering          The option used to create ensemble members from
+  --reordering          The option used to create ensemble realizations from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.
-  --rebadging           The option used to create ensemble members from
+  --rebadging           The option used to create ensemble realizations from
                         percentiles by rebadging the input percentiles.
 
 Reordering options:
   Options for reordering the input percentiles using the raw ensemble
-  forecast as required to create ensemble members.
+  forecast as required to create ensemble realizations.
 
   --raw_forecast_filepath RAW_FORECAST_FILE
                         A path to an raw forecast NetCDF file to be processed.
@@ -87,11 +87,11 @@ Reordering options:
                         percentiles can be ordered to match the raw ensemble.
 
 Rebadging options:
-  Options for rebadging the input percentiles as ensemble members.
+  Options for rebadging the input percentiles as ensemble s.
 
-  --member_numbers MEMBER_NUMBERS
-                        A list of ensemble member numbers to use when
-                        rebadging the percentiles into members.
+  --realization_numbers REALIZATION_NUMBERS
+                        A list of ensemble realization numbers to use when
+                        rebadging the percentiles into realizations.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
