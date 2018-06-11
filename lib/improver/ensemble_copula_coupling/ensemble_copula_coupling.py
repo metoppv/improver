@@ -50,7 +50,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_checker import (find_percentile_coordinate,
+                                             check_for_x_and_y_axes)
 
 
 class RebadgePercentilesAsRealizations(object):
@@ -699,33 +700,32 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         """
         pass
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        desc = '<GeneratePercentilesFromProbabilities>'
+        return desc
+
     @staticmethod
     def _check_template_cube(cube):
         """
         The template cube is expected to contain a leading threshold dimension
-        followed by y and x dimensions. This check raised an error if this is
-        not the case.
+        followed by spatial (y/x) dimensions. This check raised an error if
+        this is not the case.
 
         cube (iris.cube.Cube):
             A cube whose dimensions are checked to ensure they match what is
             expected.
         """
-        dim_coords = [coord.name() for coord in
-                      cube.coords(dim_coords=True)]
-        msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
-               'only a leading threshold dimension, followed by the y and x '
-               'dimensions. Got dimensions: {}'.format(dim_coords))
+        check_for_x_and_y_axes(cube, require_dim_coords=True)
+        dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
 
-        try:
-            expected = next(cube.slices(['threshold',
-                                         'projection_y_coordinate',
-                                         'projection_x_coordinate']))
-        except iris.exceptions.CoordinateNotFoundError:
-            print(msg)
-            raise
-        else:
-            if not expected == cube:
-                raise ValueError(msg)
+        if 'threshold' in dim_coords and len(dim_coords) < 4:
+            return
+
+        msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
+               'only a leading threshold dimension, followed by spatial (y/x) '
+               'dimensions. Got dimensions: {}'.format(dim_coords))
+        raise ValueError(msg)
 
     def _mean_and_variance_to_probabilities(self, mean_values, variance_values,
                                             probability_cube_template):

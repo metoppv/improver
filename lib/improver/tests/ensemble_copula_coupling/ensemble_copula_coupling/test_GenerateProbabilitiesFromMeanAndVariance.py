@@ -35,322 +35,126 @@ Unit tests for GenerateProbabiltiesFromMeanAndVariance
 import unittest
 
 import iris
-from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromMeanAndVariance as Plugin)
+    GenerateProbabilitiesFromMeanAndVariance as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import (set_up_spot_temperature_cube,
-                             set_up_temperature_cube,
-                             add_forecast_reference_time_and_forecast_period)
-from improver.utilities.warnings_handler import ManageWarnings
+    helper_functions import set_up_probability_above_threshold_temperature_cube
+
+
+class Test__repr__(IrisTest):
+
+    """Test string representation of plugin."""
+
+    def test_basic(self):
+        """Test string representation"""
+        expected_string = "<GeneratePercentilesFromProbabilities>"
+        result = str(Plugin())
+        self.assertEqual(result, expected_string)
 
 
 class Test__check_template_cube(IrisTest):
 
-    """Test the _mean_and_variance_to_percentiles plugin."""
+    """Test the _check_template_cube function."""
+
+    def setUp(self):
+        """Set up temperature cube."""
+        self.cube = (
+            set_up_probability_above_threshold_temperature_cube())
+
+    def test_valid_cube(self):
+        """Pass a valid cube that raises no exception. No assert statement
+        required as any other input will raise an exception."""
+
+        cube = iris.util.squeeze(self.cube)
+        Plugin()._check_template_cube(cube)
+
+    def test_fail_on_cube_with_additional_dim_coord(self):
+        """Pass a cube with an additional dimensional coordinate. This will
+        raise an exception."""
+
+        msg = "GenerateProbabilitiesFromMeanAndVariance expects a cube with"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_template_cube(self.cube)
+
+    def test_fail_with_missing_spatial_coordinate(self):
+        """Pass a cube with a missing spatial coordinate. This will raise an
+        exception."""
+
+        cube = self.cube[:, 0, :, 0]
+        msg = "The cube does not contain the expected"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_template_cube(cube)
 
 
 class Test__mean_and_variance_to_probabilities(IrisTest):
 
-    """Test the _mean_and_variance_to_percentiles plugin."""
+    """Test the _mean_and_variance_to_percentiles function."""
 
     def setUp(self):
         """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
-        self.current_temperature_spot_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_spot_temperature_cube()))
+        self.template_cube = (
+            set_up_probability_above_threshold_temperature_cube())
+        self.template_cube = iris.util.squeeze(self.template_cube)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_check_data(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube matching the expected
-        data values when a cube containing mean and variance is passed in.
-        The resulting data values are the percentiles, which have been
-        generated.
-        """
-        data = np.array([[[[225.56812863, 236.81812863, 248.06812863],
-                           [259.31812863, 270.56812863, 281.81812863],
-                           [293.06812863, 304.31812863, 315.56812863]]],
-                         [[[229.48333333, 240.73333333, 251.98333333],
-                           [263.23333333, 274.48333333, 285.73333333],
-                           [296.98333333, 308.23333333, 319.48333333]]],
-                         [[[233.39853804, 244.64853804, 255.89853804],
-                           [267.14853804, 278.39853804, 289.64853804],
-                           [300.89853804, 312.14853804, 323.39853804]]]])
+        # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
+        # the mean and variance values set here.
+        self.template_cube.coord('threshold').points = [8.65105, 10., 11.34895]
+        self.mean_values = np.ones((3, 3)) * 10
+        self.variance_values = np.ones((3, 3)) * 4
 
-        cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [10, 50, 90]
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
-            percentiles)
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+    def test_threshold_above_cube(self):
+        """Test that the expected probabilites are returned for a cube in which
+        they are calculated above the thresholds."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_simple_data(self):
-        """
-        Test that the plugin returns the expected values for the generated
-        percentiles when an idealised set of data values between 1 and 3
-        is used to create the mean and the variance.
-        """
-        data = np.array([[[[1, 1, 1],
-                           [1, 1, 1],
-                           [1, 1, 1]]],
-                         [[[2, 2, 2],
-                           [2, 2, 2],
-                           [2, 2, 2]]],
-                         [[[3, 3, 3],
-                           [3, 3, 3],
-                           [3, 3, 3]]]])
+        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
+        result = Plugin()._mean_and_variance_to_probabilities(
+            self.mean_values, self.variance_values, self.template_cube)
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
-        result_data = np.array([[[[0.71844843, 0.71844843, 0.71844843],
-                                  [0.71844843, 0.71844843, 0.71844843],
-                                  [0.71844843, 0.71844843, 0.71844843]]],
-                                [[[2., 2., 2.],
-                                  [2., 2., 2.],
-                                  [2., 2., 2.]]],
-                                [[[3.28155157, 3.28155157, 3.28155157],
-                                  [3.28155157, 3.28155157, 3.28155157],
-                                  [3.28155157, 3.28155157, 3.28155157]]]])
+    def test_threshold_below_cube(self):
+        """Test that the expected probabilites are returned for a cube in which
+        they are calculated below the thresholds."""
 
-        cube = self.current_temperature_forecast_cube
-        cube.data = data
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [10, 50, 90]
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
-            percentiles)
-        self.assertArrayAlmostEqual(result.data, result_data)
-
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered",
-                          "Collapsing a non-contiguous coordinate."],
-        warning_types=[RuntimeWarning, UserWarning])
-    def test_if_identical_data(self):
-        """
-        Test that the plugin returns the expected values, if every
-        percentile has an identical value. This causes an issue because
-        the default for the underlying scipy function is to yield a NaN for
-        tied values. For this application, any NaN values are overwritten with
-        the predicted mean value for all probability thresholds.
-        """
-        data = np.array([[1, 1, 1],
-                         [2, 2, 2],
-                         [3, 3, 3]])
-        # Repeat data in the realization dimension.
-        data = np.repeat(data[np.newaxis, np.newaxis, :, :], 3, axis=0)
-
-        result_data = np.array([[[[1., 1., 1.],
-                                  [2., 2., 2.],
-                                  [3., 3., 3.]]],
-                                [[[1., 1., 1.],
-                                  [2., 2., 2.],
-                                  [3., 3., 3.]]],
-                                [[[1., 1., 1.],
-                                  [2., 2., 2.],
-                                  [3., 3., 3.]]]])
-
-        cube = self.current_temperature_forecast_cube
-        cube.data = data
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [10, 50, 90]
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
-            percentiles)
-        self.assertArrayAlmostEqual(result.data, result_data)
-
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered",
-                          "Collapsing a non-contiguous coordinate."],
-        warning_types=[RuntimeWarning, UserWarning])
-    def test_if_nearly_identical_data(self):
-        """
-        Test that the plugin returns the expected values, if every
-        percentile has an identical value. This causes an issue because
-        the default for the underlying scipy function is to yield a NaN for
-        tied values. For this application, any NaN values are overwritten with
-        the predicted mean value for all probability thresholds.
-        """
-        data = np.array([[[[1., 1., 1.],
-                           [4., 2., 2.],
-                           [3., 3., 3.]]],
-                         [[[1., 1., 1.],
-                           [2., 2., 2.],
-                           [3., 3., 3.]]],
-                         [[[1., 1., 1.],
-                           [2., 2., 2.],
-                           [3., 3., 3.]]]])
-
-        result_data = np.array([[[[1., 1., 1.],
-                                  [1.18685838, 2., 2.],
-                                  [3., 3., 3.]]],
-                                [[[1., 1., 1.],
-                                  [2.66666667, 2., 2.],
-                                  [3., 3., 3.]]],
-                                [[[1., 1., 1.],
-                                  [4.14647495, 2., 2.],
-                                  [3., 3., 3.]]]])
-
-        cube = self.current_temperature_forecast_cube
-        cube.data = data
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [10, 50, 90]
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
-            percentiles)
-        self.assertArrayAlmostEqual(result.data, result_data)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_many_percentiles(self):
-        """
-        Test that the plugin returns an iris.cube.Cube if many percentiles
-        are requested.
-        """
-        cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = np.linspace(1, 99, num=1000, endpoint=True)
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance, percentiles)
-        self.assertIsInstance(result, Cube)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_negative_percentiles(self):
-        """
-        Test that the plugin returns the expected values for the
-        percentiles if negative probabilities are requested.
-        """
-        cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [-10, 10]
-        plugin = Plugin()
-        msg = "NaNs are present within the result for the"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin._mean_and_variance_to_percentiles(
-                current_forecast_predictor, current_forecast_variance,
-                percentiles)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_spot_forecasts_check_data(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube matching the expected
-        data values when a cube containing mean and variance is passed in.
-        The resulting data values are the percentiles, which have been
-        generated for a spot forecast.
-        """
-        data = np.array([[[225.56812863, 236.81812863, 248.06812863,
-                           259.31812863, 270.56812863, 281.81812863,
-                           293.06812863, 304.31812863, 315.56812863]],
-                         [[229.48333333, 240.73333333, 251.98333333,
-                           263.23333333, 274.48333333, 285.73333333,
-                           296.98333333, 308.23333333, 319.48333333]],
-                         [[233.39853804, 244.64853804, 255.89853804,
-                           267.14853804, 278.39853804, 289.64853804,
-                           300.89853804, 312.14853804, 323.39853804]]])
-
-        cube = self.current_temperature_spot_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        percentiles = [10, 50, 90]
-        plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
-            percentiles)
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.template_cube.attributes['relative_to_threshold'] = 'below'
+        expected = (np.ones((3, 3, 3)) * [0.25, 0.5, 0.75]).T
+        result = Plugin()._mean_and_variance_to_probabilities(
+            self.mean_values, self.variance_values, self.template_cube)
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
 
-class Test_process(IrisTest):
+class Test_Process(IrisTest):
 
-    """Test the process plugin."""
+    """Test the process function."""
 
     def setUp(self):
         """Set up temperature cube."""
-        self.current_temperature_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+        self.template_cube = (
+            set_up_probability_above_threshold_temperature_cube())
+        self.template_cube = iris.util.squeeze(self.template_cube)
 
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences",
-                          "Collapsing a non-contiguous coordinate."])
-    def test_basic(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
-        cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        raw_forecast = cube.copy()
+        self.template_cube.coord('threshold').points = [8.65105, 10., 11.34895]
+        self.mean_values = np.ones((3, 3)) * 10
+        self.variance_values = np.ones((3, 3)) * 4
 
-        predictor_and_variance = CubeList(
-            [current_forecast_predictor, current_forecast_variance])
-        no_of_percentiles = len(raw_forecast.coord("realization").points)
+    def test_metadata_matches_template(self):
+        """Test that the returned cube's metadata matches the template cube."""
 
-        plugin = Plugin()
-        result = plugin.process(predictor_and_variance, no_of_percentiles)
-        self.assertIsInstance(result, Cube)
+        result = Plugin()._mean_and_variance_to_probabilities(
+            self.mean_values, self.variance_values, self.template_cube)
+        self.assertTrue(result.metadata == self.template_cube.metadata)
+        self.assertTrue(result.name() == self.template_cube.name())
 
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences",
-                          "Collapsing a non-contiguous coordinate."])
-    def test_number_of_percentiles(self):
-        """
-        Test that the plugin returns a cube with the expected number of
-        percentiles.
-        """
-        cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        raw_forecast = cube.copy()
+    def test_template_data_disregarded(self):
+        """Test that the returned cube does not contain data from the template
+        cube."""
 
-        predictor_and_variance = CubeList(
-            [current_forecast_predictor, current_forecast_variance])
-
-        no_of_percentiles = len(raw_forecast.coord("realization").points)
-
-        plugin = Plugin()
-        result = plugin.process(predictor_and_variance, no_of_percentiles)
-        self.assertEqual(
-            len(raw_forecast.coord("realization").points),
-            len(result.coord("percentile_over_realization").points))
+        self.template_cube.data = np.ones((3, 3, 3))
+        result = Plugin()._mean_and_variance_to_probabilities(
+            self.mean_values, self.variance_values, self.template_cube)
+        self.assertTrue((result.data != self.template_cube.data).all())
 
 
 if __name__ == '__main__':

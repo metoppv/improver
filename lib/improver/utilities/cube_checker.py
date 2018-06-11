@@ -35,20 +35,27 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 import numpy as np
 
 
-def check_for_x_and_y_axes(cube):
+def check_for_x_and_y_axes(cube, require_dim_coords=False):
     """
     Check whether the cube has an x and y axis, otherwise raise an error.
 
     Args:
         cube (Iris.cube.Cube):
             Cube to be checked for x and y axes.
+        require_dim_coords (bool):
+            If true the x and y coordinates must be dimension coordinates.
 
     Raises:
         ValueError : Raise an error if non-uniform increments exist between
                       grid points.
     """
     for axis in ["x", "y"]:
-        if cube.coords(axis=axis):
+        if require_dim_coords:
+            coord = cube.coords(axis=axis, dim_coords=True)
+        else:
+            coord = cube.coords(axis=axis)
+
+        if coord:
             pass
         else:
             msg = ("The cube does not contain the expected {}"
