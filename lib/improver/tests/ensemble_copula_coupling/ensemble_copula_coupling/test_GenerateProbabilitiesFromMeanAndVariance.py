@@ -107,7 +107,6 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
         self.variances = self.template_cube[0, :, :].copy(data=variance_values)
 
-
     def test_threshold_above_cube(self):
         """Test that the expected probabilites are returned for a cube in which
         they are calculated above the thresholds."""
@@ -143,7 +142,6 @@ class Test_Process(IrisTest):
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
         self.variances = self.template_cube[0, :, :].copy(data=variance_values)
-
 
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""
