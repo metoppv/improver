@@ -38,6 +38,7 @@ from improver.nbhood.nbhood import (
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.wind_direction import WindDirection
 
 
 def main():
@@ -78,6 +79,11 @@ def main():
                        'should be used. For example: 10000,12000,14000 1,2,3 '
                        'where a lead time of 1 hour uses a radius of 10000m, '
                        'a lead time of 2 hours uses a radius of 12000m, etc.')
+    parser.add_argument('--degrees_as_complex', action='store_true',
+                        default=False, help='Set this flag to process angles,'
+                        ' eg wind directions, as complex numbers. Not '
+                        'compatible with circular kernel, percentiles or '
+                        'recursive filter.')
     parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
                         default=1.0,
                         help='The factor with which to adjust the '
@@ -189,7 +195,21 @@ def main():
         parser.wrong_args_error(
             'neighbourhood_shape=circular', 'input_mask_filepath')
 
+    if args.degrees_as_complex:
+        if args.neighbourhood_output == "percentiles":
+            parser.error('Cannot generate percentiles from complex numbers')
+        if args.neighbourhood_shape == "circular":
+            parser.error('Cannot process complex numbers with circular '
+                         'neighbourhoods')
+        if args.apply_recursive_filter:
+            parser.error('Cannot process complex numbers with recursive '
+                         'filter')
+
     cube = load_cube(args.input_filepath)
+    if args.degrees_as_complex:
+        # convert cube data into complex numbers
+        cube.data = WindDirection.deg_to_complex(cube.data)
+
     if args.radius:
         radius_or_radii = args.radius
         lead_times = None
@@ -243,6 +263,10 @@ def main():
             args.apply_recursive_filter:
         raise ValueError('Recursive filter option is not applicable to '
                          'circular neighbourhoods. ')
+
+    if args.degrees_as_complex:
+        # convert neighbourhooded cube back to degrees
+        result.data = WindDirection.complex_to_deg(result.data)
 
     save_netcdf(result, args.output_filepath)
 
