@@ -757,7 +757,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         # and variance to calculate the probabilties relative to each
         # probability.
         probabilities = np.empty_like(probability_cube_template.data)
-        distribution = norm(loc=mean_values, scale=np.sqrt(variance_values))
+        distribution = norm(loc=mean_values.data,
+                            scale=np.sqrt(variance_values.data))
         probability_method = distribution.cdf
         if relative_to_threshold == 'above':
             probability_method = distribution.sf
