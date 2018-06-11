@@ -69,52 +69,6 @@ def convert_cube_data_to_2d(
     return np.array(forecast_data)
 
 
-def rename_coordinate(cubes, original_coord, renamed_coord):
-    """
-    Renames a coordinate to an alternative name for an
-    input Iris Cube or Iris CubeList.
-
-    Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes with coordinates to be renamed.
-        original_coord (string):
-            Original name for the coordinate.
-        renamed_coord (string):
-            Name for the coordinate to be renamed to.
-
-    """
-    if isinstance(cubes, iris.cube.Cube):
-        _renamer(cubes, original_coord, renamed_coord)
-    elif isinstance(cubes, iris.cube.CubeList):
-        for cube in cubes:
-            _renamer(cube, original_coord, renamed_coord)
-    else:
-        msg = ("A Cube or CubeList is not provided for renaming "
-               "{} to {}. Variable provided "
-               "is of type: {}".format(
-                   original_coord, renamed_coord, type(cubes)))
-        raise TypeError(msg)
-
-
-def _renamer(cube, original_coord, renamed_coord):
-    """
-    Renames a coordinate to an alternative name.
-    If the coordinate is not found within the cube, then the
-    original cube is returned.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube with coordinates to be renamed.
-        original_coord (string):
-            Original name for the coordinate.
-        renamed_coord (string):
-            Name for the coordinate to be renamed to.
-
-    """
-    if cube.coords(original_coord):
-        cube.coord(original_coord).rename(renamed_coord)
-
-
 def check_predictor_of_mean_flag(predictor_of_mean_flag):
     """
     Check the predictor_of_mean_flag at the start of the

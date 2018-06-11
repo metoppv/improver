@@ -42,7 +42,7 @@ import cf_units as unit
 import iris
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, rename_coordinate, check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, check_predictor_of_mean_flag)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.temporal import iris_time_to_datetime
@@ -576,11 +576,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             warnings.warn(msg)
             return optimised_coeffs, coeff_names
 
-        rename_coordinate(
-            current_forecast_cubes, "ensemble_realization_id", "realization")
-        rename_coordinate(
-            historic_forecast_cubes, "ensemble_realization_id", "realization")
-
         current_forecast_cubes = concatenate_cubes(
             current_forecast_cubes)
         historic_forecast_cubes = concatenate_cubes(
@@ -806,9 +801,6 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         """
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
-
-        rename_coordinate(
-            self.current_forecast, "ensemble_realization_id", "realization")
 
         current_forecast_cubes = concatenate_cubes(
             self.current_forecast)
