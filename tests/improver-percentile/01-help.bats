@@ -68,7 +68,6 @@ optional arguments:
                         Optional definition of the number of percentiles to be
                         generated, these distributed regularly with the aim of
                         dividing into blocks of equal probability.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }

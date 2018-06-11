@@ -64,7 +64,7 @@ optional arguments:
                         for more than one ensemble realization. If ens_factor
                         = 1.0 this essentially conserves ensemble realizations
                         if every grid square is considered to be the
-                        equivalent of an ensemble realization.Optional,
+                        equivalent of an ensemble realization. Optional,
                         defaults to 1.0.
   --sum_or_fraction {sum,fraction}
                         The neighbourhood output can either be in the form of
@@ -98,7 +98,6 @@ Neighbourhooding Radius - Set only one of the options:
                         For example: 10000,12000,14000 1,2,3 where a lead time
                         of 1 hour uses a radius of 10000m, a lead time of 2
                         hours uses a radius of 12000m, etc.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -87,7 +87,7 @@ def main():
                         'ensemble realization. If ens_factor = 1.0 this '
                         'essentially conserves ensemble realizations if '
                         'every grid square is considered to be the '
-                        'equivalent of an ensemble realization.'
+                        'equivalent of an ensemble realization. '
                         'Optional, defaults to 1.0.')
     parser.add_argument('--weighted_mode', action='store_true', default=False,
                         help='For neighbourhood processing using a circular '

@@ -87,7 +87,7 @@ Reordering options:
                         percentiles can be ordered to match the raw ensemble.
 
 Rebadging options:
-  Options for rebadging the input percentiles as ensemble s.
+  Options for rebadging the input percentiles as ensemble realizations.
 
   --realization_numbers REALIZATION_NUMBERS
                         A list of ensemble realization numbers to use when

@@ -111,7 +111,7 @@ def main():
 
     rebadging = parser.add_argument_group(
         'Rebadging options', 'Options for rebadging the input percentiles '
-        'as ensemble s.')
+        'as ensemble realizations.')
     rebadging.add_argument('--realization_numbers', default=None,
                            metavar='REALIZATION_NUMBERS',
                            help='A list of ensemble realization numbers to '

@@ -537,7 +537,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
+    def test_coefficient_values_truncated_gaussian_distribution_realization(
+            self):
         """
         Ensure that the values generated within optimised_coeffs match the
         expected values, and the coefficient names also match

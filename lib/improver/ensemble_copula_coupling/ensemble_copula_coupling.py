@@ -715,7 +715,7 @@ class EnsembleReordering(object):
         realizations are recycled. This assumes that the identity of the
         ensemble realizations within the raw ensemble forecast is random, such
         that the raw ensemble realizations are exchangeable. If fewer
-        percentiles  are requested than ensemble realizations, then only the
+        percentiles are requested than ensemble realizations, then only the
         first n ensemble realizations are used.
 
         Args:

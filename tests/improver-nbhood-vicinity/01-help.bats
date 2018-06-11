@@ -73,14 +73,13 @@ optional arguments:
                         for more than one ensemble realization. If ens_factor
                         = 1.0 this essentially conserves ensemble realizations
                         if every grid square is considered to be the
-                        equivalent of an ensemble realization.Optional,
+                        equivalent of an ensemble realization. Optional,
                         defaults to 1.0.
   --weighted_mode       For neighbourhood processing using a circular kernel,
                         setting the weighted_mode indicates the weighting
                         decreases with radius. If weighted_mode is not set, a
                         constant weighting is assumed. Currently this keyword
                         does nothing as only a square kernel is applicable.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }
