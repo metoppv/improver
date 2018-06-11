@@ -84,10 +84,10 @@ class DiagnoseConvectivePrecipitation(object):
                 If False, use a circle with constant weighting.
             ens_factor (float):
                 The factor with which to adjust the neighbourhood size
-                for more than one ensemble member.
+                for more than one ensemble realization.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
-                equivalent of an ensemble member.
+                realizations if every grid square is considered to be the
+                equivalent of an ensemble realization.
                 Optional, defaults to 1.0
             use_adjacent_grid_square_differences (boolean):
                 If True, use the differences between adjacent grid squares

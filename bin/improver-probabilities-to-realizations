@@ -33,7 +33,7 @@
 
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromProbabilities, RebadgePercentilesAsMembers)
+    GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -64,7 +64,7 @@ def main():
 
     cube = GeneratePercentilesFromProbabilities().process(
             cube, no_of_percentiles=args.no_of_realizations)
-    cube = RebadgePercentilesAsMembers().process(cube)
+    cube = RebadgePercentilesAsRealizations().process(cube)
 
     save_netcdf(cube, args.output_filepath)
 

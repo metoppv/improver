@@ -53,7 +53,7 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.cube_checker import find_percentile_coordinate
 
 
-class RebadgePercentilesAsMembers(object):
+class RebadgePercentilesAsRealizations(object):
     """
     Class to rebadge percentiles as ensemble realizations.
     This will allow the quantisation to percentiles to be completed, without
@@ -67,16 +67,16 @@ class RebadgePercentilesAsMembers(object):
         pass
 
     @staticmethod
-    def process(cube, ensemble_member_numbers=None):
+    def process(cube, ensemble_realization_numbers=None):
         """
-        Rebadge percentiles as ensemble members. The ensemble member numbering
-        will depend upon the number of percentiles in the input cube i.e.
-        0, 1, 2, 3, ..., n-1, if there are n percentiles.
+        Rebadge percentiles as ensemble realizations. The ensemble
+        realization numbering will depend upon the number of percentiles in
+        the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
 
         Args:
             cube (Iris.cube.Cube):
             Cube containing a percentile coordinate, which will be rebadged as
-            ensemble member.
+            ensemble realization.
 
         Raises:
             InvalidCubeError:
@@ -85,13 +85,13 @@ class RebadgePercentilesAsMembers(object):
         percentile_coord = (
             find_percentile_coordinate(cube).name())
 
-        if ensemble_member_numbers is None:
-            ensemble_member_numbers = (
+        if ensemble_realization_numbers is None:
+            ensemble_realization_numbers = (
                 np.arange(
                     len(cube.coord(percentile_coord).points)))
 
         cube.coord(percentile_coord).points = (
-            ensemble_member_numbers)
+            ensemble_realization_numbers)
 
         # we can't rebadge if the realization coordinate already exists:
         try:
@@ -690,7 +690,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
 class EnsembleReordering(object):
     """
     Plugin for applying the reordering step of Ensemble Copula Coupling,
-    in order to generate ensemble members with multivariate structure
+    in order to generate ensemble realizations with multivariate structure
     from percentiles. The percentiles are assumed to be in ascending order.
 
     Reference:
@@ -705,83 +705,85 @@ class EnsembleReordering(object):
         pass
 
     @staticmethod
-    def _recycle_raw_ensemble_members(
-            post_processed_forecast_percentiles, raw_forecast_members,
+    def _recycle_raw_ensemble_realizations(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             percentile_coord):
         """
         Function to determine whether there is a mismatch between the number
-        of percentiles and the number of raw forecast members. If more
-        percentiles are requested than ensemble members, then the ensemble
-        members are recycled. This assumes that the identity of the ensemble
-        members within the raw ensemble forecast is random, such that the
-        raw ensemble members are exchangeable. If fewer percentiles are
-        requested than ensemble members, then only the first n ensemble
-        members are used.
+        of percentiles and the number of raw forecast realizations. If more
+        percentiles are requested than ensemble realizations, then the ensemble
+        realizations are recycled. This assumes that the identity of the
+        ensemble realizations within the raw ensemble forecast is random, such
+        that the raw ensemble realizations are exchangeable. If fewer
+        percentiles are requested than ensemble realizations, then only the
+        first n ensemble realizations are used.
 
         Args:
             post_processed_forecast_percentiles  (iris.cube.Cube):
                 Cube for post-processed percentiles.
                 The percentiles are assumed
                 to be in ascending order.
-            raw_forecast_members (iris.cube.Cube):
+            raw_forecast_realizations (iris.cube.Cube):
                 Cube containing the raw (not post-processed) forecasts.
             percentile_coord (String):
                 Name of required percentile coordinate.
 
         Returns:
-            raw_forecast_members (iris cube.Cube):
+            raw_forecast_realizations (iris cube.Cube):
                 Cube for the raw ensemble forecast, where the raw ensemble
-                members have either been recycled or constrained,
+                realizations have either been recycled or constrained,
                 depending upon the number of percentiles present
                 in the post-processed forecast cube.
         """
         plen = len(
             post_processed_forecast_percentiles.coord(
                 percentile_coord).points)
-        mlen = len(raw_forecast_members.coord("realization").points)
+        mlen = len(raw_forecast_realizations.coord("realization").points)
         if plen == mlen:
             pass
         else:
-            raw_forecast_members_extended = iris.cube.CubeList()
+            raw_forecast_realizations_extended = iris.cube.CubeList()
             realization_list = []
-            mpoints = raw_forecast_members.coord("realization").points
+            mpoints = raw_forecast_realizations.coord("realization").points
             # Loop over the number of percentiles and finding the
-            # corresponding ensemble member number. The ensemble member
-            # numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
+            # corresponding ensemble realization number. The ensemble
+            # realization numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
             for index in range(plen):
                 realization_list.append(mpoints[index % len(mpoints)])
 
-            # Assume that the ensemble members are ascending linearly.
-            new_member_numbers = realization_list[0] + list(range(plen))
+            # Assume that the ensemble realizations are ascending linearly.
+            new_realization_numbers = realization_list[0] + list(range(plen))
 
-            # Extract the members required in the realization_list from
-            # the raw_forecast_members. Edit the member number as appropriate
-            # and append to a cubelist containing rebadged raw ensemble
-            # members.
+            # Extract the realizations required in the realization_list from
+            # the raw_forecast_realizations. Edit the realization number as
+            # appropriate and append to a cubelist containing rebadged
+            # raw ensemble realizations.
             for realization, index in zip(
-                    realization_list, new_member_numbers):
+                    realization_list, new_realization_numbers):
                 constr = iris.Constraint(realization=realization)
-                raw_forecast_member = raw_forecast_members.extract(constr)
-                raw_forecast_member.coord("realization").points = index
-                raw_forecast_members_extended.append(raw_forecast_member)
-            raw_forecast_members = (
-                concatenate_cubes(raw_forecast_members_extended))
-        return raw_forecast_members
+                raw_forecast_realization = raw_forecast_realizations.extract(
+                    constr)
+                raw_forecast_realization.coord("realization").points = index
+                raw_forecast_realizations_extended.append(
+                    raw_forecast_realization)
+            raw_forecast_realizations = (
+                concatenate_cubes(raw_forecast_realizations_extended))
+        return raw_forecast_realizations
 
     @staticmethod
     def rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_members,
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             random_ordering=False, random_seed=None):
         """
         Function to apply Ensemble Copula Coupling. This ranks the
-        post-processed forecast members based on a ranking determined from
-        the raw forecast members.
+        post-processed forecast realizations based on a ranking determined from
+        the raw forecast realizations.
 
         Args:
             post_processed_forecast_percentiles (cube):
                 Cube for post-processed percentiles. The percentiles are
                 assumed to be in ascending order.
-            raw_forecast_members (cube):
+            raw_forecast_realizations (cube):
                 Cube containing the raw (not post-processed) forecasts.
                 The probabilistic dimension is assumed to be the zeroth
                 dimension.
@@ -797,14 +799,14 @@ class EnsembleReordering(object):
 
         Returns:
             iris.cube.Cube:
-                Cube for post-processed members where at a particular grid
+                Cube for post-processed realizations where at a particular grid
                 point, the ranking of the values within the ensemble matches
                 the ranking from the raw ensemble.
 
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
-                raw_forecast_members.slices_over("time"),
+                raw_forecast_realizations.slices_over("time"),
                 post_processed_forecast_percentiles.slices_over("time")):
             if random_seed is not None:
                 random_seed = int(random_seed)
@@ -839,7 +841,7 @@ class EnsembleReordering(object):
         Args:
             post_processed_forecast (Iris Cube or CubeList):
                 The cube or cubelist containing the post-processed
-                forecast members.
+                forecast realizations.
             raw_forecast (Iris Cube or CubeList):
                 The cube or cubelist containing the raw (not post-processed)
                 forecast.
@@ -854,8 +856,8 @@ class EnsembleReordering(object):
                 values generated are not reproducible.
 
         Returns:
-            post-processed_forecast_members (cube):
-                Cube containing the new ensemble members where all points
+            post-processed_forecast_realizations (cube):
+                Cube containing the new ensemble realizations where all points
                 within the dataset have been reordered in comparison to the
                 input percentiles.
         """
@@ -872,22 +874,22 @@ class EnsembleReordering(object):
         post_processed_forecast_percentiles = (
             enforce_coordinate_ordering(
                 post_processed_forecast_percentiles, percentile_coord))
-        raw_forecast_members = concatenate_cubes(raw_forecast)
-        raw_forecast_members = enforce_coordinate_ordering(
-            raw_forecast_members, "realization")
-        raw_forecast_members = (
-            self._recycle_raw_ensemble_members(
-                post_processed_forecast_percentiles, raw_forecast_members,
+        raw_forecast_realizations = concatenate_cubes(raw_forecast)
+        raw_forecast_realizations = enforce_coordinate_ordering(
+            raw_forecast_realizations, "realization")
+        raw_forecast_realizations = (
+            self._recycle_raw_ensemble_realizations(
+                post_processed_forecast_percentiles, raw_forecast_realizations,
                 percentile_coord))
-        post_processed_forecast_members = self.rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_members,
+        post_processed_forecast_realizations = self.rank_ecc(
+            post_processed_forecast_percentiles, raw_forecast_realizations,
             random_ordering=random_ordering,
             random_seed=random_seed)
-        post_processed_forecast_members = (
-            RebadgePercentilesAsMembers.process(
-                post_processed_forecast_members))
+        post_processed_forecast_realizations = (
+            RebadgePercentilesAsRealizations.process(
+                post_processed_forecast_realizations))
 
-        post_processed_forecast_members = (
+        post_processed_forecast_realizations = (
             enforce_coordinate_ordering(
-                post_processed_forecast_members, "realization"))
-        return post_processed_forecast_members
+                post_processed_forecast_realizations, "realization"))
+        return post_processed_forecast_realizations

@@ -184,7 +184,8 @@ class Test_calc_confidence_measure(IrisTest):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
         meaningless. This code calculates a confidence measure based on how
-        far the individual ensemble members are away from the mean point."""
+        far the individual ensemble realizationss are away from
+        the mean point."""
 
         expected_out = np.array([[0.0, 0.95638061],
                                  [0.91284426, 0.91284426]])

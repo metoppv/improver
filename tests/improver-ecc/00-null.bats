@@ -38,7 +38,7 @@ usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
                     [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--member_numbers MEMBER_NUMBERS]
+                    [--realization_numbers REALIZATION_NUMBERS]
                     INPUT_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]

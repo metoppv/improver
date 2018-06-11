@@ -70,10 +70,10 @@ class ProbabilityOfOccurrence(object):
                 in hours.
             ens_factor (float):
                 The factor with which to adjust the neighbourhood size
-                for more than one ensemble member.
+                for more than one ensemble realization.
                 If ens_factor = 1.0 this essentially conserves ensemble
-                members if every grid square is considered to be the
-                equivalent of an ensemble member.
+                realizations if every grid square is considered to be the
+                equivalent of an ensemble realization.
                 Optional, defaults to 1.0
             weighted_mode (boolean):
                 If True, use a circle for neighbourhood kernel with
@@ -135,7 +135,7 @@ class ProbabilityOfOccurrence(object):
         cube = OccurrenceWithinVicinity(self.distance).process(cube)
         try:
             if cube.coord_dims('realization'):
-                ens_members = cube.coord('realization').points
+                ens_realizations = cube.coord('realization').points
                 # BUG in iris: collapsed returns a masked cube regardless of
                 # input status.  If input is not masked, output mask does not
                 # match data.  Fix is to re-cast output to an unmasked array.
@@ -144,7 +144,7 @@ class ProbabilityOfOccurrence(object):
                 if not cube_is_masked:
                     cube.data = np.array(cube.data)
                 cube.remove_coord('realization')
-                cube.attributes['source_realizations'] = ens_members
+                cube.attributes['source_realizations'] = ens_realizations
         except iris.exceptions.CoordinateNotFoundError:
             pass
 

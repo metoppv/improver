@@ -38,7 +38,7 @@ from improver.utilities.cube_manipulation import enforce_float32_precision
 
 
 class WindDirection(object):
-    """Plugin to calculate average wind direction from ensemble members.
+    """Plugin to calculate average wind direction from ensemble realizations.
 
     Science background:
     Taking an average wind direction is tricky since an average of two wind
@@ -65,11 +65,11 @@ class WindDirection(object):
 
     In the rare case that a meaningless complex average is calculated, the
     code rejects the calculated complex average and simply uses the wind
-    direction taken from the first ensemble member.
+    direction taken from the first ensemble realization.
 
     The steps are:
 
-    1) Take data from all ensemble members.
+    1) Take data from all ensemble realizations.
     2) Convert the wind direction angles to complex numbers.
     3) Find complex average and their radius values.
     4) Convert the complex average back into degrees.
@@ -192,13 +192,13 @@ class WindDirection(object):
 
         1) From wind_dir_deg_mean - create a new set of complex values.
            Therefore they will have the same angle but r is fixed as r=1.
-        2) Find the distance between the mean point and all the ensemble member
-           wind direction complex values.
+        2) Find the distance between the mean point and all the ensemble
+           realization wind direction complex values.
         3) Find the average distance between the mean point and the wind
            direction values. Large average distance == low confidence.
         4) A confidence value that is between 1 for confident (small spread in
-           ensemble members) and 0 for no-confidence. Set to 0 if r value is
-           below threshold as any r value is regarded as meaningless.
+           ensemble realizations) and 0 for no-confidence. Set to 0 if r value
+           is below threshold as any r value is regarded as meaningless.
 
         Args:
             wind_dir_complex (np.ndarray):
@@ -265,7 +265,7 @@ class WindDirection(object):
            is essentially meaningless.
            We therefore substitute this meaningless average wind
            direction value for the wind direction taken from the first
-           ensemble member.
+           ensemble realization.
 
         Args:
             wind_dir_deg (np.ndarray):
@@ -281,7 +281,7 @@ class WindDirection(object):
         Returns:
             reprocessed_wind_dir_mean (np.ndarray):
                 3D array - Wind direction degrees where ambigious values have
-                been replaced with data from first ensemble member.
+                been replaced with data from first ensemble realization.
         """
 
         # Mask True if r values below threshold.
@@ -291,12 +291,12 @@ class WindDirection(object):
         if not where_low_r.any():
             return wind_dir_deg_mean
 
-        # Takes first ensemble member.
-        first_member = wind_dir_deg[0]
+        # Takes first ensemble realization.
+        first_realization = wind_dir_deg[0]
 
         # If the r-value is low - subistite average wind direction value for
-        # the wind direction taken from the first ensemble member.
-        reprocessed_wind_dir_mean = np.where(where_low_r, first_member,
+        # the wind direction taken from the first ensemble realization.
+        reprocessed_wind_dir_mean = np.where(where_low_r, first_realization,
                                              wind_dir_deg_mean)
 
         return reprocessed_wind_dir_mean
@@ -304,16 +304,17 @@ class WindDirection(object):
     @staticmethod
     def process(cube_ens_wdir):
         """Create a cube containing the wind direction averaged over the
-        ensemble members.
+        ensemble realizations.
 
         Args:
             cube_ens_wdir (iris.cube.Cube):
-                Cube containing wind direction from multiple ensemble members.
+                Cube containing wind direction from multiple ensemble
+                realizations.
 
         Returns:
             cube_mean_wdir (iris.cube.Cube):
                 Cube containing the wind direction averaged from the
-                ensemble members.
+                ensemble realizations.
             cube_r_vals (np.ndarray):
                 3D array - Radius taken from average complex wind direction
                 angle.
@@ -381,7 +382,8 @@ class WindDirection(object):
             r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
 
             # Calculate the confidence measure based on the difference
-            # between the complex average and the individual ensemble members.
+            # between the complex average and the individual ensemble
+            # realizations.
             # TODO: This will still need some further investigation.
             #        This is will be the subject of another ticket.
             confidence_measure = WindDirection.calc_confidence_measure(
@@ -389,7 +391,7 @@ class WindDirection(object):
                 realization_axis)
 
             # Finds any meaningless averages and substitute with
-            # the wind direction taken from the first ensemble member.
+            # the wind direction taken from the first ensemble realization.
             wind_dir_deg_mean = WindDirection.wind_dir_decider(
                 wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh)
 

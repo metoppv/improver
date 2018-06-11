@@ -94,10 +94,10 @@ def main():
                         default=1.0,
                         help='The factor with which to adjust the '
                         'neighbourhood size for more than one '
-                        'ensemble member. If ens_factor = 1.0 this '
-                        'essentially conserves ensemble members if '
+                        'ensemble realization. If ens_factor = 1.0 this '
+                        'essentially conserves ensemble realizations if '
                         'every grid square is considered to be the '
-                        'equivalent of an ensemble member.'
+                        'equivalent of an ensemble realization.'
                         'Optional, defaults to 1.0.')
     parser.add_argument('--sum_or_fraction', default="fraction",
                         choices=["sum", "fraction"],

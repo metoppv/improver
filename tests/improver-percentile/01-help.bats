@@ -40,13 +40,13 @@ usage: improver-percentile [-h]
                            INPUT_FILE OUTPUT_FILE
 
 Calculate percentiled data over a given coordinate by collapsing that
-coordinate. Typically used to convert realization (member) data into
-percentiled data, but may calculate over any dimension coordinate.
-Alternatively, calling this CLI with a dataset containing probabilities will
-convert those to percentiles using the ensemble copula coupling plugin. If no
-particular percentiles are given at which to calculate values and no 'number
-of percentiles' to calculate are specified, the following defaults will be
-used: [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
+coordinate. Typically used to convert realization data into percentiled data,
+but may calculate over any dimension coordinate. Alternatively, calling this
+CLI with a dataset containing probabilities will convert those to percentiles
+using the ensemble copula coupling plugin. If no particular percentiles are
+given at which to calculate values and no 'number of percentiles' to calculate
+are specified, the following defaults will be used: [0, 5, 10, 20, 25, 30, 40,
+50, 60, 70, 75, 80, 90, 95, 100]
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed

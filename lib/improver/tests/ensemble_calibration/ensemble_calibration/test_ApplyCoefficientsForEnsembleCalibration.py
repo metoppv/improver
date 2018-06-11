@@ -356,10 +356,10 @@ class Test_apply_params_entry(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_basic_members(self):
+    def test_basic_realizations(self):
         """
         Test that the plugin returns a tuple when using the ensemble
-        members as the predictor of the mean.
+        realizations as the predictor of the mean.
         """
         cube = self.current_temperature_forecast_cube
         optimised_coeffs = {}
@@ -368,7 +368,8 @@ class Test_apply_params_entry(IrisTest):
             4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
             1.00000011e+00, 1.00000011e+00])
         plugin = Plugin(cube, optimised_coeffs,
-                        self.coeff_names, predictor_of_mean_flag="members")
+                        self.coeff_names,
+                        predictor_of_mean_flag="realizations")
         result = plugin.apply_params_entry()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 3)
@@ -431,10 +432,10 @@ class Test_apply_params_entry(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_output_coefficients_members(self):
+    def test_output_coefficients_realizations(self):
         """
         Test that the plugin returns a tuple containing cubes with the
-        expected coefficient names when using ensemble members as the
+        expected coefficient names when using ensemble realizations as the
         predictor of the mean.
         """
         cube = self.current_temperature_forecast_cube
@@ -444,7 +445,8 @@ class Test_apply_params_entry(IrisTest):
             4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
             1.00000011e+00, 1.00000011e+00])
         plugin = Plugin(cube, optimised_coeffs,
-                        self.coeff_names, predictor_of_mean_flag="members")
+                        self.coeff_names,
+                        predictor_of_mean_flag="realizations")
         _, _, coefficients = plugin.apply_params_entry()
         for result, coeff_name, coeff in zip(
                 coefficients, self.coeff_names, optimised_coeffs[the_date]):
@@ -655,11 +657,11 @@ class Test__apply_params(IrisTest):
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "invalid escape sequence"],
         warning_types=[UserWarning, DeprecationWarning])
-    def test_calibrated_predictor_members(self):
+    def test_calibrated_predictor_realizations(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble members
-        are used as the predictor.
+        which match the expected values when the individual ensemble
+        realizations are used as the predictor.
         """
         data = np.array([[239.904135, 251.65926, 263.414385],
                          [275.16951, 286.924635, 298.67976],
@@ -685,7 +687,7 @@ class Test__apply_params(IrisTest):
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(self.cube, optimised_coeffs,
                         self.coeff_names)
@@ -698,11 +700,11 @@ class Test__apply_params(IrisTest):
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "invalid escape sequence"],
         warning_types=[UserWarning, DeprecationWarning])
-    def test_calibrated_variance_members(self):
+    def test_calibrated_variance_realizations(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble members
-        are used as the predictor.
+        which match the expected values when the individual ensemble
+        realizations are used as the predictor.
         """
         data = np.array([[34.333333, 34.333333, 34.333333],
                          [34.333333, 34.333333, 34.333333],
@@ -728,7 +730,7 @@ class Test__apply_params(IrisTest):
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(self.cube, optimised_coeffs,
                         self.coeff_names)
@@ -741,11 +743,11 @@ class Test__apply_params(IrisTest):
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "invalid escape sequence"],
         warning_types=[UserWarning, DeprecationWarning])
-    def test_coefficients_members(self):
+    def test_coefficients_realizations(self):
         """
         Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble members
-        are used as the predictor.
+        which match the expected values when the individual ensemble
+        realizations are used as the predictor.
         """
         data = np.array([5.0])
         cube = self.current_temperature_forecast_cube
@@ -768,7 +770,7 @@ class Test__apply_params(IrisTest):
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(self.cube, optimised_coeffs,
                         self.coeff_names)

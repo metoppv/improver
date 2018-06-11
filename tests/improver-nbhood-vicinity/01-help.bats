@@ -70,10 +70,11 @@ optional arguments:
                         hours uses a radius of 12000m, etc.
   --ens_factor ENS_FACTOR
                         The factor with which to adjust the neighbourhood size
-                        for more than one ensemble member. If ens_factor = 1.0
-                        this essentially conserves ensemble members if every
-                        grid square is considered to be the equivalent of an
-                        ensemble member.Optional, defaults to 1.0.
+                        for more than one ensemble realization. If ens_factor
+                        = 1.0 this essentially conserves ensemble realizations
+                        if every grid square is considered to be the
+                        equivalent of an ensemble realization. Optional,
+                        defaults to 1.0.
   --weighted_mode       For neighbourhood processing using a circular kernel,
                         setting the weighted_mode indicates the weighting
                         decreases with radius. If weighted_mode is not set, a

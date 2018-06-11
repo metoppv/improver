@@ -182,31 +182,31 @@ class Test_rename_coordinate(IrisTest):
     def test_basic_cube(self):
         """Test that the utility returns an iris.cube.Cube."""
         rename_coordinate(
-            self.cube, "realization", "ensemble_member_id")
+            self.cube, "realization", "ensemble_realization_id")
         self.assertIsInstance(self.cube, iris.cube.Cube)
 
     def test_basic_cubelist(self):
         """
         Test that the utility returns an iris.cube.CubeList and that
-        the cubes in the cubelist have an ensemble_member_id coordinate.
+        the cubes in the cubelist have an ensemble_realization_id coordinate.
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
         cubes = iris.cube.CubeList([cube1, cube2])
         rename_coordinate(
-            cubes, "realization", "ensemble_member_id")
+            cubes, "realization", "ensemble_realization_id")
         self.assertIsInstance(cubes, iris.cube.CubeList)
         for cube in cubes:
-            self.assertTrue(cube.coord("ensemble_member_id"))
+            self.assertTrue(cube.coord("ensemble_realization_id"))
 
     def test_check_coordinate_name(self):
         """
         Test that the utility returns an iris.cube.Cube with an
-        ensemble_member_id coordinate.
+        ensemble_realization_id coordinate.
         """
         rename_coordinate(
-            self.cube, "realization", "ensemble_member_id")
-        self.assertTrue(self.cube.coord("ensemble_member_id"))
+            self.cube, "realization", "ensemble_realization_id")
+        self.assertTrue(self.cube.coord("ensemble_realization_id"))
 
     def test_check_type_error(self):
         """
@@ -217,7 +217,7 @@ class Test_rename_coordinate(IrisTest):
         msg = "A Cube or CubeList is not provided for renaming"
         with self.assertRaisesRegex(TypeError, msg):
             rename_coordinate(
-                fake_cube, "realization", "ensemble_member_id")
+                fake_cube, "realization", "ensemble_realization_id")
 
 
 class Test__renamer(IrisTest):
@@ -231,11 +231,11 @@ class Test__renamer(IrisTest):
     def test_check_coordinate_name(self):
         """
         Test that the utility returns an iris.cube.Cube with an
-        ensemble_member_id coordinate following renaming.
+        ensemble_realization_id coordinate following renaming.
         """
         _renamer(
-            self.cube, "realization", "ensemble_member_id")
-        self.assertTrue(self.cube.coord("ensemble_member_id"))
+            self.cube, "realization", "ensemble_realization_id")
+        self.assertTrue(self.cube.coord("ensemble_realization_id"))
 
     def test_absent_original_coord(self):
         """
@@ -244,8 +244,8 @@ class Test__renamer(IrisTest):
         the cube.
         """
         _renamer(
-            self.cube, "fake", "ensemble_member_id")
-        self.assertFalse(self.cube.coords("ensemble_member_id"))
+            self.cube, "fake", "ensemble_realization_id")
+        self.assertFalse(self.cube.coords("ensemble_realization_id"))
 
 
 class Test_check_predictor_of_mean_flag(IrisTest):
@@ -269,12 +269,12 @@ class Test_check_predictor_of_mean_flag(IrisTest):
                    "Message is {}").format(err)
             self.fail(msg)
 
-    def test_members(self):
+    def test_realizations(self):
         """
         Test that the utility does not fail when the predictor_of_mean_flag
-        is "members".
+        is "realizations".
         """
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         try:
             check_predictor_of_mean_flag(predictor_of_mean_flag)
