@@ -42,6 +42,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_above_threshold_temperature_cube
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test__repr__(IrisTest):
@@ -65,14 +66,24 @@ class Test__check_template_cube(IrisTest):
             set_up_probability_above_threshold_temperature_cube())
 
     def test_valid_cube(self):
-        """Pass a valid cube that raises no exception. No assert statement
+        """Pass in a valid cube that raises no exception. No assert statement
         required as any other input will raise an exception."""
 
         cube = iris.util.squeeze(self.cube)
         Plugin()._check_template_cube(cube)
 
+    def test_valid_cube_reordered(self):
+        """Pass in a cube with the expected dimensions, but with threshold not
+        the leading dimension. Check that threshold is moved to be leading."""
+        cube = iris.util.squeeze(self.cube)
+        enforce_coordinate_ordering(cube, 'latitude')
+        expected = ['threshold', 'latitude', 'longitude']
+        Plugin()._check_template_cube(cube)
+        result = [coord.name() for coord in cube.coords(dim_coords=True)]
+        self.assertListEqual(expected, result)
+
     def test_fail_on_cube_with_additional_dim_coord(self):
-        """Pass a cube with an additional dimensional coordinate. This will
+        """Pass in a cube with an additional dimensional coordinate. This will
         raise an exception."""
 
         msg = "GenerateProbabilitiesFromMeanAndVariance expects a cube with"
@@ -80,13 +91,52 @@ class Test__check_template_cube(IrisTest):
             Plugin()._check_template_cube(self.cube)
 
     def test_fail_with_missing_spatial_coordinate(self):
-        """Pass a cube with a missing spatial coordinate. This will raise an
+        """Pass in a cube with a missing spatial coordinate. This will raise an
         exception."""
 
         cube = self.cube[:, 0, :, 0]
         msg = "The cube does not contain the expected"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_template_cube(cube)
+
+
+class Test__check_unit_compatibility(IrisTest):
+
+    """Test the _check_unit_compatibility function."""
+
+    def setUp(self):
+        """Set up temperature cube."""
+        self.template_cube = (
+            set_up_probability_above_threshold_temperature_cube())
+        self.template_cube = iris.util.squeeze(self.template_cube)
+        self.means = self.template_cube[0, :, :].copy()
+        self.means.units = 'Celsius'
+        self.variances = self.template_cube[0, :, :].copy()
+        self.variances.units = 'Celsius2'
+
+    def test_compatible_units(self):
+        """Pass in compatible cubes that should not raise an exception. No
+        assert statement required as any other input will raise an
+        exception."""
+        Plugin()._check_unit_compatibility(self.means, self.variances,
+                                           self.template_cube)
+
+    def test_convertible_units(self):
+        """Pass in cubes with units tha can be made equivalent by modification
+        to match the threshold units."""
+        self.means.units = 'Fahrenheit'
+        self.variances.units = 'Fahrenheit2'
+        Plugin()._check_unit_compatibility(self.means, self.variances,
+                                           self.template_cube)
+
+    def test_incompatible_units(self):
+        """Pass in cubes of incompatible units that should raise an
+        exception."""
+        self.means.units = 'm s-1'
+        msg = 'Mean, variance, and template cube threshold'
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_unit_compatibility(self.means, self.variances,
+                                               self.template_cube)
 
 
 class Test__mean_and_variance_to_probabilities(IrisTest):
@@ -105,7 +155,9 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         mean_values = np.ones((3, 3)) * 10
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
+        self.means.units = 'Celsius'
         self.variances = self.template_cube[0, :, :].copy(data=variance_values)
+        self.variances.units = 'Celsius2'
 
     def test_threshold_above_cube(self):
         """Test that the expected probabilites are returned for a cube in which
@@ -141,7 +193,9 @@ class Test_Process(IrisTest):
         mean_values = np.ones((3, 3)) * 10
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
+        self.means.units = 'Celsius'
         self.variances = self.template_cube[0, :, :].copy(data=variance_values)
+        self.variances.units = 'Celsius2'
 
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""

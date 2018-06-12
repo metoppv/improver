@@ -709,17 +709,22 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
     def _check_template_cube(cube):
         """
         The template cube is expected to contain a leading threshold dimension
-        followed by spatial (y/x) dimensions. This check raised an error if
-        this is not the case.
+        followed by spatial (y/x) dimensions. This check raises an error if
+        this is not the case. If the cube contains the expected dimensions,
+        a threshold leading order is enforced.
 
-        cube (iris.cube.Cube):
-            A cube whose dimensions are checked to ensure they match what is
-            expected.
+        Args:
+            cube (iris.cube.Cube):
+                A cube whose dimensions are checked to ensure they match what
+                is expected.
+        Raises:
+            ValueError: If cube is not of the expected dimensions.
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
 
         if 'threshold' in dim_coords and len(dim_coords) < 4:
+            enforce_coordinate_ordering(cube, 'threshold')
             return
 
         msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
@@ -727,7 +732,37 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                'dimensions. Got dimensions: {}'.format(dim_coords))
         raise ValueError(msg)
 
-    def _mean_and_variance_to_probabilities(self, mean_values, variance_values,
+    @staticmethod
+    def _check_unit_compatibility(mean_values, variance_values,
+                                  probability_cube_template):
+        """
+        The mean, variance, and threshold values come from three different
+        cubes. They should all be in the same units, but this is a sanity check
+        to ensure this is the case, converting units of the means and variances
+        if possible. This has been written specifically for this plugin as we
+        are comparing squared units in the case of the variance.
+
+        Args:
+            mean_values (iris.cube.Cube):
+                Cube of mean values.
+            variance_values (iris.cube.Cube):
+                Cube of variance values.
+            probability_cube_template (iris.cube.Cube):
+                Cube containing threshold values.
+        Raises:
+            ValueError: If units of input cubes are not compatible.
+        """
+        threshold_units = probability_cube_template.coord('threshold').units
+
+        try:
+            mean_values.convert_units(threshold_units)
+            variance_values.convert_units(threshold_units**2)
+        except ValueError:
+            raise ValueError('Mean, variance, and template cube threshold '
+                             'units are not equivalent/compatible.')
+
+    @staticmethod
+    def _mean_and_variance_to_probabilities(mean_values, variance_values,
                                             probability_cube_template):
         """
         Function returning probabilities relative to provided thresholds based
@@ -755,7 +790,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
 
         # Loop over thresholds, and use a normal distribution with the mean
         # and variance to calculate the probabilties relative to each
-        # probability.
+        # threshold.
         probabilities = np.empty_like(probability_cube_template.data)
         distribution = norm(loc=mean_values.data,
                             scale=np.sqrt(variance_values.data))
@@ -791,6 +826,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 to the thresholds found in the probability_cube_template.
         """
         self._check_template_cube(probability_cube_template)
+        self._check_unit_compatibility(mean_values, variance_values,
+                                       probability_cube_template)
 
         probability_cube = self._mean_and_variance_to_probabilities(
             mean_values, variance_values, probability_cube_template)
