@@ -702,7 +702,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = '<GeneratePercentilesFromProbabilities>'
+        desc = '<GenerateProbabilitiesFromMeanAndVariance>'
         return desc
 
     @staticmethod
@@ -757,9 +757,11 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         try:
             mean_values.convert_units(threshold_units)
             variance_values.convert_units(threshold_units**2)
-        except ValueError:
-            raise ValueError('Mean, variance, and template cube threshold '
-                             'units are not equivalent/compatible.')
+        except ValueError as err:
+            msg = ('Error: {} This is likely because the mean '
+                   'variance and template cube threshold units are '
+                   'not equivalent/compatible.'.format(err))
+            raise ValueError(msg)
 
     @staticmethod
     def _mean_and_variance_to_probabilities(mean_values, variance_values,
@@ -779,7 +781,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 cube format.
 
         Returns:
-            probability_cube (Iris cube):
+            probability_cube (iris.cube.Cube):
                 Cube containing the data expressed as probabilities relative to
                 the provided thresholds in the way described by
                 relative_to_threshold.
@@ -806,7 +808,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
 
     def process(self, mean_values, variance_values, probability_cube_template):
         """
-        Generate ensemble percentiles from the mean and variance.
+        Generate probabilties from the mean and variance of distribution.
 
         Args:
             mean_values (iris.cube.Cube):

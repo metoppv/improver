@@ -81,8 +81,9 @@ class Test_check_for_x_and_y_axes(IrisTest):
             check_for_x_and_y_axes(sliced_cube)
 
     def test_pass_dimension_requirement(self):
-        """Test that the expected exception is raised, if there the x and y
-        coordinates are not dimensional coordinates."""
+        """Pass in compatible cubes that should not raise an exception. No
+        assert statement required as any other input will raise an
+        exception."""
         check_for_x_and_y_axes(self.cube, require_dim_coords=True)
 
     def test_fail_dimension_requirement(self):

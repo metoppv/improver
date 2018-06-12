@@ -51,7 +51,7 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = "<GeneratePercentilesFromProbabilities>"
+        expected_string = "<GenerateProbabilitiesFromMeanAndVariance>"
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
@@ -122,18 +122,19 @@ class Test__check_unit_compatibility(IrisTest):
                                            self.template_cube)
 
     def test_convertible_units(self):
-        """Pass in cubes with units tha can be made equivalent by modification
+        """Pass in cubes with units that can be made equivalent by modification
         to match the threshold units."""
         self.means.units = 'Fahrenheit'
         self.variances.units = 'Fahrenheit2'
         Plugin()._check_unit_compatibility(self.means, self.variances,
                                            self.template_cube)
+        self.assertEqual(self.means.units, "Celsius")
 
     def test_incompatible_units(self):
         """Pass in cubes of incompatible units that should raise an
         exception."""
         self.means.units = 'm s-1'
-        msg = 'Mean, variance, and template cube threshold'
+        msg = 'This is likely because the mean'
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_unit_compatibility(self.means, self.variances,
                                                self.template_cube)
@@ -141,7 +142,7 @@ class Test__check_unit_compatibility(IrisTest):
 
 class Test__mean_and_variance_to_probabilities(IrisTest):
 
-    """Test the _mean_and_variance_to_percentiles function."""
+    """Test the _mean_and_variance_to_probabilities function."""
 
     def setUp(self):
         """Set up temperature cube."""
@@ -179,7 +180,7 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
 
-class Test_Process(IrisTest):
+class Test_process(IrisTest):
 
     """Test the process function."""
 
