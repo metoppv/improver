@@ -55,7 +55,16 @@ function improver_test_unit {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
-    python -m unittest discover ${VERBOSE_OPT:-}
+    if type -f coverage 1>/dev/null 2>&1; then
+        coverage run -m unittest discover ${VERBOSE_OPT:-}
+        coverage xml
+        if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
+            # Report coverage to Codacy if possible.
+            python-codacy-coverage -r coverage.xml
+        fi
+    else
+        python -m unittest discover ${VERBOSE_OPT:-}
+    fi
     echo_ok "Unit tests"
 }
 
