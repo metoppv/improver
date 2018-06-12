@@ -151,6 +151,8 @@ def main():
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
             args.vicinity).process(result_no_collapse_coord)
+        result_no_collapse_coord.rename(
+            result_no_collapse_coord.name() + '_in_vicinity')
 
     if args.collapse_coord == "None":
         save_netcdf(result_no_collapse_coord, args.output_filepath)
