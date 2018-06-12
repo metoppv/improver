@@ -38,7 +38,7 @@
   # Run threshold processing and check it passes, when using
   # realiztion as the coordinate.
   run improver threshold --collapse-coord='realization' \
-      "$IMPROVER_ACC_TEST_DIR/threshold/coord_collapse/input.nc" "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/threshold/basic/input.nc" "$TEST_DIR/output.nc" \
       280
   [[ "$status" -eq 0 ]]
 
