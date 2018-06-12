@@ -555,7 +555,7 @@ class Test_process(IrisTest):
     def test_check_data_specifying_single_percentile(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific percentile passes in as a single member
+        data values for a specific percentile passes in as a single realization
         list.
         """
         data = np.array([[[[21.5, 8.75, 11.],

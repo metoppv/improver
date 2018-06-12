@@ -29,17 +29,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ecc no arguments" {
-  run improver ecc
+@test "regrid no arguments" {
+  run improver regrid
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                    (--reordering | --rebadging)
-                    [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS]
-                    INPUT_FILE OUTPUT_FILE
+usage: improver-regrid [-h] [--nearest]
+                       [--extrapolation_mode EXTRAPOLATION_MODE]
+                       SOURCE_DATA TARGET_GRID OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

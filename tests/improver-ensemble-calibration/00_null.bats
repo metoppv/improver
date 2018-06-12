@@ -35,7 +35,7 @@
   expected="usage: improver-ensemble-calibration [-h]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
-                                     [--num_members NUMBER_OF_MEMBERS]
+                                     [--num_realizations NUMBER_OF_REALIZATIONS]
                                      [--random_ordering]
                                      [--random_seed RANDOM_SEED]
                                      ENSEMBLE_CALIBRATION_METHOD

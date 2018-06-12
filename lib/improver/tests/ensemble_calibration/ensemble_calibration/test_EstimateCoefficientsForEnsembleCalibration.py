@@ -105,7 +105,7 @@ class Test__init__(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "mean"
-        no_of_members = 3
+        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = True
 
         if not statsmodels_found:
@@ -130,10 +130,11 @@ class Test__init__(IrisTest):
         warning_types=[UserWarning, ImportWarning, FutureWarning,
                        RuntimeWarning, DeprecationWarning, ImportWarning,
                        UserWarning, UserWarning, UserWarning])
-    def test_statsmodels_members(self, warning_list=None):
+    def test_statsmodels_realizations(self, warning_list=None):
         """
         Test that the plugin raises the desired warning if the statsmodels
-        module is not found for when the predictor is the ensemble members.
+        module is not found for when the predictor is the ensemble
+        realizations.
         """
         import imp
         try:
@@ -156,8 +157,8 @@ class Test__init__(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
-        no_of_members = 3
+        predictor_of_mean_flag = "realizations"
+        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = True
 
         if not statsmodels_found:
@@ -204,11 +205,11 @@ class Test_compute_initial_guess(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_members_predictor(self):
+    def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a list containing the initial guess
-        for the calibration coefficients, when the individual ensemble members
-        are used as predictors.
+        for the calibration coefficients, when the individual ensemble
+        realizations are used as predictors.
         """
         cube = self.cube
 
@@ -216,15 +217,15 @@ class Test_compute_initial_guess(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
-        no_of_members = 3
+        predictor_of_mean_flag = "realizations"
+        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_members=no_of_members)
+            no_of_realizations=no_of_realizations)
         self.assertIsInstance(result, list)
 
     @ManageWarnings(
@@ -256,12 +257,13 @@ class Test_compute_initial_guess(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_members_predictor_value_check(self):
+    def test_basic_realizations_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
-        for the calibration coefficients, when the individual ensemble members
-        are used as predictors. As coefficients are not estimated using a
-        linear model, the default values for the initial guess are used.
+        for the calibration coefficients, when the individual ensemble
+        realizations are used as predictors. As coefficients are not estimated
+        using a linear model, the default values for the initial guess
+        are used.
         """
         data = [1, 1, 0, 1, 1, 1]
         cube = self.cube
@@ -271,15 +273,15 @@ class Test_compute_initial_guess(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
-        no_of_members = 3
+        predictor_of_mean_flag = "realizations"
+        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_members=no_of_members)
+            no_of_realizations=no_of_realizations)
         self.assertArrayAlmostEqual(result, data)
 
     @ManageWarnings(
@@ -311,7 +313,7 @@ class Test_compute_initial_guess(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_members_predictor_estimate_coefficients(self):
+    def test_realizations_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
@@ -336,15 +338,15 @@ class Test_compute_initial_guess(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
-        no_of_members = 3
+        predictor_of_mean_flag = "realizations"
+        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(distribution, desired_units)
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_members=no_of_members)
+            no_of_realizations=no_of_realizations)
         self.assertArrayAlmostEqual(result, data)
 
     @ManageWarnings(
@@ -493,7 +495,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_gaussian_distribution_members(self):
+    def test_coefficient_values_for_gaussian_distribution_realizations(self):
         """
         Ensure that the values generated within optimised_coeffs match the
         expected values, and the coefficient names also match
@@ -521,7 +523,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(distribution, desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
@@ -535,7 +537,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_truncated_gaussian_distribution_mem(self):
+    def test_coefficient_values_truncated_gaussian_distribution_realization(
+            self):
         """
         Ensure that the values generated within optimised_coeffs match the
         expected values, and the coefficient names also match
@@ -563,7 +566,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(distribution, desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)

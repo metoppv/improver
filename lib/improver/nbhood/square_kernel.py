@@ -93,7 +93,7 @@ class SquareNeighbourhood(object):
                              self.re_mask)
 
     @staticmethod
-    def cumulate_array(cube):
+    def cumulate_array(cube, iscomplex=False):
         """
         Method to calculate the cumulative sum of an m x n array, by first
         cumulating along the y direction so that the largest values
@@ -108,13 +108,20 @@ class SquareNeighbourhood(object):
                 y dimensions, so will generally be a slice of a cube ordered
                 so that y is first in the cube (i.e. axis=0).
 
+        Kwargs:
+            iscomplex (bool):
+                Flag indicating whether cube.data contains complex values.
+
         Returns:
             summed_cube (Iris.cube.Cube):
                 Cube to which the cumulative summing
                 along the y and x direction has been applied.
         """
         summed_cube = cube.copy()
-        data = cube.data.astype(np.longdouble)
+        if iscomplex:
+            data = cube.data.astype(complex)
+        else:
+            data = cube.data.astype(np.longdouble)
         data_summed_along_y = np.cumsum(data, axis=0)
         data_summed_along_x = (
             np.cumsum(data_summed_along_y, axis=1))
@@ -386,7 +393,7 @@ class SquareNeighbourhood(object):
         return neighbourhood_total
 
     def mean_over_neighbourhood(self, summed_cube, summed_mask,
-                                cells_x, cells_y):
+                                cells_x, cells_y, iscomplex=False):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
@@ -428,6 +435,10 @@ class SquareNeighbourhood(object):
                 The radius of the neighbourhood in grid points, in the x and y
                 directions (excluding the central grid point).
 
+        Kwargs:
+            iscomplex (bool):
+                Flag indicating whether cube.data contains complex values.
+
         Returns:
             cube (iris.cube.Cube):
                 Cube to which square neighbourhood has been applied.
@@ -467,11 +478,18 @@ class SquareNeighbourhood(object):
                 n_rows, n_columns)
 
             with np.errstate(invalid='ignore', divide='ignore'):
-                cube.data = (neighbourhood_total.astype(float) /
-                             neighbourhood_area.astype(float))
+                if iscomplex:
+                    cube.data = (neighbourhood_total.astype(complex) /
+                                 neighbourhood_area.astype(complex))
+                else:
+                    cube.data = (neighbourhood_total.astype(float) /
+                                 neighbourhood_area.astype(float))
                 cube.data[~np.isfinite(cube.data)] = np.nan
         elif self.sum_or_fraction == "sum":
-            cube.data = neighbourhood_total.astype(float)
+            if iscomplex:
+                cube.data = neighbourhood_total.astype(complex)
+            else:
+                cube.data = neighbourhood_total.astype(float)
 
         return cube
 
@@ -560,11 +578,16 @@ class SquareNeighbourhood(object):
                                               masked_halo=True)
         padded_mask = self.pad_cube_with_halo(mask, grid_cells_x, grid_cells_y,
                                               masked_halo=True)
-        summed_up_cube = self.cumulate_array(padded_cube)
+
+        # Check whether cube contains complex values
+        is_complex = np.any(np.iscomplex(cube.data))
+
+        summed_up_cube = self.cumulate_array(padded_cube, is_complex)
         summed_up_mask = self.cumulate_array(padded_mask)
         neighbourhood_averaged_cube = (
-            self.mean_over_neighbourhood(
-                summed_up_cube, summed_up_mask, grid_cells_x, grid_cells_y))
+            self.mean_over_neighbourhood(summed_up_cube, summed_up_mask,
+                                         grid_cells_x, grid_cells_y,
+                                         is_complex))
 
         return neighbourhood_averaged_cube
 

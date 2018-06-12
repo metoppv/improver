@@ -124,13 +124,13 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
     Args:
         predictor_of_mean_flag (string):
             String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble members
-            ("members") are supported as the predictors.
+            Currently the ensemble mean ("mean") and the ensemble realizations
+            ("realizations") are supported as the predictors.
 
     """
-    if predictor_of_mean_flag.lower() not in ["mean", "members"]:
+    if predictor_of_mean_flag.lower() not in ["mean", "realizations"]:
         msg = ("The requested value for the predictor_of_mean_flag {}"
                "is not an accepted value."
-               "Accepted values are 'mean' or 'members'").format(
+               "Accepted values are 'mean' or 'realizations'").format(
                    predictor_of_mean_flag.lower())
         raise ValueError(msg)

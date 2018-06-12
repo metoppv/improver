@@ -41,8 +41,10 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.wind_direction import WindDirection
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -739,6 +741,62 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected_data)
 
+    def test_complex(self):
+        """Test neighbourhooding with an array of complex wind directions"""
+        # set up cube with complex wind directions 30-60 degrees
+        a = 0.54066949+0.82535591j
+        b = 0.56100423+0.80502117j
+        c = 0.5+0.8660254j
+        d = 0.59150635+0.77451905j
+
+        expected_data_complex = np.array(
+            [[a, b, b, a, b, c, a],
+             [a, 0.55228934+0.81373606j, d, b, d, c, b],
+             [b, 0.54575318+0.82027223j, d, b, d, c, b],
+             [b, 0.62200847+0.74401694j, b, a, b, c, a],
+             [a, 0.55228934+0.81373606j, d, b, d, c, b],
+             [b, 0.57320508+0.79282032j, c, c, c, c, c],
+             [c, c, b, a, b, c, a]])
+
+        expected_data_deg = np.array(
+            [[56.77222, 55.128079, 55.128079, 56.77222, 55.128079, 60.0,
+             56.77222], [56.77222, 55.83494, 52.63074, 55.128079, 52.63074,
+             60.0, 55.128079], [55.128079, 56.362915, 52.63074, 55.128079,
+             52.63074, 60.0, 55.128079], [55.128079, 50.103909, 55.128079,
+             56.77222, 55.128079, 60.0, 56.77222], [56.77222, 55.83494,
+             52.63074, 55.128079, 52.63074, 60.0, 55.128079], [55.128079,
+             54.133261, 60.0, 60.0, 60.0, 60.0, 60.0], [60.0, 60.0, 55.128079,
+             56.77222, 55.128079, 60.0, 56.77222]])
+
+        self.cube.data = WindDirection.deg_to_complex(30.*self.cube.data + 30.)
+        nbcube = (
+            SquareNeighbourhood()._pad_and_calculate_neighbourhood(
+                self.cube, self.mask, 1, 1))
+        self.assertTrue(np.any(np.iscomplex(nbcube.data)))
+        self.assertArrayAlmostEqual(nbcube.data, expected_data_complex)
+        self.assertArrayAlmostEqual(WindDirection.complex_to_deg(nbcube.data),
+                                    expected_data_deg)
+
+    def test_complex_masked(self):
+        """Test complex neighbourhooding works with a mask"""
+
+        mask_cube = self.cube.copy()
+        mask_cube.data[::] = 1.0
+        mask_cube.data[1, 2] = 0.0
+        mask_cube.data[2, 2] = 0.0
+
+        self.cube.data = WindDirection.deg_to_complex(30.*self.cube.data + 30.)
+
+        # set_up_cubes_to_be_neighbourhooded would set masked points to 0.0
+        self.cube.data[1, 2] = 0.0
+        self.cube.data[2, 2] = 0.0
+        mask_cube.rename('mask_data')
+
+        nbcube = (
+            SquareNeighbourhood()._pad_and_calculate_neighbourhood(
+                self.cube, mask_cube, 1, 1))
+        self.assertIsInstance(nbcube, Cube)
+
 
 class Test__remove_padding_and_mask(IrisTest):
 
@@ -1031,6 +1089,30 @@ class Test_run(IrisTest):
         cube.data = np.ma.masked_where(mask == 0, cube.data)
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
+
+    @ManageWarnings(
+        ignored_messages=["Casting complex values to real discards the "
+                          "imaginary part"], warning_types=[np.ComplexWarning])
+    def test_complex(self):
+        """Test that a cube containing complex numbers is sensibly processed"""
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5)
+        cube.data = cube.data.astype(complex)
+        cube.data[0, 0, 1, 3] = 0.5+0.5j
+        cube.data[0, 0, 4, 3] = 0.4+0.6j
+        expected_data = np.array(
+            [[[[1.0+0.0j, 1.0+0.0j, 0.91666667+0.083333333j,
+                0.91666667+0.083333333j, 0.875+0.125j],
+               [1.0+0.0j, 0.88888889+0.0j, 0.83333333+0.055555556j,
+                0.83333333+0.055555556j, 0.91666667+0.083333333j],
+               [1.0+0.0j, 0.88888889+0.0j, 0.83333333+0.055555556j,
+                0.83333333+0.055555556j, 0.91666667+0.083333333j],
+               [1.0+0.0j, 0.88888889+0.0j, 0.82222222+0.066666667j,
+                0.82222222+0.066666667j, 0.9+0.1j],
+               [1.0+0.0j, 1.0+0.0j, 0.9+0.1j, 0.9+0.1j, 0.85+0.15j]]]])
+        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_multiple_times(self):
         """Test that a cube with correct data is produced by the run method

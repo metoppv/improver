@@ -234,10 +234,10 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
 
 
 def amend_metadata(cube,
-                   new_diagnostic_name,
-                   data_type,
-                   revised_coords,
-                   revised_attributes,
+                   new_diagnostic_name=None,
+                   data_type=None,
+                   revised_coords=None,
+                   revised_attributes=None,
                    warnings_on=False):
     """Amend the metadata in the combined cube.
 
@@ -263,8 +263,10 @@ def amend_metadata(cube,
 
     """
     result = cube
-    result.data = result.data.astype(data_type)
-    result.rename(new_diagnostic_name)
+    if data_type:
+        result.data = result.data.astype(data_type)
+    if new_diagnostic_name:
+        result.rename(new_diagnostic_name)
 
     if revised_coords is not None:
         for key in revised_coords:
@@ -343,3 +345,29 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
         msg = "Can not combine cubes, mismatching shapes"
         raise ValueError(msg)
     return result1, result2
+
+
+def delete_attributes(cube, patterns):
+    """
+    Delete attributes that are complete or partial matches to elements in the
+    list patterns.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which attributes are to be deleted.
+        patterns (list or tuple):
+            A list of strings that match or partially match the keys of
+            attributes to be deleted from the cube.
+    """
+
+    if not isinstance(patterns, (tuple, list)):
+        patterns = [patterns]
+
+    grid_attributes = []
+    for pattern in patterns:
+        grid_attributes.extend([k for k in cube.attributes if pattern in k])
+
+    grid_attributes = list(set(grid_attributes))
+
+    for key in grid_attributes:
+        cube.attributes.pop(key)

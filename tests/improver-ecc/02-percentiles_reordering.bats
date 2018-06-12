@@ -37,7 +37,7 @@
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then reorder the ensemble using the raw ensemble
-  # members.
+  # realizations.
   run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
       --reordering --raw_forecast_filepath="$IMPROVER_ACC_TEST_DIR/ecc/percentiles_reordering/raw_forecast.nc"\
       --random_seed 0 \

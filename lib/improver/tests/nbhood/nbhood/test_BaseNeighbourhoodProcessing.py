@@ -497,9 +497,10 @@ class Test_process(IrisTest):
 
     def test_source_realizations(self):
         """Test when the array has source_realization attribute."""
-        member_list = [0, 1, 2, 3]
+        realization_list = [0, 1, 2, 3]
         cube = (
-            set_up_cube_with_no_realizations(source_realizations=member_list))
+            set_up_cube_with_no_realizations(
+                source_realizations=realization_list))
         radii = 14400
         ens_factor = 0.8
         neighbourhood_method = CircularNeighbourhood()

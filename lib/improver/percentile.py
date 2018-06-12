@@ -45,7 +45,8 @@ class PercentileConverter(object):
 
     """
 
-    def __init__(self, collapse_coord, percentiles=None):
+    def __init__(self, collapse_coord, percentiles=None,
+                 fast_percentile_method=True):
         """
         Create a PDF plugin with a given source plugin.
 
@@ -80,6 +81,7 @@ class PercentileConverter(object):
         # percentile coordinate has a consistent name regardless of the order
         # in which the user provides the original coordinate names.
         self.collapse_coord = sorted(collapse_coord)
+        self.fast_percentile_method = fast_percentile_method
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -115,9 +117,10 @@ class PercentileConverter(object):
                               for test_coord in self.collapse_coord])
 
         if n_valid_coords == n_collapse_coords:
-            result = cube.collapsed(self.collapse_coord,
-                                    iris.analysis.PERCENTILE,
-                                    percent=self.percentiles)
+            result = cube.collapsed(
+                self.collapse_coord, iris.analysis.PERCENTILE,
+                percent=self.percentiles,
+                fast_percentile_method=self.fast_percentile_method)
             result.data = result.data.astype(data_type)
             return result
 

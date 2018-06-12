@@ -33,7 +33,7 @@
   run improver nbhood-iterate-with-mask -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-nbhood-iterate-with-mask [-h]
+  usage: improver-nbhood-iterate-with-mask [-h]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--ens_factor ENS_FACTOR]
                                          [--sum_or_fraction {sum,fraction}]
@@ -80,10 +80,11 @@ optional arguments:
                         hours uses a radius of 12000m, etc.
   --ens_factor ENS_FACTOR
                         The factor with which to adjust the neighbourhood size
-                        for more than one ensemble member. If ens_factor = 1.0
-                        this essentially conserves ensemble members if every
-                        grid square is considered to be the equivalent of an
-                        ensemble member.Optional, defaults to 1.0.
+                        for more than one ensemble realization. If ens_factor
+                        = 1.0 this essentially conserves ensemble realizations
+                        if every grid square is considered to be the
+                        equivalent of an ensemble realization.Optional,
+                        defaults to 1.0.
   --sum_or_fraction {sum,fraction}
                         The neighbourhood output can either be in the form of
                         a sum of the neighbourhood, or a fraction calculated
@@ -114,7 +115,6 @@ optional arguments:
                         If provided the result after neighbourhooding, before
                         collapsing the extra dimension is saved in the given
                         filepath.
-
 
 __HELP__
   [[ "$output" == "$expected" ]]

@@ -113,16 +113,16 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_temperature_members(self):
+    def test_basic_temperature_realizations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         with the desired length.
-        The ensemble members is the predictor.
+        The ensemble realizations is the predictor.
         """
         calibration_method = "ensemble model output statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
@@ -154,16 +154,16 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_wind_speed_members(self):
+    def test_basic_wind_speed_realizations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         with the desired length.
-        The ensemble members is the predictor.
+        The ensemble realizations is the predictor.
         """
         calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
@@ -205,13 +205,13 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_members_data_check(self):
+    def test_temperature_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of temperature cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
         variance.
-        The ensemble members is the predictor.
+        The ensemble realizations is the predictor.
         """
         import imp
         try:
@@ -242,7 +242,7 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output_statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
@@ -284,13 +284,13 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_members_data_check(self):
+    def test_wind_speed_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
         variance.
-        The ensemble members is the predictor.
+        The ensemble realizations is the predictor.
         """
         import imp
         try:
@@ -321,7 +321,7 @@ class Test_process(IrisTest):
         calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        predictor_of_mean_flag = "members"
+        predictor_of_mean_flag = "realizations"
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)

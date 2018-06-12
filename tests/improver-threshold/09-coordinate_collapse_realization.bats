@@ -29,17 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ecc no arguments" {
-  run improver ecc
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-ecc [-h] [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                    (--reordering | --rebadging)
-                    [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS]
-                    INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "threshold input output 280" {
+  improver_check_skip_acceptance
+  KGO="threshold/coord_collapse/kgo.nc"
+
+  # Run threshold processing and check it passes, when using
+  # realiztion as the coordinate.
+  run improver threshold --collapse-coord='realization' \
+      "$IMPROVER_ACC_TEST_DIR/threshold/coord_collapse/input.nc" "$TEST_DIR/output.nc" \
+      280
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
