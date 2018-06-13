@@ -44,8 +44,8 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pycodestyle, pylint, pylintE, doc, unit, cli.
-                    pycodestyle, pylintE, doc, unit, and cli are the default tests.
+                    Valid names are: pycodestyle, pylint, pylintE, licence, doc, unit, cli.
+                    pycodestyle, pylintE, licence, doc, unit, and cli are the default tests.
     SUBCLI          Name(s) of cli subtests to run without running the rest.
                     Valid names are tasks which appear in /improver/tests/
                     without the "improver-" prefix. The default is to run all
