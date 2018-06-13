@@ -66,11 +66,12 @@ class Test__check_template_cube(IrisTest):
             set_up_probability_above_threshold_temperature_cube())
 
     def test_valid_cube(self):
-        """Pass in a valid cube that raises no exception. No assert statement
-        required as any other input will raise an exception."""
-
+        """Pass in a valid cube that raises no exception. Cube should be
+        unchanged by being passed into the function."""
         cube = iris.util.squeeze(self.cube)
+        expected = iris.util.squeeze(self.cube.copy())
         Plugin()._check_template_cube(cube)
+        self.assertEqual(expected, cube)
 
     def test_valid_cube_reordered(self):
         """Pass in a cube with the expected dimensions, but with threshold not
