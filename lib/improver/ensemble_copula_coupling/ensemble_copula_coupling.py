@@ -50,7 +50,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_checker import (find_percentile_coordinate,
+                                             check_for_x_and_y_axes)
 
 
 class RebadgePercentilesAsRealizations(object):
@@ -685,6 +686,155 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 percentiles))
 
         return calibrated_forecast_percentiles
+
+
+class GenerateProbabilitiesFromMeanAndVariance(object):
+    """
+    Plugin to generate probabilities relative to given thresholds from the mean
+    and variance of a distribution.
+    """
+
+    def __init__(self):
+        """
+        Initialise the class.
+        """
+        pass
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        desc = '<GenerateProbabilitiesFromMeanAndVariance>'
+        return desc
+
+    @staticmethod
+    def _check_template_cube(cube):
+        """
+        The template cube is expected to contain a leading threshold dimension
+        followed by spatial (y/x) dimensions. This check raises an error if
+        this is not the case. If the cube contains the expected dimensions,
+        a threshold leading order is enforced.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube whose dimensions are checked to ensure they match what
+                is expected.
+        Raises:
+            ValueError: If cube is not of the expected dimensions.
+        """
+        check_for_x_and_y_axes(cube, require_dim_coords=True)
+        dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
+
+        if 'threshold' in dim_coords and len(dim_coords) < 4:
+            enforce_coordinate_ordering(cube, 'threshold')
+            return
+
+        msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
+               'only a leading threshold dimension, followed by spatial (y/x) '
+               'dimensions. Got dimensions: {}'.format(dim_coords))
+        raise ValueError(msg)
+
+    @staticmethod
+    def _check_unit_compatibility(mean_values, variance_values,
+                                  probability_cube_template):
+        """
+        The mean, variance, and threshold values come from three different
+        cubes. They should all be in the same units, but this is a sanity check
+        to ensure this is the case, converting units of the means and variances
+        if possible. This has been written specifically for this plugin as we
+        are comparing squared units in the case of the variance.
+
+        Args:
+            mean_values (iris.cube.Cube):
+                Cube of mean values.
+            variance_values (iris.cube.Cube):
+                Cube of variance values.
+            probability_cube_template (iris.cube.Cube):
+                Cube containing threshold values.
+        Raises:
+            ValueError: If units of input cubes are not compatible.
+        """
+        threshold_units = probability_cube_template.coord('threshold').units
+
+        try:
+            mean_values.convert_units(threshold_units)
+            variance_values.convert_units(threshold_units**2)
+        except ValueError as err:
+            msg = ('Error: {} This is likely because the mean '
+                   'variance and template cube threshold units are '
+                   'not equivalent/compatible.'.format(err))
+            raise ValueError(msg)
+
+    @staticmethod
+    def _mean_and_variance_to_probabilities(mean_values, variance_values,
+                                            probability_cube_template):
+        """
+        Function returning probabilities relative to provided thresholds based
+        on the supplied mean and variance. A Gaussian distribution is assumed.
+
+        Args:
+            mean_values (iris.cube.Cube):
+                Predictor for the calibrated forecast i.e. the mean.
+            variance_values (iris.cube.Cube):
+                Variance for the calibrated forecast.
+            probability_cube_template (iris.cube.Cube):
+                A probability cube that has the threshold coordinate, and
+                attribute relative_to_threshold, that match the desired output
+                cube format.
+
+        Returns:
+            probability_cube (iris.cube.Cube):
+                Cube containing the data expressed as probabilities relative to
+                the provided thresholds in the way described by
+                relative_to_threshold.
+        """
+        thresholds = probability_cube_template.coord('threshold').points
+        relative_to_threshold = (
+            probability_cube_template.attributes['relative_to_threshold'])
+
+        # Loop over thresholds, and use a normal distribution with the mean
+        # and variance to calculate the probabilties relative to each
+        # threshold.
+        probabilities = np.empty_like(probability_cube_template.data)
+        distribution = norm(loc=mean_values.data,
+                            scale=np.sqrt(variance_values.data))
+        probability_method = distribution.cdf
+        if relative_to_threshold == 'above':
+            probability_method = distribution.sf
+
+        for index, threshold in enumerate(thresholds):
+            probabilities[index, ...] = probability_method(threshold)
+
+        probability_cube = probability_cube_template.copy(data=probabilities)
+        return probability_cube
+
+    def process(self, mean_values, variance_values, probability_cube_template):
+        """
+        Generate probabilties from the mean and variance of distribution.
+
+        Args:
+            mean_values (iris.cube.Cube):
+                Cube containing the distribution mean values of a diagnostic,
+                e.g. the mean over realizations.
+            variance_values (iris.cube.Cube):
+                Cube containing the distribution variance values of a
+                diagnostic, e.g. the variance across realizations.
+            probability_cube_template (iris.cube.Cube):
+                A probability cube that has the threshold coordinate, and
+                attribute relative_to_threshold, that match the desired output
+                cube format.
+
+        Returns:
+            probability_cube (iris.cube.Cube):
+                A cube of diagnostic data expressed as probabilities relative
+                to the thresholds found in the probability_cube_template.
+        """
+        self._check_template_cube(probability_cube_template)
+        self._check_unit_compatibility(mean_values, variance_values,
+                                       probability_cube_template)
+
+        probability_cube = self._mean_and_variance_to_probabilities(
+            mean_values, variance_values, probability_cube_template)
+
+        return probability_cube
 
 
 class EnsembleReordering(object):

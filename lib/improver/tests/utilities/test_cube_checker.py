@@ -80,6 +80,20 @@ class Test_check_for_x_and_y_axes(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             check_for_x_and_y_axes(sliced_cube)
 
+    def test_pass_dimension_requirement(self):
+        """Pass in compatible cubes that should not raise an exception. No
+        assert statement required as any other input will raise an
+        exception."""
+        check_for_x_and_y_axes(self.cube, require_dim_coords=True)
+
+    def test_fail_dimension_requirement(self):
+        """Test that the expected exception is raised, if there the x and y
+        coordinates are not dimensional coordinates."""
+        msg = "The cube does not contain the expected"
+        cube = self.cube[0, 0, :, 0]
+        with self.assertRaisesRegex(ValueError, msg):
+            check_for_x_and_y_axes(cube, require_dim_coords=True)
+
 
 class Test_check_cube_coordinates(IrisTest):
 
