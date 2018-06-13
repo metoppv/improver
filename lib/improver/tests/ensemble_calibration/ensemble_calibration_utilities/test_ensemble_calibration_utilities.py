@@ -40,8 +40,7 @@ from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, rename_coordinate, _renamer,
-    check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, check_predictor_of_mean_flag)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 
@@ -169,83 +168,6 @@ class Test_convert_cube_data_to_2d(IrisTest):
 
         result = convert_cube_data_to_2d(cube)
         self.assertArrayAlmostEqual(result, data)
-
-
-class Test_rename_coordinate(IrisTest):
-
-    """Test the rename_coordinate utility."""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-
-    def test_basic_cube(self):
-        """Test that the utility returns an iris.cube.Cube."""
-        rename_coordinate(
-            self.cube, "realization", "ensemble_realization_id")
-        self.assertIsInstance(self.cube, iris.cube.Cube)
-
-    def test_basic_cubelist(self):
-        """
-        Test that the utility returns an iris.cube.CubeList and that
-        the cubes in the cubelist have an ensemble_realization_id coordinate.
-        """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-        cubes = iris.cube.CubeList([cube1, cube2])
-        rename_coordinate(
-            cubes, "realization", "ensemble_realization_id")
-        self.assertIsInstance(cubes, iris.cube.CubeList)
-        for cube in cubes:
-            self.assertTrue(cube.coord("ensemble_realization_id"))
-
-    def test_check_coordinate_name(self):
-        """
-        Test that the utility returns an iris.cube.Cube with an
-        ensemble_realization_id coordinate.
-        """
-        rename_coordinate(
-            self.cube, "realization", "ensemble_realization_id")
-        self.assertTrue(self.cube.coord("ensemble_realization_id"))
-
-    def test_check_type_error(self):
-        """
-        Test that a TyoeError is raised, if the input variable is not an
-        iris.cube.Cube.
-        """
-        fake_cube = "fake"
-        msg = "A Cube or CubeList is not provided for renaming"
-        with self.assertRaisesRegex(TypeError, msg):
-            rename_coordinate(
-                fake_cube, "realization", "ensemble_realization_id")
-
-
-class Test__renamer(IrisTest):
-
-    """Test the _renamer utility."""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-
-    def test_check_coordinate_name(self):
-        """
-        Test that the utility returns an iris.cube.Cube with an
-        ensemble_realization_id coordinate following renaming.
-        """
-        _renamer(
-            self.cube, "realization", "ensemble_realization_id")
-        self.assertTrue(self.cube.coord("ensemble_realization_id"))
-
-    def test_absent_original_coord(self):
-        """
-        Test that the utility returns an iris.cube.Cube after the renaming
-        was not successful, as the original coordinate was not found in
-        the cube.
-        """
-        _renamer(
-            self.cube, "fake", "ensemble_realization_id")
-        self.assertFalse(self.cube.coords("ensemble_realization_id"))
 
 
 class Test_check_predictor_of_mean_flag(IrisTest):
