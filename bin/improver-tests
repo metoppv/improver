@@ -66,22 +66,23 @@ read -d '' expected <<'__TEXT__' || true
 # POSSIBILITY OF SUCH DAMAGE.
 __TEXT__
 
-FILES_TO_TEST=$@
+    FILES_TO_TEST=$@
 
-count=0
-for FILE in $FILES_TO_TEST; do
-    if [[ -s $FILE ]]; then
-        file_contents=$(<$FILE)
-        if [[ "$file_contents" != *"$expected"* ]]; then
-            echo "Unexpected licence information: ${FILE#$IMPROVER_DIR}"
-            count=$((count+1))
+    count=0
+    for FILE in $FILES_TO_TEST; do
+        # Check whether file has a size greater than zero.
+        if [[ -s $FILE ]]; then
+            file_contents=$(<$FILE)
+            if [[ "$file_contents" != *"$expected"* ]]; then
+                echo "Unexpected licence information: ${FILE#$IMPROVER_DIR}"
+                count=$((count+1))
+            fi
         fi
+    done
+    if (( $count > 0 )); then
+        echo_fail "IMPROVER licences"
+        exit 1
     fi
-done
-if (( $count > 0 )); then
-    echo_fail "IMPROVER licences"
-    exit 1
-fi
 }
 
 function improver_test_licence {
