@@ -19,3 +19,4 @@ dependencies:
   - cf_units
   - setuptools
   - mo_pack
+  - netcdftime
