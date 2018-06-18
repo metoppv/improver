@@ -741,7 +741,8 @@ class OpticalFlow(object):
         if np.count_nonzero(vel_comp) < vel_comp.size*non_zero_vel_threshold:
             msg = ("Fewer than {:.1f}% of the cells within the domain have "
                    "non-zero advection velocities. It is expected that "
-                   "<{:.1f}% of the advection velocities will be zero.".format(
+                   "less than {:.1f}% of the advection velocities "
+                   "will be zero.".format(
                        non_zero_vel_threshold*100,
                        (1-non_zero_vel_threshold)*100))
             warnings.warn(msg)
