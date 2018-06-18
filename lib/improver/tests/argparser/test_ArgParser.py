@@ -341,7 +341,7 @@ class Test_parse_args(QuietTestCase):
                     mock_profile:
                 parser = ArgParser(central_arguments=None,
                                    specific_arguments=None)
-                args = parser.parse_args()
+                parser.parse_args()
                 self.assertEqual(mock_profile.call_count, 1)
 
     def test_profile_is_not_called_when_disbaled(self):
