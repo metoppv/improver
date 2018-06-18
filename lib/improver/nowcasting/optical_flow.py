@@ -304,7 +304,7 @@ class OpticalFlow(object):
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
 
-        input:
+        Keyword Args:
             data_smoothing_radius_km (float):
                 Kernel radius in km over which to smooth input data before
                 estimating partial derivatives.  Should not be less than 3x
@@ -736,8 +736,28 @@ class OpticalFlow(object):
     @staticmethod
     def zero_advection_velocities_warning(
             vel_comp, non_zero_vel_threshold=0.9):
-        # Raise warning if fewer than 90% of the cells within the domain have
-        # non-zero advection velocities.
+        """
+        Raise warning if fewer than 90% of the cells within the domain have
+        non-zero advection velocities.
+
+        Args:
+            vel_comp (np.ndarray):
+                Advection velocity that will be checked to assess the
+                proportion of zeroes present in this field.
+
+        Keyword Args:
+            non_zero_vel_threshold (float):
+                Fractional value to specify the proportion of non-zero values
+                that the advection field should contain at a minimum.
+                For example, if non_zero_vel_threshold=0.9 then up to 90% of
+                the advection velocities can be zero before a warning will be
+                raised.
+
+        Warns:
+            Warning: If the proportion of non-zero advection velocities is
+                below the threshold specified by non_zero_vel_threshold.
+
+        """
         if np.count_nonzero(vel_comp) < vel_comp.size*non_zero_vel_threshold:
             msg = ("Fewer than {:.1f}% of the cells within the domain have "
                    "non-zero advection velocities. It is expected that "
