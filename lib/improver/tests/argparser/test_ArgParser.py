@@ -211,6 +211,16 @@ class Test_init(QuietTestCase):
                 args = vars(args).keys()
                 self.assertCountEqual(args, ['foo', 'bar', 'baz'])
 
+    def test_argparser_compulsory_args_has_profile(self):
+        """Test that creating an ArgParser instance with the compulsory
+        arguments adds the profiling options."""
+
+        expected_profile_options = ['profile', 'profile_file']
+        parser = ArgParser(central_arguments=None, specific_arguments=None)
+        args = parser.parse_args()
+        args = vars(args).keys()
+        self.assertCountEqual(args, expected_profile_options)
+
 
 class Test_add_arguments(QuietTestCase):
 
@@ -306,6 +316,55 @@ class Test_add_arguments(QuietTestCase):
 
         parser2.add_arguments(args_to_add)
         self.assertEqual(parser1.parse_args(), parser2.parse_args())
+
+
+class Test_parse_args(QuietTestCase):
+
+    """Test the parse_args method."""
+
+    def test_profile_is_called_when_enabled(self):
+        """Test that calling parse_args enables profiling when the --profile
+        option is added."""
+
+        # temporarily patch compulsory args so that profiling is enabled by
+        # default
+        compulsory_arguments = {'profile': (
+                                    ['--profile'],
+                                    {'default': True}),
+                                'profile_file': (
+                                    ['--profile-file'],
+                                    {'default': None})}
+
+        with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
+                   compulsory_arguments):
+            with patch('improver.argparser.profile_hook_enable') as \
+                    mock_profile:
+                parser = ArgParser(central_arguments=None,
+                                   specific_arguments=None)
+                parser.parse_args()
+                self.assertEqual(mock_profile.call_count, 1)
+
+    def test_profile_is_not_called_when_disbaled(self):
+        """Test that calling parse_args does not enable profiling when the
+        --profile option is not added."""
+
+        # temporarily patch compulsory args so that profiling is disabled by
+        # default
+        compulsory_arguments = {'profile': (
+                                    ['--profile'],
+                                    {'default': False}),
+                                'profile_file': (
+                                    ['--profile-file'],
+                                    {'default': None})}
+
+        with patch('improver.argparser.ArgParser.COMPULSORY_ARGUMENTS',
+                   compulsory_arguments):
+            with patch('improver.argparser.profile_hook_enable') as \
+                    mock_profile:
+                parser = ArgParser(central_arguments=None,
+                                   specific_arguments=None)
+                parser.parse_args()
+                self.assertEqual(mock_profile.call_count, 0)
 
 
 # inherit from only TestCase - we want to explicitly catch the SystemExit

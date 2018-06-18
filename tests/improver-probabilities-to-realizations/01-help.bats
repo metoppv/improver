@@ -33,7 +33,8 @@
   run improver probabilities-to-realizations -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-probabilities-to-realizations [-h]
+usage: improver-probabilities-to-realizations [-h] [--profile]
+                                              [--profile_file PROFILE_FILE]
                                               [--no-of-realizations NUMBER_OF_REALIZATIONS]
                                               INPUT_FILE OUTPUT_FILE
 
@@ -46,6 +47,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --no-of-realizations NUMBER_OF_REALIZATIONS
                         Optional definition of the number of ensemble
                         realizations to be generated. These are generated

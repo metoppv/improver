@@ -33,7 +33,8 @@
   run improver wet-bulb-temperature -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wet-bulb-temperature [-h]
+usage: improver-wet-bulb-temperature [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
                                      [--convergence_condition CONVERGENCE_CONDITION]
                                      TEMPERATURE RELATIVE_HUMIDITY PRESSURE
                                      OUTPUT_FILE
@@ -54,6 +55,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --convergence_condition CONVERGENCE_CONDITION
                         The convergence condition for the Newton iterator in
                         K. When the wet bulb temperature stops changing by

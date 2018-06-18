@@ -32,6 +32,8 @@
 
 from argparse import ArgumentParser
 
+from improver.profile import profile_hook_enable
+
 
 class ArgParser(ArgumentParser):
     """Argument parser for improver CLIs.
@@ -81,23 +83,14 @@ class ArgParser(ArgumentParser):
 
     # *All* CLIs will use the options here (no option to disable them):
     COMPULSORY_ARGUMENTS = {
-        # TODO: Implement (some of?) these:
-        #        'debug': (
-        #            ['--debug'],
-        #            {'action': 'store_true'}),
-        #        'dry_run': (
-        #            ['--dry-run'],
-        #            {'action': 'store_true'}),
-        #        'profile' : (
-        #            ['--profile'],
-        #            {'action': 'store_true'}),
-        #        'verbose': (
-        #            ['--verbose', '-v'],
-        #            {'action': 'count'}),
-        #        'version': (
-        #            ['--version'],
-        #            {'action': 'version',
-        #             'version': improver.version_message() }),
+        'profile': (
+            ['--profile'],
+            {'action': 'store_true',
+             'help': 'Switch on profiling information.'}),
+        'profile_file': (
+            ['--profile_file'],
+            {'metavar': 'PROFILE_FILE',
+             'help': 'Dump profiling info to a file. Implies --profile.'})
     }
 
     # We can override including these, but options common to everything should
@@ -184,6 +177,14 @@ class ArgParser(ArgumentParser):
                     "list (of strings) and a dictionary.")
             argflags, argkwargs = argspec
             self.add_argument(*argflags, **argkwargs)
+
+    def parse_args(self, args=None, namespace=None):
+        """Wrap in order to implement some compulsory behaviour."""
+        args = super(ArgParser, self).parse_args(args=args,
+                                                 namespace=namespace)
+        if hasattr(args, 'profile') and (args.profile or args.profile_file):
+            profile_hook_enable(dump_filename=args.profile_file)
+        return args
 
     def wrong_args_error(self, args, method):
         """Raise a parser error.

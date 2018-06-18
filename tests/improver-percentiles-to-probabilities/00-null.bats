@@ -33,7 +33,9 @@
   run improver percentiles-to-probabilities
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-percentiles-to-probabilities [-h] [--new_name NEW_NAME]
+usage: improver-percentiles-to-probabilities [-h] [--profile]
+                                             [--profile_file PROFILE_FILE]
+                                             [--new_name NEW_NAME]
                                              PERCENTILES_FILE THRESHOLD_FILE
                                              OUTPUT_FILE
 __TEXT__

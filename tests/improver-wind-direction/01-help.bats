@@ -33,16 +33,20 @@
   run improver wind-direction -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wind-direction [-h] INPUT_FILE OUTPUT_FILE
+usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
+                               INPUT_FILE OUTPUT_FILE
 
 Run wind direction to calculate mean wind direction from ensemble realizations
 
 positional arguments:
-  INPUT_FILE   A path to an input NetCDF file to be processed
-  OUTPUT_FILE  The output path for the processed NetCDF
+  INPUT_FILE            A path to an input NetCDF file to be processed
+  OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
-  -h, --help   show this help message and exit
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -33,7 +33,8 @@
   run improver spotdb -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-spotdb [-h] [--table_name OUTPUT_TABLE_NAME]
+usage: improver-spotdb [-h] [--profile] [--profile_file PROFILE_FILE]
+                       [--table_name OUTPUT_TABLE_NAME]
                        [--experiment_id EXPERIMENT_ID]
                        [--max_forecast_leadtime MAX_LEADTIME]
                        (--sqlite | --csv)
@@ -51,6 +52,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --table_name OUTPUT_TABLE_NAME
                         The name of the table for the processed database.
                         Default is "improver"

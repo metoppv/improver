@@ -32,7 +32,7 @@
 @test "wxcode no arguments" {
   run improver wxcode
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-wxcode [-h]
+  expected="usage: improver-wxcode [-h] [--profile] [--profile_file PROFILE_FILE]
                        INPUT_FILES INPUT_FILES INPUT_FILES INPUT_FILES
                        INPUT_FILES INPUT_FILES INPUT_FILES OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]

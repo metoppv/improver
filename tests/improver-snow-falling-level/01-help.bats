@@ -33,7 +33,9 @@
   run improver snow-falling-level -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-snow-falling-level [-h] [--precision NEWTON_PRECISION]
+usage: improver-snow-falling-level [-h] [--profile]
+                                   [--profile_file PROFILE_FILE]
+                                   [--precision NEWTON_PRECISION]
                                    [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                    TEMPERATURE RELATIVE_HUMIDITY PRESSURE
                                    OROGRAPHY OUTPUT_FILE
@@ -57,6 +59,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --precision NEWTON_PRECISION
                         Precision to which the wet bulb temperature is
                         required: This is used by the Newton iteration default

@@ -33,7 +33,9 @@
   run improver percentiles-to-probabilities -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-percentiles-to-probabilities [-h] [--new_name NEW_NAME]
+usage: improver-percentiles-to-probabilities [-h] [--profile]
+                                             [--profile_file PROFILE_FILE]
+                                             [--new_name NEW_NAME]
                                              PERCENTILES_FILE THRESHOLD_FILE
                                              OUTPUT_FILE
 
@@ -42,17 +44,20 @@ Calculate probability from a percentiled field at a 2D threshold level. Eg for
 is at ground level, where the threshold file contains a 2D topography field.
 
 positional arguments:
-  PERCENTILES_FILE     A path to an input NetCDF file containing a percentiled
-                       field
-  THRESHOLD_FILE       A path to an input NetCDF file containing a threshold
-                       value at which probabilities should be calculated.
-  OUTPUT_FILE          The output path for the processed NetCDF
+  PERCENTILES_FILE      A path to an input NetCDF file containing a
+                        percentiled field
+  THRESHOLD_FILE        A path to an input NetCDF file containing a threshold
+                        value at which probabilities should be calculated.
+  OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --new_name NEW_NAME  Name for data in output file. Defaults to
-                       'probability_of_X', where X is the name of the
-                       percentiled diagnostic.
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+  --new_name NEW_NAME   Name for data in output file. Defaults to
+                        'probability_of_X', where X is the name of the
+                        percentiled diagnostic.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

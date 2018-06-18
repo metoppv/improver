@@ -33,7 +33,8 @@
   run improver combine
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-combine [-h] [--operation OPERATION] [--new-name NEW_NAME]
+usage: improver-combine [-h] [--profile] [--profile_file PROFILE_FILE]
+                        [--operation OPERATION] [--new-name NEW_NAME]
                         [--metadata_jsonfile METADATA_JSONFILE]
                         [--warnings_on]
                         INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE

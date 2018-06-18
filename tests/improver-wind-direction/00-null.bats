@@ -32,7 +32,8 @@
 @test "wind direction no arguments" {
   run improver wind-direction
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-wind-direction [-h] INPUT_FILE OUTPUT_FILE"
+  expected="usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
+                               INPUT_FILE OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }
 

@@ -33,7 +33,7 @@
   run improver spot-extract
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-spot-extract [-h]
+usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
                              [--site_path SITE_PATH]
                              [--constants_path CONSTANTS_PATH]

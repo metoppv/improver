@@ -33,7 +33,8 @@
   run improver nbhood-land-and-sea
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood-land-and-sea [-h]
+usage: improver-nbhood-land-and-sea [-h] [--profile]
+                                    [--profile_file PROFILE_FILE]
                                     [--weights_for_collapsing_dim WEIGHTS]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--ens_factor ENS_FACTOR]

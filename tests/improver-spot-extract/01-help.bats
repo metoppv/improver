@@ -33,7 +33,7 @@
   run improver spot-extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-spot-extract [-h]
+usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
                              [--site_path SITE_PATH]
                              [--constants_path CONSTANTS_PATH]
@@ -59,6 +59,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --diagnostics DIAGNOSTICS [DIAGNOSTICS ...]
                         A list of diagnostics that are to be processed. If
                         unset, all diagnostics defined in the config_file will

@@ -33,7 +33,8 @@
   run improver ensemble-calibration -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ensemble-calibration [-h]
+usage: improver-ensemble-calibration [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean_variance MEAN_VARIANCE_FILE]
                                      [--num_realizations NUMBER_OF_REALIZATIONS]
@@ -71,6 +72,9 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
   --predictor_of_mean CALIBRATE_MEAN_FLAG
                         String to specify the input to calculate the
                         calibrated mean. Currently the ensemble mean ("mean")
