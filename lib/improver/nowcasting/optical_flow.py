@@ -32,6 +32,8 @@
 This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
+import warnings
+
 import numpy as np
 
 import scipy.linalg
@@ -731,6 +733,19 @@ class OpticalFlow(object):
 
         return umat, vmat
 
+    @staticmethod
+    def zero_advection_velocities_warning(
+            vel_comp, non_zero_vel_threshold=0.9):
+        # Raise warning if fewer than 90% of the cells within the domain have
+        # non-zero advection velocities.
+        if np.count_nonzero(vel_comp) < vel_comp.size*non_zero_vel_threshold:
+            msg = ("Fewer than {:.1f}% of the cells within the domain have "
+                   "non-zero advection velocities. It is expected that "
+                   "<{:.1f}% of the advection velocities will be zero.".format(
+                       non_zero_vel_threshold*100,
+                       (1-non_zero_vel_threshold)*100))
+            warnings.warn(msg)
+
     def process_dimensionless(self, data1, data2, xaxis, yaxis):
         """
         Calculates dimensionless advection displacements between two input
@@ -768,6 +783,8 @@ class OpticalFlow(object):
         ucomp, vcomp = self.calculate_displacement_vectors(
             partial_dx, partial_dy, partial_dt)
 
+        for vel_comp in [ucomp, vcomp]:
+            self.zero_advection_velocities_warning(vel_comp)
         return ucomp, vcomp
 
     def process(self, cube1, cube2):

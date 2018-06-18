@@ -39,6 +39,7 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import OpticalFlow
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -471,6 +472,40 @@ class Test_calculate_displacement_vectors(IrisTest):
             self.partial_dx, self.partial_dy, self.partial_dt)
         self.assertAlmostEqual(np.mean(umat), -0.121514428331)
         self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
+
+
+class Test_zero_advection_velocities_warning(IrisTest):
+    """Test the zero_advection_velocities_warning."""
+
+    def setUp(self):
+        """Set up arrays of advection velocities"""
+        self.plugin = OpticalFlow()
+        self.nonzero_array = np.array([[3., 5., 7.],
+                                       [2., 2., 1.],
+                                       [1., 1., 1.]])
+
+        self.array_with_zero = np.array([[3., 5., 7.],
+                                         [0., 2., 1.],
+                                         [1., 1., 1.]])
+
+    @ManageWarnings(record=True)
+    def test_warning_raised(self, warning_list=None):
+        """Test that a warning is raised if an excess number of zero values
+        are present within the input array."""
+        self.plugin.zero_advection_velocities_warning(self.array_with_zero)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue("cells within the domain have non-zero advection"
+                        in str(warning_list[0]))
+
+    @ManageWarnings(record=True)
+    def test_no_warning_raised(self, warning_list=None):
+        """Test that no warning is raised the number of zero values in the
+        array is below the threshold used to define an excessive number of
+        zero values."""
+        self.plugin.zero_advection_velocities_warning(self.nonzero_array)
+        self.assertTrue(len(warning_list) == 0)
 
 
 class Test_process_dimensionless(IrisTest):
