@@ -159,6 +159,38 @@ class Test_complex_to_deg(IrisTest):
         self.assertArrayAlmostEqual(result, DEGREE_ANGLES)
 
 
+class Test_wind_dir_mean(IrisTest):
+    """Test the wind_dir_mean function."""
+
+    def test_basic(self):
+        """Test that the function returns correct 2D array of floats. """
+        # 5x3x4 3D Array containing wind direction in angles.
+        data = np.array([[[[170.0, 50.0, 90.0, 90.0],
+                           [170.0, 170.0, 47.0, 350.0],
+                           [10.0, 309.0, 10.0, 10.0]]],
+                         [[[170.0, 50.0, 90.0, 90.0],
+                           [170.0, 170.0, 47.0, 47.0],
+                           [10.0, 10.0, 10.0, 10.0]]],
+                         [[[10.0, 50.0, 90.0, 90.0],
+                           [170.0, 170.0, 47.0, 47.0],
+                           [310.0, 309.0, 10.0, 10.0]]],
+                         [[[190.0, 40.0, 270.0, 90.0],
+                           [170.0, 170.0, 47.0, 47.0],
+                           [310.0, 309.0, 10.0, 10.0]]],
+                         [[[190.0, 40.0, 270.0, 270.0],
+                           [170.0, 170.0, 47.0, 47.0],
+                           [310.0, 309.0, 10.0, 10.0]]]])
+
+        expected_wind_mean = (
+            np.array([[[176.636273, 46.002444, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 36.544233],
+                       [333.413224, 320.035216, 10.0, 10.0]]]))
+
+        result, _ = WindDirection().wind_dir_mean(data, axis=0)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_wind_mean)
+
+
 class Test_find_r_values(IrisTest):
     """Test the find_r_values function."""
 

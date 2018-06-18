@@ -163,6 +163,27 @@ class WindDirection(object):
 
         return angle
 
+    def wind_dir_mean(self, wind_dir, axis=None):
+        """Find the mean wind direction using complex average which actually
+           signifies a point between all of the data points in POLAR
+           coordinates - NOT the average DEGREE ANGLE.
+
+        Args:
+            wind_dir (np.ndarray or float):
+                3D array or float - wind direction angles in degrees.
+
+        Keyword Args:
+            axis (int):
+                Axis along which to calculate the mean. See numpy.mean()
+
+        Returns:
+            (np.ndarray or float):
+                3D array or float - wind direction angles in degrees collapsed
+                along an axis using np.mean().
+        """
+        complex_mean = np.mean(self.deg_to_complex(wind_dir), axis=axis)
+        return self.complex_to_deg(complex_mean), complex_mean
+
     @staticmethod
     def find_r_values(complex_in):
         """Find radius values from complex numbers.
@@ -301,8 +322,7 @@ class WindDirection(object):
 
         return reprocessed_wind_dir_mean
 
-    @staticmethod
-    def process(cube_ens_wdir):
+    def process(self, cube_ens_wdir):
         """Create a cube containing the wind direction averaged over the
         ensemble realizations.
 
@@ -364,19 +384,9 @@ class WindDirection(object):
             slice_mean_wdir = next(slice_ens_wdir.slices_over("realization"))
             slice_mean_wdir.remove_coord("realization")
 
-            # Convert wind direction from degrees to complex numbers.
-            wind_dir_complex = WindDirection.deg_to_complex(wind_dir_deg)
-
-            # Find the complex average -  which actually signifies a point
-            # between all of the data points in POLAR coordinates.
-            # NOT the average DEGREE ANGLE.
-            wind_dir_complex_mean = np.mean(wind_dir_complex,
-                                            axis=realization_axis)
-
-            # Convert complex average values to degrees to produce average
-            # wind direction.
-            wind_dir_deg_mean = WindDirection.complex_to_deg(
-                wind_dir_complex_mean)
+            # Derive average wind direction.
+            wind_dir_deg_mean, wind_dir_complex_mean = (
+                self.wind_dir_mean(wind_dir_deg, axis=realization_axis))
 
             # Find radius values for wind direction average.
             r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
@@ -387,8 +397,8 @@ class WindDirection(object):
             # TODO: This will still need some further investigation.
             #        This is will be the subject of another ticket.
             confidence_measure = WindDirection.calc_confidence_measure(
-                wind_dir_complex, wind_dir_deg_mean, r_vals, r_thresh,
-                realization_axis)
+                self.deg_to_complex(wind_dir_deg), wind_dir_deg_mean, r_vals,
+                r_thresh, realization_axis)
 
             # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble realization.
