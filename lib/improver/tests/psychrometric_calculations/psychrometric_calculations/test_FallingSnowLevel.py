@@ -234,6 +234,12 @@ class Test_process(IrisTest):
         self.orog.add_dim_coord(iris.coords.DimCoord(np.linspace(120, 180, 3),
                                                      'longitude',
                                                      units='degrees'), 1)
+        self.land_sea.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
+                                 'latitude', units='degrees'), 0)
+        self.land_sea.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(120, 180, 3),
+                                 'longitude', units='degrees'), 1)
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""

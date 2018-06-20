@@ -785,8 +785,8 @@ class FallingSnowLevel(object):
         # Firstly we need to slice over height, x and y
         x_coord = wet_bulb_integral.coord(axis='x').name()
         y_coord = wet_bulb_integral.coord(axis='y').name()
-        for orog_cube in orog.slices([y_coord, x_coord]):
-            orog_data = orog_cube.data
+        orog_data = next(orog.slices([y_coord, x_coord])).data
+        land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
 
         snow = iris.cube.CubeList([])
         slice_list = ['height', y_coord, x_coord]
@@ -805,7 +805,7 @@ class FallingSnowLevel(object):
             # Interpolate missing data
             snow_cube.data = self.fill_in_missing_data(snow_cube.data,
                                                        orog_data,
-                                                       land_sea_mask.data,
+                                                       land_sea_data,
                                                        wb_integral.data[0, ::],
                                                        highest_height)
 
