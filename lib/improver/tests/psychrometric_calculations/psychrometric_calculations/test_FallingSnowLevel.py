@@ -103,6 +103,7 @@ class Test_fill_in_missing_data(IrisTest):
                                              [1.0, np.nan, 2.0],
                                              [1.0, 2.0, np.nan]])
         self.orog = np.ones((3, 3))
+        self.land_sea = np.ones((3, 3))
         self.highest_wb_int = np.ones((3, 3))
         self.highest_height = 300.0
 
@@ -113,7 +114,8 @@ class Test_fill_in_missing_data(IrisTest):
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 2.0]])
         result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             self.orog, self.highest_wb_int,
+                                             self.orog, self.land_sea,
+                                             self.highest_wb_int,
                                              self.highest_height)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -123,11 +125,14 @@ class Test_fill_in_missing_data(IrisTest):
         plugin = FallingSnowLevel()
         orog = self.orog
         orog[1, 1] = 0.0
+        land_sea = self.land_sea
+        land_sea[1, 1] = 0.0
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 0.0, 2.0],
                              [1.0, 2.0, 2.0]])
         result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             orog, self.highest_wb_int,
+                                             orog, land_sea,
+                                             self.highest_wb_int,
                                              self.highest_height)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -138,13 +143,15 @@ class Test_fill_in_missing_data(IrisTest):
         plugin = FallingSnowLevel()
         orog = self.orog
         orog[1, 1] = 0.0
+        land_sea = self.land_sea
+        land_sea[1, 1] = 0.0
         highest_wb_int = self.highest_wb_int
         highest_wb_int[1, 1] = 100.0
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 300.0, 2.0],
                              [1.0, 2.0, 2.0]])
         result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             orog, highest_wb_int,
+                                             orog, land_sea, highest_wb_int,
                                              self.highest_height)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -160,7 +167,8 @@ class Test_fill_in_missing_data(IrisTest):
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 301.0]])
         result = plugin.fill_in_missing_data(self.snow_data_no_interp,
-                                             self.orog, highest_wb_int,
+                                             self.orog, self.land_sea,
+                                             highest_wb_int,
                                              self.highest_height)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -174,7 +182,8 @@ class Test_fill_in_missing_data(IrisTest):
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, -300.0]])
         result = plugin.fill_in_missing_data(self.snow_data_no_interp,
-                                             self.orog, self.highest_wb_int,
+                                             self.orog, self.land_sea,
+                                             self.highest_wb_int,
                                              self.highest_height)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -216,18 +225,27 @@ class Test_process(IrisTest):
 
         self.orog = iris.cube.Cube(np.ones((3, 3)),
                                    standard_name='surface_altitude', units='m')
+        self.land_sea = iris.cube.Cube(np.ones((3, 3)),
+                                       standard_name='land_binary_mask',
+                                       units='m')
         self.orog.add_dim_coord(
             iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
                                  'latitude', units='degrees'), 0)
         self.orog.add_dim_coord(iris.coords.DimCoord(np.linspace(120, 180, 3),
                                                      'longitude',
                                                      units='degrees'), 1)
+        self.land_sea.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
+                                 'latitude', units='degrees'), 0)
+        self.land_sea.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(120, 180, 3),
+                                 'longitude', units='degrees'), 1)
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
-            self.pressure_cube, self.orog)
+            self.pressure_cube, self.orog, self.land_sea)
         expected = np.ones((2, 3, 3)) * 66.88732723
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "falling_snow_level_asl")
@@ -241,9 +259,11 @@ class Test_process(IrisTest):
         expected[:, 1, 1] = 0.0
         orog = self.orog
         orog.data = orog.data * 0.0
+        land_sea = self.land_sea
+        land_sea = land_sea * 0.0
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
-            self.pressure_cube, self.orog)
+            self.pressure_cube, orog, land_sea)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

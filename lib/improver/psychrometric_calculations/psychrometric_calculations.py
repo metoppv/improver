@@ -665,7 +665,7 @@ class FallingSnowLevel(object):
 
         return snow_level_data
 
-    def fill_in_missing_data(self, snow_level_data, orog_data,
+    def fill_in_missing_data(self, snow_level_data, orog_data, land_sea_data,
                              highest_wb_int_data, highest_height):
         """
         Fill in missing data. Wet-bulb integral data
@@ -693,6 +693,8 @@ class FallingSnowLevel(object):
                 Falling snow level data (m).
             orog_data (np.array):
                 Orographic data (m)
+            land_sea_data (np.array):
+                The binary land-sea mask array.
             highest_wb_int_data (np.array):
                 Wet bulb integral data on highest level (K m).
             highest_height (float):
@@ -708,13 +710,13 @@ class FallingSnowLevel(object):
         # Set these to highest_height
         sea_points_not_freezing = np.where(
             np.isnan(snow_level_data) &
-            (orog_data == 0.0) &
+            (land_sea_data < 1.0) &
             (highest_wb_int_data >
              self.falling_level_threshold))
         snow_level_data[sea_points_not_freezing] = highest_height
         # Now find any remaining sea_points and set these to 0
         sea_points = np.where(np.isnan(snow_level_data) &
-                              (orog_data == 0.0))
+                              (land_sea_data < 1.0))
         snow_level_data[sea_points] = 0.0
         # Interpolate linearly across the remaining points
         points = np.where(np.isfinite(snow_level_data))
@@ -740,7 +742,8 @@ class FallingSnowLevel(object):
         snow_level_updated[remaining_points] = self.missing_data
         return snow_level_updated
 
-    def process(self, temperature, relative_humidity, pressure, orog):
+    def process(self, temperature, relative_humidity, pressure, orog,
+                land_sea_mask):
         """
         Calculate the wet bulb temperature integral by firstly calculating
         the wet bulb temperature from the inputs provided, and then
@@ -758,6 +761,8 @@ class FallingSnowLevel(object):
                 Cube of air pressures (Pa).
             orog (iris.cube.Cube):
                 Cube of orography (m).
+            land_sea_mask (iris.cube.Cube):
+                Cube containing a binary land-sea mask.
 
         Returns:
             falling_snow_level (iris.cube.Cube):
@@ -780,8 +785,8 @@ class FallingSnowLevel(object):
         # Firstly we need to slice over height, x and y
         x_coord = wet_bulb_integral.coord(axis='x').name()
         y_coord = wet_bulb_integral.coord(axis='y').name()
-        for orog_cube in orog.slices([y_coord, x_coord]):
-            orog_data = orog_cube.data
+        orog_data = next(orog.slices([y_coord, x_coord])).data
+        land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
 
         snow = iris.cube.CubeList([])
         slice_list = ['height', y_coord, x_coord]
@@ -800,6 +805,7 @@ class FallingSnowLevel(object):
             # Interpolate missing data
             snow_cube.data = self.fill_in_missing_data(snow_cube.data,
                                                        orog_data,
+                                                       land_sea_data,
                                                        wb_integral.data[0, ::],
                                                        highest_height)
 
