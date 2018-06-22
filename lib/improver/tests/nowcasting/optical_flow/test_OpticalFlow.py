@@ -480,31 +480,62 @@ class Test_zero_advection_velocities_warning(IrisTest):
     def setUp(self):
         """Set up arrays of advection velocities"""
         self.plugin = OpticalFlow()
-        self.nonzero_array = np.array([[3., 5., 7.],
-                                       [2., 2., 1.],
-                                       [1., 1., 1.]])
-
-        self.array_with_zero = np.array([[3., 5., 7.],
-                                         [0., 2., 1.],
-                                         [1., 1., 1.]])
 
     @ManageWarnings(record=True)
     def test_warning_raised(self, warning_list=None):
         """Test that a warning is raised if an excess number of zero values
         are present within the input array."""
-        self.plugin.zero_advection_velocities_warning(self.array_with_zero)
+        greater_than_10_percent_zeroes_array = (
+            np.array([[3., 5., 7.],
+                      [0., 2., 1.],
+                      [1., 1., 1.]]))
+        self.plugin.zero_advection_velocities_warning(
+            greater_than_10_percent_zeroes_array)
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("cells within the domain have non-zero advection"
+        self.assertTrue("cells within the domain have zero advection"
                         in str(warning_list[0]))
 
     @ManageWarnings(record=True)
-    def test_no_warning_raised(self, warning_list=None):
-        """Test that no warning is raised the number of zero values in the
+    def test_no_warning_raised_if_no_zeroes(self, warning_list=None):
+        """Test that no warning is raised if the number of zero values in the
         array is below the threshold used to define an excessive number of
         zero values."""
-        self.plugin.zero_advection_velocities_warning(self.nonzero_array)
+        nonzero_array = np.array([[3., 5., 7.],
+                                  [2., 2., 1.],
+                                  [1., 1., 1.]])
+        self.plugin.zero_advection_velocities_warning(nonzero_array)
+        self.assertTrue(len(warning_list) == 0)
+
+    @ManageWarnings(record=True)
+    def test_no_warning_raised_if_fewer_zeroes_than_threshold(
+            self, warning_list=None):
+        """Test that no warning is raised if the number of zero values in the
+        array is below the threshold used to define an excessive number of
+        zero values when at least one zero exists within the array."""
+        less_than_10_percent_zeroes_array = (
+            np.array([[1., 3., 5., 7., 1.],
+                      [0., 2., 1., 1., 1.],
+                      [1., 1., 1., 1., 1.],
+                      [1., 1., 1., 1., 1.],
+                      [1., 1., 1., 1., 1.]]))
+        self.plugin.zero_advection_velocities_warning(
+            less_than_10_percent_zeroes_array)
+        self.assertTrue(len(warning_list) == 0)
+
+    @ManageWarnings(record=True)
+    def test_no_warning_raised_for_modified_threshold(
+            self, warning_list=None):
+        """Test that no warning is raised if the number of zero values in the
+        array is below the threshold used to define an excessive number of
+        zero values when the threshold is modified."""
+        less_than_30_percent_zeroes_array = (
+            np.array([[3., 5., 7.],
+                      [0., 2., 1.],
+                      [0., 1., 1.]]))
+        self.plugin.zero_advection_velocities_warning(
+            less_than_30_percent_zeroes_array, zero_vel_threshold=0.3)
         self.assertTrue(len(warning_list) == 0)
 
 

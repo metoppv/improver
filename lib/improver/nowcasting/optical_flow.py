@@ -735,10 +735,10 @@ class OpticalFlow(object):
 
     @staticmethod
     def zero_advection_velocities_warning(
-            vel_comp, non_zero_vel_threshold=0.9):
+            vel_comp, zero_vel_threshold=0.1):
         """
-        Raise warning if fewer than 90% of the cells within the domain have
-        non-zero advection velocities.
+        Raise warning if more than 10% of the cells within the domain have
+        zero advection velocities.
 
         Args:
             vel_comp (np.ndarray):
@@ -746,25 +746,25 @@ class OpticalFlow(object):
                 proportion of zeroes present in this field.
 
         Keyword Args:
-            non_zero_vel_threshold (float):
-                Fractional value to specify the proportion of non-zero values
-                that the advection field should contain at a minimum.
-                For example, if non_zero_vel_threshold=0.9 then up to 90% of
+            zero_vel_threshold (float):
+                Fractional value to specify the proportion of zero values
+                that the advection field should contain at a maximum.
+                For example, if zero_vel_threshold=0.1 then up to 10% of
                 the advection velocities can be zero before a warning will be
                 raised.
 
         Warns:
-            Warning: If the proportion of non-zero advection velocities is
-                below the threshold specified by non_zero_vel_threshold.
+            Warning: If the proportion of zero advection velocities is
+                above the threshold specified by zero_vel_threshold.
 
         """
-        if np.count_nonzero(vel_comp) < vel_comp.size*non_zero_vel_threshold:
-            msg = ("Fewer than {:.1f}% of the cells within the domain have "
-                   "non-zero advection velocities. It is expected that "
-                   "less than {:.1f}% of the advection velocities "
-                   "will be zero.".format(
-                       non_zero_vel_threshold*100,
-                       (1-non_zero_vel_threshold)*100))
+        if np.count_nonzero(vel_comp == 0) > vel_comp.size*zero_vel_threshold:
+            msg = ("More than {:.1f}% of the cells within the domain have "
+                   "zero advection velocities. It is expected that "
+                   "greater than {:.1f}% of the advection velocities "
+                   "will be non-zero.".format(
+                       zero_vel_threshold*100,
+                       (1-zero_vel_threshold)*100))
             warnings.warn(msg)
 
     def process_dimensionless(self, data1, data2, xaxis, yaxis):
