@@ -666,7 +666,7 @@ class FallingSnowLevel(object):
         return snow_level_data
 
     def fill_in_missing_data(self, snow_level_data, orog_data, land_sea_data,
-                             highest_wb_int_data, highest_height,):
+                             highest_wb_int_data, highest_height):
         """
         Fill in missing data. Wet-bulb integral data
         is only available above ground level and there may be an insufficient
