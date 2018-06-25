@@ -120,7 +120,7 @@ class Test_fill_in_high_snow_falling_levels(IrisTest):
 
     def test_no_fill_if_conditions_not_met(self):
         """Test it doesn't fill in NaN if the heighest wet bulb integral value
-           is less the than theshold."""
+           is less the than threshold."""
         plugin = FallingSnowLevel()
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, np.nan, 2.0],
@@ -146,7 +146,7 @@ class Test_fill_sea_points(IrisTest):
         self.land_sea = np.ones((3, 3))
 
     def test_basic(self):
-        """Test it fills in the poitns it's meant to."""
+        """Test it fills in the points it's meant to."""
         plugin = FallingSnowLevel()
         self.land_sea[1, 1] = 0
 
@@ -191,7 +191,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.plugin = FallingSnowLevel()
 
     def test_basic(self):
-        """Test when all the points arround the missing data are the same."""
+        """Test when all the points around the missing data are the same."""
         snow_level_data = np.ones((3, 3))
         snow_level_data[1, 1] = np.nan
         expected = np.array([[1.0, 1.0, 1.0],
@@ -202,7 +202,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.assertArrayEqual(snow_level_updated, expected)
 
     def test_different_data(self):
-        """Test when the points arround the missing data have different
+        """Test when the points around the missing data have different
            values."""
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],

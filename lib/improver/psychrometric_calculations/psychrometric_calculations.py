@@ -718,7 +718,8 @@ class FallingSnowLevel(object):
             (wet_bulb_integral < self.falling_level_threshold))
         snow_level_data[sea_points] = 0.0
 
-    def fill_in_by_horizontal_interpolation(self, snow_level_data):
+    @staticmethod
+    def fill_in_by_horizontal_interpolation(snow_level_data):
         """
         Fill in any remaining in the snow falling level by using linear
         horizontal intepolation across the grid.
