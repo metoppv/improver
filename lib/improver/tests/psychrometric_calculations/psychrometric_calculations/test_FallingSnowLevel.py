@@ -140,15 +140,9 @@ class Test_fill_sea_points(IrisTest):
         self.snow_level_data = np.array([[1.0, 1.0, 2.0],
                                          [1.0, np.nan, 2.0],
                                          [1.0, 2.0, 2.0]])
-        self.wb_int = np.array([[[0.0, 2.0, 1.0],
-                                 [1.0, 1.0, 2.0],
-                                 [1.0, 2.0, 1.0]],
-                                [[40.0, 40.0, 40.0],
-                                 [40.0, 2.0, 40.0],
-                                 [40.0, 40.0, 40.0]],
-                                [[100.0, 100.0, 100.0],
-                                 [100.0, 5.0, 100.0],
-                                 [100.0, 100.0, 100.0]]])
+        self.wb_int = np.array([[100.0, 100.0, 100.0],
+                                [100.0, 5.0, 100.0],
+                                [100.0, 100.0, 100.0]])
         self.land_sea = np.ones((3, 3))
 
     def test_basic(self):
@@ -176,7 +170,7 @@ class Test_fill_sea_points(IrisTest):
     def test_all_above_threshold(self):
         """Test it doesn't change points that are all above the threshold"""
         plugin = FallingSnowLevel()
-        self.wb_int[2, 1, 1] = 100
+        self.wb_int[1, 1] = 100
         self.snow_level_data[1, 1] = 1.0
 
         expected = np.array([[1.0, 1.0, 2.0],
@@ -296,6 +290,7 @@ class Test_process(IrisTest):
         """Test that the falling snow level process returns a cube
         containing the expected data when points at sea-level."""
         expected = np.ones((2, 3, 3)) * 65.88732723
+        expected[:, 1, 1] = 0.0
         orog = self.orog
         orog.data = orog.data * 0.0
         land_sea = self.land_sea

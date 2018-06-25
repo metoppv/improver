@@ -708,13 +708,14 @@ class FallingSnowLevel(object):
             land_sea_data (numpy.array):
                 The binary land-sea mask
             wet_bulb_integral (numpy.array):
-                The wet bulb temperature integral on height levels, with height
-                on first axis.
+                The wet bulb temperature integral at the final height level
+                used in the integration. This has the maximum values for the
+                wet bulb temperature integral at any level.
 
         """
         sea_points = np.where(
             np.isnan(snow_level_data) & (land_sea_data < 1.0) &
-            (np.max(wet_bulb_integral, axis=0) < self.falling_level_threshold))
+            (wet_bulb_integral < self.falling_level_threshold))
         snow_level_data[sea_points] = 0.0
 
     def fill_in_by_horizontal_interpolation(self, snow_level_data):
@@ -808,7 +809,6 @@ class FallingSnowLevel(object):
                 snow_cube.data, land_sea_data, wb_integral.data.max(axis=0))
             snow_cube.data = self.fill_in_by_horizontal_interpolation(
                 snow_cube.data)
-
             # Fill in any remaining points with missing data:
             remaining_points = np.where(np.isnan(snow_cube.data))
             snow_cube.data[remaining_points] = self.missing_data
