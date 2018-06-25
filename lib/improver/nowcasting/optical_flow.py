@@ -445,12 +445,13 @@ class OpticalFlow(object):
                 Size of boxes to be output
 
         Returns:
-            boxes (list):
-                List of np.ndarrays of size boxsize*boxsize containing slices
-                of data from input field.
-            weights (np.ndarray):
-                1D numpy array containing weights values associated with each
-                listed box.
+            (tuple) : tuple containing:
+                **boxes** (list):
+                    List of np.ndarrays of size boxsize*boxsize containing
+                    slices of data from input field.
+                **weights** (np.ndarray):
+                    1D numpy array containing weights values associated with
+                    each listed box.
         """
         boxes = []
         weights = []
@@ -506,6 +507,14 @@ class OpticalFlow(object):
              [ 0.      0.125   0.25    0.125   0.    ]
              [ 0.      0.0625  0.125   0.0625  0.    ]
              [ 0.      0.      0.      0.      0.    ]]
+
+        Args:
+            radius (int):
+                Kernel radius or half box size for smoothing
+
+        Returns:
+            kernel_2d (np.ndarray):
+                Kernel to use for generating a smoothed field.
 
         """
         kernel_1d = 1 - np.abs(np.linspace(-1, 1, radius*2+1))
@@ -689,10 +698,11 @@ class OpticalFlow(object):
                 2D array of partial input field derivatives d/dt
 
         Returns:
-            umat (np.ndarray):
-                2D array of displacements in the x-direction
-            vmat (np.ndarray):
-                2D array of displacements in the y-direction
+            (tuple) : tuple containing:
+                **umat** (np.ndarray):
+                    2D array of displacements in the x-direction
+                **vmat** (np.ndarray):
+                    2D array of displacements in the y-direction
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
@@ -737,8 +747,8 @@ class OpticalFlow(object):
     def zero_advection_velocities_warning(
             vel_comp, zero_vel_threshold=0.1):
         """
-        Raise warning if more than 10% of the cells within the domain have
-        zero advection velocities.
+        Raise warning if more than a fixed threshold (default 10%)
+        of the cells within the domain have zero advection velocities.
 
         Args:
             vel_comp (np.ndarray):
@@ -783,10 +793,11 @@ class OpticalFlow(object):
                 Index of y coordinate axis
 
         Returns:
-            ucomp (np.ndarray):
-                Advection displacement (grid squares) in the x direction
-            vcomp (np.ndarray):
-                Advection displacement (grid squares) in the y direction
+            (tuple) : tuple containing:
+                **ucomp** (np.ndarray):
+                    Advection displacement (grid squares) in the x direction
+                **vcomp** (np.ndarray):
+                    Advection displacement (grid squares) in the y direction
         """
         # Smooth input data
         self.shape = data1.shape
@@ -825,10 +836,11 @@ class OpticalFlow(object):
                 2D cube from (later) time 2
 
         Returns:
-            ucube (iris.cube.Cube):
-                2D cube of advection velocities in the x-direction
-            vcube (iris.cube.Cube):
-                2D cube of advection velocities in the y-direction
+            (tuple) : tuple containing:
+                **ucube** (iris.cube.Cube):
+                    2D cube of advection velocities in the x-direction
+                **vcube** (iris.cube.Cube):
+                    2D cube of advection velocities in the y-direction
         """
 
         # check cubes have exactly two spatial dimension coordinates and a
