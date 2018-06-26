@@ -120,7 +120,7 @@ class Test_fill_in_high_snow_falling_levels(IrisTest):
 
     def test_no_fill_if_conditions_not_met(self):
         """Test it doesn't fill in NaN if the heighest wet bulb integral value
-           is less the than threshold."""
+           is less than the threshold."""
         plugin = FallingSnowLevel()
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, np.nan, 2.0],
@@ -133,7 +133,7 @@ class Test_fill_in_high_snow_falling_levels(IrisTest):
 
 class Test_fill_sea_points(IrisTest):
 
-    """Test the fill_in_missing_data method."""
+    """Test the fill_in_sea_points method."""
 
     def setUp(self):
         """ Set up arrays for testing."""
@@ -172,6 +172,7 @@ class Test_fill_sea_points(IrisTest):
         plugin = FallingSnowLevel()
         self.wb_int[1, 1] = 100
         self.snow_level_data[1, 1] = 1.0
+        self.land_sea[1, 1] = 0
 
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.0, 2.0],

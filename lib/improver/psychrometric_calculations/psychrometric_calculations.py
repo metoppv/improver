@@ -721,8 +721,8 @@ class FallingSnowLevel(object):
     @staticmethod
     def fill_in_by_horizontal_interpolation(snow_level_data):
         """
-        Fill in any remaining in the snow falling level by using linear
-        horizontal intepolation across the grid.
+        Fill in any remaining unset areas in the snow falling level by using
+        linear horizontal intepolation across the grid.
 
         Args:
             snow_level_data(numpy.array):
@@ -749,7 +749,7 @@ class FallingSnowLevel(object):
         the wet bulb temperature from the inputs provided, and then
         calculating the vertical integral of the wet bulb temperature.
         Find the falling_snow_level by finding the height above sea level
-        correspoinding to the falling_level_threshold in the integral data.
+        corresponding to the falling_level_threshold in the integral data.
         Fill in missing data appropriately.
 
         Args:
