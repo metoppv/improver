@@ -97,13 +97,31 @@ WIND_DIR_R_VALS = np.array([[6.12323400e-17, 0.996194698],
                             [0.984807753, 0.984807753]])
 
 
+class Test__init__(IrisTest):
+    """Test the init method."""
+
+    def test_basic(self):
+        """Test that the __init__ does not fail."""
+        WindDirection()
+
+    def test_backup_method(self):
+        """Test that the __init__ accepts this keyword."""
+        WindDirection(low_confidence_method='neighbourhood')
+
+    def test_invalid_method(self):
+        """Test that the __init__ fails when an unrecognised option is given."""
+        msg = ('Invalid option for keyword low_confidence_method ')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WindDirection(low_confidence_method='invalid')
+
+
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection>')
+        msg = ('<WindDirection: low_confidence_method "first realization">')
         self.assertEqual(result, msg)
 
 

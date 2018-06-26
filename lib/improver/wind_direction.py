@@ -98,12 +98,13 @@ class WindDirection(object):
         if self.backup_method not in self.backup_methods:
             msg = ('Invalid option for keyword low_confidence_method ' +
                    '({})'.format(self.backup_method))
-            raise(ValueError, msg)
+            raise ValueError(msg)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<WindDirection>')
-        return desc
+        return (
+            '<WindDirection: low_confidence_method "{}">'
+        ).format(self.backup_method)
 
     @staticmethod
     def deg_to_complex(angle_deg, radius=1):
