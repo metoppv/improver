@@ -90,9 +90,9 @@ class Test_find_falling_level(IrisTest):
         self.assertTrue(np.isnan(result[1, 1]))
 
 
-class Test_fill_in_missing_data(IrisTest):
+class Test_fill_in_high_snow_falling_levels(IrisTest):
 
-    """Test the fill_in_missing_data method."""
+    """Test the fill_in_high_snow_falling_levels method."""
 
     def setUp(self):
         """ Set up arrays for testing."""
@@ -103,90 +103,125 @@ class Test_fill_in_missing_data(IrisTest):
                                              [1.0, np.nan, 2.0],
                                              [1.0, 2.0, np.nan]])
         self.orog = np.ones((3, 3))
-        self.land_sea = np.ones((3, 3))
         self.highest_wb_int = np.ones((3, 3))
         self.highest_height = 300.0
 
     def test_basic(self):
-        """Test method returns an array with correct data"""
+        """Test fills in missing data with orography + highest height"""
         plugin = FallingSnowLevel()
+        self.highest_wb_int[1, 1] = 100.0
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, 301.0, 2.0],
+                             [1.0, 2.0, 2.0]])
+        plugin.fill_in_high_snow_falling_levels(
+            self.snow_level_data, self.orog, self.highest_wb_int,
+            self.highest_height)
+        self.assertArrayEqual(self.snow_level_data, expected)
+
+    def test_no_fill_if_conditions_not_met(self):
+        """Test it doesn't fill in NaN if the heighest wet bulb integral value
+           is less than the threshold."""
+        plugin = FallingSnowLevel()
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, np.nan, 2.0],
+                             [1.0, 2.0, 2.0]])
+        plugin.fill_in_high_snow_falling_levels(
+            self.snow_level_data, self.orog, self.highest_wb_int,
+            self.highest_height)
+        self.assertArrayEqual(self.snow_level_data, expected)
+
+
+class Test_fill_sea_points(IrisTest):
+
+    """Test the fill_in_sea_points method."""
+
+    def setUp(self):
+        """ Set up arrays for testing."""
+        self.snow_level_data = np.array([[1.0, 1.0, 2.0],
+                                         [1.0, np.nan, 2.0],
+                                         [1.0, 2.0, 2.0]])
+        self.wb_int = np.array([[100.0, 100.0, 100.0],
+                                [100.0, 5.0, 100.0],
+                                [100.0, 100.0, 100.0]])
+        self.land_sea = np.ones((3, 3))
+
+    def test_basic(self):
+        """Test it fills in the points it's meant to."""
+        plugin = FallingSnowLevel()
+        self.land_sea[1, 1] = 0
+
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, 0, 2.0],
+                             [1.0, 2.0, 2.0]])
+        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
+                                  self.wb_int)
+        self.assertArrayEqual(self.snow_level_data, expected)
+
+    def test_no_sea(self):
+        """Test it only fills in sea points, and ignores a land point"""
+        plugin = FallingSnowLevel()
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, np.nan, 2.0],
+                             [1.0, 2.0, 2.0]])
+        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
+                                  self.wb_int)
+        self.assertArrayEqual(self.snow_level_data, expected)
+
+    def test_all_above_threshold(self):
+        """Test it doesn't change points that are all above the threshold"""
+        plugin = FallingSnowLevel()
+        self.wb_int[1, 1] = 100
+        self.snow_level_data[1, 1] = 1.0
+        self.land_sea[1, 1] = 0
+
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, 1.0, 2.0],
+                             [1.0, 2.0, 2.0]])
+        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
+                                  self.wb_int)
+        self.assertArrayEqual(self.snow_level_data, expected)
+
+
+class Test_fill_in_by_horizontal_interpolation(IrisTest):
+    """Test the fill_in_by_horizontal_interpolation method"""
+    def setUp(self):
+        """ Set up arrays for testing."""
+        self.snow_level_data = np.array([[1.0, 1.0, 2.0],
+                                        [1.0, np.nan, 2.0],
+                                        [1.0, 2.0, 2.0]])
+        self.plugin = FallingSnowLevel()
+
+    def test_basic(self):
+        """Test when all the points around the missing data are the same."""
+        snow_level_data = np.ones((3, 3))
+        snow_level_data[1, 1] = np.nan
+        expected = np.array([[1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            snow_level_data)
+        self.assertArrayEqual(snow_level_updated, expected)
+
+    def test_different_data(self):
+        """Test when the points around the missing data have different
+           values."""
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 2.0]])
-        result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             self.orog, self.land_sea,
-                                             self.highest_wb_int,
-                                             self.highest_height)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            self.snow_level_data)
+        self.assertArrayEqual(snow_level_updated, expected)
 
-    def test_freezing_sealevel_point(self):
-        """Test sea point with integral below threshold sets snow level to 0"""
-        plugin = FallingSnowLevel()
-        orog = self.orog
-        orog[1, 1] = 0.0
-        land_sea = self.land_sea
-        land_sea[1, 1] = 0.0
+    def test_lots_missing(self):
+        """Test when there's an extra missing value at the corner
+           of the grid."""
+        self.snow_level_data[2, 2] = np.nan
         expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 0.0, 2.0],
-                             [1.0, 2.0, 2.0]])
-        result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             orog, land_sea,
-                                             self.highest_wb_int,
-                                             self.highest_height)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
-
-    def test_nonfreezing_sealevel_point(self):
-        """Test sea point with integral above threshold sets snow level
-        to highest_level"""
-        plugin = FallingSnowLevel()
-        orog = self.orog
-        orog[1, 1] = 0.0
-        land_sea = self.land_sea
-        land_sea[1, 1] = 0.0
-        highest_wb_int = self.highest_wb_int
-        highest_wb_int[1, 1] = 100.0
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 300.0, 2.0],
-                             [1.0, 2.0, 2.0]])
-        result = plugin.fill_in_missing_data(self.snow_level_data,
-                                             orog, land_sea, highest_wb_int,
-                                             self.highest_height)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
-
-    def test_nonfreezing_points(self):
-        """Test with integral above threshold sets snow level to highest_level
-            plus orograpy where the data can not be
-            interpolated from other points and points are not
-            sea-level points."""
-        plugin = FallingSnowLevel()
-        highest_wb_int = self.highest_wb_int * 100.0
-        expected = np.array([[301.0, 301.0, 301.0],
                              [1.0, 1.5, 2.0],
-                             [1.0, 2.0, 301.0]])
-        result = plugin.fill_in_missing_data(self.snow_data_no_interp,
-                                             self.orog, self.land_sea,
-                                             highest_wb_int,
-                                             self.highest_height)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
-
-    def test_freezing_points(self):
-        """Test with integral below threshold sets snow level to missing_value
-            where the data can not be interpolated from other points
-            and points are not a sea-level points."""
-        plugin = FallingSnowLevel()
-        expected = np.array([[-300.0, -300.0, -300.0],
-                             [1.0, 1.5, 2.0],
-                             [1.0, 2.0, -300.0]])
-        result = plugin.fill_in_missing_data(self.snow_data_no_interp,
-                                             self.orog, self.land_sea,
-                                             self.highest_wb_int,
-                                             self.highest_height)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayEqual(result, expected)
+                             [1.0, 2.0, np.nan]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            self.snow_level_data)
+        self.assertArrayEqual(snow_level_updated, expected)
 
 
 class Test_process(IrisTest):
