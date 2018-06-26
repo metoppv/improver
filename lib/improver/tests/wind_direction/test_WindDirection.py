@@ -243,9 +243,9 @@ class Test_wind_dir_decider(IrisTest):
         expected_out = np.array([[90.0, 55.0],
                                  [280.0, 0.0]])
 
-        result = WindDirection.wind_dir_decider(WIND_DIR_DEG,
-                                                WIND_DIR_DEG_MEAN,
-                                                WIND_DIR_R_VALS, 0.01)
+        result = WindDirection().wind_dir_decider(WIND_DIR_DEG,
+                                                  WIND_DIR_DEG_MEAN,
+                                                  WIND_DIR_R_VALS, 0.01)
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)

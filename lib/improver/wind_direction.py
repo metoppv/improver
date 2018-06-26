@@ -80,11 +80,25 @@ class WindDirection(object):
     Step 6 still needs more development so it is only included in the code
     as a placeholder.
 
+    Keyword Args:
+        low_confidence_method (str):
+            Backup method to use if the complex numbers approach has low
+            confidence.
+            "first realization" (default) uses the value of realization zero.
+            "neighbourhood" recalculates using the complex numbers approach
+            with additional realizations extracted from neighbouring grid points
+            from all available realizations.
+
     """
 
-    def __init__(self):
+    def __init__(self, low_confidence_method='first realization'):
         """Initialise class."""
-        pass
+        self.backup_methods = ['first realization', 'neighbourhood']
+        self.backup_method = low_confidence_method
+        if self.backup_method not in self.backup_methods:
+            msg = ('Invalid option for keyword low_confidence_method ' +
+                   '({})'.format(self.backup_method))
+            raise(ValueError, msg)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -279,8 +293,8 @@ class WindDirection(object):
                                        0.0, dist_from_mean_norm)
         return dist_from_mean_norm
 
-    @staticmethod
-    def wind_dir_decider(wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh):
+    def wind_dir_decider(self, wind_dir_deg, wind_dir_deg_mean, r_vals,
+                         r_thresh):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
@@ -312,15 +326,17 @@ class WindDirection(object):
         if not where_low_r.any():
             return wind_dir_deg_mean
 
-        # Takes first ensemble realization.
-        first_realization = wind_dir_deg[0]
+        if self.backup_method == 'neighbourhood':
+            improved_values = None
+        else:
+            # Takes first ensemble realization.
+            improved_values = wind_dir_deg[0]
 
         # If the r-value is low - subistite average wind direction value for
         # the wind direction taken from the first ensemble realization.
-        reprocessed_wind_dir_mean = np.where(where_low_r, first_realization,
-                                             wind_dir_deg_mean)
+        return np.where(where_low_r, improved_values,
+                        wind_dir_deg_mean)
 
-        return reprocessed_wind_dir_mean
 
     def process(self, cube_ens_wdir):
         """Create a cube containing the wind direction averaged over the
@@ -389,20 +405,20 @@ class WindDirection(object):
                 self.wind_dir_mean(wind_dir_deg, axis=realization_axis))
 
             # Find radius values for wind direction average.
-            r_vals = WindDirection.find_r_values(wind_dir_complex_mean)
+            r_vals = self.find_r_values(wind_dir_complex_mean)
 
             # Calculate the confidence measure based on the difference
             # between the complex average and the individual ensemble
             # realizations.
             # TODO: This will still need some further investigation.
             #        This is will be the subject of another ticket.
-            confidence_measure = WindDirection.calc_confidence_measure(
+            confidence_measure = self.calc_confidence_measure(
                 self.deg_to_complex(wind_dir_deg), wind_dir_deg_mean, r_vals,
                 r_thresh, realization_axis)
 
             # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble realization.
-            wind_dir_deg_mean = WindDirection.wind_dir_decider(
+            wind_dir_deg_mean = self.wind_dir_decider(
                 wind_dir_deg, wind_dir_deg_mean, r_vals, r_thresh)
 
             # Save data into cubes (create new cubes for r and
