@@ -508,7 +508,7 @@ class Test__zero_advection_velocities_warning(IrisTest):
                                   [2., 2., 1.],
                                   [1., 1., 1.]])
         self.plugin._zero_advection_velocities_warning(nonzero_array,
-                                                      self.rain_mask)
+                                                       self.rain_mask)
         self.assertTrue(len(warning_list) == 0)
 
     @ManageWarnings(record=True)

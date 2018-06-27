@@ -772,7 +772,7 @@ class OpticalFlow(object):
         """
         zeroes_in_rain = np.count_nonzero(vel_comp[rain_mask] == 0)
         rain_pixels = vel_comp[rain_mask].size
-        
+
         if zeroes_in_rain > rain_pixels*zero_vel_threshold:
             msg = ("More than {:.1f}% of the cells within the domain have "
                    "zero advection velocities. It is expected that "
@@ -821,10 +821,9 @@ class OpticalFlow(object):
             partial_dx, partial_dy, partial_dt)
 
         # Check for zeros where there should be valid displacements
-        rain_mask = np.where((data1 > 0) & (data2 > 0))
+        rain_mask = np.where((data1 > 0) | (data2 > 0))
         for vel_comp in [ucomp, vcomp]:
             self._zero_advection_velocities_warning(vel_comp, rain_mask)
-
         return ucomp, vcomp
 
     def process(self, cube1, cube2):
