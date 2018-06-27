@@ -744,16 +744,18 @@ class OpticalFlow(object):
         return umat, vmat
 
     @staticmethod
-    def zero_advection_velocities_warning(
-            vel_comp, zero_vel_threshold=0.1):
+    def _zero_advection_velocities_warning(
+            vel_comp, rain_mask, zero_vel_threshold=0.1):
         """
-        Raise warning if more than a fixed threshold (default 10%)
-        of the cells within the domain have zero advection velocities.
+        Raise warning if more than a fixed threshold (default 10%) of cells
+        where there is rain within the domain have zero advection velocities.
 
         Args:
             vel_comp (np.ndarray):
                 Advection velocity that will be checked to assess the
                 proportion of zeroes present in this field.
+            rain_mask (tuple):
+                Array indices where there is rain.
 
         Keyword Args:
             zero_vel_threshold (float):
@@ -768,7 +770,10 @@ class OpticalFlow(object):
                 above the threshold specified by zero_vel_threshold.
 
         """
-        if np.count_nonzero(vel_comp == 0) > vel_comp.size*zero_vel_threshold:
+        zeroes_in_rain = np.count_nonzero(vel_comp[rain_mask] == 0)
+        rain_pixels = vel_comp[rain_mask].size
+        
+        if zeroes_in_rain > rain_pixels*zero_vel_threshold:
             msg = ("More than {:.1f}% of the cells within the domain have "
                    "zero advection velocities. It is expected that "
                    "greater than {:.1f}% of the advection velocities "
@@ -815,8 +820,11 @@ class OpticalFlow(object):
         ucomp, vcomp = self.calculate_displacement_vectors(
             partial_dx, partial_dy, partial_dt)
 
+        # Check for zeros where there should be valid displacements
+        rain_mask = np.where((data1 > 0) & (data2 > 0))
         for vel_comp in [ucomp, vcomp]:
-            self.zero_advection_velocities_warning(vel_comp)
+            self._zero_advection_velocities_warning(vel_comp, rain_mask)
+
         return ucomp, vcomp
 
     def process(self, cube1, cube2):
