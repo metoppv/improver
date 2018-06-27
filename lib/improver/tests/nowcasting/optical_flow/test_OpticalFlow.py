@@ -494,10 +494,9 @@ class Test__zero_advection_velocities_warning(IrisTest):
         self.plugin._zero_advection_velocities_warning(
             greater_than_10_percent_zeroes_array, self.rain_mask)
         self.assertTrue(len(warning_list) == 1)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue("cells within the domain have zero advection"
-                        in str(warning_list[0]))
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertIn("cells within the domain have zero advection",
+                      str(warning_list[0]))
 
     @ManageWarnings(record=True)
     def test_no_warning_raised_if_no_zeroes(self, warning_list=None):
@@ -693,6 +692,21 @@ class Test_process(IrisTest):
         msg = "Input cube has different grid spacing in x and y"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             _ = self.plugin.process(cube1, cube2)
+
+    @ManageWarnings(record=True)
+    def test_warning_zero_inputs(self, warning_list=None):
+        """Test code raises a warning and sets advection velocities to zero
+        if there is no rain in the input cubes."""
+        null_data = np.zeros(self.cube1.shape)
+        cube1 = self.cube1.copy(data=null_data)
+        cube2 = self.cube2.copy(data=null_data)
+        ucube, vcube = self.plugin.process(cube1, cube2)
+
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertIn("No non-zero data in input fields", str(warning_list[0]))
+        self.assertArrayAlmostEqual(ucube.data, null_data)
+        self.assertArrayAlmostEqual(vcube.data, null_data)
 
 
 if __name__ == '__main__':

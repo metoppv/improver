@@ -901,17 +901,28 @@ class OpticalFlow(object):
         # have values (to be determined) that are scientifically questionable.
         # Here if dimensionless; at initialisation if dimensioned.
 
-        # calculate dimensionless displacement between the two input fields
+        # extract 2-dimensional data arrays
         data1 = next(cube1.slices([cube1.coord(axis='y'),
                                    cube1.coord(axis='x')])).data
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
-        ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
 
-        # convert displacements to velocities in metres per second
-        for vel in [ucomp, vcomp]:
-            vel *= (1000.*grid_length_km)
-            vel /= cube_time_diff.total_seconds()
+        # if input arrays have no non-zero values, set velocities to zero here
+        # and raise a warning
+        if (np.allclose(data1, np.zeros(data1.shape)) or
+                np.allclose(data2, np.zeros(data2.shape))):
+            msg = ("No non-zero data in input fields: setting optical flow "
+                   "velocities to zero")
+            warnings.warn(msg)
+            ucomp = np.zeros(data1.shape)
+            vcomp = np.zeros(data2.shape)
+        else:
+            # calculate dimensionless displacement between the two input fields
+            ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
+            # convert displacements to velocities in metres per second
+            for vel in [ucomp, vcomp]:
+                vel *= (1000.*grid_length_km)
+                vel /= cube_time_diff.total_seconds()
 
         # create velocity output cubes based on metadata from later input cube
         x_coord = cube2.coord(axis="x")
