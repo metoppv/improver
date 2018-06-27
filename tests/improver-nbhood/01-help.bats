@@ -35,9 +35,8 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--degrees_as_complex] [--ens_factor ENS_FACTOR]
-                       [--weighted_mode] [--sum_or_fraction {sum,fraction}]
-                       [--re_mask]
+                       [--degrees_as_complex] [--weighted_mode]
+                       [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        [--apply-recursive-filter]
@@ -87,13 +86,6 @@ optional arguments:
   --degrees_as_complex  Set this flag to process angles, eg wind directions,
                         as complex numbers. Not compatible with circular
                         kernel, percentiles or recursive filter.
-  --ens_factor ENS_FACTOR
-                        The factor with which to adjust the neighbourhood size
-                        for more than one ensemble realization. If ens_factor
-                        = 1.0 this essentially conserves ensemble realizations
-                        if every grid square is considered to be the
-                        equivalent of an ensemble realization. Optional,
-                        defaults to 1.0.
   --weighted_mode       For neighbourhood processing using a circular kernel,
                         setting the weighted_mode indicates the weighting
                         decreases with radius. If weighted_mode is not set, a
@@ -153,6 +145,7 @@ optional arguments:
   --iterations ITERATIONS
                         Number of times to apply the filter, default=1
                         (typically < 5)
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }

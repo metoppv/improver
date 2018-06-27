@@ -61,8 +61,7 @@ class BaseNeighbourhoodProcessing(object):
 
     """
 
-    def __init__(self, neighbourhood_method, radii, lead_times=None,
-                 ens_factor=1.0):
+    def __init__(self, neighbourhood_method, radii, lead_times=None):
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -82,13 +81,6 @@ class BaseNeighbourhoodProcessing(object):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            ens_factor (float):
-                The factor with which to adjust the neighbourhood size
-                for more than one ensemble realization.
-                If ens_factor = 1.0 this essentially conserves ensemble
-                realizations if every grid square is considered to be the
-                equivalent of an ensemble realization.
-                Optional, defaults to 1.0
         """
         self.neighbourhood_method = neighbourhood_method
 
@@ -103,42 +95,13 @@ class BaseNeighbourhoodProcessing(object):
                        "and the number of lead times. "
                        "Unable to continue due to mismatch.")
                 raise ValueError(msg)
-        self.ens_factor = float(ens_factor)
 
-    def adjust_nsize_for_ens(self, num_ens, width):
-        """
-        Adjust neighbourhood size according to ensemble size.
-
-        Args:
-            num_ens (float):
-                Number of realizations or ensemble realizations.
-            width (float):
-                radius or width appropriate for a single forecast in m.
-
-        Returns:
-            new_width (float):
-                new neighbourhood radius (m).
-
-        """
-        if num_ens <= 1.0:
-            new_width = width
-        else:
-            new_width = (self.ens_factor *
-                         math.sqrt((width**2.0)/num_ens))
-        return new_width
-
-    def _find_radii(self, num_ens, cube_lead_times=None):
-        """Revise radius or radii for found lead times and ensemble
-        realizations
-
-        If cube_lead_times is None just adjust for ensemble
-        realizations if necessary.
-        Otherwise interpolate to find radius at each cube
-        lead time and adjust for ensemble realizations if necessary.
-
-        Args:
-            num_ens (float):
-                Number of ensemble realizations.
+    def _find_radii(self, cube_lead_times=None):
+        """Revise radius or radii for found lead times.
+        If cube_lead_times is None, no automatic adjustment
+        of the radii will take place.
+        Otherwise it will interpolate to find the radius at
+        each cube lead time as required.
 
         Keyword Args:
             cube_lead_times (np.array):
@@ -149,14 +112,14 @@ class BaseNeighbourhoodProcessing(object):
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:
-            radii = self.adjust_nsize_for_ens(num_ens, self.radii)
+            radii = self.radii
         else:
             # Interpolate to find the radius at each required lead time.
             radii = (
                 np.interp(
                     cube_lead_times, self.lead_times, self.radii))
             for i, val in enumerate(radii):
-                radii[i] = self.adjust_nsize_for_ens(num_ens, val)
+                radii[i] = val
         return radii
 
     def __repr__(self):
@@ -166,10 +129,9 @@ class BaseNeighbourhoodProcessing(object):
         else:
             neighbourhood_method = self.neighbourhood_method
         result = ('<BaseNeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}; ens_factor: {}>')
+                  'radii: {}; lead_times: {}>')
         return result.format(
-            neighbourhood_method, self.radii, self.lead_times,
-            self.ens_factor)
+            neighbourhood_method, self.radii, self.lead_times)
 
     def process(self, cube, mask_cube=None):
         """
@@ -223,7 +185,7 @@ class BaseNeighbourhoodProcessing(object):
         cubes_real = []
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
-                radius = self._find_radii(num_ens)
+                radius = self._find_radii(cube_lead_times=None)
                 cube_new = self.neighbourhood_method.run(
                     cube_realization, radius, mask_cube=mask_cube)
             else:
@@ -231,9 +193,7 @@ class BaseNeighbourhoodProcessing(object):
                 fp_coord = forecast_period_coord(cube_realization)
                 fp_coord.convert_units("hours")
                 required_radii = self._find_radii(
-                    num_ens,
-                    cube_lead_times=fp_coord.points
-                )
+                    cube_lead_times=fp_coord.points)
 
                 cubes_time = iris.cube.CubeList([])
                 # Find the number of grid cells required for creating the
@@ -272,7 +232,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
     def __init__(
             self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0, percentiles=DEFAULT_PERCENTILES):
+            percentiles=DEFAULT_PERCENTILES):
         """
         Create a neighbourhood processing subclass that generates percentiles
         from a neighbourhood of points.
@@ -291,20 +251,12 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            ens_factor (float):
-                The factor with which to adjust the neighbourhood size
-                for more than one ensemble realization.
-                If ens_factor = 1.0 this essentially conserves ensemble
-                realizations if every grid square is considered to be the
-                equivalent of an ensemble realization.
-                Optional, defaults to 1.0
             percentiles (list):
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
         super(GeneratePercentilesFromANeighbourhood, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times,
-            ens_factor=ens_factor)
+            neighbourhood_method, radii, lead_times=lead_times)
 
         methods = {
             "circular": GeneratePercentilesFromACircularNeighbourhood}
@@ -325,7 +277,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
     def __init__(
             self, neighbourhood_method, radii, lead_times=None,
-            ens_factor=1.0, weighted_mode=True, sum_or_fraction="fraction",
+            weighted_mode=True, sum_or_fraction="fraction",
             re_mask=False):
         """
         Create a neighbourhood processing subclass that applies a smoothing
@@ -346,13 +298,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            ens_factor (float):
-                The factor with which to adjust the neighbourhood size
-                for more than one ensemble realization.
-                If ens_factor = 1.0 this essentially conserves ensemble
-                realizations if every grid square is considered to be the
-                equivalent of an ensemble realization.
-                Optional, defaults to 1.0
             weighted_mode (boolean):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
@@ -373,8 +318,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 originally masked.
         """
         super(NeighbourhoodProcessing, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times,
-            ens_factor=ens_factor)
+            neighbourhood_method, radii, lead_times=lead_times)
 
         methods = {
             "circular": CircularNeighbourhood,

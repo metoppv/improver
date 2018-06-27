@@ -35,9 +35,8 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--degrees_as_complex] [--ens_factor ENS_FACTOR]
-                       [--weighted_mode] [--sum_or_fraction {sum,fraction}]
-                       [--re_mask]
+                       [--degrees_as_complex] [--weighted_mode]
+                       [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
                        [--apply-recursive-filter]
@@ -47,6 +46,7 @@ usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--iterations ITERATIONS]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
                        OUTPUT_FILE
+
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

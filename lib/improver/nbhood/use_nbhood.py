@@ -87,7 +87,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
 
     def __init__(
             self, coord_for_masking, radii,
-            lead_times=None, ens_factor=1.0, weighted_mode=True,
+            lead_times=None, weighted_mode=True,
             sum_or_fraction="fraction", re_mask=False):
         """
         Initialise the class.
@@ -107,13 +107,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            ens_factor (float):
-                The factor with which to adjust the neighbourhood size
-                for more than one ensemble realization.
-                If ens_factor = 1.0 this essentially conserves ensemble
-                realizations if every grid square is considered to be the
-                equivalent of an ensemble realization.
-                Optional, defaults to 1.0
             weighted_mode (boolean):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
@@ -137,7 +130,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         self.neighbourhood_method = "square"
         self.radii = radii
         self.lead_times = lead_times
-        self.ens_factor = ens_factor
         self.weighted_mode = weighted_mode
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
@@ -146,11 +138,11 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         """Represent the configured plugin instance as a string."""
         result = ('<ApplyNeighbourhoodProcessingWithAMask: '
                   'coord_for_masking: {}, neighbourhood_method: {}, '
-                  'radii: {}, lead_times: {}, ens_factor: {}, '
-                  'weighted_mode: {}, sum_or_fraction: {}, re_mask: {}>')
+                  'radii: {}, lead_times: {}, weighted_mode: {}, '
+                  'sum_or_fraction: {}, re_mask: {}>')
         return result.format(
             self.coord_for_masking, self.neighbourhood_method, self.radii,
-            self.lead_times, self.ens_factor, self.weighted_mode,
+            self.lead_times, self.weighted_mode,
             self.sum_or_fraction, self.re_mask)
 
     def process(self, cube, mask_cube):
@@ -189,7 +181,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                     self.neighbourhood_method, self.radii,
                     lead_times=self.lead_times,
                     weighted_mode=self.weighted_mode,
-                    ens_factor=self.ens_factor,
                     sum_or_fraction=self.sum_or_fraction, re_mask=self.re_mask
                     ).process(x_y_slice, mask_cube=cube_slice)
                 coord_object = cube_slice.coord(self.coord_for_masking).copy()
