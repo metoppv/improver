@@ -327,7 +327,7 @@ class Test__find_radii(IrisTest):
                         radii,
                         lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
-        expected_result = np.array([15000., 20000.,25000.])
+        expected_result = np.array([15000., 20000., 25000.])
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -342,6 +342,7 @@ class Test__find_radii(IrisTest):
         result = plugin._find_radii(cube_lead_times=fp_points)
         expected_result = np.array([10000., 20000., 30000.])
         self.assertArrayAlmostEqual(result, expected_result)
+
 
 class Test_process(IrisTest):
 
