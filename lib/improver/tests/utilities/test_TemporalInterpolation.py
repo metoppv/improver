@@ -50,6 +50,7 @@ class Test_construct_time_list(IrisTest):
     this function."""
 
     def setUp(self):
+        """Set up the test inputs."""
         self.time_0 = datetime.datetime(2017, 11, 1, 3)
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.times = []
@@ -86,7 +87,7 @@ class Test_construct_time_list(IrisTest):
 
     def test_time_list_out_of_bounds(self):
         """Test an exception is raised when trying to generate a list of times
-        using a preexisiting list that inclused times outside the range of the
+        using a pre-exisiting list that includes times outside the range of the
         initial and final times."""
 
         self.times.append(datetime.datetime(2017, 11, 1, 10))
@@ -102,6 +103,7 @@ class Test_process(IrisTest):
     """Test interpolation of cubes to intermediate times using the plugin."""
 
     def setUp(self):
+        """Set up the test inputs."""
         self.time_0 = datetime.datetime(2017, 11, 1, 3)
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10

@@ -372,8 +372,8 @@ class TemporalInterpolation(object):
     """
     Interpolate data to intermediate times between the validity times of two
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
-    to ensure data is availble at the required intervals when model data is not
-    available at these times.
+    to ensure data is available at the required intervals when model data is
+    not available at these times.
     """
 
     def __init__(self, interval_in_minutes=None, times=None):
@@ -383,7 +383,7 @@ class TemporalInterpolation(object):
         Keyword Args:
             interval_in_minutes (int):
                 Specifies the interval in minutes at which to interpolate
-                between the two input cubes. A number of minutes which does no
+                between the two input cubes. A number of minutes which does not
                 divide up the interval equally will raise an exception::
 
                     e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
