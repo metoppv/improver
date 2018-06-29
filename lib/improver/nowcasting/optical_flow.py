@@ -774,9 +774,9 @@ class OpticalFlow(object):
         rain_pixels = vel_comp[rain_mask].size
 
         if zeroes_in_rain > rain_pixels*zero_vel_threshold:
-            msg = ("More than {:.1f}% of the cells within the domain have "
+            msg = ("More than {:.1f}% of rain cells within the domain have "
                    "zero advection velocities. It is expected that "
-                   "greater than {:.1f}% of the advection velocities "
+                   "greater than {:.1f}% of these advection velocities "
                    "will be non-zero.".format(
                        zero_vel_threshold*100,
                        (1-zero_vel_threshold)*100))
