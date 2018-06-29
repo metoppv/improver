@@ -136,9 +136,13 @@ class Test_linear_wet_bulb_fit(IrisTest):
     """Test the linear_wet_bulb_fit method."""
 
     def setUp(self):
-        """ Set up arrays for testing."""
-        # Set up a wet bulb temperature array with a linear trend near sea
-        # level. Some lines will cross the x-axis above zero and some below.
+        """
+        Set up arrays for testing.
+
+        Set up a wet bulb temperature array with a linear trend near sea
+        level. Some of the straight line fits of wet bulb temperature will
+        cross the height axis above zero and some below.
+        """
         data = np.ones((5, 3, 3))*-0.8
         self.heights = np.array([5, 10, 20, 30, 50])
         for i in range(5):
@@ -180,9 +184,12 @@ class Test_find_extrapolated_falling_level(IrisTest):
     """Test the find_extrapolated_falling_level method."""
 
     def setUp(self):
-        """ Set up arrays for testing."""
-        # Set up a wet bulb temperature array with a linear trend near sea
-        # level. Some lines will cross the x-axis above zero and some below.
+        """
+        Set up arrays for testing.
+        Set up a wet bulb temperature array with a linear trend near sea
+        level. Some of the straight line fits of wet bulb temperature will
+        cross the height axis above zero and some below.
+        """
         self.snow_falling_level = np.ones((3, 3))*np.nan
         self.max_wb_integral = np.array([[0.0, 0.0, 0.0],
                                          [0.0, 0.0, 0.0],

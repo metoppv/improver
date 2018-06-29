@@ -577,8 +577,14 @@ class WetBulbTemperatureIntegral(object):
                 Cube of air pressures (Pa).
 
         Returns:
-            wet_bulb_temperature_integral (iris.cube.Cube):
-                Cube of wet bulb temperature integral (Kelvin-metres).
+            (tuple): tuple containing
+
+                **wet_bulb_temperature** (iris.cube.Cube) - Cube on wet bulb
+                temperatures on height levels (celsius)
+
+                **wet_bulb_temperature_integral** (iris.cube.Cube) - Cube of
+                wet bulb temperature integral (Kelvin-metres).
+
         """
         # Calculate wet-bulb temperature.
         wet_bulb_temperature = (
@@ -703,9 +709,9 @@ class FallingSnowLevel(object):
         integral of wet bulb temperature crosses the falling level threshold.
 
         In cases where the wet bulb temperature integral has not reached the
-        threshold by time we reach sea level, we can find a fit to the wet bulb
-        temperature profile near the surface, and use this to estimate where
-        the snow falling level would be below sea level.
+        threshold by the time we reach sea level, we can find a fit to the wet
+        bulb temperature profile near the surface, and use this to estimate
+        where the snow falling level would be below sea level.
 
         The difference between the wet bulb temperature integral at the
         threshold and the wet bulb integral at the surface is equal to the
@@ -714,16 +720,16 @@ class FallingSnowLevel(object):
         using a simple linear fit, we can integrate this to find an expression
         for the extrapolated snow falling level.
 
-        The form of this expression depends on whether the linear fit crosses
-        the x-axis above or below zero.
+        The form of this expression depends on whether the linear fit of wet
+        bulb temperature crosses the height axis above or below zero altitude.
 
         If we have our linear fit of the form:
 
         .. math::
             {{wet\:bulb\:temperature} = m \\times height + c}
 
-        and let I be the wet bulb temperature integral we have found above
-        sea level.
+        and let :math:`I` be the wet bulb temperature integral we have found
+        above sea level.
 
         If it crosses above zero, then the limits on the integral
         are the snow falling level and zero and we find the following
@@ -735,7 +741,7 @@ class FallingSnowLevel(object):
 
         If the linear fit crosses below zero the limits on our integral are
         the snow falling level and the point where the linear fit crosses the
-        x-axis, as only possitive wet bulb temperatures count towards the
+        height axis, as only possitive wet bulb temperatures count towards the
         integral. In this case our expression for the snow falling level is:
 
         .. math::
@@ -811,15 +817,30 @@ class FallingSnowLevel(object):
                 linar fit.
             end_point (int):
                 The index of the the end height we want to use in our
-                linar fit.
+                linear fit.
+
+        Returns:
+            (tuple): tuple containing
+
+                **gradient** (numpy.array) - An an array, the same shape as a
+                2D slice of the wet_bulb_temperature input, containing the
+                gradients of the fitted straight line at each point where it
+                could be found, filled with zeros elsewhere.
+
+                **intercept** (numpy.array) - An an array, the same shape as a
+                2D slice of the wet_bulb_temperature input, containing the
+                intercepts of the fitted straight line at each point where it
+                could be found, filled with zeros elsewhere.
+
         """
-        def fitting_function(y):
+        def fitting_function(wet_bulb_temps):
             """
             A small helper function used to find a linear fit of the
             wet bulb temperature.
             """
             return linregress(
-                heights[start_point:end_point], y[start_point:end_point])
+                heights[start_point:end_point],
+                wet_bulb_temps[start_point:end_point])
         # Set up empty arrays for gradient and intercept
         gradient = np.zeros(wet_bulb_temperature[0].shape)
         intercept = np.zeros(wet_bulb_temperature[0].shape)
@@ -845,8 +866,8 @@ class FallingSnowLevel(object):
             wet_bulb_temperature, heights):
         """
         Fill in any sea points where we have not found a snow falling level
-        by time we get to sea level, i.e. where the whole wet bulb temperature
-        integral is below the threshold.
+        by the time we get to sea level, i.e. where the whole wet bulb
+        temperature integral is below the threshold.
 
         This function finds a linear fit to the wet bulb temperature close to
         sea level and uses this to find where an extrapolated wet bulb
