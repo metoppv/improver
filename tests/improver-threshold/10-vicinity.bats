@@ -31,13 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood-vicinity 6000.0 input output --radius=20000" {
+@test "threshold vicinity" {
   improver_check_skip_acceptance
-  KGO="nbhood-vicinity/basic/kgo.nc"
+  KGO="threshold/vicinity/kgo.nc"
 
-  # Run neighbourhood processing and check it passes.
-  run improver nbhood-vicinity 6000.0 "$IMPROVER_ACC_TEST_DIR/nbhood-vicinity/basic/input.nc"\
-      "$TEST_DIR/output.nc" --radius=20000
+  # Run threshold processing and check it passes.
+  run improver threshold \
+      "$IMPROVER_ACC_TEST_DIR/threshold/vicinity/input.nc" "$TEST_DIR/output.nc" \
+      0.03 0.1 1.0 --threshold_units='mm hr-1' --vicinity 10000
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
