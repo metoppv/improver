@@ -345,8 +345,8 @@ class Test_calc_confidence_measure(IrisTest):
         far the individual ensemble realizationss are away from
         the mean point."""
 
-        expected_out = np.array([[0.0, 0.95638061],
-                                 [0.91284426, 0.91284426]])
+        expected_out = np.array([[0.0, 0.956422],
+                                 [0.913176, 0.913176]])
 
         self.plugin.calc_confidence_measure()
         result = self.plugin.confidence_slice.data
