@@ -44,6 +44,28 @@ from iris.cube import Cube
 from improver.utilities.temporal import TemporalInterpolation
 
 
+class Test__init__(IrisTest):
+
+    """Test the __init__ method."""
+
+    def test_raises_error_with_no_keyword_args(self):
+        """Test __init__ raises a ValueError if both keywords are unset."""
+        msg = "TemporalInterpolation: One of"
+        with self.assertRaisesRegex(ValueError, msg):
+            TemporalInterpolation()
+
+
+class Test__repr__(IrisTest):
+
+    """Test the repr method."""
+
+    def test_basic(self):
+        """Test that the __repr__ returns the expected string."""
+        result = str(TemporalInterpolation(interval_in_minutes=60))
+        msg = '<TemporalInterpolation: interval_in_minutes: 60, times: None>'
+        self.assertEqual(result, msg)
+
+
 class Test_construct_time_list(IrisTest):
 
     """Test construction of time lists suitable for iris interpolation using
@@ -87,7 +109,7 @@ class Test_construct_time_list(IrisTest):
 
     def test_time_list_out_of_bounds(self):
         """Test an exception is raised when trying to generate a list of times
-        using a pre-exisiting list that includes times outside the range of the
+        using a pre-existing list that includes times outside the range of the
         initial and final times."""
 
         self.times.append(datetime.datetime(2017, 11, 1, 10))

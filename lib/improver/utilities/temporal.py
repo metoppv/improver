@@ -393,8 +393,19 @@ class TemporalInterpolation(object):
                 A list of datetime objects specifying the times to which to
                 interpolate.
         """
+        if interval_in_minutes is None and times is None:
+            raise ValueError("TemporalInterpolation: One of "
+                             "'interval_in_minutes' or 'times' must be set. "
+                             "Currently both are none.")
+
         self.interval_in_minutes = interval_in_minutes
         self.times = times
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<TemporalInterpolation: interval_in_minutes: {}, '
+                  'times: {}>')
+        return result.format(self.interval_in_minutes, self.times)
 
     def construct_time_list(self, initial_time, final_time):
         """
@@ -433,7 +444,7 @@ class TemporalInterpolation(object):
             for time in self.times:
                 time_list.append(('time', time))
 
-        elif self.interval_in_minutes is not None:
+        else:
             if ((final_time - initial_time).seconds %
                     (60 * self.interval_in_minutes) != 0):
                 raise ValueError(
