@@ -274,21 +274,20 @@ class WindDirection(object):
                 Any r value below threshold is regarded as meaningless.
 
         Defines:
-            self.wdir_mean_complex (np.ndarray):
-                Contains average wind direction in complex numbers.
             self.confidence_slice (iris.cube.Cube):
                 Contains the average distance from mean normalised - used
                 as a confidence value. Inherits meta-data from
                 self.wdir_slice_mean
         """
 
-        self.wdir_mean_complex = self.deg_to_complex(self.wdir_slice_mean.data)
+        # Recalculate complex mean with radius=1.
+        wdir_mean_complex_r1 = self.deg_to_complex(self.wdir_slice_mean.data)
 
         # Find difference in the distance between all the observed points and
         # mean point with fixed r=1.
-        # For maths to work - the "self.wdir_mean_complex array" needs to
+        # For maths to work - the "wdir_mean_complex_r1 array" needs to
         # be "tiled" so that it is the same dimension as "self.wdir_complex".
-        wind_dir_complex_mean_tile = np.tile(self.wdir_mean_complex,
+        wind_dir_complex_mean_tile = np.tile(wdir_mean_complex_r1,
                                              (self.wdir_complex.shape[0],
                                               1, 1))
 
