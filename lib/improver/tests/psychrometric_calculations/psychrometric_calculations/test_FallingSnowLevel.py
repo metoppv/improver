@@ -201,13 +201,24 @@ class Test_find_extrapolated_falling_level(IrisTest):
              [-26.642136, -14.142136, -3.722813]])
 
     def test_basic(self):
-        """Test we find the correct gradient and intercepts for simple case"""
+        """Test we fill in the correct snow falling levels for a simple case"""
         plugin = FallingSnowLevel()
 
         plugin.find_extrapolated_falling_level(
             self.max_wb_integral, self.gradients, self.intercepts,
             self.snow_falling_level, self.sea_points)
         self.assertArrayAlmostEqual(self.expected_snow_falling_level,
+                                    self.snow_falling_level)
+
+    def test_gradients_zero(self):
+        """Test we do nothing if all gradients are zero"""
+        plugin = FallingSnowLevel()
+        gradients = np.zeros((3, 3))
+        plugin.find_extrapolated_falling_level(
+            self.max_wb_integral, gradients, self.intercepts,
+            self.snow_falling_level, self.sea_points)
+        expected_snow_falling_level = np.ones((3,3))*np.nan
+        self.assertArrayAlmostEqual(expected_snow_falling_level,
                                     self.snow_falling_level)
 
 

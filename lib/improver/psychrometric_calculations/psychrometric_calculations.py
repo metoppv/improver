@@ -830,8 +830,8 @@ class FallingSnowLevel(object):
             # Flatten the array to make it more efficent to find a linear fit
             # for every point of interest. We can apply the fitting function
             # along the right axis to apply it to all points in one go.
-            wet_bulb_temperature_values = wet_bulb_temperature[index3d].reshape(
-                len(heights), -1)
+            wet_bulb_temperature_values = (
+                wet_bulb_temperature[index3d].reshape(len(heights), -1))
             gradient_values, intercept_values, _, _, _, = (
                 np.apply_along_axis(
                     fitting_function, 0, wet_bulb_temperature_values))
