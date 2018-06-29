@@ -474,12 +474,14 @@ class Test_calculate_displacement_vectors(IrisTest):
         self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
 
 
-class Test_zero_advection_velocities_warning(IrisTest):
-    """Test the zero_advection_velocities_warning."""
+class Test__zero_advection_velocities_warning(IrisTest):
+    """Test the _zero_advection_velocities_warning."""
 
     def setUp(self):
         """Set up arrays of advection velocities"""
         self.plugin = OpticalFlow()
+        rain = np.ones((3, 3))
+        self.rain_mask = np.where(rain > 0)
 
     @ManageWarnings(record=True)
     def test_warning_raised(self, warning_list=None):
@@ -489,13 +491,12 @@ class Test_zero_advection_velocities_warning(IrisTest):
             np.array([[3., 5., 7.],
                       [0., 2., 1.],
                       [1., 1., 1.]]))
-        self.plugin.zero_advection_velocities_warning(
-            greater_than_10_percent_zeroes_array)
+        self.plugin._zero_advection_velocities_warning(
+            greater_than_10_percent_zeroes_array, self.rain_mask)
         self.assertTrue(len(warning_list) == 1)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue("cells within the domain have zero advection"
-                        in str(warning_list[0]))
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertIn("cells within the domain have zero advection",
+                      str(warning_list[0]))
 
     @ManageWarnings(record=True)
     def test_no_warning_raised_if_no_zeroes(self, warning_list=None):
@@ -505,7 +506,8 @@ class Test_zero_advection_velocities_warning(IrisTest):
         nonzero_array = np.array([[3., 5., 7.],
                                   [2., 2., 1.],
                                   [1., 1., 1.]])
-        self.plugin.zero_advection_velocities_warning(nonzero_array)
+        self.plugin._zero_advection_velocities_warning(nonzero_array,
+                                                       self.rain_mask)
         self.assertTrue(len(warning_list) == 0)
 
     @ManageWarnings(record=True)
@@ -514,14 +516,15 @@ class Test_zero_advection_velocities_warning(IrisTest):
         """Test that no warning is raised if the number of zero values in the
         array is below the threshold used to define an excessive number of
         zero values when at least one zero exists within the array."""
+        rain = np.ones((5, 5))
         less_than_10_percent_zeroes_array = (
             np.array([[1., 3., 5., 7., 1.],
                       [0., 2., 1., 1., 1.],
                       [1., 1., 1., 1., 1.],
                       [1., 1., 1., 1., 1.],
                       [1., 1., 1., 1., 1.]]))
-        self.plugin.zero_advection_velocities_warning(
-            less_than_10_percent_zeroes_array)
+        self.plugin._zero_advection_velocities_warning(
+            less_than_10_percent_zeroes_array, np.where(rain > 0))
         self.assertTrue(len(warning_list) == 0)
 
     @ManageWarnings(record=True)
@@ -534,8 +537,22 @@ class Test_zero_advection_velocities_warning(IrisTest):
             np.array([[3., 5., 7.],
                       [0., 2., 1.],
                       [0., 1., 1.]]))
-        self.plugin.zero_advection_velocities_warning(
-            less_than_30_percent_zeroes_array, zero_vel_threshold=0.3)
+        self.plugin._zero_advection_velocities_warning(
+            less_than_30_percent_zeroes_array, self.rain_mask,
+            zero_vel_threshold=0.3)
+        self.assertTrue(len(warning_list) == 0)
+
+    @ManageWarnings(record=True)
+    def test_no_warning_raised_outside_rain(self, warning_list=None):
+        """Test warning ignores zeros outside the rain area mask"""
+        rain = np.array([[0, 0, 1],
+                         [0, 1, 1],
+                         [1, 1, 1]])
+        wind = np.array([[0, 0, 1],
+                         [0, 1, 1],
+                         [1, 1, 1]])
+        self.plugin._zero_advection_velocities_warning(
+            wind, np.where(rain > 0))
         self.assertTrue(len(warning_list) == 0)
 
 
@@ -675,6 +692,21 @@ class Test_process(IrisTest):
         msg = "Input cube has different grid spacing in x and y"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             _ = self.plugin.process(cube1, cube2)
+
+    @ManageWarnings(record=True)
+    def test_warning_zero_inputs(self, warning_list=None):
+        """Test code raises a warning and sets advection velocities to zero
+        if there is no rain in the input cubes."""
+        null_data = np.zeros(self.cube1.shape)
+        cube1 = self.cube1.copy(data=null_data)
+        cube2 = self.cube2.copy(data=null_data)
+        ucube, vcube = self.plugin.process(cube1, cube2)
+
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertIn("No non-zero data in input fields", str(warning_list[0]))
+        self.assertArrayAlmostEqual(ucube.data, null_data)
+        self.assertArrayAlmostEqual(vcube.data, null_data)
 
 
 if __name__ == '__main__':
