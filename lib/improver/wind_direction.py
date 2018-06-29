@@ -96,7 +96,7 @@ class WindDirection(object):
         self.backup_methods = ['first realization', 'neighbourhood']
         self.backup_method = backup_method
         if self.backup_method not in self.backup_methods:
-            msg = ('Invalid option for keyword low_confidence_method ' +
+            msg = ('Invalid option for keyword backup_method ' +
                    '({})'.format(self.backup_method))
             raise ValueError(msg)
 
@@ -112,7 +112,7 @@ class WindDirection(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<WindDirection: low_confidence_method "{}">'
+            '<WindDirection: backup_method "{}">'
         ).format(self.backup_method)
 
     def _reset(self):

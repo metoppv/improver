@@ -164,13 +164,13 @@ class Test__init__(IrisTest):
 
     def test_backup_method(self):
         """Test that the __init__ accepts this keyword."""
-        WindDirection(low_confidence_method='neighbourhood')
+        WindDirection(backup_method='neighbourhood')
 
     def test_invalid_method(self):
         """Test that the __init__ fails when an unrecognised option is given"""
-        msg = ('Invalid option for keyword low_confidence_method ')
+        msg = ('Invalid option for keyword backup_method ')
         with self.assertRaisesRegexp(ValueError, msg):
-            WindDirection(low_confidence_method='invalid')
+            WindDirection(backup_method='invalid')
 
 
 class Test__repr__(IrisTest):
@@ -179,7 +179,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection: low_confidence_method "first realization">')
+        msg = ('<WindDirection: backup_method "first realization">')
         self.assertEqual(result, msg)
 
 
@@ -232,6 +232,16 @@ class Test_complex_to_deg(IrisTest):
         """Tests that array of complex values are converted to degrees."""
         result = WindDirection().complex_to_deg(COMPLEX_ANGLES)
         self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, DEGREE_ANGLES)
+
+
+class Test_complex_to_deg_roundtrip(IrisTest):
+    """Test the complex_to_deg and deg_to_complex functions together."""
+
+    def test_basic(self):
+        """Tests that array of values are converted to complex and back."""
+        tmp_complex = WindDirection().deg_to_complex(DEGREE_ANGLES)
+        result = WindDirection().complex_to_deg(tmp_complex)
         self.assertArrayAlmostEqual(result, DEGREE_ANGLES)
 
 
