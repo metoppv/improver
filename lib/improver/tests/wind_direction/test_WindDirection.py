@@ -41,6 +41,9 @@ from cf_units import Unit
 from improver.wind_direction import WindDirection
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+    set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 # Data to test complex/degree handling functions.
 # The two degree/complex arrays are directly equivalent.
@@ -100,21 +103,31 @@ WIND_DIR_R_VALS = np.array([[6.12323400e-17, 0.996194698],
 def make_wdir_cube_222():
     """Make a wind direction cube for testing this plugin"""
     # 2x2x2 3D Array containing wind direction in angles.
-    data = WIND_DIR_DEG
+    cube = set_up_cube(num_grid_points=2,
+                       num_realization_points=2,
+                       zero_point_indices=[[0, 0, 0, 0]]
+                       )[:, 0, :, :]  # Demotes time dimension.
+    cube.data = WIND_DIR_DEG
+    cube.rename("wind_from_direction")
 
-    realization = DimCoord([0, 1], 'realization', units=1)
-    latitude = DimCoord(np.linspace(-90, 0, 2),
-                        standard_name='latitude', units='degrees')
-    longitude = DimCoord(np.linspace(-180, 0, 2),
-                         standard_name='longitude', units='degrees')
+    return cube
 
-    cube = Cube(data, standard_name="wind_from_direction",
-                dim_coords_and_dims=[(realization, 0),
-                                     (latitude, 1),
-                                     (longitude, 2)],
-                units="degree")
 
-    return cube[:, :, :]  # Demotes time dimension.
+def pad_wdir_cube_222():
+    """Make a padded wind direction cube for testing this plugin"""
+    # 2x2x2 3D Array containing wind direction in angles.
+    # Padded in x and y to 2x10x10 for use with nbhood option
+    cube = set_up_cube(num_grid_points=10,
+                       num_realization_points=2,
+                       zero_point_indices=[[0, 0, 0, 0]]
+                       )[:, 0, :, :]  # Demotes time dimension.
+    cube.data = np.pad(WIND_DIR_DEG,
+                       ((0, 0), (4, 4), (4, 4)),
+                       "constant",
+                       constant_values=(0.0, 0.0))
+    cube.rename("wind_from_direction")
+
+    return cube
 
 
 def make_wdir_cube_534():
@@ -179,7 +192,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection: backup_method "first realization">')
+        msg = ('<WindDirection: backup_method "neighbourhood">')
         self.assertEqual(result, msg)
 
 
@@ -355,12 +368,23 @@ class Test_calc_confidence_measure(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
 
+@ManageWarnings(ignored_messages=["ComplexWarning: Casting complex values"])
 class Test_wind_dir_decider(IrisTest):
     """Test the wind_dir_decider function."""
 
     def setUp(self):
         """Initialise plugin and supply data for tests"""
         self.plugin = WindDirection()
+
+    def test_runs_function_1st_member(self):
+        """First element has two angles directly opposite (90 & 270 degs).
+        Therefore the calculated mean angle of 180 degs is basically
+        meaningless with an r value of nearly zero. So the code subistites the
+        wind direction taken from the first ensemble value in its place."""
+
+        expected_out = np.array([[90.0, 55.0],
+                                 [280.0, 0.0]])
+
         self.plugin.wdir_mean_complex = (
             self.plugin.deg_to_complex(WIND_DIR_DEG_MEAN))
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
@@ -370,21 +394,57 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_slice = make_wdir_cube_222()
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
         self.plugin.wdir_slice_mean.data = WIND_DIR_DEG_MEAN
-
-    def test_runs_function(self):
-        """First element has two angles directly opposite (90 & 270 degs).
-        Therefore the calculated mean angle of 180 degs is basically
-        meaningless with an r value of nearly zero. So the code subistites the
-        wind direction taken from the first ensemble value in its place."""
-
-        expected_out = np.array([[90.0, 55.0],
-                                 [280.0, 0.0]])
-
+        self.plugin.backup_method = "first realization"
         self.plugin.wind_dir_decider()
         result = self.plugin.wdir_slice_mean.data
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
+
+    def test_runs_function_nbhood(self):
+        """First element has two angles directly opposite (90 & 270 degs).
+        Therefore the calculated mean angle of 180 degs is basically
+        meaningless with an r value of nearly zero. So the code subistites the
+        wind direction taken using the neighbourhood method."""
+
+        expected_out = np.pad(np.array(
+            [[180., 55.00, 55.00, 55.00, 55.00, 55.00],
+             [280., 354.9, 354.9, 354.9, 354.9, 27.67],
+             [280., 354.9, 354.9, 55.00, 354.9, 27.67],
+             [280., 354.9, 280.0, 0.000, 354.9, 27.67],
+             [280., 354.9, 354.9, 354.9, 354.9, 27.67],
+             [280., 320.0, 320.0, 320.0, 320.0, 0.000]]
+            ), ((2, 2), (2, 2)),
+                "constant", constant_values=(0.0, 0.0))
+        # The padding zeroes are wrong in one spot:
+        expected_out[7, -2:] = [90., 90.]
+
+        self.plugin.wdir_mean_complex = np.pad(
+            self.plugin.deg_to_complex(WIND_DIR_DEG_MEAN),
+            ((4, 4), (4, 4)),
+            "constant",
+            constant_values=(0.0, 0.0))
+        self.plugin.wdir_complex = np.pad(WIND_DIR_COMPLEX,
+                                          ((0, 0), (4, 4), (4, 4)),
+                                          "constant",
+                                          constant_values=(0.0, 0.0))
+        self.plugin.realization_axis = 0
+        self.plugin.r_vals_slice = pad_wdir_cube_222()[0]
+        self.plugin.r_vals_slice.data = np.pad(WIND_DIR_R_VALS,
+                                               ((4, 4), (4, 4)),
+                                               "constant",
+                                               constant_values=(0.0, 0.0))
+        self.plugin.wdir_slice = pad_wdir_cube_222()
+        self.plugin.wdir_slice_mean = pad_wdir_cube_222()[0]
+        self.plugin.wdir_slice_mean.data = np.pad(WIND_DIR_DEG_MEAN,
+                                                  ((4, 4), (4, 4)),
+                                                  "constant",
+                                                  constant_values=(0.0, 0.0))
+        self.plugin.wind_dir_decider()
+        result = self.plugin.wdir_slice_mean.data
+
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_out, decimal=2)
 
 
 class Test_process(IrisTest):
