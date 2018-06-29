@@ -243,7 +243,7 @@ class Test__calculate_convective_ratio(IrisTest):
             radii, lead_times=lead_times
             )._calculate_convective_ratio(cubelist, self.threshold_list)
         self.assertIsInstance(result, iris.cube.Cube)
-#        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def test_circular_neighbourhood(self):
         """Test a circular neighbourhood."""

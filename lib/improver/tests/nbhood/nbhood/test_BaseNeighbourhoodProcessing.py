@@ -304,10 +304,8 @@ class Test__find_radii(IrisTest):
     """Test the internal _find_radii function is working correctly."""
 
     def test_basic_float_cube_lead_times_is_none(self):
-        """
-        Test _find_radii returns an unaltered radius if
-        the lead times are none, and this radius is a float.
-        """
+        """Test _find_radii returns an unaltered radius if
+        the lead times are none, and this radius is a float."""
         neighbourhood_method = CircularNeighbourhood()
         radius = 6300
         plugin = NBHood(neighbourhood_method,

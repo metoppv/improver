@@ -112,14 +112,10 @@ class BaseNeighbourhoodProcessing(object):
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:
-            radii = self.radii
-        else:
-            # Interpolate to find the radius at each required lead time.
-            radii = (
-                np.interp(
-                    cube_lead_times, self.lead_times, self.radii))
-            for i, val in enumerate(radii):
-                radii[i] = val
+            return self.radii
+        radii = (np.interp(cube_lead_times, self.lead_times, self.radii))
+        for i, val in enumerate(radii):
+            radii[i] = val
         return radii
 
     def __repr__(self):
@@ -185,9 +181,8 @@ class BaseNeighbourhoodProcessing(object):
         cubes_real = []
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
-                radius = self._find_radii(cube_lead_times=None)
                 cube_new = self.neighbourhood_method.run(
-                    cube_realization, radius, mask_cube=mask_cube)
+                    cube_realization, self.radii, mask_cube=mask_cube)
             else:
                 # Interpolate to find the radius at each required lead time.
                 fp_coord = forecast_period_coord(cube_realization)
