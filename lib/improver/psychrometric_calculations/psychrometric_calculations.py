@@ -760,7 +760,7 @@ class FallingSnowLevel(object):
         """
 
         # Make sure we only try to extrapolate points with a valid gradient.
-        index = (gradient != 0.0) & sea_points
+        index = (gradient < 0.0) & sea_points
         gradient = gradient[index]
         intercept = intercept[index]
         max_wb_int = max_wb_integral[index]

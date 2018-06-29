@@ -241,7 +241,7 @@ class Test_fill_sea_points(IrisTest):
         self.heights = np.array([5, 10, 20, 30, 50])
         for i in range(5):
             data[i] = data[i]*self.heights[i]
-        data[:, :, 0] = data[: ,:, 0] - 10
+        data[:, :, 0] = data[:, :, 0] - 10
         data[:, :, 2] = data[:, :, 2] + 20
         self.wet_bulb_temperature = data
         self.expected_snow_falling_level = np.array(
@@ -272,7 +272,7 @@ class Test_fill_sea_points(IrisTest):
         """Test it doesn't change points that are all above the threshold"""
         plugin = FallingSnowLevel()
         self.max_wb_integral[0, 1] = 100
-        self.snow_falling_level[0, 1]= 100
+        self.snow_falling_level[0, 1] = 100
         self.expected_snow_falling_level[0, 1] = 100
         plugin.fill_in_sea_points(self.snow_falling_level, self.land_sea,
                                   self.max_wb_integral,
@@ -375,31 +375,30 @@ class Test_process(IrisTest):
             iris.coords.DimCoord(np.linspace(120, 180, 3),
                                  'longitude', units='degrees'), 1)
 
-    #def test_basic(self):
-        #"""Test that process returns a cube with the right name and units."""
-        #result = FallingSnowLevel().process(
-            #self.temperature_cube, self.relative_humidity_cube,
-            #self.pressure_cube, self.orog, self.land_sea)
-        #expected = np.ones((2, 3, 3)) * 66.88732723
-        #self.assertIsInstance(result, iris.cube.Cube)
-        #self.assertEqual(result.name(), "falling_snow_level_asl")
-        #self.assertEqual(result.units, Unit('m'))
-        #self.assertArrayAlmostEqual(result.data, expected)
+    def test_basic(self):
+        """Test that process returns a cube with the right name and units."""
+        result = FallingSnowLevel().process(
+            self.temperature_cube, self.relative_humidity_cube,
+            self.pressure_cube, self.orog, self.land_sea)
+        expected = np.ones((2, 3, 3)) * 66.88732723
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "falling_snow_level_asl")
+        self.assertEqual(result.units, Unit('m'))
+        self.assertArrayAlmostEqual(result.data, expected)
 
-    #def test_data(self):
-        #"""Test that the falling snow level process returns a cube
-        #containing the expected data when points at sea-level."""
-        #expected = np.ones((2, 3, 3)) * 65.88732723
-        #expected[:, 1, 1] = 0.0
-        #orog = self.orog
-        #orog.data = orog.data * 0.0
-        #land_sea = self.land_sea
-        #land_sea = land_sea * 0.0
-        #result = FallingSnowLevel().process(
-            #self.temperature_cube, self.relative_humidity_cube,
-            #self.pressure_cube, orog, land_sea)
-        #self.assertIsInstance(result, iris.cube.Cube)
-        #self.assertArrayAlmostEqual(result.data, expected)
+    def test_data(self):
+        """Test that the falling snow level process returns a cube
+        containing the expected data when points at sea-level."""
+        expected = np.ones((2, 3, 3)) * 65.88732723
+        orog = self.orog
+        orog.data = orog.data * 0.0
+        land_sea = self.land_sea
+        land_sea = land_sea * 0.0
+        result = FallingSnowLevel().process(
+            self.temperature_cube, self.relative_humidity_cube,
+            self.pressure_cube, orog, land_sea)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
 
 
 if __name__ == '__main__':
