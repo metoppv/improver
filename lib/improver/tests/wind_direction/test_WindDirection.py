@@ -160,11 +160,13 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test that the __init__ does not fail."""
-        WindDirection()
+        result = WindDirection()
+        self.assertIsInstance(result, WindDirection)
 
     def test_backup_method(self):
         """Test that the __init__ accepts this keyword."""
-        WindDirection(backup_method='neighbourhood')
+        result = WindDirection(backup_method='neighbourhood')
+        self.assertIsInstance(result, WindDirection)
 
     def test_invalid_method(self):
         """Test that the __init__ fails when an unrecognised option is given"""

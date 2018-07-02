@@ -358,7 +358,6 @@ class WindDirection(object):
 
         if self.backup_method == 'neighbourhood':
             improved_values = np.full_like(self.wdir_slice_mean.data, None)
-            #nbhood.process(self.wdir_complex)
         else:
             # Takes first ensemble realization.
             improved_values = self.wdir_slice.data[0]
