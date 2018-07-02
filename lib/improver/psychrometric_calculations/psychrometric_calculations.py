@@ -909,7 +909,7 @@ class FallingSnowLevel(object):
                                              sea_points)
 
     @staticmethod
-    def fill_in_by_horizontal_interpolation(snow_level_data):
+    def fill_in_by_horizontal_interpolation(snow_level_data, orog_data):
         """
         Fill in any remaining unset areas in the snow falling level by using
         linear horizontal intepolation across the grid.
@@ -924,13 +924,20 @@ class FallingSnowLevel(object):
                 horizontal interpolation.
         """
         # Interpolate linearly across the remaining points
-        points = np.where(np.isfinite(snow_level_data))
-        values = snow_level_data[points]
+
         ynum, xnum = snow_level_data.shape
         (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
+        points = np.where(snow_level_data<=orog_data)
+        values = snow_level_data[points]
         snow_level_data_updated = griddata(
             points, values, (y_points, x_points), method='linear')
-        return snow_level_data_updated
+        points = np.where(snow_level_data_updated<=orog_data)
+        values = snow_level_data_updated[points]
+        snow_level_data_updated_2 = griddata(
+            points, values, (y_points, x_points), method='nearest')
+
+
+        return snow_level_data_updated_2
 
     def process(self, temperature, relative_humidity, pressure, orog,
                 land_sea_mask):
@@ -1000,8 +1007,10 @@ class FallingSnowLevel(object):
             self.fill_in_sea_points(
                 snow_cube.data, land_sea_data, wb_integral.data.max(axis=0),
                 wet_bulb_temp.data,  heights)
-            snow_cube.data = self.fill_in_by_horizontal_interpolation(
-                snow_cube.data)
+            updated_snow_level = self.fill_in_by_horizontal_interpolation(
+                snow_cube.data, orog_data)
+            points = np.where(~np.isfinite(snow_cube.data))
+            snow_cube.data[points] = updated_snow_level[points]
             # Fill in any remaining points with missing data:
             remaining_points = np.where(np.isnan(snow_cube.data))
             snow_cube.data[remaining_points] = self.missing_data
