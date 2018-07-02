@@ -485,6 +485,11 @@ class TemporalInterpolation(object):
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
+        if (not isinstance(cube_t0, iris.cube.Cube) or
+                not isinstance(cube_t1, iris.cube.Cube)):
+            raise TypeError('Inputs to TemporalInterpolation are not of type '
+                            'iris.cube.Cube')
+
         try:
             initial_time, = iris_time_to_datetime(cube_t0.coord('time'))
             final_time, = iris_time_to_datetime(cube_t1.coord('time'))
@@ -492,6 +497,10 @@ class TemporalInterpolation(object):
             msg = ('Cube provided to time_interpolate contains no time '
                    'coordinate.')
             raise CoordinateNotFoundError(msg)
+        except ValueError:
+            msg = ('Cube provided to time_interpolate contains multiple '
+                   'validity times, only one expected.')
+            raise ValueError(msg)
 
         if initial_time > final_time:
             raise ValueError('time_interpolate input cubes ordered incorrectly'

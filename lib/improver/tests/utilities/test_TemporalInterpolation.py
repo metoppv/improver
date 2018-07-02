@@ -36,6 +36,7 @@ import unittest
 import numpy as np
 from cf_units import Unit
 
+import iris
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
@@ -127,6 +128,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up the test inputs."""
         self.time_0 = datetime.datetime(2017, 11, 1, 3)
+        self.time_extra = datetime.datetime(2017, 11, 1, 6)
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
         data_time_0 = np.ones((self.npoints, self.npoints))
@@ -201,6 +203,31 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation(interval_in_minutes=180).process(
                 self.cube_time_1, self.cube_time_0)
+
+    def test_input_cube_with_multiple_times(self):
+        """Test that an exception is raised if a cube is provided that has
+        multiple validity times, e.g. a multi-entried time dimension."""
+
+        second_time = self.cube_time_0.copy()
+        second_time.coord('time').points = self.time_extra.timestamp()
+        cube = iris.cube.CubeList([self.cube_time_0, second_time])
+        cube = cube.merge_cube()
+
+        msg = 'Cube provided to time_interpolate contains multiple'
+        with self.assertRaisesRegex(ValueError, msg):
+            TemporalInterpolation(interval_in_minutes=180).process(
+                cube, self.cube_time_1)
+
+    def test_input_cubelists_raises_exception(self):
+        """Test that providing cubelists instead of cubes raises an
+        exception."""
+
+        cubes = iris.cube.CubeList([self.cube_time_1])
+
+        msg = 'Inputs to TemporalInterpolation are not of type '
+        with self.assertRaisesRegex(TypeError, msg):
+            TemporalInterpolation(interval_in_minutes=180).process(
+                cubes, self.cube_time_0)
 
 
 if __name__ == '__main__':
