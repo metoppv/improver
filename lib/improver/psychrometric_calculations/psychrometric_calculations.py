@@ -741,7 +741,7 @@ class FallingSnowLevel(object):
 
         If the linear fit crosses below zero the limits on our integral are
         the snow falling level and the point where the linear fit crosses the
-        height axis, as only possitive wet bulb temperatures count towards the
+        height axis, as only positive wet bulb temperatures count towards the
         integral. In this case our expression for the snow falling level is:
 
         .. math::
@@ -822,12 +822,12 @@ class FallingSnowLevel(object):
         Returns:
             (tuple): tuple containing
 
-                **gradient** (numpy.array) - An an array, the same shape as a
+                **gradient** (numpy.array) - An array, the same shape as a
                 2D slice of the wet_bulb_temperature input, containing the
                 gradients of the fitted straight line at each point where it
                 could be found, filled with zeros elsewhere.
 
-                **intercept** (numpy.array) - An an array, the same shape as a
+                **intercept** (numpy.array) - An array, the same shape as a
                 2D slice of the wet_bulb_temperature input, containing the
                 intercepts of the fitted straight line at each point where it
                 could be found, filled with zeros elsewhere.
