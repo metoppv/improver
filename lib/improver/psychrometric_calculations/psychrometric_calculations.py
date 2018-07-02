@@ -699,7 +699,7 @@ class FallingSnowLevel(object):
     def find_extrapolated_falling_level(self, max_wb_integral, gradient,
                                         intercept, snow_falling_level,
                                         sea_points):
-        """
+        r"""
         Find the snow falling level below sea level using the linear
         extrapolation of the wet bulb temperature integral and update the
         snow falling level array with these values.
@@ -726,7 +726,7 @@ class FallingSnowLevel(object):
         If we have our linear fit of the form:
 
         .. math::
-            {{wet\:bulb\:temperature} = m \\times height + c}
+            {{wet\:bulb\:temperature} = m \times height + c}
 
         and let :math:`I` be the wet bulb temperature integral we have found
         above sea level.
@@ -736,7 +736,7 @@ class FallingSnowLevel(object):
         expression for the snow falling level:
 
         .. math::
-            {{snow\:falling\:level} = \\frac{c \\pm \\sqrt{
+            {{snow\:falling\:level} = \frac{c \pm \sqrt{
             c^2-2 m (threshold-I)}}{-m}}
 
         If the linear fit crosses below zero the limits on our integral are
@@ -745,7 +745,7 @@ class FallingSnowLevel(object):
         integral. In this case our expression for the snow falling level is:
 
         .. math::
-            {{snow\:falling\:level} = \\frac{c \\pm \\sqrt{
+            {{snow\:falling\:level} = \frac{c \pm \sqrt{
             2 m (I-threshold)}}{-m}}
 
         Args:
