@@ -131,55 +131,161 @@ class Test_fill_in_high_snow_falling_levels(IrisTest):
         self.assertArrayEqual(self.snow_level_data, expected)
 
 
+class Test_linear_wet_bulb_fit(IrisTest):
+
+    """Test the linear_wet_bulb_fit method."""
+
+    def setUp(self):
+        """
+        Set up arrays for testing.
+
+        Set up a wet bulb temperature array with a linear trend near sea
+        level. Some of the straight line fits of wet bulb temperature will
+        cross the height axis above zero and some below.
+        """
+        data = np.ones((5, 3, 3))*-0.8
+        self.heights = np.array([5, 10, 20, 30, 50])
+        for i in range(5):
+            data[i] = data[i]*self.heights[i]
+        data[:, :, 0] = data[:, :, 0]-10
+        data[:, :, 2] = data[:, :, 2]+20
+        self.wet_bulb_temperature = data
+        self.sea_points = np.array([[True, True, True],
+                                    [False, False, False],
+                                    [True, True, True]])
+        self.expected_gradients = np.array([[-0.8, -0.8, -0.8],
+                                            [0.0, 0.0, 0.0],
+                                            [-0.8, -0.8, -0.8]])
+        self.expected_intercepts = np.array([[-10, 0.0, 20.0],
+                                             [0.0, 0.0, 0.0],
+                                             [-10, 0.0, 20.0]])
+
+    def test_basic(self):
+        """Test we find the correct gradient and intercepts for simple case"""
+        plugin = FallingSnowLevel()
+
+        gradients, intercepts = plugin.linear_wet_bulb_fit(
+            self.wet_bulb_temperature, self.heights, self.sea_points)
+        self.assertArrayAlmostEqual(self.expected_gradients, gradients)
+        self.assertArrayAlmostEqual(self.expected_intercepts, intercepts)
+
+    def test_land_points(self):
+        """Test it returns arrays of zeros if points are land."""
+        plugin = FallingSnowLevel()
+        sea_points = np.ones((3, 3))*False
+        gradients, intercepts = plugin.linear_wet_bulb_fit(
+            self.wet_bulb_temperature, self.heights, sea_points)
+        self.assertArrayAlmostEqual(np.zeros((3, 3)), gradients)
+        self.assertArrayAlmostEqual(np.zeros((3, 3)), intercepts)
+
+
+class Test_find_extrapolated_falling_level(IrisTest):
+
+    """Test the find_extrapolated_falling_level method."""
+
+    def setUp(self):
+        """
+        Set up arrays for testing.
+        Set up a wet bulb temperature array with a linear trend near sea
+        level. Some of the straight line fits of wet bulb temperature will
+        cross the height axis above zero and some below.
+        """
+        self.snow_falling_level = np.ones((3, 3))*np.nan
+        self.max_wb_integral = np.array([[0.0, 0.0, 0.0],
+                                         [0.0, 0.0, 0.0],
+                                         [10.0, 10.0, 10.0]])
+        self.sea_points = np.array([[True, True, True],
+                                    [False, False, False],
+                                    [True, True, True]])
+        self.gradients = np.array([[-0.8, -0.8, -0.8],
+                                   [0.0, 0.0, 0.0],
+                                   [-0.8, -0.8, -0.8]])
+        self.intercepts = np.array([[-10, 0.0, 20.0],
+                                    [0.0, 0.0, 0.0],
+                                    [-10, 0.0, 20.0]])
+        self.expected_snow_falling_level = np.array(
+            [[-27.5, -15.0, -4.154759],
+             [np.nan, np.nan, np.nan],
+             [-26.642136, -14.142136, -3.722813]])
+
+    def test_basic(self):
+        """Test we fill in the correct snow falling levels for a simple case"""
+        plugin = FallingSnowLevel()
+
+        plugin.find_extrapolated_falling_level(
+            self.max_wb_integral, self.gradients, self.intercepts,
+            self.snow_falling_level, self.sea_points)
+        self.assertArrayAlmostEqual(self.expected_snow_falling_level,
+                                    self.snow_falling_level)
+
+    def test_gradients_zero(self):
+        """Test we do nothing if all gradients are zero"""
+        plugin = FallingSnowLevel()
+        gradients = np.zeros((3, 3))
+        plugin.find_extrapolated_falling_level(
+            self.max_wb_integral, gradients, self.intercepts,
+            self.snow_falling_level, self.sea_points)
+        expected_snow_falling_level = np.ones((3, 3))*np.nan
+        self.assertArrayAlmostEqual(expected_snow_falling_level,
+                                    self.snow_falling_level)
+
+
 class Test_fill_sea_points(IrisTest):
 
     """Test the fill_in_sea_points method."""
 
     def setUp(self):
         """ Set up arrays for testing."""
-        self.snow_level_data = np.array([[1.0, 1.0, 2.0],
-                                         [1.0, np.nan, 2.0],
-                                         [1.0, 2.0, 2.0]])
-        self.wb_int = np.array([[100.0, 100.0, 100.0],
-                                [100.0, 5.0, 100.0],
-                                [100.0, 100.0, 100.0]])
-        self.land_sea = np.ones((3, 3))
+        self.snow_falling_level = np.ones((3, 3))*np.nan
+        self.max_wb_integral = np.array([[0.0, 0.0, 0.0],
+                                         [0.0, 0.0, 0.0],
+                                         [10.0, 10.0, 10.0]])
+
+        self.land_sea = np.array([[0, 0, 0],
+                                  [1, 1, 1],
+                                  [0, 0, 0]])
+        data = np.ones((5, 3, 3))*-0.8
+        self.heights = np.array([5, 10, 20, 30, 50])
+        for i in range(5):
+            data[i] = data[i]*self.heights[i]
+        data[:, :, 0] = data[:, :, 0] - 10
+        data[:, :, 2] = data[:, :, 2] + 20
+        self.wet_bulb_temperature = data
+        self.expected_snow_falling_level = np.array(
+            [[-27.5, -15.0, -4.154759],
+             [np.nan, np.nan, np.nan],
+             [-26.642136, -14.142136, -3.722813]])
 
     def test_basic(self):
         """Test it fills in the points it's meant to."""
         plugin = FallingSnowLevel()
-        self.land_sea[1, 1] = 0
-
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 0, 2.0],
-                             [1.0, 2.0, 2.0]])
-        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
-                                  self.wb_int)
-        self.assertArrayEqual(self.snow_level_data, expected)
+        plugin.fill_in_sea_points(self.snow_falling_level, self.land_sea,
+                                  self.max_wb_integral,
+                                  self.wet_bulb_temperature, self.heights)
+        self.assertArrayAlmostEqual(self.snow_falling_level.data,
+                                    self.expected_snow_falling_level)
 
     def test_no_sea(self):
         """Test it only fills in sea points, and ignores a land point"""
         plugin = FallingSnowLevel()
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, np.nan, 2.0],
-                             [1.0, 2.0, 2.0]])
-        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
-                                  self.wb_int)
-        self.assertArrayEqual(self.snow_level_data, expected)
+        expected = np.ones((3, 3))*np.nan
+        land_sea = np.ones((3, 3))
+        plugin.fill_in_sea_points(self.snow_falling_level, land_sea,
+                                  self.max_wb_integral,
+                                  self.wet_bulb_temperature, self.heights)
+        self.assertArrayAlmostEqual(self.snow_falling_level.data, expected)
 
     def test_all_above_threshold(self):
         """Test it doesn't change points that are all above the threshold"""
         plugin = FallingSnowLevel()
-        self.wb_int[1, 1] = 100
-        self.snow_level_data[1, 1] = 1.0
-        self.land_sea[1, 1] = 0
-
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 1.0, 2.0],
-                             [1.0, 2.0, 2.0]])
-        plugin.fill_in_sea_points(self.snow_level_data, self.land_sea,
-                                  self.wb_int)
-        self.assertArrayEqual(self.snow_level_data, expected)
+        self.max_wb_integral[0, 1] = 100
+        self.snow_falling_level[0, 1] = 100
+        self.expected_snow_falling_level[0, 1] = 100
+        plugin.fill_in_sea_points(self.snow_falling_level, self.land_sea,
+                                  self.max_wb_integral,
+                                  self.wet_bulb_temperature, self.heights)
+        self.assertArrayAlmostEqual(self.snow_falling_level.data,
+                                    self.expected_snow_falling_level)
 
 
 class Test_fill_in_by_horizontal_interpolation(IrisTest):
@@ -291,7 +397,6 @@ class Test_process(IrisTest):
         """Test that the falling snow level process returns a cube
         containing the expected data when points at sea-level."""
         expected = np.ones((2, 3, 3)) * 65.88732723
-        expected[:, 1, 1] = 0.0
         orog = self.orog
         orog.data = orog.data * 0.0
         land_sea = self.land_sea
