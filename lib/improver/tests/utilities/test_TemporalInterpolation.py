@@ -79,7 +79,15 @@ class Test_construct_time_list(IrisTest):
         self.times = []
         for i in range(4, 9):
             self.times.append(datetime.datetime(2017, 11, 1, i))
-        self.expected = [('time', time) for time in self.times]
+        self.expected = [('time', [time for time in self.times])]
+
+    def test_return_type(self):
+        """Test that a list is returned."""
+
+        result = (
+            TemporalInterpolation(interval_in_minutes=60).construct_time_list(
+                self.time_0, self.time_1))
+        self.assertIsInstance(result, list)
 
     def test_list_from_interval_in_minutes(self):
         """Test generating a list between two times using the
@@ -149,8 +157,19 @@ class Test_process(IrisTest):
         self.cube_time_1 = cube_template.copy(data=data_time_1)
         self.cube_time_0.add_aux_coord(DimCoord(self.time_0.timestamp(),
                                                 "time", units=tunit))
+        self.cube_time_0.add_aux_coord(DimCoord(0, "forecast_period",
+                                                units="hours"))
         self.cube_time_1.add_aux_coord(DimCoord(self.time_1.timestamp(),
                                                 "time", units=tunit))
+        self.cube_time_1.add_aux_coord(DimCoord(6, "forecast_period",
+                                                units="hours"))
+
+    def test_return_type(self):
+        """Test that an iris cubelist is returned."""
+
+        result = TemporalInterpolation(interval_in_minutes=180).process(
+            self.cube_time_0, self.cube_time_1)
+        self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_valid_single_interpolation(self):
         """Test interpolating to the mid point of the time range. Expect the
@@ -159,11 +178,13 @@ class Test_process(IrisTest):
 
         expected_data = np.ones((self.npoints, self.npoints)) * 4
         expected_time = (self.time_0 + timedelta(hours=3)).timestamp()
+        expected_fp = 3
         result, = TemporalInterpolation(interval_in_minutes=180).process(
             self.cube_time_0, self.cube_time_1)
 
         self.assertArrayEqual(expected_data, result.data)
         self.assertEqual(result.coord('time').points, expected_time)
+        self.assertEqual(result.coord('forecast_period').points, expected_fp)
 
     def test_valid_multiple_interpolations(self):
         """Test interpolating to every hour between the two input cubes.
@@ -171,7 +192,7 @@ class Test_process(IrisTest):
         set correctly.
 
         NB Interpolation in iris is prone to float precision errors of order
-        10E-6, hence the need to use assert_almost_equal below."""
+        10E-6, hence the need to use AlmostEqual below."""
 
         result = TemporalInterpolation(interval_in_minutes=60).process(
             self.cube_time_0, self.cube_time_1)
@@ -179,9 +200,30 @@ class Test_process(IrisTest):
             expected_data = np.ones((self.npoints, self.npoints)) * i + 2
             expected_time = (self.time_0 + timedelta(hours=(i+1))).timestamp()
 
-            np.testing.assert_almost_equal(expected_data, cube.data)
-            np.testing.assert_almost_equal(
+            self.assertArrayAlmostEqual(expected_data, cube.data)
+            self.assertArrayAlmostEqual(
                 cube.coord('time').points, expected_time, decimal=5)
+            self.assertAlmostEqual(cube.coord('forecast_period').points[0],
+                                   i+1)
+
+    def test_valid_interpolation_from_given_list(self):
+        """Test interpolating to a point defined in a list between the two
+        input cube validity times. Check the data increments as expected and
+        the time coordinates are also set correctly.
+
+        NB Interpolation in iris is prone to float precision errors of order
+        10E-6, hence the need to use AlmostEqual below."""
+
+        result, = TemporalInterpolation(times=[self.time_extra]).process(
+            self.cube_time_0, self.cube_time_1)
+        expected_data = np.ones((self.npoints, self.npoints)) * 4
+        expected_time = self.time_extra.timestamp()
+        expected_fp = 3
+
+        self.assertArrayAlmostEqual(expected_data, result.data)
+        self.assertArrayAlmostEqual(
+            result.coord('time').points, expected_time, decimal=5)
+        self.assertEqual(result.coord('forecast_period').points, expected_fp)
 
     def test_input_cube_without_time_coordinate(self):
         """Test that an exception is raised if a cube is provided without a

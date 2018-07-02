@@ -421,12 +421,13 @@ class TemporalInterpolation(object):
                 constructed.
 
         Returns:
-            time_list (list of tuples):
-                A list of tuples formatted suitably for use by iris'
-                interpolation method::
+            list:
+                A list containing a tuple that specifies the coordinate and a
+                list of points along that coordinate to which to interpolate,
+                as required by the iris interpolation method:
 
-                    e.g. [('time', <datetime object 0>),
-                          ('time', <datetime object 1>), ...]
+                    e.g. [('time', [<datetime object 0>,
+                                    <datetime object 1>])]
         Raises:
             ValueError: If list of times provided falls outside the range
                         specified by the initial and final times.
@@ -435,15 +436,12 @@ class TemporalInterpolation(object):
         """
         time_list = []
         if self.times is not None:
-            self.times.sort()
+            self.times = sorted(self.times)
             if self.times[0] < initial_time or self.times[-1] > final_time:
                 raise ValueError(
                     'List of times falls outside the range given by '
                     'initial_time and final_time. ')
-
-            for time in self.times:
-                time_list.append(('time', time))
-
+            time_list = self.times
         else:
             if ((final_time - initial_time).seconds %
                     (60 * self.interval_in_minutes) != 0):
@@ -457,9 +455,9 @@ class TemporalInterpolation(object):
                               timedelta(minutes=self.interval_in_minutes))
                 if time_entry >= final_time:
                     break
-                time_list.append(('time', time_entry))
+                time_list.append(time_entry)
 
-        return time_list
+        return [('time', time_list)]
 
     def process(self, cube_t0, cube_t1):
         """
@@ -480,8 +478,10 @@ class TemporalInterpolation(object):
                 A list of cubes interpolated to the desired times.
 
         Raises:
+            TypeError: If cube_t0 and cube_t1 are not of type iris.cube.Cube.
             CoordinateNotFoundError: The input cubes contain no time
                                      coordinate.
+            ValueError: Cubes contain multiple validity times.
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
@@ -508,11 +508,11 @@ class TemporalInterpolation(object):
                              'time.')
 
         time_list = self.construct_time_list(initial_time, final_time)
-
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
         cube = cubes.merge_cube()
+        interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         interpolated_cubes = iris.cube.CubeList()
-        for time in time_list:
-            interpolated_cubes.append(cube.interpolate([time],
-                                                       iris.analysis.Linear()))
+        for single_time in interpolated_cube.slices_over('time'):
+            interpolated_cubes.append(single_time)
+
         return interpolated_cubes
