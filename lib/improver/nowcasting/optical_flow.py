@@ -850,6 +850,9 @@ class OpticalFlow(object):
                 **vcube** (iris.cube.Cube):
                     2D cube of advection velocities in the y-direction
         """
+        # clear existing parameters
+        self.data_smoothing_radius = None
+        self.boxsize = None
 
         # check cubes have exactly two spatial dimension coordinates and a
         # scalar time coordinate
