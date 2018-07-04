@@ -55,7 +55,7 @@ def generate_output_file_name(cube):
             File basename to which to write
     """
 
-    # TODO write function
+    # TODO pull function from IMPROVER suite and modify if needed
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
     # OpticalFlow plugin configurable parameters
     parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "
                         "square 'box' (in grid squares) within which to solve "
-                        "the optical flow equations.")   # NOTE this may change to "radius" rather than "diameter"
+                        "the optical flow equations.")
     parser.add_argument("--smart_smoothing_iterations", type=int, default=100,
                         help="Number of iterations to perform in enforcing "
                         "smoothness constraint for optical flow velocities.")
@@ -120,7 +120,8 @@ def main():
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time") = time_coord
 
-    # save mean optical flow components to netcdf file(s)
+    # save mean optical flow components to netcdf files
+    # TODO netcdf standard variable names for u/v wind components
 
 
 
