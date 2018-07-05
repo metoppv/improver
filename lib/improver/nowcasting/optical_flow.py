@@ -290,7 +290,7 @@ class AdvectField(object):
         new_time = (cube.coord("time").units).date2num(new_datetime)
         advected_cube.coord("time").points = new_time
 
-        lead_time_seconds = timestep.total_seconds
+        lead_time_seconds = timestep.total_seconds()
         lead_time_coord = AuxCoord(
             lead_time_seconds, standard_name="forecast_period", units="s")
         advected_cube.add_aux_coord(lead_time_coord)

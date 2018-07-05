@@ -290,7 +290,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube, self.timestep)
         result.coord("forecast_period").convert_units("s")
         lead_time, = result.coord("forecast_period").points
-        self.assertEqual(lead_time, self.timestep.total_seconds)
+        self.assertEqual(lead_time, self.timestep.total_seconds())
 
 
 if __name__ == '__main__':

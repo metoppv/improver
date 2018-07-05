@@ -33,8 +33,10 @@
 extrapolate."""
 
 import datetime
-import iris
 import os
+
+import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
@@ -42,10 +44,10 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.temporal import iris_time_to_datetime
 
-def generate_output_file_name(cube, directory=''):
+def generate_file_name(cube, directory=''):
     """
-    From an extrapolated forecast cube, generate an IMPROVER-suitable file name
-    using the correct lead time.
+    From a forecast cube, generate an IMPROVER-suitable file name using the
+    correct lead time.
 
     Args:
         cube (iris.cube.Cube):
@@ -63,13 +65,16 @@ def generate_output_file_name(cube, directory=''):
     cycle_time_string = '{}{:02}{:02}T{:02}{:02}Z'.format(
         cdtime.year, cdtime.month, cdtime.day, cdtime.hour, cdtime.minute)
 
-    lead_time_coord = cube.coord('forecast_period')
-    lead_time_coord.convert_units('s')
-    lead_time, = lead_time_coord.points
-    lead_time_hours = lead_time // 3600
-    lead_time_minutes = (lead_time - lead_time_hours) // 60
-    lead_time_string = 'PT{:04}H{:02}M'.format(
-        lead_time_hours, lead_time_minutes)
+    try:
+        lead_time_coord = cube.coord('forecast_period')
+        lead_time_coord.convert_units('s')
+        lead_time, = lead_time_coord.points
+        lead_time_hours = lead_time // 3600
+        lead_time_minutes = (lead_time - lead_time_hours) // 60
+        lead_time_string = 'PT{:04}H{:02}M'.format(
+            lead_time_hours, lead_time_minutes)
+    except CoordinateNotFoundError:
+        lead_time_string = 'PT0000H00M'
 
     filename = '{}-{}-{}.nc'.format(cycle_time, lead_time_string, cube.name())
     return os.path.join(directory, filename)
@@ -154,7 +159,7 @@ def main():
             forecast_cube = advection_plugin.process(cube_list[2], timestep)
 
             # generate a suitable output file name
-            file_name = generate_output_file_name(
+            file_name = generate_file_name(
                 forecast_cube, directory=args.output_dir)
 
             # save to output file path
