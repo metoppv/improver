@@ -43,12 +43,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 
 # Data to test complex/degree handling functions.
-# The two degree/complex arrays are directly equivalent.
-DEGREE_ANGLES = np.array([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120,
-                          130, 140, 150, 160, 170, 180, 190, 200, 210, 220,
-                          230, 240, 250, 260, 270, 280, 290, 300, 310, 320,
-                          330, 340, 350])
-
+# Complex angles equivalent to np.arange(0., 360, 10) degrees.
 COMPLEX_ANGLES = np.array([1.0+0j, 0.984807753+0.173648178j,
                            0.939692621+0.342020143j, 0.866025404+0.5j,
                            0.766044443+0.642787610j,
@@ -73,34 +68,21 @@ COMPLEX_ANGLES = np.array([1.0+0j, 0.984807753+0.173648178j,
                            0.939692621-0.342020143j, 0.984807753-0.173648178j])
 
 # Data to test the ensemble averaging codes.
-# First element - two angles set at 90 and 270 degrees.
-WIND_DIR_DEG = np.array([[[90.0, 50.0],
-                          [270.0, 350.0]],
-                         [[270.0, 60.0],
-                          [290.0, 10.0]]])
-
-WIND_DIR_DEG_MEAN = np.array([[180.0, 55.0],
-                              [280.0, 0.0]])
-
 WIND_DIR_COMPLEX = np.array([[[6.12323400e-17+1.0j, 0.642787610+0.76604444j],
                               [-1.83697020e-16-1.0j, 0.984807753-0.17364818j]],
                              [[-1.83697020e-16-1.0j, 0.5+0.8660254j],
                               [0.342020143-0.93969262j,
                                0.984807753+0.17364818j]]])
 
-WIND_DIR_COMPLEX_MEAN = np.array([[-6.12323400e-17+0j,
-                                   0.571393805+0.816034923j],
-                                  [0.171010072-0.969846310j,
-                                   0.984807753-0j]])
-
-WIND_DIR_R_VALS = np.array([[6.12323400e-17, 0.996194698],
-                            [0.984807753, 0.984807753]])
-
 
 def make_wdir_cube_222():
     """Make a wind direction cube for testing this plugin"""
     # 2x2x2 3D Array containing wind direction in angles.
-    data = WIND_DIR_DEG
+    # First element - two angles set at 90 and 270 degrees.
+    data = np.array([[[90.0, 50.0],
+                      [270.0, 350.0]],
+                     [[270.0, 60.0],
+                      [290.0, 10.0]]])
 
     realization = DimCoord([0, 1], 'realization', units=1)
     latitude = DimCoord(np.linspace(-90, 0, 2),
@@ -207,7 +189,7 @@ class Test_deg_to_complex(IrisTest):
 
     def test_converts_array(self):
         """Tests that array of floats is converted to complex array."""
-        result = WindDirection().deg_to_complex(DEGREE_ANGLES)
+        result = WindDirection().deg_to_complex(np.arange(0., 360, 10))
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
 
@@ -234,7 +216,7 @@ class Test_complex_to_deg(IrisTest):
         """Tests that array of complex values are converted to degrees."""
         result = WindDirection().complex_to_deg(COMPLEX_ANGLES)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, DEGREE_ANGLES)
+        self.assertArrayAlmostEqual(result, np.arange(0., 360, 10))
 
 
 class Test_complex_to_deg_roundtrip(IrisTest):
@@ -337,7 +319,9 @@ class Test_calc_confidence_measure(IrisTest):
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
         self.plugin.r_vals_slice = make_wdir_cube_222()[0]
-        self.plugin.r_vals_slice.data = WIND_DIR_R_VALS
+        self.plugin.r_vals_slice.data = (
+            np.array([[6.12323400e-17, 0.996194698],
+                      [0.984807753, 0.984807753]]))
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
 
     def test_returns_confidence(self):
@@ -363,12 +347,13 @@ class Test_wind_dir_decider(IrisTest):
     def setUp(self):
         """Initialise plugin and supply data for tests"""
         self.plugin = WindDirection()
-        self.plugin.wdir_mean_complex = (
-            self.plugin.deg_to_complex(WIND_DIR_DEG_MEAN))
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
-        self.plugin.wdir_slice_mean.data = WIND_DIR_DEG_MEAN
+        self.plugin.wdir_slice_mean.data = np.array([[180.0, 55.0],
+                                                     [280.0, 0.0]])
+        self.plugin.wdir_mean_complex = (
+            self.plugin.deg_to_complex(self.plugin.wdir_slice_mean.data))
         self.cube = make_wdir_cube_222()[0]
 
     def test_runs_function(self):
