@@ -642,7 +642,7 @@ class Test_process(IrisTest):
             self.assertEqual(cube.coord("time")[0],
                              self.cube2.coord("time")[0])
             self.assertEqual(cube.units, "m s-1")
-            self.assertIn("advection_velocity_", cube.name())
+            self.assertIn("_precipitation_advection", cube.name())
 
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
