@@ -28,48 +28,48 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for generating IMPROVER-compliant file names."""
+"""Unit tests for file name generation."""
 
-from iris.exceptions import CoordinateNotFoundError
-from improver.utilities.temporal import iris_time_to_datetime
+import unittest
+import numpy as np
+from cf_units import Unit
 
-def generate_file_name(cube):
-    """
-    From a forecast cube, generate an IMPROVER-suitable file name using the
-    correct lead time.  Requires a "time" coordinate.  If the cube has no
-    forecast_period coordinate, creates a dummy lead time string.
+import iris
+from iris.coords import DimCoord, AuxCoord
 
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing nowcast data
+from improver.utilities.filename import generate_file_name
 
-        lead_time (int):
-            Lead time of advection nowcast, in minutes
 
-    Returns:
-        filename (str):
-            File base name to which to write
+class Test_generate_file_name(unittest.TestCase):
+    """Test the generate_file_name function"""
 
-    Raises:
-        iris.exceptions.CoordinateNotFoundError:
-            If the input cube has no "time" coordinate
-    """
+    def setUp(self):
+        """Set up dummy cube"""
+        x_coord = DimCoord(np.arange(3), "projection_x_coordinate", units="km")
+        y_coord = DimCoord(np.arange(3), "projection_y_coordinate", units="km")
+        data = np.zeros((3, 3))
 
-    cdtime = iris_time_to_datetime(cube.coord('time'))[0]
-    cycle_time_string = '{}{:02}{:02}T{:02}{:02}Z'.format(
-        cdtime.year, cdtime.month, cdtime.day, cdtime.hour, cdtime.minute)
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        t_coord = AuxCoord(np.linspace(402192.5, 402292.5, 1),
+                           "time", units=tunit)
 
-    try:
-        lead_time_coord = cube.coord('forecast_period')
-        lead_time_coord.convert_units('s')
-        lead_time, = lead_time_coord.points
-        lead_time_hours = lead_time // 3600
-        lead_time_minutes = (lead_time - lead_time_hours) // 60
-        lead_time_string = 'PT{:04}H{:02}M'.format(
-            lead_time_hours, lead_time_minutes)
-    except CoordinateNotFoundError:
-        lead_time_string = 'PT0000H00M'
+        fp_coord = AuxCoord(900, "forecast_period", units="s")
 
-    filename = '{}-{}-{}.nc'.format(cycle_time_string, lead_time_string, cube.name())
-    return filename
+        self.cube = iris.cube.Cube(data, "air_temperature", units='degreesC',
+                                   dim_coords_and_dims=[(y_coord, 0),
+                                                        (x_coord, 1)])
+        self.cube.add_aux_coord(t_coord)
+        self.cube.add_aux_coord(fp_coord)
+
+    def test_basic(self):
+        """Test basic file name generation"""
+        name = generate_file_name(self.cube)
+        self.assertIsInstance(name, str)
+        self.assertEqual(name, "20151119T0030Z-PT0000H15M-air_temperature.nc")
+
+
+if __name__ == '__main__':
+    unittest.main()
 

@@ -34,6 +34,7 @@ extrapolate."""
 
 import datetime
 import iris
+import os
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
@@ -104,8 +105,9 @@ def main():
     vmean.coord("time") = time_coord
 
     # save mean optical flow components as netcdf files
-    save_netcdf(ucube, 0, directory=args.output_dir)
-    save_netcdf(vcube, 0, directory=args.output_dir)
+    for wind_cube in [ucube, vcube]:
+        file_name = generate_file_name(wind_cube)
+        save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
 
     # advect latest input data to the required lead times
     if args.extrapolate:
@@ -120,12 +122,9 @@ def main():
             timestep = datetime.timedelta(seconds=60*lead_time)
             forecast_cube = advection_plugin.process(cube_list[2], timestep)
 
-            # generate a suitable output file name
-            file_name = generate_file_name(
-                forecast_cube, directory=args.output_dir)
-
-            # save to output file path
-            save_netcdf(forecast_cube, file_name)
+            # save to a suitably-named output file
+            file_name = generate_file_name(forecast_cube)
+            save_netcdf(forecast_cube, os.path.join(args.output_dir, file_name))
 
 
 if __name__ == "__main__":
