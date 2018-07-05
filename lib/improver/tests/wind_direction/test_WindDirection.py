@@ -265,11 +265,11 @@ class Test_wind_dir_mean(IrisTest):
         """Initialise plugin and supply data for tests"""
         self.plugin = WindDirection()
         # 5x3x4 3D Array containing wind direction in angles.
-        self.plugin.wdir_slice = make_wdir_cube_534()
+        cube = make_wdir_cube_534()
         self.plugin.wdir_complex = self.plugin.deg_to_complex(
-            self.plugin.wdir_slice.data)
+            cube.data)
         self.plugin.wdir_slice_mean = (
-            next(self.plugin.wdir_slice.slices_over("realization")))
+            next(cube.slices_over("realization")))
         self.plugin.realization_axis = 0
 
         self.expected_wind_mean = (
@@ -367,11 +367,9 @@ class Test_wind_dir_decider(IrisTest):
             self.plugin.deg_to_complex(WIND_DIR_DEG_MEAN))
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
-        self.plugin.r_vals_slice = make_wdir_cube_222()[0]
-        self.plugin.r_vals_slice.data = WIND_DIR_R_VALS
-        self.plugin.wdir_slice = make_wdir_cube_222()
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
         self.plugin.wdir_slice_mean.data = WIND_DIR_DEG_MEAN
+        self.cube = make_wdir_cube_222()[0]
 
     def test_runs_function(self):
         """First element has two angles directly opposite (90 & 270 degs).
@@ -381,8 +379,10 @@ class Test_wind_dir_decider(IrisTest):
 
         expected_out = np.array([[90.0, 55.0],
                                  [280.0, 0.0]])
+        where_low_r = np.array([[True, False],
+                                [False, False]])
 
-        self.plugin.wind_dir_decider()
+        self.plugin.wind_dir_decider(where_low_r, self.cube.data)
         result = self.plugin.wdir_slice_mean.data
 
         self.assertIsInstance(result, np.ndarray)

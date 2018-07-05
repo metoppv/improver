@@ -96,7 +96,7 @@ class WindDirection(object):
         self.backup_methods = ['first realization', 'neighbourhood']
         self.backup_method = backup_method
         if self.backup_method not in self.backup_methods:
-            msg = ('Invalid option for keyword backup_method ' +
+            msg = ('Invalid option for keyword backup_method '
                    '({})'.format(self.backup_method))
             raise ValueError(msg)
 
@@ -117,7 +117,6 @@ class WindDirection(object):
 
     def _reset(self):
         """Empties working data objects"""
-        self.wdir_slice = None
         self.realization_axis = None
         self.wdir_complex = None
         self.wdir_slice_mean = None
@@ -219,7 +218,6 @@ class WindDirection(object):
         self.wdir_mean_complex = np.mean(self.wdir_complex,
                                          axis=self.realization_axis)
         self.wdir_slice_mean.data = self.complex_to_deg(self.wdir_mean_complex)
-        return
 
     def find_r_values(self):
         """Find radius values from complex numbers.
@@ -242,7 +240,6 @@ class WindDirection(object):
         r_vals = (np.sqrt(np.square(self.wdir_mean_complex.real) +
                           np.square(self.wdir_mean_complex.imag)))
         self.r_vals_slice = self.wdir_slice_mean.copy(data=r_vals)
-        return
 
     def calc_confidence_measure(self):
         """Find confidence measure of polar numbers.
@@ -321,15 +318,23 @@ class WindDirection(object):
                                        0.0, dist_from_mean_norm)
         self.confidence_slice = self.wdir_slice_mean.copy(
             data=dist_from_mean_norm)
-        return
 
-    def wind_dir_decider(self):
+    def wind_dir_decider(self, where_low_r, first_member):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
            We therefore substitute this meaningless average wind
            direction value for the wind direction taken from the first
            ensemble realization.
+
+        Arguments:
+            where_low_r (np.array):
+                Array of boolean values. True where original wind direction
+                estimate has low confidence. These points are replaced
+                according to self.backup_method
+            first_member (np.array):
+                Array of wind direction data from the first ensemble
+                realization
 
         Uses:
             self.wdir_slice.data (np.ndarray):
@@ -348,25 +353,16 @@ class WindDirection(object):
                 been replaced with data from first ensemble realization.
         """
 
-        # Mask True if r values below threshold.
-        where_low_r = np.where(self.r_vals_slice.data < self.r_thresh, True,
-                               False)
-
-        # If the whole array contains good r-values, return origonal array.
-        if not where_low_r.any():
-            return
-
         if self.backup_method == 'neighbourhood':
             improved_values = np.full_like(self.wdir_slice_mean.data, None)
         else:
             # Takes first ensemble realization.
-            improved_values = self.wdir_slice.data[0]
+            improved_values = first_member
 
         # If the r-value is low - subistite average wind direction value for
         # the wind direction taken from the first ensemble realization.
         self.wdir_slice_mean.data = np.where(where_low_r, improved_values,
                                              self.wdir_slice_mean.data)
-        return
 
     def process(self, cube_ens_wdir):
         """Create a cube containing the wind direction averaged over the
@@ -413,15 +409,14 @@ class WindDirection(object):
                                                 y_coord_name,
                                                 x_coord_name]):
             self._reset()
-            self.wdir_slice = wdir_slice
             # Extract wind direction data.
-            self.wdir_complex = self.deg_to_complex(self.wdir_slice.data)
-            self.realization_axis, = self.wdir_slice.coord_dims("realization")
+            self.wdir_complex = self.deg_to_complex(wdir_slice.data)
+            self.realization_axis, = wdir_slice.coord_dims("realization")
 
             # Copies input cube and remove realization dimension to create
             # cubes for storing results.
             self.wdir_slice_mean = next(
-                self.wdir_slice.slices_over("realization"))
+                wdir_slice.slices_over("realization"))
             self.wdir_slice_mean.remove_coord("realization")
 
             # Derive average wind direction.
@@ -439,7 +434,13 @@ class WindDirection(object):
 
             # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble realization.
-            self.wind_dir_decider()
+            # Mask True if r values below threshold.
+            where_low_r = np.where(self.r_vals_slice.data < self.r_thresh, True,
+                                  False)
+            # If the any point in the array contains poor r-values,
+            # trigger decider function.
+            if where_low_r.any():
+                self.wind_dir_decider(where_low_r, wdir_slice.data[0])
 
             # Append to cubelists.
             self.wdir_cube_list.append(self.wdir_slice_mean)
