@@ -41,6 +41,7 @@ import scipy.ndimage
 import scipy.signal
 
 import iris
+from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
@@ -282,12 +283,17 @@ class AdvectField(object):
                                            fill_value)
         advected_cube = cube.copy(data=advected_data)
 
-        # increment output cube time
+        # increment output cube time and add a "forecast_lead_time" coordinate
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
         new_time = (cube.coord("time").units).date2num(new_datetime)
         advected_cube.coord("time").points = new_time
+
+        lead_time_seconds = timestep.total_seconds
+        lead_time_coord = AuxCoord(
+            lead_time_seconds, standard_name="forecast_period", units="s")
+        advected_cube.add_aux_coord(lead_time_coord)
 
         return advected_cube
 

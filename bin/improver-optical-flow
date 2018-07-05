@@ -34,28 +34,45 @@ extrapolate."""
 
 import datetime
 import iris
+import os
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.temporal import iris_time_to_datetime
 
-
-def generate_output_file_name(cube):
+def generate_output_file_name(cube, directory=''):
     """
     From an extrapolated forecast cube, generate an IMPROVER-suitable file name
     using the correct lead time.
 
     Args:
         cube (iris.cube.Cube):
-            Cube containing forecast data
+            Cube containing nowcast data
+
+        lead_time (int):
+            Lead time of advection nowcast, in minutes
 
     Returns:
         filename (str):
             File basename to which to write
     """
 
-    # TODO pull function from IMPROVER suite and modify if needed
+    cycle_time = iris_time_to_datetime(cube.coord('time'))[0]
+    cycle_time_string = '{}{:02}{:02}T{:02}{:02}Z'.format(
+        cdtime.year, cdtime.month, cdtime.day, cdtime.hour, cdtime.minute)
+
+    lead_time_coord = cube.coord('forecast_period')
+    lead_time_coord.convert_units('s')
+    lead_time, = lead_time_coord.points
+    lead_time_hours = lead_time // 3600
+    lead_time_minutes = (lead_time - lead_time_hours) // 60
+    lead_time_string = 'PT{:04}H{:02}M'.format(
+        lead_time_hours, lead_time_minutes)
+
+    filename = '{}-{}-{}.nc'.format(cycle_time, lead_time_string, cube.name())
+    return os.path.join(directory, filename)
 
 
 def main():
@@ -71,7 +88,7 @@ def main():
                         "files.  There should be 3 input files at T, T-1 and "
                         "T-2 from which to calculate optical flow velocities.")
     parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                        help="Directory to write output files.")
+                        default='', help="Directory to write output files.")
 
     # OpticalFlow plugin configurable parameters
     parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "
@@ -103,7 +120,6 @@ def main():
     cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
-    # TODO other defaults will be set up by IMPRO-720
     ofc_plugin = OpticalFlow(boxsize=args.ofc_box_size,
                              iterations=args.smart_smoothing_iterations)
     ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2])
@@ -120,11 +136,9 @@ def main():
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time") = time_coord
 
-    # save mean optical flow components to netcdf files
-    # TODO netcdf standard variable names for u/v wind components
-
-
-
+    # save mean optical flow components as netcdf files
+    save_netcdf(ucube, 0, directory=args.output_dir)
+    save_netcdf(vcube, 0, directory=args.output_dir)
 
     # advect latest input data to the required lead times
     if args.extrapolate:
@@ -140,10 +154,11 @@ def main():
             forecast_cube = advection_plugin.process(cube_list[2], timestep)
 
             # generate a suitable output file name
-    
+            file_name = generate_output_file_name(
+                forecast_cube, directory=args.output_dir)
 
             # save to output file path
-
+            save_netcdf(forecast_cube, file_name)
 
 
 if __name__ == "__main__":
