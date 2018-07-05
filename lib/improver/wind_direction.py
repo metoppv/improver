@@ -435,8 +435,8 @@ class WindDirection(object):
             # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble realization.
             # Mask True if r values below threshold.
-            where_low_r = np.where(self.r_vals_slice.data < self.r_thresh, True,
-                                  False)
+            where_low_r = np.where(self.r_vals_slice.data < self.r_thresh,
+                                   True, False)
             # If the any point in the array contains poor r-values,
             # trigger decider function.
             if where_low_r.any():
