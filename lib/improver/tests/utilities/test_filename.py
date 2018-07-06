@@ -36,6 +36,7 @@ from cf_units import Unit
 
 import iris
 from iris.coords import DimCoord, AuxCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.filename import generate_file_name
 
@@ -68,6 +69,24 @@ class Test_generate_file_name(unittest.TestCase):
         name = generate_file_name(self.cube)
         self.assertIsInstance(name, str)
         self.assertEqual(name, "20151119T0030Z-PT0000H15M-air_temperature.nc")
+
+    def test_longer_lead_time(self):
+        """Test with lead time > 1 hr"""
+        self.cube.coord("forecast_period").points[0] += 3600
+        name = generate_file_name(self.cube)
+        self.assertEqual(name, "20151119T0030Z-PT0001H15M-air_temperature.nc")
+
+    def test_missing_lead_time(self):
+        """Test with missing lead time"""
+        self.cube.remove_coord("forecast_period")
+        name = generate_file_name(self.cube)
+        self.assertEqual(name, "20151119T0030Z-PT0000H00M-air_temperature.nc")
+
+    def test_missing_time(self):
+        """Test error is raised if "time" coordinate is missing"""
+        self.cube.remove_coord("time")
+        with self.assertRaises(CoordinateNotFoundError):
+            _ = generate_file_name(self.cube)
 
 
 if __name__ == '__main__':
