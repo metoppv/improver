@@ -33,8 +33,9 @@
 extrapolate."""
 
 import datetime
-import iris
 import os
+import iris
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
@@ -52,7 +53,7 @@ def main():
         "and (optionally) extrapolate to required lead times.")
 
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
-                        nargs="3", type=str, help="Paths to the input radar "
+                        nargs="+", type=str, help="Paths to the input radar "
                         "files.  There should be 3 input files at T, T-1 and "
                         "T-2 from which to calculate optical flow velocities.")
     parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
@@ -77,6 +78,8 @@ def main():
                         help="Interval between required lead times (mins). "
                         "Ignored unless '--extrapolate' is set.")
 
+    args = parser.parse_args()
+
     # read input data
     cube_list = []
     for fname in args.input_filenames:
@@ -88,24 +91,26 @@ def main():
     cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
-    ofc_plugin = OpticalFlow(boxsize=args.ofc_box_size,
+    ofc_plugin = OpticalFlow(boxsize_km=15, #args.ofc_box_size,
                              iterations=args.smart_smoothing_iterations)
     ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2])
     ucube2, vcube2 = ofc_plugin.process(cube_list[0], cube_list[1])
 
-    # average optical flow components from both time steps
+    # average optical flow components from both time steps and save to 
     time_coord = ucube1.coord("time")
 
     ucube = iris.cube.CubeList([ucube1, ucube2]).merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
-    umean.coord("time") = time_coord
-
+    umean.coord("time").points = time_coord.points
+    umean.coord("time").units = time_coord.units
+    
     vcube = iris.cube.CubeList([vcube1, vcube2]).merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
-    vmean.coord("time") = time_coord
+    vmean.coord("time").points = time_coord.points
+    vmean.coord("time").units = time_coord.units
 
     # save mean optical flow components as netcdf files
-    for wind_cube in [ucube, vcube]:
+    for wind_cube in [umean, vmean]:
         file_name = generate_file_name(wind_cube)
         save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
 
@@ -119,7 +124,8 @@ def main():
                                args.lead_time_interval)
 
         for lead_time in lead_times:
-            timestep = datetime.timedelta(seconds=60*lead_time)
+            # cast to float as datetime.timedelta cannot accept np.int
+            timestep = datetime.timedelta(seconds=60.*lead_time)
             forecast_cube = advection_plugin.process(cube_list[2], timestep)
 
             # save to a suitably-named output file

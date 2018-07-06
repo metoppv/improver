@@ -55,7 +55,7 @@ def generate_file_name(cube):
             If the input cube has no "time" coordinate
     """
 
-    cdtime = iris_time_to_datetime(cube.coord('time'))[0]
+    cdtime = (cube.coord('time').units).num2date(cube.coord('time').points)[0]
     cycle_time_string = '{}{:02}{:02}T{:02}{:02}Z'.format(
         cdtime.year, cdtime.month, cdtime.day, cdtime.hour, cdtime.minute)
 
@@ -70,6 +70,10 @@ def generate_file_name(cube):
     except CoordinateNotFoundError:
         lead_time_string = 'PT0000H00M'
 
-    filename = '{}-{}-{}.nc'.format(cycle_time_string, lead_time_string, cube.name())
+    parameter = cube.name().replace(' ', '_').lower()
+
+    filename = '{}-{}-{}.nc'.format(
+        cycle_time_string, lead_time_string, parameter)
+
     return filename
 
