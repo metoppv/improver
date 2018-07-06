@@ -63,8 +63,8 @@ def generate_file_name(cube):
         lead_time_coord = cube.coord('forecast_period')
         lead_time_coord.convert_units('s')
         lead_time, = lead_time_coord.points
-        lead_time_hours = lead_time // 3600
-        lead_time_minutes = (lead_time - 3600*lead_time_hours) // 60
+        lead_time_hours = int(lead_time // 3600)
+        lead_time_minutes = int((lead_time - 3600*lead_time_hours)) // 60
         lead_time_string = 'PT{:04}H{:02}M'.format(
             lead_time_hours, lead_time_minutes)
     except CoordinateNotFoundError:

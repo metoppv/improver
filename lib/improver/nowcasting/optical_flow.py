@@ -293,6 +293,10 @@ class AdvectField(object):
         lead_time_seconds = timestep.total_seconds()
         lead_time_coord = AuxCoord(
             lead_time_seconds, standard_name="forecast_period", units="s")
+        try:
+            advected_cube.remove_coord("forecast_period")
+        except CoordinateNotFoundError:
+            pass
         advected_cube.add_aux_coord(lead_time_coord)
 
         return advected_cube
