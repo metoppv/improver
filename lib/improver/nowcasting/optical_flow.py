@@ -309,12 +309,15 @@ class OpticalFlow(object):
                 circular 'kernel' (used in post-calculation smoothing).
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
-                The value for good convergence is 20, cf Bowler et al. 2004
-                [1, see "process" docstring].
+                The value for good convergence is 20, cf Bowler et al. 2004 [1].
 
         Raises:
             ValueError:
                 If iterations < 20
+
+        [1] Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+        precipitation nowcasting algorithm based upon optical flow techniques.
+        Journal of Hydrology, 288, 74-91.
 
         """
 
@@ -590,7 +593,7 @@ class OpticalFlow(object):
         Then regrid from "box grid" (on which OFC equations are solved) to
         input data grid, and perform one final pass simple kernel smoothing.
         This is equivalent to applying the smoothness constraint defined in
-        Bowler et al. 2004, equations 9-11 [1, see "process" docstring].
+        Bowler et al. 2004, equations 9-11 [1, see "__init__" docstring].
 
         Args:
             box_data (np.ndarray):
@@ -828,11 +831,8 @@ class OpticalFlow(object):
         Kwargs:
             boxsize (int):
                 The side length of the square box over which to solve the
-                optical flow constraint.  This should be at least 3x the data
-                smoothing radius, corresponding to an area roughly twice that
-                smoothed by the input data kernel, which matches the ratio of
-                parameters for the original optical flow implementation tuned
-                by Bowler et al. 2004 [1].
+                optical flow constraint.  This should be greater than the
+                data smoothing radius.
 
         Returns:
             (tuple) : tuple containing:
@@ -840,10 +840,6 @@ class OpticalFlow(object):
                     2D cube of advection velocities in the x-direction
                 **vcube** (iris.cube.Cube):
                     2D cube of advection velocities in the y-direction
-
-        [1] Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-        precipitation nowcasting algorithm based upon optical flow techniques.
-        Journal of Hydrology, 288, 74-91.
         """
 
         # check cubes have exactly two spatial dimension coordinates and a
