@@ -324,17 +324,19 @@ class OpticalFlow(object):
         if iterations < 20:
             raise ValueError('Minimum requirement 20 iterations')
 
-        # parameters for input data smoothing
+        # Set parameters for input data smoothing.  14 km is suitable for input
+        # fields separated by a 15 minute time step - this is updated if
+        # necessary by the "process" function.
         self.data_smoothing_radius_km = 14.
         self.data_smoothing_radius = None
         self.data_smoothing_method = data_smoothing_method
 
-        # parameters for velocity calculation and "smart smoothing"
+        # Set parameters for velocity calculation and "smart smoothing"
         self.boxsize = None
         self.iterations = iterations
         self.point_weight = 0.1
 
-        # input data fields and shape
+        # Initialise input data fields and shape
         self.data1 = None
         self.data2 = None
         self.shape = None
@@ -861,6 +863,11 @@ class OpticalFlow(object):
         if cube_time_diff.total_seconds() <= 0:
             msg = "Expected positive time difference cube2 - cube1: got {} s"
             raise InvalidCubeError(msg.format(cube_time_diff.seconds))
+
+        # if time difference is not 15 minutes, update data smoothing radius
+        if cube_time_diff.total_seconds() != 900:
+            self.data_smoothing_radius_km *= \
+                cube_time_diff.total_seconds()/900.
 
         # extract spatial grid length
         new_coord = cube1.coord(axis='x').copy()

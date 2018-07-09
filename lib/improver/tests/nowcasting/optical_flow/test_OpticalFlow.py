@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for the nowcasting.OpticalFlow plugin """
 
+import datetime
 import unittest
 import numpy as np
 
@@ -647,6 +648,20 @@ class Test_process(IrisTest):
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.171908358)
         self.assertAlmostEqual(np.mean(vcube.data), 2.171908358)
+
+    def test_update_smoothing_radius(self):
+        """Test data smoothing radius is updated if cube time difference is not
+        15 minutes"""
+        time_unit = self.cube2.coord("time").units
+        new_time = time_unit.num2date(self.cube2.coord("time").points[0])
+        new_time += datetime.timedelta(seconds=900)
+        self.cube2.remove_coord("time")
+        time_coord = DimCoord(time_unit.date2num(new_time),
+                              standard_name="time", units=time_unit)
+        self.cube2.add_aux_coord(time_coord)
+        with self.assertRaises(ValueError):
+            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(self.plugin.data_smoothing_radius_km, 12.)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
