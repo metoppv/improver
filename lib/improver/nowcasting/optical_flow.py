@@ -309,7 +309,7 @@ class OpticalFlow(object):
                 circular 'kernel' (used in post-calculation smoothing).
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
-                The value for good convergence is 20, cf Bowler et al. 2004 [1].
+                The value for good convergence is 20 (Bowler et al. 2004 [1]).
 
         Raises:
             ValueError:

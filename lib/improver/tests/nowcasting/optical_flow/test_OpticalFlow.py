@@ -599,7 +599,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
         self.plugin = OpticalFlow(iterations=20)
-        self.plugin.data_smoothing_radius_km=6.
+        self.plugin.data_smoothing_radius_km = 6.
 
         coord_points = 2*np.arange(16)
         x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
@@ -665,7 +665,7 @@ class Test_process(IrisTest):
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
-        self.plugin.data_smoothing_radius_km=3.
+        self.plugin.data_smoothing_radius_km = 3.
         msg = "Input data smoothing radius 1 too small "
         with self.assertRaisesRegexp(ValueError, msg):
             _ = self.plugin.process(self.cube1, self.cube2)
