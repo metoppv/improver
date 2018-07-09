@@ -51,7 +51,6 @@ class Test__init__(IrisTest):
         self.assertIsInstance(plugin.data_smoothing_radius_km, float)
         self.assertIsNone(plugin.data_smoothing_radius)
         self.assertIsInstance(plugin.data_smoothing_method, str)
-        self.assertIsInstance(plugin.boxsize_km, float)
         self.assertIsNone(plugin.boxsize)
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.point_weight, float)
@@ -71,9 +70,9 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = ('<OpticalFlow: data_smoothing_radius_km: 7.0, '
-                           'data_smoothing_method: box, boxsize_km: 30.0, '
-                           'iterations: 100, point_weight: 0.1>')
+        expected_string = ('<OpticalFlow: data_smoothing_radius_km: 14.0, '
+                           'data_smoothing_method: box, iterations: 100, '
+                           'point_weight: 0.1>')
         result = str(OpticalFlow())
         self.assertEqual(result, expected_string)
 
@@ -564,7 +563,7 @@ class Test_process_dimensionless(IrisTest):
         non-singular outputs.  Large matrices with zeros are needed for the
         smoothing algorithms to behave sensibly."""
 
-        self.plugin = OpticalFlow(iterations=10)
+        self.plugin = OpticalFlow(iterations=20)
         self.plugin.data_smoothing_radius = 3
         self.plugin.boxsize = 3
 
@@ -588,15 +587,15 @@ class Test_process_dimensionless(IrisTest):
             self.first_input, self.second_input, 0, 1)
         self.assertIsInstance(ucomp, np.ndarray)
         self.assertIsInstance(vcomp, np.ndarray)
-        self.assertAlmostEqual(np.mean(ucomp), 0.95435266462)
-        self.assertAlmostEqual(np.mean(vcomp), -0.95435266462)
+        self.assertAlmostEqual(np.mean(ucomp), 0.97735876)
+        self.assertAlmostEqual(np.mean(vcomp), -0.97735876)
 
     def test_axis_inversion(self):
         """Test inverting x and y axis indices gives the correct result"""
         ucomp, vcomp = self.plugin.process_dimensionless(
             self.first_input, self.second_input, 1, 0)
-        self.assertAlmostEqual(np.mean(ucomp), -0.95435266462)
-        self.assertAlmostEqual(np.mean(vcomp), 0.95435266462)
+        self.assertAlmostEqual(np.mean(ucomp), -0.97735876)
+        self.assertAlmostEqual(np.mean(vcomp), 0.97735876)
 
 
 class Test_process(IrisTest):
