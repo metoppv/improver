@@ -438,6 +438,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Raises:
             TypeError : If the first argument not a cube.
+            ValueError : If coordinate to be collapsed not found in cube.
             ValueError : If there is a percentile coord and it is not a
                            dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
@@ -460,6 +461,10 @@ class WeightedBlendAcrossWholeDimension(object):
                    ' {}.'.format(type(cube)))
             raise TypeError(msg)
 
+        if not cube.coords(self.coord):
+            msg = ('Coordinate to be collapsed not found in cube.')
+            raise CoordinateNotFoundError(msg)
+
         # Check that the points within the time coordinate are equal
         # if the coordinate being blended is forecast_reference_time.
         if self.coord == "forecast_reference_time":
@@ -471,6 +476,12 @@ class WeightedBlendAcrossWholeDimension(object):
                            "need to be the same. The time points within the "
                            "input cube are {}".format(time_points))
                     raise ValueError(msg)
+
+        # If the coordinate being collapsed is realization, record the original
+        # realizations for inclusion in a source_realization attribute.
+        source_realizations = None
+        if self.coord == "realization":
+            source_realizations = cube.coord(self.coord).points
 
         # Check to see if the data is percentile data
         try:
@@ -606,6 +617,11 @@ class WeightedBlendAcrossWholeDimension(object):
                     coords_for_bounds_removal=self.coords_for_bounds_removal)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
+
+            # Add a source realizations attribute if collapsing realizations.
+            if source_realizations is not None:
+                result.attributes['source_realizations'] = source_realizations
+
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
                 result.data = np.ma.array(result.data)
         # If set adjust values of collapsed coordinates.

@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-import math
-
 import iris
 import numpy as np
 
@@ -160,15 +158,10 @@ class BaseNeighbourhoodProcessing(object):
         # Check if a dimensional realization coordinate exists. If so, the
         # cube is sliced, so that it becomes a scalar coordinate.
         try:
-            realiz_coord = cube.coord('realization', dim_coords=True)
+            cube.coord('realization', dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
-            if 'source_realizations' in cube.attributes:
-                num_ens = len(cube.attributes['source_realizations'])
-            else:
-                num_ens = 1.0
             slices_over_realization = [cube]
         else:
-            num_ens = len(realiz_coord.points)
             slices_over_realization = cube.slices_over("realization")
             if 'source_realizations' in cube.attributes:
                 msg = ("Realizations and attribute source_realizations "

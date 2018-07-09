@@ -165,7 +165,7 @@ class Test_process(IrisTest):
         """Test it raises CoordinateNotFoundError if coord not in the cube."""
         coord = "notset"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        msg = ('Expected to find exactly 1 .* coordinate, but found none.')
+        msg = ('Coordinate to be collapsed not found in cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
 
@@ -406,6 +406,22 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.6
         self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_source_realizations_attribute_added(self):
+        """Test that when a realization coordinate is collapsed, a new
+        source_realizations attribute is added to record the contributing
+        realizations."""
+        coord = "realization"
+        self.cube.coord('time').rename(coord)
+        self.cube.coord(coord).points = [1, 4]
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = None
+        result = plugin.process(self.cube, weights)
+        expected = [1, 4]
+        self.assertArrayEqual(result.attributes['source_realizations'],
+                              expected)
 
 
 if __name__ == '__main__':
