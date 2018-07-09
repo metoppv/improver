@@ -318,8 +318,8 @@ class OpticalFlow(object):
 
         """
 
-        #if iterations < 20:
-        #    raise ValueError('Minimum requirement 20 iterations')
+        if iterations < 20:
+            raise ValueError('Minimum requirement 20 iterations')
 
         # parameters for input data smoothing
         self.data_smoothing_radius_km = 14.
@@ -758,12 +758,11 @@ class OpticalFlow(object):
         rain_pixels = vel_comp[rain_mask].size
 
         if zeroes_in_rain > rain_pixels*zero_vel_threshold:
-            msg = ("More than {:.1f}% of rain cells within the domain have "
-                   "zero advection velocities. It is expected that "
-                   "greater than {:.1f}% of these advection velocities "
-                   "will be non-zero.".format(
-                       zero_vel_threshold*100,
-                       (1-zero_vel_threshold)*100))
+            msg = ("{:.1f}% of rain cells within the domain have zero "
+                   "advection velocities. It is expected that greater "
+                   "than {:.1f}% of these advection velocities will be "
+                   "non-zero.".format(zeroes_in_rain*100./rain_pixels,
+                                      (1-zero_vel_threshold)*100))
             warnings.warn(msg)
 
     def process_dimensionless(self, data1, data2, xaxis, yaxis):
@@ -891,10 +890,11 @@ class OpticalFlow(object):
                    "grid squares)")
             raise ValueError(msg.format(self.data_smoothing_radius))
 
-        # Fail if self.boxsize is less than 3x self.data_smoothing_radius
-        if self.boxsize < 3*self.data_smoothing_radius:
-            msg = ("Box size {} too small (minimum 3 x data smoothing radius "
-                   "{})")
+        # Fail if self.boxsize is less than self.data_smoothing_radius
+        self.boxsize = boxsize
+        if self.boxsize < self.data_smoothing_radius:
+            msg = ("Box size {} too small (should not be less than data "
+                   "smoothing radius {})")
             raise ValueError(
                 msg.format(self.boxsize, self.data_smoothing_radius))
 

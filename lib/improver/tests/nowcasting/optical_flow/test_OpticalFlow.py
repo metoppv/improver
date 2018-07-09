@@ -58,12 +58,6 @@ class Test__init__(IrisTest):
         self.assertIsNone(plugin.data2)
         self.assertIsNone(plugin.shape)
 
-    def test_unsuitable_parameters(self):
-        """Test raises error if plugin is initialised with unsuitable
-        parameter values"""
-        with self.assertRaises(ValueError):
-            _ = OpticalFlow(data_smoothing_radius_km=10, boxsize_km=9.9)
-
 
 class Test__repr__(IrisTest):
     """Test string representation"""
@@ -249,7 +243,7 @@ class OpticalFlowDisplacementTest(IrisTest):
                               [0., 0., 0., 1., 0.]])
 
         self.weights = 0.3*np.multiply(self.umat, self.vmat)
-        self.plugin = OpticalFlow(iterations=10)
+        self.plugin = OpticalFlow(iterations=20)
         self.plugin.data_smoothing_radius = 3
         self.plugin.boxsize = 3
         # NOTE data dimensions are NOT exact multiples of box size
@@ -351,9 +345,9 @@ class Test__smooth_advection_fields(OpticalFlowDisplacementTest):
     def test_values(self):
         """Test output matrices have expected values"""
         first_row_v = np.array(
-            [2.455172, 2.455172, 2.455172, 2.345390, 2.345390,
-             2.345390, 2.032608, 2.032608, 2.032608, 1.589809,
-             1.589809, 1.589809, 1.331045, 1.331045])
+            [2.451711, 2.451711, 2.451711, 2.341303, 2.341303, 2.341303,
+             2.028805, 2.028805, 2.028805, 1.694845, 1.694845, 1.694845,
+             1.503583, 1.503583])
         vmat = self.plugin._smooth_advection_fields(self.vmat,
                                                     self.weights)
         self.assertArrayAlmostEqual(vmat[0], first_row_v)
@@ -433,7 +427,7 @@ class Test_calculate_displacement_vectors(IrisTest):
         non-singular outputs.  Large matrices with zeros are needed for the
         smoothing algorithms to behave sensibly."""
 
-        self.plugin = OpticalFlow(iterations=10)
+        self.plugin = OpticalFlow(iterations=20)
         self.plugin.data_smoothing_radius = 3
         self.plugin.boxsize = 3
 
@@ -469,8 +463,8 @@ class Test_calculate_displacement_vectors(IrisTest):
         """Test output values"""
         umat, vmat = self.plugin.calculate_displacement_vectors(
             self.partial_dx, self.partial_dy, self.partial_dt)
-        self.assertAlmostEqual(np.mean(umat), -0.121514428331)
-        self.assertAlmostEqual(np.mean(vmat), 0.121514428331)
+        self.assertAlmostEqual(np.mean(umat), -0.124607928)
+        self.assertAlmostEqual(np.mean(vmat), 0.124607928)
 
 
 class Test__zero_advection_velocities_warning(IrisTest):
@@ -603,8 +597,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
-        self.plugin = OpticalFlow(data_smoothing_radius_km=6, boxsize_km=6,
-                                  iterations=10)
+        self.plugin = OpticalFlow(iterations=20)
+        self.plugin.data_smoothing_radius_km=6.
 
         coord_points = 2*np.arange(16)
         x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
@@ -640,7 +634,7 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test correct output types and metadata"""
-        ucube, vcube = self.plugin.process(self.cube1, self.cube2)
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         for cube in [ucube, vcube]:
             self.assertIsInstance(cube, iris.cube.Cube)
             self.assertEqual(cube.coord("time")[0],
@@ -650,16 +644,16 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
-        ucube, vcube = self.plugin.process(self.cube1, self.cube2)
-        self.assertAlmostEqual(np.mean(ucube.data), -2.12078369915)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.12078369915)
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(np.mean(ucube.data), -2.171908358)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.171908358)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
-        plugin = OpticalFlow(data_smoothing_radius_km=3, boxsize_km=6)
+        self.plugin.data_smoothing_radius_km=3.
         msg = "Input data smoothing radius 1 too small "
         with self.assertRaisesRegexp(ValueError, msg):
-            _ = plugin.process(self.cube1, self.cube2)
+            _ = self.plugin.process(self.cube1, self.cube2)
 
     def test_error_unmatched_coords(self):
         """Test failure if cubes are provided on unmatched grids"""
