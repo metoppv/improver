@@ -38,7 +38,7 @@
   # Run square neighbourhood processing with masked data and check it passes
   # after re-masking.
   run improver nbhood 'probabilities' 'square'\
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc"\
+      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
       "$TEST_DIR/output.nc" --radius=20000 --weighted_mode --sum_or_fraction "sum"\
       --input_mask_filepath "$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc" --re_mask
   [[ "$status" -eq 0 ]]

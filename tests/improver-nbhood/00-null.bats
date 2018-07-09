@@ -46,7 +46,6 @@ usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--iterations ITERATIONS]
                        NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
                        OUTPUT_FILE
-
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -145,7 +145,6 @@ optional arguments:
   --iterations ITERATIONS
                         Number of times to apply the filter, default=1
                         (typically < 5)
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }
