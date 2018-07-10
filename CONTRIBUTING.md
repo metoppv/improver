@@ -52,6 +52,7 @@ below:
 * Caroline Sandford (Met Office, UK)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
+* Eleanor Smith (Met Office, UK)
 
 (All contributors on GitHub are identifiable with email addresses in the
 version control logs or otherwise.)
