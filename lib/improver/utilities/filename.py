@@ -33,6 +33,7 @@
 from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.temporal import iris_time_to_datetime
 
+
 def generate_file_name(cube):
     """
     From a forecast cube, generate an IMPROVER-suitable file name using the
@@ -76,4 +77,3 @@ def generate_file_name(cube):
         cycle_time_string, lead_time_string, parameter)
 
     return filename
-

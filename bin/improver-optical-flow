@@ -102,14 +102,15 @@ def main():
     ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2])
     ucube2, vcube2 = ofc_plugin.process(cube_list[0], cube_list[1])
 
-    # average optical flow components from both time steps and save to 
+    # average optical flow components from both time steps and save to
+    # netcdf files
     time_coord = ucube1.coord("time")
 
     ucube = iris.cube.CubeList([ucube1, ucube2]).merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
-    
+
     vcube = iris.cube.CubeList([vcube1, vcube2]).merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
@@ -136,7 +137,8 @@ def main():
 
             # save to a suitably-named output file
             file_name = generate_file_name(forecast_cube)
-            save_netcdf(forecast_cube, os.path.join(args.output_dir, file_name))
+            save_netcdf(
+                forecast_cube, os.path.join(args.output_dir, file_name))
 
 
 if __name__ == "__main__":

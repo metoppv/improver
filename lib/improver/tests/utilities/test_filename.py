@@ -94,9 +94,8 @@ class Test_generate_file_name(unittest.TestCase):
         self.cube.rename("Rainfall rate Composite")
         name = generate_file_name(self.cube)
         self.assertEqual(
-            name, "20151119T0030Z-PT0000H15M-rainfall_rate_composite.nc")      
+            name, "20151119T0030Z-PT0000H15M-rainfall_rate_composite.nc")
 
 
 if __name__ == '__main__':
     unittest.main()
-
