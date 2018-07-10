@@ -55,6 +55,10 @@ def main():
                         metavar='COORDINATE_TO_BLEND_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
+    parser.add_argument('central_point', metavar='CENTRAL_POINT', type=float,
+                        help='Central point at which the output from the '
+                             'triangular weighted blending will be '
+                             'calculated.')
     parser.add_argument('--parameter_unit', metavar='UNIT_STRING',
                         default='hours since 1970-01-01 00:00:00',
                         help='Units for time coordinate. Default= '
@@ -63,6 +67,10 @@ def main():
                         default='gregorian',
                         help='Calendar for parameter_unit if required. '
                              'Default=gregorian')
+    parser.add_argument('width', metavar='TRIANGLE_WIDTH',
+                        help='Width of the triangular weighting function used '
+                             'in the blending, in the units of the '
+                             'parameter_unit passed in.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -71,18 +79,9 @@ def main():
                              '"weighted_maximum": multiplies the values in the'
                              ' coordinate by the weights, and then takes the'
                              ' maximum.')
-    parser.add_argument('width', metavar='TRIANGLE_WIDTH',
-                        help='Width of the triangular weighting function used '
-                             'in the blending, in the units of the '
-                             'parameter_unit passed in.')
-    parser.add_argument('input_filepaths', metavar='INPUT_FILE', nargs="+",
+    parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
                         help='Paths to input NetCDF files including and '
                              'surrounding the central_input_filepath.')
-    parser.add_argument('central_input_filepath', metavar='CENTRAL_INPUT_FILE',
-                        help='A path to an input NetCDF file containing the '
-                             'central point at which the output from the '
-                             'triangular weighted blending will be '
-                             'calculated.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
@@ -98,11 +97,11 @@ def main():
     width = float(args.width)
 
     cube = load_cube(args.input_filepaths)
-    central_cube = load_cube(args.central_input_filepath)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, width, parameter_unit, args.weighting_mode)
-    result = BlendingPlugin.process(central_cube, cube)
+        args.coordinate, args.central_point, parameter_unit, width,
+        args.weighting_mode)
+    result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
 
 

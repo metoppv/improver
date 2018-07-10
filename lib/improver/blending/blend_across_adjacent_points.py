@@ -31,6 +31,7 @@
 """Module containing Blending classes that blend over adjacent points, as
 opposed to collapsing the whole dimension."""
 
+from cf_units import Unit
 import iris
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
@@ -55,33 +56,39 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
            taken.
     """
 
-    def __init__(self, coord, width, parameter_units, weighting_mode):
+    def __init__(self, coord, central_point, parameter_units, width,
+                 weighting_mode):
         """Set up for a Weighted Blending plugin
 
         Args:
             coord (string):
                 The name of a coordinate dimension in the cube that we
                 will blend over.
-            width (float):
-                The width of the triangular weighting function we will use
-                to blend.
+            central_point (float or int):
+                Central point at which the output from the triangular weighted
+                blending will be calculated.
             parameter_units (string):
                 The units of the width of the triangular weighting function.
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
+            width (float):
+                The width of the triangular weighting function we will use
+                to blend.
             weighting_mode (string):
                 The mode of blending, either weighted_mean or
                 weighted_maximum. Weighted average finds the weighted mean
                 across the dimension of interest. Maximum probability
                 multiplies the values across the dimension of interest by the
                 given weights and returns the maximum value.
+
         Raises:
             ValueError : If an invalid weighting_mode is given
         """
         self.coord = coord
-        self.width = width
+        self.central_point = central_point
         self.parameter_units = parameter_units
+        self.width = width
         if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
             msg = ("weighting_mode: {} is not recognised, must be either "
                    "weighted_maximum or weighted_mean").format(weighting_mode)
@@ -91,10 +98,10 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
-               ' coord = {0:s}, width = {1:.2f},'
-               ' parameter_units = {2:s}, mode = {3:s}>')
-        return msg.format(self.coord, self.width, self.parameter_units,
-                          self.mode)
+               ' coord = {0:s}, central_point = {1:.2f}, '
+               'parameter_units = {2:s}, width = {3:.2f}, mode = {4:s}>')
+        return msg.format(self.coord, self.central_point, self.parameter_units,
+                          self.width, self.mode)
 
     @staticmethod
     def correct_collapsed_coordinates(orig_cube, new_cube, coords_to_correct):
@@ -123,14 +130,11 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
             if new_cube.coord(coord).has_bounds():
                 new_cube.coord(coord).bounds = None
 
-    def process(self, central_cube, cube):
+    def process(self, cube):
         """
         Apply the weighted blend for each point in the given coordinate.
 
         Args:
-            central_cube (iris.cube.Cube):
-                Cube containing the central cube for which the blended output
-                will be calculated for.
             cube (iris.cube.Cube):
                 Cube containing input for blending.
 
@@ -154,10 +158,19 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # maximum probabilities are needed.
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
                                                            self.mode)
-        point, = central_cube.coord(self.coord).points
-        check_point_within_allowed_range(cube, self.coord, point)
-        weights = WeightsPlugin.process(cube, self.coord, point)
+        # Convert central point into the units of the cube, so that a
+        # central point can be extracted.
+        self.central_point = (
+            Unit(self.parameter_units).convert(
+                self.central_point, cube.coord(self.coord).units))
+        constr = iris.Constraint(
+            coord_values={self.coord: self.central_point})
+        central_point_cube = cube.extract(constr)
+        # Check that the central point is allowed. 
+        check_point_within_allowed_range(cube, self.coord, self.central_point)
+        # Calculate weights and produce blended output.
+        weights = WeightsPlugin.process(cube, self.coord, self.central_point)
         blended_cube = BlendingPlugin.process(cube, weights)
-        self.correct_collapsed_coordinates(central_cube, blended_cube,
+        self.correct_collapsed_coordinates(central_point_cube, blended_cube,
                                            coords_to_correct)
         return blended_cube

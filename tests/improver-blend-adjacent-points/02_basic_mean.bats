@@ -36,10 +36,9 @@
   KGO="blend_adjacent_points/basic_mean/kgo.nc"
 
   # Run weighted blending with weighted_mean mode and check it passes.
-  run improver blend-adjacent-points 'forecast_period' 'weighted_mean' 3.0 \
-      --parameter_unit 'hours' \
+  run improver blend-adjacent-points 'forecast_period' '2' --parameter_unit 'hours' \
+      3.0 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/multiple_probabilities_rain_*H.nc" \
-      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_mean/multiple_probabilities_rain_2H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

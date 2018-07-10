@@ -37,10 +37,10 @@ usage: improver-blend-adjacent-points [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
                                       [--parameter_unit UNIT_STRING]
                                       [--calendar CALENDAR]
-                                      COORDINATE_TO_BLEND_OVER
-                                      WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
-                                      INPUT_FILE [INPUT_FILE ...]
-                                      CENTRAL_INPUT_FILE OUTPUT_FILE
+                                      COORDINATE_TO_BLEND_OVER CENTRAL_POINT
+                                      TRIANGLE_WIDTH WEIGHTED_BLEND_MODE
+                                      INPUT_FILES [INPUT_FILES ...]
+                                      OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
