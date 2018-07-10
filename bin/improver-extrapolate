@@ -31,7 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extrapolate input data given advection velocity fields."""
 
-
+import datetime
+import os
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
@@ -45,7 +47,7 @@ def main():
 
     parser = ArgParser(
         description="Extrapolate input data to required lead times.")
-    parser.add_argument("input_filepath", metavar="INPUT_FILENAME",
+    parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
                         type=str, help="Path to input NetCDF file.")
     parser.add_argument("output_dir", metavar="OUTPUT_DIR", type=str,
                         default='', help="Directory to write output files.")
@@ -68,7 +70,7 @@ def main():
 
     # generate list of lead times in minutes
     lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
-                            args.lead_time_interval)
+                           args.lead_time_interval)
 
     # extrapolate input data to required lead times
     for lead_time in lead_times:
