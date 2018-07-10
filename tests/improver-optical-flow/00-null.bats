@@ -39,7 +39,7 @@ usage: improver-optical-flow [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
                              [--extrapolate] [--max_lead_time MAX_LEAD_TIME]
                              [--lead_time_interval LEAD_TIME_INTERVAL]
-                             INPUT_FILENAMES [INPUT_FILENAMES ...]
+                             INPUT_FILEPATHS [INPUT_FILEPATHS ...]
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2018 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to extrapolate input data given advection velocity fields."""
+
+
+
+from improver.argparser import ArgParser
+from improver.nowcasting.optical_flow import AdvectField
+from improver.utilities.filename import generate_file_name
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+
+
+def main():
+    """Extrapolate data forward in time."""
+
+    parser = ArgParser(
+        description="Extrapolate input data to required lead times.")
+    parser.add_argument("input_filepath", metavar="INPUT_FILENAME",
+                        type=str, help="Path to input NetCDF file.")
+    parser.add_argument("output_dir", metavar="OUTPUT_DIR", type=str,
+                        default='', help="Directory to write output files.")
+    parser.add_argument("--eastward_advection", type=str, help="Path to file "
+                        "containing Eastward advection velocities.")
+    parser.add_argument("--northward_advection", type=str, help="Path to file "
+                        "containing Northward advection velocities.")
+    parser.add_argument("--max_lead_time", type=int, default=360,
+                        help="Maximum lead time required (mins).")
+    parser.add_argument("--lead_time_interval", type=int, default=15,
+                        help="Interval between required lead times (mins).")
+    args = parser.parse_args()
+
+    # load files and initialise advection plugin
+    input_cube = load_cube(args.input_filepath)
+    ucube = load_cube(args.eastward_advection)
+    vcube = load_cube(args.northward_advection)
+
+    advection_plugin = AdvectField(ucube, vcube)
+
+    # generate list of lead times in minutes
+    lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
+                            args.lead_time_interval)
+
+    # extrapolate input data to required lead times
+    for lead_time in lead_times:
+        # cast to float as datetime.timedelta cannot accept np.int
+        timestep = datetime.timedelta(seconds=60.*lead_time)
+        forecast_cube = advection_plugin.process(input_cube, timestep)
+
+        # save to a suitably-named output file
+        file_name = generate_file_name(forecast_cube)
+        save_netcdf(forecast_cube, os.path.join(args.output_dir, file_name))
+
+
+if __name__ == "__main__":
+    main()

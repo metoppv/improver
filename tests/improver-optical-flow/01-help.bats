@@ -39,13 +39,13 @@ usage: improver-optical-flow [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
                              [--extrapolate] [--max_lead_time MAX_LEAD_TIME]
                              [--lead_time_interval LEAD_TIME_INTERVAL]
-                             INPUT_FILENAMES [INPUT_FILENAMES ...]
+                             INPUT_FILEPATHS [INPUT_FILEPATHS ...]
 
 Calculate optical flow components from input fields and (optionally)
 extrapolate to required lead times.
 
 positional arguments:
-  INPUT_FILENAMES       Paths to the input radar files. There should be 3
+  INPUT_FILEPATHS       Paths to the input radar files. There should be 3
                         input files at T, T-1 and T-2 from which to calculate
                         optical flow velocities.
 

@@ -52,7 +52,7 @@ def main():
         description="Calculate optical flow components from input fields "
         "and (optionally) extrapolate to required lead times.")
 
-    parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
+    parser.add_argument("input_filepaths", metavar="INPUT_FILEPATHS",
                         nargs="+", type=str, help="Paths to the input radar "
                         "files.  There should be 3 input files at T, T-1 and "
                         "T-2 from which to calculate optical flow velocities.")
@@ -82,12 +82,12 @@ def main():
 
     # read input data
     cube_list = []
-    for fname in args.input_filenames:
+    for fname in args.input_filepaths:
         cube_list.append(load_cube(fname))
     if len(cube_list) != 3:
         raise ValueError("Expected exactly 3 input files.")
 
-    # order input files by validity time)
+    # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # HACK to be removed by IMPRO-720 - is exactly 2
@@ -125,7 +125,7 @@ def main():
 
         advection_plugin = AdvectField(umean, vmean)
 
-        # generate list of lead times (in minutes)
+        # generate list of lead times in minutes
         lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
                                args.lead_time_interval)
 
