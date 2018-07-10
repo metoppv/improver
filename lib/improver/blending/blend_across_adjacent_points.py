@@ -34,6 +34,7 @@ opposed to collapsing the whole dimension."""
 import iris
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
+from improver.utilities.cube_checker import check_point_within_allowed_range
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 
@@ -119,23 +120,26 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
             new_coord = new_cube.coord(coord)
             old_coord = orig_cube.coord(coord)
             new_coord.points = old_coord.points
-            if old_coord.bounds is not None:
-                new_coord.bounds = old_coord.bounds
+            if new_cube.coord(coord).has_bounds():
+                new_cube.coord(coord).bounds = None
 
-    def process(self, cube):
+    def process(self, central_cube, cube):
         """
         Apply the weighted blend for each point in the given coordinate.
 
         Args:
+            central_cube (iris.cube.Cube):
+                Cube containing the central cube for which the blended output
+                will be calculated for.
             cube (iris.cube.Cube):
-                Cube to blend.
+                Cube containing input for blending.
 
         Returns:
-            cube (iris.cube.Cube):
+            blended_cube (iris.cube.Cube):
                 The processed cube, with the same coordinates as the input
-                cube. The points in one coordinate will be blended with the
-                adjacent points based on a triangular weighting function of the
-                specified width.
+                central_cube. The points in one coordinate will be blended
+                with the adjacent points based on a triangular weighting
+                function of the specified width.
 
         """
         # We need to correct all the coordinates associated with the dimension
@@ -143,12 +147,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         dimension_to_collapse = cube.coord_dims(self.coord)
         coords_to_correct = cube.coords(dimensions=dimension_to_collapse)
         coords_to_correct = [coord.name() for coord in coords_to_correct]
-        # We will also need to correct the bounds on these coordinates,
-        # as bounds will be added when the blending happens, so add bounds if
-        # it doesn't have some already.
-        for coord in coords_to_correct:
-            if not cube.coord(coord).has_bounds():
-                cube.coord(coord).guess_bounds()
         # Set up a plugin to calculate the triangular weights.
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)
@@ -156,15 +154,10 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # maximum probabilities are needed.
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
                                                            self.mode)
-        result = iris.cube.CubeList([])
-        # Loop over each point in the coordinate we are blending over, and
-        # calculate a new weighted average for it.
-        for cube_slice in cube.slices_over(self.coord):
-            point = cube_slice.coord(self.coord).points[0]
-            weights = WeightsPlugin.process(cube, self.coord, point)
-            blended_cube = BlendingPlugin.process(cube, weights)
-            self.correct_collapsed_coordinates(cube_slice, blended_cube,
-                                               coords_to_correct)
-            result.append(blended_cube)
-        result = concatenate_cubes(result)
-        return result
+        point, = central_cube.coord(self.coord).points
+        check_point_within_allowed_range(cube, self.coord, point)
+        weights = WeightsPlugin.process(cube, self.coord, point)
+        blended_cube = BlendingPlugin.process(cube, weights)
+        self.correct_collapsed_coordinates(central_cube, blended_cube,
+                                           coords_to_correct)
+        return blended_cube

@@ -39,6 +39,7 @@
   run improver blend-adjacent-points 'forecast_period' 'weighted_maximum' 3.0 \
       --parameter_unit 'hours' \
       "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_max/multiple_probabilities_rain_*H.nc" \
+      "$IMPROVER_ACC_TEST_DIR/blend_adjacent_points/basic_max/multiple_probabilities_rain_2H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

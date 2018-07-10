@@ -214,3 +214,31 @@ def find_percentile_coordinate(cube):
                    '{0:s} data'.format(standard_name))
             raise ValueError(msg)
     return perc_coord
+
+
+def check_point_within_allowed_range(cube, coord, point, tolerance=1e-5):
+    """
+    Check that the specified point is within the range allowed by the
+    points on the specified coordinate.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing the coordinate to be checked.
+        coord (str or iris.coord.Coord):
+            Coordinate with points that will be checked.
+        point (float, int or np.array):
+            Point for comparison.
+        tolerance (float):
+            The numerical tolerance allowable in the floating point comparison.
+
+    Raises:
+        ValueError: The point is not within the allowed range given by the
+            cube coordinate.
+
+    """
+    if ((point - np.max(cube.coord(coord).points) >= tolerance) or
+            (np.min(cube.coord(coord).points) - point >= tolerance)):
+        msg = ("For the {} coordinate, the specified point: {} "
+               "is not within the allowed range of points: {}.".format(
+                    coord, point, cube.coord(coord).points))
+        raise ValueError(msg)

@@ -40,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates,
+    check_point_within_allowed_range,
     find_dimension_coordinate_mismatch,
     find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
@@ -285,6 +286,54 @@ class Test_find_percentile_coordinate(IrisTest):
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
+
+
+class Test_check_point_within_allowed_range(IrisTest):
+
+    """Test whether a point is within the range allowed by the coordinate
+       on a cube."""
+
+    def setUp(self):
+        """Set up cube with multiple time points."""
+        self.cube = set_up_cube(num_time_points=3)
+
+    def test_point_in_range(self):
+        """Test where point is within the allowed range."""
+        point = 402193.0
+        coord = "time"
+        try:
+            check_point_within_allowed_range(self.cube, coord, point)
+        except ValueError as err:
+            msg = "Value Error raised unexpectedly: {}".format(err)
+            self.fail(msg)
+
+    def test_point_above_range(self):
+        """Test where point is above the allowed range."""
+        point = 402195.0
+        coord = "time"
+        msg = "is not within the allowed range of points"
+        with self.assertRaisesRegex(ValueError, msg):
+            check_point_within_allowed_range(self.cube, coord, point)
+
+    def test_point_below_range(self):
+        """Test where point is below the allowed range."""
+        point = 402192.0
+        coord = "time"
+        msg = "is not within the allowed range of points"
+        with self.assertRaisesRegex(ValueError, msg):
+            check_point_within_allowed_range(self.cube, coord, point)
+
+    def test_tolerance(self):
+        """Test where point is within the allowed range given the specified
+        tolerance."""
+        point = 402192.0
+        coord = "time"
+        try:
+            check_point_within_allowed_range(
+                self.cube, coord, point, tolerance=10)
+        except ValueError as err:
+            msg = "Value Error raised unexpectedly: {}".format(err)
+            self.fail(msg)
 
 
 if __name__ == '__main__':

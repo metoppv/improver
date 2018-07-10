@@ -75,8 +75,14 @@ def main():
                         help='Width of the triangular weighting function used '
                              'in the blending, in the units of the '
                              'parameter_unit passed in.')
-    parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('input_filepaths', metavar='INPUT_FILE', nargs="+",
+                        help='Paths to input NetCDF files including and '
+                             'surrounding the central_input_filepath.')
+    parser.add_argument('central_input_filepath', metavar='CENTRAL_INPUT_FILE',
+                        help='A path to an input NetCDF file containing the '
+                             'central point at which the output from the '
+                             'triangular weighted blending will be '
+                             'calculated.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
@@ -91,11 +97,12 @@ def main():
 
     width = float(args.width)
 
-    cube = load_cube(args.input_filepath)
+    cube = load_cube(args.input_filepaths)
+    central_cube = load_cube(args.central_input_filepath)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
         args.coordinate, width, parameter_unit, args.weighting_mode)
-    result = BlendingPlugin.process(cube)
+    result = BlendingPlugin.process(central_cube, cube)
     save_netcdf(result, args.output_filepath)
 
 

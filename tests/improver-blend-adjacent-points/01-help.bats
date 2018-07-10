@@ -39,7 +39,8 @@ usage: improver-blend-adjacent-points [-h] [--profile]
                                       [--calendar CALENDAR]
                                       COORDINATE_TO_BLEND_OVER
                                       WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
-                                      INPUT_FILE OUTPUT_FILE
+                                      INPUT_FILE [INPUT_FILE ...]
+                                      CENTRAL_INPUT_FILE OUTPUT_FILE
 
 Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
 particular coordinate. It does not collapse the coordinate, but instead blends
@@ -59,7 +60,11 @@ positional arguments:
   TRIANGLE_WIDTH        Width of the triangular weighting function used in the
                         blending, in the units of the parameter_unit passed
                         in.
-  INPUT_FILE            A path to an input NetCDF file to be processed.
+  INPUT_FILE            Paths to input NetCDF files including and surrounding
+                        the central_input_filepath.
+  CENTRAL_INPUT_FILE    A path to an input NetCDF file containing the central
+                        point at which the output from the triangular weighted
+                        blending will be calculated.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
