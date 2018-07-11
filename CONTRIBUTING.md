@@ -50,6 +50,7 @@ below:
 * Tim Pillinger (Met Office, UK)
 * Fiona Rust (Met Office, UK)
 * Caroline Sandford (Met Office, UK)
+* Eleanor Smith (Met Office, UK)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
 

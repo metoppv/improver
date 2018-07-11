@@ -54,7 +54,7 @@ class Test_calc_solar_declination(IrisTest):
             self.assertAlmostEqual(result, expected_result[i])
 
     def test_solar_dec_raises_exception(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if day of year out of range"""
         day_of_year = -1
         msg = 'Day of the year must be between 0 and 365'
         with self.assertRaisesRegex(ValueError, msg):
@@ -87,7 +87,7 @@ class Test_calc_solar_hour_angle(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_solar_hour_raises_exception_lon(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if longitudes out of range"""
         longitudes = np.array([0.0, 10.0, -10.0, 181.0, -179.0])
         msg = 'Longitudes must be between -180.0 and 180.0'
         with self.assertRaisesRegex(ValueError, msg):
@@ -95,7 +95,7 @@ class Test_calc_solar_hour_angle(IrisTest):
                                   self.utc_hour)
 
     def test_solar_hour_raises_exception_day_of_year(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if day of year out of range"""
         day_of_year = 367
         msg = 'Day of the year must be between 0 and 365'
         with self.assertRaisesRegex(ValueError, msg):
@@ -103,7 +103,7 @@ class Test_calc_solar_hour_angle(IrisTest):
                                   self.utc_hour)
 
     def test_solar_hour_raises_exception_hour(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if hour out of range"""
         utc_hour = -10.0
         msg = 'Hour must be between 0 and 24.0'
         with self.assertRaisesRegex(ValueError, msg):
@@ -138,7 +138,7 @@ class Test_calc_solar_elevation(IrisTest):
         self.assertArrayAlmostEqual(result, expected_array)
 
     def test_solar_elevation_raises_exception_lon(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if longitudes out of range"""
         longitudes = np.array([-205.0, 0.0, 5.0])
         msg = 'Longitudes must be between -180.0 and 180.0'
         with self.assertRaisesRegex(ValueError, msg):
@@ -154,7 +154,7 @@ class Test_calc_solar_elevation(IrisTest):
                                  self.day_of_year, self.utc_hour)
 
     def test_solar_elevation_raises_exception_day_of_year(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if day of year out of range"""
         day_of_year = 367
         msg = 'Day of the year must be between 0 and 365'
         with self.assertRaisesRegex(ValueError, msg):
@@ -162,7 +162,7 @@ class Test_calc_solar_elevation(IrisTest):
                                  day_of_year, self.utc_hour)
 
     def test_solar_elevation_raises_exception_hour(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if hour out of range"""
         utc_hour = -10.0
         msg = 'Hour must be between 0 and 24.0'
         with self.assertRaisesRegex(ValueError, msg):
@@ -206,7 +206,7 @@ class Test_daynight_terminator(IrisTest):
         self.assertArrayAlmostEqual(result, expected_lats)
 
     def test_daynight_terminator_raises_exception_lon(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if longitudes out of range"""
         longitudes = np.array([-205.0, 0.0, 5.0])
         msg = 'Longitudes must be between -180.0 and 180.0'
         with self.assertRaisesRegex(ValueError, msg):
@@ -214,7 +214,7 @@ class Test_daynight_terminator(IrisTest):
                                 self.day_of_year, self.utc_hour)
 
     def test_daynight_terminator_raises_exception_day_of_year(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if day of year out of range"""
         day_of_year = 367
         msg = 'Day of the year must be between 0 and 365'
         with self.assertRaisesRegex(ValueError, msg):
@@ -222,7 +222,7 @@ class Test_daynight_terminator(IrisTest):
                                 day_of_year, self.utc_hour)
 
     def test_daynight_terminator_raises_exception_hour(self):
-        """Test an exception is raised if latitudes out of range"""
+        """Test an exception is raised if hour out of range"""
         utc_hour = -10.0
         msg = 'Hour must be between 0 and 24.0'
         with self.assertRaisesRegex(ValueError, msg):
