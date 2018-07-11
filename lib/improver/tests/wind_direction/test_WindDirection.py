@@ -285,7 +285,8 @@ class Test_find_r_values(IrisTest):
         self.plugin = WindDirection()
 
     def test_converts_single(self):
-        """Tests that r-value correctly extracted from complex value."""
+        """Tests that r-value is correctly extracted from complex value."""
+        # Attach a cube for the plugin to copy in creating the resulting cube:
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0][0][0]
         expected_out = 2.0
         # Set-up complex values for angle=45 and r=2
@@ -301,6 +302,7 @@ class Test_find_r_values(IrisTest):
         cube = Cube(COMPLEX_ANGLES, standard_name="wind_from_direction",
                     dim_coords_and_dims=[(longitude, 0)],
                     units="degree")
+        # Attach a cube for the plugin to copy in creating the resulting cube:
         self.plugin.wdir_slice_mean = cube
         self.plugin.wdir_mean_complex = COMPLEX_ANGLES
         expected_out = np.ones(COMPLEX_ANGLES.shape, dtype=np.float32)

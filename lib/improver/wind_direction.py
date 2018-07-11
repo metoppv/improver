@@ -229,7 +229,8 @@ class WindDirection(object):
             self.wdir_mean_complex (np.ndarray or float):
                 3D array or float - wind direction angles in complex numbers.
             self.wdir_slice_mean (iris.cube.Cube):
-                3D array or float - wind direction angles in complex numbers.
+                3D array or float - mean wind direction angles in complex
+                numbers.
 
         Defines:
             self.r_vals_slice (iris.cube.Cube):
