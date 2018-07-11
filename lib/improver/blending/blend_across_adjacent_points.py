@@ -35,7 +35,6 @@ from cf_units import Unit
 import iris
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.utilities.cube_checker import check_point_within_allowed_range
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 
@@ -103,32 +102,42 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         return msg.format(self.coord, self.central_point, self.parameter_units,
                           self.width, self.mode)
 
-    @staticmethod
-    def correct_collapsed_coordinates(orig_cube, new_cube, coords_to_correct):
+    def _find_central_point(self, cube):
         """
-        A helper function to replace the points and bounds in coordinates
-        that have been collapsed.
-        For the coordinates specified it replaces points in new_cube's
-        coordinates with the points from the corresponding coordinate in
-        orig_cube. The bounds are also replaced.
+        Find the cube that contains the central point, otherwise, raise
+        an exception.
 
         Args:
-            orig_cube(iris.cube.Cube):
-                The cube that the original coordinates points will be taken
-                from.
-            new_cube(iris.cube.Cube):
-                The new cube who's coordinates will be corrected. This must
-                have the same number of points along the coordinates we are
-                correcting as are in the orig_cube.
-            coords_to_correct(list):
-                A list of coordinate names to correct.
+            cube (iris.cube.Cube):
+                Cube containing input for blending.
+
+        Returns:
+            central_point_cube (iris.cube.Cube):
+                Cube containing central point.
+
+        Raises:
+            ValueError: Central point is not available within the input cube.
+
         """
-        for coord in coords_to_correct:
-            new_coord = new_cube.coord(coord)
-            old_coord = orig_cube.coord(coord)
-            new_coord.points = old_coord.points
-            if new_cube.coord(coord).has_bounds():
-                new_cube.coord(coord).bounds = None
+        # Convert central point into the units of the cube, so that a
+        # central point can be extracted.
+        self.central_point = (
+            Unit(self.parameter_units).convert(
+                self.central_point, cube.coord(self.coord).units))
+        constr = iris.Constraint(
+            coord_values={self.coord: self.central_point})
+        central_point_cube = cube.extract(constr)
+        if central_point_cube is None:
+            if self.parameter_units is None:
+                parameter_units = central_point_cube.coord(self.coord).units
+            else:
+                parameter_units = self.parameter_units
+            msg = ("The central point of {} in units of {} not available "
+                   "within input cube coordinate points: {}.".format(
+                       self.central_point, parameter_units,
+                       cube.coord(self.coord).points))
+            raise ValueError(msg)
+        return central_point_cube
 
     def process(self, cube):
         """
@@ -146,11 +155,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
                 function of the specified width.
 
         """
-        # We need to correct all the coordinates associated with the dimension
-        # we are collapsing over, so find the relevant coordinates now.
-        dimension_to_collapse = cube.coord_dims(self.coord)
-        coords_to_correct = cube.coords(dimensions=dimension_to_collapse)
-        coords_to_correct = [coord.name() for coord in coords_to_correct]
         # Set up a plugin to calculate the triangular weights.
         WeightsPlugin = ChooseDefaultWeightsTriangular(
             self.width, units=self.parameter_units)
@@ -158,19 +162,12 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # maximum probabilities are needed.
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
                                                            self.mode)
-        # Convert central point into the units of the cube, so that a
-        # central point can be extracted.
-        self.central_point = (
-            Unit(self.parameter_units).convert(
-                self.central_point, cube.coord(self.coord).units))
-        constr = iris.Constraint(
-            coord_values={self.coord: self.central_point})
-        central_point_cube = cube.extract(constr)
-        # Check that the central point is allowed.
-        check_point_within_allowed_range(cube, self.coord, self.central_point)
+
+        # Extract the central point from the input cube.
+        central_point_cube = self._find_central_point(cube)
+
         # Calculate weights and produce blended output.
         weights = WeightsPlugin.process(cube, self.coord, self.central_point)
         blended_cube = BlendingPlugin.process(cube, weights)
-        self.correct_collapsed_coordinates(central_point_cube, blended_cube,
-                                           coords_to_correct)
+        blended_cube = central_point_cube.copy(blended_cube.data)
         return blended_cube
