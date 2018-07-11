@@ -325,6 +325,8 @@ class Test_calc_confidence_measure(IrisTest):
             np.array([[6.12323400e-17, 0.996194698],
                       [0.984807753, 0.984807753]]))
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
+        self.plugin.wdir_slice_mean.data = np.array([[180.0, 55.0],
+                                                     [280.0, 0.0]])
 
     def test_returns_confidence(self):
         """First element has two angles directly opposite (90 & 270 degs).
@@ -333,9 +335,8 @@ class Test_calc_confidence_measure(IrisTest):
         far the individual ensemble realizationss are away from
         the mean point."""
 
-        expected_out = np.array([[0.0, 0.956422],
-                                 [0.913176, 0.913176]])
-
+        expected_out = np.array([[0.0, 0.95638061],
+                                 [0.91284426, 0.91284426]])
         self.plugin.calc_confidence_measure()
         result = self.plugin.confidence_slice.data
 
