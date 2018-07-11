@@ -166,7 +166,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         constr = iris.Constraint(
             coord_values={self.coord: self.central_point})
         central_point_cube = cube.extract(constr)
-        # Check that the central point is allowed. 
+        # Check that the central point is allowed.
         check_point_within_allowed_range(cube, self.coord, self.central_point)
         # Calculate weights and produce blended output.
         weights = WeightsPlugin.process(cube, self.coord, self.central_point)
