@@ -309,30 +309,29 @@ class OpticalFlow(object):
                 circular 'kernel' (used in post-calculation smoothing).
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
-                The value for good convergence is 20 (Bowler et al. 2004 [1]).
+                The value for good convergence is 20 (Bowler et al. 2004).
 
         Raises:
             ValueError:
                 If iterations < 20
 
-        [1] Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-        precipitation nowcasting algorithm based upon optical flow techniques.
-        Journal of Hydrology, 288, 74-91.
-
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
 
         if iterations < 20:
-            raise ValueError('Minimum requirement 20 iterations')
+            raise ValueError('Got {} iterations; minimum requirement 20 '
+                             'iterations'.format(iterations))
 
         # Set parameters for input data smoothing.  14 km is suitable for input
         # fields separated by a 15 minute time step - this is updated if
         # necessary by the "process" function.
         self.data_smoothing_radius_km = 14.
-        self.data_smoothing_radius = None
         self.data_smoothing_method = data_smoothing_method
 
         # Set parameters for velocity calculation and "smart smoothing"
-        self.boxsize = None
         self.iterations = iterations
         self.point_weight = 0.1
 
@@ -595,16 +594,22 @@ class OpticalFlow(object):
         Then regrid from "box grid" (on which OFC equations are solved) to
         input data grid, and perform one final pass simple kernel smoothing.
         This is equivalent to applying the smoothness constraint defined in
-        Bowler et al. 2004, equations 9-11 [1, see "__init__" docstring].
+        Bowler et al. 2004, equations 9-11.
 
         Args:
             box_data (np.ndarray):
                 Displacements on box grid (modified by this function)
             weights (np.ndarray):
                 Weights for smart smoothing
+
         Returns:
             grid_data (np.ndarray):
                 Smoothed displacement vectors on input data grid
+
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
         v_orig = np.copy(box_data)
 
@@ -616,7 +621,7 @@ class OpticalFlow(object):
         grid_data = self._box_to_grid(box_data)
 
         # smooth regridded velocities to remove box edge discontinuities
-        # this will fail if boxsize < 3
+        # this will fail if self.boxsize < 3
         kernelsize = int(self.boxsize/3)
         grid_data = self.smooth(grid_data, kernelsize, method='kernel')
         return grid_data
@@ -676,7 +681,7 @@ class OpticalFlow(object):
                                        partial_dt):
         """
         This implements the OFC algorithm, assuming all points in a box with
-        "boxsize" sidelength have the same displacement components.
+        "self.boxsize" sidelength have the same displacement components.
 
         Args:
             partial_dx (np.ndarray):
@@ -866,8 +871,8 @@ class OpticalFlow(object):
 
         # if time difference is not 15 minutes, update data smoothing radius
         if cube_time_diff.total_seconds() != 900:
-            self.data_smoothing_radius_km *= \
-                cube_time_diff.total_seconds()/900.
+            self.data_smoothing_radius_km *= (
+                cube_time_diff.total_seconds()/900.)
 
         # extract spatial grid length
         new_coord = cube1.coord(axis='x').copy()

@@ -50,9 +50,7 @@ class Test__init__(IrisTest):
         """Test initialisation and types"""
         plugin = OpticalFlow()
         self.assertIsInstance(plugin.data_smoothing_radius_km, float)
-        self.assertIsNone(plugin.data_smoothing_radius)
         self.assertIsInstance(plugin.data_smoothing_method, str)
-        self.assertIsNone(plugin.boxsize)
         self.assertIsInstance(plugin.iterations, int)
         self.assertIsInstance(plugin.point_weight, float)
         self.assertIsNone(plugin.data1)
@@ -651,7 +649,8 @@ class Test_process(IrisTest):
 
     def test_update_smoothing_radius(self):
         """Test data smoothing radius is updated if cube time difference is not
-        15 minutes"""
+        15 minutes.  We don't care about the error this trips, we just want to
+        make sure the radius is updated correctly."""
         time_unit = self.cube2.coord("time").units
         new_time = time_unit.num2date(self.cube2.coord("time").points[0])
         new_time += datetime.timedelta(seconds=900)
