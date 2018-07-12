@@ -243,6 +243,24 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_alternative_parameter_units(self):
+        """Test that the plugin produces sensible results when the width
+           of the triangle is 7200 seconds. """
+        forecast_period = 0
+        width = 7200.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', forecast_period, 'seconds', width,
+            'weighted_mean')
+        result = plugin.process(self.cube)
+        expected_data = np.array([[1.333333, 1.333333],
+                                  [1.333333, 1.333333]])
+        self.assertEqual(self.central_cube.coord('forecast_period'),
+                         result.coord('forecast_period'))
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
+        self.assertArrayAlmostEqual(expected_data, result.data)
+
 
 if __name__ == '__main__':
     unittest.main()

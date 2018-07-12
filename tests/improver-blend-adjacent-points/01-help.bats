@@ -53,7 +53,10 @@ positional arguments:
                         The coordinate over which the blending will be
                         applied.
   CENTRAL_POINT         Central point at which the output from the triangular
-                        weighted blending will be calculated.
+                        weighted blending will be calculated. This should be
+                        in the units of the parameter_unit that is passed
+                        in.This value should be a point on the coordinate for
+                        blending over.
   TRIANGLE_WIDTH        Width of the triangular weighting function used in the
                         blending, in the units of the parameter_unit passed
                         in.
@@ -63,7 +66,7 @@ positional arguments:
                         the values in the coordinate by the weights, and then
                         takes the maximum.
   INPUT_FILES           Paths to input NetCDF files including and surrounding
-                        the central_input_filepath.
+                        the central_point.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:

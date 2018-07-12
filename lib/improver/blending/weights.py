@@ -477,7 +477,8 @@ class ChooseDefaultWeightsTriangular(object):
             units = cf_units.Unit(units)
         self.parameters_units = units
 
-    def triangular_weights(self, coord_vals, midpoint, width):
+    @staticmethod
+    def triangular_weights(coord_vals, midpoint, width):
         """Create triangular weights.
 
             Args:

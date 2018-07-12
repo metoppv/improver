@@ -58,7 +58,10 @@ def main():
     parser.add_argument('central_point', metavar='CENTRAL_POINT', type=float,
                         help='Central point at which the output from the '
                              'triangular weighted blending will be '
-                             'calculated.')
+                             'calculated. This should be in the units of the '
+                             'parameter_unit that is passed in.'
+                             'This value should be a point on the '
+                             'coordinate for blending over.')
     parser.add_argument('--parameter_unit', metavar='UNIT_STRING',
                         default='hours since 1970-01-01 00:00:00',
                         help='Units for time coordinate. Default= '
@@ -81,7 +84,7 @@ def main():
                              ' maximum.')
     parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
                         help='Paths to input NetCDF files including and '
-                             'surrounding the central_input_filepath.')
+                             'surrounding the central_point.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
