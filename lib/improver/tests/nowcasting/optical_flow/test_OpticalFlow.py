@@ -672,6 +672,12 @@ class Test_process(IrisTest):
         with self.assertRaisesRegexp(ValueError, msg):
             _ = self.plugin.process(self.cube1, self.cube2)
 
+    def test_error_small_box(self):
+        """Test failure if box size is smaller than data smoothing radius"""
+        msg = "Box size 2 too small"
+        with self.assertRaisesRegexp(ValueError, msg):
+            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=2)
+
     def test_error_unmatched_coords(self):
         """Test failure if cubes are provided on unmatched grids"""
         cube2 = self.cube2.copy()
