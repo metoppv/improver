@@ -111,9 +111,7 @@ class BaseNeighbourhoodProcessing(object):
         """
         if cube_lead_times is None:
             return self.radii
-        radii = (np.interp(cube_lead_times, self.lead_times, self.radii))
-        for i, val in enumerate(radii):
-            radii[i] = val
+        radii = np.interp(cube_lead_times, self.lead_times, self.radii)
         return radii
 
     def __repr__(self):

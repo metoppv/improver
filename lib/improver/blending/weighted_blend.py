@@ -477,12 +477,6 @@ class WeightedBlendAcrossWholeDimension(object):
                            "input cube are {}".format(time_points))
                     raise ValueError(msg)
 
-        # If the coordinate being collapsed is realization, record the original
-        # realizations for inclusion in a source_realization attribute.
-        source_realizations = None
-        if self.coord == "realization":
-            source_realizations = cube.coord(self.coord).points
-
         # Check to see if the data is percentile data
         try:
             perc_coord = find_percentile_coordinate(cube)
@@ -619,8 +613,9 @@ class WeightedBlendAcrossWholeDimension(object):
             result = cubelist.merge_cube()
 
             # Add a source realizations attribute if collapsing realizations.
-            if source_realizations is not None:
-                result.attributes['source_realizations'] = source_realizations
+            if self.coord == "realization":
+                result.attributes['source_realizations'] = (
+                    cube.coord(self.coord).points)
 
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
                 result.data = np.ma.array(result.data)
