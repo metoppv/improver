@@ -29,7 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for psychrometric_calculations FallingSnowLevel."""
-
 import unittest
 
 import numpy as np
@@ -130,6 +129,7 @@ class Test_fill_in_high_snow_falling_levels(IrisTest):
             self.snow_level_data, self.orog, self.highest_wb_int,
             self.highest_height)
         self.assertArrayEqual(self.snow_level_data, expected)
+
 
 
 class Test_linear_wet_bulb_fit(IrisTest):
@@ -327,15 +327,54 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
 
     def test_lots_missing(self):
         """Test when there's an extra missing value at the corner
-           of the grid."""
+           of the grid. This point can't be filled in by linear interpolation,
+           but is instead filled by nearest neighbour extrapolation."""
         self.snow_level_data[2, 2] = np.nan
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],
-                             [1.0, 2.0, np.nan]])
+                             [1.0, 2.0, 2.0]])
         snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
             self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
 
+    def test_all_above_max_orogrpahy(self):
+        """Test that nothing is filled in if all the snow falling levels are
+           above the maximum orography"""
+        max_in_nbhood_orog = np.zeros((3,3))
+        orography = np.zeros((3,3))
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, np.nan, 2.0],
+                             [1.0, 2.0, 2.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            self.snow_level_data, max_in_nbhood_orog, orography)
+        self.assertArrayEqual(snow_level_updated, expected)
+
+    def set_to_orograpy(self):
+        """Test when the linear interpolation gives values that are higher
+           than the orography the snow falling level is set back to the
+           orography"""
+        snow_falling_level = np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0]])
+
+
+        orography = np.array([[0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0]])
+
+        max_in_nbhood_orog = np.ones((5,5))*30.0
+        expected = np.array([[10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            snow_falling_level, max_in_nbhood_orog, orography)
+        self.assertArrayEqual(snow_level_updated, expected)
 
 class Test_calculate_radius_size(IrisTest):
 
@@ -484,6 +523,7 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
+        self.orog.data[1,1]=100.0
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube, self.orog, self.land_sea)
@@ -499,6 +539,7 @@ class Test_process(IrisTest):
         expected = np.ones((2, 3, 3)) * 65.88732723
         orog = self.orog
         orog.data = orog.data * 0.0
+        self.orog.data[1,1]=100.0
         land_sea = self.land_sea
         land_sea = land_sea * 0.0
         result = FallingSnowLevel().process(

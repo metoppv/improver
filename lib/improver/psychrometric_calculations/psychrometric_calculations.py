@@ -967,7 +967,7 @@ class FallingSnowLevel(object):
                 values = snow_level_data_updated[points]
                 snow_level_data_updated_2 = griddata(
                     points, values, (y_points, x_points), method='nearest')
-                snow_filled=snow_level_data_updated
+                snow_filled=snow_level_data_updated_2
 
         # Set any points that have filled with values that are above the
         # orography at those points back to the orography.
