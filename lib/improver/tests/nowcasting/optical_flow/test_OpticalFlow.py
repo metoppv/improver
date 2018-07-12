@@ -202,7 +202,8 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
 
     def test_basic(self):
         """Test for correct output types"""
-        boxes, weights = self.plugin._make_subboxes(self.plugin.data1, 2)
+        self.plugin.boxsize = 2
+        boxes, weights = self.plugin._make_subboxes(self.plugin.data1)
         self.assertIsInstance(boxes, list)
         self.assertIsInstance(boxes[0], np.ndarray)
         self.assertIsInstance(weights, np.ndarray)
@@ -213,7 +214,8 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
             [np.array([[1., 2.], [0., 1.]]), np.array([[3., 4.], [2., 3.]]),
              np.array([[5.], [4.]]), np.array([[0., 0.]]),
              np.array([[1., 2.]]), np.array([[3.]])]
-        boxes, _ = self.plugin._make_subboxes(self.plugin.data1, 2)
+        self.plugin.boxsize = 2
+        boxes, _ = self.plugin._make_subboxes(self.plugin.data1)
         for box, ebox in zip(boxes, expected_boxes):
             self.assertArrayAlmostEqual(box, ebox)
 
@@ -221,7 +223,8 @@ class Test__make_subboxes(OpticalFlowUtilityTest):
         """Test output weights values"""
         expected_weights = np.array([0.54216664, 0.95606307, 0.917915, 0.,
                                      0.46473857, 0.54216664])
-        _, weights = self.plugin._make_subboxes(self.plugin.data1, 2)
+        self.plugin.boxsize = 2
+        _, weights = self.plugin._make_subboxes(self.plugin.data1)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
@@ -557,8 +560,8 @@ class Test_process_dimensionless(IrisTest):
         smoothing algorithms to behave sensibly."""
 
         self.plugin = OpticalFlow(iterations=20)
-        self.plugin.data_smoothing_radius = 3
         self.plugin.boxsize = 3
+        self.smoothing_kernel = 3
 
         rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
                                    [1., 2., 2., 2., 2., 1., 1.],
@@ -577,7 +580,7 @@ class Test_process_dimensionless(IrisTest):
     def test_basic(self):
         """Test outputs are of the correct type and value"""
         ucomp, vcomp = self.plugin.process_dimensionless(
-            self.first_input, self.second_input, 0, 1)
+            self.first_input, self.second_input, 0, 1, self.smoothing_kernel)
         self.assertIsInstance(ucomp, np.ndarray)
         self.assertIsInstance(vcomp, np.ndarray)
         self.assertAlmostEqual(np.mean(ucomp), 0.97735876)
@@ -586,7 +589,7 @@ class Test_process_dimensionless(IrisTest):
     def test_axis_inversion(self):
         """Test inverting x and y axis indices gives the correct result"""
         ucomp, vcomp = self.plugin.process_dimensionless(
-            self.first_input, self.second_input, 1, 0)
+            self.first_input, self.second_input, 1, 0, self.smoothing_kernel)
         self.assertAlmostEqual(np.mean(ucomp), -0.97735876)
         self.assertAlmostEqual(np.mean(vcomp), 0.97735876)
 

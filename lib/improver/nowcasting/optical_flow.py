@@ -417,9 +417,9 @@ class OpticalFlow(object):
         smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
         return self.interp_to_midpoint(smoothed_diffs)
 
-    def _make_subboxes(self, field, boxsize):
+    def _make_subboxes(self, field):
         """
-        Generate a list of non-overlapping "boxes" of size boxsize*boxsize
+        Generate a list of non-overlapping "boxes" of size self.boxsize**2
         from the input field, along with weights based on data values at times
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
@@ -427,8 +427,6 @@ class OpticalFlow(object):
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
-            boxsize (int):
-                Size of boxes to be output
 
         Returns:
             (tuple) : tuple containing:
@@ -441,13 +439,13 @@ class OpticalFlow(object):
         """
         boxes = []
         weights = []
-        weighting_factor = 0.5 / boxsize**2.
-        for i in range(0, field.shape[0], boxsize):
-            for j in range(0, field.shape[1], boxsize):
-                boxes.append(field[i:i+boxsize, j:j+boxsize])
+        weighting_factor = 0.5 / self.boxsize**2.
+        for i in range(0, field.shape[0], self.boxsize):
+            for j in range(0, field.shape[1], self.boxsize):
+                boxes.append(field[i:i+self.boxsize, j:j+self.boxsize])
                 weight = weighting_factor*(
-                    (self.data1[i:i+boxsize, j:j+boxsize]).sum() +
-                    (self.data2[i:i+boxsize, j:j+boxsize]).sum())
+                    (self.data1[i:i+self.boxsize, j:j+self.boxsize]).sum() +
+                    (self.data2[i:i+self.boxsize, j:j+self.boxsize]).sum())
                 weight = 1. - np.exp(-1.*weight/0.8)
                 weights.append(weight)
         weights = np.array(weights)
@@ -700,9 +698,9 @@ class OpticalFlow(object):
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
-        dx_boxed, box_weights = self._make_subboxes(partial_dx, self.boxsize)
-        dy_boxed, _ = self._make_subboxes(partial_dy, self.boxsize)
-        dt_boxed, _ = self._make_subboxes(partial_dt, self.boxsize)
+        dx_boxed, box_weights = self._make_subboxes(partial_dx)
+        dy_boxed, _ = self._make_subboxes(partial_dy)
+        dt_boxed, _ = self._make_subboxes(partial_dt)
 
         # (b) Solve optical flow displacement calculation on each subbox
         velocity = ([], [])
@@ -775,7 +773,8 @@ class OpticalFlow(object):
                                       (1-zero_vel_threshold)*100))
             warnings.warn(msg)
 
-    def process_dimensionless(self, data1, data2, xaxis, yaxis):
+    def process_dimensionless(self, data1, data2, xaxis, yaxis,
+                              smoothing_kernel):
         """
         Calculates dimensionless advection displacements between two input
         fields.
@@ -789,6 +788,8 @@ class OpticalFlow(object):
                 Index of x coordinate axis
             yaxis (int):
                 Index of y coordinate axis
+            smoothing_kernel (int):
+                Radius (in grid squares) over which to smooth the input data
 
         Returns:
             (tuple) : tuple containing:
@@ -799,9 +800,9 @@ class OpticalFlow(object):
         """
         # Smooth input data
         self.shape = data1.shape
-        self.data1 = self.smooth(data1, self.data_smoothing_radius,
+        self.data1 = self.smooth(data1, smoothing_kernel,
                                  method=self.data_smoothing_method)
-        self.data2 = self.smooth(data2, self.data_smoothing_radius,
+        self.data2 = self.smooth(data2, smoothing_kernel,
                                  method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
@@ -887,24 +888,24 @@ class OpticalFlow(object):
             raise InvalidCubeError("Input cube has different grid spacing in "
                                    "x and y")
 
-        # calculate plugin parameters in grid square units
-        self.data_smoothing_radius = \
+        # calculate smoothing radius in grid square units
+        data_smoothing_radius = \
             int(self.data_smoothing_radius_km / grid_length_km)
 
-        # Fail verbosely if self.data_smoothing_radius is too small and will
+        # Fail verbosely if data_smoothing_radius is too small and will
         # trigger silent failures downstream
-        if self.data_smoothing_radius < 3:
+        if data_smoothing_radius < 3:
             msg = ("Input data smoothing radius {} too small (minimum 3 "
                    "grid squares)")
-            raise ValueError(msg.format(self.data_smoothing_radius))
+            raise ValueError(msg.format(data_smoothing_radius))
 
-        # Fail if self.boxsize is less than self.data_smoothing_radius
+        # Fail if self.boxsize is less than data_smoothing_radius
         self.boxsize = boxsize
-        if self.boxsize < self.data_smoothing_radius:
+        if self.boxsize < data_smoothing_radius:
             msg = ("Box size {} too small (should not be less than data "
                    "smoothing radius {})")
             raise ValueError(
-                msg.format(self.boxsize, self.data_smoothing_radius))
+                msg.format(self.boxsize, data_smoothing_radius))
 
         # extract 2-dimensional data arrays
         data1 = next(cube1.slices([cube1.coord(axis='y'),
@@ -923,7 +924,8 @@ class OpticalFlow(object):
             vcomp = np.zeros(data2.shape)
         else:
             # calculate dimensionless displacement between the two input fields
-            ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
+            ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0,
+                                                      data_smoothing_radius)
             # convert displacements to velocities in metres per second
             for vel in [ucomp, vcomp]:
                 vel *= (1000.*grid_length_km)
