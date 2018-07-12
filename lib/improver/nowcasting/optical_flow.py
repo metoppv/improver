@@ -44,6 +44,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
 def check_input_coords(cube, require_time=False):
@@ -860,6 +861,10 @@ class OpticalFlow(object):
                 cube1.coord(axis="y") != cube2.coord(axis="y")):
             raise InvalidCubeError("Input cubes on unmatched grids")
 
+        # check grids are equal area
+        check_if_grid_is_equal_area(cube1)
+        check_if_grid_is_equal_area(cube2)
+
         # check time difference is positive
         time1 = (cube1.coord("time").units).num2date(
             cube1.coord("time").points[0])
@@ -868,38 +873,28 @@ class OpticalFlow(object):
         cube_time_diff = time2 - time1
         if cube_time_diff.total_seconds() <= 0:
             msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(cube_time_diff.seconds))
+            raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
 
         # if time difference is not 15 minutes, update data smoothing radius
         if cube_time_diff.total_seconds() != 900:
             self.data_smoothing_radius_km *= (
                 cube_time_diff.total_seconds()/900.)
 
-        # extract spatial grid length
+        # calculate smoothing radius in grid square units
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
         grid_length_km = float(np.diff((new_coord).points)[0])
-
-        # check x and y have the same grid length - fail if not
-        new_coord = cube1.coord(axis='y').copy()
-        new_coord.convert_units('km')
-        grid_length_y_km = float(np.diff((new_coord).points)[0])
-        if not np.isclose(grid_length_y_km, grid_length_km):
-            raise InvalidCubeError("Input cube has different grid spacing in "
-                                   "x and y")
-
-        # calculate smoothing radius in grid square units
         data_smoothing_radius = \
             int(self.data_smoothing_radius_km / grid_length_km)
 
-        # Fail verbosely if data_smoothing_radius is too small and will
+        # Fail verbosely if data smoothing radius is too small and will
         # trigger silent failures downstream
         if data_smoothing_radius < 3:
             msg = ("Input data smoothing radius {} too small (minimum 3 "
                    "grid squares)")
             raise ValueError(msg.format(data_smoothing_radius))
 
-        # Fail if self.boxsize is less than data_smoothing_radius
+        # Fail if self.boxsize is less than data smoothing radius
         self.boxsize = boxsize
         if self.boxsize < data_smoothing_radius:
             msg = ("Box size {} too small (should not be less than data "

@@ -693,16 +693,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube2, self.cube1)
 
-    def test_error_irregular_grid(self):
-        """Test failure if cubes have different x/y grid lengths"""
-        cube1 = self.cube1.copy()
-        cube2 = self.cube2.copy()
-        for cube in [cube1, cube2]:
-            cube.coord(axis="y").points = 4*np.arange(16)
-        msg = "Input cube has different grid spacing in x and y"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
-            _ = self.plugin.process(cube1, cube2)
-
     @ManageWarnings(record=True)
     def test_warning_zero_inputs(self, warning_list=None):
         """Test code raises a warning and sets advection velocities to zero
