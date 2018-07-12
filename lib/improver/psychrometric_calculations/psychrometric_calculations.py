@@ -607,7 +607,8 @@ class WetBulbTemperatureIntegral(object):
 class FallingSnowLevel(object):
     """Calculate a field of continuous falling snow level."""
 
-    def __init__(self, precision=0.005, falling_level_threshold=90.0, grid_point_radius=2):
+    def __init__(self, precision=0.005, falling_level_threshold=90.0,
+                 grid_point_radius=2):
         """
         Initialise class.
 
@@ -621,6 +622,10 @@ class FallingSnowLevel(object):
                 threshold that is presumed to indicate
                 the level at which snow has melted back to rain. Above
                 this level we should have falling snow.
+            grid_point_radius (int):
+                The radius in grid points used to calculate the maximum
+                of the orography in a neighbourhood as part of this
+                calculation.
 
         """
         self.precision = precision
@@ -914,8 +919,8 @@ class FallingSnowLevel(object):
                                              sea_points)
 
     @staticmethod
-    def fill_in_by_horizontal_interpolation(snow_level_data,
-            max_in_nbhood_orog, orog_data):
+    def fill_in_by_horizontal_interpolation(
+            snow_level_data, max_in_nbhood_orog, orog_data):
         """
         Fill in any remaining unset areas in the snow falling level by using
         linear horizontal intepolation across the grid. As snow falling levels
@@ -924,17 +929,19 @@ class FallingSnowLevel(object):
         falling level at or below the surface orography.
         It uses the following steps to help ensure that the filled in values
         are above or below the orography:
-            1. Fill in missing points by horizontal interpolation only using
-               points where there is a valid snow falling level which is below
-               the maximum orography in the region arround that point. This
-               helps us avoid spreading very high snow falling levels across
-               areas where we had missing data.
-            2. Fill in in any points where we have not been able to interpolate
-               as there is not enough data (e.g at the corners of the domain),
-               using a nearest neighbour algorithm.
-            3. Check whether dispite our efforts we have still filled some
-               points with snow falling levels above the orography. In these
-               cases set them to the height of orography.
+
+        1. Fill in missing points by horizontal interpolation only using
+           points where there is a valid snow falling level which is below
+           the maximum orography in the region arround that point. This
+           helps us avoid spreading very high snow falling levels across
+           areas where we had missing data.
+        2. Fill in in any points where we have not been able to interpolate
+           as there is not enough data (e.g at the corners of the domain),
+           using a nearest neighbour algorithm.
+        3. Check whether dispite our efforts we have still filled some
+           points with snow falling levels above the orography. In these
+           cases set them to the height of orography.
+
         We then return the filled in array, which hopefully has no more
         missing data.
 
@@ -942,14 +949,19 @@ class FallingSnowLevel(object):
             snow_level_data(numpy.array):
                 The snow falling level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
+            max_in_nbhood_orog(numpy.array):
+                The array containing maximum of the orography field in
+                a given radius.
+            orog_data(numpy.data):
+                The array containing the orography data.
         Returns:
-            snow_level_data_updated(numpy.array):
+            snow_filled(numpy.array):
                 The snow falling level array with missing data filled by
                 horizontal interpolation.
         """
         # Interpolate linearly across the remaining points
-        index = (snow_level_data<=max_in_nbhood_orog)
-        snow_filled = snow_level_data 
+        index = (snow_level_data <= max_in_nbhood_orog)
+        snow_filled = snow_level_data
         if np.any(index):
             ynum, xnum = snow_level_data.shape
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
@@ -957,22 +969,22 @@ class FallingSnowLevel(object):
             values = snow_level_data[points]
             snow_level_data_updated = griddata(
                 points, values, (y_points, x_points), method='linear')
-            snow_filled=snow_level_data_updated
-            # Fill in any remaining missing points using nearest neighbour. This
-            # normallly only impact points at the corners of the domain, where the
-            # linear fit doesn't reach.
-            index = (snow_level_data_updated<=max_in_nbhood_orog)
+            snow_filled = snow_level_data_updated
+            # Fill in any remaining missing points using nearest neighbour.
+            # This normallly only impact points at the corners of the domain,
+            # where the linear fit doesn't reach.
+            index = (snow_level_data_updated <= max_in_nbhood_orog)
             if np.any(index):
                 points = np.where(index)
                 values = snow_level_data_updated[points]
                 snow_level_data_updated_2 = griddata(
                     points, values, (y_points, x_points), method='nearest')
-                snow_filled=snow_level_data_updated_2
+                snow_filled = snow_level_data_updated_2
 
         # Set any points that have filled with values that are above the
         # orography at those points back to the orography.
         snow_level_above_orog = (~np.isfinite(snow_level_data)
-            & (snow_filled > orog_data))
+                                 & (snow_filled > orog_data))
         snow_filled[snow_level_above_orog] = orog_data[snow_level_above_orog]
         return snow_filled
 
@@ -1012,8 +1024,8 @@ class FallingSnowLevel(object):
                 orography data.
         """
         radius_in_metres = self.calculate_radius_size(orography_cube)
-        max_in_nbhood_orog = OccurrenceWithinVicinity(radius_in_metres).process(
-            orography_cube)
+        max_in_nbhood_orog = OccurrenceWithinVicinity(
+            radius_in_metres).process(orography_cube)
         return max_in_nbhood_orog
 
     def process(self, temperature, relative_humidity, pressure, orog,
