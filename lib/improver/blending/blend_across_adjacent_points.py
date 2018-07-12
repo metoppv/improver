@@ -157,7 +157,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         """
         # Set up a plugin to calculate the triangular weights.
         WeightsPlugin = ChooseDefaultWeightsTriangular(
-            self.width, units=self.parameter_units)
+            units=self.parameter_units)
         # Set up the blending function, based on whether weighted blending or
         # maximum probabilities are needed.
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
@@ -167,7 +167,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         central_point_cube = self._find_central_point(cube)
 
         # Calculate weights and produce blended output.
-        weights = WeightsPlugin.process(cube, self.coord, self.central_point)
+        weights = WeightsPlugin.process(
+            cube, self.coord, self.central_point, self.width)
         blended_cube = BlendingPlugin.process(cube, weights)
         blended_cube = central_point_cube.copy(blended_cube.data)
         return blended_cube

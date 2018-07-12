@@ -466,27 +466,28 @@ class ChooseDefaultWeightsNonLinear(object):
 
 class ChooseDefaultWeightsTriangular(object):
     """ Calculate Default Weights using a Triangular Function. """
-    def __init__(self, width, units="no_unit"):
+    def __init__(self, units="no_unit"):
         """Set up for calculating default weights using triangular function.
 
             Args:
-                width (float):
-                    The width of the triangular function from the centre point.
                 units (cf_units.Unit):
                     The cf units of the width and midpoint.
         """
-        self.width = width
         if not isinstance(units, cf_units.Unit):
             units = cf_units.Unit(units)
         self.parameters_units = units
 
-    def triangular_weights(self, coord_vals, midpoint):
+    def triangular_weights(self, coord_vals, midpoint, width):
         """Create triangular weights.
 
             Args:
                 coord_vals (numpy array):
                     An array of coordinate values that we want to calculate
                     weights for.
+                midpoint (float):
+                    The centre point of the triangular function.
+                width (float):
+                    The width of the triangular function from the centre point.
 
             Returns:
                 weights (numpy.array):
@@ -515,11 +516,11 @@ class ChooseDefaultWeightsTriangular(object):
                 weight = 1-abs(point-midpoint)*slope
             return weight
 
-        slope = 1.0/self.width
+        slope = 1.0/width
         weights = np.zeros(coord_vals.shape)
         # Find the indices of the points where there will be non-zero weights.
-        condition = ((coord_vals >= (midpoint-self.width)) &
-                     (coord_vals <= (midpoint+self.width)))
+        condition = ((coord_vals >= (midpoint-width)) &
+                     (coord_vals <= (midpoint+width)))
         points_with_weights = np.where(condition)[0]
         # Calculate for weights for points where we want a non-zero weight.
         for index in points_with_weights:
@@ -529,7 +530,7 @@ class ChooseDefaultWeightsTriangular(object):
 
         return weights
 
-    def process(self, cube, coord_name, midpoint):
+    def process(self, cube, coord_name, midpoint, width):
         """Calculate triangular weights for a given cube and coord.
 
             Args:
@@ -539,6 +540,8 @@ class ChooseDefaultWeightsTriangular(object):
                     Name of coordinate in the cube to be blended.
                 midpoint (float):
                     The centre point of the triangular function.
+                width (float):
+                    The width of the triangular function from the centre point.
 
             Returns:
                 weights (numpy.array):
@@ -559,15 +562,14 @@ class ChooseDefaultWeightsTriangular(object):
 
         # Rescale width and midpoint if in different units to the coordinate
         if coord_units != self.parameters_units:
-            self.width = self.parameters_units.convert(self.width, coord_units)
-
-        weights = self.triangular_weights(coord_vals, midpoint)
+            width = self.parameters_units.convert(width, coord_units)
+        weights = self.triangular_weights(coord_vals, midpoint, width)
 
         return weights
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        msg = ("<ChooseDefaultTriangularWeights width={:4.1f},"
-               " parameters_units={}>")
-        desc = msg.format(self.width, self.parameters_units)
+        msg = ("<ChooseDefaultTriangularWeights "
+               "parameters_units={}>")
+        desc = msg.format(self.parameters_units)
         return desc
