@@ -1,0 +1,11 @@
+# Dependencies for a feature complete installation
+# ------------------------------------------------
+
+iris
+cartopy
+cf_units
+pandas
+sphinx
+statsmodels
+
+
