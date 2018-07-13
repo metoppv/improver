@@ -67,7 +67,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
                 Central point at which the output from the triangular weighted
                 blending will be calculated.
             parameter_units (string):
-                The units of the width of the triangular weighting function.
+                The units of the width of the triangular weighting function
+                and the units of the central_point.
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
@@ -93,6 +94,15 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
                    "weighted_maximum or weighted_mean").format(weighting_mode)
             raise ValueError(msg)
         self.mode = weighting_mode
+
+        # Set up a plugin to calculate the triangular weights.
+        self.WeightsPlugin = ChooseDefaultWeightsTriangular(
+            width, units=parameter_units)
+
+        # Set up the blending function, based on whether weighted blending or
+        # maximum probabilities are needed.
+        self.BlendingPlugin = (
+            WeightedBlendAcrossWholeDimension(coord, weighting_mode))
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -155,20 +165,12 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
                 function of the specified width.
 
         """
-        # Set up a plugin to calculate the triangular weights.
-        WeightsPlugin = ChooseDefaultWeightsTriangular(
-            units=self.parameter_units)
-        # Set up the blending function, based on whether weighted blending or
-        # maximum probabilities are needed.
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.coord,
-                                                           self.mode)
-
         # Extract the central point from the input cube.
         central_point_cube = self._find_central_point(cube)
 
         # Calculate weights and produce blended output.
-        weights = WeightsPlugin.process(
-            cube, self.coord, self.central_point, self.width)
-        blended_cube = BlendingPlugin.process(cube, weights)
+        weights = self.WeightsPlugin.process(
+            cube, self.coord, self.central_point)
+        blended_cube = self.BlendingPlugin.process(cube, weights)
         blended_cube = central_point_cube.copy(blended_cube.data)
         return blended_cube

@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to create the weights used to Blend data."""
 
+import copy
+
 import numpy as np
 import iris
 import cf_units
@@ -466,13 +468,16 @@ class ChooseDefaultWeightsNonLinear(object):
 
 class ChooseDefaultWeightsTriangular(object):
     """ Calculate Default Weights using a Triangular Function. """
-    def __init__(self, units="no_unit"):
+    def __init__(self, width, units="no_unit"):
         """Set up for calculating default weights using triangular function.
 
             Args:
+                width (float):
+                    The width of the triangular function from the centre point.
                 units (cf_units.Unit):
                     The cf units of the width and midpoint.
         """
+        self.width = width
         if not isinstance(units, cf_units.Unit):
             units = cf_units.Unit(units)
         self.parameters_units = units
@@ -531,7 +536,7 @@ class ChooseDefaultWeightsTriangular(object):
 
         return weights
 
-    def process(self, cube, coord_name, midpoint, width):
+    def process(self, cube, coord_name, midpoint):
         """Calculate triangular weights for a given cube and coord.
 
             Args:
@@ -541,8 +546,6 @@ class ChooseDefaultWeightsTriangular(object):
                     Name of coordinate in the cube to be blended.
                 midpoint (float):
                     The centre point of the triangular function.
-                width (float):
-                    The width of the triangular function from the centre point.
 
             Returns:
                 weights (numpy.array):
@@ -563,14 +566,18 @@ class ChooseDefaultWeightsTriangular(object):
 
         # Rescale width and midpoint if in different units to the coordinate
         if coord_units != self.parameters_units:
-            width = self.parameters_units.convert(width, coord_units)
-        weights = self.triangular_weights(coord_vals, midpoint, width)
+            width_in_coord_units = (
+                self.parameters_units.convert(self.width, coord_units))
+        else:
+            width_in_coord_units = copy.deepcopy(self.width)
 
+        weights = self.triangular_weights(
+            coord_vals, midpoint, width_in_coord_units)
         return weights
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         msg = ("<ChooseDefaultTriangularWeights "
-               "parameters_units={}>")
-        desc = msg.format(self.parameters_units)
+               "width={}, parameters_units={}>")
+        desc = msg.format(self.width, self.parameters_units)
         return desc

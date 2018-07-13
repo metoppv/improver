@@ -42,8 +42,9 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath provided using Iris into a cube.
 
     Args:
-        filepath (str):
-            Filepath that will be loaded.
+        filepath (str or list):
+            Filepath that will be loaded or list of filepaths that can be
+            merged into a single cube upon loading.
         constraints (iris.Constraint, str or None):
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
