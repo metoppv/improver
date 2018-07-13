@@ -106,7 +106,7 @@ class Test__init__(IrisTest):
             coord_for_masking, radii)
         msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
                "topographic_zone, neighbourhood_method: square, radii: 2000, "
-               "lead_times: None, ens_factor: 1.0, weighted_mode: True, "
+               "lead_times: None, weighted_mode: True, "
                "sum_or_fraction: fraction, re_mask: False>")
         self.assertEqual(str(result), msg)
 
@@ -123,7 +123,7 @@ class Test__repr__(IrisTest):
             coord_for_masking, radii))
         msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
                "topographic_zone, neighbourhood_method: square, radii: 2000, "
-               "lead_times: None, ens_factor: 1.0, weighted_mode: True, "
+               "lead_times: None, weighted_mode: True, "
                "sum_or_fraction: fraction, re_mask: False>")
         self.assertEqual(result, msg)
 

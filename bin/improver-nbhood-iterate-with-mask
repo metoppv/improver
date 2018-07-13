@@ -90,15 +90,6 @@ def main():
                        'should be used. For example: 10000,12000,14000 1,2,3 '
                        'where a lead time of 1 hour uses a radius of 10000m, '
                        'a lead time of 2 hours uses a radius of 12000m, etc.')
-    parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
-                        default=1.0,
-                        help='The factor with which to adjust the '
-                        'neighbourhood size for more than one '
-                        'ensemble realization. If ens_factor = 1.0 this '
-                        'essentially conserves ensemble realizations if '
-                        'every grid square is considered to be the '
-                        'equivalent of an ensemble realization.'
-                        'Optional, defaults to 1.0.')
     parser.add_argument('--sum_or_fraction', default="fraction",
                         choices=["sum", "fraction"],
                         help='The neighbourhood output can either be in the '
@@ -153,7 +144,7 @@ def main():
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         args.coord_for_masking, radius_or_radii, lead_times=lead_times,
-        ens_factor=args.ens_factor, sum_or_fraction=args.sum_or_fraction,
+        sum_or_fraction=args.sum_or_fraction,
         re_mask=args.re_mask).process(cube, mask_cube)
 
     if args.intermediate_filepath is not None:
