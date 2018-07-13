@@ -33,8 +33,10 @@
 import iris
 from iris.coords import CellMethod
 import numpy as np
+import math
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import enforce_float32_precision
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
 class WindDirection(object):
@@ -84,14 +86,14 @@ class WindDirection(object):
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first realization" (default) uses the value of realization zero.
-            "neighbourhood" recalculates using the complex numbers approach
-            with additional realizations extracted from neighbouring grid
-            points from all available realizations.
+            "first realization" uses the value of realization zero.
+            "neighbourhood" (default) recalculates using the complex numbers
+            approach with additional realizations extracted from neighbouring
+            grid points from all available realizations.
 
     """
 
-    def __init__(self, backup_method='first realization'):
+    def __init__(self, backup_method='neighbourhood'):
         """Initialise class."""
         self.backup_methods = ['first realization', 'neighbourhood']
         self.backup_method = backup_method
@@ -340,13 +342,17 @@ class WindDirection(object):
         Uses:
             self.wdir_slice.data (np.ndarray):
                 3D array - wind direction angles from ensembles (in degrees).
-            self.wdir_slice_mean.data (np.ndarray):
-                2D array - average wind direction angle (in degrees).
+            self.wdir_slice_mean (iris.cube.Cube):
+                Containing average wind direction angle (in degrees).
+            self.wdir_complex (np.ndarray):
+                3D array - wind direction angles from ensembles (in complex).
             self.r_vals_slice.data (np.ndarray):
                 2D array - Radius taken from average complex wind direction
                 angle.
             self.r_thresh (float):
                 Any r value below threshold is regarded as meaningless.
+            self.realization_axis (int):
+                Axis to collapse over.
 
         Defines:
             self.wdir_slice_mean.data (np.ndarray):
@@ -355,7 +361,20 @@ class WindDirection(object):
         """
 
         if self.backup_method == 'neighbourhood':
-            improved_values = np.full_like(self.wdir_slice_mean.data, None)
+            # Performs smoothing over a 6km square neighbourhood.
+            # Then calculates the mean wind direction.
+            n_realizations = len(self.wdir_slice.coord('realization').points)
+            nb_radius = math.sqrt((6000.**2.) * n_realizations)
+            nbhood = NeighbourhoodProcessing('square',
+                                             nb_radius,
+                                             weighted_mode=False)
+            child_class = WindDirection()
+            child_class.wdir_complex = nbhood.process(
+                self.wdir_slice.copy(data=self.wdir_complex)).data
+            child_class.realization_axis = self.realization_axis
+            child_class.wdir_slice_mean = self.wdir_slice_mean.copy()
+            child_class.wind_dir_mean()
+            improved_values = child_class.wdir_slice_mean.data
         else:
             # Takes first ensemble realization.
             improved_values = first_member

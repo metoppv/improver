@@ -41,6 +41,9 @@ from cf_units import Unit
 from improver.wind_direction import WindDirection
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+    set_up_cube)
+from improver.utilities.warnings_handler import ManageWarnings
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.
@@ -157,13 +160,99 @@ class Test__init__(IrisTest):
             WindDirection(backup_method='invalid')
 
 
+def make_wdir_cube_222():
+    """Make a wind direction cube for testing this plugin"""
+    # 2x2x2 3D Array containing wind direction in angles.
+    cube = set_up_cube(num_grid_points=2,
+                       num_realization_points=2,
+                       zero_point_indices=[[0, 0, 0, 0]]
+                       )[:, 0, :, :]  # Demotes time dimension.
+    cube.data = WIND_DIR_DEG
+    cube.rename("wind_from_direction")
+
+    return cube
+
+
+def pad_wdir_cube_222():
+    """Make a padded wind direction cube for testing this plugin"""
+    # 2x2x2 3D Array containing wind direction in angles.
+    # Padded in x and y to 2x10x10 for use with nbhood option
+    cube = set_up_cube(num_grid_points=10,
+                       num_realization_points=2,
+                       zero_point_indices=[[0, 0, 0, 0]]
+                       )[:, 0, :, :]  # Demotes time dimension.
+    cube.data = np.pad(WIND_DIR_DEG,
+                       ((0, 0), (4, 4), (4, 4)),
+                       "constant",
+                       constant_values=(0.0, 0.0))
+    cube.rename("wind_from_direction")
+
+    return cube
+
+
+def make_wdir_cube_534():
+    """Make a wind direction cube for testing this plugin"""
+    # 5x3x4 3D Array containing wind direction in angles.
+    data = np.array([[[[170.0, 50.0, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 350.0],
+                       [10.0, 309.0, 10.0, 10.0]]],
+                     [[[170.0, 50.0, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 47.0],
+                       [10.0, 10.0, 10.0, 10.0]]],
+                     [[[10.0, 50.0, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 47.0],
+                       [310.0, 309.0, 10.0, 10.0]]],
+                     [[[190.0, 40.0, 270.0, 90.0],
+                       [170.0, 170.0, 47.0, 47.0],
+                       [310.0, 309.0, 10.0, 10.0]]],
+                     [[[190.0, 40.0, 270.0, 270.0],
+                       [170.0, 170.0, 47.0, 47.0],
+                       [310.0, 309.0, 10.0, 10.0]]]])
+
+    realization = DimCoord([0, 1, 2, 3, 4], 'realization', units=1)
+    time = DimCoord([402192.5], standard_name='time',
+                    units=Unit('hours since 1970-01-01 00:00:00',
+                               calendar='gregorian'))
+    latitude = DimCoord(np.linspace(-90, 90, 3),
+                        standard_name='latitude', units='degrees')
+    longitude = DimCoord(np.linspace(-180, 180, 4),
+                         standard_name='longitude', units='degrees')
+
+    cube = Cube(data, standard_name="wind_from_direction",
+                dim_coords_and_dims=[(realization, 0),
+                                     (time, 1),
+                                     (latitude, 2),
+                                     (longitude, 3)],
+                units="degree")
+
+    return cube
+
+
+class Test__init__(IrisTest):
+    """Test the init method."""
+
+    def test_basic(self):
+        """Test that the __init__ does not fail."""
+        WindDirection()
+
+    def test_backup_method(self):
+        """Test that the __init__ accepts this keyword."""
+        WindDirection(backup_method='neighbourhood')
+
+    def test_invalid_method(self):
+        """Test that the __init__ fails when an unrecognised option is given"""
+        msg = ('Invalid option for keyword backup_method ')
+        with self.assertRaisesRegexp(ValueError, msg):
+            WindDirection(backup_method='invalid')
+
+
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection: backup_method "first realization">')
+        msg = ('<WindDirection: backup_method "neighbourhood">')
         self.assertEqual(result, msg)
 
 
@@ -277,6 +366,64 @@ class Test_wind_dir_mean(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.expected_wind_mean)
 
 
+class Test_complex_to_deg_roundtrip(IrisTest):
+    """Test the complex_to_deg and deg_to_complex functions together."""
+
+    def setUp(self):
+        """Initialise plugin and supply data for tests"""
+        self.plugin = WindDirection()
+        self.cube = make_wdir_cube_534()
+
+    def test_from_deg(self):
+        """Tests that array of values are converted to complex and back."""
+        tmp_complex = self.plugin.deg_to_complex(self.cube.data)
+        result = self.plugin.complex_to_deg(tmp_complex)
+        self.assertArrayAlmostEqual(result, self.cube.data)
+
+    def test_from_complex(self):
+        """Tests that array of values are converted to degrees and back."""
+        tmp_degrees = self.plugin.complex_to_deg(COMPLEX_ANGLES)
+        result = self.plugin.deg_to_complex(tmp_degrees)
+        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
+
+
+class Test_wind_dir_mean(IrisTest):
+    """Test the wind_dir_mean function."""
+
+    def setUp(self):
+        """Initialise plugin and supply data for tests"""
+        self.plugin = WindDirection()
+        # 5x3x4 3D Array containing wind direction in angles.
+        self.plugin.wdir_slice = make_wdir_cube_534()
+        self.plugin.wdir_complex = self.plugin.deg_to_complex(
+            self.plugin.wdir_slice.data)
+        self.plugin.wdir_slice_mean = (
+            next(self.plugin.wdir_slice.slices_over("realization")))
+        self.plugin.realization_axis = 0
+
+        self.expected_wind_mean = (
+            np.array([[[176.636273, 46.002444, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 36.544233],
+                       [333.413224, 320.035216, 10.0, 10.0]]]))
+
+    def test_complex(self):
+        """Test that the function defines correct complex mean."""
+        self.plugin.wind_dir_mean()
+        result = self.plugin.wdir_mean_complex
+        expected_complex = (
+            self.plugin.deg_to_complex(self.expected_wind_mean,
+                                       radius=np.absolute(result)))
+        self.assertArrayAlmostEqual(result, expected_complex)
+
+    def test_degrees(self):
+        """Test that the function defines correct degrees cube."""
+        self.plugin.wind_dir_mean()
+        result = self.plugin.wdir_slice_mean
+        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(result.data, np.ndarray)
+        self.assertArrayAlmostEqual(result.data, self.expected_wind_mean)
+
+
 class Test_find_r_values(IrisTest):
     """Test the find_r_values function."""
 
@@ -344,6 +491,7 @@ class Test_calc_confidence_measure(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
 
+@ManageWarnings(ignored_messages=["ComplexWarning: Casting complex values"])
 class Test_wind_dir_decider(IrisTest):
     """Test the wind_dir_decider function."""
 
@@ -358,8 +506,10 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_mean_complex = (
             self.plugin.deg_to_complex(self.plugin.wdir_slice_mean.data))
         self.cube = make_wdir_cube_222()[0]
+        self.where_low_r = np.array([[True, False],
+                                     [False, False]])
 
-    def test_runs_function(self):
+    def test_runs_function_1st_member(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
         meaningless with an r value of nearly zero. So the code subistites the
@@ -367,14 +517,46 @@ class Test_wind_dir_decider(IrisTest):
 
         expected_out = np.array([[90.0, 55.0],
                                  [280.0, 0.0]])
-        where_low_r = np.array([[True, False],
-                                [False, False]])
 
-        self.plugin.wind_dir_decider(where_low_r, self.cube.data)
+        self.plugin.backup_method = "first realization"
+        self.plugin.wind_dir_decider(self.where_low_r, self.cube.data)
         result = self.plugin.wdir_slice_mean.data
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
+
+    def test_runs_function_nbhood(self):
+        """First element has two angles directly opposite (90 & 270 degs).
+        Therefore the calculated mean angle of 180 degs is basically
+        meaningless with an r value of nearly zero. So the code subistites the
+        wind direction taken using the neighbourhood method."""
+
+        expected_out = np.pad(np.array(
+            [[180., 55.00, 55.00, 55.00, 55.00, 55.00],
+             [280., 354.9, 354.9, 354.9, 354.9, 27.67],
+             [280., 354.9, 354.9, 55.00, 354.9, 27.67],
+             [280., 354.9, 280.0, 0.000, 354.9, 27.67],
+             [280., 354.9, 354.9, 354.9, 354.9, 27.67],
+             [280., 320.0, 320.0, 320.0, 320.0, 0.000]]
+            ), ((2, 2), (2, 2)),
+                "constant", constant_values=(0.0, 0.0))
+        # The padding zeroes are wrong in one spot:
+        expected_out[7, -2:] = [90., 90.]
+
+        self.plugin.wdir_mean_complex = np.pad(
+            self.plugin.deg_to_complex(WIND_DIR_DEG_MEAN),
+            ((4, 4), (4, 4)),
+            "constant",
+            constant_values=(0.0, 0.0))
+        self.plugin.wdir_complex = np.pad(WIND_DIR_COMPLEX,
+                                          ((0, 0), (4, 4), (4, 4)),
+                                          "constant",
+                                          constant_values=(0.0, 0.0))
+        self.plugin.wind_dir_decider(self.where_low_r, self.cube.data)
+        result = self.plugin.wdir_slice_mean.data
+
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_out, decimal=2)
 
 
 class Test_process(IrisTest):
