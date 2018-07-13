@@ -1,0 +1,308 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2018 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Module containing lapse rate calculation plugins."""
+
+import iris
+import numpy as np
+from numpy.linalg import lstsq
+from improver.utilities.cube_manipulation import enforce_float32_precision
+
+from improver.constants import (ABSOLUTE_ZERO)
+
+from scipy.ndimage import generic_filter
+
+
+class LapseRate(object):
+    """Plugin to calculate the lapse rate from orography and temperature
+       fields.
+
+    Science background:
+
+    The method applied here is based on the method used in the 2010 paper:
+    https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/met.177
+
+    The current lapse rate (LR) FORTRAN code is kept here:
+    http://fcm9/projects/PostProc/browser/PostProc/trunk/
+                                         model_processing/Fss_CalcTLev1Grad.f90
+
+    However the paper doesn't give critical information on certain aspects and
+    they will need more investigation - but for now its important to just have
+    a functional script.
+
+    1) The paper imposes an upper limit to the LR of 0.0098K/m-1
+       (the Dry Air Adibatic Lapse Rate) but not a lower limit.
+
+       Wheras the current FORTRAN code places a lower limit on the LR of
+       -3.0*DALR in addition to the upper limit.
+
+    2) The paper and FORTRAN code uses a 8x8 neighbourhood, but this was for
+       the older 4km model. More research is required to determine what size
+       neighbourhood is needed for UKV data.
+       In addition - this code will not work with even-numbered neighbourhood
+       sizes. This is because the neighbourhooding code requires a
+       centre point.
+
+    3) Where an invalid lapse rate calculation is returned - should the code
+       return zero or DALR? See "calc_lapse_rate" function.
+
+    Code methodology:
+    1) Apply land/sea mask to temperature and orography datasets. Mask sea
+       points as NaN since image processing module does not recognise Numpy
+       masks.
+    2) Extracts neighbourhoods from both datasets:
+       Apply "generic_filter" image processing module to temperature data
+       to extract a neighbourhood for each single point and save this
+       neighbourhood into a larger array.
+       Repeat for orography data.
+       generic_filter mode="constant" ensures that points beyond edges of
+       dataset will be filled with "cval". (NaN in this case)
+    3) For all the stored orography neighbourhoods - take the neighbours around
+       the central point and create a mask where the height difference from
+       the central point is greater than 35m.
+    4) Loop through array of neighbourhoods and take the height and temperature
+       of all grid points and calculate the
+       temperature/height gradient = lapse rate
+    5) Constrain the lapse rate as < DALR and > -3.0*DALR
+
+    """
+
+    def __init__(self):
+        """Initialise class."""
+        pass
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        desc = ('<LapseRate>')
+        return desc
+
+    def process(self, temperature_cube, orography_cube, land_sea_mask_cube,
+                max_height_diff=35, footprint_len=3):
+        """Calculates the lapse rate from the temperature and orography cubes.
+
+        Args:
+            temperature_cube (iris.cube.Cube):
+                Cube of air temperatures (K).
+
+            orography_cube (Iris.cube.Cube):
+                Cube containing orography data (metres)
+
+            land_sea_mask_cube (iris.cube.Cube):
+                Cube containing a binary land-sea mask. True for land-points
+                and False for Sea.
+
+        Keyword Args:
+            max_height_diff (float):
+                Maximum allowable height difference between the central point
+                and its neighboours (metres).
+
+            footprint_len (int):
+                Size of neighbourhood around each point.
+
+        Returns:
+            lapse_rate_cube (iris.cube.Cube):
+                Cube containing lapse rate (Km-1)
+
+        Raises
+        ------
+        TypeError: If input cubes are not cubes
+
+        """
+
+        class fnc_class:
+            def __init__(self, allbuffers):
+                # Initialises the iterator:
+                self.i = 0
+                # Saves all the buffers into this array.
+                self.allbuffers = allbuffers
+
+            def filter(self, buffer):
+                self.allbuffers[self.i, :] = buffer
+                self.i += 1
+                return 0.0  # Need to return a value
+
+        def calc_lapse_rate(temperature, orography, ind_central_point):
+            """
+            Least-squares fit to local temperature and altitude data to
+            calculate a local lapse rate.
+
+            """
+
+            # If central point NaN then return blank value.
+            if np.isnan(temperature[ind_central_point]):
+                return 0.0
+
+            # Remove NaN values before calculation.
+            y_data = temperature[~np.isnan(temperature)]
+            x_data = orography[~np.isnan(orography)]
+
+            # If empty array - return blank value.
+            if len(y_data) == 0:
+                return 0.0
+
+            matrix = np.stack([x_data, np.ones(len(x_data))], axis=0).T
+            gradient, intercept = lstsq(matrix, y_data)[0]
+
+            return gradient
+
+        def create_height_diff_mask(all_orog_subsections, ind_central_point,
+                                    max_height_diff):
+            """
+            Create a mask for any neighbouring points where the height
+            difference from the central point is greater than max_height_diff.
+
+            Slice through the orography subsection array to remove central
+            points. Then subtract central height value from neighbourhoods.
+            """
+            central_points = all_orog_subsections[:, ind_central_point]
+            central_points = np.swapaxes([central_points], 0, 1)
+
+            height_diff = np.subtract(all_orog_subsections, central_points)
+            height_diff = np.absolute(height_diff)
+
+            height_diff_mask = np.where(height_diff >= max_height_diff, True,
+                                        False)
+            return height_diff_mask
+
+        DALR = 0.0098  # Dry Adiabatic Lapse Rate in unit of K/m-1
+
+        # footprint=3 corresponds to a 3x3 array centred on central point.
+        # Exclude even numbers since the central point is lower right eg.
+        # 4x4 array means centre is (2,2).
+        if footprint_len % 2 == 0:
+            msg = "Footprint length is {}, must be odd number!"
+            raise ValueError(msg.format(footprint_len))
+
+        # generic_filter extracts the neighbourhood and returns a 1D array.
+        # ind_central_point indicates where the central point is on this array
+        footprintarray_size = footprint_len**2
+        ind_central_point = int(footprintarray_size/2)
+
+        if not isinstance(temperature_cube, iris.cube.Cube):
+            msg = "Temperature input is not a cube, but {}"
+            raise TypeError(msg.format(type(temperature_cube)))
+
+        if not isinstance(orography_cube, iris.cube.Cube):
+            msg = "Orography input is not a cube, but {}"
+            raise TypeError(msg.format(type(orography_cube)))
+
+        if not isinstance(land_sea_mask_cube, iris.cube.Cube):
+            msg = "Land/Sea mask input is not a cube, but {}"
+            raise TypeError(msg.format(type(land_sea_mask_cube)))
+
+        enforce_float32_precision([temperature_cube])
+
+        # Extract x/y co-ordinates.
+        x_coord = temperature_cube.coord(axis='x').name()
+        y_coord = temperature_cube.coord(axis='y').name()
+
+        # Extract orography and land/sea mask data.
+        orography_data = next(orography_cube.slices([y_coord,
+                                                     x_coord])).data
+        land_sea_mask = next(land_sea_mask_cube.slices([y_coord,
+                                                        x_coord])).data
+        # Fill sea points with NaN values.
+        orography_data = np.where(land_sea_mask, orography_data, np.nan)
+
+        # Extract data array dimensions to define output arrays.
+        dataarray_shape = next(temperature_cube.slices(
+            ["realization", y_coord, x_coord])).data[0].shape
+        dataarray_size = dataarray_shape[0] * dataarray_shape[1]
+
+        # Array containing all of the subsections extracted from data array.
+        all_temp_subsections = np.zeros((dataarray_size, footprintarray_size))
+        all_orog_subsections = np.zeros((dataarray_size, footprintarray_size))
+
+        # Creates cube list to hold lapse rate data.
+        lapse_rate_cube_list = iris.cube.CubeList([])
+
+        slices_over_realization = temperature_cube.slices_over("realization")
+        for temp_slice in slices_over_realization:
+
+            # Create slice to store lapse rate values.
+            lapse_rate_slice = temp_slice
+
+            temperature_data = temp_slice.data
+
+            # Fill sea points with NaN values. Can't use Numpy mask since not
+            # recognised by "generic_filter" function.
+            temperature_data = np.where(land_sea_mask, temperature_data,
+                                        np.nan)
+
+            # cval is value given to points outside the array.
+            fnc = fnc_class(allbuffers=all_temp_subsections)
+            generic_filter(temperature_data, fnc.filter, size=footprint_len,
+                           mode='constant', cval=np.nan)
+
+            fnc = fnc_class(allbuffers=all_orog_subsections)
+            generic_filter(orography_data, fnc.filter, size=footprint_len,
+                           mode='constant', cval=np.nan)
+
+            # height_diff_mask is True for points where the height
+            # difference between the central point and its neighbours
+            # is > max_height_diff.
+            height_diff_mask = create_height_diff_mask(
+                all_orog_subsections, ind_central_point, max_height_diff)
+
+            # Mask points with extreme height differences as NaN.
+            all_orog_subsections = np.where(height_diff_mask, np.nan,
+                                            all_orog_subsections)
+            all_temp_subsections = np.where(height_diff_mask, np.nan,
+                                            all_temp_subsections)
+
+            # Loop through both arrays and find gradient of each subsection.
+            # The gradient indicates lapse rate - save into another array.
+            lapse_rate_array = np.zeros(dataarray_size)
+
+            # TODO: This for loop is the bottleneck in the code - 1 array takes
+            # approximately 29 seconds out of a total running time of 33
+            # seconds for UKVX data. This section needs to be parallelised.
+            for i in range(dataarray_size):
+                lapse_rate_array[i] = calc_lapse_rate(
+                    all_temp_subsections[i, :], all_orog_subsections[i, :],
+                    ind_central_point)
+
+            lapse_rate_array = lapse_rate_array.reshape(dataarray_shape)
+
+            # According to the paper - any value above DALR is reset to DALR.
+            # HOWEVER the FORTRAN code also imposes a lower limit (see class
+            # docstring for code location). This will need more investigation.
+            lapse_rate_array = np.where(lapse_rate_array > DALR, DALR,
+                                        lapse_rate_array)
+            lapse_rate_array = np.where(lapse_rate_array < -3.0*DALR, DALR,
+                                        lapse_rate_array)
+
+            lapse_rate_slice.data = lapse_rate_array
+            lapse_rate_cube_list.append(lapse_rate_slice)
+
+        lapse_rate_cube = lapse_rate_cube_list.merge_cube()
+        lapse_rate_cube.long_name = "lapse_rate"
+
+        return lapse_rate_cube
