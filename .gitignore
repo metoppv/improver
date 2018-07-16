@@ -21,3 +21,7 @@ etc/site-init
 # Files from build of doc
 *.rst
 /doc/build/
+
+# Code coverage files
+lib/.coverage
+lib/coverage.xml
