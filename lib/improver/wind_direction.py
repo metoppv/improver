@@ -358,14 +358,6 @@ class WindDirection(object):
                 2D array - Wind direction degrees where ambigious values have
                 been replaced with data from first ensemble realization.
         """
-        # Mask True if r values below threshold.
-        where_low_r = np.where(self.r_vals_slice.data < self.r_thresh, True,
-                               False)
-
-        # If the whole array contains good r-values, return origonal array.
-        if not where_low_r.any():
-            return
-
         if self.backup_method == 'neighbourhood':
             # Performs smoothing over a 6km square neighbourhood.
             # Then calculates the mean wind direction.
@@ -385,7 +377,7 @@ class WindDirection(object):
             # Takes first ensemble realization.
             improved_values = first_member
 
-        # If the r-value is low - subistite average wind direction value for
+        # If the r-value is low - substitute average wind direction value for
         # the wind direction taken from the first ensemble realization.
         self.wdir_slice_mean.data = np.where(where_low_r, improved_values,
                                              self.wdir_slice_mean.data)
