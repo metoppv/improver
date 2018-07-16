@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 
 from iris.tests import IrisTest
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris import coord_systems
 from iris.cube import Cube
 import cartopy.crs as ccrs
@@ -44,6 +44,7 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells,
+    convert_number_of_grid_cells_into_distance,
     lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
     get_nearest_coords)
 from improver.tests.spotdata.spotdata.test_common_functions import (
@@ -125,6 +126,66 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
+
+
+class Test_convert_number_of_grid_cells_into_distance(IrisTest):
+
+    """Test the convert_number_of_grid_cells_into_distance method"""
+
+    def setUp(self):
+        """Set up a cube with x and y coordinates"""
+        data = np.ones((3, 4))
+        self.cube = Cube(data, standard_name="air_temperature",)
+        self.cube.add_dim_coord(
+            DimCoord(np.linspace(2000.0, 6000.0, 3),
+                     'projection_x_coordinate', units='m'), 0)
+        self.cube.add_dim_coord(
+            DimCoord(np.linspace(2000.0, 8000.0, 4),
+                     "projection_y_coordinate", units='m'), 1)
+
+    def test_basic(self):
+        """Test the function does what it's meant to in a simple case."""
+        result_radius = convert_number_of_grid_cells_into_distance(
+            self.cube, 2)
+        expected_result = 5000.0
+        self.assertAlmostEqual(result_radius, expected_result)
+        self.assertIs(type(expected_result), float)
+
+    def test_check_input_in_km(self):
+        """
+        Test that the output is still in metres when the input coordinates
+        are in a different unit.
+        """
+        result_radius = convert_number_of_grid_cells_into_distance(
+            self.cube, 2)
+        for coord in self.cube.coords():
+            coord.convert_units("km")
+        expected_result = 5000.0
+        self.assertAlmostEqual(result_radius, expected_result)
+        self.assertIs(type(expected_result), float)
+
+    def test_not_equal_areas(self):
+        """
+        Check it raises an error when the input is not an equal areas grid.
+        """
+
+        self.cube.remove_coord("projection_x_coordinate")
+        self.cube.add_dim_coord(
+            DimCoord(np.linspace(200.0, 600.0, 3),
+                     'projection_x_coordinate', units='m'), 0)
+        with self.assertRaisesRegex(
+                ValueError,
+                "The size of the intervals along the x and y axis"
+                " should be equal."):
+            convert_number_of_grid_cells_into_distance(self.cube, 2)
+
+    def test_check_different_input_radius(self):
+        """Check it works for different input values."""
+        result_radius = convert_number_of_grid_cells_into_distance(
+            self.cube, 5)
+        expected_result = 11000.0
+        self.assertAlmostEqual(result_radius, expected_result)
+        self.assertIs(type(expected_result), float)
 
 
 class Test_check_if_grid_is_equal_area(IrisTest):

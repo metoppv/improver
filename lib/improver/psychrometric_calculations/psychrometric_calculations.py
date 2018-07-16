@@ -43,7 +43,8 @@ from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
-    OccurrenceWithinVicinity, check_if_grid_is_equal_area)
+    OccurrenceWithinVicinity, check_if_grid_is_equal_area,
+    convert_number_of_grid_cells_into_distance)
 import improver.constants as cc
 
 
@@ -624,7 +625,7 @@ class FallingSnowLevel(object):
                 this level we should have falling snow.
             grid_point_radius (int):
                 The radius in grid points used to calculate the maximum
-                of the orography in a neighbourhood as part of this
+                height of the orography in a neighbourhood as part of this
                 calculation.
 
         """
@@ -927,35 +928,37 @@ class FallingSnowLevel(object):
         at the highest height levels will be filled in by this point any
         points that still don't have a valid snow falling level have the snow
         falling level at or below the surface orography.
-        It uses the following steps to help ensure that the filled in values
-        are above or below the orography:
+        This function uses the following steps to help ensure that the filled
+        in values are above or below the orography:
 
-        1. Fill in missing points by horizontal interpolation only using
-           points where there is a valid snow falling level which is below
-           the maximum orography in the region arround that point. This
-           helps us avoid spreading very high snow falling levels across
-           areas where we had missing data.
-        2. Fill in in any points where we have not been able to interpolate
-           as there is not enough data (e.g at the corners of the domain),
-           using a nearest neighbour algorithm.
-        3. Check whether dispite our efforts we have still filled some
-           points with snow falling levels above the orography. In these
-           cases set them to the height of orography.
+        1. Fill in the snow-level for points with no value yet
+           set using horizontal interpolation from surrounding set points.
+           Only interpolate from surrounding set points at which the snow
+           falling level is below the maximum orography height in the region
+           around the unset point. This helps us avoid spreading very high
+           snow falling levels across areas where we had missing data.
+        2. Fill any gaps still remain where the linear interpolation has not
+           been able to find a value because there is not enough
+           data (e.g at the corners of the domain). Use nearest neighbour
+           interpolation.
+        3. Check whether despite our efforts we have still filled in some
+           of the missing points with snow falling levels above the orography.
+           In these cases set the missing points to the height of orography.
 
         We then return the filled in array, which hopefully has no more
         missing data.
 
         Args:
-            snow_level_data(numpy.array):
+            snow_level_data (numpy.array):
                 The snow falling level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
-            max_in_nbhood_orog(numpy.array):
+            max_in_nbhood_orog (numpy.array):
                 The array containing maximum of the orography field in
                 a given radius.
             orog_data(numpy.data):
                 The array containing the orography data.
         Returns:
-            snow_filled(numpy.array):
+            snow_filled (numpy.array):
                 The snow falling level array with missing data filled by
                 horizontal interpolation.
         """
@@ -981,32 +984,13 @@ class FallingSnowLevel(object):
                     points, values, (y_points, x_points), method='nearest')
                 snow_filled = snow_level_data_updated_2
 
-        # Set any points that have filled with values that are above the
-        # orography at those points back to the orography.
+        # Set the snow falling level at any points that have been filled with
+        # snow falling levels that are above the orography back to the
+        # height of the sorography.
         snow_level_above_orog = (~np.isfinite(snow_level_data)
                                  & (snow_filled > orog_data))
         snow_filled[snow_level_above_orog] = orog_data[snow_level_above_orog]
         return snow_filled
-
-    def calculate_radius_size(self, cube):
-        """
-        Calculate radius size in metres from the given number of gridpoints
-        based on the coordinates on a input cube.
-
-        Args:
-            cube(iris.cube.Cube):
-                The iris cube that the number of grid points for the radius
-                refers to.
-        Returns:
-            radius_in_metres(float):
-                The radius in metres.
-        """
-        check_if_grid_is_equal_area(cube)
-        cube.coord("projection_x_coordinate").convert_units("m")
-        x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
-        # Make sure the radius isn't exactly on a grid box boundary.
-        radius_in_metres = x_diff*self.grid_point_radius + 0.5*x_diff
-        return radius_in_metres
 
     def find_max_in_nbhood_orography(self, orography_cube):
         """
@@ -1015,15 +999,16 @@ class FallingSnowLevel(object):
         around that point.
 
         Args:
-            orography_cube(iris.cube.Cube):
-                The cube containing a single 2 diminsional array of orography
+            orography_cube (iris.cube.Cube):
+                The cube containing a single 2 dimensional array of orography
                 data
         Returns:
-            max_in_nbhood_orog(iris.cube.Cube):
+            max_in_nbhood_orog (iris.cube.Cube):
                 The cube containing the maximum in a neighbourhood of the
                 orography data.
         """
-        radius_in_metres = self.calculate_radius_size(orography_cube)
+        radius_in_metres = convert_number_of_grid_cells_into_distance(
+            orography_cube, self.grid_point_radius)
         max_in_nbhood_orog = OccurrenceWithinVicinity(
             radius_in_metres).process(orography_cube)
         return max_in_nbhood_orog

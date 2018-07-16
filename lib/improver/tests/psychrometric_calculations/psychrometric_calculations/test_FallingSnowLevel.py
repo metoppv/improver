@@ -375,67 +375,6 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.assertArrayEqual(snow_level_updated, expected)
 
 
-class Test_calculate_radius_size(IrisTest):
-
-    """Test the calculate_raddi_size method"""
-
-    def setUp(self):
-        """Set up a cube with x and y coordinates"""
-        data = np.ones((3, 4))
-        self.cube = iris.cube.Cube(data, standard_name="air_temperature",)
-        self.cube.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(2000.0, 6000.0, 3),
-                                 'projection_x_coordinate', units='m'), 0)
-        self.cube.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(2000.0, 8000.0, 4),
-                                 "projection_y_coordinate", units='m'), 1)
-
-    def test_basic(self):
-        """Test the function does what it's meant to in a simple case."""
-        plugin = FallingSnowLevel()
-        result_radius = plugin.calculate_radius_size(self.cube)
-        expected_result = 5000.0
-        self.assertAlmostEqual(result_radius, expected_result)
-        self.assertIs(type(expected_result), float)
-
-    def test_check_input_in_km(self):
-        """
-        Test that the output is still in metres when the input coordinates
-        are in a different unit.
-        """
-        plugin = FallingSnowLevel()
-        result_radius = plugin.calculate_radius_size(self.cube)
-        for coord in self.cube.coords():
-            coord.convert_units("km")
-        expected_result = 5000.0
-        self.assertAlmostEqual(result_radius, expected_result)
-        self.assertIs(type(expected_result), float)
-
-    def test_not_equal_areas(self):
-        """
-        Check it raises an error when the input is not an equal areas grid.
-        """
-        plugin = FallingSnowLevel()
-
-        self.cube.remove_coord("projection_x_coordinate")
-        self.cube.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(200.0, 600.0, 3),
-                                 'projection_x_coordinate', units='m'), 0)
-        with self.assertRaisesRegex(
-                ValueError,
-                "The size of the intervals along the x and y axis"
-                " should be equal."):
-            plugin.calculate_radius_size(self.cube)
-
-    def test_check_different_input_radius(self):
-        """Check it works for different input values."""
-        plugin = FallingSnowLevel(grid_point_radius=5)
-        result_radius = plugin.calculate_radius_size(self.cube)
-        expected_result = 11000.0
-        self.assertAlmostEqual(result_radius, expected_result)
-        self.assertIs(type(expected_result), float)
-
-
 class Test_find_max_in_nbhood_orography(IrisTest):
 
     """Test the find_max_in_nbhood_orography"""
@@ -540,7 +479,7 @@ class Test_process(IrisTest):
         expected = np.ones((2, 3, 3)) * 65.88732723
         orog = self.orog
         orog.data = orog.data * 0.0
-        self.orog.data[1, 1] = 100.0
+        orog.data[1, 1] = 100.0
         land_sea = self.land_sea
         land_sea = land_sea * 0.0
         result = FallingSnowLevel().process(
