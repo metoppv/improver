@@ -798,7 +798,9 @@ class FallingSnowLevel(object):
                 max_wb_int[index2] - self.falling_level_threshold))
         snow_fl[index2] = (
             (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
-        # Update the snow falling level.
+        # Update the snow falling level. Clip to ignore extremely negative
+        # snow falling levels.
+        snow_fl = np.clip(snow_fl, -2000, np.inf)
         snow_falling_level[index] = snow_fl
 
     @staticmethod
