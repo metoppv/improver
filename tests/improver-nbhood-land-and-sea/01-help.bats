@@ -37,7 +37,6 @@ usage: improver-nbhood-land-and-sea [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
                                     [--weights_for_collapsing_dim WEIGHTS]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                                    [--ens_factor ENS_FACTOR]
                                     [--sum_or_fraction {sum,fraction}]
                                     [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
@@ -63,13 +62,6 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --ens_factor ENS_FACTOR
-                        The factor with which to adjust the neighbourhood size
-                        for more than one ensemble realization. If ens_factor
-                        = 1.0 this essentially conserves ensemble realizations
-                        if every grid square is considered to be the
-                        equivalent of an ensemble realization. Optional,
-                        defaults to 1.0.
   --sum_or_fraction {sum,fraction}
                         The neighbourhood output can either be in the form of
                         a sum of the neighbourhood, or a fraction calculated

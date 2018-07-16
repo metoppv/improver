@@ -50,7 +50,7 @@ class DiagnoseConvectivePrecipitation(object):
     def __init__(
             self, lower_threshold, higher_threshold, neighbourhood_method,
             radii, fuzzy_factor=None, below_thresh_ok=False,
-            lead_times=None, weighted_mode=True, ens_factor=1.0,
+            lead_times=None, weighted_mode=True,
             use_adjacent_grid_square_differences=True):
         """
         Args:
@@ -82,13 +82,6 @@ class DiagnoseConvectivePrecipitation(object):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            ens_factor (float):
-                The factor with which to adjust the neighbourhood size
-                for more than one ensemble realization.
-                If ens_factor = 1.0 this essentially conserves ensemble
-                realizations if every grid square is considered to be the
-                equivalent of an ensemble realization.
-                Optional, defaults to 1.0
             use_adjacent_grid_square_differences (boolean):
                 If True, use the differences between adjacent grid squares
                 to diagnose convective precipitation.
@@ -103,7 +96,6 @@ class DiagnoseConvectivePrecipitation(object):
         self.below_thresh_ok = below_thresh_ok
         self.lead_times = lead_times
         self.weighted_mode = weighted_mode
-        self.ens_factor = ens_factor
         self.use_adjacent_grid_square_differences = (
             use_adjacent_grid_square_differences)
 
@@ -113,13 +105,13 @@ class DiagnoseConvectivePrecipitation(object):
                   'higher_threshold {}; neighbourhood_method: {}; '
                   'radii: {}; fuzzy_factor {}; '
                   'below_thresh_ok: {}; lead_times: {}; '
-                  'weighted_mode: {}; ens_factor: {}; '
+                  'weighted_mode: {};'
                   'use_adjacent_grid_square_differences: {}>')
         return result.format(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii, self.fuzzy_factor,
             self.below_thresh_ok, self.lead_times, self.weighted_mode,
-            self.ens_factor, self.use_adjacent_grid_square_differences)
+            self.use_adjacent_grid_square_differences)
 
     def _calculate_convective_ratio(self, cubelist, threshold_list):
         """
@@ -161,8 +153,7 @@ class DiagnoseConvectivePrecipitation(object):
             neighbourhooded_cube = NeighbourhoodProcessing(
                 self.neighbourhood_method, self.radii,
                 lead_times=self.lead_times,
-                weighted_mode=self.weighted_mode,
-                ens_factor=self.ens_factor).process(cube)
+                weighted_mode=self.weighted_mode).process(cube)
             neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
 
         # Ignore runtime warnings from divide by 0 errors.

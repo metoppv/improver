@@ -81,24 +81,33 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the wet bulb temperature integral returns a cube
         with the expected name."""
-        result = WetBulbTemperatureIntegral().process(
+        wb_temp, wb_temp_int = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "wet_bulb_temperature_integral")
-        self.assertEqual(result.units, Unit('K m'))
+        self.assertIsInstance(wb_temp_int, iris.cube.Cube)
+        self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
+        self.assertEqual(wb_temp_int.units, Unit('K m'))
+        self.assertIsInstance(wb_temp, iris.cube.Cube)
+        self.assertEqual(wb_temp.name(), "wet_bulb_temperature")
+        self.assertEqual(wb_temp.units, Unit('celsius'))
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
-        expected = np.array(
+        expected_wb_int = np.array(
             [[0.0, 0.0, 608.106507],
              [0.0, 0.0, 912.159761]])
-        result = WetBulbTemperatureIntegral().process(
+        expected_wb_temp = np.array(
+            [[-90., -13.26694545, 60.81065074],
+             [-90., -13.26694545, 60.81065074],
+             [-90., -13.26694545, 60.81065074]])
+        wb_temp, wb_temp_int = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertIsInstance(wb_temp, iris.cube.Cube)
+        self.assertIsInstance(wb_temp_int, iris.cube.Cube)
+        self.assertArrayAlmostEqual(wb_temp_int.data, expected_wb_int)
+        self.assertArrayAlmostEqual(wb_temp.data, expected_wb_temp)
 
 
 if __name__ == '__main__':

@@ -41,6 +41,7 @@
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/relative_humidity.nc" \
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/pressure.nc" \
       "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/orog.nc" \
+      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/land_mask.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

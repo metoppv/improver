@@ -76,7 +76,7 @@ class Test__repr__(IrisTest):
         msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
                '<CircularNeighbourhood: weighted_mode: True, '
                'sum_or_fraction: fraction>; '
-               'radii: 10000.0; lead_times: None; ens_factor: 1.0>')
+               'radii: 10000.0; lead_times: None>')
         self.assertEqual(result, msg)
 
 
