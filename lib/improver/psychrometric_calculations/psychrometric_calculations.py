@@ -963,33 +963,39 @@ class FallingSnowLevel(object):
                 horizontal interpolation.
         """
         # Interpolate linearly across the remaining points
-        index = (snow_level_data <= max_in_nbhood_orog)
+        index = ~np.isnan(snow_level_data)
+        index_valid_data = (
+            snow_level_data[index] <= max_in_nbhood_orog[index])
+        index[index] = index_valid_data
         snow_filled = snow_level_data
         if np.any(index):
             ynum, xnum = snow_level_data.shape
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-            points = np.where(index)
-            values = snow_level_data[points]
+            values = snow_level_data[index]
             snow_level_data_updated = griddata(
-                points, values, (y_points, x_points), method='linear')
+                np.where(index), values, (y_points, x_points), method='linear')
             snow_filled = snow_level_data_updated
             # Fill in any remaining missing points using nearest neighbour.
             # This normallly only impact points at the corners of the domain,
             # where the linear fit doesn't reach.
-            index = (snow_level_data_updated <= max_in_nbhood_orog)
+            index = ~np.isnan(snow_filled)
+            index_valid_data = (
+                snow_filled[index] <= max_in_nbhood_orog[index])
+            index[index] = index_valid_data
             if np.any(index):
-                points = np.where(index)
-                values = snow_level_data_updated[points]
+                values = snow_level_data_updated[index]
                 snow_level_data_updated_2 = griddata(
-                    points, values, (y_points, x_points), method='nearest')
+                    np.where(index), values, (y_points, x_points),
+                    method='nearest')
                 snow_filled = snow_level_data_updated_2
 
         # Set the snow falling level at any points that have been filled with
         # snow falling levels that are above the orography back to the
-        # height of the sorography.
-        snow_level_above_orog = (~np.isfinite(snow_level_data)
-                                 & (snow_filled > orog_data))
-        snow_filled[snow_level_above_orog] = orog_data[snow_level_above_orog]
+        # height of the orography.
+        index = (~np.isfinite(snow_level_data))
+        snow_level_above_orog = (snow_filled[index] > orog_data[index])
+        index[index] = snow_level_above_orog
+        snow_filled[index] = orog_data[index]
         return snow_filled
 
     def find_max_in_nbhood_orography(self, orography_cube):
