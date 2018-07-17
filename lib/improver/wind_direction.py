@@ -86,14 +86,14 @@ class WindDirection(object):
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first realization" (default) uses the value of realization zero.
-            "neighbourhood" recalculates using the complex numbers approach
-            with additional realizations extracted from neighbouring grid
-            points from all available realizations.
+            "first realization" uses the value of realization zero.
+            "neighbourhood" (default) recalculates using the complex numbers
+            approach with additional realizations extracted from neighbouring
+            grid points from all available realizations.
 
     """
 
-    def __init__(self, backup_method='first realization'):
+    def __init__(self, backup_method='neighbourhood'):
         """Initialise class."""
         self.backup_methods = ['first realization', 'neighbourhood']
         self.backup_method = backup_method
@@ -119,7 +119,6 @@ class WindDirection(object):
 
     def _reset(self):
         """Empties working data objects"""
-        self.wdir_slice = None
         self.realization_axis = None
         self.wdir_complex = None
         self.wdir_slice_mean = None
@@ -336,15 +335,15 @@ class WindDirection(object):
                 Array of boolean values. True where original wind direction
                 estimate has low confidence. These points are replaced
                 according to self.backup_method
-            first_member (np.array):
-                Array of wind direction data from the first ensemble
+            first_member (iris.cube.Cube):
+                Contains array of wind direction data from the first ensemble
                 realization
 
         Uses:
-            self.wdir_slice.data (np.ndarray):
-                3D array - wind direction angles from ensembles (in degrees).
-            self.wdir_slice_mean.data (np.ndarray):
-                2D array - average wind direction angle (in degrees).
+            self.wdir_slice_mean (iris.cube.Cube):
+                Containing average wind direction angle (in degrees).
+            self.wdir_complex (np.ndarray):
+                3D array - wind direction angles from ensembles (in complex).
             self.r_vals_slice.data (np.ndarray):
                 2D array - Radius taken from average complex wind direction
                 angle.
@@ -352,6 +351,10 @@ class WindDirection(object):
                 Any r value below threshold is regarded as meaningless.
             self.realization_axis (int):
                 Axis to collapse over.
+            self.n_realizations (int):
+                Number of realizations available in the plugin. Used to set the
+                neighbourhood radius as this is used to adjust the radius again
+                in the neighbourhooding plugin.
 
         Defines:
             self.wdir_slice_mean.data (np.ndarray):
@@ -361,21 +364,20 @@ class WindDirection(object):
         if self.backup_method == 'neighbourhood':
             # Performs smoothing over a 6km square neighbourhood.
             # Then calculates the mean wind direction.
-            n_realizations = len(self.wdir_slice.coord('realization').points)
-            nb_radius = math.sqrt((6000.**2.) * n_realizations)
+            nb_radius = math.sqrt((6000.**2.) * self.n_realizations)
             nbhood = NeighbourhoodProcessing('square',
                                              nb_radius,
                                              weighted_mode=False)
-            child_class = WindDirection()
+            child_class = WindDirection(backup_method="first realization")
             child_class.wdir_complex = nbhood.process(
-                self.wdir_slice.copy(data=self.wdir_complex)).data
+                first_member.copy(data=self.wdir_complex)).data
             child_class.realization_axis = self.realization_axis
             child_class.wdir_slice_mean = self.wdir_slice_mean.copy()
             child_class.wind_dir_mean()
             improved_values = child_class.wdir_slice_mean.data
         else:
             # Takes first ensemble realization.
-            improved_values = first_member
+            improved_values = first_member[0].data
 
         # If the r-value is low - substitute average wind direction value for
         # the wind direction taken from the first ensemble realization.
@@ -421,13 +423,13 @@ class WindDirection(object):
         # Force input cube to float32.
         enforce_float32_precision(cube_ens_wdir)
 
+        self.n_realizations = len(cube_ens_wdir.coord('realization').points)
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
         x_coord_name = cube_ens_wdir.coord(axis="x").name()
         for wdir_slice in cube_ens_wdir.slices(["realization",
                                                 y_coord_name,
                                                 x_coord_name]):
             self._reset()
-            self.wdir_slice = wdir_slice
             # Extract wind direction data.
             self.wdir_complex = self.deg_to_complex(wdir_slice.data)
             self.realization_axis, = wdir_slice.coord_dims("realization")
@@ -447,8 +449,6 @@ class WindDirection(object):
             # Calculate the confidence measure based on the difference
             # between the complex average and the individual ensemble
             # realizations.
-            # TODO: This will still need some further investigation.
-            #        This is will be the subject of another ticket.
             self.calc_confidence_measure()
 
             # Finds any meaningless averages and substitute with
@@ -459,7 +459,7 @@ class WindDirection(object):
             # If the any point in the array contains poor r-values,
             # trigger decider function.
             if where_low_r.any():
-                self.wind_dir_decider(where_low_r, wdir_slice.data[0])
+                self.wind_dir_decider(where_low_r, wdir_slice)
 
             # Append to cubelists.
             self.wdir_cube_list.append(self.wdir_slice_mean)

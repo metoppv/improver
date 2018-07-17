@@ -86,20 +86,14 @@ def make_wdir_cube_222():
                       [270.0, 350.0]],
                      [[270.0, 60.0],
                       [290.0, 10.0]]])
+    cube = set_up_cube(num_grid_points=2,
+                       num_realization_points=2,
+                       zero_point_indices=[[0, 0, 0, 0]])
+    cube = cube[:, 0, :, :]  # Demotes time dimension.
 
-    realization = DimCoord([0, 1], 'realization', units=1)
-    latitude = DimCoord(np.linspace(-90, 0, 2),
-                        standard_name='latitude', units='degrees')
-    longitude = DimCoord(np.linspace(-180, 0, 2),
-                         standard_name='longitude', units='degrees')
-
-    cube = Cube(data, standard_name="wind_from_direction",
-                dim_coords_and_dims=[(realization, 0),
-                                     (latitude, 1),
-                                     (longitude, 2)],
-                units="degree")
-
-    return cube[:, :, :]  # Demotes time dimension.
+    cube.data = data
+    cube.units = Unit('degrees')
+    return cube
 
 
 def make_wdir_cube_534():
@@ -121,21 +115,12 @@ def make_wdir_cube_534():
                        [170.0, 170.0, 47.0, 47.0],
                        [310.0, 309.0, 10.0, 10.0]]]])
 
-    realization = DimCoord([0, 1, 2, 3, 4], 'realization', units=1)
-    time = DimCoord([402192.5], standard_name='time',
-                    units=Unit('hours since 1970-01-01 00:00:00',
-                               calendar='gregorian'))
-    latitude = DimCoord(np.linspace(-90, 90, 3),
-                        standard_name='latitude', units='degrees')
-    longitude = DimCoord(np.linspace(-180, 180, 4),
-                         standard_name='longitude', units='degrees')
-
-    cube = Cube(data, standard_name="wind_from_direction",
-                dim_coords_and_dims=[(realization, 0),
-                                     (time, 1),
-                                     (latitude, 2),
-                                     (longitude, 3)],
-                units="degree")
+    cube = set_up_cube(num_grid_points=4,
+                       num_realization_points=5,
+                       zero_point_indices=[[0, 0, 0, 0]])
+    cube = cube[:,:,0:-1,:] # (reduce y from 4 to 3)
+    cube.data = data
+    cube.units = Unit('degrees')
 
     return cube
 
@@ -157,6 +142,7 @@ def pad_wdir_cube_222():
                        "constant",
                        constant_values=(0.0, 0.0))
     cube.rename("wind_from_direction")
+    cube.units = Unit('degrees')
     return cube
 
 
@@ -186,7 +172,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection: backup_method "first realization">')
+        msg = ('<WindDirection: backup_method "neighbourhood">')
         self.assertEqual(result, msg)
 
 
@@ -369,18 +355,6 @@ class Test_calc_confidence_measure(IrisTest):
 class Test_wind_dir_decider(IrisTest):
     """Test the wind_dir_decider function."""
 
-    def setUp(self):
-        """Initialise plugin and supply data for tests"""
-        self.plugin = WindDirection()
-        self.plugin.wdir_complex = WIND_DIR_COMPLEX
-        self.plugin.realization_axis = 0
-        self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
-        self.plugin.wdir_slice_mean.data = np.array([[180.0, 55.0],
-                                                     [280.0, 0.0]])
-        self.plugin.wdir_mean_complex = (
-            self.plugin.deg_to_complex(self.plugin.wdir_slice_mean.data))
-        self.cube = make_wdir_cube_222()[0]
-
     @ManageWarnings(
         ignored_messages=["Casting complex values"],
         warning_types=[np.ComplexWarning])
@@ -389,7 +363,8 @@ class Test_wind_dir_decider(IrisTest):
         Therefore the calculated mean angle of 180 degs is basically
         meaningless with an r value of nearly zero. So the code substitutes the
         wind direction taken from the first ensemble value in its place."""
-        self.plugin = WindDirection()
+        cube = make_wdir_cube_222()
+        self.plugin = WindDirection(backup_method="first realization")
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
@@ -397,12 +372,11 @@ class Test_wind_dir_decider(IrisTest):
                                                      [280.0, 0.0]])
         self.plugin.wdir_mean_complex = (
             self.plugin.deg_to_complex(self.plugin.wdir_slice_mean.data))
-        self.cube = make_wdir_cube_222()[0]
         expected_out = np.array([[90.0, 55.0],
                                  [280.0, 0.0]])
         where_low_r = np.array([[True, False],
                                 [False, False]])
-        self.plugin.wind_dir_decider(where_low_r, self.cube.data)
+        self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
 
         self.assertIsInstance(result, np.ndarray)
@@ -419,6 +393,7 @@ class Test_wind_dir_decider(IrisTest):
         expected_out = np.array([[354.91, 55.],
                                  [280., 0.]])
 
+        cube = pad_wdir_cube_222()
         where_low_r = np.pad(
             np.array([[True, False],
                       [False, False]]),
@@ -427,11 +402,9 @@ class Test_wind_dir_decider(IrisTest):
         wind_dir_deg_mean = np.array([[180.0, 55.0],
                                       [280.0, 0.0]])
 
-        wind_dir_r_vals = np.array([[6.12323400e-17, 0.996194698],
-                                    [0.984807753, 0.984807753]])
-
         self.plugin = WindDirection(backup_method="neighbourhood")
         self.plugin.realization_axis = 0
+        self.plugin.n_realizations = 1
         self.plugin.wdir_mean_complex = np.pad(
             self.plugin.deg_to_complex(wind_dir_deg_mean),
             ((4, 4), (4, 4)),
@@ -441,19 +414,13 @@ class Test_wind_dir_decider(IrisTest):
                                           ((0, 0), (4, 4), (4, 4)),
                                           "constant",
                                           constant_values=(0.0, 0.0))
-        self.plugin.r_vals_slice = pad_wdir_cube_222()[0]
-        self.plugin.r_vals_slice.data = np.pad(wind_dir_r_vals,
-                                               ((4, 4), (4, 4)),
-                                               "constant",
-                                               constant_values=(0.0, 0.0))
-        self.plugin.wdir_slice = pad_wdir_cube_222()
         self.plugin.wdir_slice_mean = pad_wdir_cube_222()[0]
         self.plugin.wdir_slice_mean.data = np.pad(wind_dir_deg_mean,
                                                   ((4, 4), (4, 4)),
                                                   "constant",
                                                   constant_values=(0.0, 0.0))
 
-        self.plugin.wind_dir_decider(where_low_r, self.cube.data)
+        self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result[4:6, 4:6], expected_out, decimal=2)
@@ -532,6 +499,16 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(r_vals, expected_r_vals)
         self.assertArrayAlmostEqual(
             confidence_measure, expected_confidence_measure)
+
+    def test_with_backup(self):
+        """Test raises domain-to-small error when backup method invoked."""
+
+        self.cube.data[:,0,1,1] = [0., 72., 144., 216., 288.]
+
+        msg = ('Distance of ')
+        with self.assertRaisesRegex(ValueError, msg):
+            WindDirection().process(self.cube)
+
 
 
 if __name__ == '__main__':
