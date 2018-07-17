@@ -31,13 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood-vicinity 6000.0 input output --radius=20000" {
+@test "weighted-blending linear coordinate input output" {
   improver_check_skip_acceptance
-  KGO="nbhood-vicinity/basic/kgo.nc"
+  KGO="weighted_blending/realizations/kgo.nc"
 
-  # Run neighbourhood processing and check it passes.
-  run improver nbhood-vicinity 6000.0 "$IMPROVER_ACC_TEST_DIR/nbhood-vicinity/basic/input.nc"\
-      "$TEST_DIR/output.nc" --radius=20000
+  # Run weighted blending with linear weights and check it passes, creating
+  # a source_realization attribute.
+  run improver weighted-blending 'linear' 'realization' 'weighted_mean' \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/realizations/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

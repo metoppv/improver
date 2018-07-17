@@ -36,16 +36,16 @@
   KGO="nbhood/mask/kgo_external_masked.nc"
 
   # Run square neighbourhood processing with masked data and check it passes.
-  run improver nbhood 'probabilities' 'square'\
+  run improver nbhood 'probabilities' 'square' \
       "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
-      "$TEST_DIR/output.nc" --radius=20000 --weighted_mode --sum_or_fraction "sum"\
+      "$TEST_DIR/output.nc" --radius=20000 \
       --input_mask_filepath "$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run cmp -b to compare the output and kgo.
-  cmp -b "$TEST_DIR/output.nc" \
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
-  [[ "$status" -eq 0 ]]
+#  [[ "$status" -eq 0 ]]
 }

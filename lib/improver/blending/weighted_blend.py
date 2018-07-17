@@ -438,6 +438,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Raises:
             TypeError : If the first argument not a cube.
+            ValueError : If coordinate to be collapsed not found in cube.
             ValueError : If there is a percentile coord and it is not a
                            dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
@@ -459,6 +460,10 @@ class WeightedBlendAcrossWholeDimension(object):
                    'iris.cube.Cube but is'
                    ' {}.'.format(type(cube)))
             raise TypeError(msg)
+
+        if not cube.coords(self.coord):
+            msg = ('Coordinate to be collapsed not found in cube.')
+            raise CoordinateNotFoundError(msg)
 
         # Check that the points within the time coordinate are equal
         # if the coordinate being blended is forecast_reference_time.
@@ -606,6 +611,12 @@ class WeightedBlendAcrossWholeDimension(object):
                     coords_for_bounds_removal=self.coords_for_bounds_removal)
                 cubelist.append(cube_new)
             result = cubelist.merge_cube()
+
+            # Add a source realizations attribute if collapsing realizations.
+            if self.coord == "realization":
+                result.attributes['source_realizations'] = (
+                    cube.coord(self.coord).points)
+
             if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
                 result.data = np.ma.array(result.data)
         # If set adjust values of collapsed coordinates.

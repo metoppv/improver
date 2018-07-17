@@ -37,6 +37,6 @@
                                    [--precision NEWTON_PRECISION]
                                    [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                    TEMPERATURE RELATIVE_HUMIDITY PRESSURE
-                                   OROGRAPHY OUTPUT_FILE"
+                                   OROGRAPHY LAND_SEA_MASK OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }

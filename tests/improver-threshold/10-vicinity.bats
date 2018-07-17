@@ -31,13 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'circular' --radius=20000 --ens_factor=2.0 input output" {
+@test "threshold vicinity" {
   improver_check_skip_acceptance
-  KGO="nbhood/ens/kgo.nc"
+  KGO="threshold/vicinity/kgo.nc"
 
-  # Run neighbourhood processing and check it passes for an ensemble.
-  run improver nbhood 'probabilities' 'circular' --radius=20000 --ens_factor=2.0 --weighted_mode\
-      "$IMPROVER_ACC_TEST_DIR/nbhood/ens/input.nc" "$TEST_DIR/output.nc"
+  # Run threshold processing and check it passes.
+  run improver threshold \
+      "$IMPROVER_ACC_TEST_DIR/threshold/vicinity/input.nc" "$TEST_DIR/output.nc" \
+      0.03 0.1 1.0 --threshold_units='mm hr-1' --vicinity 10000
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

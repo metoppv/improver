@@ -38,7 +38,7 @@ usage: improver-snow-falling-level [-h] [--profile]
                                    [--precision NEWTON_PRECISION]
                                    [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
                                    TEMPERATURE RELATIVE_HUMIDITY PRESSURE
-                                   OROGRAPHY OUTPUT_FILE
+                                   OROGRAPHY LAND_SEA_MASK OUTPUT_FILE
 
 Calculate the continuous falling snow level
 
@@ -55,6 +55,10 @@ positional arguments:
   OROGRAPHY             Path to a NetCDF file containing the orography height
                         in m of the terrain over which the continuous falling
                         snow level is being calculated.
+  LAND_SEA_MASK         Path to a NetCDF file containing the binary land-sea
+                        mask for the points for which the continuous falling
+                        snow level is being calculated. Land points are set to
+                        1, sea points are set to 0.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:

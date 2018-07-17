@@ -69,15 +69,17 @@ class BasicThreshold(object):
         case, the thresholded exceedance probabilities between 4.5 mm/hr and
         7.5 mm/hr would follow the pattern:
 
-         Data value | Probability
-        ------------|-------------
-            4.5     |   0
-            5.0     |   0.167
-            5.5     |   0.333
-            6.0     |   0.5
-            6.5     |   0.667
-            7.0     |   0.833
-            7.5     |   1.0
+        ::
+
+            Data value | Probability
+            ------------|-------------
+                4.5     |   0
+                5.0     |   0.167
+                5.5     |   0.333
+                6.0     |   0.5
+                6.5     |   0.667
+                7.0     |   0.833
+                7.5     |   1.0
 
         Args:
             thresholds (list of floats or float):

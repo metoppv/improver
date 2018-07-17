@@ -38,6 +38,7 @@ usage: improver-threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
+                          [--vicinity VICINITY]
                           INPUT_FILE OUTPUT_FILE
                           [THRESHOLD_VALUES [THRESHOLD_VALUES ...]]
 
@@ -91,6 +92,8 @@ optional arguments:
   --collapse-coord COLLAPSE-COORD
                         An optional ability to set which coordinate we want to
                         collapse over. The default is set to None.
+  --vicinity VICINITY   If set, distance in metres used to define the vicinity
+                        within which to search for an occurrence.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

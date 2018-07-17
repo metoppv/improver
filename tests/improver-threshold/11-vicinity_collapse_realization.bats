@@ -29,15 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood-vicinity no arguments" {
-  run improver nbhood-vicinity
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood-vicinity [-h] [--profile] [--profile_file PROFILE_FILE]
-                                [--neighbourhood_shape NEIGHBOURHOOD_SHAPE]
-                                [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                                [--ens_factor ENS_FACTOR] [--weighted_mode]
-                                VICINITY_DISTANCE INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "threshold vicinity" {
+  improver_check_skip_acceptance
+  KGO="threshold/vicinity/kgo_collapsed.nc"
+
+  # Run threshold processing and check it passes.
+  run improver threshold \
+      "$IMPROVER_ACC_TEST_DIR/threshold/vicinity/input.nc" "$TEST_DIR/output.nc" \
+      0.03 0.1 1.0 --threshold_units='mm hr-1' --vicinity 10000 \
+      --collapse-coord='realization'
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -84,15 +84,6 @@ def main():
                         ' eg wind directions, as complex numbers. Not '
                         'compatible with circular kernel, percentiles or '
                         'recursive filter.')
-    parser.add_argument('--ens_factor', metavar='ENS_FACTOR', type=float,
-                        default=1.0,
-                        help='The factor with which to adjust the '
-                        'neighbourhood size for more than one '
-                        'ensemble realization. If ens_factor = 1.0 this '
-                        'essentially conserves ensemble realizations if '
-                        'every grid square is considered to be the '
-                        'equivalent of an ensemble realization. '
-                        'Optional, defaults to 1.0.')
     parser.add_argument('--weighted_mode', action='store_true', default=False,
                         help='For neighbourhood processing using a circular '
                              'kernel, setting the weighted_mode indicates the '
@@ -226,7 +217,7 @@ def main():
         result = (
             NeighbourhoodProcessing(
                 args.neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times, ens_factor=args.ens_factor,
+                lead_times=lead_times,
                 weighted_mode=args.weighted_mode,
                 sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
                 ).process(cube, mask_cube=mask_cube))
@@ -234,7 +225,7 @@ def main():
         result = (
             GeneratePercentilesFromANeighbourhood(
                 args.neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times, ens_factor=args.ens_factor,
+                lead_times=lead_times,
                 percentiles=args.percentiles
                 ).process(cube))
 
