@@ -38,7 +38,7 @@
   # Run threshold processing and check it passes.
   run improver threshold \
       "$IMPROVER_ACC_TEST_DIR/threshold/basic/input.nc" "$TEST_DIR/output.nc" \
-      280 --fuzzy_factor 0.2
+      280 --fuzzy_factor 0.99
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
