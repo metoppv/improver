@@ -118,7 +118,7 @@ def make_wdir_cube_534():
     cube = set_up_cube(num_grid_points=4,
                        num_realization_points=5,
                        zero_point_indices=[[0, 0, 0, 0]])
-    cube = cube[:,:,0:-1,:] # (reduce y from 4 to 3)
+    cube = cube[:, :, 0:-1, :]  # (reduce y from 4 to 3)
     cube.data = data
     cube.units = Unit('degrees')
 
@@ -503,12 +503,11 @@ class Test_process(IrisTest):
     def test_with_backup(self):
         """Test raises domain-to-small error when backup method invoked."""
 
-        self.cube.data[:,0,1,1] = [0., 72., 144., 216., 288.]
+        self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
 
         msg = ('Distance of ')
         with self.assertRaisesRegex(ValueError, msg):
             WindDirection().process(self.cube)
-
 
 
 if __name__ == '__main__':
