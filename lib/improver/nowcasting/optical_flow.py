@@ -44,6 +44,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
 def check_input_coords(cube, require_time=False):
@@ -297,59 +298,45 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, data_smoothing_radius_km=7.,
-                 data_smoothing_method='box', boxsize_km=30.,
-                 point_weight=0.1, iterations=100):
+    def __init__(self, data_smoothing_method='box', iterations=100):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
 
         Keyword Args:
-            data_smoothing_radius_km (float):
-                Kernel radius in km over which to smooth input data before
-                estimating partial derivatives.  Should not be less than 3x
-                the grid length of the input data cube.
             data_smoothing_method (str):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
-            boxsize_km (float):
-                Square box size in km over which all data points are assumed
-                to have the same velocity to enable matrix inversion
-                (solve_for_uv()).  Should not be less than 3x the grid length
-                of the input data cube.  Must be larger than the kernel radius
-                used to smooth the input data fields.
-            point_weight (float):
-                Weight given to the velocity of a point (box), as opposed to
-                its neighbours, when doing the smart smoothing after velocity
-                calculation.  Values 0-1.
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
+                The value for good convergence is 20 (Bowler et al. 2004).
 
-        Martina's TODO: need to calculate a suitable kernel size given dt (what
-        is expected movement between slices) and expected velocities
+        Raises:
+            ValueError:
+                If iterations < 20
+
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
 
-        # parameters for input data smoothing
-        self.data_smoothing_radius_km = data_smoothing_radius_km
-        self.data_smoothing_radius = None
+        if iterations < 20:
+            raise ValueError('Got {} iterations; minimum requirement 20 '
+                             'iterations'.format(iterations))
+
+        # Set parameters for input data smoothing.  14 km is suitable for input
+        # fields separated by a 15 minute time step - this is updated if
+        # necessary by the "process" function.
+        self.data_smoothing_radius_km = 14.
         self.data_smoothing_method = data_smoothing_method
 
-        # parameters for velocity calculation and "smart smoothing"
-        self.boxsize_km = boxsize_km
-        self.boxsize = None
+        # Set parameters for velocity calculation and "smart smoothing"
         self.iterations = iterations
-        self.point_weight = point_weight
+        self.point_weight = 0.1
 
-        # fail if data smoothing radius is larger than box size on which
-        # optical flow velocities are calculated - not sensible parameters!
-        if self.data_smoothing_radius_km > self.boxsize_km:
-            msg = ('Data smoothing radius {} must not exceed velocity box '
-                   'size {}')
-            raise ValueError(msg.format(self.data_smoothing_radius_km,
-                                        self.boxsize_km))
-
-        # input data fields and shape
+        # Initialise input data fields and shape
         self.data1 = None
         self.data2 = None
         self.shape = None
@@ -357,11 +344,11 @@ class OpticalFlow(object):
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
-                  'data_smoothing_method: {}, boxsize_km: {}, '
-                  'iterations: {}, point_weight: {}>')
+                  'data_smoothing_method: {}, iterations: {}, '
+                  'point_weight: {}>')
         return result.format(
             self.data_smoothing_radius_km, self.data_smoothing_method,
-            self.boxsize_km, self.iterations, self.point_weight)
+            self.iterations, self.point_weight)
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
@@ -431,9 +418,9 @@ class OpticalFlow(object):
         smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
         return self.interp_to_midpoint(smoothed_diffs)
 
-    def _make_subboxes(self, field, boxsize):
+    def _make_subboxes(self, field):
         """
-        Generate a list of non-overlapping "boxes" of size boxsize*boxsize
+        Generate a list of non-overlapping "boxes" of size self.boxsize**2
         from the input field, along with weights based on data values at times
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
@@ -441,8 +428,6 @@ class OpticalFlow(object):
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
-            boxsize (int):
-                Size of boxes to be output
 
         Returns:
             (tuple) : tuple containing:
@@ -455,13 +440,13 @@ class OpticalFlow(object):
         """
         boxes = []
         weights = []
-        weighting_factor = 0.5 / boxsize**2.
-        for i in range(0, field.shape[0], boxsize):
-            for j in range(0, field.shape[1], boxsize):
-                boxes.append(field[i:i+boxsize, j:j+boxsize])
+        weighting_factor = 0.5 / self.boxsize**2.
+        for i in range(0, field.shape[0], self.boxsize):
+            for j in range(0, field.shape[1], self.boxsize):
+                boxes.append(field[i:i+self.boxsize, j:j+self.boxsize])
                 weight = weighting_factor*(
-                    (self.data1[i:i+boxsize, j:j+boxsize]).sum() +
-                    (self.data2[i:i+boxsize, j:j+boxsize]).sum())
+                    (self.data1[i:i+self.boxsize, j:j+self.boxsize]).sum() +
+                    (self.data2[i:i+self.boxsize, j:j+self.boxsize]).sum())
                 weight = 1. - np.exp(-1.*weight/0.8)
                 weights.append(weight)
         weights = np.array(weights)
@@ -607,15 +592,23 @@ class OpticalFlow(object):
         accounting for zeros and reducting their weight in the final output.
         Then regrid from "box grid" (on which OFC equations are solved) to
         input data grid, and perform one final pass simple kernel smoothing.
+        This is equivalent to applying the smoothness constraint defined in
+        Bowler et al. 2004, equations 9-11.
 
         Args:
             box_data (np.ndarray):
                 Displacements on box grid (modified by this function)
             weights (np.ndarray):
                 Weights for smart smoothing
+
         Returns:
             grid_data (np.ndarray):
                 Smoothed displacement vectors on input data grid
+
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
         v_orig = np.copy(box_data)
 
@@ -627,7 +620,7 @@ class OpticalFlow(object):
         grid_data = self._box_to_grid(box_data)
 
         # smooth regridded velocities to remove box edge discontinuities
-        # this will fail if boxsize < 3
+        # this will fail if self.boxsize < 3
         kernelsize = int(self.boxsize/3)
         grid_data = self.smooth(grid_data, kernelsize, method='kernel')
         return grid_data
@@ -687,7 +680,7 @@ class OpticalFlow(object):
                                        partial_dt):
         """
         This implements the OFC algorithm, assuming all points in a box with
-        "boxsize" sidelength have the same displacement components.
+        "self.boxsize" sidelength have the same displacement components.
 
         Args:
             partial_dx (np.ndarray):
@@ -706,9 +699,9 @@ class OpticalFlow(object):
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
-        dx_boxed, box_weights = self._make_subboxes(partial_dx, self.boxsize)
-        dy_boxed, _ = self._make_subboxes(partial_dy, self.boxsize)
-        dt_boxed, _ = self._make_subboxes(partial_dt, self.boxsize)
+        dx_boxed, box_weights = self._make_subboxes(partial_dx)
+        dy_boxed, _ = self._make_subboxes(partial_dy)
+        dt_boxed, _ = self._make_subboxes(partial_dt)
 
         # (b) Solve optical flow displacement calculation on each subbox
         velocity = ([], [])
@@ -774,15 +767,15 @@ class OpticalFlow(object):
         rain_pixels = vel_comp[rain_mask].size
 
         if zeroes_in_rain > rain_pixels*zero_vel_threshold:
-            msg = ("More than {:.1f}% of rain cells within the domain have "
-                   "zero advection velocities. It is expected that "
-                   "greater than {:.1f}% of these advection velocities "
-                   "will be non-zero.".format(
-                       zero_vel_threshold*100,
-                       (1-zero_vel_threshold)*100))
+            msg = ("{:.1f}% of rain cells within the domain have zero "
+                   "advection velocities. It is expected that greater "
+                   "than {:.1f}% of these advection velocities will be "
+                   "non-zero.".format(zeroes_in_rain*100./rain_pixels,
+                                      (1-zero_vel_threshold)*100))
             warnings.warn(msg)
 
-    def process_dimensionless(self, data1, data2, xaxis, yaxis):
+    def process_dimensionless(self, data1, data2, xaxis, yaxis,
+                              smoothing_radius):
         """
         Calculates dimensionless advection displacements between two input
         fields.
@@ -796,6 +789,8 @@ class OpticalFlow(object):
                 Index of x coordinate axis
             yaxis (int):
                 Index of y coordinate axis
+            smoothing_radius (int):
+                Radius (in grid squares) over which to smooth the input data
 
         Returns:
             (tuple) : tuple containing:
@@ -806,9 +801,9 @@ class OpticalFlow(object):
         """
         # Smooth input data
         self.shape = data1.shape
-        self.data1 = self.smooth(data1, self.data_smoothing_radius,
+        self.data1 = self.smooth(data1, smoothing_radius,
                                  method=self.data_smoothing_method)
-        self.data2 = self.smooth(data2, self.data_smoothing_radius,
+        self.data2 = self.smooth(data2, smoothing_radius,
                                  method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
@@ -826,7 +821,7 @@ class OpticalFlow(object):
             self._zero_advection_velocities_warning(vel_comp, rain_mask)
         return ucomp, vcomp
 
-    def process(self, cube1, cube2):
+    def process(self, cube1, cube2, boxsize=30):
         """
         Extracts data from input cubes, performs dimensionless advection
         displacement calculation, and creates new cubes with advection
@@ -841,6 +836,12 @@ class OpticalFlow(object):
                 2D cube from (earlier) time 1
             cube2 (iris.cube.Cube):
                 2D cube from (later) time 2
+
+        Kwargs:
+            boxsize (int):
+                The side length of the square box over which to solve the
+                optical flow constraint.  This should be greater than the
+                data smoothing radius.
 
         Returns:
             (tuple) : tuple containing:
@@ -860,6 +861,10 @@ class OpticalFlow(object):
                 cube1.coord(axis="y") != cube2.coord(axis="y")):
             raise InvalidCubeError("Input cubes on unmatched grids")
 
+        # check grids are equal area
+        check_if_grid_is_equal_area(cube1)
+        check_if_grid_is_equal_area(cube2)
+
         # check time difference is positive
         time1 = (cube1.coord("time").units).num2date(
             cube1.coord("time").points[0])
@@ -868,38 +873,34 @@ class OpticalFlow(object):
         cube_time_diff = time2 - time1
         if cube_time_diff.total_seconds() <= 0:
             msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(cube_time_diff.seconds))
+            raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
 
-        # extract spatial grid length
+        # if time difference is not 15 minutes, update data smoothing radius
+        if cube_time_diff.total_seconds() != 900:
+            self.data_smoothing_radius_km *= (
+                cube_time_diff.total_seconds()/900.)
+
+        # calculate smoothing radius in grid square units
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
         grid_length_km = float(np.diff((new_coord).points)[0])
-
-        # check x and y have the same grid length - fail if not
-        new_coord = cube1.coord(axis='y').copy()
-        new_coord.convert_units('km')
-        grid_length_y_km = float(np.diff((new_coord).points)[0])
-        if not np.isclose(grid_length_y_km, grid_length_km):
-            raise InvalidCubeError("Input cube has different grid spacing in "
-                                   "x and y")
-
-        # calculate plugin parameters in grid square units
-        self.data_smoothing_radius = \
+        data_smoothing_radius = \
             int(self.data_smoothing_radius_km / grid_length_km)
-        self.boxsize = int(self.boxsize_km / grid_length_km)
 
-        # Fail verbosely if self.data_smoothing_radius is too small and will
-        # trigger silent failures downstream. (Note that self.boxsize < 3 will
-        # also trigger silent failures, but this is caught indirectly by
-        # enoforcing boxsize > data_smoothing_radius at initialisation.)
-        if self.data_smoothing_radius < 3:
+        # Fail verbosely if data smoothing radius is too small and will
+        # trigger silent failures downstream
+        if data_smoothing_radius < 3:
             msg = ("Input data smoothing radius {} too small (minimum 3 "
                    "grid squares)")
-            raise ValueError(msg.format(self.data_smoothing_radius))
+            raise ValueError(msg.format(data_smoothing_radius))
 
-        # TODO raise further warnings if data_smoothing_radius or boxsize
-        # have values (to be determined) that are scientifically questionable.
-        # Here if dimensionless; at initialisation if dimensioned.
+        # Fail if self.boxsize is less than data smoothing radius
+        self.boxsize = boxsize
+        if self.boxsize < data_smoothing_radius:
+            msg = ("Box size {} too small (should not be less than data "
+                   "smoothing radius {})")
+            raise ValueError(
+                msg.format(self.boxsize, data_smoothing_radius))
 
         # extract 2-dimensional data arrays
         data1 = next(cube1.slices([cube1.coord(axis='y'),
@@ -918,7 +919,8 @@ class OpticalFlow(object):
             vcomp = np.zeros(data2.shape)
         else:
             # calculate dimensionless displacement between the two input fields
-            ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0)
+            ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0,
+                                                      data_smoothing_radius)
             # convert displacements to velocities in metres per second
             for vel in [ucomp, vcomp]:
                 vel *= (1000.*grid_length_km)
