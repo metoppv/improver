@@ -775,7 +775,7 @@ class OpticalFlow(object):
             warnings.warn(msg)
 
     def process_dimensionless(self, data1, data2, xaxis, yaxis,
-                              smoothing_kernel):
+                              smoothing_radius):
         """
         Calculates dimensionless advection displacements between two input
         fields.
@@ -789,7 +789,7 @@ class OpticalFlow(object):
                 Index of x coordinate axis
             yaxis (int):
                 Index of y coordinate axis
-            smoothing_kernel (int):
+            smoothing_radius (int):
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
@@ -801,9 +801,9 @@ class OpticalFlow(object):
         """
         # Smooth input data
         self.shape = data1.shape
-        self.data1 = self.smooth(data1, smoothing_kernel,
+        self.data1 = self.smooth(data1, smoothing_radius,
                                  method=self.data_smoothing_method)
-        self.data2 = self.smooth(data2, smoothing_kernel,
+        self.data2 = self.smooth(data2, smoothing_radius,
                                  method=self.data_smoothing_method)
 
         # Calculate partial derivatives of the smoothed input fields
