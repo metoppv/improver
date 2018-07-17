@@ -140,6 +140,29 @@ def convert_distance_into_number_of_grid_cells(
     return grid_cells_x, grid_cells_y
 
 
+def convert_number_of_grid_cells_into_distance(cube, grid_points):
+    """
+    Calculate radius size in metres from the given number of gridpoints
+    based on the coordinates on an input cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            The iris cube that the number of grid points for the radius
+            refers to.
+        grid_points (int):
+            The number of grid points you want to convert.
+    Returns:
+        radius_in_metres (float):
+            The radius in metres.
+    """
+    check_if_grid_is_equal_area(cube)
+    cube.coord("projection_x_coordinate").convert_units("m")
+    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
+    # Make sure the radius isn't exactly on a grid box boundary.
+    radius_in_metres = x_diff*grid_points
+    return radius_in_metres
+
+
 class DifferenceBetweenAdjacentGridSquares(object):
 
     """

@@ -29,7 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for psychrometric_calculations FallingSnowLevel."""
-
 import unittest
 
 import numpy as np
@@ -54,7 +53,8 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(FallingSnowLevel())
         msg = ('<FallingSnowLevel: '
-               'precision:0.005, falling_level_threshold:90.0>')
+               'precision:0.005, falling_level_threshold:90.0,'
+               ' grid_point_radius: 2>')
         self.assertEqual(result, msg)
 
 
@@ -295,6 +295,12 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.snow_level_data = np.array([[1.0, 1.0, 2.0],
                                         [1.0, np.nan, 2.0],
                                         [1.0, 2.0, 2.0]])
+        self.orog_data = np.array([[6.0, 6.0, 6.0],
+                                   [6.0, 7.0, 6.0],
+                                   [6.0, 6.0, 6.0]])
+        self.max_in_nbhood_orog = np.array([[7.0, 7.0, 7.0],
+                                            [7.0, 7.0, 7.0],
+                                            [7.0, 7.0, 7.0]])
         self.plugin = FallingSnowLevel()
 
     def test_basic(self):
@@ -305,7 +311,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
                              [1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0]])
         snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            snow_level_data)
+            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
 
     def test_different_data(self):
@@ -315,19 +321,90 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 2.0]])
         snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            self.snow_level_data)
+            self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
 
     def test_lots_missing(self):
         """Test when there's an extra missing value at the corner
-           of the grid."""
+           of the grid. This point can't be filled in by linear interpolation,
+           but is instead filled by nearest neighbour extrapolation."""
         self.snow_level_data[2, 2] = np.nan
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],
-                             [1.0, 2.0, np.nan]])
+                             [1.0, 2.0, 2.0]])
         snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            self.snow_level_data)
+            self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
+
+    def test_all_above_max_orography(self):
+        """Test that nothing is filled in if all the snow falling levels are
+           above the maximum orography"""
+        max_in_nbhood_orog = np.zeros((3, 3))
+        orography = np.zeros((3, 3))
+        expected = np.array([[1.0, 1.0, 2.0],
+                             [1.0, np.nan, 2.0],
+                             [1.0, 2.0, 2.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            self.snow_level_data, max_in_nbhood_orog, orography)
+        self.assertArrayEqual(snow_level_updated, expected)
+
+    def test_set_to_orography(self):
+        """Test when the linear interpolation gives values that are higher
+           than the orography the snow falling level is set back to the
+           orography"""
+        snow_falling_level = np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0],
+                                       [10.0, np.nan, np.nan, np.nan, 20.0]])
+
+        orography = np.array([[0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0],
+                              [0.0, 30.0, 12.0, 30.0, 0.0]])
+
+        max_in_nbhood_orog = np.ones((5, 5))*30.0
+        expected = np.array([[10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0],
+                             [10.0, 12.5, 12.0, 17.5, 20.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            snow_falling_level, max_in_nbhood_orog, orography)
+        self.assertArrayEqual(snow_level_updated, expected)
+
+
+class Test_find_max_in_nbhood_orography(IrisTest):
+
+    """Test the find_max_in_nbhood_orography method"""
+
+    def setUp(self):
+        """Set up a cube with x and y coordinates"""
+        data = np.array([[0, 10, 20, 5, 0],
+                         [0, 50, 20, 5, 0],
+                         [0, 80, 90, 0, 0],
+                         [0, 20, 5, 10, 0],
+                         [0, 5, 10, 10, 0]])
+        self.cube = iris.cube.Cube(data, standard_name="air_temperature",
+                                   units="celsius")
+        self.cube.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(2000.0, 10000.0, 5),
+                                 'projection_x_coordinate', units='m'), 0)
+        self.cube.add_dim_coord(
+            iris.coords.DimCoord(np.linspace(2000.0, 10000.0, 5),
+                                 "projection_y_coordinate", units='m'), 1)
+        self.expected_data = ([[50, 50, 50, 20, 5],
+                               [80, 90, 90, 90, 5],
+                               [80, 90, 90, 90, 10],
+                               [80, 90, 90, 90, 10],
+                               [20, 20, 20, 10, 10]])
+
+    def test_basic(self):
+        """Test the function does what it's meant to in a simple case."""
+        plugin = FallingSnowLevel(grid_point_radius=1)
+        result = plugin.find_max_in_nbhood_orography(self.cube)
+        self.assertArrayAlmostEqual(result.data, self.expected_data)
 
 
 class Test_process(IrisTest):
@@ -364,26 +441,30 @@ class Test_process(IrisTest):
             self.temperature_cube.data[i, :, :, 1, 1] = temp_vals[i]
             self.pressure_cube.data[i, :, :, 1, 1] = pressure_vals[i]
 
+        x_coord = iris.coords.DimCoord(np.linspace(-2000, 2000, 3),
+                                       'projection_x_coordinate', units='m')
+        y_coord = iris.coords.DimCoord(np.linspace(-2000, 2000, 3),
+                                       'projection_y_coordinate', units='m')
         self.orog = iris.cube.Cube(np.ones((3, 3)),
                                    standard_name='surface_altitude', units='m')
         self.land_sea = iris.cube.Cube(np.ones((3, 3)),
                                        standard_name='land_binary_mask',
                                        units='m')
-        self.orog.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
-                                 'latitude', units='degrees'), 0)
-        self.orog.add_dim_coord(iris.coords.DimCoord(np.linspace(120, 180, 3),
-                                                     'longitude',
-                                                     units='degrees'), 1)
-        self.land_sea.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(-45.0, 45.0, 3),
-                                 'latitude', units='degrees'), 0)
-        self.land_sea.add_dim_coord(
-            iris.coords.DimCoord(np.linspace(120, 180, 3),
-                                 'longitude', units='degrees'), 1)
+        cubes = [self.temperature_cube, self.relative_humidity_cube,
+                 self.pressure_cube]
+        for cube in cubes:
+            cube.remove_coord("latitude")
+            cube.remove_coord("longitude")
+            cube.add_dim_coord(x_coord, 3)
+            cube.add_dim_coord(y_coord, 4)
+        cubes = [self.orog, self.land_sea]
+        for cube in cubes:
+            cube.add_dim_coord(x_coord, 0)
+            cube.add_dim_coord(y_coord, 1)
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
+        self.orog.data[1, 1] = 100.0
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube, self.orog, self.land_sea)
@@ -399,6 +480,7 @@ class Test_process(IrisTest):
         expected = np.ones((2, 3, 3)) * 65.88732723
         orog = self.orog
         orog.data = orog.data * 0.0
+        orog.data[1, 1] = 100.0
         land_sea = self.land_sea
         land_sea = land_sea * 0.0
         result = FallingSnowLevel().process(
