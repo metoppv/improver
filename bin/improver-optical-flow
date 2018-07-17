@@ -90,17 +90,12 @@ def main():
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
 
-    # HACK to be removed by IMPRO-720 - is exactly 2
-    grid_length_km = 0.001*np.diff(
-        cube_list[0].coord("projection_x_coordinate").points)[0]
-
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
-    # NOTE usage will change in IMPRO-720: boxsize_km will be removed and
-    #     replaced by a "boxsize" argument to "process"
-    ofc_plugin = OpticalFlow(boxsize_km=grid_length_km*args.ofc_box_size,
-                             iterations=args.smart_smoothing_iterations)
-    ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2])
-    ucube2, vcube2 = ofc_plugin.process(cube_list[0], cube_list[1])
+    ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations)
+    ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2],
+                                        boxsize=args.ofc_box_size)
+    ucube2, vcube2 = ofc_plugin.process(cube_list[0], cube_list[1],
+                                        boxsize=args.ofc_box_size)
 
     # average optical flow components from both time steps and save to
     # netcdf files
