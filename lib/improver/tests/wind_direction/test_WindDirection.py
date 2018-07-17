@@ -355,9 +355,6 @@ class Test_calc_confidence_measure(IrisTest):
 class Test_wind_dir_decider(IrisTest):
     """Test the wind_dir_decider function."""
 
-    @ManageWarnings(
-        ignored_messages=["Casting complex values"],
-        warning_types=[np.ComplexWarning])
     def test_runs_function_1st_member(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
@@ -413,12 +410,12 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_complex = np.pad(WIND_DIR_COMPLEX,
                                           ((0, 0), (4, 4), (4, 4)),
                                           "constant",
-                                          constant_values=(0.0, 0.0))
+                                          constant_values=(0.0+ 0.0j))
         self.plugin.wdir_slice_mean = pad_wdir_cube_222()[0]
         self.plugin.wdir_slice_mean.data = np.pad(wind_dir_deg_mean,
                                                   ((4, 4), (4, 4)),
                                                   "constant",
-                                                  constant_values=(0.0, 0.0))
+                                                  constant_values=(0.0+ 0.0j))
 
         self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
