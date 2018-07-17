@@ -33,9 +33,7 @@
 
 @test "spot-extract args kwargs" {
   improver_check_skip_acceptance
-  KGO1="spot-extract/basic/nearest_kgo.nc"
-  KGO2="spot-extract/basic/nearest_air_temperature_max_kgo.nc"
-  KGO3="spot-extract/basic/nearest_air_temperature_min_kgo.nc"
+  KGO="spot-extract/basic/nearest_kgo.nc"
 
   # Run spot-extract framework and check it passes. Using nearest grid point method
   # for extracting data.
@@ -45,20 +43,14 @@
       "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
       $TEST_DIR \
       --diagnostics temperature \
-      --latitudes 10 20 30 40 50 60 \
-      --longitudes 0 0 0 0 0 0 \
-      --altitudes 0 1 2 3 4 5
+      --latitudes 51 52 53 54 55 \
+      --longitudes -2 -2 -2 -2 -2 \
+      --altitudes 10 20 30 40 50
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO1
-  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_max.nc" $KGO2
-  improver_check_recreate_kgo "temperature_at_screen_level_air_temperature_min.nc" $KGO3
+  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/temperature_at_screen_level.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_max.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/$KGO2"
-  improver_compare_output "$TEST_DIR/temperature_at_screen_level_air_temperature_min.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/$KGO3"
+                          "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
