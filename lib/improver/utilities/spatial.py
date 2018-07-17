@@ -159,7 +159,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
     cube.coord("projection_x_coordinate").convert_units("m")
     x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
     # Make sure the radius isn't exactly on a grid box boundary.
-    radius_in_metres = x_diff*grid_points + 0.5*x_diff
+    radius_in_metres = x_diff*grid_points
     return radius_in_metres
 
 

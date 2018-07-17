@@ -43,8 +43,7 @@ from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
-    OccurrenceWithinVicinity, check_if_grid_is_equal_area,
-    convert_number_of_grid_cells_into_distance)
+    OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
 import improver.constants as cc
 
 
@@ -926,7 +925,7 @@ class FallingSnowLevel(object):
             snow_level_data, max_in_nbhood_orog, orog_data):
         """
         Fill in any remaining unset areas in the snow falling level by using
-        linear horizontal intepolation across the grid. As snow falling levels
+        linear horizontal interpolation across the grid. As snow falling levels
         at the highest height levels will be filled in by this point any
         points that still don't have a valid snow falling level have the snow
         falling level at or below the surface orography.
@@ -939,8 +938,8 @@ class FallingSnowLevel(object):
            falling level is below the maximum orography height in the region
            around the unset point. This helps us avoid spreading very high
            snow falling levels across areas where we had missing data.
-        2. Fill any gaps still remain where the linear interpolation has not
-           been able to find a value because there is not enough
+        2. Fill any gaps that still remain where the linear interpolation has
+           not been able to find a value because there is not enough
            data (e.g at the corners of the domain). Use nearest neighbour
            interpolation.
         3. Check whether despite our efforts we have still filled in some

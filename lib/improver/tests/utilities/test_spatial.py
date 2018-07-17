@@ -147,7 +147,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
         """Test the function does what it's meant to in a simple case."""
         result_radius = convert_number_of_grid_cells_into_distance(
             self.cube, 2)
-        expected_result = 5000.0
+        expected_result = 4000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
 
@@ -160,7 +160,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
             self.cube, 2)
         for coord in self.cube.coords():
             coord.convert_units("km")
-        expected_result = 5000.0
+        expected_result = 4000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
 
@@ -183,7 +183,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
         """Check it works for different input values."""
         result_radius = convert_number_of_grid_cells_into_distance(
             self.cube, 5)
-        expected_result = 11000.0
+        expected_result = 10000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
 

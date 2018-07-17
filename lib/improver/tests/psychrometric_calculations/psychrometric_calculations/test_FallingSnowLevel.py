@@ -336,7 +336,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
             self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
 
-    def test_all_above_max_orogrpahy(self):
+    def test_all_above_max_orography(self):
         """Test that nothing is filled in if all the snow falling levels are
            above the maximum orography"""
         max_in_nbhood_orog = np.zeros((3, 3))
@@ -348,7 +348,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
             self.snow_level_data, max_in_nbhood_orog, orography)
         self.assertArrayEqual(snow_level_updated, expected)
 
-    def set_to_orograpy(self):
+    def test_set_to_orography(self):
         """Test when the linear interpolation gives values that are higher
            than the orography the snow falling level is set back to the
            orography"""
@@ -377,7 +377,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
 
 class Test_find_max_in_nbhood_orography(IrisTest):
 
-    """Test the find_max_in_nbhood_orography"""
+    """Test the find_max_in_nbhood_orography method"""
 
     def setUp(self):
         """Set up a cube with x and y coordinates"""
@@ -386,7 +386,8 @@ class Test_find_max_in_nbhood_orography(IrisTest):
                          [0, 80, 90, 0, 0],
                          [0, 20, 5, 10, 0],
                          [0, 5, 10, 10, 0]])
-        self.cube = iris.cube.Cube(data, standard_name="air_temperature",)
+        self.cube = iris.cube.Cube(data, standard_name="air_temperature",
+                                   units="celsius")
         self.cube.add_dim_coord(
             iris.coords.DimCoord(np.linspace(2000.0, 10000.0, 5),
                                  'projection_x_coordinate', units='m'), 0)
