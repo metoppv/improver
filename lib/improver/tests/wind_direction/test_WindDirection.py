@@ -381,7 +381,8 @@ class Test_wind_dir_decider(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Casting complex values"],
-        warning_types=[np.ComplexWarning])
+        warning_types=[np.ComplexWarning],
+        warnings_list=True)
     def test_runs_function_nbhood(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
