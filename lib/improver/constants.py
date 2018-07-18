@@ -89,3 +89,6 @@ U_LATENT_HEAT_T_DEPENDENCE = make_constant_with_units(LATENT_HEAT_T_DEPENDENCE,
 # Repsilon, ratio of molecular weights of water and dry air (Earth)
 EARTH_REPSILON = 0.62198
 U_EARTH_REPSILON = make_constant_with_units(EARTH_REPSILON, "1")
+
+# Dry Adiabatic Lapse Rate (DALR) in unit of Km-1
+DALR = 0.0098 

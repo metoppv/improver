@@ -34,7 +34,6 @@ import numpy as np
 import unittest
 
 import cf_units
-import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.coords import (DimCoord,
@@ -46,7 +45,6 @@ from improver.lapse_rate import LapseRate
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -56,8 +54,68 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_process(IrisTest):
+class Test_calc_lapse_rate(IrisTest):
+    """Test the _calc_lapse_rate function."""
 
+    def setUp(self):
+        """Sets up arrays."""
+
+        self.temperature = np.array([280.06, 279.97, 279.90, 280.15, 280.03,
+                                     279.96, 280.25, 280.33, 280.27])
+        self.orography = np.array([174.67, 179.87, 188.46, 155.84, 169.58,
+                                   185.05, 134.90, 144.00, 157.89])
+
+    def test_returns_expected_values(self):
+        """Test that the function returns expected lapse rate. """
+
+        expected_out = -0.00765005774676
+        result = LapseRate()._calc_lapse_rate(self.temperature, self.orography)
+        self.assertArrayAlmostEqual(result, expected_out)
+
+    def test_handles_nan(self):
+        """Test that the function returns a blank value when central point
+           is NaN."""
+        
+        self.temperature[4] = np.nan
+        expected_out = 0.0
+        result = LapseRate()._calc_lapse_rate(self.temperature, self.orography)
+        self.assertArrayAlmostEqual(result, expected_out)
+
+
+class Test_create_heightdiff_mask(IrisTest):
+    """Test the _create_heightdiff_mask function."""
+
+    def setUp(self):
+        """Sets up arrays."""
+
+        self.orography = np.array([[35, 40, 20, 10, 0, 10, 20, -30, -40],
+                                   [35, 40, 20, 10, 0, 10, 20, -30, -40]])
+
+    def test_returns_expected_values(self):
+        """Test that the function returns True at points where the height
+           difference to the central pixel is greater than 35m."""
+
+        expected_out = np.array(
+            [[True, True, False, False, False, False, False, False, True],
+             [True, True, False, False, False, False, False, False, True]])
+
+        result = LapseRate()._create_heightdiff_mask(self.orography)
+        self.assertArrayAlmostEqual(result, expected_out)
+
+    def test_change_height_thresh(self):
+        """Test that the function performs as expected when the height
+           difference threshold has been changed."""
+
+        expected_out = np.array(
+            [[False, True, False, False, False, False, False, False, True],
+             [False, True, False, False, False, False, False, False, True]])
+
+        result = LapseRate(max_height_diff=40)._create_heightdiff_mask(
+            self.orography)
+        self.assertArrayAlmostEqual(result, expected_out)
+
+
+class Test_process(IrisTest):
     """Test the LapseRate processing works"""
 
     def setUp(self):
@@ -80,34 +138,39 @@ class Test_process(IrisTest):
                                 coord_system=STANDARD_GRID_CCRS)
 
         # Set up temperature cube.
-        self.temperature = Cube(data, standard_name="air_temperature",
+        self.temperature = Cube(data, standard_name='air_temperature',
                                 dim_coords_and_dims=[(realization, 0),
                                                      (projection_y, 1),
                                                      (projection_x, 2)],
-                                units="K")
+                                units='K')
 
+        self.temperature.add_aux_coord(time)
         height = AuxCoord([1.5], standard_name='height', units='m')
         self.temperature.add_aux_coord(height)
         self.temperature.attributes['institution'] = 'Met Office'
 
         # Creates bands of temperature running East/West.
         self.temperature.data[:, :, :] = 0
-        self.temperature.data[:, 0:4, 4:6] = -5
-        self.temperature.data[:, 0:4, 6:8] = -10
-        self.temperature.data[:, 0:4, 8:10] = 10
-        self.temperature.data[:, 0:4, 10:12] = 5
-        self.temperature.data[:, 4:8, 4:6] = -10
-        self.temperature.data[:, 4:8, 6:8] = -20
-        self.temperature.data[:, 4:8, 8:10] = 20
-        self.temperature.data[:, 4:8, 10:12] = 10
+        self.temperature.data[:, 0:4, 4:6] = 0.1
+        self.temperature.data[:, 0:4, 6:8] = 0.1
+        self.temperature.data[:, 0:4, 8:10] = 0.1
+        self.temperature.data[:, 0:4, 10:12] = 0.4
+        self.temperature.data[:, 4:8, 4:6] = 0.2
+        self.temperature.data[:, 4:8, 6:8] = 0.2
+        self.temperature.data[:, 4:8, 8:10] = 0.1
+        self.temperature.data[:, 4:8, 10:12] = 0.1
+
+        # Create isolated spot of temperature surrounded by NaN
+        self.temperature.data[:, 0:3, 13:16] = np.nan
+        self.temperature.data[:, 1, 14] = 2
 
         # Copies temperature cube to create orography cube.
         self.orography = self.temperature.copy()[0]
-        self.orography.remove_coord("realization")
-        self.orography.rename("surface_altitude")
+        self.orography.remove_coord('realization')
+        self.orography.rename('surface_altitude')
         self.orography.units = cf_units.Unit('m')
 
-        # Creates a valley in front of a ridge running North/South.
+        # Creates a valley in front of a shallow ridge running North/South.
         self.orography.data[:] = 0
         self.orography.data[:, 4:6] = -10
         self.orography.data[:, 6:8] = -20
@@ -117,7 +180,7 @@ class Test_process(IrisTest):
 
         # Copies orography cube to create land/sea mask cube.
         self.land_sea_mask = self.orography.copy()
-        self.land_sea_mask.rename("land_binary_mask")
+        self.land_sea_mask.rename('land_binary_mask')
         self.land_sea_mask.units = cf_units.Unit('1')
 
         # Creates 'shoreline' running West/East at bottom of domain.
@@ -125,12 +188,87 @@ class Test_process(IrisTest):
         self.land_sea_mask.data[12:] = 0
 
     def test_basic(self):
-        """Test that the plugin returns expected data types. """
+        """Test that the plugin returns expected data type. """
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+        self.assertIsInstance(result, Cube)
+
+    def test_fails_if_data_is_not_cube(self):
+        """Test code raises a Type Error if input cubes are not cubes."""
+        incorrect_input = 50.0
+
+        msg = 'Temperature input is not a cube, but {0}'.format(
+            type(incorrect_input))
+        with self.assertRaisesRegexp(TypeError, msg):
+            LapseRate().process(incorrect_input, self.orography,
+                                self.land_sea_mask)
+
+        msg = 'Orography input is not a cube, but {0}'.format(
+            type(incorrect_input))
+        with self.assertRaisesRegexp(TypeError, msg):
+            LapseRate().process(self.temperature, incorrect_input,
+                                self.land_sea_mask)
+
+        msg = 'Land/Sea mask input is not a cube, but {0}'.format(
+            type(incorrect_input))
+        with self.assertRaisesRegexp(TypeError, msg):
+            LapseRate().process(self.temperature, self.orography,
+                                incorrect_input)
+
+    def test_fails_if_cube_wrong_units(self):
+        """Test code raises a Value Error if input cubes are the
+           wrong units."""
+
+        # Copies cube and converts to wrong units.
+        incorrect_temp = self.temperature.copy()
+        incorrect_temp.convert_units('celsius')
+        incorrect_orog = self.orography.copy()
+        incorrect_orog.convert_units('feet')
+
+        msg = 'Temperature cube units are {}, must be Kelvin!'.format(
+           incorrect_temp.units)
+        with self.assertRaisesRegexp(ValueError, msg):
+            LapseRate().process(incorrect_temp, self.orography,
+                                self.land_sea_mask)
+
+        msg = 'Orography cube units are {}, must be metres!'.format(
+           incorrect_orog.units)
+        with self.assertRaisesRegexp(ValueError, msg):
+            LapseRate().process(self.temperature, incorrect_orog,
+                                self.land_sea_mask)
+
+    def test_return_single_precision(self):
+        """Test that the function returns data of float32."""
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_returns_expected_values(self):
+        """Test that the function returns a cube with the expected values. """
+
+        expected_out = np.array([
+[0.0, 0.0, 0.0, -0.010000, -0.010000, 0.0, -0.0, -0.004988, 0.004988, -0.029400, -0.029400, 0.009800, 0.009800, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, -0.010000,-0.010000,0.0,-0.0,-0.004988,0.004988,-0.029400,-0.029400,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.010000,-0.010000,0.0,-0.0,-0.004988,0.004988,-0.029400,-0.029400,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.013333,-0.013333,0.0,-0.0,-0.006650,0.004988,-0.020000,-0.020000,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.016667,-0.016667,0.0,-0.0,-0.008313,0.004988,-0.010000,-0.010000,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.020000,-0.020000,0.0,-0.0,-0.009975,0.004988,0.000000,0.000000,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.020000,-0.020000,0.0,-0.0,-0.009975,0.004988,0.000000,0.000000,0.009800,0.009800,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.013333,-0.013333,0.0,0.0,-0.006650,0.003325,0.000000,-0.000000,0.006667,0.006667,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0,-0.006667,-0.006667,-0.0,0.0,-0.003325,0.001663,-0.000000,0.000000,0.003333,0.003333,0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
         result = LapseRate().process(self.temperature, self.orography,
                                      self.land_sea_mask)
 
-        self.assertIsInstance(result_cube, Cube)
+        self.assertArrayAlmostEqual(result.data, expected_out)
 
 
 if __name__ == '__main__':
