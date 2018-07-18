@@ -172,7 +172,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
-        msg = ('<WindDirection: backup_method "neighbourhood">')
+        msg = ('<WindDirection: backup_method "neighbourhood"; neighbourhood '
+            'radius "6000.0"m>')
         self.assertEqual(result, msg)
 
 
@@ -361,7 +362,7 @@ class Test_wind_dir_decider(IrisTest):
         meaningless with an r value of nearly zero. So the code substitutes the
         wind direction taken from the first ensemble value in its place."""
         cube = make_wdir_cube_222()
-        self.plugin = WindDirection(backup_method="first realization")
+        self.plugin = WindDirection(backup_method="first_realization")
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
         self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
@@ -381,8 +382,7 @@ class Test_wind_dir_decider(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Casting complex values"],
-        warning_types=[np.ComplexWarning],
-        warnings_list=True)
+        warning_types=[np.ComplexWarning])
     def test_runs_function_nbhood(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
@@ -431,6 +431,20 @@ class Test_process(IrisTest):
         """Create a cube with collapsable coordinates."""
         self.cube = make_wdir_cube_534()
 
+        self.expected_wind_mean = (
+            np.array([[[176.63627625, 46.00244522, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 36.54423141],
+                       [333.41320801, 320.03521729, 10.0, 10.0]]]))
+
+        self.expected_r_vals = np.array([[0.5919044, 0.99634719, 0.2, 0.6],
+                                         [1.0, 1.0, 1.0, 0.92427504],
+                                         [0.87177974, 0.91385943, 1.0, 1.0]])
+
+        self.expected_confidence_measure = (
+            np.array([[0.73166388, 0.95813018, 0.6, 0.8],
+                      [1.0, 1.0, 1.0, 0.84808648],
+                      [0.75270665, 0.83861077, 1.0, 1.0]]))
+
     def test_basic(self):
         """Test that the plugin returns expected data types. """
         result_cube, r_vals_cube, confidence_measure_cube = (
@@ -469,19 +483,31 @@ class Test_process(IrisTest):
     def test_returns_expected_values(self):
         """Test that the function returns correct 2D arrays of floats. """
 
-        expected_wind_mean = (
-            np.array([[[176.63627625, 46.00244522, 90.0, 90.0],
-                       [170.0, 170.0, 47.0, 36.54423141],
-                       [333.41320801, 320.03521729, 10.0, 10.0]]]))
+        result_cube, r_vals_cube, confidence_measure_cube = (
+            WindDirection().process(self.cube))
 
-        expected_r_vals = np.array([[0.5919044, 0.99634719, 0.2, 0.6],
-                                    [1.0, 1.0, 1.0, 0.92427504],
-                                    [0.87177974, 0.91385943, 1.0, 1.0]])
+        result = result_cube.data
+        r_vals = r_vals_cube.data
+        confidence_measure = confidence_measure_cube.data
 
-        expected_confidence_measure = (
-            np.array([[0.73166388, 0.95813018, 0.6, 0.8],
-                      [1.0, 1.0, 1.0, 0.84808648],
-                      [0.75270665, 0.83861077, 1.0, 1.0]]))
+        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(r_vals, np.ndarray)
+        self.assertIsInstance(confidence_measure, np.ndarray)
+        self.assertArrayAlmostEqual(result, self.expected_wind_mean)
+        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
+        self.assertArrayAlmostEqual(
+            confidence_measure, self.expected_confidence_measure)
+
+    @ManageWarnings(
+        ignored_messages=["Casting complex values"],
+        warning_types=[np.ComplexWarning])
+    def test_with_backup(self):
+        """Test behaviour changes for a low-confidence point."""
+
+        self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
+        self.expected_wind_mean[0, 1, 1] = 30.77989074
+        self.expected_r_vals[1, 1] = 2.384186e-08
+        self.expected_confidence_measure[1, 1] = 0.0
 
         result_cube, r_vals_cube, confidence_measure_cube = (
             WindDirection().process(self.cube))
@@ -493,19 +519,10 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
         self.assertIsInstance(confidence_measure, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_wind_mean)
-        self.assertArrayAlmostEqual(r_vals, expected_r_vals)
+        self.assertArrayAlmostEqual(result, self.expected_wind_mean)
+        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
         self.assertArrayAlmostEqual(
-            confidence_measure, expected_confidence_measure)
-
-    def test_with_backup(self):
-        """Test raises domain-to-small error when backup method invoked."""
-
-        self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
-
-        msg = ('Distance of ')
-        with self.assertRaisesRegex(ValueError, msg):
-            WindDirection().process(self.cube)
+            confidence_measure, self.expected_confidence_measure)
 
 
 if __name__ == '__main__':

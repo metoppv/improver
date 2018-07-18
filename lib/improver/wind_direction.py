@@ -33,7 +33,6 @@
 import iris
 from iris.coords import CellMethod
 import numpy as np
-import math
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import enforce_float32_precision
 from improver.nbhood.nbhood import NeighbourhoodProcessing
@@ -86,7 +85,7 @@ class WindDirection(object):
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first realization" uses the value of realization zero.
+            "first_realization" uses the value of realization zero.
             "neighbourhood" (default) recalculates using the complex numbers
             approach with additional realizations extracted from neighbouring
             grid points from all available realizations.
@@ -95,7 +94,7 @@ class WindDirection(object):
 
     def __init__(self, backup_method='neighbourhood'):
         """Initialise class."""
-        self.backup_methods = ['first realization', 'neighbourhood']
+        self.backup_methods = ['first_realization', 'neighbourhood']
         self.backup_method = backup_method
         if self.backup_method not in self.backup_methods:
             msg = ('Invalid option for keyword backup_method '
@@ -110,12 +109,18 @@ class WindDirection(object):
         self.wdir_cube_list = iris.cube.CubeList()
         self.r_vals_cube_list = iris.cube.CubeList()
         self.confidence_measure_cube_list = iris.cube.CubeList()
+        # Radius used in neighbourhood plugin as determined in IMPRO-491
+        self.nb_radius = 6000.  # metres
+        # Initialise neighbourhood plugin ready for use
+        self.nbhood = NeighbourhoodProcessing('square',
+                                              self.nb_radius,
+                                              weighted_mode=False)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<WindDirection: backup_method "{}">'
-        ).format(self.backup_method)
+            '<WindDirection: backup_method "{}"; neighbourhood radius "{}"m>'
+        ).format(self.backup_method, self.nb_radius)
 
     def _reset(self):
         """Empties working data objects"""
@@ -322,22 +327,23 @@ class WindDirection(object):
         self.confidence_slice = self.wdir_slice_mean.copy(
             data=dist_from_mean_norm)
 
-    def wind_dir_decider(self, where_low_r, first_member):
+    def wind_dir_decider(self, where_low_r, wdir_cube):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
            We therefore substitute this meaningless average wind
-           direction value for the wind direction taken from the first
-           ensemble realization.
+           direction value for the wind direction calculated from a larger
+           sample by smoothing across a neighbourhood of points before
+           rerunning the main technique.
+           This is invoked rarely (1 : 100 000)
 
         Arguments:
             where_low_r (np.array):
                 Array of boolean values. True where original wind direction
                 estimate has low confidence. These points are replaced
                 according to self.backup_method
-            first_member (iris.cube.Cube):
-                Contains array of wind direction data from the first ensemble
-                realization
+            wdir_cube (iris.cube.Cube):
+                Contains array of wind direction data (realization, y, x)
 
         Uses:
             self.wdir_slice_mean (iris.cube.Cube):
@@ -364,20 +370,17 @@ class WindDirection(object):
         if self.backup_method == 'neighbourhood':
             # Performs smoothing over a 6km square neighbourhood.
             # Then calculates the mean wind direction.
-            nb_radius = math.sqrt((6000.**2.) * self.n_realizations)
-            nbhood = NeighbourhoodProcessing('square',
-                                             nb_radius,
-                                             weighted_mode=False)
-            child_class = WindDirection(backup_method="first realization")
-            child_class.wdir_complex = nbhood.process(
-                first_member.copy(data=self.wdir_complex)).data
+            child_class = WindDirection(backup_method="first_realization")
+            child_class.wdir_complex = self.nbhood.process(
+                wdir_cube.copy(data=self.wdir_complex)).data
             child_class.realization_axis = self.realization_axis
             child_class.wdir_slice_mean = self.wdir_slice_mean.copy()
             child_class.wind_dir_mean()
             improved_values = child_class.wdir_slice_mean.data
         else:
-            # Takes first ensemble realization.
-            improved_values = first_member[0].data
+            # Takes realization zero (control member).
+            improved_values = wdir_cube.extract(
+                iris.Constraint(realization=0)).data
 
         # If the r-value is low - substitute average wind direction value for
         # the wind direction taken from the first ensemble realization.
