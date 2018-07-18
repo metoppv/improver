@@ -173,7 +173,7 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(WindDirection())
         msg = ('<WindDirection: backup_method "neighbourhood"; neighbourhood '
-            'radius "6000.0"m>')
+               'radius "6000.0"m>')
         self.assertEqual(result, msg)
 
 
@@ -411,12 +411,12 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_complex = np.pad(WIND_DIR_COMPLEX,
                                           ((0, 0), (4, 4), (4, 4)),
                                           "constant",
-                                          constant_values=(0.0+ 0.0j))
+                                          constant_values=(0.0 + 0.0j))
         self.plugin.wdir_slice_mean = pad_wdir_cube_222()[0]
         self.plugin.wdir_slice_mean.data = np.pad(wind_dir_deg_mean,
                                                   ((4, 4), (4, 4)),
                                                   "constant",
-                                                  constant_values=(0.0+ 0.0j))
+                                                  constant_values=(0.0 + 0.0j))
 
         self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
