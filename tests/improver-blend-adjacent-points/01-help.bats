@@ -34,12 +34,12 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-blend-adjacent-points [-h] [--profile]
-                                      [--profile_file PROFILE_FILE]
-                                      [--parameter_unit UNIT_STRING]
-                                      [--calendar CALENDAR]
-                                      COORDINATE_TO_BLEND_OVER
-                                      WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
-                                      INPUT_FILE OUTPUT_FILE
+                                      [--profile_file PROFILE_FILE] --units
+                                      UNIT_STRING [--calendar CALENDAR]
+                                      --width TRIANGLE_WIDTH
+                                      COORDINATE_TO_BLEND_OVER CENTRAL_POINT
+                                      WEIGHTED_BLEND_MODE INPUT_FILES
+                                      [INPUT_FILES ...] OUTPUT_FILE
 
 Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
 particular coordinate. It does not collapse the coordinate, but instead blends
@@ -51,15 +51,18 @@ positional arguments:
   COORDINATE_TO_BLEND_OVER
                         The coordinate over which the blending will be
                         applied.
+  CENTRAL_POINT         Central point at which the output from the triangular
+                        weighted blending will be calculated. This should be
+                        in the units of the units argument that is passed
+                        in.This value should be a point on the coordinate for
+                        blending over.
   WEIGHTED_BLEND_MODE   The method used in the weighted blend.
                         "weighted_mean": calculate a normal weighted mean
                         across the coordinate. "weighted_maximum": multiplies
                         the values in the coordinate by the weights, and then
                         takes the maximum.
-  TRIANGLE_WIDTH        Width of the triangular weighting function used in the
-                        blending, in the units of the parameter_unit passed
-                        in.
-  INPUT_FILE            A path to an input NetCDF file to be processed.
+  INPUT_FILES           Paths to input NetCDF files including and surrounding
+                        the central_point.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
@@ -67,11 +70,13 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --parameter_unit UNIT_STRING
-                        Units for time coordinate. Default= hours since
-                        1970-01-01 00:00:00.
+  --units UNIT_STRING   Units of the the central_point and width.
   --calendar CALENDAR   Calendar for parameter_unit if required.
                         Default=gregorian
+  --width TRIANGLE_WIDTH
+                        Width of the triangular weighting function used in the
+                        blending, in the units of the units argument passed
+                        in.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

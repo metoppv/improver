@@ -55,14 +55,24 @@ def main():
                         metavar='COORDINATE_TO_BLEND_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
-    parser.add_argument('--parameter_unit', metavar='UNIT_STRING',
-                        default='hours since 1970-01-01 00:00:00',
-                        help='Units for time coordinate. Default= '
-                             'hours since 1970-01-01 00:00:00.')
+    parser.add_argument('central_point', metavar='CENTRAL_POINT', type=float,
+                        help='Central point at which the output from the '
+                             'triangular weighted blending will be '
+                             'calculated. This should be in the units of the '
+                             'units argument that is passed in.'
+                             'This value should be a point on the '
+                             'coordinate for blending over.')
+    parser.add_argument('--units', metavar='UNIT_STRING', required=True,
+                        help='Units of the the central_point and width.')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         default='gregorian',
                         help='Calendar for parameter_unit if required. '
                              'Default=gregorian')
+    parser.add_argument('--width', metavar='TRIANGLE_WIDTH', type=float,
+                        required=True,
+                        help='Width of the triangular weighting function used '
+                             'in the blending, in the units of the '
+                             'units argument passed in.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -71,30 +81,26 @@ def main():
                              '"weighted_maximum": multiplies the values in the'
                              ' coordinate by the weights, and then takes the'
                              ' maximum.')
-    parser.add_argument('width', metavar='TRIANGLE_WIDTH',
-                        help='Width of the triangular weighting function used '
-                             'in the blending, in the units of the '
-                             'parameter_unit passed in.')
-    parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
+    parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
+                        help='Paths to input NetCDF files including and '
+                             'surrounding the central_point.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
     args = parser.parse_args()
 
     if args.coordinate == 'time':
-        parameter_unit = Unit(args.parameter_unit, args.calendar)
-    elif args.parameter_unit != 'hours since 1970-01-01 00:00:00':
-        parameter_unit = args.parameter_unit
+        units = Unit(args.units, args.calendar)
     else:
-        parameter_unit = 'no_unit'
+        units = args.units
 
     width = float(args.width)
 
-    cube = load_cube(args.input_filepath)
+    cube = load_cube(args.input_filepaths)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, width, parameter_unit, args.weighting_mode)
+        args.coordinate, args.central_point, units, width,
+        args.weighting_mode)
     result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
 

@@ -47,22 +47,21 @@ class Test___repr__(IrisTest):
 
     def test_basic(self):
         """Test the repr function formats the arguments correctly"""
-        width = 3
+        width = 3.0
         triangular_weights_instance = ChooseDefaultWeightsTriangular(
-            width,
-            units='hours')
+            width, units='hours')
         result = str(triangular_weights_instance)
-        expected = ("<ChooseDefaultTriangularWeights width= 3.0,"
-                    " parameters_units=hours>")
+        expected = ("<ChooseDefaultTriangularWeights "
+                    "width=3.0, parameters_units=hours>")
         self.assertEqual(result, expected)
 
     def test_basic_no_units(self):
         """Test the repr function formats the arguments correctly"""
-        width = 3
+        width = 3.0
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         result = str(triangular_weights_instance)
-        expected = ("<ChooseDefaultTriangularWeights width= 3.0,"
-                    " parameters_units=no_unit>")
+        expected = ("<ChooseDefaultTriangularWeights "
+                    "width=3.0, parameters_units=no_unit>")
         self.assertEqual(result, expected)
 
 
@@ -77,8 +76,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 5
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         self.assertIsInstance(weights, np.ndarray)
         self.assertEqual(len(weights), len(coord_vals))
         self.assertEqual(weights.sum(), 1.0)
@@ -90,8 +89,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 5
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0., 0., 0.,
                                      0.11111111, 0.22222222, 0.33333333,
                                      0.22222222, 0.11111111, 0.,
@@ -107,8 +106,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 1
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0.25, 0.375, 0.25,
                                      0.125, 0., 0.,
                                      0., 0., 0.,
@@ -125,8 +124,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 5
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0.055556, 0.066667, 0.077778,
                                      0.088889, 0.1, 0.111111,
                                      0.1, 0.088889, 0.077778,
@@ -142,8 +141,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 3.5
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0., 0., 0.125,
                                      0.375, 0.375, 0.125,
                                      0., 0., 0.,
@@ -158,8 +157,8 @@ class Test_triangular_weights(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         coord_vals = np.arange(15)
         midpoint = 5
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0., 0., 0.04,
                                      0.12, 0.2, 0.28,
                                      0.2, 0.12, 0.04,
@@ -177,8 +176,8 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(10)
         coord_vals = np.append(coord_vals, [12, 15, 18, 21, 24])
         midpoint = 8
-        weights = triangular_weights_instance.triangular_weights(coord_vals,
-                                                                 midpoint)
+        weights = triangular_weights_instance.triangular_weights(
+            coord_vals, midpoint, width)
         expected_weights = np.array([0., 0., 0.,
                                      0., 0.05, 0.1,
                                      0.15, 0.2, 0.25,
@@ -203,8 +202,8 @@ class Test___init__(IrisTest):
     def test_string_input(self):
         """Test the case where a string is passed and gets converted to a
            cf_units.Unit instance"""
-        width = 5
         units = "hour"
+        width = 5
         weights_instance = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
         expected_unit = cf_units.Unit("hour")
@@ -227,8 +226,8 @@ class Test_process(IrisTest):
         """Test plugin produces the correct weights when the parameters for
            the triangle are in the same units as the input cube's coordinate"""
         width = 2
-        weights_instance = ChooseDefaultWeightsTriangular(width,
-                                                          units=self.units)
+        weights_instance = ChooseDefaultWeightsTriangular(
+            width, units=self.units)
         midpoint = 1
         weights = weights_instance.process(self.cube,
                                            self.coord_name,
@@ -241,8 +240,8 @@ class Test_process(IrisTest):
             the triangle are in different units to the input cube's
             coordinate"""
         width = 7200
-        weights_instance = ChooseDefaultWeightsTriangular(width,
-                                                          units="seconds")
+        weights_instance = ChooseDefaultWeightsTriangular(
+            width, units="seconds")
         midpoint = 1
         weights = weights_instance.process(self.cube,
                                            self.coord_name,

@@ -34,12 +34,12 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-blend-adjacent-points [-h] [--profile]
-                                      [--profile_file PROFILE_FILE]
-                                      [--parameter_unit UNIT_STRING]
-                                      [--calendar CALENDAR]
-                                      COORDINATE_TO_BLEND_OVER
-                                      WEIGHTED_BLEND_MODE TRIANGLE_WIDTH
-                                      INPUT_FILE OUTPUT_FILE
+                                      [--profile_file PROFILE_FILE] --units
+                                      UNIT_STRING [--calendar CALENDAR]
+                                      --width TRIANGLE_WIDTH
+                                      COORDINATE_TO_BLEND_OVER CENTRAL_POINT
+                                      WEIGHTED_BLEND_MODE INPUT_FILES
+                                      [INPUT_FILES ...] OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

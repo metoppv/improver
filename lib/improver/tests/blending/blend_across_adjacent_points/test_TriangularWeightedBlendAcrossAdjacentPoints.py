@@ -35,6 +35,7 @@ import unittest
 
 from cf_units import Unit
 
+import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -44,6 +45,7 @@ import numpy as np
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_cube():
@@ -67,6 +69,19 @@ def set_up_cube():
     return orig_cube
 
 
+def cubes_for_tests():
+    """Set up cubes for unit tests."""
+    cube = set_up_cube()
+    data = np.zeros((2, 2, 2))
+    data[0][:][:] = 1.0
+    data[1][:][:] = 2.0
+    cube.data = data
+    forecast_period = 0
+    constr = iris.Constraint(forecast_period=forecast_period)
+    central_cube = cube.extract(constr)
+    return cube, central_cube, forecast_period
+
+
 class Test__repr__(IrisTest):
 
     """Test the __repr__ method."""
@@ -74,11 +89,12 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         width = 3.0
+        forecast_period = 1
         result = str(TriangularWeightedBlendAcrossAdjacentPoints(
-            'time', width, 'hours', 'weighted_mean'))
+            'time', forecast_period, 'hours', width, 'weighted_mean'))
         msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
-               ' coord = time, width = 3.00,'
-               ' parameter_units = hours, mode = weighted_mean>')
+               ' coord = time, central_point = 1.00, '
+               'parameter_units = hours, width = 3.00, mode = weighted_mean>')
         self.assertEqual(result, msg)
 
 
@@ -89,8 +105,9 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         width = 3.0
+        forecast_period = 1
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'time', width, 'hours', 'weighted_mean')
+            'time', forecast_period, 'hours', width, 'weighted_mean')
         expected_coord = "time"
         expected_width = 3.0
         expected_parameter_units = "hours"
@@ -104,102 +121,39 @@ class Test__init__(IrisTest):
                    "must be either weighted_maximum or weighted_mean")
         with self.assertRaisesRegex(ValueError, message):
             TriangularWeightedBlendAcrossAdjacentPoints(
-                'time', 3.0, 'hours', 'no_mode')
+                'time', 1, 'hours', 3.0, 'no_mode')
 
 
-class Test_correct_collapsed_coordinates(IrisTest):
-
-    """Test the correct_collapsed_coordinates method"""
+class Test__find_central_point(IrisTest):
+    """Test the _find_central_point."""
 
     def setUp(self):
-        """Set up a test orig_cube, new_cube and plugin instance."""
-        self.orig_cube = set_up_cube()
-        new_cube = set_up_cube()
-        new_cube.remove_coord('longitude')
-        new_cube.add_dim_coord(DimCoord(np.linspace(100, 160, 2), 'longitude',
-                                        units='degrees'), 2)
-        new_cube.remove_coord('forecast_period')
-        new_cube.add_aux_coord(DimCoord([5, 6],
-                                        "forecast_period", units="hours"), 0)
-        self.new_cube = new_cube
-        self.plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'time', 1.0, 'hours', 'weighted_mean')
+        """Set up a test cube."""
+        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
+        self.width = 1.0
 
-    def test_no_change_to_new_cube(self):
-        """Test it does nothing when nothing to correct"""
-        input_new_cube = self.new_cube.copy()
-        self.plugin.correct_collapsed_coordinates(self.orig_cube,
-                                                  input_new_cube, ['latitude'])
-        self.assertEqual(input_new_cube, self.new_cube)
+    def test_central_point_available(self):
+        """Test that the central point is available within the input cube."""
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', self.forecast_period, 'hours', self.width,
+            'weighted_mean')
+        central_cube = plugin._find_central_point(self.cube)
+        self.assertEqual(self.central_cube.coord('forecast_period'),
+                         central_cube.coord('forecast_period'))
+        self.assertEqual(self.central_cube.coord('time'),
+                         central_cube.coord('time'))
+        self.assertArrayEqual(self.central_cube.data, central_cube.data)
 
-    def test_change_one_coord(self):
-        """Test it changes only one coordinate"""
-        input_new_cube = self.new_cube.copy()
-        self.plugin.correct_collapsed_coordinates(self.orig_cube,
-                                                  input_new_cube,
-                                                  ['longitude'])
-        self.assertEqual(input_new_cube.coord('longitude'),
-                         self.orig_cube.coord('longitude'))
-        self.assertEqual(input_new_cube.coord('latitude'),
-                         self.new_cube.coord('latitude'))
-        self.assertEqual(input_new_cube.coord('forecast_period'),
-                         self.new_cube.coord('forecast_period'))
-
-    def test_change_two_coord(self):
-        """Test it corrects multiple coordinate"""
-        input_new_cube = self.new_cube.copy()
-        self.plugin.correct_collapsed_coordinates(
-            self.orig_cube, input_new_cube, ['longitude', 'forecast_period'])
-        self.assertEqual(input_new_cube.coord('longitude'),
-                         self.orig_cube.coord('longitude'))
-        self.assertEqual(input_new_cube.coord('latitude'),
-                         self.new_cube.coord('latitude'))
-        self.assertEqual(input_new_cube.coord('forecast_period'),
-                         self.orig_cube.coord('forecast_period'))
-
-    def test_bounds_corrected(self):
-        """Test it corrects bounds"""
-        input_new_cube = self.new_cube.copy()
-        input_orig_cube = self.orig_cube.copy()
-        input_orig_cube.remove_coord('forecast_period')
-        input_orig_cube.add_aux_coord(DimCoord(
-            [5, 6], "forecast_period", bounds=[[4.5, 5.5], [5.5, 6.5]],
-            units="hours"), 0)
-        self.plugin.correct_collapsed_coordinates(
-            input_orig_cube, input_new_cube, ['forecast_period'])
-        self.assertEqual(input_new_cube.coord('forecast_period'),
-                         input_orig_cube.coord('forecast_period'))
-
-    def test_wrong_size_coords(self):
-        """Test it raises an error when new_cube and old_cube have
-           different length coordinates"""
-        data = np.zeros((2, 2, 2))
-        orig_cube = Cube(data, units="m",
-                         standard_name="lwe_thickness_of_precipitation_amount")
-        orig_cube.add_dim_coord(DimCoord([0, 1], "forecast_period",
-                                         units="hours"), 0)
-        data = np.zeros((3, 2, 2))
-        new_cube = Cube(data, units="m",
-                        standard_name="lwe_thickness_of_precipitation_amount")
-        new_cube.add_dim_coord(DimCoord([0, 1, 2], "forecast_period",
-                                        units="hours"), 0)
-
-        # r added in front of error message string to make this a raw string
-        # and avoid 'anomalous backslash in string' codacy and travis errors.
-        message = r"Require data with shape \(3,\), got \(2,\)\."
-        with self.assertRaisesRegex(ValueError, message):
-            self.plugin.correct_collapsed_coordinates(orig_cube, new_cube,
-                                                      ['forecast_period'])
-
-    def test_exception_when_coord_not_found(self):
-        """Test that an exception is raised by Iris when we try to correct
-           a coordinate that doesn't exist."""
-        self.new_cube.remove_coord('forecast_period')
-        message = "Expected to find exactly 1 .* coordinate, but found none."
-        with self.assertRaisesRegex(CoordinateNotFoundError, message):
-            self.plugin.correct_collapsed_coordinates(self.orig_cube,
-                                                      self.new_cube,
-                                                      ['forecast_period'])
+    def test_central_point_not_available(self):
+        """Test that the central point is not available within the
+           input cube."""
+        forecast_period = 2
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', forecast_period, 'hours', self.width,
+            'weighted_mean')
+        msg = "The central point of"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin._find_central_point(self.cube)
 
 
 class Test_process(IrisTest):
@@ -207,68 +161,104 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
-        self.cube = set_up_cube()
-        data = np.zeros((2, 2, 2))
-        data[0][:][:] = 1.0
-        data[1][:][:] = 2.0
-        self.cube.data = data
+        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_1(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 1. This is equivalent to no blending."""
         width = 1.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'forecast_period', width, 'hours', 'weighted_mean')
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_mean')
         result = plugin.process(self.cube)
-        self.assertEqual(self.cube.coord('forecast_period'),
+        self.assertEqual(self.central_cube.coord('forecast_period'),
                          result.coord('forecast_period'))
-        self.assertEqual(self.cube.coord('time'), result.coord('time'))
-        self.assertArrayEqual(self.cube.data, result.data)
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
+        self.assertArrayEqual(self.central_cube.data, result.data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_2(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 2 and there is some blending."""
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'forecast_period', width, 'hours', 'weighted_mean')
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_mean')
         result = plugin.process(self.cube)
-        expected_data = np.array([[[1.333333, 1.333333],
-                                   [1.333333, 1.333333]],
-                                  [[1.666666, 1.666666],
-                                   [1.666666, 1.666666]]])
-        self.assertEqual(self.cube.coord('forecast_period'),
+        expected_data = np.array([[1.333333, 1.333333],
+                                  [1.333333, 1.333333]])
+        self.assertEqual(self.central_cube.coord('forecast_period'),
                          result.coord('forecast_period'))
-        self.assertEqual(self.cube.coord('time'), result.coord('time'))
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
         self.assertArrayAlmostEqual(expected_data, result.data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_1_max_mode(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 1. This is equivalent to no blending. This time
            use the weighted_maximum mode"""
         width = 1.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'forecast_period', width, 'hours', 'weighted_maximum')
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_maximum')
         result = plugin.process(self.cube)
-        self.assertEqual(self.cube.coord('forecast_period'),
+        self.assertEqual(self.central_cube.coord('forecast_period'),
                          result.coord('forecast_period'))
-        self.assertEqual(self.cube.coord('time'), result.coord('time'))
-        self.assertArrayEqual(self.cube.data, result.data)
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
+        self.assertArrayEqual(self.central_cube.data, result.data)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_2_max_mode(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 2 and there is some blending. This time
            use the weighted_maximum mode"""
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            'forecast_period', width, 'hours', 'weighted_maximum')
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_maximum')
         result = plugin.process(self.cube)
-        expected_data = np.array([[[0.6666666, 0.6666666],
-                                   [0.6666666, 0.6666666]],
-                                  [[1.3333333, 1.3333333],
-                                   [1.3333333, 1.3333333]]])
-        self.assertEqual(self.cube.coord('forecast_period'),
+        expected_data = np.array([[0.6666666, 0.6666666],
+                                  [0.6666666, 0.6666666]])
+        self.assertEqual(self.central_cube.coord('forecast_period'),
                          result.coord('forecast_period'))
-        self.assertEqual(self.cube.coord('time'), result.coord('time'))
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
+        self.assertArrayAlmostEqual(expected_data, result.data)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_central_point_not_in_allowed_range(self):
+        """Test that an exception is generated when the central cube is not
+           within the allowed range."""
+        width = 1.0
+        forecast_period = 2
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', forecast_period, 'hours', width,
+            'weighted_mean')
+        msg = "The central point of"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.cube)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_alternative_parameter_units(self):
+        """Test that the plugin produces sensible results when the width
+           of the triangle is 7200 seconds. """
+        forecast_period = 0
+        width = 7200.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', forecast_period, 'seconds', width,
+            'weighted_mean')
+        result = plugin.process(self.cube)
+        expected_data = np.array([[1.333333, 1.333333],
+                                  [1.333333, 1.333333]])
+        self.assertEqual(self.central_cube.coord('forecast_period'),
+                         result.coord('forecast_period'))
+        self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
         self.assertArrayAlmostEqual(expected_data, result.data)
 
 
