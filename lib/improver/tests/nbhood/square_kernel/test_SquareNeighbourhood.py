@@ -1090,9 +1090,6 @@ class Test_run(IrisTest):
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
-    @ManageWarnings(
-        ignored_messages=["Casting complex values to real discards the "
-                          "imaginary part"], warning_types=[np.ComplexWarning])
     def test_complex(self):
         """Test that a cube containing complex numbers is sensibly processed"""
         cube = set_up_cube(

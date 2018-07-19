@@ -521,7 +521,7 @@ class SquareNeighbourhood(object):
         # Set up mask_cube
         if not mask_cube:
             mask = cube.copy()
-            mask.data[::] = 1.0
+            mask.data = np.real(np.ones_like(mask.data))
         else:
             mask = mask_cube
         # If there is a mask, fill the data array of the mask_cube with a

@@ -380,9 +380,6 @@ class Test_wind_dir_decider(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["Casting complex values"],
-        warning_types=[np.ComplexWarning])
     def test_runs_function_nbhood(self):
         """First element has two angles directly opposite (90 & 270 degs).
         Therefore the calculated mean angle of 180 degs is basically
@@ -498,9 +495,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             confidence_measure, self.expected_confidence_measure)
 
-    @ManageWarnings(
-        ignored_messages=["Casting complex values"],
-        warning_types=[np.ComplexWarning])
     def test_with_backup(self):
         """Test behaviour changes for a low-confidence point."""
 
