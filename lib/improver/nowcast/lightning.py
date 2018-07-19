@@ -1,7 +1,6 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,6 +33,7 @@ import numpy as np
 import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.temporal import iris_time_to_datetime
 from improver.nowcast.convection.handle_vii import ApplyIce
 from improver.nowcast.convection.handle_precip import ApplyPrecip
 
@@ -233,10 +233,13 @@ With:
         """
         new_cube_list = iris.cube.CubeList([])
         for cube_slice in cube.slices_over('time'):
-            thistime = cube_slice.coord('time').points
+            thispoint = cube_slice.coord('time').points[0]
+            thistime = iris_time_to_datetime(
+                cube_slice.coord('time').copy())[0]
             this_ltng = ltng_cube.extract(iris.Constraint(time=thistime))
-            fg_time = fg_cube.coord('time').points[
-                fg_cube.coord('time').nearest_neighbour_index(thistime)]
+            fg_time = iris_time_to_datetime(
+                fg_cube.coord('time').copy())[
+                fg_cube.coord('time').nearest_neighbour_index(thispoint)]
             this_fg = fg_cube.extract(iris.Constraint(time=fg_time))
             err_string = "No matching {} cube for {}"
             assert isinstance(this_ltng,

@@ -1,7 +1,6 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,6 +35,7 @@ import iris
 import numpy as np
 from improver.utilities.rescale import apply_double_scaling
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 class ApplyPrecip(object):
@@ -125,7 +125,8 @@ class ApplyPrecip(object):
         first_guess_cube.coord('forecast_period').convert_units('minutes')
         new_cube_list = iris.cube.CubeList([])
         for cube_slice in first_guess_cube.slices_over('time'):
-            thistime = cube_slice.coord('time').points
+            thistime = iris_time_to_datetime(
+                cube_slice.coord('time').copy())[0]
             this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
                                               iris.Constraint(threshold=0.5))
             high_precip = precip_cube.extract(iris.Constraint(time=thistime) &

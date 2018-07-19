@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -151,7 +151,8 @@ class Test__update_meta(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "lightning_probability")
         self.assertEqual(result.attributes, {})
-        msg = "Expected to find exactly 1  coordinate, but found none."
+        msg = ("Expected to find exactly 1 threshold coordinate, but found "
+               "none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             result.coord('threshold')
 
