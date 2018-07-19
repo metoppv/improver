@@ -1,12 +1,12 @@
 # Dependencies for a feature complete installation
 # ------------------------------------------------
 
-SciTools/iris>=2.0.0
-SciTools/cartopy>=0.16.0
-SciTools/cf_units>=1.2.0
+iris>=2.0.0
+cartopy>=0.16.0
+cf_units>=1.2.0
 netCDF4>=1.3.1
 pandas>=0.23.0
-SciTools-incubator/python-stratify>=0.1
+python-stratify>=0.1
 sphinx>=1.7
 sqlite3>=2.6.0
 statsmodels>=0.9.0
