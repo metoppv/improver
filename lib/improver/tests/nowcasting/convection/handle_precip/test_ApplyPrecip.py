@@ -35,7 +35,7 @@ from iris.tests import IrisTest
 from iris.cube import Cube
 
 import cf_units
-from improver.nowcast.convection.handle_precip import ApplyPrecip as Plugin
+from improver.nowcasting.convection.handle_precip import ApplyPrecip as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\

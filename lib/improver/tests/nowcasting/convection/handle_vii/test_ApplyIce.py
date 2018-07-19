@@ -37,7 +37,7 @@ from iris.util import squeeze
 
 import cf_units
 import numpy as np
-from improver.nowcast.convection.handle_vii import ApplyIce as Plugin
+from improver.nowcasting.convection.handle_vii import ApplyIce as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\

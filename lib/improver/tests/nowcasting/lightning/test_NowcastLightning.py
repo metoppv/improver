@@ -41,7 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import cf_units
 
-from improver.nowcast.lightning import NowcastLightning as Plugin
+from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\

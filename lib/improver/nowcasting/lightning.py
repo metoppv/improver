@@ -34,8 +34,8 @@ import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.nowcast.convection.handle_vii import ApplyIce
-from improver.nowcast.convection.handle_precip import ApplyPrecip
+from improver.nowcasting.convection.handle_vii import ApplyIce
+from improver.nowcasting.convection.handle_precip import ApplyPrecip
 
 
 class NowcastLightning(object):
@@ -93,7 +93,7 @@ class NowcastLightning(object):
             The default values are selected to represent lightning risk
             index values of 1 and 2 relating to the key.
 
-        precip_method = (improver.nowcast.lightning.
+        precip_method = (improver.nowcasting.lightning.
                          handle_precip.ApplyPrecip()):
             Initiated plugin with a process method that takes two
             iris.cube.Cube arguments of lightning probability and precipitation
@@ -101,7 +101,7 @@ class NowcastLightning(object):
             Default value of None causes a plugin to be initiated using the
             problightning_values available in this plugin.
 
-        ice_method = (improver.nowcast.lightning.handle_vii.ApplyIce()):
+        ice_method = (improver.nowcasting.lightning.handle_vii.ApplyIce()):
             Initiated plugin with a process method that takes two
             iris.cube.Cube arguments of lightning probability and vertically
             integrated ice and returns an updated lightning probability cube.
