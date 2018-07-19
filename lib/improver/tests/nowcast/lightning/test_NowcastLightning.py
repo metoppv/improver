@@ -152,7 +152,7 @@ class Test__update_meta(IrisTest):
         self.assertEqual(result.name(), "lightning_probability")
         self.assertEqual(result.attributes, {})
         msg = "Expected to find exactly 1  coordinate, but found none."
-        with self.assertRaisesRegexp(CoordinateNotFoundError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             result.coord('threshold')
 
     def test_input(self):

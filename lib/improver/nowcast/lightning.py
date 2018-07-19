@@ -193,7 +193,7 @@ With:
         new_cube.remove_coord('threshold')
         new_cube.attributes = {}
         if self.debug:
-            print('In {}, new_cube is {}'.format(self, new_cube))
+            print(('In {}, new_cube is {}'.format(self, new_cube)))
         return new_cube
 
     def _modify_first_guess(self, cube, fg_cube, ltng_cube, precip_cube,
@@ -260,8 +260,8 @@ With:
                 self.pl_dict[2], cube_slice.data)
             lratethresh = self.lrt_lev1(fcmins)
             if self.debug:
-                print 'LRate threshold is {} strikes per minute'.format(
-                    lratethresh)
+                print('LRate threshold is {} strikes per minute'.format(
+                    lratethresh))
 
             # Increase prob(lightning) to Risk 1 (pl_dict[1]) when within
             #   lightning storm (lrt_lev1; ~5km of an observed ATDNet strike):
