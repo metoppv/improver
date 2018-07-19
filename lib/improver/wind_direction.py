@@ -35,6 +35,7 @@ from iris.coords import CellMethod
 import numpy as np
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import enforce_float32_precision
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
 class WindDirection(object):
@@ -84,16 +85,16 @@ class WindDirection(object):
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first realization" (default) uses the value of realization zero.
-            "neighbourhood" recalculates using the complex numbers approach
-            with additional realizations extracted from neighbouring grid
-            points from all available realizations.
+            "first_realization" uses the value of realization zero.
+            "neighbourhood" (default) recalculates using the complex numbers
+            approach with additional realizations extracted from neighbouring
+            grid points from all available realizations.
 
     """
 
-    def __init__(self, backup_method='first realization'):
+    def __init__(self, backup_method='neighbourhood'):
         """Initialise class."""
-        self.backup_methods = ['first realization', 'neighbourhood']
+        self.backup_methods = ['first_realization', 'neighbourhood']
         self.backup_method = backup_method
         if self.backup_method not in self.backup_methods:
             msg = ('Invalid option for keyword backup_method '
@@ -108,12 +109,18 @@ class WindDirection(object):
         self.wdir_cube_list = iris.cube.CubeList()
         self.r_vals_cube_list = iris.cube.CubeList()
         self.confidence_measure_cube_list = iris.cube.CubeList()
+        # Radius used in neighbourhood plugin as determined in IMPRO-491
+        self.nb_radius = 6000.  # metres
+        # Initialise neighbourhood plugin ready for use
+        self.nbhood = NeighbourhoodProcessing('square',
+                                              self.nb_radius,
+                                              weighted_mode=False)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            '<WindDirection: backup_method "{}">'
-        ).format(self.backup_method)
+            '<WindDirection: backup_method "{}"; neighbourhood radius "{}"m>'
+        ).format(self.backup_method, self.nb_radius)
 
     def _reset(self):
         """Empties working data objects"""
@@ -196,7 +203,7 @@ class WindDirection(object):
 
         return angle
 
-    def wind_dir_mean(self):
+    def calc_wind_dir_mean(self):
         """Find the mean wind direction using complex average which actually
            signifies a point between all of the data points in POLAR
            coordinates - NOT the average DEGREE ANGLE.
@@ -320,47 +327,62 @@ class WindDirection(object):
         self.confidence_slice = self.wdir_slice_mean.copy(
             data=dist_from_mean_norm)
 
-    def wind_dir_decider(self, where_low_r, first_member):
+    def wind_dir_decider(self, where_low_r, wdir_cube):
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
            We therefore substitute this meaningless average wind
-           direction value for the wind direction taken from the first
-           ensemble realization.
+           direction value for the wind direction calculated from a larger
+           sample by smoothing across a neighbourhood of points before
+           rerunning the main technique.
+           This is invoked rarely (1 : 100 000)
 
         Arguments:
             where_low_r (np.array):
                 Array of boolean values. True where original wind direction
                 estimate has low confidence. These points are replaced
                 according to self.backup_method
-            first_member (np.array):
-                Array of wind direction data from the first ensemble
-                realization
+            wdir_cube (iris.cube.Cube):
+                Contains array of wind direction data (realization, y, x)
 
         Uses:
-            self.wdir_slice.data (np.ndarray):
-                3D array - wind direction angles from ensembles (in degrees).
-            self.wdir_slice_mean.data (np.ndarray):
-                2D array - average wind direction angle (in degrees).
+            self.wdir_slice_mean (iris.cube.Cube):
+                Containing average wind direction angle (in degrees).
+            self.wdir_complex (np.ndarray):
+                3D array - wind direction angles from ensembles (in complex).
             self.r_vals_slice.data (np.ndarray):
                 2D array - Radius taken from average complex wind direction
                 angle.
             self.r_thresh (float):
                 Any r value below threshold is regarded as meaningless.
+            self.realization_axis (int):
+                Axis to collapse over.
+            self.n_realizations (int):
+                Number of realizations available in the plugin. Used to set the
+                neighbourhood radius as this is used to adjust the radius again
+                in the neighbourhooding plugin.
 
         Defines:
             self.wdir_slice_mean.data (np.ndarray):
                 2D array - Wind direction degrees where ambigious values have
                 been replaced with data from first ensemble realization.
         """
-
         if self.backup_method == 'neighbourhood':
-            improved_values = np.full_like(self.wdir_slice_mean.data, None)
+            # Performs smoothing over a 6km square neighbourhood.
+            # Then calculates the mean wind direction.
+            child_class = WindDirection(backup_method="first_realization")
+            child_class.wdir_complex = self.nbhood.process(
+                wdir_cube.copy(data=self.wdir_complex)).data
+            child_class.realization_axis = self.realization_axis
+            child_class.wdir_slice_mean = self.wdir_slice_mean.copy()
+            child_class.calc_wind_dir_mean()
+            improved_values = child_class.wdir_slice_mean.data
         else:
-            # Takes first ensemble realization.
-            improved_values = first_member
+            # Takes realization zero (control member).
+            improved_values = wdir_cube.extract(
+                iris.Constraint(realization=0)).data
 
-        # If the r-value is low - subistite average wind direction value for
+        # If the r-value is low - substitute average wind direction value for
         # the wind direction taken from the first ensemble realization.
         self.wdir_slice_mean.data = np.where(where_low_r, improved_values,
                                              self.wdir_slice_mean.data)
@@ -404,6 +426,7 @@ class WindDirection(object):
         # Force input cube to float32.
         enforce_float32_precision(cube_ens_wdir)
 
+        self.n_realizations = len(cube_ens_wdir.coord('realization').points)
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
         x_coord_name = cube_ens_wdir.coord(axis="x").name()
         for wdir_slice in cube_ens_wdir.slices(["realization",
@@ -421,7 +444,7 @@ class WindDirection(object):
             self.wdir_slice_mean.remove_coord("realization")
 
             # Derive average wind direction.
-            self.wind_dir_mean()
+            self.calc_wind_dir_mean()
 
             # Find radius values for wind direction average.
             self.find_r_values()
@@ -429,8 +452,6 @@ class WindDirection(object):
             # Calculate the confidence measure based on the difference
             # between the complex average and the individual ensemble
             # realizations.
-            # TODO: This will still need some further investigation.
-            #        This is will be the subject of another ticket.
             self.calc_confidence_measure()
 
             # Finds any meaningless averages and substitute with
@@ -441,7 +462,7 @@ class WindDirection(object):
             # If the any point in the array contains poor r-values,
             # trigger decider function.
             if where_low_r.any():
-                self.wind_dir_decider(where_low_r, wdir_slice.data[0])
+                self.wind_dir_decider(where_low_r, wdir_slice)
 
             # Append to cubelists.
             self.wdir_cube_list.append(self.wdir_slice_mean)
