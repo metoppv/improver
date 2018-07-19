@@ -203,7 +203,7 @@ class WindDirection(object):
 
         return angle
 
-    def wind_dir_mean(self):
+    def calc_wind_dir_mean(self):
         """Find the mean wind direction using complex average which actually
            signifies a point between all of the data points in POLAR
            coordinates - NOT the average DEGREE ANGLE.
@@ -375,7 +375,7 @@ class WindDirection(object):
                 wdir_cube.copy(data=self.wdir_complex)).data
             child_class.realization_axis = self.realization_axis
             child_class.wdir_slice_mean = self.wdir_slice_mean.copy()
-            child_class.wind_dir_mean()
+            child_class.calc_wind_dir_mean()
             improved_values = child_class.wdir_slice_mean.data
         else:
             # Takes realization zero (control member).
@@ -444,7 +444,7 @@ class WindDirection(object):
             self.wdir_slice_mean.remove_coord("realization")
 
             # Derive average wind direction.
-            self.wind_dir_mean()
+            self.calc_wind_dir_mean()
 
             # Find radius values for wind direction average.
             self.find_r_values()

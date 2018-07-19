@@ -250,8 +250,8 @@ class Test_complex_to_deg_roundtrip(IrisTest):
         self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
 
 
-class Test_wind_dir_mean(IrisTest):
-    """Test the wind_dir_mean function."""
+class Test_calc_wind_dir_mean(IrisTest):
+    """Test the calc_wind_dir_mean function."""
 
     def setUp(self):
         """Initialise plugin and supply data for tests"""
@@ -271,7 +271,7 @@ class Test_wind_dir_mean(IrisTest):
 
     def test_complex(self):
         """Test that the function defines correct complex mean."""
-        self.plugin.wind_dir_mean()
+        self.plugin.calc_wind_dir_mean()
         result = self.plugin.wdir_mean_complex
         expected_complex = (
             self.plugin.deg_to_complex(self.expected_wind_mean,
@@ -280,7 +280,7 @@ class Test_wind_dir_mean(IrisTest):
 
     def test_degrees(self):
         """Test that the function defines correct degrees cube."""
-        self.plugin.wind_dir_mean()
+        self.plugin.calc_wind_dir_mean()
         result = self.plugin.wdir_slice_mean
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.data, np.ndarray)
@@ -496,7 +496,8 @@ class Test_process(IrisTest):
             confidence_measure, self.expected_confidence_measure)
 
     def test_with_backup(self):
-        """Test behaviour changes for a low-confidence point."""
+        """Test that wind_dir_decider is invoked to select a better value for
+        a low-confidence point."""
 
         self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
         self.expected_wind_mean[0, 1, 1] = 30.77989074
