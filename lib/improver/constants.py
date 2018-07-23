@@ -91,4 +91,4 @@ EARTH_REPSILON = 0.62198
 U_EARTH_REPSILON = make_constant_with_units(EARTH_REPSILON, "1")
 
 # Dry Adiabatic Lapse Rate (DALR) in unit of Km-1
-DALR = 0.0098 
+DALR = -0.0098

@@ -44,6 +44,13 @@ from improver.grids import STANDARD_GRID_CCRS
 from improver.lapse_rate import LapseRate
 
 
+def reset_cube_data(temperature_cube, orography_cube, land_sea_mask_cube):
+    """ Resets the cube data to its defaults. """
+    temperature_cube.data[:, :, :] = 0
+    orography_cube.data[:] = 0
+    land_sea_mask_cube.data[:] = 1
+
+
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
@@ -75,7 +82,7 @@ class Test_calc_lapse_rate(IrisTest):
     def test_handles_nan(self):
         """Test that the function returns a blank value when central point
            is NaN."""
-        
+
         self.temperature[4] = np.nan
         expected_out = 0.0
         result = LapseRate()._calc_lapse_rate(self.temperature, self.orography)
@@ -119,9 +126,9 @@ class Test_process(IrisTest):
     """Test the LapseRate processing works"""
 
     def setUp(self):
-        """Create a cube containing a regular grid."""
+        """Create cubes containing a regular grid."""
 
-        grid_size = 16
+        grid_size = 5
         data = np.zeros((1, grid_size, grid_size))
 
         realization = DimCoord([0], 'realization', units=1)
@@ -149,43 +156,16 @@ class Test_process(IrisTest):
         self.temperature.add_aux_coord(height)
         self.temperature.attributes['institution'] = 'Met Office'
 
-        # Creates bands of temperature running East/West.
-        self.temperature.data[:, :, :] = 0
-        self.temperature.data[:, 0:4, 4:6] = 0.1
-        self.temperature.data[:, 0:4, 6:8] = 0.1
-        self.temperature.data[:, 0:4, 8:10] = 0.1
-        self.temperature.data[:, 0:4, 10:12] = 0.4
-        self.temperature.data[:, 4:8, 4:6] = 0.2
-        self.temperature.data[:, 4:8, 6:8] = 0.2
-        self.temperature.data[:, 4:8, 8:10] = 0.1
-        self.temperature.data[:, 4:8, 10:12] = 0.1
-
-        # Create isolated spot of temperature surrounded by NaN
-        self.temperature.data[:, 0:3, 13:16] = np.nan
-        self.temperature.data[:, 1, 14] = 2
-
         # Copies temperature cube to create orography cube.
         self.orography = self.temperature.copy()[0]
         self.orography.remove_coord('realization')
         self.orography.rename('surface_altitude')
         self.orography.units = cf_units.Unit('m')
 
-        # Creates a valley in front of a shallow ridge running North/South.
-        self.orography.data[:] = 0
-        self.orography.data[:, 4:6] = -10
-        self.orography.data[:, 6:8] = -20
-        self.orography.data[:, 8:10] = 20
-        self.orography.data[:, 10:12] = 10
-        self.orography.data[12:] = 0  # Sets shore line to sea level
-
         # Copies orography cube to create land/sea mask cube.
         self.land_sea_mask = self.orography.copy()
         self.land_sea_mask.rename('land_binary_mask')
         self.land_sea_mask.units = cf_units.Unit('1')
-
-        # Creates 'shoreline' running West/East at bottom of domain.
-        self.land_sea_mask.data[:] = 1
-        self.land_sea_mask.data[12:] = 0
 
     def test_basic(self):
         """Test that the plugin returns expected data type. """
@@ -239,31 +219,143 @@ class Test_process(IrisTest):
                                 self.land_sea_mask)
 
     def test_return_single_precision(self):
-        """Test that the function returns data of float32."""
+        """Test that the function returns cube of float32."""
         result = LapseRate().process(self.temperature, self.orography,
                                      self.land_sea_mask)
         self.assertEqual(result.dtype, np.float32)
 
-    def test_returns_expected_values(self):
-        """Test that the function returns a cube with the expected values. """
+    def test_constant_temp_orog(self):
+        """Test that the function returns expected 0.01980198 values where the
+           temperature and orography fields are constant values.
+           This value is because, where the data is such that the gradient
+           value is meaningless, then numpy.linalg.lstsq will calculate
+           the gradient assuming that the intercept is zero.
+           The mathematical validity of this approach is unclear. The FORTRAN
+           code used in the operational system has statements that catch
+           odd gradient values and subistuite them with DALR. This will
+           require further investigation.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([
-[0.0, 0.0, 0.0, -0.010000, -0.010000, 0.0, -0.0, -0.004988, 0.004988, -0.029400, -0.029400, 0.009800, 0.009800, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, -0.010000,-0.010000,0.0,-0.0,-0.004988,0.004988,-0.029400,-0.029400,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.010000,-0.010000,0.0,-0.0,-0.004988,0.004988,-0.029400,-0.029400,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.013333,-0.013333,0.0,-0.0,-0.006650,0.004988,-0.020000,-0.020000,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.016667,-0.016667,0.0,-0.0,-0.008313,0.004988,-0.010000,-0.010000,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.020000,-0.020000,0.0,-0.0,-0.009975,0.004988,0.000000,0.000000,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.020000,-0.020000,0.0,-0.0,-0.009975,0.004988,0.000000,0.000000,0.009800,0.009800,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.013333,-0.013333,0.0,0.0,-0.006650,0.003325,0.000000,-0.000000,0.006667,0.006667,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0,-0.006667,-0.006667,-0.0,0.0,-0.003325,0.001663,-0.000000,0.000000,0.003333,0.003333,0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+        expected_out = np.full((5, 5), 0.01980198)
+
+        self.temperature.data[:, :, :] = 0.2
+        self.orography.data[:, :] = 10
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_handles_nan_value(self):
+        """Test that the function handles a NaN temperature value by replacing
+           it with zero.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.full((5, 5), 0.01980198)
+        expected_out[2, 2] = 0.0
+
+        self.temperature.data[:, :, :] = 0.2
+        self.temperature.data[:, 2, 2] = np.nan
+        self.orography.data[:, :] = 10
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_lapserate_limits(self):
+        """Test that the function limits the lapse rate to +DALR and -3*DALR.
+           Where DALR = Dry Adibatic Lapse Rate.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098]])
+
+        # West data points should be -3*DALR and East should be DALR.
+        self.temperature.data[:, :, 0:2] = 1
+        self.temperature.data[:, :, 3:5] = -1
+        self.orography.data[:, :] = 10
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_landsea_mask(self):
+        """Test that the function returns zero values whereever a land/sea
+           mask is true.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0294, 0.0294, 0.0, -0.0098, -0.0098],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0],
+                                 [0.0, 0.0, 0.0, 0.0, 0.0]])
+
+        # West data points should be -3*DALR and East should be DALR, South
+        # should be zero.
+        self.temperature.data[:, :, 0:2] = 1
+        self.temperature.data[:, :, 3:5] = -1
+        self.orography.data[:, :] = 10
+        self.land_sea_mask.data[3:5, :] = 0
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_decr_temp_incr_orog(self):
+        """ Test code where temperature is decreasing with height. This is the
+            expected scenario for lapse rate.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0, -0.0098, -0.0098, -0.00642857, -0.005],
+                                 [0.0, -0.0098, -0.0098, -0.00642857, -0.005],
+                                 [0.0, -0.0098, -0.0098, -0.00642857, -0.005],
+                                 [0.0, -0.0098, -0.0098, -0.00642857, -0.005],
+                                 [0.0, -0.0098, -0.0098, -0.00642857, -0.005]])
+
+        self.temperature.data[:, :, 0:2] = 0.4
+        self.temperature.data[:, :, 2] = 0.3
+        self.temperature.data[:, :, 3] = 0.2
+        self.temperature.data[:, :, 4] = 0.1
+
+        self.orography.data[:, 2] = 10
+        self.orography.data[:, 3] = 20
+        self.orography.data[:, 4] = 40
+
+        result = LapseRate().process(self.temperature, self.orography,
+                                     self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_decr_temp_decr_orog(self):
+        """ Test code where the temperature increases with height.
+        """
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0, 0.01, 0.01, 0.00642857, 0.005],
+                                 [0.0, 0.01, 0.01, 0.00642857, 0.005],
+                                 [0.0, 0.01, 0.01, 0.00642857, 0.005],
+                                 [0.0, 0.01, 0.01, 0.00642857, 0.005],
+                                 [0.0, 0.01, 0.01, 0.00642857, 0.005]])
+
+        self.temperature.data[:, :, 0:2] = 0.1
+        self.temperature.data[:, :, 2] = 0.2
+        self.temperature.data[:, :, 3] = 0.3
+        self.temperature.data[:, :, 4] = 0.4
+
+        self.orography.data[:, 2] = 10
+        self.orography.data[:, 3] = 20
+        self.orography.data[:, 4] = 40
 
         result = LapseRate().process(self.temperature, self.orography,
                                      self.land_sea_mask)

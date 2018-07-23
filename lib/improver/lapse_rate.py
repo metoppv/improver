@@ -40,7 +40,7 @@ from scipy.ndimage import generic_filter
 
 
 class GenericFunc(object):
-    """ 
+    """
     The "generic_filter" function extracts the neighbourhood around
     each point as "buffer". This saves the buffer into "allbuffers"
     array for the next processing step.
@@ -57,7 +57,7 @@ class GenericFunc(object):
         self.allbuffers = allbuffers
 
     def filter(self, buffer):
-        """ 
+        """
         Saves the contents of the buffer into "allbuffers" array so
         a return value isn't required. However "generic_filter"
         requires a return value - so use zero.
@@ -94,7 +94,7 @@ class LapseRate(object):
     a functional script.
 
     1) The paper imposes an upper limit to the LR of 0.0098K/m-1
-       (the Dry Air Adibatic Lapse Rate) but not a lower limit.
+       (the Dry Adibatic Lapse Rate) but not a lower limit.
 
        Wheras the current FORTRAN code places a lower limit on the LR of
        -3.0*DALR in addition to the upper limit.
@@ -126,12 +126,12 @@ class LapseRate(object):
     4) Loop through array of neighbourhoods and take the height and temperature
        of all grid points and calculate the
        temperature/height gradient = lapse rate
-    5) Constrain the lapse rate as < DALR and > -3.0*DALR
+    5) Constrain the lapse rate as > DALR and < -3.0*DALR
 
     """
 
     def __init__(self, max_height_diff=35, footprint_len=3,
-                 max_lapse_rate=DALR, min_lapse_rate=-3*DALR):
+                 max_lapse_rate=-3*DALR, min_lapse_rate=DALR):
         """Initialise class.
         Args:
             max_height_diff (float):
@@ -170,12 +170,10 @@ class LapseRate(object):
         self.footprintarray_size = self.footprint_len**2
         self.ind_central_point = int(self.footprintarray_size/2)
 
-
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         desc = ('<LapseRate>')
         return desc
-
 
     def _calc_lapse_rate(self, temperature, orography):
         """Function to calculate the lapse rate.
@@ -195,9 +193,9 @@ class LapseRate(object):
         Returns:
             gradient (float):
             The gradient of the temperature/orography values. This
-		        represents the lapse rate.
+            represents the lapse rate.
 
-         """
+        """
 
         # If central point NaN then return blank value.
         if np.isnan(temperature[self.ind_central_point]):
@@ -212,7 +210,6 @@ class LapseRate(object):
         gradient, _ = lstsq(matrix, y_data)[0]
 
         return gradient
-
 
     def _create_heightdiff_mask(self, all_orog_subsections):
         """
@@ -244,10 +241,9 @@ class LapseRate(object):
         height_diff = np.absolute(height_diff)
 
         height_diff_mask = np.where(height_diff >= self.max_height_diff, True,
-        False)
+                                    False)
 
         return height_diff_mask
-
 
     def process(self, temperature_cube, orography_cube, land_sea_mask_cube):
         """Calculates the lapse rate from the temperature and orography cubes.
@@ -294,7 +290,7 @@ class LapseRate(object):
         if orography_cube.units != 'm':
             msg = "Orography cube units are {}, must be metres!"
             raise ValueError(msg.format(orography_cube.units))
-       
+
         enforce_float32_precision([temperature_cube])
 
         # Extract x/y co-ordinates.
@@ -327,8 +323,7 @@ class LapseRate(object):
         # Check if a dimensional realization coordinate exists. If so, the
         # cube is sliced, so that it becomes a scalar coordinate.
         try:
-            realiz_coord = temperature_cube.coord('realization',
-                                                  dim_coords=True)
+            _ = temperature_cube.coord('realization', dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
             slices_over_realization = [cube]
         else:
@@ -374,7 +369,7 @@ class LapseRate(object):
                                             all_temp_subsections)
 
             # Create 1D array for lapse rate and enforce single precision to
-            # speed up calculations. 
+            # speed up calculations.
             lapse_rate_array = np.zeros(dataarray_size)
             lapse_rate_array = lapse_rate_array.astype(np.float32)
 
@@ -389,13 +384,13 @@ class LapseRate(object):
 
             lapse_rate_array = lapse_rate_array.reshape(dataarray_shape)
 
-            # According to the paper - any value above DALR is reset to DALR.
-            # HOWEVER the FORTRAN code also imposes a lower limit (see class
-            # docstring for code location). This will need more investigation.
-            lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
-                                        self.max_lapse_rate, lapse_rate_array)
+            # According to the paper - any value below DALR is reset to DALR.
+            # HOWEVER the FORTRAN code also imposes an upper limit (see class
+            # docstring for code location). This requires more investigation.
             lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
                                         self.min_lapse_rate, lapse_rate_array)
+            lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
+                                        self.max_lapse_rate, lapse_rate_array)
 
             lapse_rate_slice.data = lapse_rate_array
             lapse_rate_cube_list.append(lapse_rate_slice)
