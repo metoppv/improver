@@ -325,7 +325,7 @@ class LapseRate(object):
         try:
             _ = temperature_cube.coord('realization', dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
-            slices_over_realization = [cube]
+            slices_over_realization = [temperature_cube]
         else:
             slices_over_realization = temperature_cube.slices_over(
                 "realization")
