@@ -36,15 +36,14 @@ from iris.exceptions import CoordinateNotFoundError
 def generate_file_name(cube):
     """
     From a forecast cube, generate an IMPROVER-suitable file name using the
-    correct lead time.  Requires a "time" coordinate.  If the cube has no
-    forecast_period coordinate, creates a dummy lead time string.
+    correct lead time.  Based on existing StaGE functionality.  Requires a
+    "time" coordinate.  If the cube has no "forecast_period" coordinate (for
+    example if the input is a radar composite or other observation), this
+    function creates a dummy string representing a forecast period of zero.
 
     Args:
         cube (iris.cube.Cube):
             Cube containing nowcast data
-
-        lead_time (int):
-            Lead time of advection nowcast, in minutes
 
     Returns:
         filename (str):
@@ -55,24 +54,25 @@ def generate_file_name(cube):
             If the input cube has no "time" coordinate
     """
 
-    cdtime = (cube.coord('time').units).num2date(cube.coord('time').points)[0]
-    cycle_time_string = '{}{:02}{:02}T{:02}{:02}Z'.format(
-        cdtime.year, cdtime.month, cdtime.day, cdtime.hour, cdtime.minute)
+    vtime = (cube.coord('time').units).num2date(cube.coord('time').points)[0]
+    validity_time_string = '{:04}{:02}{:02}T{:02}{:02}Z'.format(
+        vtime.year, vtime.month, vtime.day, vtime.hour, vtime.minute)
 
     try:
-        lead_time_coord = cube.coord('forecast_period')
-        lead_time_coord.convert_units('s')
-        lead_time, = lead_time_coord.points
-        lead_time_hours = int(lead_time // 3600)
-        lead_time_minutes = int((lead_time - 3600*lead_time_hours)) // 60
-        lead_time_string = 'PT{:04}H{:02}M'.format(
-            lead_time_hours, lead_time_minutes)
+        forecast_period_coord = cube.coord('forecast_period')
+        forecast_period_coord.convert_units('s')
+        forecast_period, = forecast_period_coord.points
+        forecast_period_hours = int(forecast_period // 3600)
+        forecast_period_minutes = int(
+            (forecast_period - 3600*forecast_period_hours)) // 60
+        forecast_period_string = 'PT{:04}H{:02}M'.format(
+            forecast_period_hours, forecast_period_minutes)
     except CoordinateNotFoundError:
-        lead_time_string = 'PT0000H00M'
+        forecast_period_string = 'PT0000H00M'
 
     parameter = cube.name().replace(' ', '_').lower()
 
     filename = '{}-{}-{}.nc'.format(
-        cycle_time_string, lead_time_string, parameter)
+        validity_time_string, forecast_period_string, parameter)
 
     return filename
