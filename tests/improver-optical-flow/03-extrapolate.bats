@@ -36,11 +36,15 @@
   KGO1="optical-flow/extrapolate/kgo1.nc"
   KGO2="optical-flow/extrapolate/kgo2.nc"
 
+  COMP1="201804100430_radar_rainrate_composite_UK_regridded.nc"
+  COMP2="201804100445_radar_rainrate_composite_UK_regridded.nc"
+  COMP3="201804100500_radar_rainrate_composite_UK_regridded.nc"
+
   # Run processing and check it passes
   run improver optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/input1.nc" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/input2.nc" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/input3.nc" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
     --output_dir "$TEST_DIR" --extrapolate --max_lead_time 30
   [[ "$status" -eq 0 ]]
 

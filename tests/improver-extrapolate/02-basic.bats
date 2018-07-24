@@ -38,10 +38,11 @@
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
+  INFILE="201804100500_radar_rainrate_composite_UK_regridded.nc"
 
   # Run processing and check it passes
   run improver extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/input3.nc" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
     "$TEST_DIR" --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
     --northward_advection "$VCOMP"
