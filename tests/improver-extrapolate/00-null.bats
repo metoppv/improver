@@ -34,8 +34,8 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-extrapolate [-h] [--profile] [--profile_file PROFILE_FILE]
-                            [--eastward_advection EASTWARD_ADVECTION]
-                            [--northward_advection NORTHWARD_ADVECTION]
+                            [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
+                            [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                             [--max_lead_time MAX_LEAD_TIME]
                             [--lead_time_interval LEAD_TIME_INTERVAL]
                             INPUT_FILEPATH OUTPUT_DIR

@@ -89,24 +89,25 @@ def main():
 
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
+    time_coord = cube_list[-1].coord("time")
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
     ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations)
-    ucube1, vcube1 = ofc_plugin.process(cube_list[1], cube_list[2],
-                                        boxsize=args.ofc_box_size)
-    ucube2, vcube2 = ofc_plugin.process(cube_list[0], cube_list[1],
-                                        boxsize=args.ofc_box_size)
+    ucubes = iris.cube.CubeList([])
+    vcubes = iris.cube.CubeList([])
+    for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
+        ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
+                                          boxsize=args.ofc_box_size)
+        ucubes.append(ucube)
+        vcubes.append(vcube)
 
-    # average optical flow components from both time steps and save to
-    # netcdf files
-    time_coord = ucube1.coord("time")
-
-    ucube = iris.cube.CubeList([ucube1, ucube2]).merge_cube()
+    # average optical flow velocity components
+    ucube = ucubes.merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
 
-    vcube = iris.cube.CubeList([vcube1, vcube2]).merge_cube()
+    vcube = vcubes.merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
     vmean.coord("time").units = time_coord.units
