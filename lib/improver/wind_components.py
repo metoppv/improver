@@ -33,6 +33,8 @@
 import numpy as np
 import iris
 
+from improver.utilities.cube_manipulation import compare_coords
+
 DEG_TO_RAD = np.pi/180.
 
 
@@ -114,12 +116,10 @@ class ResolveWindComponents(object):
         """
 
         # check input cube projections & dimensions match
-
-
-
-
-        # convert input wind direction cube into degrees
-        wind_dir.convert_units('degrees')
+        unmatched_coords = compare_coords([wind_speed, wind_dir])
+        if unmatched_coords != [{}, {}]:
+            msg = 'Wind speed and direction cubes have unmatched coordinates'
+            raise ValueError('{} {}'.format(msg, unmatched_coords))
 
         # slice over x and y
         speed_slices = wind_speed.slices([wind_speed.coord(axis='y').name(),
@@ -137,6 +137,7 @@ class ResolveWindComponents(object):
             reproj_angle = self.reproject_angles(angle)
 
             # resolve wind speeds onto projection x and y axes
+            reproj_angle.convert_units('degrees')
             uspeed, vspeed = self.resolve_wind_components(
                 speed.data, reproj_angle.data)
 
@@ -144,8 +145,10 @@ class ResolveWindComponents(object):
             ucubelist.append(speed.copy(data=uspeed))
             vcubelist.append(speed.copy(data=vspeed))
 
-        # merge cubelists and return
+        # merge cubelists and rename
         ucube = ucubelist.merge_cube()
+        ucube.rename("grid_eastward_wind")
         vcube = vcubelist.merge_cube()
+        vcube.rename("grid_northward_wind")
 
         return ucube, vcube
