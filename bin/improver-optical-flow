@@ -129,7 +129,7 @@ def main():
         for lead_time in lead_times:
             # cast to float as datetime.timedelta cannot accept np.int
             timestep = datetime.timedelta(seconds=60.*lead_time)
-            forecast_cube = advection_plugin.process(cube_list[2], timestep)
+            forecast_cube = advection_plugin.process(cube_list[-1], timestep)
 
             # save to a suitably-named output file
             file_name = generate_file_name(forecast_cube)
