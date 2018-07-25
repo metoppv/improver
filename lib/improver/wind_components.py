@@ -40,14 +40,18 @@ class ResolveWindComponents(object):
 
     """Plugin to resolve wind components along projection axes"""
 
-    def __init__():
+    def __init__(self):
         """Initialise plugin"""
         pass
+
+    def __repr__(self):
+        """Represent the plugin instance as a string"""
+        return ('<ResolveWindComponents>')
 
     @staticmethod
     def reproject_angles(wind_dir):
         """
-        Reprojects wind directions from true north to grid north
+        Reprojects wind directions from true north to grid north.
 
         Args:
             wind_dir (iris.cube.Cube):
@@ -88,7 +92,7 @@ class ResolveWindComponents(object):
         vspeed = np.multiply(speed, cos_angle)
         return uspeed, vspeed
 
-    def process(wind_speed, wind_dir):
+    def process(self, wind_speed, wind_dir):
 
         """
         Converts wind speed and direction into u,v components along
