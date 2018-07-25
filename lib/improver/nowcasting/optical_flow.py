@@ -946,12 +946,12 @@ class OpticalFlow(object):
         t_coord = cube2.coord("time")
 
         ucube = iris.cube.Cube(
-            ucomp, long_name="eastward_precipitation_advection",
+            ucomp, long_name="precipitation_advection_x_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
 
         vcube = iris.cube.Cube(
-            vcomp, long_name="northward_precipitation_advection",
+            vcomp, long_name="precipitation_advection_y_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
 

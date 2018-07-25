@@ -51,8 +51,8 @@
   improver_check_recreate_kgo "ucomp_kgo.nc" $KGO1
   improver_check_recreate_kgo "vcomp_kgo.nc" $KGO2  
 
-  UCOMP="20180410T0500Z-PT0000H00M-eastward_precipitation_advection.nc"
-  VCOMP="20180410T0500Z-PT0000H00M-northward_precipitation_advection.nc"
+  UCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_x_velocity.nc"
+  VCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_y_velocity.nc"
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/$UCOMP" \
