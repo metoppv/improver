@@ -46,8 +46,10 @@ def main():
                                {'dest': 'backup_method',
                                 'default': 'neighbourhood',
                                 'help': ('Backup method to use if '
-                                         'there is low confidence in the wind_direction. '
-                                         'options are first_realization or neighbourhood. '
+                                         'there is low confidence in'
+                                         ' the wind_direction. '
+                                         'options are first_realization'
+                                         ' or neighbourhood. '
                                          'Default is neighbourhood.')})]
 
     cli_definition = {'central_arguments': ('input_file', 'output_file'),
@@ -62,8 +64,9 @@ def main():
 
     # Returns 3 cubes - r_vals and confidence_measure cubes currently
     # only contain experimental data to be used for further research.
+    bmethod = args.backup_method
     cube_mean_wdir, cube_r_vals, cube_confidence_measure = (
-        WindDirection(backup_method=args.backup_method).process(wind_direction))
+        WindDirection(backup_method=bmethod).process(wind_direction))
 
     save_netcdf(cube_mean_wdir, args.output_filepath)
 
