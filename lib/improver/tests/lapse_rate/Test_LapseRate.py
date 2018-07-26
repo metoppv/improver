@@ -174,7 +174,7 @@ class Test_process(IrisTest):
                                      self.land_sea_mask)
         self.assertIsInstance(result, Cube)
 
-    def test_fails_if_data_is_not_cube1(self):
+    def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is
            not a cube."""
         incorrect_input = 50.0
@@ -185,7 +185,7 @@ class Test_process(IrisTest):
             LapseRate().process(incorrect_input, self.orography,
                                 self.land_sea_mask)
 
-    def test_fails_if_data_is_not_cube2(self):
+    def test_fails_if_orography_is_not_cube(self):
         """Test code raises a Type Error if input orography cube is
            not a cube."""
         incorrect_input = 50.0
@@ -196,7 +196,7 @@ class Test_process(IrisTest):
             LapseRate().process(self.temperature, incorrect_input,
                                 self.land_sea_mask)
 
-    def test_fails_if_data_is_not_cube3(self):
+    def test_fails_if_land_sea_mask_is_not_cube(self):
         """Test code raises a Type Error if input land/sea mask cube is
            not a cube."""
         incorrect_input = 50.0
@@ -207,7 +207,7 @@ class Test_process(IrisTest):
             LapseRate().process(self.temperature, self.orography,
                                 incorrect_input)
 
-    def test_fails_if_cube_wrong_unit1(self):
+    def test_fails_if_temperature_wrong_units(self):
         """Test code raises a Value Error if the temperature cube is the
            wrong unit."""
 
@@ -217,7 +217,7 @@ class Test_process(IrisTest):
             LapseRate().process(self.orography, self.orography,
                                 self.land_sea_mask)
 
-    def test_fails_if_cube_wrong_unit2(self):
+    def test_fails_if_orography_wrong_units(self):
         """Test code raises a Value Error if the orography cube is the
            wrong unit."""
 

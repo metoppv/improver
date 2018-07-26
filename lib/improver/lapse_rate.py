@@ -84,8 +84,6 @@ class LapseRate(object):
     """Plugin to calculate the lapse rate from orography and temperature
        cubes.
 
-    Science background:
-
     References:
         The method applied here is based on the method used in the 2010 paper:
         https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/met.177
@@ -121,17 +119,14 @@ class LapseRate(object):
                 be calculated (metres).
 
             nbhood_radius (int):
-                Radius of neighbourhood around each point. Note that the
-                neighbourhood will still be a square array.
+                Radius of neighbourhood around each point. The neighbourhood
+                will be a square array with side length 2*nbhood_radius + 1.
 
             max_lapse_rate (float):
                 Maximum lapse rate allowed.
 
             min_lapse_rate (float):
                 Minimum lapse rate allowed.
-
-        Raises:
-            ValueError: If the nbhood_size is not an odd number.
 
         """
 
@@ -187,7 +182,7 @@ class LapseRate(object):
 
         # Return DALR if standard deviation of both datasets = 0 (where all
         # points are the same value).
-        if round(np.std(x_data), 6) == 0.0 and round(np.std(y_data), 6) == 0.0:
+        if np.isclose(np.std(x_data), 0.0) and np.isclose(np.std(y_data), 0.0):
             return DALR
 
         matrix = np.stack([x_data, np.ones(len(x_data))], axis=0).T
@@ -291,12 +286,10 @@ class LapseRate(object):
 
         # Array containing all of the subsections extracted from data array.
         # Also enforce single precision to speed up calculations.
-        all_temp_subsections = np.zeros((dataarray_size,
-                                         self.nbhoodarray_size),
-                                        dtype=np.float32)
-        all_orog_subsections = np.zeros((dataarray_size,
-                                         self.nbhoodarray_size),
-                                        dtype=np.float32)
+        all_temp_subsections = np.zeros(
+            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
+        all_orog_subsections = np.zeros(
+            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
 
         # Attempts to extract realizations. If cube doesn't contain the
         # dimension then place within list.
@@ -345,20 +338,17 @@ class LapseRate(object):
             all_temp_subsections = np.where(height_diff_mask, np.nan,
                                             all_temp_subsections)
 
-            # Create 1D array for lapse rate and enforce single precision to
-            # speed up calculations.
-            lapse_rate_array = np.zeros(dataarray_size, dtype=np.float32)
-
             # Loop through both arrays and find gradient of each subsection.
             # The gradient indicates lapse rate - save into another array.
             # TODO: This for loop is the bottleneck in the code - 1 array takes
             # approximately 29 seconds out of a total running time of 33
             # seconds for UKVX data. This section needs to be parallelised.
-            for i in range(dataarray_size):
-                lapse_rate_array[i] = self._calc_lapse_rate(
-                    all_temp_subsections[i, :], all_orog_subsections[i, :])
+            lapse_rate_array = [self._calc_lapse_rate(temp, orog)
+                                for temp, orog in zip(all_temp_subsections,
+                                                      all_orog_subsections)]
 
-            lapse_rate_array = lapse_rate_array.reshape(dataarray_shape)
+            lapse_rate_array = np.array(
+                lapse_rate_array, dtype=np.float32).reshape(dataarray_shape)
 
             # According to the paper - any value below DALR is reset to DALR.
             # HOWEVER the FORTRAN code also imposes an upper limit (see class
