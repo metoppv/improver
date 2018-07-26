@@ -48,8 +48,10 @@ def main():
                                 'help': ('Backup method to use if '
                                          'there is low confidence in'
                                          ' the wind_direction. '
-                                         'options are first_realization'
-                                         ' or neighbourhood. '
+                                         'Options are first_realization'
+                                         ' or neighbourhood, '
+                                         'first_realization should only '
+                                         'be used with global lat-lon data. '
                                          'Default is neighbourhood.')})]
 
     cli_definition = {'central_arguments': ('input_file', 'output_file'),
