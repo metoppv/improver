@@ -74,29 +74,27 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, '<ResolveWindComponents>')
 
 
-class Test_reproject_angles(IrisTest):
-    """Tests the reproject_angles method"""
-    pass
-
-
 class Test_resolve_wind_components(IrisTest):
     """Tests the resolve_wind_components method"""
 
     def setUp(self):
         """Set up some arrays to convert"""
         self.plugin = ResolveWindComponents()
-        self.wind_speed = 10.*np.ones((4, 4), dtype=np.float32)
-        self.wind_angle = np.array([[0., 30., 45., 60.],
-                                    [90., 120., 135., 150.],
-                                    [180., 210., 225., 240.],
-                                    [270., 300., 315., 330.]])
+        wind_speed = 10.*np.ones((4, 4), dtype=np.float32)
+        wind_angle = np.array([[0., 30., 45., 60.],
+                               [90., 120., 135., 150.],
+                               [180., 210., 225., 240.],
+                               [270., 300., 315., 330.]])
+        self.wind_cube = set_up_cube(wind_speed, "wind_speed", "knots")
+        self.directions = set_up_cube(
+            wind_angle, "wind_to_direction", "degrees")
 
     def test_basic(self):
         """Test function returns correct type"""
         uspeed, vspeed = self.plugin.resolve_wind_components(
-            self.wind_speed, self.wind_angle)
-        self.assertIsInstance(uspeed, np.ndarray)
-        self.assertIsInstance(vspeed, np.ndarray)
+            self.wind_cube, self.directions)
+        self.assertIsInstance(uspeed, iris.cube.Cube)
+        self.assertIsInstance(vspeed, iris.cube.Cube)
 
     def test_values(self):
         """Test correct values are returned for well-behaved angles"""
@@ -113,9 +111,9 @@ class Test_resolve_wind_components(IrisTest):
              [0., 1., np.sqrt(2.), np.sqrt(3.)]])
 
         uspeed, vspeed = self.plugin.resolve_wind_components(
-            self.wind_speed, self.wind_angle)
-        self.assertArrayAlmostEqual(uspeed, expected_uspeed)
-        self.assertArrayAlmostEqual(vspeed, expected_vspeed)
+            self.wind_cube, self.directions)
+        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed)
+        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed)
 
 
 class Test_process(IrisTest):
@@ -148,7 +146,7 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Test plugin generates expected wind values"""
-        # TODO waiting on angle reprojection function
+        # TODO waiting on projection info
         pass
 
     def test_coordinate_value_mismatch(self):
@@ -174,7 +172,7 @@ class Test_process(IrisTest):
         """Test a cube with more than one realization is correctly processed"""
         wind_speed_3d = expand_realizations(self.wind_speed_cube, 3)
         wind_direction_3d = expand_realizations(self.wind_direction_cube, 3)
-        # TODO test values: waiting on angle reprojection function
+        # TODO test values: waiting on projection info
 
 
 if __name__ == '__main__':
