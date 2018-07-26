@@ -81,7 +81,41 @@ class Test_reproject_angles(IrisTest):
 
 class Test_resolve_wind_components(IrisTest):
     """Tests the resolve_wind_components method"""
-    pass
+
+    def setUp(self):
+        """Set up some arrays to convert"""
+        self.plugin = ResolveWindComponents()
+        self.wind_speed = 10.*np.ones((4, 4), dtype=np.float32)
+        self.wind_angle = np.array([[0., 30., 45., 60.],
+                                    [90., 120., 135., 150.],
+                                    [180., 210., 225., 240.],
+                                    [270., 300., 315., 330.]])
+
+    def test_basic(self):
+        """Test function returns correct type"""
+        uspeed, vspeed = self.plugin.resolve_wind_components(
+            self.wind_speed, self.wind_angle)
+        self.assertIsInstance(uspeed, np.ndarray)
+        self.assertIsInstance(vspeed, np.ndarray)
+
+    def test_values(self):
+        """Test correct values are returned for well-behaved angles"""
+        expected_uspeed = 5.*np.array(
+            [[0., 1., np.sqrt(2.), np.sqrt(3.)],
+             [2., np.sqrt(3.), np.sqrt(2.), 1.],
+             [0., -1., -np.sqrt(2.), -np.sqrt(3.)],
+             [-2., -np.sqrt(3.), -np.sqrt(2.), -1.]])
+
+        expected_vspeed = 5*np.array(
+            [[2., np.sqrt(3.), np.sqrt(2.), 1.],
+             [0., -1., -np.sqrt(2.), -np.sqrt(3.)],
+             [-2., -np.sqrt(3.), -np.sqrt(2.), -1.],
+             [0., 1., np.sqrt(2.), np.sqrt(3.)]])
+
+        uspeed, vspeed = self.plugin.resolve_wind_components(
+            self.wind_speed, self.wind_angle)
+        self.assertArrayAlmostEqual(uspeed, expected_uspeed)
+        self.assertArrayAlmostEqual(vspeed, expected_vspeed)
 
 
 class Test_process(IrisTest):
@@ -89,6 +123,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create dummy cubes for tests"""
+        self.plugin = ResolveWindComponents()
         wind_speed_data = np.array([[6, 5, 4, 3],
                                     [8, 6, 4, 4],
                                     [12, 8, 6, 5]])
@@ -103,7 +138,7 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""
-        ucube, vcube = ResolveWindComponents().process(
+        ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube)
         for cube in ucube, vcube:
             self.assertIsInstance(cube, iris.cube.Cube)
@@ -122,7 +157,7 @@ class Test_process(IrisTest):
         self.wind_direction_cube.coord(axis='y').convert_units("km")
         msg = 'Wind speed and direction cubes have unmatched coordinates'
         with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = ResolveWindComponents().process(
+            _, _ = self.plugin.process(
                 self.wind_speed_cube, self.wind_direction_cube)
 
     def test_projection_mismatch(self):
@@ -132,7 +167,7 @@ class Test_process(IrisTest):
         self.wind_speed_cube.coord(axis='y').rename('latitude')
         msg = 'Wind speed and direction cubes have unmatched coordinates'
         with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = ResolveWindComponents().process(
+            _, _ = self.plugin.process(
                 self.wind_speed_cube, self.wind_direction_cube)
 
     def test_multiple_realizations(self):
