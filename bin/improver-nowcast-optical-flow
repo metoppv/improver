@@ -59,7 +59,13 @@ def main():
                         "The files require a 'time' coordinate on which they "
                         "are sorted, so the order of inputs does not matter.")
     parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                        default='', help="Directory to write output files.")
+                        default='', help="Directory to write all output files,"
+                        " or only advection velocity components if "
+                        "NOWCAST_FILEPATHS is specified.")
+    parser.add_argument("--nowcast_filepaths", nargs="+", type=str,
+                        default=None,  help="Optional list of full paths to "
+                        "output nowcast files. Overrides OUTPUT_DIR. Ignored "
+                        "unless '--extrapolate' is set.")
 
     # OpticalFlow plugin configurable parameters
     parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "
@@ -119,22 +125,29 @@ def main():
 
     # advect latest input data to the required lead times
     if args.extrapolate:
-
         advection_plugin = AdvectField(umean, vmean)
 
         # generate list of lead times in minutes
         lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
                                args.lead_time_interval)
 
-        for lead_time in lead_times:
+        if args.nowcast_filepaths:
+            if len(args.nowcast_filepaths) != len(lead_times):
+                raise ValueError("Require exactly one output file name for "
+                                 "each forecast lead time")
+
+        for i, lead_time in enumerate(lead_times):
             # cast to float as datetime.timedelta cannot accept np.int
             timestep = datetime.timedelta(seconds=60.*lead_time)
             forecast_cube = advection_plugin.process(cube_list[-1], timestep)
 
             # save to a suitably-named output file
-            file_name = generate_file_name(forecast_cube)
-            save_netcdf(
-                forecast_cube, os.path.join(args.output_dir, file_name))
+            if args.nowcast_filepaths:
+                file_name = args.nowcast_filepaths[i]
+            else:
+                file_name = os.path.join(
+                    args.output_dir, generate_file_name(forecast_cube))
+            save_netcdf(forecast_cube, file_name)
 
 
 if __name__ == "__main__":

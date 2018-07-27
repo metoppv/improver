@@ -29,21 +29,32 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nowcast-optical-flow no arguments" {
-  run improver nowcast-optical-flow
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nowcast-optical-flow [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     [--output_dir OUTPUT_DIR]
-                                     [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
-                                     [--ofc_box_size OFC_BOX_SIZE]
-                                     [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                     INPUT_FILEPATHS INPUT_FILEPATHS
-                                     INPUT_FILEPATHS
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extrapolate basic" {
+  improver_check_skip_acceptance
+  KGO1="optical-flow/extrapolate/kgo1.nc"
+  KGO2="optical-flow/extrapolate/kgo2.nc"
+
+  UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
+  VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
+  INFILE="201804100500_radar_rainrate_composite_UK_regridded.nc"
+
+  # Run processing and check it passes
+  run improver nowcast-extrapolate \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
+    --output_filepaths "$TEST_DIR/outfile1.nc" "$TEST_DIR/outfile2.nc" \
+    --max_lead_time 30 \
+    --eastward_advection "$UCOMP" \
+    --northward_advection "$VCOMP"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "kgo1.nc" $KGO1
+  improver_check_recreate_kgo "kgo2.nc" $KGO2
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/outfile1.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO1"
+  improver_compare_output "$TEST_DIR/outfile2.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO2"
 }

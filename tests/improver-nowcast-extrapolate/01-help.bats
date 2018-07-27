@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
-                                    [--output_dir OUTPUT_DIR]
+                                    [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--max_lead_time MAX_LEAD_TIME]
@@ -54,6 +54,9 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --output_dir OUTPUT_DIR
                         Directory to write output files.
+  --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]
+                        List of full paths to output nowcast files, in order
+                        of increasing lead time.
   --eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH
                         Path to input file containing Eastward advection
                         velocities.

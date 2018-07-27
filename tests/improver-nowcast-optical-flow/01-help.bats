@@ -36,6 +36,7 @@
 usage: improver-nowcast-optical-flow [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--output_dir OUTPUT_DIR]
+                                     [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
                                      [--extrapolate]
@@ -60,7 +61,12 @@ optional arguments:
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
   --output_dir OUTPUT_DIR
-                        Directory to write output files.
+                        Directory to write all output files, or only advection
+                        velocity components if NOWCAST_FILEPATHS is specified.
+  --nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]
+                        Optional list of full paths to output nowcast files.
+                        Overrides OUTPUT_DIR. Ignored unless '--extrapolate'
+                        is set.
   --ofc_box_size OFC_BOX_SIZE
                         Size of square 'box' (in grid squares) within which to
                         solve the optical flow equations.

@@ -49,8 +49,14 @@ def main():
         description="Extrapolate input data to required lead times.")
     parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
                         type=str, help="Path to input NetCDF file.")
-    parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                        default='', help="Directory to write output files.")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
+                       help="Directory to write output files.")
+    group.add_argument("--output_filepaths", nargs="+", type=str,
+                       help="List of full paths to output nowcast files, in "
+                       "order of increasing lead time.")
+
     parser.add_argument("--eastward_advection_filepath", type=str, help="Path"
                         " to input file containing Eastward advection "
                         "velocities.")
@@ -74,15 +80,24 @@ def main():
     lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
                            args.lead_time_interval)
 
+    if args.output_filepaths:
+        if len(args.output_filepaths) != len(lead_times):
+            raise ValueError("Require exactly one output file name for each "
+                             "forecast lead time")
+
     # extrapolate input data to required lead times
-    for lead_time in lead_times:
+    for i, lead_time in enumerate(lead_times):
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(seconds=60.*lead_time)
         forecast_cube = advection_plugin.process(input_cube, timestep)
 
         # save to a suitably-named output file
-        file_name = generate_file_name(forecast_cube)
-        save_netcdf(forecast_cube, os.path.join(args.output_dir, file_name))
+        if args.output_filepaths:
+            file_name = args.output_filepaths[i]
+        else:
+            file_name = os.path.join(
+                args.output_dir, generate_file_name(forecast_cube))
+        save_netcdf(forecast_cube, file_name)
 
 
 if __name__ == "__main__":
