@@ -29,30 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "wind direction -h" {
-  run improver wind-direction -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wind direction" {
+  improver_check_skip_acceptance
+  KGO="wind_direction/global/kgo.nc"
+
+  # Run wind direction processing and check it passes.
+  run improver wind-direction --backup_method="first_realization" \
+      "$IMPROVER_ACC_TEST_DIR/wind_direction/global/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
-                               [--backup_method {neighbourhood,first_realization}]
-                               INPUT_FILE OUTPUT_FILE
 
-Run wind direction to calculate mean wind direction from ensemble realizations
+  improver_check_recreate_kgo "output.nc" $KGO
 
-positional arguments:
-  INPUT_FILE            A path to an input NetCDF file to be processed
-  OUTPUT_FILE           The output path for the processed NetCDF
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --profile             Switch on profiling information.
-  --profile_file PROFILE_FILE
-                        Dump profiling info to a file. Implies --profile.
-  --backup_method {neighbourhood,first_realization}
-                        Backup method to use if there is low confidence in the
-                        wind_direction. Options are first_realization or
-                        neighbourhood, first_realization should only be used
-                        with global lat-lon data. Default is neighbourhood.
-__HELP__
-  [[ "$output" == "$expected" ]]
 }
+
