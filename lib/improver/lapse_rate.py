@@ -151,23 +151,24 @@ class LapseRate(object):
 
     def _calc_lapse_rate(self, temperature, orography):
         """Function to calculate the lapse rate.
+
         This holds the function to determine the local lapse rate at a point by
         calculating a least-squares fit to local temperature and altitude data
         to find the local lapse rate.
 
         Args:
             temperature(1D np.array):
-            Contains the temperature values for the central point and its
-            neighbours.
+                Contains the temperature values for the central point and its
+                neighbours.
 
             orography(1D np.array):
-            Contains the height values for the central point and its
-            neighbours.
+                Contains the height values for the central point and its
+                neighbours.
 
         Returns:
             gradient (float):
-            The gradient of the temperature/orography values. This
-            represents the lapse rate.
+                The gradient of the temperature/orography values. This
+                represents the lapse rate.
 
         """
 
