@@ -45,6 +45,8 @@ def main():
     cli_specific_arguments = [(['--backup_method'],
                                {'dest': 'backup_method',
                                 'default': 'neighbourhood',
+                                'choices': ['neighbourhood',
+                                            'first_realization'],
                                 'help': ('Backup method to use if '
                                          'there is low confidence in'
                                          ' the wind_direction. '

@@ -33,7 +33,7 @@
   run improver wind-direction
   [[ "$status" -eq 2 ]]
   expected="usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
-                               [--backup_method BACKUP_METHOD]
+                               [--backup_method {neighbourhood,first_realization}]
                                INPUT_FILE OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }

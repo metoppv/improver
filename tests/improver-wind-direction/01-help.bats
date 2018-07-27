@@ -34,7 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
-                               [--backup_method BACKUP_METHOD]
+                               [--backup_method {neighbourhood,first_realization}]
                                INPUT_FILE OUTPUT_FILE
 
 Run wind direction to calculate mean wind direction from ensemble realizations
@@ -48,7 +48,7 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --backup_method BACKUP_METHOD
+  --backup_method {neighbourhood,first_realization}
                         Backup method to use if there is low confidence in the
                         wind_direction. Options are first_realization or
                         neighbourhood, first_realization should only be used
