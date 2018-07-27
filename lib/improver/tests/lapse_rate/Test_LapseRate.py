@@ -57,7 +57,8 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(LapseRate())
-        msg = ('<LapseRate>')
+        msg = ('<LapseRate: max_height_diff: 35, nbhood_radius: 7,'
+               'max_lapse_rate: 0.0294, min_lapse_rate: -0.0098>')
         self.assertEqual(result, msg)
 
 
@@ -76,7 +77,8 @@ class Test__calc_lapse_rate(IrisTest):
         """Test that the function returns expected lapse rate. """
 
         expected_out = -0.00765005774676
-        result = LapseRate()._calc_lapse_rate(self.temperature, self.orography)
+        result = LapseRate(nbhood_radius=1)._calc_lapse_rate(self.temperature,
+                                                             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_handles_nan(self):
@@ -85,7 +87,8 @@ class Test__calc_lapse_rate(IrisTest):
 
         self.temperature[4] = np.nan
         expected_out = DALR
-        result = LapseRate()._calc_lapse_rate(self.temperature, self.orography)
+        result = LapseRate(nbhood_radius=1)._calc_lapse_rate(self.temperature,
+                                                             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
 
@@ -106,7 +109,8 @@ class Test__create_heightdiff_mask(IrisTest):
             [[True, True, False, False, False, False, False, False, True],
              [True, True, False, False, False, False, False, False, True]])
 
-        result = LapseRate()._create_heightdiff_mask(self.orography)
+        result = LapseRate(nbhood_radius=1)._create_heightdiff_mask(
+            self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_change_height_thresh(self):
@@ -117,7 +121,8 @@ class Test__create_heightdiff_mask(IrisTest):
             [[False, True, False, False, False, False, False, False, True],
              [False, True, False, False, False, False, False, False, True]])
 
-        result = LapseRate(max_height_diff=40)._create_heightdiff_mask(
+        result = LapseRate(max_height_diff=40,
+                           nbhood_radius=1)._create_heightdiff_mask(
             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
@@ -170,8 +175,9 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns expected data type. """
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertIsInstance(result, Cube)
 
     def test_fails_if_temperature_is_not_cube(self):
@@ -182,8 +188,9 @@ class Test_process(IrisTest):
         msg = 'Temperature input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
-            LapseRate().process(incorrect_input, self.orography,
-                                self.land_sea_mask)
+            LapseRate(nbhood_radius=1).process(incorrect_input,
+                                               self.orography,
+                                               self.land_sea_mask)
 
     def test_fails_if_orography_is_not_cube(self):
         """Test code raises a Type Error if input orography cube is
@@ -193,8 +200,9 @@ class Test_process(IrisTest):
         msg = 'Orography input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
-            LapseRate().process(self.temperature, incorrect_input,
-                                self.land_sea_mask)
+            LapseRate(nbhood_radius=1).process(self.temperature,
+                                               incorrect_input,
+                                               self.land_sea_mask)
 
     def test_fails_if_land_sea_mask_is_not_cube(self):
         """Test code raises a Type Error if input land/sea mask cube is
@@ -204,8 +212,9 @@ class Test_process(IrisTest):
         msg = 'Land/Sea mask input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
-            LapseRate().process(self.temperature, self.orography,
-                                incorrect_input)
+            LapseRate(nbhood_radius=1).process(self.temperature,
+                                               self.orography,
+                                               incorrect_input)
 
     def test_fails_if_temperature_wrong_units(self):
         """Test code raises a Value Error if the temperature cube is the
@@ -214,8 +223,8 @@ class Test_process(IrisTest):
         #  Swap cubes around so have wrong units.
         msg = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('K'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
-            LapseRate().process(self.orography, self.orography,
-                                self.land_sea_mask)
+            LapseRate(nbhood_radius=1).process(self.orography, self.orography,
+                                               self.land_sea_mask)
 
     def test_fails_if_orography_wrong_units(self):
         """Test code raises a Value Error if the orography cube is the
@@ -223,13 +232,15 @@ class Test_process(IrisTest):
 
         msg = r"Unable to convert from 'Unit\('K'\)' to 'Unit\('metres'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
-            LapseRate().process(self.temperature, self.temperature,
-                                self.land_sea_mask)
+            LapseRate(nbhood_radius=1).process(self.temperature,
+                                               self.temperature,
+                                               self.land_sea_mask)
 
     def test_return_single_precision(self):
         """Test that the function returns cube of float32."""
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertEqual(result.dtype, np.float32)
 
     def test_constant_temp_orog(self):
@@ -250,8 +261,9 @@ class Test_process(IrisTest):
         self.temperature.data[:, 1, 1] = 0.09
         self.orography.data[:, :] = 10
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out, decimal=4)
 
     def test_lapse_rate_limits(self):
@@ -273,8 +285,9 @@ class Test_process(IrisTest):
         self.temperature.data[:, :, 4] = -2
         self.orography.data[:, :] = 10
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_handles_nan_value(self):
@@ -297,8 +310,9 @@ class Test_process(IrisTest):
         self.temperature.data[:, 2, 2] = np.nan
         self.orography.data[:, :] = 10
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_landsea_mask(self):
@@ -322,8 +336,9 @@ class Test_process(IrisTest):
         self.orography.data[:, :] = 10
         self.land_sea_mask.data[3:5, :] = 0
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_mask_max_height_diff(self):
@@ -349,8 +364,9 @@ class Test_process(IrisTest):
         self.orography.data[:, 4] = 40
         self.orography.data[2, 4] = 60
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_decr_temp_incr_orog(self):
@@ -374,8 +390,9 @@ class Test_process(IrisTest):
         self.orography.data[:, 3] = 20
         self.orography.data[:, 4] = 40
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_decr_temp_decr_orog(self):
@@ -398,8 +415,9 @@ class Test_process(IrisTest):
         self.orography.data[:, 3] = 20
         self.orography.data[:, 4] = 40
 
-        result = LapseRate().process(self.temperature, self.orography,
-                                     self.land_sea_mask)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)
 
 

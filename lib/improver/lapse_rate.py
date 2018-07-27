@@ -81,14 +81,16 @@ class SaveNeighbourhood(object):
 
 
 class LapseRate(object):
-    """Plugin to calculate the lapse rate from orography and temperature
-       cubes.
+    """
+    Plugin to calculate the lapse rate from orography and temperature
+    cubes.
 
     References:
         The method applied here is based on the method used in the 2010 paper:
         https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/met.177
 
     Code methodology:
+
     1) Apply land/sea mask to temperature and orography datasets. Mask sea
        points as NaN since image processing module does not recognise Numpy
        masks.
@@ -105,22 +107,27 @@ class LapseRate(object):
     4) Loop through array of neighbourhoods and take the height and temperature
        of all grid points and calculate the
        temperature/height gradient = lapse rate
-    5) Constrain the lapse rate as > DALR and < -3.0*DALR
+    5) Constrain the lapse rate as > DALR and < -3.0*DALR.
 
     """
 
-    def __init__(self, max_height_diff=35, nbhood_radius=1,
+    def __init__(self, max_height_diff=35, nbhood_radius=7,
                  max_lapse_rate=-3*DALR, min_lapse_rate=DALR):
-        """Initialise class.
+        """
+        The class is called with the default constraints for the processing
+        code.
+
         Args:
             max_height_diff (float):
                 Maximum allowable height difference between the central point
                 and points in the neighbourhood over which the lapse rate will
                 be calculated (metres).
+                The default value of 35m is from the referenced paper.
 
             nbhood_radius (int):
                 Radius of neighbourhood around each point. The neighbourhood
                 will be a square array with side length 2*nbhood_radius + 1.
+                The default value of 7 is from the referenced paper.
 
             max_lapse_rate (float):
                 Maximum lapse rate allowed.
@@ -131,6 +138,7 @@ class LapseRate(object):
         """
 
         self.max_height_diff = max_height_diff
+        self.nbhood_radius = nbhood_radius
         self.max_lapse_rate = max_lapse_rate
         self.min_lapse_rate = min_lapse_rate
 
@@ -146,7 +154,10 @@ class LapseRate(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<LapseRate>')
+        desc = ('<LapseRate: max_height_diff: {}, nbhood_radius: {},'
+                'max_lapse_rate: {}, min_lapse_rate: {}>'
+                .format(self.max_height_diff, self.nbhood_radius,
+                        self.max_lapse_rate, self.min_lapse_rate))
         return desc
 
     def _calc_lapse_rate(self, temperature, orography):
@@ -341,9 +352,8 @@ class LapseRate(object):
 
             # Loop through both arrays and find gradient of each subsection.
             # The gradient indicates lapse rate - save into another array.
-            # TODO: This for loop is the bottleneck in the code - 1 array takes
-            # approximately 29 seconds out of a total running time of 33
-            # seconds for UKVX data. This section needs to be parallelised.
+            # TODO: This for loop is the bottleneck in the code and needs to
+            # be parallelised.
             lapse_rate_array = [self._calc_lapse_rate(temp, orog)
                                 for temp, orog in zip(all_temp_subsections,
                                                       all_orog_subsections)]
@@ -351,9 +361,7 @@ class LapseRate(object):
             lapse_rate_array = np.array(
                 lapse_rate_array, dtype=np.float32).reshape(dataarray_shape)
 
-            # According to the paper - any value below DALR is reset to DALR.
-            # HOWEVER the FORTRAN code also imposes an upper limit (see class
-            # docstring for code location). This requires more investigation.
+            # Enforces upper and lower limits on lapse rate values.
             lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
                                         self.min_lapse_rate, lapse_rate_array)
             lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
