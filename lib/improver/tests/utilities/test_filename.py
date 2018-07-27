@@ -89,9 +89,9 @@ class Test_generate_file_name(unittest.TestCase):
             _ = generate_file_name(self.cube)
 
     def test_funny_cube_name(self):
-        """Test cube names are correctly parsed to remove spaces and uppercase
-        letters"""
-        self.cube.rename("Rainfall rate Composite")
+        """Test cube names are correctly parsed to remove spaces, brackets,
+        slashes, parentheses and uppercase letters"""
+        self.cube.rename("Rainfall rate / (Composite)")
         name = generate_file_name(self.cube)
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-rainfall_rate_composite.nc")

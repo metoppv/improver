@@ -71,6 +71,9 @@ def generate_file_name(cube):
         forecast_period_string = 'PT0000H00M'
 
     parameter = cube.name().replace(' ', '_').lower()
+    for char in ["/", "(", ")"]:
+        parameter = parameter.replace(char, '')
+    parameter = parameter.replace('__', '_')
 
     filename = '{}-{}-{}.nc'.format(
         validity_time_string, forecast_period_string, parameter)
