@@ -43,7 +43,7 @@
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
-    "$TEST_DIR" --max_lead_time 30 \
+    --output_dir "$TEST_DIR" --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]

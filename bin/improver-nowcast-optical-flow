@@ -53,9 +53,11 @@ def main():
         "and (optionally) extrapolate to required lead times.")
 
     parser.add_argument("input_filepaths", metavar="INPUT_FILEPATHS",
-                        nargs="+", type=str, help="Paths to the input radar "
-                        "files.  There should be 3 input files at T, T-1 and "
-                        "T-2 from which to calculate optical flow velocities.")
+                        nargs=3, type=str, help="Paths to the input radar "
+                        "files. There should be 3 input files at T, T-1 and "
+                        "T-2 from which to calculate optical flow velocities. "
+                        "The files require a 'time' coordinate on which they "
+                        "are sorted, so the order of inputs does not matter.")
     parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
                         default='', help="Directory to write output files.")
 
@@ -84,8 +86,6 @@ def main():
     cube_list = []
     for fname in args.input_filepaths:
         cube_list.append(load_cube(fname))
-    if len(cube_list) != 3:
-        raise ValueError("Expected exactly 3 input files.")
 
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])

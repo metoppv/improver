@@ -35,23 +35,25 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
+                                    [--output_dir OUTPUT_DIR]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    INPUT_FILEPATH OUTPUT_DIR
+                                    INPUT_FILEPATH
 
 Extrapolate input data to required lead times.
 
 positional arguments:
   INPUT_FILEPATH        Path to input NetCDF file.
-  OUTPUT_DIR            Directory to write output files.
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --output_dir OUTPUT_DIR
+                        Directory to write output files.
   --eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH
                         Path to input file containing Eastward advection
                         velocities.

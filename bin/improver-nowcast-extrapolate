@@ -49,8 +49,8 @@ def main():
         description="Extrapolate input data to required lead times.")
     parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
                         type=str, help="Path to input NetCDF file.")
-    parser.add_argument("output_dir", metavar="OUTPUT_DIR", type=str,
-                        help="Directory to write output files.")
+    parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
+                        default='', help="Directory to write output files.")
     parser.add_argument("--eastward_advection_filepath", type=str, help="Path"
                         " to input file containing Eastward advection "
                         "velocities.")

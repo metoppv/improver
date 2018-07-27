@@ -33,7 +33,6 @@ This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
 import warnings
-
 import numpy as np
 
 import scipy.linalg
@@ -864,6 +863,18 @@ class OpticalFlow(object):
         # clear existing parameters
         self.data_smoothing_radius = None
         self.boxsize = None
+
+        # check the nature of the input cubes, and raise a warning if they are
+        # not both precipitation
+        if cube1.name() != cube2.name():
+            msg = 'Input cubes contain different data types {} and {}'
+            raise ValueError(msg.format(cube1.name(), cube2.name()))
+
+        if "rain" not in cube1.name() and "precipitation" not in cube1.name():
+            msg = ('Input data are of non-precipitation type {}.  Plugin '
+                   'parameters have not been tested and may not be appropriate'
+                   ' for this variable.')
+            warnings.warn(msg.format(cube1.name()))
 
         # check cubes have exactly two spatial dimension coordinates and a
         # scalar time coordinate

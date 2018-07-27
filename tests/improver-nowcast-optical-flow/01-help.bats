@@ -41,7 +41,8 @@ usage: improver-nowcast-optical-flow [-h] [--profile]
                                      [--extrapolate]
                                      [--max_lead_time MAX_LEAD_TIME]
                                      [--lead_time_interval LEAD_TIME_INTERVAL]
-                                     INPUT_FILEPATHS [INPUT_FILEPATHS ...]
+                                     INPUT_FILEPATHS INPUT_FILEPATHS
+                                     INPUT_FILEPATHS
 
 Calculate optical flow components from input fields and (optionally)
 extrapolate to required lead times.
@@ -49,7 +50,9 @@ extrapolate to required lead times.
 positional arguments:
   INPUT_FILEPATHS       Paths to the input radar files. There should be 3
                         input files at T, T-1 and T-2 from which to calculate
-                        optical flow velocities.
+                        optical flow velocities. The files require a 'time'
+                        coordinate on which they are sorted, so the order of
+                        inputs does not matter.
 
 optional arguments:
   -h, --help            show this help message and exit

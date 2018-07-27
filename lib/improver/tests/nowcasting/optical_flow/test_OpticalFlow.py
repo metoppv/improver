@@ -708,12 +708,30 @@ class Test_process(IrisTest):
         cube1 = self.cube1.copy(data=null_data)
         cube2 = self.cube2.copy(data=null_data)
         ucube, vcube = self.plugin.process(cube1, cube2)
-
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
         self.assertIn("No non-zero data in input fields", str(warning_list[0]))
         self.assertArrayAlmostEqual(ucube.data, null_data)
         self.assertArrayAlmostEqual(vcube.data, null_data)
+
+    def test_error_nonmatching_inputs(self):
+        """Test failure if cubes are of different data types"""
+        self.cube1.rename("snowfall_rate")
+        msg = "Input cubes contain different data types"
+        with self.assertRaisesRegexp(ValueError, msg):
+            _, _ = self.plugin.process(self.cube1, self.cube2)
+
+    @ManageWarnings(record=True)
+    def test_warning_nonprecip_inputs(self, warning_list=None):
+        """Test code raises a warning if input cubes have
+        non-rain variable names"""
+        self.cube1.rename("snowfall_rate")
+        self.cube2.rename("snowfall_rate")
+        _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertTrue(len(warning_list) == 1)
+        self.assertTrue(warning_list[0].category == UserWarning)
+        self.assertIn("Input data are of non-precipitation type",
+                      str(warning_list[0]))
 
 
 if __name__ == '__main__':

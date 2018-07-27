@@ -35,11 +35,12 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
+                                    [--output_dir OUTPUT_DIR]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    INPUT_FILEPATH OUTPUT_DIR
+                                    INPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
