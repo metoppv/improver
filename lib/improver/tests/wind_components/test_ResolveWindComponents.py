@@ -45,9 +45,9 @@ from improver.wind_components import ResolveWindComponents
 def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
     x_coord = DimCoord(np.arange(data_2d.shape[1]), "projection_x_coordinate",
-                       units="metres")
+                       units="metres", coord_system=OSGB())
     y_coord = DimCoord(np.arange(data_2d.shape[0]), "projection_y_coordinate",
-                       units="metres")
+                       units="metres", coord_system=OSGB())
     cube = iris.cube.Cube(data_2d, standard_name=name, units=unit,
                           dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
     time_unit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
@@ -72,9 +72,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Tests the output string is as expected"""
-        result = str(ResolveWindComponents(OSGB))
-        spine = '<ResolveWindComponents: target_cs {}>'
-        self.assertEqual(result, spine.format(OSGB))
+        result = str(ResolveWindComponents())
+        self.assertEqual(result, '<ResolveWindComponents>')
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -82,7 +81,7 @@ class Test_resolve_wind_components(IrisTest):
 
     def setUp(self):
         """Set up some arrays to convert"""
-        self.plugin = ResolveWindComponents(OSGB)
+        self.plugin = ResolveWindComponents()
         wind_speed = 10.*np.ones((4, 4), dtype=np.float32)
         wind_angle = np.array([[0., 30., 45., 60.],
                                [90., 120., 135., 150.],
@@ -124,7 +123,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create dummy cubes for tests"""
-        self.plugin = ResolveWindComponents(OSGB)
+        self.plugin = ResolveWindComponents()
         wind_speed_data = np.array([[6, 5, 4, 3],
                                     [8, 6, 4, 4],
                                     [12, 8, 6, 5]])

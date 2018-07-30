@@ -32,6 +32,7 @@
 
 import numpy as np
 import iris
+from iris.coord_systems import GeogCS
 from iris.analysis.cartography import rotate_winds
 
 from improver.utilities.cube_manipulation import compare_coords
@@ -42,19 +43,13 @@ DEG_TO_RAD = np.pi/180.
 class ResolveWindComponents(object):
     """Plugin to resolve wind components along specified projection axes"""
 
-    def __init__(self, target_cs):
-        """
-        Initialise plugin
-
-        Args:
-            target_cs (iris.coord_systems.CoordSystem):
-                Coordinate system onto which to transform wind components
-        """
-        self.target_cs = target_cs
+    def __init__(self):
+        """Initialise plugin"""
+        pass
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        return ('<ResolveWindComponents: target_cs {}>'.format(self.target_cs))
+        return ('<ResolveWindComponents>')
 
     @staticmethod
     def resolve_wind_components(speed, angle):
@@ -75,6 +70,11 @@ class ResolveWindComponents(object):
                 positive y-direction
         """
         angle.convert_units('degrees')
+        # vector should be pointing "to" not "from"
+        if angle.name() == "wind_from_direction":
+            angle.data += 180.
+            angle.data = np.where(angle.data < 360., angle.data,
+                                  angle.data - 360.)
         sin_angle = np.sin(DEG_TO_RAD*angle.data)
         cos_angle = np.cos(DEG_TO_RAD*angle.data)
         uspeed = np.multiply(speed.data, sin_angle)
@@ -84,8 +84,8 @@ class ResolveWindComponents(object):
     def process(self, wind_speed, wind_dir):
 
         """
-        Convert wind speed and direction into u,v components along
-        specified projection axes.
+        Convert wind speed and direction into u,v components along input cube
+        projection axes.
 
         Args:
             wind_speed (iris.cube.Cube):
@@ -107,6 +107,11 @@ class ResolveWindComponents(object):
         if unmatched_coords != [{}, {}]:
             msg = 'Wind speed and direction cubes have unmatched coordinates'
             raise ValueError('{} {}'.format(msg, unmatched_coords))
+        target_cs = wind_speed.coord_system()
+
+        # Need to rotate wind directions HERE - angle correction from true
+        # North to target_cs. There must be a library function to do this!
+
 
         # slice over x and y
         speed_slices = wind_speed.slices([wind_speed.coord(axis='y').name(),
@@ -123,10 +128,13 @@ class ResolveWindComponents(object):
         ucube = iris.cube.CubeList(uvcubelist[0]).merge_cube()
         vcube = iris.cube.CubeList(uvcubelist[1]).merge_cube()
 
-        # rotate winds onto target coordinate system
-        ucube, vcube = rotate_winds(ucube, vcube, self.target_cs())
+        # rotate winds from "true North" / "East" onto input cube axes
+        # BUG yeah no you can't do this.  Input data have to be aligned with
+        # their own projection axes.
+        ucube, vcube = rotate_winds(ucube, vcube, target_cs)
 
-        # relabel final cubes with CF compliant data names
+        # relabel final cubes with CF compliant data names corresponding to
+        # positive wind speeds along the x and y axes
         ucube.rename("grid_eastward_wind")
         vcube.rename("grid_northward_wind")
 
