@@ -276,10 +276,20 @@ class AdvectField(object):
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
-        # perform advection and create output cube
-        advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           timestep.total_seconds(),
-                                           fill_value)
+        # perform advection
+        advected_data = self._advect_field(
+            cube.data, grid_vel_x, grid_vel_y,
+            timestep.total_seconds(), fill_value)
+
+        # if input cube has mask, advect mask and apply to output data
+        if isinstance(cube.data, np.ma.MaskedArray):
+            advected_mask = self._advect_field(
+                cube.data.mask, grid_vel_x, grid_vel_y,
+                timestep.total_seconds(), True)
+            advected_data = np.ma.MaskedArray(advected_data,
+                                              mask=advected_mask)
+
+        # create output cube with new (masked) data
         advected_cube = cube.copy(data=advected_data)
 
         # increment output cube time and add a "forecast_period" coordinate
