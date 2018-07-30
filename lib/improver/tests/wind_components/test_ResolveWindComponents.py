@@ -37,6 +37,7 @@ from cf_units import Unit
 import iris
 from iris.tests import IrisTest
 from iris.coords import DimCoord
+from iris.coord_systems import OSGB
 
 from improver.wind_components import ResolveWindComponents
 
@@ -54,6 +55,7 @@ def set_up_cube(data_2d, name, unit):
     cube.add_aux_coord(t_coord)
     return cube
 
+
 def expand_realizations(cube, nreal):
     """Add realization dimension with nreal points by copying cube data"""
     cubelist = iris.cube.CubeList([])
@@ -70,8 +72,9 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Tests the output string is as expected"""
-        result = str(ResolveWindComponents())
-        self.assertEqual(result, '<ResolveWindComponents>')
+        result = str(ResolveWindComponents(OSGB))
+        spine = '<ResolveWindComponents: target_cs {}>'
+        self.assertEqual(result, spine.format(OSGB))
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -79,7 +82,7 @@ class Test_resolve_wind_components(IrisTest):
 
     def setUp(self):
         """Set up some arrays to convert"""
-        self.plugin = ResolveWindComponents()
+        self.plugin = ResolveWindComponents(OSGB)
         wind_speed = 10.*np.ones((4, 4), dtype=np.float32)
         wind_angle = np.array([[0., 30., 45., 60.],
                                [90., 120., 135., 150.],
@@ -121,7 +124,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create dummy cubes for tests"""
-        self.plugin = ResolveWindComponents()
+        self.plugin = ResolveWindComponents(OSGB)
         wind_speed_data = np.array([[6, 5, 4, 3],
                                     [8, 6, 4, 4],
                                     [12, 8, 6, 5]])
@@ -146,8 +149,18 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Test plugin generates expected wind values"""
-        # TODO waiting on projection info
-        pass
+        expected_u = np.array([
+            [4.01478552, 3.07830971, 2.51728408, 1.88796353],
+            [5.03832849, 3.61524507, 2.57486576, 2.46742715],
+            [7.39938360, 4.48558934, 3.78721887, 3.09024772]])
+        expected_v = np.array([
+            [-4.45886895, -3.94005377, -3.10858385, -2.33143788],
+            [-6.21407681, -4.78848557, -3.06101609, -3.14825329],
+            [-9.44705541, -6.62405082, -4.65358365, -3.93057169]])
+        ucube, vcube = self.plugin.process(
+            self.wind_speed_cube, self.wind_direction_cube)
+        self.assertArrayAlmostEqual(ucube.data, expected_u)
+        self.assertArrayAlmostEqual(vcube.data, expected_v)
 
     def test_coordinate_value_mismatch(self):
         """Test an error is raised if coordinate values are different for wind
@@ -170,9 +183,20 @@ class Test_process(IrisTest):
 
     def test_multiple_realizations(self):
         """Test a cube with more than one realization is correctly processed"""
+        expected_u = np.array([
+            [4.01478552, 3.07830971, 2.51728408, 1.88796353],
+            [5.03832849, 3.61524507, 2.57486576, 2.46742715],
+            [7.39938360, 4.48558934, 3.78721887, 3.09024772]])
+        expected_v = np.array([
+            [-4.45886895, -3.94005377, -3.10858385, -2.33143788],
+            [-6.21407681, -4.78848557, -3.06101609, -3.14825329],
+            [-9.44705541, -6.62405082, -4.65358365, -3.93057169]])
         wind_speed_3d = expand_realizations(self.wind_speed_cube, 3)
         wind_direction_3d = expand_realizations(self.wind_direction_cube, 3)
-        # TODO test values: waiting on projection info
+        ucube, vcube = self.plugin.process(wind_speed_3d, wind_direction_3d)
+        self.assertSequenceEqual(ucube.shape, (3, 3, 4))
+        self.assertArrayAlmostEqual(ucube[1].data, expected_u)
+        self.assertArrayAlmostEqual(vcube[2].data, expected_v)
 
 
 if __name__ == '__main__':

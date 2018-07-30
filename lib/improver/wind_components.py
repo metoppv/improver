@@ -33,7 +33,6 @@
 import numpy as np
 import iris
 from iris.analysis.cartography import rotate_winds
-from iris.coord_systems import OSGB
 
 from improver.utilities.cube_manipulation import compare_coords
 
@@ -41,21 +40,26 @@ DEG_TO_RAD = np.pi/180.
 
 
 class ResolveWindComponents(object):
+    """Plugin to resolve wind components along specified projection axes"""
 
-    """Plugin to resolve wind components along projection axes"""
+    def __init__(self, target_cs):
+        """
+        Initialise plugin
 
-    def __init__(self):
-        """Initialise plugin"""
-        pass
+        Args:
+            target_cs (iris.coord_systems.CoordSystem):
+                Coordinate system onto which to transform wind components
+        """
+        self.target_cs = target_cs
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        return ('<ResolveWindComponents>')
+        return ('<ResolveWindComponents: target_cs {}>'.format(self.target_cs))
 
     @staticmethod
     def resolve_wind_components(speed, angle):
         """
-        Performs trigonometric reprojection onto x and y axes
+        Perform trigonometric reprojection onto x and y axes
 
         Args:
             speed (iris.cube.Cube):
@@ -80,7 +84,7 @@ class ResolveWindComponents(object):
     def process(self, wind_speed, wind_dir):
 
         """
-        Converts wind speed and direction into u,v components along
+        Convert wind speed and direction into u,v components along
         specified projection axes.
 
         Args:
@@ -119,9 +123,8 @@ class ResolveWindComponents(object):
         ucube = iris.cube.CubeList(uvcubelist[0]).merge_cube()
         vcube = iris.cube.CubeList(uvcubelist[1]).merge_cube()
 
-        # rotate winds onto standard grid coordinate system
-        # TODO check which iris coordinate system is appropriate
-        ucube, vcube = rotate_winds(ucube, vcube, OSGB())
+        # rotate winds onto target coordinate system
+        ucube, vcube = rotate_winds(ucube, vcube, self.target_cs())
 
         # relabel final cubes with CF compliant data names
         ucube.rename("grid_eastward_wind")
