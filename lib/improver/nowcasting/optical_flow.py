@@ -33,7 +33,6 @@ This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
 import warnings
-
 import numpy as np
 
 import scipy.linalg
@@ -41,6 +40,7 @@ import scipy.ndimage
 import scipy.signal
 
 import iris
+from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
@@ -282,12 +282,22 @@ class AdvectField(object):
                                            fill_value)
         advected_cube = cube.copy(data=advected_data)
 
-        # increment output cube time
+        # increment output cube time and add a "forecast_period" coordinate
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
         new_time = (cube.coord("time").units).date2num(new_datetime)
         advected_cube.coord("time").points = new_time
+
+        forecast_period_seconds = timestep.total_seconds()
+        forecast_period_coord = AuxCoord(forecast_period_seconds,
+                                         standard_name="forecast_period",
+                                         units="s")
+        try:
+            advected_cube.remove_coord("forecast_period")
+        except CoordinateNotFoundError:
+            pass
+        advected_cube.add_aux_coord(forecast_period_coord)
 
         return advected_cube
 
@@ -850,6 +860,22 @@ class OpticalFlow(object):
                 **vcube** (iris.cube.Cube):
                     2D cube of advection velocities in the y-direction
         """
+        # clear existing parameters
+        self.data_smoothing_radius = None
+        self.boxsize = None
+
+        # check the nature of the input cubes, and raise a warning if they are
+        # not both precipitation
+        if cube1.name() != cube2.name():
+            msg = 'Input cubes contain different data types {} and {}'
+            raise ValueError(msg.format(cube1.name(), cube2.name()))
+
+        data_name = cube1.name().lower()
+        if "rain" not in data_name and "precipitation" not in data_name:
+            msg = ('Input data are of non-precipitation type {}.  Plugin '
+                   'parameters have not been tested and may not be appropriate'
+                   ' for this variable.')
+            warnings.warn(msg.format(cube1.name()))
 
         # check cubes have exactly two spatial dimension coordinates and a
         # scalar time coordinate
@@ -932,13 +958,13 @@ class OpticalFlow(object):
         t_coord = cube2.coord("time")
 
         ucube = iris.cube.Cube(
-            ucomp, long_name="advection_velocity_x", units="m s-1",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+            ucomp, long_name="precipitation_advection_x_velocity",
+            units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
 
         vcube = iris.cube.Cube(
-            vcomp, long_name="advection_velocity_y", units="m s-1",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+            vcomp, long_name="precipitation_advection_y_velocity",
+            units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
 
         return ucube, vcube

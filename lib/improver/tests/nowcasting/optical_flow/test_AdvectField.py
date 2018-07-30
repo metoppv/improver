@@ -284,6 +284,15 @@ class Test_process(IrisTest):
         self.assertEqual(output_cube_time.hour, 4)
         self.assertEqual(output_cube_time.minute, 10)
 
+    def test_lead_time(self):
+        """Test output cube has a forecast_period coordinate with the correct
+        value and units"""
+        result = self.plugin.process(self.cube, self.timestep)
+        result.coord("forecast_period").convert_units("s")
+        lead_time = result.coord("forecast_period").points
+        self.assertEqual(len(lead_time), 1)
+        self.assertEqual(lead_time[0], self.timestep.total_seconds())
+
 
 if __name__ == '__main__':
     unittest.main()
