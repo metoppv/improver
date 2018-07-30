@@ -870,7 +870,8 @@ class OpticalFlow(object):
             msg = 'Input cubes contain different data types {} and {}'
             raise ValueError(msg.format(cube1.name(), cube2.name()))
 
-        if "rain" not in cube1.name() and "precipitation" not in cube1.name():
+        data_name = cube1.name().lower()
+        if "rain" not in data_name and "precipitation" not in data_name:
             msg = ('Input data are of non-precipitation type {}.  Plugin '
                    'parameters have not been tested and may not be appropriate'
                    ' for this variable.')
