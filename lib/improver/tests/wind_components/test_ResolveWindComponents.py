@@ -102,6 +102,7 @@ class Test_calc_true_north_offset(IrisTest):
             [2.91895735, 2.62891746, 2.33833627, 2.04727270, 1.75578612],
             [3.22072244, 2.90095846, 2.58051566, 2.25946772, 1.93788889]])
         result = self.plugin.calc_true_north_offset(self.directions)
+        self.assertArrayAlmostEqual(result, expected_result)
 
 
 class Test_resolve_wind_components(IrisTest):
