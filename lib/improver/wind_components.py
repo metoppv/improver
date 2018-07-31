@@ -52,15 +52,47 @@ class ResolveWindComponents(object):
         return ('<ResolveWindComponents>')
 
     @staticmethod
-    def resolve_wind_components(speed, angle):
+    def calculate_adjustment_from_true_north(reference_cube):
+        """
+        Calculate the angles between grid north and true north, as a
+        matrix of values on the grid of the input reference cube.
+
+        Args:
+            reference_cube (iris.cube.Cube):
+                2D cube on grid for which "north" is required.  Provides both
+                coordinate system (reference_cube.coord_system()) and template
+                spatial grid on which the angle adjustments should be provided.
+
+        Returns:
+            angle_adjustment (numpy.ndarray):
+                Angle in degrees to be subtracted from wind direction at each
+                point on the x-y input grid, so that the new direction is with
+                respect to grid north.  Equivalent to the clockwise angular
+                rotation from true north to grid north.
+        """
+        #target_cs = wind_speed.coord_system()
+
+        # TODO calculate adjustment
+
+        angle_adjustment = np.zeros(reference_cube.shape, dtype=np.float32)
+
+        return angle_adjustment
+
+
+    @staticmethod
+    def resolve_wind_components(speed, angle, adj):
         """
         Perform trigonometric reprojection onto x and y axes
 
         Args:
             speed (iris.cube.Cube):
                 Cube containing 2D array of wind speeds
-            angle_deg (iris.cube.Cube):
-                Cube containing 2D array of wind directions as angles from N
+            angle (iris.cube.Cube):
+                Cube containing 2D array of wind directions as angles from
+                true north
+            adj (numpy.ndarray):
+                2D array of wind direction angle adjustments in degrees, to
+                convert zero reference from true north to grid north
         Returns:
             iris.cube.Cube:
                 Cube containing wind speed component in the
@@ -70,6 +102,8 @@ class ResolveWindComponents(object):
                 positive y-direction
         """
         angle.convert_units('degrees')
+        #angle.data -= adj
+
         # vector should be pointing "to" not "from"
         if angle.name() == "wind_from_direction":
             angle.data += 180.
@@ -91,7 +125,7 @@ class ResolveWindComponents(object):
             wind_speed (iris.cube.Cube):
                 Cube containing wind speed values
             wind_dir (iris.cube.Cube):
-                Cube containing wind direction values (in degrees)
+                Cube containing wind direction values
 
         Returns:
             ucube (iris.cube.Cube):
@@ -107,31 +141,26 @@ class ResolveWindComponents(object):
         if unmatched_coords != [{}, {}]:
             msg = 'Wind speed and direction cubes have unmatched coordinates'
             raise ValueError('{} {}'.format(msg, unmatched_coords))
-        target_cs = wind_speed.coord_system()
 
-        # Need to rotate wind directions HERE - angle correction from true
-        # North to target_cs. There must be a library function to do this!
+        x_coord = wind_speed.coord(axis='x').name()
+        y_coord = wind_speed.coord(axis='y').name()
 
+        # calculate angle adjustments for wind direction
+        adj = self.calculate_adjustment_from_true_north(
+            next(wind_dir.slices([y_coord, x_coord])))
 
         # slice over x and y
-        speed_slices = wind_speed.slices([wind_speed.coord(axis='y').name(),
-                                          wind_speed.coord(axis='x').name()])
-        dir_slices = wind_dir.slices([wind_dir.coord(axis='y').name(),
-                                      wind_dir.coord(axis='x').name()])
+        speed_slices = wind_speed.slices([y_coord, x_coord])
+        dir_slices = wind_dir.slices([y_coord, x_coord])
 
-        # resolve components from true North
-        uvcubelist = [self.resolve_wind_components(speed, angle)
+        # adjust directions and resolve components onto grid axes
+        uvcubelist = [self.resolve_wind_components(speed, angle, adj)
                       for speed, angle in zip(speed_slices, dir_slices)]
         uvcubelist = np.array(uvcubelist).T.tolist()
 
         # merge cubelists
         ucube = iris.cube.CubeList(uvcubelist[0]).merge_cube()
         vcube = iris.cube.CubeList(uvcubelist[1]).merge_cube()
-
-        # rotate winds from "true North" / "East" onto input cube axes
-        # BUG yeah no you can't do this.  Input data have to be aligned with
-        # their own projection axes.
-        ucube, vcube = rotate_winds(ucube, vcube, target_cs)
 
         # relabel final cubes with CF compliant data names corresponding to
         # positive wind speeds along the x and y axes

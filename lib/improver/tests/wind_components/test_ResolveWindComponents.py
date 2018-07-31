@@ -90,11 +90,12 @@ class Test_resolve_wind_components(IrisTest):
         self.wind_cube = set_up_cube(wind_speed, "wind_speed", "knots")
         self.directions = set_up_cube(
             wind_angle, "wind_to_direction", "degrees")
+        self.adjustments = np.zeros((4, 4), dtype=np.float32)
 
     def test_basic(self):
         """Test function returns correct type"""
         uspeed, vspeed = self.plugin.resolve_wind_components(
-            self.wind_cube, self.directions)
+            self.wind_cube, self.directions, self.adjustments)
         self.assertIsInstance(uspeed, iris.cube.Cube)
         self.assertIsInstance(vspeed, iris.cube.Cube)
 
@@ -113,7 +114,7 @@ class Test_resolve_wind_components(IrisTest):
              [0., 1., np.sqrt(2.), np.sqrt(3.)]])
 
         uspeed, vspeed = self.plugin.resolve_wind_components(
-            self.wind_cube, self.directions)
+            self.wind_cube, self.directions, self.adjustments)
         self.assertArrayAlmostEqual(uspeed.data, expected_uspeed)
         self.assertArrayAlmostEqual(vspeed.data, expected_vspeed)
 
@@ -124,17 +125,27 @@ class Test_process(IrisTest):
     def setUp(self):
         """Create dummy cubes for tests"""
         self.plugin = ResolveWindComponents()
-        wind_speed_data = np.array([[6, 5, 4, 3],
-                                    [8, 6, 4, 4],
-                                    [12, 8, 6, 5]])
+        wind_speed_data = np.array(
+            [[6, 5, 4, 3], [8, 6, 4, 4], [12, 8, 6, 5]], dtype=np.float32)
         self.wind_speed_cube = set_up_cube(
             wind_speed_data, "wind_speed", "knots")
 
-        wind_direction_data = np.array([[138, 142, 141, 141],
-                                        [141, 143, 140, 142],
-                                        [142, 146, 141, 142]])
+        wind_direction_data = np.array(
+            [[138, 142, 141, 141], [141, 143, 140, 142],
+             [142, 146, 141, 142]], dtype=np.float32)
         self.wind_direction_cube = set_up_cube(
             wind_direction_data, "wind_to_direction", "degrees")
+
+        self.expected_u = np.array([
+            [4.01478386, 3.07830715, 2.51728201, 1.88796151],
+            [5.03456402, 3.61089063, 2.57115054, 2.46264577],
+            [7.38793755, 4.47354412, 3.77592301, 3.07830715]],
+            dtype=np.float32)
+        self.expected_v = np.array([
+            [-4.45886898, -3.94005394, -3.10858345, -2.33143759],
+            [-6.21716690, -4.79181290, -3.06417775, -3.15204310],
+            [-9.45612907, -6.63229990, -4.66287518, -3.94005394]],
+            dtype=np.float32)
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""
@@ -148,18 +159,10 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Test plugin generates expected wind values"""
-        expected_u = np.array([
-            [4.01478552, 3.07830971, 2.51728408, 1.88796353],
-            [5.03832849, 3.61524507, 2.57486576, 2.46742715],
-            [7.39938360, 4.48558934, 3.78721887, 3.09024772]])
-        expected_v = np.array([
-            [-4.45886895, -3.94005377, -3.10858385, -2.33143788],
-            [-6.21407681, -4.78848557, -3.06101609, -3.14825329],
-            [-9.44705541, -6.62405082, -4.65358365, -3.93057169]])
         ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube)
-        self.assertArrayAlmostEqual(ucube.data, expected_u)
-        self.assertArrayAlmostEqual(vcube.data, expected_v)
+        self.assertArrayAlmostEqual(ucube.data, self.expected_u)
+        self.assertArrayAlmostEqual(vcube.data, self.expected_v)
 
     def test_coordinate_value_mismatch(self):
         """Test an error is raised if coordinate values are different for wind
@@ -182,20 +185,12 @@ class Test_process(IrisTest):
 
     def test_multiple_realizations(self):
         """Test a cube with more than one realization is correctly processed"""
-        expected_u = np.array([
-            [4.01478552, 3.07830971, 2.51728408, 1.88796353],
-            [5.03832849, 3.61524507, 2.57486576, 2.46742715],
-            [7.39938360, 4.48558934, 3.78721887, 3.09024772]])
-        expected_v = np.array([
-            [-4.45886895, -3.94005377, -3.10858385, -2.33143788],
-            [-6.21407681, -4.78848557, -3.06101609, -3.14825329],
-            [-9.44705541, -6.62405082, -4.65358365, -3.93057169]])
         wind_speed_3d = expand_realizations(self.wind_speed_cube, 3)
         wind_direction_3d = expand_realizations(self.wind_direction_cube, 3)
         ucube, vcube = self.plugin.process(wind_speed_3d, wind_direction_3d)
         self.assertSequenceEqual(ucube.shape, (3, 3, 4))
-        self.assertArrayAlmostEqual(ucube[1].data, expected_u)
-        self.assertArrayAlmostEqual(vcube[2].data, expected_v)
+        self.assertArrayAlmostEqual(ucube[1].data, self.expected_u)
+        self.assertArrayAlmostEqual(vcube[2].data, self.expected_v)
 
 
 if __name__ == '__main__':
