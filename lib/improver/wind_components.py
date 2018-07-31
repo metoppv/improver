@@ -70,7 +70,6 @@ class ResolveWindComponents(object):
                 respect to grid north.  Equivalent to the clockwise angular
                 rotation at each point from true north to grid north.
         """
-
         # extrapolate coordinates half a point out in the y-direction, so that
         # so that diffs will be centred
         ypoints = list(reference_cube.coord(axis='y').points)
