@@ -44,10 +44,13 @@ from improver.wind_components import ResolveWindComponents
 
 def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
-    x_coord = DimCoord(np.arange(data_2d.shape[1]), "projection_x_coordinate",
-                       units="metres", coord_system=OSGB())
-    y_coord = DimCoord(np.arange(data_2d.shape[0]), "projection_y_coordinate",
-                       units="metres", coord_system=OSGB())
+
+    x_coord = DimCoord(np.linspace(150000, 250000, data_2d.shape[1]),
+                       "projection_x_coordinate", units="metres",
+                       coord_system=OSGB())
+    y_coord = DimCoord(np.linspace(0, 600000, data_2d.shape[0]),
+                       "projection_y_coordinate", units="metres",
+                       coord_system=OSGB())
     cube = iris.cube.Cube(data_2d, standard_name=name, units=unit,
                           dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
     time_unit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
@@ -74,6 +77,31 @@ class Test__repr__(IrisTest):
         """Tests the output string is as expected"""
         result = str(ResolveWindComponents())
         self.assertEqual(result, '<ResolveWindComponents>')
+
+
+class Test_calc_true_north_offset(IrisTest):
+    """Tests the calc_true_north_offset function"""
+
+    def setUp(self):
+        """Set up a target cube with OSGB projection"""
+        self.plugin = ResolveWindComponents()
+        wind_angle = np.zeros((3, 5), dtype=np.float32)
+        self.directions = set_up_cube(
+            wind_angle, "wind_to_direction", "degrees")
+
+    def test_basic(self):
+        """Test function returns correct type"""
+        result = self.plugin.calc_true_north_offset(self.directions)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_values(self):
+        """Test that for UK National Grid coordinates the angle adjustments
+        are sensible"""
+        expected_result = np.array([
+            [2.65185907, 2.38818715, 2.12407738, 1.85957757, 1.59473581],
+            [2.91895735, 2.62891746, 2.33833627, 2.04727270, 1.75578612],
+            [3.22072244, 2.90095846, 2.58051566, 2.25946772, 1.93788889]])
+        result = self.plugin.calc_true_north_offset(self.directions)
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -136,6 +164,8 @@ class Test_process(IrisTest):
         self.wind_direction_cube = set_up_cube(
             wind_direction_data, "wind_to_direction", "degrees")
 
+        """
+        # with no angle adjustments...
         self.expected_u = np.array([
             [4.01478386, 3.07830715, 2.51728201, 1.88796151],
             [5.03456402, 3.61089063, 2.57115054, 2.46264577],
@@ -146,6 +176,16 @@ class Test_process(IrisTest):
             [-6.21716690, -4.79181290, -3.06417775, -3.15204310],
             [-9.45612907, -6.63229990, -4.66287518, -3.94005394]],
             dtype=np.float32)
+        """
+        self.expected_u = np.array([
+            [4.216783, 3.233962, 2.621484, 1.952114],
+            [5.344630, 3.819064, 2.684003, 2.558066],
+            [7.907538, 4.791543, 3.965243, 3.209784]], dtype=np.float32)
+
+        self.expected_v = np.array([
+            [-4.268342, -3.813330, -3.021229, -2.277993],
+            [-5.952724, -4.627607, -2.965827, -3.075109],
+            [-9.026119, -6.406334, -4.502983, -3.833704]], dtype=np.float32)
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""

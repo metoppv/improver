@@ -32,12 +32,12 @@
 
 import numpy as np
 import iris
-from iris.coord_systems import GeogCS
-from iris.analysis.cartography import rotate_winds
+from cartopy.crs import Geodetic
 
 from improver.utilities.cube_manipulation import compare_coords
 
 DEG_TO_RAD = np.pi/180.
+RAD_TO_DEG = 180./np.pi
 
 
 class ResolveWindComponents(object):
@@ -52,7 +52,7 @@ class ResolveWindComponents(object):
         return ('<ResolveWindComponents>')
 
     @staticmethod
-    def calculate_adjustment_from_true_north(reference_cube):
+    def calc_true_north_offset(reference_cube):
         """
         Calculate the angles between grid north and true north, as a
         matrix of values on the grid of the input reference cube.
@@ -68,16 +68,63 @@ class ResolveWindComponents(object):
                 Angle in degrees to be subtracted from wind direction at each
                 point on the x-y input grid, so that the new direction is with
                 respect to grid north.  Equivalent to the clockwise angular
-                rotation from true north to grid north.
+                rotation at each point from true north to grid north.
         """
-        #target_cs = wind_speed.coord_system()
 
-        # TODO calculate adjustment
+        # extrapolate coordinates half a point out in the y-direction, so that
+        # so that diffs will be centred
+        ypoints = list(reference_cube.coord(axis='y').points)
+        grid_length = ypoints[1] - ypoints[0]
+        ypoints.append(ypoints[-1] + grid_length)
+        ypoints = np.array(ypoints) - 0.5*grid_length
 
-        angle_adjustment = np.zeros(reference_cube.shape, dtype=np.float32)
+        # get longitudes of extrapolated coordinates
+        xv, yv = np.meshgrid(reference_cube.coord(axis='x').points, ypoints)
+        newshape = xv.shape
 
+        reference_cs = reference_cube.coord_system().as_cartopy_crs()
+        lat_lon_cs = Geodetic()
+
+        lon_points = []
+        lat_points = []
+        for x, y in zip(xv.flatten(), yv.flatten()):
+            lon, lat = lat_lon_cs.transform_point(x, y, reference_cs)
+            lon_points.append(lon)
+            lat_points.append(lat)
+        lon_points = np.array(lon_points).reshape(newshape)
+        lat_points = np.array(lat_points).reshape(newshape)
+
+        # calculate longitude differences in degrees along y-axis
+        lon_diffs = np.diff(lon_points, axis=0)
+
+        # interpolate latitude to original x/y grid (approx)
+        lat_points_interp = [np.interp(np.arange(len(ypoints)-1)+0.5,
+                                       np.arange(len(ypoints)),
+                                       points) for points in lat_points.T]
+        lat_points = np.array(lat_points_interp).T
+
+        # convert longitude differences in degrees to distance at the latitude
+        # of each point
+        def longitude_difference_to_km(lon_diff, lat):
+            """Converts longitude differences into km at a given latitude"""
+            lat_adj = np.cos(DEG_TO_RAD*lat)
+            earth_radius = 6371.
+            distance_km = lat_adj*lon_diff*DEG_TO_RAD*earth_radius
+            return distance_km
+
+        lon_diffs_km = longitude_difference_to_km(lon_diffs, lat_points)
+
+        # lon diffs / y diffs is (roughly) tan theta (small angle approx.),
+        # where theta is the offset angle between the y axis and true North
+        ycoord = reference_cube.coord(axis='y').copy()
+        ycoord.convert_units('km')
+        grid_length_km = ycoord.points[1] - ycoord.points[0]
+        grid_length_array = np.full(
+            reference_cube.shape, grid_length_km, dtype=np.float32)
+
+        angle_adjustment = -RAD_TO_DEG*np.arctan2(lon_diffs_km,
+                                                  grid_length_array)
         return angle_adjustment
-
 
     @staticmethod
     def resolve_wind_components(speed, angle, adj):
@@ -102,7 +149,7 @@ class ResolveWindComponents(object):
                 positive y-direction
         """
         angle.convert_units('degrees')
-        #angle.data -= adj
+        angle.data -= adj
 
         # vector should be pointing "to" not "from"
         if angle.name() == "wind_from_direction":
@@ -146,7 +193,7 @@ class ResolveWindComponents(object):
         y_coord = wind_speed.coord(axis='y').name()
 
         # calculate angle adjustments for wind direction
-        adj = self.calculate_adjustment_from_true_north(
+        adj = self.calc_true_north_offset(
             next(wind_dir.slices([y_coord, x_coord])))
 
         # slice over x and y
