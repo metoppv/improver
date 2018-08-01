@@ -41,6 +41,8 @@ from iris.coord_systems import OSGB
 
 from improver.wind_components import ResolveWindComponents
 
+RAD_TO_DEG = 180./np.pi
+
 
 def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
@@ -98,11 +100,11 @@ class Test_calc_true_north_offset(IrisTest):
         """Test that for UK National Grid coordinates the angle adjustments
         are sensible"""
         expected_result = np.array([
-            [2.65185907, 2.38818715, 2.12407738, 1.85957757, 1.59473581],
-            [2.91895735, 2.62891746, 2.33833627, 2.04727270, 1.75578612],
-            [3.22072244, 2.90095846, 2.58051566, 2.25946772, 1.93788889]])
+            [-2.649029, -2.386119, -2.122621, -1.858600, -1.594119],
+            [-2.915186, -2.626160, -2.336395, -2.045969, -1.754963],
+            [-3.215662, -2.897257, -2.577908, -2.257716, -1.936783]])
         result = self.plugin.calc_true_north_offset(self.directions)
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(RAD_TO_DEG*result, expected_result)
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -179,14 +181,14 @@ class Test_process(IrisTest):
             dtype=np.float32)
         """
         self.expected_u = np.array([
-            [4.216783, 3.233962, 2.621484, 1.952114],
-            [5.344630, 3.819064, 2.684003, 2.558066],
-            [7.907538, 4.791543, 3.965243, 3.209784]], dtype=np.float32)
+            [4.216573, 3.233839, 2.621425, 1.952089],
+            [5.344240, 3.818866, 2.683925, 2.558022],
+            [7.906742, 4.791172, 3.965085, 3.209710]], dtype=np.float32)
 
         self.expected_v = np.array([
-            [-4.268342, -3.813330, -3.021229, -2.277993],
-            [-5.952724, -4.627607, -2.965827, -3.075109],
-            [-9.026119, -6.406334, -4.502983, -3.833704]], dtype=np.float32)
+            [-4.268549, -3.813435, -3.021280, -2.278014],
+            [-5.953075, -4.627771, -2.965897, -3.075146],
+            [-9.026817, -6.406611, -4.503121, -3.833766]], dtype=np.float32)
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""

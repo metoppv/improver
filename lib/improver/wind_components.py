@@ -37,7 +37,6 @@ from cartopy.crs import Geodetic
 from improver.utilities.cube_manipulation import compare_coords
 
 DEG_TO_RAD = np.pi/180.
-RAD_TO_DEG = 180./np.pi
 
 
 class ResolveWindComponents(object):
@@ -65,7 +64,7 @@ class ResolveWindComponents(object):
 
         Returns:
             angle_adjustment (numpy.ndarray):
-                Angle in degrees to be subtracted from wind direction at each
+                Angle in radians to be added to "wind_to_direction" at each
                 point on the x-y input grid, so that the new direction is with
                 respect to grid north.  Equivalent to the clockwise angular
                 rotation at each point from true north to grid north.
@@ -113,16 +112,20 @@ class ResolveWindComponents(object):
 
         lon_diffs_km = longitude_difference_to_km(lon_diffs, lat_points)
 
-        # lon diffs / y diffs is (roughly) tan theta (small angle approx.),
-        # where theta is the offset angle between the y axis and true North
+        # calculate d(lon)/dy ratio (defines quadratic in sin theta to solve)
         ycoord = reference_cube.coord(axis='y').copy()
         ycoord.convert_units('km')
         grid_length_km = ycoord.points[1] - ycoord.points[0]
         grid_length_array = np.full(
             reference_cube.shape, grid_length_km, dtype=np.float32)
 
-        angle_adjustment = -RAD_TO_DEG*np.arctan2(lon_diffs_km,
-                                                  grid_length_array)
+        distance_ratio = np.divide(lon_diffs_km, grid_length_array)
+
+        # solve quadratic in sin theta
+        num = 1. + 4.*np.multiply(distance_ratio, distance_ratio)
+        sin_theta = np.divide(np.sqrt(num) - 1., 2.*distance_ratio)
+
+        angle_adjustment = np.arcsin(sin_theta)
         return angle_adjustment
 
     @staticmethod
@@ -137,26 +140,26 @@ class ResolveWindComponents(object):
                 Cube containing 2D array of wind directions as angles from
                 true north
             adj (numpy.ndarray):
-                2D array of wind direction angle adjustments in degrees, to
+                2D array of wind direction angle adjustments in radians, to
                 convert zero reference from true north to grid north
         Returns:
             iris.cube.Cube:
-                Cube containing wind speed component in the
-                positive x-direction
+                Cube containing wind vector component in the positive
+                x-direction
             iris.cube.Cube:
-                Cube containing wind speed component in the
-                positive y-direction
+                Cube containing wind vector component in the positive
+                y-direction
         """
-        angle.convert_units('degrees')
-        angle.data -= adj
+        angle.convert_units('radians')
+        angle.data += adj
 
         # vector should be pointing "to" not "from"
         if angle.name() == "wind_from_direction":
-            angle.data += 180.
-            angle.data = np.where(angle.data < 360., angle.data,
-                                  angle.data - 360.)
-        sin_angle = np.sin(DEG_TO_RAD*angle.data)
-        cos_angle = np.cos(DEG_TO_RAD*angle.data)
+            angle.data += np.pi
+            angle.data = np.where(angle.data < 2.*np.pi, angle.data,
+                                  angle.data - 2.*np.pi)
+        sin_angle = np.sin(angle.data)
+        cos_angle = np.cos(angle.data)
         uspeed = np.multiply(speed.data, sin_angle)
         vspeed = np.multiply(speed.data, cos_angle)
         return [speed.copy(data=uspeed), speed.copy(data=vspeed)]
