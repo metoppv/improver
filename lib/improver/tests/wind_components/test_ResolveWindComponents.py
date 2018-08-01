@@ -86,10 +86,10 @@ class Test_calc_true_north_offset(IrisTest):
 
     def setUp(self):
         """Set up a target cube with OSGB projection"""
-        self.plugin = ResolveWindComponents()
         wind_angle = np.zeros((3, 5), dtype=np.float32)
         self.directions = set_up_cube(
             wind_angle, "wind_to_direction", "degrees")
+        self.plugin = ResolveWindComponents()
 
     def test_basic(self):
         """Test function returns correct type"""
@@ -100,9 +100,10 @@ class Test_calc_true_north_offset(IrisTest):
         """Test that for UK National Grid coordinates the angle adjustments
         are sensible"""
         expected_result = np.array([
-            [-2.649029, -2.386119, -2.122621, -1.858600, -1.594119],
-            [-2.915186, -2.626160, -2.336395, -2.045969, -1.754963],
-            [-3.215662, -2.897257, -2.577908, -2.257716, -1.936783]])
+            [3.012338, 2.635347, 2.258535, 1.881877, 1.505348],
+            [3.167531, 2.771182, 2.374997, 1.978951, 1.583021],
+            [3.310965, 2.896735, 2.482648, 2.068685, 1.654825]],
+            dtype=np.float32)
         result = self.plugin.calc_true_north_offset(self.directions)
         self.assertArrayAlmostEqual(RAD_TO_DEG*result, expected_result)
 
@@ -167,28 +168,15 @@ class Test_process(IrisTest):
         self.wind_direction_cube = set_up_cube(
             wind_direction_data, "wind_to_direction", "degrees")
 
-        """
-        # with no angle adjustments...
         self.expected_u = np.array([
-            [4.01478386, 3.07830715, 2.51728201, 1.88796151],
-            [5.03456402, 3.61089063, 2.57115054, 2.46264577],
-            [7.38793755, 4.47354412, 3.77592301, 3.07830715]],
-            dtype=np.float32)
-        self.expected_v = np.array([
-            [-4.45886898, -3.94005394, -3.10858345, -2.33143759],
-            [-6.21716690, -4.79181290, -3.06417775, -3.15204310],
-            [-9.45612907, -6.63229990, -4.66287518, -3.94005394]],
-            dtype=np.float32)
-        """
-        self.expected_u = np.array([
-            [4.216573, 3.233839, 2.621425, 1.952089],
-            [5.344240, 3.818866, 2.683925, 2.558022],
-            [7.906742, 4.791172, 3.965085, 3.209710]], dtype=np.float32)
+            [3.774919, 2.902824, 2.406847, 1.826062],
+            [4.683339, 3.386423, 2.456537, 2.374629],
+            [6.829466, 4.149148, 3.593584, 2.963243]], dtype=np.float32)
 
         self.expected_v = np.array([
-            [-4.268549, -3.813435, -3.021280, -2.278014],
-            [-5.953075, -4.627771, -2.965897, -3.075146],
-            [-9.026817, -6.406611, -4.503121, -3.833766]], dtype=np.float32)
+            [-4.663688, -4.071071, -3.194854, -2.380230],
+            [-6.485857, -4.952993, -3.156806, -3.218872],
+            [-9.867035, -6.839924, -4.804805, -4.027306]], dtype=np.float32)
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""

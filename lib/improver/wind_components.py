@@ -31,12 +31,22 @@
 """Module containing plugin to resolve wind components."""
 
 import numpy as np
+
 import iris
-from cartopy.crs import Geodetic
+from iris.cube import Cube, CubeList
+
+from iris.analysis.cartography import rotate_winds
+from iris.coords import DimCoord
+from iris.coord_systems import GeogCS
 
 from improver.utilities.cube_manipulation import compare_coords
 
 DEG_TO_RAD = np.pi/180.
+
+SEMI_MAJOR_AXIS = 6378137.0
+INVERSE_FLATTENING = 298.257222101
+GLOBAL_CRS = GeogCS(semi_major_axis=SEMI_MAJOR_AXIS,
+                    inverse_flattening=INVERSE_FLATTENING)
 
 
 class ResolveWindComponents(object):
@@ -64,68 +74,52 @@ class ResolveWindComponents(object):
 
         Returns:
             angle_adjustment (numpy.ndarray):
-                Angle in radians to be added to "wind_to_direction" at each
-                point on the x-y input grid, so that the new direction is with
-                respect to grid north.  Equivalent to the clockwise angular
-                rotation at each point from true north to grid north.
+                Angle in radians by which "wind_to_direction" wrt true north at
+                each point must be rotated to align with grid north.
         """
-        # extrapolate coordinates half a point out in the y-direction, so that
-        # so that diffs will be centred
-        ypoints = list(reference_cube.coord(axis='y').points)
-        grid_length = ypoints[1] - ypoints[0]
-        ypoints.append(ypoints[-1] + grid_length)
-        ypoints = np.array(ypoints) - 0.5*grid_length
+        reference_x_coord = reference_cube.coord(axis='x')
+        reference_y_coord = reference_cube.coord(axis='y')
 
-        # get longitudes of extrapolated coordinates
-        xv, yv = np.meshgrid(reference_cube.coord(axis='x').points, ypoints)
-        newshape = xv.shape
+        # find corners of reference_cube grid in lat / lon coordinates
+        latlon = [GLOBAL_CRS.as_cartopy_crs().transform_point(
+            reference_x_coord.points[i], reference_y_coord.points[j],
+            reference_cube.coord_system().as_cartopy_crs()) for i in [0, -1]
+                                                            for j in [0, -1]]
+        latlon = np.array(latlon).T.tolist()
 
-        reference_cs = reference_cube.coord_system().as_cartopy_crs()
-        lat_lon_cs = Geodetic()
+        # define lat / lon coordinates to cover the reference_cube grid at an
+        # equivalent resolution
+        lat_points = np.linspace(np.floor(min(latlon[1])),
+                                 np.ceil(max(latlon[1])),
+                                 len(reference_y_coord.points))
+        lon_points = np.linspace(np.floor(min(latlon[0])),
+                                 np.ceil(max(latlon[0])),
+                                 len(reference_x_coord.points))
 
-        lon_points = []
-        lat_points = []
-        for x, y in zip(xv.flatten(), yv.flatten()):
-            lon, lat = lat_lon_cs.transform_point(x, y, reference_cs)
-            lon_points.append(lon)
-            lat_points.append(lat)
-        lon_points = np.array(lon_points).reshape(newshape)
-        lat_points = np.array(lat_points).reshape(newshape)
+        lat_coord = DimCoord(lat_points, 'latitude', units='degrees',
+                             coord_system=GLOBAL_CRS)
+        lon_coord = DimCoord(lon_points, 'longitude', units='degrees',
+                             coord_system=GLOBAL_CRS)
 
-        # calculate longitude differences in degrees along y-axis
-        lon_diffs = np.diff(lon_points, axis=0)
+        # define a unit vector wind towards true North over the lat / lon grid
+        udata = np.zeros(reference_cube.shape, dtype=np.float32)
+        vdata = np.ones(reference_cube.shape, dtype=np.float32)
 
-        # interpolate latitude to original x/y grid (approx)
-        lat_points_interp = [np.interp(np.arange(len(ypoints)-1)+0.5,
-                                       np.arange(len(ypoints)),
-                                       points) for points in lat_points.T]
-        lat_points = np.array(lat_points_interp).T
+        ucube_global = Cube(udata, "grid_eastward_wind",
+                            dim_coords_and_dims=[(lat_coord, 0),
+                                                 (lon_coord, 1)])
+        vcube_global = Cube(vdata, "grid_northward_wind",
+                            dim_coords_and_dims=[(lat_coord, 0),
+                                                 (lon_coord, 1)])
 
-        # convert longitude differences in degrees to distance at the latitude
-        # of each point
-        def longitude_difference_to_km(lon_diff, lat):
-            """Converts longitude differences into km at a given latitude"""
-            lat_adj = np.cos(DEG_TO_RAD*lat)
-            earth_radius = 6371.
-            distance_km = lat_adj*lon_diff*DEG_TO_RAD*earth_radius
-            return distance_km
+        # rotate unit vector onto reference_cube coordinate system
+        ucube, vcube = rotate_winds(
+            ucube_global, vcube_global, reference_cube.coord_system())
 
-        lon_diffs_km = longitude_difference_to_km(lon_diffs, lat_points)
+        # ratio of u to v winds is the tangent of the angle which is the
+        # true north to grid north rotation
+        angle_adjustment = np.arctan2(ucube.data, vcube.data)
 
-        # calculate d(lon)/dy ratio (defines quadratic in sin theta to solve)
-        ycoord = reference_cube.coord(axis='y').copy()
-        ycoord.convert_units('km')
-        grid_length_km = ycoord.points[1] - ycoord.points[0]
-        grid_length_array = np.full(
-            reference_cube.shape, grid_length_km, dtype=np.float32)
-
-        distance_ratio = np.divide(lon_diffs_km, grid_length_array)
-
-        # solve quadratic in sin theta
-        num = 1. + 4.*np.multiply(distance_ratio, distance_ratio)
-        sin_theta = np.divide(np.sqrt(num) - 1., 2.*distance_ratio)
-
-        angle_adjustment = np.arcsin(sin_theta)
         return angle_adjustment
 
     @staticmethod
@@ -153,11 +147,9 @@ class ResolveWindComponents(object):
         angle.convert_units('radians')
         angle.data += adj
 
-        # vector should be pointing "to" not "from"
+        # output vectors should be pointing "to" not "from"
         if angle.name() == "wind_from_direction":
             angle.data += np.pi
-            angle.data = np.where(angle.data < 2.*np.pi, angle.data,
-                                  angle.data - 2.*np.pi)
         sin_angle = np.sin(angle.data)
         cos_angle = np.cos(angle.data)
         uspeed = np.multiply(speed.data, sin_angle)
@@ -208,8 +200,8 @@ class ResolveWindComponents(object):
         uvcubelist = np.array(uvcubelist).T.tolist()
 
         # merge cubelists
-        ucube = iris.cube.CubeList(uvcubelist[0]).merge_cube()
-        vcube = iris.cube.CubeList(uvcubelist[1]).merge_cube()
+        ucube = CubeList(uvcubelist[0]).merge_cube()
+        vcube = CubeList(uvcubelist[1]).merge_cube()
 
         # relabel final cubes with CF compliant data names corresponding to
         # positive wind speeds along the x and y axes
