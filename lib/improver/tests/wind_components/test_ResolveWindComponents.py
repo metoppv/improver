@@ -61,12 +61,12 @@ def set_up_cube(data_2d, name, unit):
     return cube
 
 
-def expand_realizations(cube, nreal):
-    """Add realization dimension with nreal points by copying cube data"""
+def add_new_dimension(cube, npoints, name, unit):
+    """Add a new dimension with npoints by copying cube data"""
     cubelist = iris.cube.CubeList([])
-    for i in range(nreal):
+    for i in range(npoints):
         newcube = cube.copy(cube.data)
-        newcube.add_aux_coord(DimCoord(i, "realization", 1))
+        newcube.add_aux_coord(DimCoord(i, name, unit))
         cubelist.append(newcube)
     merged_cube = cubelist.merge_cube()
     return merged_cube
@@ -214,10 +214,12 @@ class Test_process(IrisTest):
             _, _ = self.plugin.process(
                 self.wind_speed_cube, self.wind_direction_cube)
 
-    def test_multiple_realizations(self):
-        """Test a cube with more than one realization is correctly processed"""
-        wind_speed_3d = expand_realizations(self.wind_speed_cube, 3)
-        wind_direction_3d = expand_realizations(self.wind_direction_cube, 3)
+    def test_height_levels(self):
+        """Test a cube on more than one height level is correctly processed"""
+        wind_speed_3d = add_new_dimension(
+            self.wind_speed_cube, 3, "height", "km")
+        wind_direction_3d = add_new_dimension(
+            self.wind_direction_cube, 3, "height", "km")
         ucube, vcube = self.plugin.process(wind_speed_3d, wind_direction_3d)
         self.assertSequenceEqual(ucube.shape, (3, 3, 4))
         self.assertArrayAlmostEqual(ucube[1].data, self.expected_u)

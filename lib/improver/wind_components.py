@@ -32,12 +32,10 @@
 
 import numpy as np
 
-import iris
-from iris.cube import Cube, CubeList
-
 from iris.analysis.cartography import rotate_winds
-from iris.coords import DimCoord
 from iris.coord_systems import GeogCS
+from iris.coords import DimCoord
+from iris.cube import Cube, CubeList
 
 from improver.utilities.cube_manipulation import compare_coords
 
