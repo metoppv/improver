@@ -35,7 +35,8 @@ import glob
 import iris
 from iris.exceptions import ConstraintMismatchError
 
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering, merge_cubes)
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
@@ -63,8 +64,14 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     # Remove metadata prefix cube if present
     constraints = iris.Constraint(
         cube_func=lambda cube: cube.long_name != 'prefixes') & constraints
-    cube = iris.load_cube(filepath, constraint=constraints)
-
+    cubes = iris.load(filepath, constraints=constraints)
+    if not cubes:
+        message = "No cubes found using contraints {}".format(constraints)
+        raise ValueError(message)
+    elif len(cubes) == 1:
+        cube = cubes[0]
+    else:
+        cube = merge_cubes(cubes)
     # Remove metadata prefix cube attributes
     if 'bald__isPrefixedBy' in cube.attributes.keys():
         cube.attributes.pop('bald__isPrefixedBy')
@@ -117,7 +124,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
     for filepath in filepaths:
         try:
             cube = load_cube(filepath, constraints=constraints)
-        except ConstraintMismatchError:
+        except ValueError:
             continue
         if no_lazy_load:
             # Force the cube's data into memory by touching the .data.
