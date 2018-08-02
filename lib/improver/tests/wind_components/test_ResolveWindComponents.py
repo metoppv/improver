@@ -200,7 +200,7 @@ class Test_process(IrisTest):
         speed and direction cubes"""
         self.wind_direction_cube.coord(axis='y').convert_units("km")
         msg = 'Wind speed and direction cubes have unmatched coordinates'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _, _ = self.plugin.process(
                 self.wind_speed_cube, self.wind_direction_cube)
 
@@ -210,7 +210,7 @@ class Test_process(IrisTest):
         self.wind_speed_cube.coord(axis='x').rename('longitude')
         self.wind_speed_cube.coord(axis='y').rename('latitude')
         msg = 'Wind speed and direction cubes have unmatched coordinates'
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _, _ = self.plugin.process(
                 self.wind_speed_cube, self.wind_direction_cube)
 

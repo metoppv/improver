@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
+
+import numpy as np
 from iris.coords import AuxCoord
 
 
@@ -93,3 +95,4 @@ U_EARTH_REPSILON = make_constant_with_units(EARTH_REPSILON, "1")
 # Dry Adiabatic Lapse Rate (DALR) in unit of K m-1
 DALR = -0.0098
 U_DALR = make_constant_with_units(DALR, "K m-1")
+
