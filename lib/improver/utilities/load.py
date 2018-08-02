@@ -65,7 +65,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     constraints = iris.Constraint(
         cube_func=lambda cube: cube.long_name != 'prefixes') & constraints
     cubes = iris.load(filepath, constraints=constraints)
-    if len(cubes) == 0:
+    if not cubes:
         message = "No cubes found using contraints {}".format(constraints)
         raise ValueError(message)
     elif len(cubes) == 1:
