@@ -171,7 +171,7 @@ class AdvectField(object):
         using advection velocities via a backwards method.
 
         Args:
-            data (numpy.ndarray):
+            data (numpy.ndarray or numpy.ma.MaskedArray):
                 2D numpy data array to be advected
             grid_vel_x (numpy.ndarray):
                 Velocity in the x direction (in grid points per second)
@@ -184,10 +184,9 @@ class AdvectField(object):
                 extrapolated (source is out of bounds)
 
         Returns:
-            adv_field (numpy.ndarray):
+            adv_field (numpy.ndarray or numpy.ma.MaskedArray):
                 2D float array of advected data values
         """
-
         # Initialise advected field with default fill_value
         adv_field = np.full(data.shape, fill_value)
 
@@ -226,12 +225,29 @@ class AdvectField(object):
         x_weights = [1. - x_weight_upper, x_weight_upper]
         y_weights = [1. - y_weight_upper, y_weight_upper]
 
+
+        # Check whether the input data is masked - if so we need to advect the
+        # mask as well, and re-mask the output
+        remask = False
+        if isinstance(data, np.ma.MaskedArray):
+            remask = True
+            input_mask = data.mask.astype(int)
+            adv_mask = np.full(data.shape, 0.)
+
         # Advect data from each of the four source points onto the output grid
         for xpt, xwt in zip(x_points, x_weights):
             for ypt, ywt in zip(y_points, y_weights):
                 cond = point_in_bounds(xpt, ypt, xdim, ydim) & cond_pt
-                self._increment_output_array(data, adv_field, cond, xgrid,
-                                             ygrid, xpt, ypt, xwt, ywt)
+                self._increment_output_array(
+                    data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt)
+                if remask:
+                    self._increment_output_array(
+                        input_mask, adv_mask, cond, xgrid, ygrid,
+                        xpt, ypt, xwt, ywt)
+
+        if remask:
+            adv_mask = np.ceil(adv_mask).astype(bool)
+            adv_field = np.ma.MaskedArray(adv_field, mask=adv_mask)
 
         return adv_field
 
@@ -280,14 +296,6 @@ class AdvectField(object):
         advected_data = self._advect_field(
             cube.data, grid_vel_x, grid_vel_y,
             timestep.total_seconds(), fill_value)
-
-        # if input cube has mask, advect mask and apply to output data
-        if isinstance(cube.data, np.ma.MaskedArray):
-            advected_mask = self._advect_field(
-                cube.data.mask, grid_vel_x, grid_vel_y,
-                timestep.total_seconds(), True)
-            advected_data = np.ma.MaskedArray(advected_data,
-                                              mask=advected_mask)
 
         # create output cube with new (masked) data
         advected_cube = cube.copy(data=advected_data)

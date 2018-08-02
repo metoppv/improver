@@ -199,6 +199,24 @@ class Test__advect_field(IrisTest):
             self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
         self.assertArrayAlmostEqual(result, expected_output)
 
+    def test_masked_input(self):
+        """Test masked data is correctly advected"""
+        mask = np.array([[True, True, True],
+                         [True, False, False],
+                         [False, False, False],
+                         [False, False, False]])
+        masked_data = np.ma.MaskedArray(self.data, mask=mask)
+        expected_data = np.array([[0., 0., 0.],
+                                  [0., np.nan, np.nan],
+                                  [0., np.nan, 2.75],
+                                  [0., 0.75, 1.75]])
+        expected_mask = np.where(np.isfinite(expected_data), False, True)
+        result = self.dummy_plugin._advect_field(
+            masked_data, self.grid_vel_x, 2*self.grid_vel_y, 0.5, 0.)
+        self.assertIsInstance(result, np.ma.MaskedArray)
+        self.assertArrayAlmostEqual(result, expected_data)
+        self.assertArrayEqual(result.mask, expected_mask)
+
 
 class Test_process(IrisTest):
     """Test dimensioned cube data is correctly advected"""
@@ -248,6 +266,29 @@ class Test_process(IrisTest):
                                     [-1., 1., 2.]])
         result = self.plugin.process(self.cube, self.timestep, fill_value=-1.)
         self.assertArrayAlmostEqual(result.data, expected_output)
+
+    def test_masked_input(self):
+        """Test input mask is correctly advected"""
+        mask = np.array([[True, True, True],
+                         [False, False, False],
+                         [False, False, False],
+                         [False, False, False]])
+        masked_data = np.ma.MaskedArray(self.cube.data, mask=mask)
+        masked_cube = self.cube.copy(masked_data)
+
+        expected_data = np.array([[0., 0., 0.],
+                                  [0., 0., 0.],
+                                  [0., np.nan, np.nan],
+                                  [0., 1., 2.]])
+        expected_mask = np.array([[False, False, False],
+                                  [False, False, False],
+                                  [False, True, True],
+                                  [False, False, False]])
+
+        result = self.plugin.process(masked_cube, self.timestep)
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayEqual(result.data.mask.astype(bool), expected_mask)
 
     def test_time_step(self):
         """Test outputs are OK for a time step with non-second components"""
