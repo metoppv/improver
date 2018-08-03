@@ -32,6 +32,7 @@
 
 import numpy as np
 
+from iris.analysis import Linear
 from iris.analysis.cartography import rotate_winds
 from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
@@ -114,6 +115,11 @@ class ResolveWindComponents(object):
         # rotate unit vector onto reference_cube coordinate system
         ucube, vcube = rotate_winds(
             ucube_global, vcube_global, reference_cube.coord_system())
+
+        # unmask and regrid rotated winds onto reference_cube grid
+        for cube in [ucube, vcube]:
+            cube.data = cube.data.data
+            cube = cube.regrid(reference_cube, Linear())
 
         # ratio of u to v winds is the tangent of the angle which is the
         # true North to grid North rotation
