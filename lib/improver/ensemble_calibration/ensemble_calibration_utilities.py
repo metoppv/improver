@@ -62,6 +62,9 @@ def convert_cube_data_to_2d(
 
     """
     forecast_data = []
+    if np.ma.is_masked(forecast.data):
+        forecast.data = np.ma.filled(forecast.data, np.nan)
+
     for coord_slice in forecast.slices_over(coord):
         forecast_data.append(coord_slice.data.flatten())
     if transpose:
