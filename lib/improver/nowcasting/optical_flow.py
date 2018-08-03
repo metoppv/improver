@@ -225,7 +225,6 @@ class AdvectField(object):
         x_weights = [1. - x_weight_upper, x_weight_upper]
         y_weights = [1. - y_weight_upper, y_weight_upper]
 
-
         # Check whether the input data is masked - if so we need to advect the
         # mask as well, and re-mask the output
         remask = False
@@ -233,6 +232,7 @@ class AdvectField(object):
             remask = True
             input_mask = data.mask.astype(int)
             adv_mask = np.full(data.shape, 0.)
+            data = data.data
 
         # Advect data from each of the four source points onto the output grid
         for xpt, xwt in zip(x_points, x_weights):
@@ -293,11 +293,9 @@ class AdvectField(object):
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
         # perform advection
-        advected_data = self._advect_field(
-            cube.data, grid_vel_x, grid_vel_y,
-            timestep.total_seconds(), fill_value)
-
-        # create output cube with new (masked) data
+        advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
+                                           timestep.total_seconds(),
+                                           fill_value)
         advected_cube = cube.copy(data=advected_data)
 
         # increment output cube time and add a "forecast_period" coordinate
