@@ -40,6 +40,7 @@ usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
+                                    [--output_time_origin]
                                     INPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]

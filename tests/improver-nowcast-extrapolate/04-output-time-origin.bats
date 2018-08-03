@@ -31,32 +31,38 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "optical-flow basic" {
+@test "extrapolate basic with time origin" {
   improver_check_skip_acceptance
-  KGO1="optical-flow/basic/ucomp_kgo.nc"
-  KGO2="optical-flow/basic/vcomp_kgo.nc"
+  KGO0="optical-flow/extrapolate/kgo0.nc"
+  KGO1="optical-flow/extrapolate/kgo1.nc"
+  KGO2="optical-flow/extrapolate/kgo2.nc"
 
-  COMP1="201804100430_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201804100445_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201804100500_radar_rainrate_composite_UK_regridded.nc"
+  UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
+  VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
+  INFILE="201804100500_radar_rainrate_composite_UK_regridded.nc"
 
   # Run processing and check it passes
-  run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
-    --output_dir "$TEST_DIR"
+  run improver nowcast-extrapolate \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
+    --output_dir "$TEST_DIR" --max_lead_time 30 \
+    --eastward_advection "$UCOMP" \
+    --northward_advection "$VCOMP" \
+    --output_time_origin
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "ucomp_kgo.nc" $KGO1
-  improver_check_recreate_kgo "vcomp_kgo.nc" $KGO2
+  improver_check_recreate_kgo "kgo0.nc" $KGO0
+  improver_check_recreate_kgo "kgo1.nc" $KGO1
+  improver_check_recreate_kgo "kgo2.nc" $KGO2
 
-  UCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_x_velocity.nc"
-  VCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_y_velocity.nc"
+  T0="20180410T0500Z-PT0000H00M-rainfall_rate_composite.nc"
+  T1="20180410T0515Z-PT0000H15M-rainfall_rate_composite.nc"
+  T2="20180410T0530Z-PT0000H30M-rainfall_rate_composite.nc"
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$UCOMP" \
+  improver_compare_output "$TEST_DIR/$T0" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO0"
+  improver_compare_output "$TEST_DIR/$T1" \
       "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$VCOMP" \
+  improver_compare_output "$TEST_DIR/$T2" \
       "$IMPROVER_ACC_TEST_DIR/$KGO2"
 }

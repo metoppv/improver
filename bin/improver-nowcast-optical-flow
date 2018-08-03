@@ -85,6 +85,9 @@ def main():
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins). "
                         "Ignored unless '--extrapolate' is set.")
+    parser.add_argument("--output_time_origin", action="store_true",
+                        help="Optional flag to output the T+0 field. "
+                        "Ignored unless '--extrapolate' is set.")
 
     args = parser.parse_args()
 
@@ -128,7 +131,11 @@ def main():
         advection_plugin = AdvectField(umean, vmean)
 
         # generate list of lead times in minutes
-        lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
+        if args.output_time_origin:
+            start_time = 0
+        else:
+            start_time = args.lead_time_interval
+        lead_times = np.arange(start_time, args.max_lead_time+1,
                                args.lead_time_interval)
 
         if args.nowcast_filepaths:
@@ -138,8 +145,13 @@ def main():
 
         for i, lead_time in enumerate(lead_times):
             # cast to float as datetime.timedelta cannot accept np.int
-            timestep = datetime.timedelta(seconds=60.*lead_time)
-            forecast_cube = advection_plugin.process(cube_list[-1], timestep)
+
+            if args.output_time_origin and i == 0:
+                forecast_cube = cube_list[-1]
+            else:
+                timestep = datetime.timedelta(seconds=60.*lead_time)
+                forecast_cube = advection_plugin.process(cube_list[-1],
+                                                         timestep)
 
             # save to a suitably-named output file
             if args.nowcast_filepaths:
