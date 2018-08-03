@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
 
-import numpy as np
 from iris.coords import AuxCoord
 
 
