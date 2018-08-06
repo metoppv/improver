@@ -211,6 +211,7 @@ class Test__advect_field(IrisTest):
                                   [0., np.nan, 2.75],
                                   [0., 0.75, 1.75]])
         expected_mask = np.where(np.isfinite(expected_data), False, True)
+        expected_data = np.ma.MaskedArray(expected_data, mask=expected_mask)
         result = self.dummy_plugin._advect_field(
             masked_data, self.grid_vel_x, 2*self.grid_vel_y, 0.5, 0.)
         self.assertIsInstance(result, np.ma.MaskedArray)
@@ -284,6 +285,7 @@ class Test_process(IrisTest):
                                   [False, False, False],
                                   [False, True, True],
                                   [False, False, False]])
+        expected_data = np.ma.MaskedArray(expected_data, mask=expected_mask)
 
         result = self.plugin.process(masked_cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
