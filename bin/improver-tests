@@ -173,7 +173,7 @@ function improver_test_cli {
 function print_usage {
     # Output CLI usage information.
     cat <<'__USAGE__'
-improver tests [OPTIONS] [SUBTEST...]
+improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
 Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
 

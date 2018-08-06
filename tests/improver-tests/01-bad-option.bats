@@ -33,7 +33,7 @@
   run improver tests --silly-option
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__HELP__' || true
-improver tests [OPTIONS] [SUBTEST...]
+improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
 Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
 
@@ -44,14 +44,18 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pycodestyle, pylint, pylintE, licence, doc, unit, cli.
-                    pycodestyle, pylintE, licence, doc, unit, and cli are the default tests.
-    SUBCLI          Name(s) of cli subtests to run without running the rest.
-                    Valid names are tasks which appear in /improver/tests/
-                    without the "improver-" prefix. The default is to run all
-                    cli tests in the /improver/tests/ directory.
-                    e.g. 'improver tests cli nbhood' will run neighbourhood
-                    processing cli tests only.
+                    Valid names are: pycodestyle, pylint, pylintE, licence,
+                    doc, unit, cli. pycodestyle, pylintE, licence, doc, unit,
+                    and cli are the default tests.
+    SUBCLI          Name(s) of cli tests to run without running the rest.
+                    Valid names are either directory names which appear in
+                    tests/ minus the "improver-" prefix, or paths to individual
+                    BATS test files. The default is to run all cli tests in the
+                    tests/ directory. For example, 'improver tests cli nbhood'
+                    will run neighbourhood processing cli tests in
+                    tests/improver-nbhood/*.bats.
+                    'improver tests cli ~/improver/tests/improver-nbhood/01-help.bats'
+                    will only run that specific nbhood CLI test.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
