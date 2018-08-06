@@ -33,6 +33,7 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
+  KGO0="optical-flow/extrapolate/kgo0.nc"
   KGO1="optical-flow/extrapolate/kgo1.nc"
   KGO2="optical-flow/extrapolate/kgo2.nc"
 
@@ -48,13 +49,17 @@
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]
 
+  T0="20180410T0500Z-PT0000H00M-rainfall_rate_composite.nc"
   T1="20180410T0515Z-PT0000H15M-rainfall_rate_composite.nc"
   T2="20180410T0530Z-PT0000H30M-rainfall_rate_composite.nc"
 
+  improver_check_recreate_kgo "$T0" $KGO0
   improver_check_recreate_kgo "$T1" $KGO1
   improver_check_recreate_kgo "$T2" $KGO2
 
   # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/$T0" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO0"
   improver_compare_output "$TEST_DIR/$T1" \
       "$IMPROVER_ACC_TEST_DIR/$KGO1"
   improver_compare_output "$TEST_DIR/$T2" \

@@ -33,6 +33,7 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
+  KGO0="optical-flow/extrapolate/kgo0.nc"
   KGO1="optical-flow/extrapolate/kgo1.nc"
   KGO2="optical-flow/extrapolate/kgo2.nc"
 
@@ -43,16 +44,20 @@
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
-    --output_filepaths "$TEST_DIR/outfile1.nc" "$TEST_DIR/outfile2.nc" \
+    --output_filepaths "$TEST_DIR/outfile0.nc" "$TEST_DIR/outfile1.nc" \
+    "$TEST_DIR/outfile2.nc" \
     --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]
 
+  improver_check_recreate_kgo "outfile0.nc" $KGO0
   improver_check_recreate_kgo "outfile1.nc" $KGO1
   improver_check_recreate_kgo "outfile2.nc" $KGO2
 
   # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/outfile0.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO0"
   improver_compare_output "$TEST_DIR/outfile1.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO1"
   improver_compare_output "$TEST_DIR/outfile2.nc" \

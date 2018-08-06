@@ -40,7 +40,6 @@ usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    [--output_time_origin]
                                     INPUT_FILEPATH
 
 Extrapolate input data to required lead times.
@@ -68,7 +67,6 @@ optional arguments:
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins).
-  --output_time_origin  Optional flag to output the T+0 field.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

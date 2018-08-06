@@ -42,7 +42,6 @@ usage: improver-nowcast-optical-flow [-h] [--profile]
                                      [--extrapolate]
                                      [--max_lead_time MAX_LEAD_TIME]
                                      [--lead_time_interval LEAD_TIME_INTERVAL]
-                                     [--output_time_origin]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
                                      INPUT_FILEPATHS
 
@@ -82,8 +81,6 @@ optional arguments:
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins). Ignored
                         unless '--extrapolate' is set.
-  --output_time_origin  Optional flag to output the T+0 field. Ignored unless
-                        '--extrapolate' is set
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

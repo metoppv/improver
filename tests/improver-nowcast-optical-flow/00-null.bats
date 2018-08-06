@@ -42,7 +42,6 @@ usage: improver-nowcast-optical-flow [-h] [--profile]
                                      [--extrapolate]
                                      [--max_lead_time MAX_LEAD_TIME]
                                      [--lead_time_interval LEAD_TIME_INTERVAL]
-                                     [--output_time_origin]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
                                      INPUT_FILEPATHS
 __TEXT__
