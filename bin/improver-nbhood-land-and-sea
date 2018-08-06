@@ -115,7 +115,7 @@ def main():
     args = parser.parse_args()
 
     cube = load_cube(args.input_filepath)
-    mask = load_cube(args.input_mask_filepath)
+    mask = load_cube(args.input_mask_filepath, no_lazy_load=True)
     masking_coordinate = None
 
     if any(['topographic_zone' in coord.name()
@@ -131,7 +131,7 @@ def main():
                           'of topographic zones to collapse the resulting '
                           'vertical dimension.')
 
-        weights = load_cube(args.weights_for_collapsing_dim)
+        weights = load_cube(args.weights_for_collapsing_dim, no_lazy_load=True)
         if weights.attributes['topographic_zones_include_seapoints'] == 'True':
             raise ValueError('The weights cube must be masked to exclude sea '
                              'points, but topographic_zones_include_seapoints '
