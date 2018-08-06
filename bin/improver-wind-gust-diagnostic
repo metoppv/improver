@@ -33,7 +33,7 @@
 
 from improver.argparser import ArgParser
 
-from improver.wind_gust_diagnostic import WindGustDiagnostic
+from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

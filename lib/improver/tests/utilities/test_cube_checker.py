@@ -44,8 +44,8 @@ from improver.utilities.cube_checker import (
     find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
-from improver.tests.wind_gust_diagnostic.test_WindGustDiagnostic import (
-    create_cube_with_percentile_coord)
+from improver.tests.wind_calculations.wind_gust_diagnostic.\
+    test_WindGustDiagnostic import create_cube_with_percentile_coord
 
 
 class Test_check_for_x_and_y_axes(IrisTest):

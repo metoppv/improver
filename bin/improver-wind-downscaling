@@ -37,7 +37,7 @@ import warnings
 import iris
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import wind_downscaling
+from improver.wind_calculations import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_extraction import apply_extraction

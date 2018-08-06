@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 
 from improver.grids import STANDARD_GRID_CCRS
 from improver.constants import RMDI
-from improver.wind_downscaling import RoughnessCorrection
+from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
 def _make_ukvx_grid():

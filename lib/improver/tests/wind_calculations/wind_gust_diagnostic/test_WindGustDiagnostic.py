@@ -39,7 +39,7 @@ from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 from cf_units import Unit
 
-from improver.wind_gust_diagnostic import WindGustDiagnostic
+from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.warnings_handler import ManageWarnings
 
 
