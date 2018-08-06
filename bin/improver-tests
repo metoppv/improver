@@ -145,9 +145,12 @@ function improver_test_cli {
     fi
 
     for SUBTEST in $CLISUBTEST; do
-        if [[ -f $SUBTEST ]]; then
+        if [[ -f "$SUBTEST" ]]; then
             # A particular file rather than a subdir name.
             TEST_TARGET="$SUBTEST"
+        elif [[ -f "$TEST_INPUT_PWD/$SUBTEST" ]]; then
+            # A particular file relative to the original $PWD.
+            TEST_TARGET="$TEST_INPUT_PWD/$SUBTEST"
         else
             TEST_TARGET="$IMPROVER_DIR/tests/improver-$SUBTEST/"
         fi
@@ -161,9 +164,9 @@ function improver_test_cli {
         else
             if [[ -f "$TEST_TARGET" ]]; then
                 # A particular file rather than a directory.
-                bats $TEST_TARGET
+                bats "$TEST_TARGET"
             else
-                bats $(find $TEST_TARGET -name "*.bats")
+                bats $(find "$TEST_TARGET" -name "*.bats")
             fi
         fi
     done
@@ -199,6 +202,7 @@ Arguments:
 __USAGE__
 }
 
+TEST_INPUT_PWD=$(cd $PWD && pwd -P)
 cd $IMPROVER_DIR/lib
 #cd $IMPROVER_DIR
 
