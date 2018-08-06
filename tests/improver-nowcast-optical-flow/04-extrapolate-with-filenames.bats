@@ -47,7 +47,10 @@
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
     --output_dir "$TEST_DIR" \
-    --nowcast_filepaths "$TEST_DIR/outfile0.nc" "$TEST_DIR/outfile1.nc" "$TEST_DIR/outfile2.nc" \
+    --nowcast_filepaths \
+    "$TEST_DIR/outfile0.nc" \
+    "$TEST_DIR/outfile1.nc" \
+    "$TEST_DIR/outfile2.nc" \
     --extrapolate --max_lead_time 30
   [[ "$status" -eq 0 ]]
 

@@ -44,7 +44,9 @@
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
-    --output_filepaths "$TEST_DIR/outfile0.nc" "$TEST_DIR/outfile1.nc" \
+    --output_filepaths \
+    "$TEST_DIR/outfile0.nc" \
+    "$TEST_DIR/outfile1.nc" \
     "$TEST_DIR/outfile2.nc" \
     --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
