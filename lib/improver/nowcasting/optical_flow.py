@@ -284,7 +284,7 @@ class AdvectField(object):
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
-        # perform advection
+        # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
                                            timestep.total_seconds(),
                                            fill_value)

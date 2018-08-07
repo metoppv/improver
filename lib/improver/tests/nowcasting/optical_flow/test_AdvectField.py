@@ -200,7 +200,7 @@ class Test__advect_field(IrisTest):
         self.assertArrayAlmostEqual(result, expected_output)
 
     def test_masked_input(self):
-        """Test masked data is correctly advected"""
+        """Test masked data is correctly advected and remasked"""
         mask = np.array([[True, True, True],
                          [True, False, False],
                          [False, False, False],
@@ -270,7 +270,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_output)
 
     def test_masked_input(self):
-        """Test input mask is correctly advected"""
+        """Test masked data is correctly advected and remasked"""
         mask = np.array([[True, True, True],
                          [False, False, False],
                          [False, False, False],
