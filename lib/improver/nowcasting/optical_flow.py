@@ -225,14 +225,10 @@ class AdvectField(object):
         x_weights = [1. - x_weight_upper, x_weight_upper]
         y_weights = [1. - y_weight_upper, y_weight_upper]
 
-        # Check whether the input data is masked - if so we need to advect the
-        # mask as well, and re-mask the output
-        remask = False
+        # Check whether the input data is masked - if so substitute NaNs for
+        # the masked data
         if isinstance(data, np.ma.MaskedArray):
-            remask = True
-            input_mask = data.mask.astype(int)
-            adv_mask = np.full(data.shape, 0.)
-            data = data.data
+            data = np.where(data.mask, np.nan, data.data)
 
         # Advect data from each of the four source points onto the output grid
         for xpt, xwt in zip(x_points, x_weights):
@@ -240,14 +236,10 @@ class AdvectField(object):
                 cond = point_in_bounds(xpt, ypt, xdim, ydim) & cond_pt
                 self._increment_output_array(
                     data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt)
-                if remask:
-                    self._increment_output_array(
-                        input_mask, adv_mask, cond, xgrid, ygrid,
-                        xpt, ypt, xwt, ywt)
 
-        if remask:
-            adv_mask = np.ceil(adv_mask).astype(bool)
-            adv_field = np.ma.MaskedArray(adv_field, mask=adv_mask)
+        # Replace NaNs with a mask
+        adv_mask = ~np.isfinite(adv_field)
+        adv_field = np.ma.MaskedArray(adv_field, mask=adv_mask)
 
         return adv_field
 

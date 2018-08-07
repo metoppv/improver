@@ -215,7 +215,8 @@ class Test__advect_field(IrisTest):
         result = self.dummy_plugin._advect_field(
             masked_data, self.grid_vel_x, 2*self.grid_vel_y, 0.5, 0.)
         self.assertIsInstance(result, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(result, expected_data)
+        self.assertArrayAlmostEqual(result[~result.mask],
+                                    expected_data[~result.mask])
         self.assertArrayEqual(result.mask, expected_mask)
 
 
@@ -281,16 +282,26 @@ class Test_process(IrisTest):
                                   [0., 0., 0.],
                                   [0., np.nan, np.nan],
                                   [0., 1., 2.]])
-        expected_mask = np.array([[False, False, False],
-                                  [False, False, False],
-                                  [False, True, True],
-                                  [False, False, False]])
+        expected_mask = ~np.isfinite(expected_data)
         expected_data = np.ma.MaskedArray(expected_data, mask=expected_mask)
 
         result = self.plugin.process(masked_cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayEqual(result.data.mask.astype(bool), expected_mask)
+        self.assertArrayAlmostEqual(result.data[~result.data.mask],
+                                    expected_data[~result.data.mask])
+        self.assertArrayEqual(result.data.mask, expected_mask)
+
+    def test_mask_creation(self):
+        """Test a mask is added if the fill value is NaN"""
+        expected_output = np.array([[np.nan, np.nan, np.nan],
+                                    [np.nan, np.nan, np.nan],
+                                    [np.nan, 2., 3.],
+                                    [np.nan, 1., 2.]])
+        result = self.plugin.process(self.cube, self.timestep,
+                                     fill_value=np.nan)
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        self.assertArrayAlmostEqual(result.data[~result.data.mask],
+                                    expected_output[~result.data.mask])
 
     def test_time_step(self):
         """Test outputs are OK for a time step with non-second components"""
