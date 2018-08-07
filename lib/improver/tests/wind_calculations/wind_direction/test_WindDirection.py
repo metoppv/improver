@@ -38,7 +38,7 @@ from iris.cube import Cube
 from iris.coords import DimCoord
 from cf_units import Unit
 
-from improver.wind_direction import WindDirection
+from improver.wind_calculations.wind_direction import WindDirection
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (

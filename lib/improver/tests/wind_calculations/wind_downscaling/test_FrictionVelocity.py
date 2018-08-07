@@ -36,7 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.constants import RMDI
-from improver.wind_downscaling import FrictionVelocity
+from improver.wind_calculations.wind_downscaling import FrictionVelocity
 from improver.utilities.warnings_handler import ManageWarnings
 
 
