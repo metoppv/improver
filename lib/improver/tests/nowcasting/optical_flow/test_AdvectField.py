@@ -164,41 +164,44 @@ class Test__advect_field(IrisTest):
     def test_basic(self):
         """Test function returns an array"""
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
-        self.assertIsInstance(result, np.ndarray)
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep)
+        self.assertIsInstance(result, np.ma.MaskedArray)
 
     def test_advect_integer_grid_point(self):
         """Test data is advected correctly (by 1 and 2 grid points along the x
         and y axes respectively)"""
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 0., 0.],
-                                    [0., 2., 3.],
-                                    [0., 1., 2.]])
+        expected_output = np.array([[np.nan, np.nan, np.nan],
+                                    [np.nan, np.nan, np.nan],
+                                    [np.nan, 2., 3.],
+                                    [np.nan, 1., 2.]])
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
-        self.assertArrayAlmostEqual(result, expected_output)
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep)
+        self.assertArrayAlmostEqual(result[~result.mask],
+                                    expected_output[~result.mask])
 
     def test_advect_partial_grid_point(self):
         """Test advection by a quarter of a grid point in the x direction and
         one grid point in the y direction"""
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 2.75, 3.75],
-                                    [0., 1.75, 2.75],
-                                    [0., 0.75, 1.75]])
+        expected_output = np.array([[np.nan, np.nan, np.nan],
+                                    [np.nan, 2.75, 3.75],
+                                    [np.nan, 1.75, 2.75],
+                                    [np.nan, 0.75, 1.75]])
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, 2.*self.grid_vel_y, 0.5, 0.)
-        self.assertArrayAlmostEqual(result, expected_output)
+            self.data, self.grid_vel_x, 2.*self.grid_vel_y, 0.5)
+        self.assertArrayAlmostEqual(result[~result.mask],
+                                    expected_output[~result.mask])
 
     def test_negative_advection_velocities(self):
         """Test data is advected correctly in the negative x direction"""
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 0., 0.],
-                                    [3., 4., 0.],
-                                    [2., 3., 0.]])
+        expected_output = np.array([[np.nan, np.nan, np.nan],
+                                    [np.nan, np.nan, np.nan],
+                                    [3., 4., np.nan],
+                                    [2., 3., np.nan]])
         self.grid_vel_x *= -1.
         result = self.dummy_plugin._advect_field(
-            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep, 0.)
-        self.assertArrayAlmostEqual(result, expected_output)
+            self.data, self.grid_vel_x, self.grid_vel_y, self.timestep)
+        self.assertArrayAlmostEqual(result[~result.mask],
+                                    expected_output[~result.mask])
 
     def test_masked_input(self):
         """Test masked data is correctly advected and remasked"""
@@ -207,14 +210,13 @@ class Test__advect_field(IrisTest):
                          [False, False, False],
                          [False, False, False]])
         masked_data = np.ma.MaskedArray(self.data, mask=mask)
-        expected_data = np.array([[0., 0., 0.],
-                                  [0., np.nan, np.nan],
-                                  [0., np.nan, 2.75],
-                                  [0., 0.75, 1.75]])
+        expected_data = np.array([[np.nan, np.nan, np.nan],
+                                  [np.nan, np.nan, np.nan],
+                                  [np.nan, np.nan, 2.75],
+                                  [np.nan, 0.75, 1.75]])
         expected_mask = np.where(np.isfinite(expected_data), False, True)
-        expected_data = np.ma.MaskedArray(expected_data, mask=expected_mask)
         result = self.dummy_plugin._advect_field(
-            masked_data, self.grid_vel_x, 2*self.grid_vel_y, 0.5, 0.)
+            masked_data, self.grid_vel_x, 2*self.grid_vel_y, 0.5)
         self.assertIsInstance(result, np.ma.MaskedArray)
         self.assertArrayAlmostEqual(result[~result.mask],
                                     expected_data[~result.mask])
@@ -253,22 +255,13 @@ class Test_process(IrisTest):
 
     def test_advected_values(self):
         """Test output cube data is as expected"""
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 0., 0.],
-                                    [0., 2., 3.],
-                                    [0., 1., 2.]])
+        expected_data = np.array([[np.nan, np.nan, np.nan],
+                                  [np.nan, np.nan, np.nan],
+                                  [np.nan, 2., 3.],
+                                  [np.nan, 1., 2.]])
         result = self.plugin.process(self.cube, self.timestep)
-        self.assertArrayAlmostEqual(result.data, expected_output)
-
-    def test_fill_values(self):
-        """Test output cube data is padded as expected where source grid
-        points are out of bounds"""
-        expected_output = np.array([[-1., -1., -1.],
-                                    [-1., -1., -1.],
-                                    [-1., 2., 3.],
-                                    [-1., 1., 2.]])
-        result = self.plugin.process(self.cube, self.timestep, fill_value=-1.)
-        self.assertArrayAlmostEqual(result.data, expected_output)
+        self.assertArrayAlmostEqual(result.data[~result.data.mask],
+                                    expected_data[~result.data.mask])
 
     def test_masked_input(self):
         """Test masked data is correctly advected and remasked"""
@@ -279,12 +272,9 @@ class Test_process(IrisTest):
         masked_data = np.ma.MaskedArray(self.cube.data, mask=mask)
         masked_cube = self.cube.copy(masked_data)
 
-        expected_data = np.array([[0., 0., 0.],
-                                  [0., 0., 0.],
-                                  [0., np.nan, np.nan],
-                                  [0., 1., 2.]])
+        expected_data = np.full((4, 3), np.nan, dtype=np.float32)
+        expected_data[3, 1:] = np.array([1., 2.])
         expected_mask = ~np.isfinite(expected_data)
-        expected_data = np.ma.MaskedArray(expected_data, mask=expected_mask)
 
         result = self.plugin.process(masked_cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
@@ -298,8 +288,7 @@ class Test_process(IrisTest):
                                     [np.nan, np.nan, np.nan],
                                     [np.nan, 2., 3.],
                                     [np.nan, 1., 2.]])
-        result = self.plugin.process(self.cube, self.timestep,
-                                     fill_value=np.nan)
+        result = self.plugin.process(self.cube, self.timestep)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
         self.assertArrayAlmostEqual(result.data[~result.data.mask],
                                     expected_output[~result.data.mask])
@@ -309,29 +298,27 @@ class Test_process(IrisTest):
         """Test an array with unmasked nans raises a warning"""
         data_with_nan = self.cube.data
         data_with_nan[2, 1] = np.nan
-        print(data_with_nan)
         cube = self.cube.copy(data_with_nan)
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 0., 0.],
-                                    [0., 2., 3.],
-                                    [0., np.nan, np.nan]])
+        expected_data = np.full((4, 3), np.nan, dtype=np.float32)
+        expected_data[2, 1:] = np.array([2., 3.])
         result = self.plugin.process(cube, self.timestep)
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
         self.assertIn("contains unmasked NaNs", str(warning_list[0]))
         self.assertArrayAlmostEqual(result.data[~result.data.mask],
-                                    expected_output[~result.data.mask])
+                                    expected_data[~result.data.mask])
 
     def test_time_step(self):
         """Test outputs are OK for a time step with non-second components"""
         self.plugin.vel_x.data = self.plugin.vel_x.data / 6.
         self.plugin.vel_y.data = self.plugin.vel_y.data / 6.
-        expected_output = np.array([[0., 0., 0.],
-                                    [0., 0., 0.],
-                                    [0., 2., 3.],
-                                    [0., 1., 2.]])
+        expected_data = np.array([[np.nan, np.nan, np.nan],
+                                  [np.nan, np.nan, np.nan],
+                                  [np.nan, 2., 3.],
+                                  [np.nan, 1., 2.]])
         result = self.plugin.process(self.cube, datetime.timedelta(hours=1))
-        self.assertArrayAlmostEqual(result.data, expected_output)
+        self.assertArrayAlmostEqual(result.data[~result.data.mask],
+                                    expected_data[~result.data.mask])
 
     def test_raises_grid_mismatch_error(self):
         """Test error is raised if cube grid does not match velocity grids"""
