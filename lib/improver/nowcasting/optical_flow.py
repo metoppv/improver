@@ -258,7 +258,10 @@ class AdvectField(object):
 
         Returns:
             advected_cube (iris.cube.Cube):
-                New cube with updated time and extrapolated data
+                New cube with updated time and extrapolated data.  New data
+                are filled with np.nan and masked where source data were
+                out of bounds (ie where data could not be advected from outside
+                the cube domain).
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
