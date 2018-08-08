@@ -155,10 +155,11 @@ class GenerateTopographicZoneWeights(object):
                 The weights generated to indicate the contribution of each
                 point to a band.
         """
-        weights = [0.5, 1.0, 0.5]
+        weights = np.array([0.5, 1.0, 0.5], np.float32)
         midpoint = np.mean(band)
-        band_points = [band[0], midpoint, band[1]]
-        interpolated_weights = np.interp(points, band_points, weights)
+        band_points = np.array([band[0], midpoint, band[1]], np.float32)
+        interpolated_weights = np.interp(points, band_points,
+                                         weights).astype(np.float32)
         return interpolated_weights
 
     def process(self, orography, thresholds_dict, landmask=None):
@@ -189,13 +190,13 @@ class GenerateTopographicZoneWeights(object):
             raise InvalidCubeError(msg)
 
         # Find bands and midpoints from bounds.
-        bands = thresholds_dict['bounds']
+        bands = np.array(thresholds_dict['bounds'], dtype=np.float32)
         threshold_units = thresholds_dict["units"]
 
         # Create topographic_zone_cube first, so that a cube is created for
         # each band. This will allow the data for neighbouring bands to be
         # put into the cube.
-        mask_data = np.zeros(orography.shape)
+        mask_data = np.zeros(orography.shape, dtype=np.float32)
         topographic_zone_cubes = iris.cube.CubeList([])
         for band in bands:
             sea_points_included = False if landmask else True
@@ -238,7 +239,7 @@ class GenerateTopographicZoneWeights(object):
             mask_y, mask_x = (
                 np.where((orography.data > band[0]) &
                          (orography.data <= band[1])))
-            orography_band = np.full(orography.shape, np.nan)
+            orography_band = np.full(orography.shape, np.nan, dtype=np.float32)
             orography_band[mask_y, mask_x] = orography.data[mask_y, mask_x]
 
             # Calculate the weights. This involves calculating the

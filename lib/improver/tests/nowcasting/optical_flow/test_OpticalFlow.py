@@ -465,8 +465,8 @@ class Test_calculate_displacement_vectors(IrisTest):
         """Test output values"""
         umat, vmat = self.plugin.calculate_displacement_vectors(
             self.partial_dx, self.partial_dy, self.partial_dt)
-        self.assertAlmostEqual(np.mean(umat), -0.124607928)
-        self.assertAlmostEqual(np.mean(vmat), 0.124607928)
+        self.assertAlmostEqual(np.mean(umat), np.float32(-0.124607998))
+        self.assertAlmostEqual(np.mean(vmat), np.float32(0.124607998))
 
 
 class Test__zero_advection_velocities_warning(IrisTest):
@@ -583,15 +583,15 @@ class Test_process_dimensionless(IrisTest):
             self.first_input, self.second_input, 0, 1, self.smoothing_kernel)
         self.assertIsInstance(ucomp, np.ndarray)
         self.assertIsInstance(vcomp, np.ndarray)
-        self.assertAlmostEqual(np.mean(ucomp), 0.97735876)
-        self.assertAlmostEqual(np.mean(vcomp), -0.97735876)
+        self.assertAlmostEqual(np.mean(ucomp), 0.97735882)
+        self.assertAlmostEqual(np.mean(vcomp), -0.97735888)
 
     def test_axis_inversion(self):
         """Test inverting x and y axis indices gives the correct result"""
         ucomp, vcomp = self.plugin.process_dimensionless(
             self.first_input, self.second_input, 1, 0, self.smoothing_kernel)
-        self.assertAlmostEqual(np.mean(ucomp), -0.97735876)
-        self.assertAlmostEqual(np.mean(vcomp), 0.97735876)
+        self.assertAlmostEqual(np.mean(ucomp), -0.97735888)
+        self.assertAlmostEqual(np.mean(vcomp), 0.97735882)
 
 
 class Test_process(IrisTest):
@@ -600,9 +600,9 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up plugin and input rainfall-like cubes"""
         self.plugin = OpticalFlow(iterations=20)
-        self.plugin.data_smoothing_radius_km = 6.
+        self.plugin.data_smoothing_radius_km = np.float32(6.)
 
-        coord_points = 2*np.arange(16)
+        coord_points = 2*np.arange(16, dtype=np.float32)
         x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
         y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='km')
 
@@ -612,7 +612,8 @@ class Test_process(IrisTest):
                                    [1., 2., 3., 3., 2., 1., 1.],
                                    [1., 2., 2., 2., 2., 1., 1.],
                                    [1., 1., 1., 1., 1., 1., 1.],
-                                   [1., 1., 1., 1., 1., 1., 1.]])
+                                   [1., 1., 1., 1., 1., 1., 1.]],
+                                  dtype=np.float32)
 
         data1 = np.zeros((16, 16))
         data1[1:8, 2:9] = rainfall_block
@@ -648,8 +649,9 @@ class Test_process(IrisTest):
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
-        self.assertAlmostEqual(np.mean(ucube.data), -2.171908358)
-        self.assertAlmostEqual(np.mean(vcube.data), 2.171908358)
+        self.assertAlmostEqual(
+            np.mean(ucube.data), -2.1719086)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
 
     def test_update_smoothing_radius(self):
         """Test data smoothing radius is updated if cube time difference is not

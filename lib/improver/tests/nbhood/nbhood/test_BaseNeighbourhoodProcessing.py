@@ -115,7 +115,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
 
     data = np.ones((
         num_realization_points, num_time_points,
-        num_grid_points, num_grid_points))
+        num_grid_points, num_grid_points), dtype=np.float32)
     for indices in zero_point_indices:
         realization_index, time_index, lat_index, lon_index = indices
         data[realization_index][time_index][lat_index][lon_index] = 0

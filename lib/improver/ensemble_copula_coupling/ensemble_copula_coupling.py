@@ -220,7 +220,10 @@ class ResamplePercentiles(object):
         forecast_at_interpolated_percentiles = (
             np.empty(
                 (len(desired_percentiles),
-                 forecast_at_reshaped_percentiles.shape[0])))
+                 forecast_at_reshaped_percentiles.shape[0]),
+                dtype=np.float32
+            )
+        )
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
             forecast_at_interpolated_percentiles[:, index] = np.interp(
                 desired_percentiles, original_percentiles,
@@ -433,17 +436,21 @@ class GeneratePercentilesFromProbabilities(object):
             warnings.warn(msg)
 
         # Convert percentiles into fractions.
-        percentiles = [x/100.0 for x in percentiles]
+        percentiles = np.array([x/100.0 for x in percentiles],
+                               dtype=np.float32)
 
         forecast_at_percentiles = (
-            np.empty((len(percentiles), probabilities_for_cdf.shape[0])))
+            np.empty((len(percentiles), probabilities_for_cdf.shape[0]),
+                     dtype=np.float32)
+        )
         for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles, probabilities_for_cdf[index, :],
                 threshold_points)
 
         # Convert percentiles back into percentages.
-        percentiles = [x*100.0 for x in percentiles]
+        percentiles = np.array([x*100.0 for x in percentiles],
+                               dtype=np.float32)
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -528,6 +535,7 @@ class GeneratePercentilesFromProbabilities(object):
                 no_of_percentiles, sampling=sampling)
         elif not isinstance(percentiles, (tuple, list)):
             percentiles = [percentiles]
+        percentiles = np.array(percentiles, dtype=np.float32)
 
         cube_units = (
             forecast_probabilities.coord(threshold_coord.name()).units)
@@ -603,10 +611,12 @@ class GeneratePercentilesFromMeanAndVariance(object):
             calibrated_forecast_variance.data.flatten())
 
         # Convert percentiles into fractions.
-        percentiles = [x/100.0 for x in percentiles]
+        percentiles = np.array(
+            [x/100.0 for x in percentiles], dtype=np.float32)
 
         result = np.zeros((len(percentiles),
-                           calibrated_forecast_predictor_data.shape[0]))
+                           calibrated_forecast_predictor_data.shape[0]),
+                          dtype=np.float32)
 
         # Loop over percentiles, and use a normal distribution with the mean
         # and variance to calculate the values at each percentile.

@@ -348,8 +348,8 @@ class ProbabilitiesFromPercentiles2D(object):
         # Create array with additional 2 dimensions to contain upper and lower
         # bounds.
         array_shape = [2] + list(threshold_cube.shape)
-        percentile_bounds = np.full(array_shape, -1, dtype=float)
-        value_bounds = np.full(array_shape, np.nan, dtype=float)
+        percentile_bounds = np.full(array_shape, -1, dtype=np.float32)
+        value_bounds = np.full(array_shape, np.nan, dtype=np.float32)
 
         for index, pslice in enumerate(percentiles_cube.slices_over(
                 self.percentile_coordinate)):
@@ -380,7 +380,7 @@ class ProbabilitiesFromPercentiles2D(object):
         with np.errstate(invalid='ignore'):
             probabilities.data, = (percentile_bounds[0] + interpolants *
                                    np.diff(percentile_bounds, n=1, axis=0))
-        probabilities.data = probabilities.data/100.
+        probabilities.data = probabilities.data/np.float32(100.)
 
         above_top_band = np.isinf(interpolants)
         below_bottom_band = np.isnan(value_bounds[0])

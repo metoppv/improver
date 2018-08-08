@@ -60,8 +60,8 @@ class Test_read_input(IrisTest):
 
         data = np.arange(0, 800, 1)
         data.resize(2, 20, 20)
-        latitudes = np.linspace(-90, 90, 20)
-        longitudes = np.linspace(-180, 180, 20)
+        latitudes = np.linspace(-90, 90, 20).astype(np.float32)
+        longitudes = np.linspace(-180, 180, 20).astype(np.float32)
         latitude = DimCoord(latitudes, standard_name='latitude',
                             units='degrees', var_name='latitude')
         longitude = DimCoord(longitudes, standard_name='longitude',
@@ -85,7 +85,7 @@ class Test_read_input(IrisTest):
                     units="K")
         cube2 = cube.copy()
 
-        orography = Cube(np.ones((20, 20)),
+        orography = Cube(np.ones((20, 20), dtype=np.float32),
                          long_name="surface_altitude",
                          dim_coords_and_dims=[(latitude, 0),
                                               (longitude, 1)],

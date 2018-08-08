@@ -38,6 +38,7 @@ from cf_units import Unit
 import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.utilities.cube_manipulation import _slice_over_coordinate
 
@@ -109,17 +110,19 @@ class Test__slice_over_coordinate(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = 402195.5
+        cube2.coord("time").points = np.float32(402195.5)
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
         cube1.add_aux_coord(
-            DimCoord([402192.5], "forecast_reference_time", units=tunit),
+            DimCoord(np.array([402192.5], dtype=np.float32),
+                     "forecast_reference_time", units=tunit),
             data_dims=1)
         cube1.add_aux_coord(
             DimCoord([0], "forecast_period", units="hours"), data_dims=1)
         cube2.add_aux_coord(
-            DimCoord([402195.5], "forecast_reference_time", units=tunit),
+            DimCoord(np.array([402195.5], dtype=np.float32),
+                     "forecast_reference_time", units=tunit),
             data_dims=1)
         cube2.add_aux_coord(
             DimCoord([3], "forecast_period", units="hours"), data_dims=1)

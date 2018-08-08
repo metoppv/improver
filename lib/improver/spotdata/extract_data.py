@@ -172,15 +172,15 @@ class ExtractData(object):
                 cube.
 
         """
-        return {'latitude': {'units': 'degrees', 'data_type': float,
+        return {'latitude': {'units': 'degrees', 'data_type': np.float32,
                              'coord_type': AuxCoord},
-                'longitude': {'units': 'degrees', 'data_type': float,
+                'longitude': {'units': 'degrees', 'data_type': np.float32,
                               'coord_type': AuxCoord},
-                'altitude': {'units': 'm', 'data_type': float,
+                'altitude': {'units': 'm', 'data_type': np.float32,
                              'coord_type': AuxCoord,
                              'custom_function': np.nan_to_num},
                 'wmo_site': {'data_type': int, 'coord_type': AuxCoord},
-                'utc_offset': {'units': 'hours', 'data_type': float,
+                'utc_offset': {'units': 'hours', 'data_type': np.float32,
                                'coord_type': AuxCoord}}
 
     def make_cube(self, cube, data, sites):
@@ -242,7 +242,9 @@ class ExtractData(object):
         forecast_periods = (cube.coord('time').points -
                             cube.coord('forecast_reference_time').points)
         forecast_period = build_coordinate(
-            forecast_periods, long_name='forecast_period', units='seconds')
+            forecast_periods, long_name='forecast_period', units='seconds',
+            data_type=np.float32
+        )
 
         # Build the new auxiliary coordinates.
         crds = self._aux_coords_to_make()
@@ -342,7 +344,7 @@ class ExtractData(object):
             gradient, intercept = lstsq(matrix, y_data)[0]
             return [gradient, intercept]
 
-        data = np.empty(shape=(len(sites)), dtype=float)
+        data = np.empty(shape=(len(sites)), dtype=np.float32)
 
         for i_site, site in enumerate(sites.values()):
             i, j = neighbours['i'][i_site], neighbours['j'][i_site]
@@ -548,7 +550,7 @@ class ExtractData(object):
         z_upper, = upper_pressure.coord('height').points
         dz_model_levels = z_upper - z_lower
 
-        data = np.empty(shape=(len(sites)), dtype=float)
+        data = np.empty(shape=(len(sites)), dtype=np.float32)
         for i_site in range(len(sites)):
             i, j, dz = (neighbours['i'][i_site], neighbours['j'][i_site],
                         neighbours['dz'][i_site])

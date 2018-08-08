@@ -372,7 +372,15 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             if kernel[..., i+ranges_xy[1], j+ranges_xy[0]] > 0.]
 
         # Collapse this dimension into percentiles (a new 2nd dimension)
-        perc_data = np.percentile(nbhood_slices, self.percentiles, axis=0)
+        perc_data = np.percentile(
+            nbhood_slices,
+            np.array(self.percentiles, dtype=np.float32),
+            axis=0
+        )
+
+        # Convert back to float32 (np.percentile always gives float64 here...)
+        perc_data = perc_data.astype(np.float32)
+
         # Return to 3D
         perc_data = perc_data.reshape(
             len(self.percentiles), padshape[0], padshape[1])

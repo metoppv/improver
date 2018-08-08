@@ -129,14 +129,21 @@ class CubeCombiner(object):
         else:
             new_low_bound = np.min(bounds)
             new_top_bound = np.max(bounds)
-        result_cube.coord(coord).bounds = [[new_low_bound, new_top_bound]]
+        result_coord = result_cube.coord(coord)
+        result_coord.bounds = np.array(
+            [[new_low_bound, new_top_bound]])
+        if result_coord.bounds.dtype == np.float64:
+            result_coord.bounds = result_coord.bounds.astype(np.float32)
 
         if point == 'mid':
-            result_cube.coord(coord).points = [((new_top_bound -
-                                                 new_low_bound) / 2.) +
-                                               new_low_bound]
+            result_coord.points = [((new_top_bound - new_low_bound) / 2.) +
+                                   new_low_bound]
         elif point == 'upper':
-            result_cube.coord(coord).points = [new_top_bound]
+            result_coord.points = [new_top_bound]
+
+        if result_coord.points.dtype == np.float64:
+            result_coord.points = result_coord.points.astype(np.float32)
+
         return result_cube
 
     @staticmethod

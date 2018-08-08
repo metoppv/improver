@@ -254,9 +254,10 @@ class BasicThreshold(object):
                 truth_value = 1. - truth_value
 
             cube.data = truth_value
-            coord = iris.coords.DimCoord(threshold,
-                                         long_name="threshold",
-                                         units=cube.units)
+            coord = iris.coords.DimCoord(
+                np.array([threshold], dtype=np.float32),
+                long_name="threshold",
+                units=cube.units)
             cube.add_aux_coord(coord)
             cube = iris.util.new_axis(cube, 'threshold')
             thresholded_cubes.append(cube)

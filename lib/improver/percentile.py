@@ -33,6 +33,7 @@
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
+import numpy as np
 
 from improver.constants import DEFAULT_PERCENTILES
 
@@ -70,9 +71,10 @@ class PercentileConverter(object):
                             'as is expected.'.format(collapse_coord))
 
         if percentiles is not None:
-            self.percentiles = [float(value) for value in percentiles]
+            self.percentiles = [np.float32(value) for value in percentiles]
         else:
-            self.percentiles = [float(value) for value in DEFAULT_PERCENTILES]
+            self.percentiles = [
+                np.float32(value) for value in DEFAULT_PERCENTILES]
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such

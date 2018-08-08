@@ -544,10 +544,11 @@ class Test__apply_params(IrisTest):
         Test that the plugin returns values for the calibrated predictor (the
         calibrated mean), which match the expected values.
         """
-        data = np.array([[231.15002913, 242.40003036, 253.6500316],
-                         [264.90003284, 276.15003408, 287.40003531],
-                         [298.65003655, 309.90003779, 321.15003903]])
-
+        data = np.array(
+            [[231.15001794, 242.40001917, 253.65002041],
+             [264.90000639, 276.15000763, 287.40000887],
+             [298.6500101, 309.90001134, 321.15001258]]
+        )
         cube = self.current_temperature_forecast_cube
         cube1 = cube.copy()
         cube2 = cube.copy()
@@ -663,9 +664,10 @@ class Test__apply_params(IrisTest):
         which match the expected values when the individual ensemble
         realizations are used as the predictor.
         """
-        data = np.array([[239.904135, 251.65926, 263.414385],
-                         [275.16951, 286.924635, 298.67976],
-                         [310.434885, 322.19001, 333.945135]])
+        data = np.array([[239.904142, 251.659267, 263.414393],
+                         [275.169518, 286.92465, 298.67975],
+                         [310.43488, 322.19, 333.94516]],
+                        dtype=np.float32)
 
         cube = self.current_temperature_forecast_cube
         cube1 = cube.copy()
@@ -681,7 +683,7 @@ class Test__apply_params(IrisTest):
         for time_slice in cube.slices_over("time"):
             the_date = datetime_from_timestamp(time_slice.coord("time").points)
             optimised_coeffs[the_date] = np.array(
-                [5, 1, 0, 0.57, 0.6, 0.6])
+                [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
         self.coeff_names = ["gamma", "delta", "a", "beta"]
 
         predictor_cube = cube.copy()
@@ -694,7 +696,8 @@ class Test__apply_params(IrisTest):
         forecast_predictor, _, _ = plugin._apply_params(
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
-        self.assertArrayAlmostEqual(forecast_predictor[0].data, data)
+        self.assertArrayAlmostEqual(forecast_predictor[0].data, data,
+                                    decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -737,7 +740,8 @@ class Test__apply_params(IrisTest):
         _, forecast_variance, _ = plugin._apply_params(
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
-        self.assertArrayAlmostEqual(forecast_variance[0].data, data)
+        self.assertArrayAlmostEqual(forecast_variance[0].data, data,
+                                    decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -851,7 +855,7 @@ class Test__apply_params(IrisTest):
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
 
-        self.assertArrayAlmostEqual(result[0][0].data, data)
+        self.assertArrayAlmostEqual(result[0][0].data, data, decimal=4)
 
     @ManageWarnings(
         record=True,

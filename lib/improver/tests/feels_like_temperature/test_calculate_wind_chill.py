@@ -54,14 +54,13 @@ class Test_calculate_wind_chill(IrisTest):
         # use a temperature less than 10 degrees C.
         self.temperature_cube.data = np.full((1, 3), 274.85)
         self.wind_speed_cube.data = np.full((1, 3), 3)
-        expected_result = np.full((1, 3), 271.67464638070214)
+        expected_result = np.full((1, 3), 271.674652, dtype=np.float32)
         result = calculate_wind_chill(
             self.temperature_cube, self.wind_speed_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_name_and_units(self):
         """Test correct outputs for name and units."""
-
         expected_name = "wind_chill"
         expected_units = 'K'
         result = calculate_wind_chill(
@@ -77,9 +76,9 @@ class Test_calculate_wind_chill(IrisTest):
         self.wind_speed_cube.convert_units('knots')
 
         data = np.array(
-            [[257.05949999999996, 220.76791360990788, 231.12778815651941]])
+            [[257.05949633, 220.76791229, 231.12778024]])
         # convert to fahrenheit
-        expected_result = data * (9.0/5.0) - 459.67
+        expected_result = (data * (9.0/5.0) - 459.67).astype(np.float32)
         result = calculate_wind_chill(
             self.temperature_cube, self.wind_speed_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
