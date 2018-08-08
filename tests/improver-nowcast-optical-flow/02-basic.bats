@@ -48,11 +48,11 @@
     --output_dir "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "ucomp_kgo.nc" $KGO1
-  improver_check_recreate_kgo "vcomp_kgo.nc" $KGO2  
-
   UCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_x_velocity.nc"
   VCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_y_velocity.nc"
+
+  improver_check_recreate_kgo "$UCOMP" $KGO1
+  improver_check_recreate_kgo "$VCOMP" $KGO2
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/$UCOMP" \

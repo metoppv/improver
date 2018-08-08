@@ -49,8 +49,8 @@
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "kgo1.nc" $KGO1
-  improver_check_recreate_kgo "kgo2.nc" $KGO2
+  improver_check_recreate_kgo "outfile1.nc" $KGO1
+  improver_check_recreate_kgo "outfile2.nc" $KGO2
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/outfile1.nc" \
