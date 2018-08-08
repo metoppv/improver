@@ -225,6 +225,20 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(ucube[1].data, self.expected_u)
         self.assertArrayAlmostEqual(vcube[2].data, self.expected_v)
 
+    def test_wind_from_direction(self):
+        """Test correct behaviour when wind direction is 'from' not 'to'.
+        We do not get perfect direction inversion to the 6th decimal place here
+        because we ignore imprecision in the iris rotate_winds calcuation near
+        the edges of the domain, and regrid the available data linearly to fill
+        the gap.  The data compare equal to the 5th decimal place (in m s-1).
+        """
+        expected_u = -1.*self.expected_u
+        expected_v = -1.*self.expected_v
+        self.wind_direction_cube.rename("wind_from_direction")
+        ucube, vcube = self.plugin.process(
+            self.wind_speed_cube, self.wind_direction_cube)
+        self.assertTrue(np.allclose(ucube.data, expected_u, atol=1e-6))
+        self.assertTrue(np.allclose(vcube.data, expected_v, atol=1e-6))
 
 if __name__ == '__main__':
     unittest.main()

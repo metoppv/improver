@@ -40,10 +40,9 @@ from iris.cube import Cube, CubeList
 
 from improver.utilities.cube_manipulation import compare_coords
 
-SEMI_MAJOR_AXIS = 6378137.0
-INVERSE_FLATTENING = 298.257222101
-GLOBAL_CRS = GeogCS(semi_major_axis=SEMI_MAJOR_AXIS,
-                    inverse_flattening=INVERSE_FLATTENING)
+# Global coordinate reference system used in StaGE (GRS80)
+GLOBAL_CRS = GeogCS(semi_major_axis=6378137.0,
+                    inverse_flattening=298.257222101)
 
 
 class ResolveWindComponents(object):
@@ -52,13 +51,9 @@ class ResolveWindComponents(object):
     given directions with respect to true North
     """
 
-    def __init__(self):
-        """Initialise plugin"""
-        pass
-
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        return ('<ResolveWindComponents>')
+        return '<ResolveWindComponents>'
 
     @staticmethod
     def calc_true_north_offset(reference_cube):
@@ -105,16 +100,16 @@ class ResolveWindComponents(object):
         udata = np.zeros(reference_cube.shape, dtype=np.float32)
         vdata = np.ones(reference_cube.shape, dtype=np.float32)
 
-        ucube_global = Cube(udata, "grid_eastward_wind",
-                            dim_coords_and_dims=[(lat_coord, 0),
-                                                 (lon_coord, 1)])
-        vcube_global = Cube(vdata, "grid_northward_wind",
-                            dim_coords_and_dims=[(lat_coord, 0),
-                                                 (lon_coord, 1)])
+        ucube_truenorth = Cube(udata, "grid_eastward_wind",
+                               dim_coords_and_dims=[(lat_coord, 0),
+                                                    (lon_coord, 1)])
+        vcube_truenorth = Cube(vdata, "grid_northward_wind",
+                               dim_coords_and_dims=[(lat_coord, 0),
+                                                    (lon_coord, 1)])
 
         # rotate unit vector onto reference_cube coordinate system
         ucube, vcube = rotate_winds(
-            ucube_global, vcube_global, reference_cube.coord_system())
+            ucube_truenorth, vcube_truenorth, reference_cube.coord_system())
 
         # unmask and regrid rotated winds onto reference_cube grid
         for cube in [ucube, vcube]:
@@ -134,13 +129,14 @@ class ResolveWindComponents(object):
 
         Args:
             speed (iris.cube.Cube):
-                Cube containing 2D array of wind speeds
+                Cube containing wind speed data
             angle (iris.cube.Cube):
-                Cube containing 2D array of wind directions as angles from
-                true North
+                Cube containing wind directions as angles from true North
             adj (numpy.ndarray):
                 2D array of wind direction angle adjustments in radians, to
-                convert zero reference from true North to grid North
+                convert zero reference from true North to grid North.
+                Broadcast automatically if speed and angle cubes have extra
+                dimensions.
 
         Returns:
             (tuple): tuple containing
@@ -205,25 +201,13 @@ class ResolveWindComponents(object):
             msg = 'Wind speed and direction cubes have unmatched coordinates'
             raise ValueError('{} {}'.format(msg, unmatched_coords))
 
-        x_coord = wind_speed.coord(axis='x').name()
-        y_coord = wind_speed.coord(axis='y').name()
-
         # calculate angle adjustments for wind direction
-        adj = self.calc_true_north_offset(
-            next(wind_dir.slices([y_coord, x_coord])))
+        wind_dir_slice = next(wind_dir.slices([wind_dir.coord(axis='y').name(),
+                                               wind_dir.coord(axis='x').name()]))
+        adj = self.calc_true_north_offset(wind_dir_slice)
 
-        # slice over x and y
-        speed_slices = wind_speed.slices([y_coord, x_coord])
-        dir_slices = wind_dir.slices([y_coord, x_coord])
-
-        # adjust directions and resolve components onto grid axes
-        uvcubelist = [self.resolve_wind_components(speed, angle, adj)
-                      for speed, angle in zip(speed_slices, dir_slices)]
-        uvcubelist = np.array(uvcubelist).T.tolist()
-
-        # merge cubelists
-        ucube = CubeList(uvcubelist[0]).merge_cube()
-        vcube = CubeList(uvcubelist[1]).merge_cube()
+        # calculate grid eastward and northward speeds
+        ucube, vcube = self.resolve_wind_components(wind_speed, wind_dir, adj)
 
         # relabel final cubes with CF compliant data names corresponding to
         # positive wind speeds along the x and y axes
