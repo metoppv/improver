@@ -48,11 +48,11 @@
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "kgo1.nc" $KGO1
-  improver_check_recreate_kgo "kgo2.nc" $KGO2
-
   T1="20180410T0515Z-PT0000H15M-rainfall_rate_composite.nc"
   T2="20180410T0530Z-PT0000H30M-rainfall_rate_composite.nc"
+
+  improver_check_recreate_kgo "$T1" $KGO1
+  improver_check_recreate_kgo "$T2" $KGO2
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/$T1" \

@@ -164,14 +164,15 @@ class AdvectField(object):
         outdata[ydest, xdest] += (
             indata[ysrc, xsrc]*x_weight[ydest, xdest]*y_weight[ydest, xdest])
 
-    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep,
-                      fill_value):
+    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep):
         """
         Performs a dimensionless grid-based extrapolation of spatial data
-        using advection velocities via a backwards method.
+        using advection velocities via a backwards method.  Points where data
+        cannot be extrapolated (ie the source is out of bounds) are given a
+        fill value of np.nan and masked.
 
         Args:
-            data (numpy.ndarray):
+            data (numpy.ndarray or numpy.ma.MaskedArray):
                 2D numpy data array to be advected
             grid_vel_x (numpy.ndarray):
                 Velocity in the x direction (in grid points per second)
@@ -179,17 +180,14 @@ class AdvectField(object):
                 Velocity in the y direction (in grid points per second)
             timestep (int):
                 Advection time step in seconds
-            fill_value (float):
-                Default output value for spatial points where data cannot be
-                extrapolated (source is out of bounds)
 
         Returns:
-            adv_field (numpy.ndarray):
-                2D float array of advected data values
+            adv_field (numpy.ma.MaskedArray):
+                2D float array of advected data values with masked "no data"
+                regions
         """
-
-        # Initialise advected field with default fill_value
-        adv_field = np.full(data.shape, fill_value)
+        # Initialise advected field with np.nan
+        adv_field = np.full(data.shape, np.nan)
 
         # Set up grids of data coordinates (meshgrid inverts coordinate order)
         ydim, xdim = data.shape
@@ -226,16 +224,25 @@ class AdvectField(object):
         x_weights = [1. - x_weight_upper, x_weight_upper]
         y_weights = [1. - y_weight_upper, y_weight_upper]
 
+        # Check whether the input data is masked - if so substitute NaNs for
+        # the masked data.  Note there is an implicit type conversion here: if
+        # data is of integer type this unmasking will convert it to float.
+        if isinstance(data, np.ma.MaskedArray):
+            data = np.where(data.mask, np.nan, data.data)
+
         # Advect data from each of the four source points onto the output grid
         for xpt, xwt in zip(x_points, x_weights):
             for ypt, ywt in zip(y_points, y_weights):
                 cond = point_in_bounds(xpt, ypt, xdim, ydim) & cond_pt
-                self._increment_output_array(data, adv_field, cond, xgrid,
-                                             ygrid, xpt, ypt, xwt, ywt)
+                self._increment_output_array(
+                    data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt)
+
+        # Replace NaNs with a mask
+        adv_field = np.ma.masked_where(~np.isfinite(adv_field), adv_field)
 
         return adv_field
 
-    def process(self, cube, timestep, fill_value=0.0):
+    def process(self, cube, timestep):
         """
         Extrapolates input cube data and updates validity time.  The input
         cube should have precisely two non-scalar dimension coordinates
@@ -248,13 +255,13 @@ class AdvectField(object):
                 The 2D cube containing data to be advected
             timestep (datetime.timedelta):
                 Advection time step
-            fill_value (float):
-                Default output value for spatial points where data cannot be
-                extrapolated (source is out of bounds)
 
         Returns:
             advected_cube (iris.cube.Cube):
-                New cube with updated time and extrapolated data
+                New cube with updated time and extrapolated data.  New data
+                are filled with np.nan and masked where source data were
+                out of bounds (ie where data could not be advected from outside
+                the cube domain).
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
@@ -276,10 +283,14 @@ class AdvectField(object):
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
 
+        # raise a warning if data contains unmasked NaNs
+        nan_count = np.count_nonzero(~np.isfinite(cube.data))
+        if nan_count > 0:
+            warnings.warn("input data contains unmasked NaNs")
+
         # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           timestep.total_seconds(),
-                                           fill_value)
+                                           timestep.total_seconds())
         advected_cube = cube.copy(data=advected_data)
 
         # increment output cube time and add a "forecast_period" coordinate
