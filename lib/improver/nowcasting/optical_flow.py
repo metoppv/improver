@@ -225,7 +225,8 @@ class AdvectField(object):
         y_weights = [1. - y_weight_upper, y_weight_upper]
 
         # Check whether the input data is masked - if so substitute NaNs for
-        # the masked data
+        # the masked data.  Note there is an implicit type conversion here: if
+        # data is of integer type this unmasking will convert it to float.
         if isinstance(data, np.ma.MaskedArray):
             data = np.where(data.mask, np.nan, data.data)
 
@@ -237,8 +238,7 @@ class AdvectField(object):
                     data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt)
 
         # Replace NaNs with a mask
-        adv_mask = ~np.isfinite(adv_field)
-        adv_field = np.ma.MaskedArray(adv_field, mask=adv_mask)
+        adv_field = np.ma.masked_where(~np.isfinite(adv_field), adv_field)
 
         return adv_field
 
