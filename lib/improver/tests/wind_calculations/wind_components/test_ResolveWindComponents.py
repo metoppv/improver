@@ -240,5 +240,6 @@ class Test_process(IrisTest):
         self.assertTrue(np.allclose(ucube.data, expected_u, atol=1e-6))
         self.assertTrue(np.allclose(vcube.data, expected_v, atol=1e-6))
 
+
 if __name__ == '__main__':
     unittest.main()

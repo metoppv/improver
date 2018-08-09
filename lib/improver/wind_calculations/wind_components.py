@@ -36,7 +36,7 @@ from iris.analysis import Linear
 from iris.analysis.cartography import rotate_winds
 from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.utilities.cube_manipulation import compare_coords
 
@@ -202,8 +202,9 @@ class ResolveWindComponents(object):
             raise ValueError('{} {}'.format(msg, unmatched_coords))
 
         # calculate angle adjustments for wind direction
-        wind_dir_slice = next(wind_dir.slices([wind_dir.coord(axis='y').name(),
-                                               wind_dir.coord(axis='x').name()]))
+        wind_dir_slice = next(
+            wind_dir.slices([wind_dir.coord(axis='y').name(),
+                             wind_dir.coord(axis='x').name()]))
         adj = self.calc_true_north_offset(wind_dir_slice)
 
         # calculate grid eastward and northward speeds
