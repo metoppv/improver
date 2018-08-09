@@ -227,10 +227,11 @@ class Test_process(IrisTest):
 
     def test_wind_from_direction(self):
         """Test correct behaviour when wind direction is 'from' not 'to'.
-        We do not get perfect direction inversion to the 6th decimal place here
+        We do not get perfect direction inversion to the 7th decimal place here
         because we ignore imprecision in the iris rotate_winds calcuation near
-        the edges of the domain, and regrid the available data linearly to fill
-        the gap.  The data compare equal to the 5th decimal place (in m s-1).
+        the corners of the domain, and regrid the available data linearly to
+        fill the gap.  The output wind speeds (in m s-1) compare equal to the
+        5th decimal place.
         """
         expected_u = -1.*self.expected_u
         expected_v = -1.*self.expected_v
