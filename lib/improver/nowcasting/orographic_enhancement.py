@@ -36,9 +36,15 @@ over orography.
 import numpy as np
 import iris
 
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver.utilities.psychrometric_calculations import WetBulbTemperature
 from improver.constants import R_WATER_VAPOUR
+from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_manipulation import compare_coords
+from improver.utilities.psychrometric_calculations import WetBulbTemperature
+from improver.utilities.spatial import (
+    convert_number_of_grid_cells_into_distance,
+    DifferenceBetweenAdjacentGridSquares)
+
 
 
 class OrographicEnhancement(object):
@@ -48,7 +54,10 @@ class OrographicEnhancement(object):
     """
 
     def __init__(self):
-        """Initialise the plugin"""
+        """
+        Initialise the plugin with thresholds from STEPS code
+        TODO check units (orography & v grad z)
+        """
         self.orog_thresh_m = 20.
         self.rh_thres_ratio = 0.8
         self.vgradz_thresh = 0.0005
@@ -81,56 +90,66 @@ class OrographicEnhancement(object):
 
         return gradx, grady
 
-    @staticmethod
-    def _site_orogenh(temperature, humidity, svp, vgradz, mask):
+    def _generate_mask(self, topography):
+        """
+        Generates a boolean mask of areas to calculate orographic enhancement.
+        Criteria for calculation are:
+            - 3x3 mean topography height >= threshold (20 m)
+            - Relative humidity (fraction) >= threshold (0.8)
+            - v dot grad z (wind x topography gradient) >= threshold (0.0005)
+
+        Returns:
+            mask (np.ndarray):
+                Boolean mask - where True, set orographic enhancement to a
+                default zero value
+        """
+        # calculate mean 3x3 (square nbhood) orography heights
+        # TODO is radius 1 or 2?
+        radius = convert_distance_into_number_of_grid_cells(cube, 2)
+        topo_n = SquareNeighbourhood().run(topography, radius)
+
+        # create mask
+        mask = np.full(topo_nbhood.shape, False, dtype=bool)
+        mask = np.where(topo_nbhood.data < self.orog_thresh_m, True, mask)
+        mask = np.where(self.humidity.data < self.rh_thresh_ratio, True, mask)
+        mask = np.where(self.vgradz < self.vgradz_thresh, True, mask)
+        return mask
+
+    def _site_orogenh(self):
         """
         Calculate precipitation enhancement over orography at each site using:
 
             orogenh = ((humidity * svp * vgradz) / 
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
-        Args:
-            temperature (iris.cube.Cube):
-                Temperature at top of boundary layer (K)
-            humidity (iris.cube.Cube):
-                Relative humidity at top of boundary layer (fraction)
-            svp (iris.cube.Cube):
-                Saturation vapour pressure at top of boundary layer (Pa)
-            vgradz (np.ndarray):
-                2D array of v.gradz in m s-1, matching input cube data shape
-            mask (np.ndarray):
-                Boolean mask representing conditions for calculating
-                enhancement.  Where mask is True, set orogenh to zero.
-
         Returns:
             site_orogenh (np.ndarray):
                 Orographic enhancement values in mm/h
         """
-        site_orogenh = np.zeros(temperature.data.shape)
+        site_orogenh = np.zeros(self.temperature.data.shape)
 
         prefactor = 3600./R_WATER_VAPOUR
-        numerator = np.multiply(humidity.data, svp.data)
-        numerator = np.multiply(numerator, vgradz)
-        site_orogenh[~mask] = prefactor * np.divide(numerator[~mask],
-                                                    temperature.data[~mask])
+        numerator = np.multiply(self.humidity.data, self.svp.data)
+        numerator = np.multiply(numerator, self.vgradz)
+        site_orogenh[~self.mask] = prefactor * np.divide(
+            numerator[~self.mask], self.temperature.data[~self.mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
 
-    @staticmethod
-    def _include_upstream_component(site_orogenh, uwind, vwind):
+    def _add_upstream_component(self, site_orogenh):
         """
         Adds upstream component to site orographic enhancement TODO
 
 http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh.cpp#L1028
 
         """
-
         pass
 
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
         """
-        Calculate precipitation enhancement over orography
+        Calculate precipitation enhancement over orography on standard and high
+        resolution (1 km UKPP domain) grids
 
         Args:
             temperature (iris.cube.Cube):
@@ -146,68 +165,95 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                 Positive northward wind vector component at top of boundary
                 layer
             topography (iris.cube.Cube):
-                Height of topography above sea level
+                Height of topography above sea level on 1 km UKPP domain grid
 
         Returns:
-            orogenh (iris.cube.Cube):
-                Precipitation enhancement due to orography in mm/h
+            (tuple): tuple containing:
+                **orogenh** (iris.cube.Cube):
+                    Precipitation enhancement due to orography in mm/h on the
+                    1 km Transverse Mercator UKPP grid domain
+                **orogenh_standard_grid** (iris.cube.Cube):
+                    Precipitation enhancement due to orography in mm/h on the
+                    2 km standard grid
 
         Reference:
             Alpert, P. and Shafir, H., 1989: Meso-Gamma-Scale Distribution of
             Orographic Precipitation: Numerical Study and Comparison with
             Precipitation Derived from Radar Measurements.  Journal of Applied
             Meteorology, 28, 1105-1117.
-
-        NOTE code here uses IMPROVER plugins where possible rather than the
-        approximations in the STEPS code.  Therefore the outputs may not be
-        identical to the old system.
         """
-        # TODO check all the input cube coordinates match and are 2D
+        # check input variable cube coordinates match
+        unmatched_coords = compare_coords(
+            [temperature, pressure, humidity, uwind, vwind])
+        if unmatched_coords:
+            msg = 'Input cube coordinates {} are unmatched'
+            raise ValueError(msg.format(unmatched_coords))
 
+        # check all cubes are 2D spatial fields
+        msg = 'Require 2D fields as input; found {} dimensions'
+        if temperature.ndim > 2:
+            raise ValueError(msg.format(temperature.ndim))
+        check_for_x_and_y_axes(temperature)
 
+        if topography.ndim > 2:
+            raise ValueError(msg.format(topography.ndim))
+        check_for_x_and_y_axes(topography)
 
-        # convert units of input cubes
+        # convert input cube units
         temperature.convert_units('kelvin')
         pressure.convert_units('Pa')
-        
-        # TODO humidity needs to be a fraction (not %) - can I do this???
-
-        topography.convert_units('m')
-
+        # TODO humidity needs to be fraction not % - how best to do this?
+        humidity.convert_units('1')
         uwind.convert_units('m s-1')
         vwind.convert_units('m s-1')
+        # TODO check required topography units
+        topography.convert_units('m')
+
+        # regrid variables to match the high resolution orography
+        regridder = iris.analysis.Linear()
+        self.temperature = temperature.regrid(topography, regridder)
+        self.pressure = pressure.regrid(topography, regridder)
+        self.humidity = humidity.regrid(topography, regridder)
+        self.uwind = uwind.regrid(topography, regridder)
+        self.vwind = vwind.regrid(topography, regridder)
 
         # calculate orography gradients
         gradx, grady = self._orography_gradients(topography)
 
-        # TODO get 3x3 average orography?
-
         # calculate v.gradZ
-        vgradz = (np.multiply(gradx.data, uwind.data) +
-                  np.multiply(grady.data, vwind.data))
+        self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
+                       np.multiply(grady.data, self.vwind.data))
 
         # calculate saturation vapour pressure using WetBulbTemperature plugin
         # functionality
         wbt = WetBulbTemperature()
-        svp = wbt._pressure_correct_svp(
-            wbt._lookup_svp(temperature), temperature, pressure)
+        self.svp = wbt._pressure_correct_svp(
+            wbt._lookup_svp(self.temperature), self.temperature, self.pressure)
 
         # generate mask defining where to calculate orographic enhancement
-        mask = np.full(topography.shape, False, dtype=bool)
-        mask = np.where(topography.data < self.orog_thresh_m, True, mask)
-        mask = np.where(humidity.data < self.rh_thresh_ratio, True, mask)
-        mask = np.where(vgradz < self.vgradz_thresh, True, mask)
+        self.mask = self._generate_mask(topography)
 
-        # calculate site-specific orographic enhancement using svp, relative
-        # humidity and temperature
-        site_orogenh_data = self._site_orogenh(
-            temperature, humidity, svp, vgradz, mask)
+        # calculate site-specific orographic enhancement
+        site_orogenh_data = self._site_orogenh()
 
-        # integrate upstream component
-        orogenh_data = self._include_upstream_component(site_orogenh, uwind, vwind)
+        # integrate upstream component TODO write function
+        orogenh_data = self._add_upstream_component(site_orogenh)
 
-        # TODO create cube containing final data in mm/h
-        orogenh = None
+        # create cube containing final data in mm/h, with time coordinates
+        # based on input temperature cube
+        x_coord = topography.coord(axis='x')
+        y_coord = topography.coord(axis='y')
+        orogenh = iris.cube.Cube(
+            orogenh_data, "orographic_precipitation_enhancement", "mm h-1",
+            dim_coords_and_dims = [(y_coord, 0), (x_coord, 1)])
+        orogenh.add_aux_coord(temperature.coord('time'))
+        orogenh.add_aux_coord(temperature.coord('forecast_period'))
 
+        # TODO source? history? attributes?
 
-        return orogenh
+        # regrid the orographic enhancement cube onto the standard grid and
+        # mask extrapolated points
+        orogenh_standard_grid = orogenh.regrid(
+            temperature, iris.analysis.Linear(extrapolation_mode='mask'))
+
+        return orogenh, orogen_standard_grid
