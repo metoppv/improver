@@ -62,6 +62,10 @@ class OrographicEnhancement(object):
         self.rh_thres_ratio = 0.8
         self.vgradz_thresh = 0.0005
 
+        self.upstream_range_of_influence_km = 15.
+        self.cloud_lifetime_s = 102.
+        self.efficiency_factor = 0.23265
+
     @staticmethod
     def _orography_gradients(topography):
         """
@@ -126,7 +130,7 @@ class OrographicEnhancement(object):
             site_orogenh (np.ndarray):
                 Orographic enhancement values in mm/h
         """
-        site_orogenh = np.zeros(self.temperature.data.shape)
+        site_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
 
         prefactor = 3600./R_WATER_VAPOUR
         numerator = np.multiply(self.humidity.data, self.svp.data)
@@ -135,15 +139,86 @@ class OrographicEnhancement(object):
             numerator[~self.mask], self.temperature.data[~self.mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
 
-    def _add_upstream_component(self, site_orogenh):
+    def _add_upstream_component(self, site_orogenh, grid_spacing=1.):
         """
-        Adds upstream component to site orographic enhancement TODO
+        Add upstream component to site orographic enhancement
 
 http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh.cpp#L1028
 
-        """
-        pass
+        NOTE this is really not trivial, so I'm writing it as a C loop and will
+        translate into python when I've figured out what it's doing
 
+        Args:
+            site_orogenh (np.ndarray):
+                Site orographic enhancement in mm h-1
+
+        Kwargs:
+            grid_spacing (int):
+                Grid spacing of site_orogenh points in km
+
+        Returns:
+            orogenh (np.ndarray):
+                Total orographic enhancement (site specific plus upstream
+                component) in mm h-1
+        """
+        # get wind speed and sin / cos direction wrt grid North
+        wind_speed = np.sqrt(np.square(self.uwind.data) +
+                             np.square(self.vwind.data))
+        cos_wind_dir = np.divide(self.uwind.data, wind_speed)
+        sin_wind_dir = np.divide(self.vwind.data, wind_speed)
+
+        # initialise enhancement field
+        orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
+
+        upstream_roi = self.upstream_range_of_influence_km / grid_spacing
+
+        # do loop...
+        for y in xrange(site_orogenh.data.shape[0]):
+            for x in xrange(site_orogenh.data.shape[1]):
+
+                # if there is no wind at this pixel, continue
+                if np.isclose(wind_speed[y, x], 0):
+                    continue
+
+                # calculate some stuff... TODO
+                direction_factor = max(abs(sin_wind_dir[y, x]),
+                                       abs(cos_wind_dir[y, x]))
+                stdev = wind_speed[y, x] * self.cloud_lifetime_s
+
+                # calculate maximum range (in grid squares?) of upstream
+                # enhancement
+                roi = int(upstream_roi * direction_factor)
+
+                # then there is this loop; then stuff happens?!?! TODO
+                x_offsets = []
+                y_offsets = []
+                gaussian_weights = []
+                for i in xrange(roi):
+                    weight = i / direction_factor
+                    # look BACKWARDS for upstream component
+                    # (STEPS code assumes "wind_from_direction", we have "wind_to")
+                    x_offsets.append(-1*int(weight * sin_wind_dir[y, x]))
+                    y_offsets.append(-1*int(weight * cos_wind_dir[y, x]))
+                    gaussian_weights.append(np.exp(-0.5 * pow(weight, 2) / pow(stddev, 2)))
+
+                # loop again identically to add upstream component
+                for i in xrange(roi):
+                    new_x = x + x_offsets[i]
+                    new_y = y + y_offsets[i]
+
+                    # force coordinates into bounds NOTE why?
+                    new_x = max(new_x, 0)
+                    new_x = min(new_x, site_orogenh.data.shape[1]-1)
+                    new_y = max(new_y, 0)
+                    new_y = min(new_y, site_orogenh.data.shape[0]-1)
+                 
+                    orogenh[y, x] += gaussian_weights[i] * orogenh[new_y, new_x]
+
+                # normalise result
+                sum_of_weights = sum(gaussian_weights)
+                orogenh[y, x] *= self.efficiency_factor / sum_of_weights
+
+        return orogenh
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
@@ -214,6 +289,9 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         self.temperature = temperature.regrid(topography, regridder)
         self.pressure = pressure.regrid(topography, regridder)
         self.humidity = humidity.regrid(topography, regridder)
+
+        uwind, vwind = iris.analysis.rotate_winds(
+            uwind, vwind, topography.coord_system())
         self.uwind = uwind.regrid(topography, regridder)
         self.vwind = vwind.regrid(topography, regridder)
 
@@ -243,13 +321,13 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         # based on input temperature cube
         x_coord = topography.coord(axis='x')
         y_coord = topography.coord(axis='y')
+        attributes = {'institution': 'Met Office'}
         orogenh = iris.cube.Cube(
-            orogenh_data, "orographic_precipitation_enhancement", "mm h-1",
-            dim_coords_and_dims = [(y_coord, 0), (x_coord, 1)])
+            orogenh_data, "precipitation_enhancement", "mm h-1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+            attributes=attributes)
         orogenh.add_aux_coord(temperature.coord('time'))
         orogenh.add_aux_coord(temperature.coord('forecast_period'))
-
-        # TODO source? history? attributes?
 
         # regrid the orographic enhancement cube onto the standard grid and
         # mask extrapolated points
