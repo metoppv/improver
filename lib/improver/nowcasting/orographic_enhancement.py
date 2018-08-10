@@ -265,6 +265,44 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
 
         return orogenh
 
+    @staticmethod
+    def _create_output_cubes(orogenh_data, reference_cube):
+        """
+        Create two output cubes of orographic enhancement on different grids
+
+        Args:
+            orogenh_data (np.ndarray):
+                Orographic enhancement value in mm h-1
+            reference_cube (iris.cube.Cube):
+                Cube with the correct time and forecast period coordinates on
+                the UK 2 km standard grid
+
+        Returns:
+            (tuple): tuple containing:
+                **orogenh** (iris.cube.Cube):
+                    Orographic enhancement cube on 1 km UKPP grid
+                **orogenh_standard_grid** (iris.cube.Cube):
+                    Orographic enhancement cube on 2 km standard grid, padded
+                    with np.nan mask
+        """
+        # create cube containing high resolution data in mm/h
+        x_coord = topography.coord(axis='x')
+        y_coord = topography.coord(axis='y')
+        attributes = {'institution': 'Met Office'}
+        orogenh = iris.cube.Cube(
+            orogenh_data, long_name="orographic_enhancement",
+            units="mm h-1", attributes=attributes,
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        orogenh.add_aux_coord(reference_cube.coord('time'))
+        orogenh.add_aux_coord(reference_cube.coord('forecast_period'))
+
+        # regrid the orographic enhancement cube onto the standard grid and
+        # mask extrapolated points
+        orogenh_standard_grid = orogenh.regrid(
+            reference_cube, iris.analysis.Linear(extrapolation_mode='mask'))
+
+        return orogenh, orogenh_standard_grid
+
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
         """
@@ -350,21 +388,8 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         # integrate upstream component
         orogenh_data = self._add_upstream_component(site_orogenh_data)
 
-        # create cube containing final data in mm/h, with time coordinates
-        # based on input temperature cube
-        x_coord = topography.coord(axis='x')
-        y_coord = topography.coord(axis='y')
-        attributes = {'institution': 'Met Office'}
-        orogenh = iris.cube.Cube(
-            orogenh_data, long_name="precipitation_enhancement",
-            units="mm h-1", attributes=attributes,
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        orogenh.add_aux_coord(temperature.coord('time'))
-        orogenh.add_aux_coord(temperature.coord('forecast_period'))
+        # create data cubes on the two required output grids
+        orogenh, orogenh_standard_grid = self._create_output_cubes(
+            orogenh_data, temperature)
 
-        # regrid the orographic enhancement cube onto the standard grid and
-        # mask extrapolated points
-        orogenh_standard_grid = orogenh.regrid(
-            temperature, iris.analysis.Linear(extrapolation_mode='mask'))
-
-        return orogenh, orogen_standard_grid
+        return orogenh, orogenh_standard_grid
