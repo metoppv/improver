@@ -48,7 +48,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
         set_up_probability_above_threshold_temperature_cube,
         set_up_temperature_cube)
-from improver.tests.utilities.test_cube_manipulation import (
+from improver.tests.utilities.cube_manipulation.helper_functions import (
     set_up_percentile_temperature_cube)
 
 
