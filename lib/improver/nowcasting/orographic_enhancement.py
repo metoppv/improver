@@ -38,9 +38,10 @@ import iris
 
 from improver.constants import R_WATER_VAPOUR
 from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.psychrometric_calculations.psychrometric_calculations \
+    import WetBulbTemperature
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import compare_coords
-from improver.utilities.psychrometric_calculations import WetBulbTemperature
 from improver.utilities.spatial import (
     convert_number_of_grid_cells_into_distance,
     DifferenceBetweenAdjacentGridSquares)
@@ -260,7 +261,8 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(
             [temperature, pressure, humidity, uwind, vwind])
-        if unmatched_coords:
+
+        if any(item.keys() for item in unmatched_coords):
             msg = 'Input cube coordinates {} are unmatched'
             raise ValueError(msg.format(unmatched_coords))
 
@@ -276,8 +278,8 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
 
         # convert input cube units
         temperature.convert_units('kelvin')
-        pressure.convert_units('Pa')
-        # TODO humidity needs to be fraction not % - how best to do this?
+        pressure.convert_units('Pa') # BUG apparently you can't convert from mb to Pa...
+        # TODO humidity needs to be fraction not % - is this method safe?
         humidity.convert_units('1')
         uwind.convert_units('m s-1')
         vwind.convert_units('m s-1')
