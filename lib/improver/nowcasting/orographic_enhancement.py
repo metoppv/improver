@@ -34,7 +34,10 @@ over orography.
 """
 
 import numpy as np
+from cf_units import Unit
+
 import iris
+from iris.analysis.cartography import rotate_winds
 
 from improver.constants import R_WATER_VAPOUR
 from improver.nbhood.square_kernel import SquareNeighbourhood
@@ -60,7 +63,7 @@ class OrographicEnhancement(object):
         TODO check units (orography & v grad z)
         """
         self.orog_thresh_m = 20.
-        self.rh_thres_ratio = 0.8
+        self.rh_thresh_ratio = 0.8
         self.vgradz_thresh = 0.0005
 
         self.upstream_range_of_influence_km = 15.
@@ -84,8 +87,8 @@ class OrographicEnhancement(object):
                 **grady**: iris.cube.Cube of dimensionless topography gradient
                     in the positive y direction
         """
-        topography.coords(axis='x').convert_units(topography.units)
-        topography.coords(axis='y').convert_units(topography.units)
+        topography.coord(axis='x').convert_units(topography.units)
+        topography.coord(axis='y').convert_units(topography.units)
 
         gradx, grady = DifferenceBetweenAdjacentGridSquares(
             gradient=True).process(topography)
@@ -94,6 +97,46 @@ class OrographicEnhancement(object):
         grady.units = '1'
 
         return gradx, grady
+
+    def _regrid_and_populate(self, temperature, humidity, pressure,
+                             uwind, vwind, topography):
+        """
+        Regrids input variables onto the high resolution orography field and
+        calculates v.gradZ.  Populates class instance with the regridded
+        variables.
+
+        Args:
+            temperature (iris.cube.Cube):
+                Temperature at top of boundary layer
+            humidity (iris.cube.Cube):
+                Relative humidity at top of boundary layer
+            pressure (iris.cube.Cube):
+                Pressure at top of boundary layer
+            uwind (iris.cube.Cube):
+                Positive eastward wind vector component at top of boundary
+                layer
+            vwind (iris.cube.Cube):
+                Positive northward wind vector component at top of boundary
+                layer
+            topography (iris.cube.Cube):
+                Height of topography above sea level on 1 km UKPP domain grid
+        """
+        # regrid variables to match the high resolution orography
+        regridder = iris.analysis.Linear()
+        self.temperature = temperature.regrid(topography, regridder)
+        self.pressure = pressure.regrid(topography, regridder)
+        self.humidity = humidity.regrid(topography, regridder)
+
+        uwind, vwind = rotate_winds(uwind, vwind, topography.coord_system())
+        self.uwind = uwind.regrid(topography, regridder)
+        self.vwind = vwind.regrid(topography, regridder)
+
+        # calculate orography gradients
+        gradx, grady = self._orography_gradients(topography)
+
+        # calculate v.gradZ
+        self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
+                       np.multiply(grady.data, self.vwind.data))
 
     def _generate_mask(self, topography):
         """
@@ -110,8 +153,8 @@ class OrographicEnhancement(object):
         """
         # calculate mean 3x3 (square nbhood) orography heights
         # TODO is radius 1 or 2?
-        radius = convert_distance_into_number_of_grid_cells(cube, 2)
-        topo_n = SquareNeighbourhood().run(topography, radius)
+        radius = convert_number_of_grid_cells_into_distance(topography, 2)
+        topo_nbhood = SquareNeighbourhood().run(topography, radius)
 
         # create mask
         mask = np.full(topo_nbhood.shape, False, dtype=bool)
@@ -173,9 +216,9 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
 
         upstream_roi = self.upstream_range_of_influence_km / grid_spacing
 
-        # do loop...
-        for y in xrange(site_orogenh.data.shape[0]):
-            for x in xrange(site_orogenh.data.shape[1]):
+        # do loop... TODO takes ages, actually need to refactor this a bit first
+        for y in range(site_orogenh.data.shape[0]):
+            for x in range(site_orogenh.data.shape[1]):
 
                 # if there is no wind at this pixel, continue
                 if np.isclose(wind_speed[y, x], 0):
@@ -184,7 +227,7 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                 # calculate some stuff... TODO
                 direction_factor = max(abs(sin_wind_dir[y, x]),
                                        abs(cos_wind_dir[y, x]))
-                stdev = wind_speed[y, x] * self.cloud_lifetime_s
+                stddev = wind_speed[y, x] * self.cloud_lifetime_s
 
                 # calculate maximum range (in grid squares?) of upstream
                 # enhancement
@@ -194,16 +237,17 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                 x_offsets = []
                 y_offsets = []
                 gaussian_weights = []
-                for i in xrange(roi):
+                for i in range(roi):
                     weight = i / direction_factor
                     # look BACKWARDS for upstream component
-                    # (STEPS code assumes "wind_from_direction", we have "wind_to")
+                    # (UKPP assumes "wind_from_direction", we have "wind_to")
                     x_offsets.append(-1*int(weight * sin_wind_dir[y, x]))
                     y_offsets.append(-1*int(weight * cos_wind_dir[y, x]))
-                    gaussian_weights.append(np.exp(-0.5 * pow(weight, 2) / pow(stddev, 2)))
+                    gaussian_weights.append(
+                        np.exp(-0.5 * pow(weight, 2) / pow(stddev, 2)))
 
                 # loop again identically to add upstream component
-                for i in xrange(roi):
+                for i in range(roi):
                     new_x = x + x_offsets[i]
                     new_y = y + y_offsets[i]
 
@@ -224,8 +268,8 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
         """
-        Calculate precipitation enhancement over orography on standard and high
-        resolution (1 km UKPP domain) grids
+        Calculate precipitation enhancement over orography on standard (2 km)
+        and high resolution (1 km UKPP domain) grids
 
         Args:
             temperature (iris.cube.Cube):
@@ -277,32 +321,19 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         check_for_x_and_y_axes(topography)
 
         # convert input cube units
+        # iris doesn't recognise 'mb' as a valid unit
+        if pressure.units == Unit('mb'):
+            pressure.units = Unit('hPa')
+        pressure.convert_units('Pa')
         temperature.convert_units('kelvin')
-        pressure.convert_units('Pa') # BUG apparently you can't convert from mb to Pa...
-        # TODO humidity needs to be fraction not % - is this method safe?
         humidity.convert_units('1')
         uwind.convert_units('m s-1')
         vwind.convert_units('m s-1')
-        # TODO check required topography units
         topography.convert_units('m')
 
-        # regrid variables to match the high resolution orography
-        regridder = iris.analysis.Linear()
-        self.temperature = temperature.regrid(topography, regridder)
-        self.pressure = pressure.regrid(topography, regridder)
-        self.humidity = humidity.regrid(topography, regridder)
-
-        uwind, vwind = iris.analysis.rotate_winds(
-            uwind, vwind, topography.coord_system())
-        self.uwind = uwind.regrid(topography, regridder)
-        self.vwind = vwind.regrid(topography, regridder)
-
-        # calculate orography gradients
-        gradx, grady = self._orography_gradients(topography)
-
-        # calculate v.gradZ
-        self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
-                       np.multiply(grady.data, self.vwind.data))
+        # regrid variables to match topography and populate class instance
+        self._regrid_and_populate(temperature, humidity, pressure,
+                                  uwind, vwind, topography)
 
         # calculate saturation vapour pressure using WetBulbTemperature plugin
         # functionality
@@ -316,8 +347,8 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         # calculate site-specific orographic enhancement
         site_orogenh_data = self._site_orogenh()
 
-        # integrate upstream component TODO write function
-        orogenh_data = self._add_upstream_component(site_orogenh)
+        # integrate upstream component
+        orogenh_data = self._add_upstream_component(site_orogenh_data)
 
         # create cube containing final data in mm/h, with time coordinates
         # based on input temperature cube
@@ -325,9 +356,9 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         y_coord = topography.coord(axis='y')
         attributes = {'institution': 'Met Office'}
         orogenh = iris.cube.Cube(
-            orogenh_data, "precipitation_enhancement", "mm h-1",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
-            attributes=attributes)
+            orogenh_data, long_name="precipitation_enhancement",
+            units="mm h-1", attributes=attributes,
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         orogenh.add_aux_coord(temperature.coord('time'))
         orogenh.add_aux_coord(temperature.coord('forecast_period'))
 
