@@ -29,9 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the "cube_manipulation" module.
-
+Unit tests for the utilities within the
+"cube_manipulation.sort_coord_in_cube" module.
 """
+
 import unittest
 
 import iris
