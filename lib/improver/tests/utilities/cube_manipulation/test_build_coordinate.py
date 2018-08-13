@@ -29,8 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the
-"cube_manipulation.build_coordinate" module.
+Unit tests for the function "cube_manipulation.build_coordinate".
 """
 
 import unittest

@@ -29,8 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the
-"cube_manipulation._associate_any_coordinate_with_master_coordinate" module.
+Unit tests for the function
+"cube_manipulation._associate_any_coordinate_with_master_coordinate".
 """
 
 import unittest
