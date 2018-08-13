@@ -60,7 +60,7 @@ class OrographicEnhancement(object):
         """Initialise the plugin with thresholds from STEPS code"""
         self.orog_thresh_m = 20.
         self.rh_thresh_ratio = 0.8
-        self.vgradz_thresh = 0.0005
+        self.vgradz_thresh_ms = 0.0005
         self.upstream_range_of_influence_km = 15.
         self.efficiency_factor = 0.23265
         self.cloud_lifetime_s = 102.
@@ -68,11 +68,11 @@ class OrographicEnhancement(object):
     def __repr__(self):
         """Represent the plugin instance as a string"""
         msg = ('OrographicEnhancement() instance with orography threshold '
-               '{} m, relative humidity threshold {}, v.gradz threshold {}, '
-               'maximum upstream influence {} km, upstream efficiency factor '
-               '{}, cloud lifetime {} s')
+               '{} m, relative humidity threshold {}, v.gradz threshold {} m/s'
+               ', maximum upstream influence {} km, upstream efficiency factor'
+               ' {}, cloud lifetime {} s')
         return msg.format(self.orog_thresh_m, self.rh_thresh_ratio,
-                          self.vgradz_thresh,
+                          self.vgradz_thresh_ms,
                           self.upstream_range_of_influence_km,
                           self.efficiency_factor, self.cloud_lifetime_s)
 
@@ -165,7 +165,7 @@ class OrographicEnhancement(object):
         mask = np.full(topo_nbhood.shape, False, dtype=bool)
         mask = np.where(topo_nbhood.data < self.orog_thresh_m, True, mask)
         mask = np.where(self.humidity.data < self.rh_thresh_ratio, True, mask)
-        mask = np.where(self.vgradz < self.vgradz_thresh, True, mask)
+        mask = np.where(self.vgradz < self.vgradz_thresh_ms, True, mask)
         return mask
 
     def _site_orogenh(self):
@@ -262,15 +262,17 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                     new_x = x + x_offsets[i]
                     new_y = y + y_offsets[i]
 
-                    # force coordinates into bounds NOTE why?
+                    # force coordinates into bounds to avoid truncating the
+                    # upstream contribution towards domain edges
                     new_x = max(new_x, 0)
                     new_x = min(new_x, site_orogenh.data.shape[1]-1)
                     new_y = max(new_y, 0)
                     new_y = min(new_y, site_orogenh.data.shape[0]-1)
                  
-                    orogenh[y, x] += gaussian_weights[i] * orogenh[new_y, new_x]
+                    orogenh[y, x] += (gaussian_weights[i] *
+                                      site_orogenh[new_y, new_x])
 
-                # normalise result
+                # normalise result at this grid point
                 sum_of_weights = sum(gaussian_weights)
                 orogenh[y, x] *= self.efficiency_factor / sum_of_weights
 
