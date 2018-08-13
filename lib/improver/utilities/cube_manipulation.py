@@ -344,6 +344,11 @@ def _equalise_cube_coords(cubes):
     # If len = 0 then cubes is a cube,
     # otherwise there will be a dict (possible empty) for
     # each cube in cubes.
+    if len(unmatching_coords) != 0:
+        # Fix any issues with mismatches in coord bounds
+        _equalise_coord_bounds(cubes)
+        # Are we ok now?
+        unmatching_coords = compare_coords(cubes)
     if len(unmatching_coords) == 0:
         cubelist = cubes
     else:
@@ -416,6 +421,50 @@ def _equalise_cube_coords(cubes):
     return cubelist
 
 
+def _equalise_coord_bounds(cubes):
+    """
+    Function to equalise coord bounds that do not match.
+    This is achieved by removing any unmatching bounds so long as the
+    comparison cube has bounds of None.
+    If a coordinate is not present in all cubes, this is ignored.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            List of cubes to check the cell methods and revise.
+            These are modified in place.
+
+    Raises:
+        ValueError:
+            If two cubes with different valid bounds are found.
+    """
+    # Check each cube against all remaining cubes
+    def warn(cube):
+        warnings.warn('Removing mismatched bounds from cube {}'.format(
+            cube.name))
+    for i, this_cube in enumerate(cubes):
+        for later_cube in cubes[i+1:]:
+            for coord in this_cube.coords():
+                try:
+                    match_coord = later_cube.coord(coord)
+                except CoordinateNotFoundError:
+                    continue
+                if coord.bounds is None and match_coord.bounds is None:
+                    continue
+                elif coord.bounds is None:
+                    match_coord.bounds = None
+                    warn(later_cube)
+                elif match_coord.bounds is None:
+                    coord.bounds = None
+                    warn(this_cube)
+                elif np.allclose(np.array(coord.bounds),
+                                 np.array(match_coord.bounds)):
+                    continue
+                else:
+                    msg = ('Cubes with mismatching bounds are not '
+                           'compatible')
+                    raise ValueError(msg)
+
+
 def _equalise_cell_methods(cubes):
     """
     Function to equalise cell methods that do not match.
@@ -430,7 +479,7 @@ def _equalise_cell_methods(cubes):
             they do not match.
     Warns:
         Warning: If only a single cube.
-.
+
     """
     if len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found '
