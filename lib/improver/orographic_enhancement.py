@@ -50,7 +50,6 @@ from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares)
 
 
-
 class OrographicEnhancement(object):
     """
     Class to calculate orographic enhancement from horizontal wind components,
@@ -58,17 +57,24 @@ class OrographicEnhancement(object):
     """
 
     def __init__(self):
-        """
-        Initialise the plugin with thresholds from STEPS code
-        TODO check units (orography & v grad z)
-        """
+        """Initialise the plugin with thresholds from STEPS code"""
         self.orog_thresh_m = 20.
         self.rh_thresh_ratio = 0.8
         self.vgradz_thresh = 0.0005
-
         self.upstream_range_of_influence_km = 15.
-        self.cloud_lifetime_s = 102.
         self.efficiency_factor = 0.23265
+        self.cloud_lifetime_s = 102.
+
+    def __repr__(self):
+        """Represent the plugin instance as a string"""
+        msg = ('OrographicEnhancement() instance with orography threshold '
+               '{} m, relative humidity threshold {}, v.gradz threshold {}, '
+               'maximum upstream influence {} km, upstream efficiency factor '
+               '{}, cloud lifetime {} s')
+        return msg.format(self.orog_thresh_m, self.rh_thresh_ratio,
+                          self.vgradz_thresh,
+                          self.upstream_range_of_influence_km,
+                          self.efficiency_factor, self.cloud_lifetime_s)
 
     @staticmethod
     def _orography_gradients(topography):
@@ -152,8 +158,7 @@ class OrographicEnhancement(object):
                 default zero value
         """
         # calculate mean 3x3 (square nbhood) orography heights
-        # TODO is radius 1 or 2?
-        radius = convert_number_of_grid_cells_into_distance(topography, 2)
+        radius = convert_number_of_grid_cells_into_distance(topography, 1)
         topo_nbhood = SquareNeighbourhood().run(topography, radius)
 
         # create mask
