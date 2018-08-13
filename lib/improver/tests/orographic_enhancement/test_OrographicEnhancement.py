@@ -49,7 +49,7 @@ class Test__init__(IrisTest):
         plugin = OrographicEnhancement()
         self.assertAlmostEqual(plugin.orog_thresh_m, 20.)
         self.assertAlmostEqual(plugin.rh_thresh_ratio, 0.8)
-        self.assertAlmostEqual(plugin.vgradz_thresh, 0.0005)
+        self.assertAlmostEqual(plugin.vgradz_thresh_ms, 0.0005)
         self.assertAlmostEqual(plugin.upstream_range_of_influence_km, 15.)
         self.assertAlmostEqual(plugin.efficiency_factor, 0.23265)
         self.assertAlmostEqual(plugin.cloud_lifetime_s, 102.)
@@ -62,7 +62,7 @@ class Test__repr__(IrisTest):
         """Test string representation of plugin"""
         expected = ('OrographicEnhancement() instance with orography '
                     'threshold 20.0 m, relative humidity threshold 0.8, '
-                    'v.gradz threshold 0.0005, maximum upstream influence '
+                    'v.gradz threshold 0.0005 m/s, maximum upstream influence '
                     '15.0 km, upstream efficiency factor 0.23265, cloud '
                     'lifetime 102.0 s')
         plugin = OrographicEnhancement()
