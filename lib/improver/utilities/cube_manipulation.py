@@ -229,6 +229,9 @@ def merge_cubes(cubes):
 
     cubelist = equalise_cubes(cubes)
 
+    for cube in cubelist:
+        iris.util.squeeze(cube)
+
     result = cubelist.merge_cube()
     return result
 
