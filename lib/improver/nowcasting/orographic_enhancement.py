@@ -208,46 +208,52 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         # get wind speed and sin / cos direction wrt grid North
         wind_speed = np.sqrt(np.square(self.uwind.data) +
                              np.square(self.vwind.data))
-        cos_wind_dir = np.divide(self.uwind.data, wind_speed)
-        sin_wind_dir = np.divide(self.vwind.data, wind_speed)
+        mask = np.where(np.isclose(wind_speed, 0), True, False)
+
+        sin_wind_dir = np.zeros(wind_speed.shape, dtype=np.float32)
+        sin_wind_dir[~mask] = np.divide(self.uwind.data[~mask],
+                                        wind_speed[~mask])
+
+        cos_wind_dir = np.zeros(wind_speed.shape, dtype=np.float32)
+        cos_wind_dir[~mask] = np.divide(self.vwind.data[~mask],
+                                        wind_speed[~mask])
+
+        max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
+                               abs(sin_wind_dir), abs(cos_wind_dir))
+
+        # set standard deviation for Gaussian weighting function
+        stddev = wind_speed * self.cloud_lifetime_s
+
+        # calculate maximum upstream radius of influence at each grid cell
+        upstream_roi = self.upstream_range_of_influence_km / grid_spacing
+        max_roi = np.array((upstream_roi * max_sin_cos), dtype=int)
 
         # initialise enhancement field
         orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
-
-        upstream_roi = self.upstream_range_of_influence_km / grid_spacing
 
         # do loop... TODO takes ages, actually need to refactor this a bit first
         for y in range(site_orogenh.data.shape[0]):
             for x in range(site_orogenh.data.shape[1]):
 
                 # if there is no wind at this pixel, continue
-                if np.isclose(wind_speed[y, x], 0):
+                if mask[y, x]:
                     continue
-
-                # calculate some stuff... TODO
-                direction_factor = max(abs(sin_wind_dir[y, x]),
-                                       abs(cos_wind_dir[y, x]))
-                stddev = wind_speed[y, x] * self.cloud_lifetime_s
-
-                # calculate maximum range (in grid squares?) of upstream
-                # enhancement
-                roi = int(upstream_roi * direction_factor)
 
                 # then there is this loop; then stuff happens?!?! TODO
                 x_offsets = []
                 y_offsets = []
                 gaussian_weights = []
-                for i in range(roi):
-                    weight = i / direction_factor
+                for i in range(max_roi[y, x]):
+                    weight = i / max_sin_cos[y, x]
                     # look BACKWARDS for upstream component
                     # (UKPP assumes "wind_from_direction", we have "wind_to")
                     x_offsets.append(-1*int(weight * sin_wind_dir[y, x]))
                     y_offsets.append(-1*int(weight * cos_wind_dir[y, x]))
                     gaussian_weights.append(
-                        np.exp(-0.5 * pow(weight, 2) / pow(stddev, 2)))
+                        np.exp(-0.5 * pow(weight, 2) / pow(stddev[y, x], 2)))
 
                 # loop again identically to add upstream component
-                for i in range(roi):
+                for i in range(max_roi[y, x]):
                     new_x = x + x_offsets[i]
                     new_y = y + y_offsets[i]
 
@@ -266,13 +272,15 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         return orogenh
 
     @staticmethod
-    def _create_output_cubes(orogenh_data, reference_cube):
+    def _create_output_cubes(orogenh_data, high_res_cube, reference_cube):
         """
         Create two output cubes of orographic enhancement on different grids
 
         Args:
             orogenh_data (np.ndarray):
                 Orographic enhancement value in mm h-1
+            high_res_cube (iris.cube.Cube):
+                Cube on the 1 km UKPP grid
             reference_cube (iris.cube.Cube):
                 Cube with the correct time and forecast period coordinates on
                 the UK 2 km standard grid
@@ -283,17 +291,18 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                     Orographic enhancement cube on 1 km UKPP grid
                 **orogenh_standard_grid** (iris.cube.Cube):
                     Orographic enhancement cube on 2 km standard grid, padded
-                    with np.nan mask
+                    with masked np.nans
         """
         # create cube containing high resolution data in mm/h
-        x_coord = topography.coord(axis='x')
-        y_coord = topography.coord(axis='y')
-        attributes = {'institution': 'Met Office'}
+        x_coord = high_res_cube.coord(axis='x')
+        y_coord = high_res_cube.coord(axis='y')
+        attributes = {'institution': 'Met Office', 'source': 'IMPROVER'}
         orogenh = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
             units="mm h-1", attributes=attributes,
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         orogenh.add_aux_coord(reference_cube.coord('time'))
+        orogenh.add_aux_coord(reference_cube.coord('forecast_reference_time'))
         orogenh.add_aux_coord(reference_cube.coord('forecast_period'))
 
         # regrid the orographic enhancement cube onto the standard grid and
@@ -390,6 +399,6 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
 
         # create data cubes on the two required output grids
         orogenh, orogenh_standard_grid = self._create_output_cubes(
-            orogenh_data, temperature)
+            orogenh_data, topography, temperature)
 
         return orogenh, orogenh_standard_grid
