@@ -37,6 +37,7 @@ import iris
 
 from improver.utilities.cube_manipulation import compare_coords
 
+# Define correct v1.2.0 meta-data for v1.1.0 data.
 GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
                                         'mosg__model_configuration': 'uk_ens',
                                         'mosg__grid_domain': 'uk_extended',
@@ -64,13 +65,18 @@ def stage_v110_to_v120(cube):
     Args:
         cube (iris.cube.Cube):
             Cube to modify meta-data in (modified in place)
+
+    Returns:
+        boolean (bool):
+            True if meta-data have been changed by this function.
     """
     try:
         grid_id = cube.attributes.pop('grid_id')
     except KeyError:
         # Not a version 1.1.0 grid, so exit.
-        return
+        return False
     cube.attributes.update(GRID_ID_LOOKUP[grid_id])
+    return True
 
 
 def add_coord(cube, coord_name, changes, warnings_on=False):

@@ -89,17 +89,18 @@ class Test_stage_v110_to_v120(IrisTest):
         self.cube = set_up_temperature_cube()
 
     def test_basic(self):
-        """Test that cube is unchanged"""
+        """Test that cube is unchanged and function returns False"""
         result = self.cube.copy()
-        stage_v110_to_v120(result)
+        output = stage_v110_to_v120(result)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, self.cube.data)
         self.assertEqual(result.attributes, self.cube.attributes)
+        self.assertFalse(output)
 
     def test_update_ukv(self):
         """Test that cube attributes from ukv 1.1.0 are updated"""
         self.cube.attributes['grid_id'] = 'ukvx_standard_v1'
-        stage_v110_to_v120(self.cube)
+        output = stage_v110_to_v120(self.cube)
         self.assertTrue('mosg__grid_type' in self.cube.attributes.keys())
         self.assertTrue('mosg__model_configuration' in
                         self.cube.attributes.keys())
@@ -112,6 +113,7 @@ class Test_stage_v110_to_v120(IrisTest):
         self.assertEqual('uk_extended',
                          self.cube.attributes['mosg__grid_domain'])
         self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
+        self.assertTrue(output)
 
 
 class Test_add_coord(IrisTest):
