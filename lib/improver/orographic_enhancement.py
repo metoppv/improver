@@ -192,11 +192,6 @@ class OrographicEnhancement(object):
         """
         Add upstream component to site orographic enhancement
 
-http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh.cpp#L1028
-
-        NOTE this is really not trivial, so I'm writing it as a C loop and will
-        translate into python when I've figured out what it's doing
-
         Args:
             site_orogenh (np.ndarray):
                 Site orographic enhancement in mm h-1
@@ -207,8 +202,7 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
 
         Returns:
             orogenh (np.ndarray):
-                Total orographic enhancement (site specific plus upstream
-                component) in mm h-1
+                Total orographic enhancement in mm h-1
         """
         # get wind speed and sin / cos direction wrt grid North
         wind_speed = np.sqrt(np.square(self.uwind.data) +
@@ -226,17 +220,21 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
                                abs(sin_wind_dir), abs(cos_wind_dir))
 
-        # set standard deviation for Gaussian weighting function
-        stddev = wind_speed * self.cloud_lifetime_s
-
         # calculate maximum upstream radius of influence at each grid cell
         upstream_roi = self.upstream_range_of_influence_km / grid_spacing
         max_roi = np.array((upstream_roi * max_sin_cos), dtype=int)
 
+        # set standard deviation for Gaussian weighting function - in m? km?
+        # grid squares? TODO STEPS comment says m s-2, but that's not what
+        # it does...
+        stddev = wind_speed * self.cloud_lifetime_s
+        variance = np.square(stddev)
+
         # initialise enhancement field
         orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
+        sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
 
-        # do loop... TODO takes ages, actually need to refactor this a bit first
+        # do loop... TODO refactor
         for y in range(site_orogenh.data.shape[0]):
             for x in range(site_orogenh.data.shape[1]):
 
@@ -244,23 +242,16 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                 if mask[y, x]:
                     continue
 
-                # then there is this loop; then stuff happens?!?! TODO
-                x_offsets = []
-                y_offsets = []
-                gaussian_weights = []
+                # loop over upstream cells and add weighted component
                 for i in range(max_roi[y, x]):
                     weight = i / max_sin_cos[y, x]
-                    # look BACKWARDS for upstream component
-                    # (UKPP assumes "wind_from_direction", we have "wind_to")
-                    x_offsets.append(-1*int(weight * sin_wind_dir[y, x]))
-                    y_offsets.append(-1*int(weight * cos_wind_dir[y, x]))
-                    gaussian_weights.append(
-                        np.exp(-0.5 * pow(weight, 2) / pow(stddev[y, x], 2)))
+                    nweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
 
-                # loop again identically to add upstream component
-                for i in range(max_roi[y, x]):
-                    new_x = x + x_offsets[i]
-                    new_y = y + y_offsets[i]
+                    # TODO check signs / reasoning.  STEPS adds => assuming a
+                    # "wind to" direction.  STEPS subtracts on y-axis due to
+                    # top-left indexing...
+                    new_x = x + int(weight * sin_wind_dir[y, x])
+                    new_y = y + int(weight * cos_wind_dir[y, x])
 
                     # force coordinates into bounds to avoid truncating the
                     # upstream contribution towards domain edges
@@ -269,12 +260,11 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
                     new_y = max(new_y, 0)
                     new_y = min(new_y, site_orogenh.data.shape[0]-1)
                  
-                    orogenh[y, x] += (gaussian_weights[i] *
-                                      site_orogenh[new_y, new_x])
-
-                # normalise result at this grid point
-                sum_of_weights = sum(gaussian_weights)
-                orogenh[y, x] *= self.efficiency_factor / sum_of_weights
+                    orogenh[y, x] += nweight * site_orogenh[new_y, new_x]
+                    sum_of_weights[y, x] += nweight
+        
+        orogenh[~mask] = self.efficiency_factor * np.divide(
+            orogenh[~mask], sum_of_weights[~mask])
 
         return orogenh
 
@@ -373,6 +363,9 @@ http://fcm9/projects/PostProc/browser/PostProc/trunk/blending/steps_core_orogenh
         if topography.ndim > 2:
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
+
+        # TODO check x and y axes are increasing - if not transform?
+
 
         # convert input cube units
         # iris doesn't recognise 'mb' as a valid unit
