@@ -36,9 +36,10 @@
 usage: improver-v110_v120 [-h] [--profile] [--profile_file PROFILE_FILE]
                           INPUT_FILE OUTPUT_FILE
 
-Adjust any StaGE v1.1.0 meta-data to use the meta-data keys defined in the
-v1.2.0 meta-data standard. Has no effect if input_file and output_file are the
-same and contain a cube with non v1.1.0 meta-data
+Translates meta-data relating to the grid_id attribute from StaGE version
+1.1.0 to StaGE version 1.2.0. Files that have no "grid_id" attribute are not
+recognised as v1.1.0 and are not changed. Has no effect if input_file and
+output_file are the same and contain a cube with non v1.1.0 meta-data
 
 positional arguments:
   INPUT_FILE            A path to an input NetCDF file to be processed

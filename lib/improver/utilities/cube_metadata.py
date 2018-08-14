@@ -58,7 +58,8 @@ GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
 
 
 def stage_v110_to_v120(cube):
-    """Translates meta-data from StaGE version 1.1.0 to StaGE version 1.2.0
+    """Translates meta-data relating to the grid_id attribute from StaGE
+    version 1.1.0 to StaGE version 1.2.0.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
     are ignored.
 
