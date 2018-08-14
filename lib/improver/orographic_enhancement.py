@@ -77,6 +77,30 @@ class OrographicEnhancement(object):
                           self.efficiency_factor, self.cloud_lifetime_s)
 
     @staticmethod
+    def _set_increasing_spatial_coords(cube):
+        """
+        Checks that the x and y axes on the input cube are in increasing
+        order.  If not, reverses the order of the decreasing coordinate(s)
+        and flips the data array.  Modifies cube in place.
+
+        TODO move this utility to cube_manipulation.py and write unit tests
+
+        Args:
+            cube (iris.cube.Cube):
+                Input cube
+        """
+        for axis in ['x', 'y']:
+            coord = cube.coord(axis=axis)
+            if not coord.is_monotonic():
+                'cube spatial coordinate {} is not monotonic'
+                raise ValueError(msg.format(coord.name()))
+        
+            if coord.points[1] < coord.points[0]:
+                coord_axis, = cube.coord_dims(coord)
+                coord.points = np.flip(coord.points)
+                cube.data = np.flip(cube.data, coord_axis)
+
+    @staticmethod
     def _orography_gradients(topography):
         """
         Checks topography height is in same units as spatial dimensions, then
@@ -364,8 +388,8 @@ class OrographicEnhancement(object):
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
 
-        # TODO check x and y axes are increasing - if not transform?
-
+        # check x and y axes are increasing - if not, transform
+        self._set_increasing_spatial_coords(topography)
 
         # convert input cube units
         # iris doesn't recognise 'mb' as a valid unit
