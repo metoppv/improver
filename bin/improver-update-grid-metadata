@@ -67,6 +67,9 @@ def main():
     cube_changed = stage_v110_to_v120(cube)
 
     if cube_changed or input_file != output_file:
+        # Ensure data are not lazy in case we are writing back to the same
+        # file.
+        cube.data
         save_netcdf(cube, output_file)
 
 

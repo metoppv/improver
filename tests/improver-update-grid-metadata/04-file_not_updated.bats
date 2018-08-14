@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "update-grid-metadata" {
+@test "update-grid-metadata file-not-updated" {
   improver_check_skip_acceptance
   KGO="update-grid-metadata/basic/kgo.nc"
 

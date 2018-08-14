@@ -31,17 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "update-grid-metadata no-change" {
+@test "update-grid-metadata basic-file-updated" {
   improver_check_skip_acceptance
-  KGO="update-grid-metadata/basic/kgo.nc"
+  KGO="update-grid-metadata/basic/input.nc"
+
+  # Copy KGO to TEST_DIR then check it is changed by this CLI
+  cp $IMPROVER_ACC_TEST_DIR/$KGO $TEST_DIR/input.nc
+  modify_time=$(stat --format=%Y $TEST_DIR/input.nc)
 
   # Run cube update-grid-metadata processing and check it passes.
   run improver update-grid-metadata \
-      "$IMPROVER_ACC_TEST_DIR/update-grid-metadata/basic/kgo.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/input.nc" \
+      "$TEST_DIR/input.nc"
   [[ "$status" -eq 0 ]]
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  # Check modification time is newer
+  [[ "$modify_time" -lt $(stat --format=%Y $TEST_DIR/input.nc) ]]
 }
