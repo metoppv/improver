@@ -31,15 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "v110_v120" {
+@test "update-grid-metadata" {
   improver_check_skip_acceptance
-  KGO="v110_v120/basic/kgo.nc"
+  KGO="update-grid-metadata/basic/kgo.nc"
 
-  # Run cube v110_v120 processing and check it passes.
-  run improver v110_v120 \
-      "$IMPROVER_ACC_TEST_DIR/v110_v120/basic/kgo.nc" \
+  # Run cube update-grid-metadata processing and check it passes.
+  run improver update-grid-metadata \
+      "$IMPROVER_ACC_TEST_DIR/update-grid-metadata/basic/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \

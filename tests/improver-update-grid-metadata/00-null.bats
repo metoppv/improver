@@ -29,27 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "v110_v120 -h" {
-  run improver v110_v120 -h
-  [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__HELP__' || true
-usage: improver-v110_v120 [-h] [--profile] [--profile_file PROFILE_FILE]
-                          INPUT_FILE OUTPUT_FILE
-
-Translates meta-data relating to the grid_id attribute from StaGE version
-1.1.0 to StaGE version 1.2.0. Files that have no "grid_id" attribute are not
-recognised as v1.1.0 and are not changed. Has no effect if input_file and
-output_file are the same and contain a cube with non v1.1.0 meta-data
-
-positional arguments:
-  INPUT_FILE            A path to an input NetCDF file to be processed
-  OUTPUT_FILE           The output path for the processed NetCDF
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --profile             Switch on profiling information.
-  --profile_file PROFILE_FILE
-                        Dump profiling info to a file. Implies --profile.
-__HELP__
-  [[ "$output" == "$expected" ]]
+@test "update-grid-metadata no arguments" {
+  run improver update-grid-metadata
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-update-grid-metadata [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
+                                     INPUT_FILE OUTPUT_FILE
+improver-update-grid-metadata: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

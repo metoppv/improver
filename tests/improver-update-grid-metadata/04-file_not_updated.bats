@@ -29,13 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "v110_v120 no arguments" {
-  run improver v110_v120
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-v110_v120 [-h] [--profile] [--profile_file PROFILE_FILE]
-                          INPUT_FILE OUTPUT_FILE
-improver-v110_v120: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "update-grid-metadata" {
+  improver_check_skip_acceptance
+  KGO="update-grid-metadata/basic/kgo.nc"
+
+  # Copy KGO to TEST_DIR then check it is unchanged by this CLI
+  cp $IMPROVER_ACC_TEST_DIR/$KGO $TEST_DIR/input.nc
+  modify_time=$(stat --format=%Y $TEST_DIR/input.nc)
+
+  # Run cube update-grid-metadata processing and check it passes.
+  run improver update-grid-metadata \
+      "$TEST_DIR/input.nc" \
+      "$TEST_DIR/input.nc"
+  [[ "$status" -eq 0 ]]
+
+  # Check modification time is unchanged
+  [[ "$modify_time" -eq $(stat --format=%Y $TEST_DIR/input.nc) ]]
 }

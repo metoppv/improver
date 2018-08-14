@@ -29,21 +29,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "v110_v120" {
-  improver_check_skip_acceptance
-  KGO="v110_v120/basic/kgo.nc"
-
-  # Run cube v110_v120 processing and check it passes.
-  run improver v110_v120 \
-      "$IMPROVER_ACC_TEST_DIR/v110_v120/basic/input.nc" \
-      "$TEST_DIR/output.nc"
+@test "update-grid-metadata -h" {
+  run improver update-grid-metadata -h
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-update-grid-metadata [-h] [--profile]
+                                     [--profile_file PROFILE_FILE]
+                                     INPUT_FILE OUTPUT_FILE
 
-  improver_check_recreate_kgo "output.nc" $KGO
+Translates meta-data relating to the grid_id attribute from StaGE version
+1.1.0 to StaGE version 1.2.0. Files that have no "grid_id" attribute are not
+recognised as v1.1.0 and are not changed. Has no effect if input_file and
+output_file are the same and contain a cube with non v1.1.0 meta-data
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+positional arguments:
+  INPUT_FILE            A path to an input NetCDF file to be processed
+  OUTPUT_FILE           The output path for the processed NetCDF
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+__HELP__
+  [[ "$output" == "$expected" ]]
 }
