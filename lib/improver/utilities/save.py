@@ -100,6 +100,8 @@ def save_netcdf(cubelist, filename):
         cubelist = [cubelist]
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
+                   'mosg__grid_type', 'mosg__model_configuration',
+                   'mosg__grid_domain', 'mosg__grid_version',
                    'institution', 'history', 'bald__isPrefixedBy']
     local_keys = {key for cube in cubelist
                   for key in cube.attributes.keys()

@@ -59,9 +59,10 @@ class Test_merge_cubes(IrisTest):
         self.cube = set_up_temperature_cube()
         self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
         self.cube_ukv.remove_coord('realization')
-        self.cube_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        self.cube_ukv.attributes.update({'title':
-                                         'Operational UKV Model Forecast'})
+        self.cube_ukv.attributes['mosg__grid_type'] = 'standard'
+        self.cube_ukv.attributes['mosg__model_configuration'] = 'uk_det'
+        self.cube_ukv.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube_ukv.attributes['mosg__grid_version'] = '1.2.0'
         self.cube_ukv_t1 = self.cube_ukv.copy()
         self.cube_ukv_t2 = self.cube_ukv.copy()
         add_forecast_reference_time_and_forecast_period(self.cube_ukv,
@@ -72,18 +73,21 @@ class Test_merge_cubes(IrisTest):
                                                         fp_point=6.0)
         add_forecast_reference_time_and_forecast_period(self.cube,
                                                         fp_point=7.0)
-        self.cube.attributes.update({'grid_id': 'enukx_standard_v1'})
-        self.cube.attributes.update({'title':
-                                     'Operational Mogreps UK Model Forecast'})
+        self.cube.attributes['mosg__grid_type'] = 'standard'
+        self.cube.attributes['mosg__model_configuration'] = 'uk_ens'
+        self.cube.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube.attributes['mosg__grid_version'] = '1.2.0'
         self.prob_ukv = set_up_probability_above_threshold_temperature_cube()
-        self.prob_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        self.prob_ukv.attributes.update({'title':
-                                         'Operational UKV Model Forecast'})
+        self.prob_ukv.attributes['mosg__grid_type'] = 'standard'
+        self.prob_ukv.attributes['mosg__model_configuration'] = 'uk_det'
+        self.prob_ukv.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.prob_ukv.attributes['mosg__grid_version'] = '1.2.0'
         self.prob_enuk = set_up_probability_above_threshold_temperature_cube()
-        self.prob_enuk.attributes.update({'grid_id': 'enukx_standard_v1'})
+        self.prob_enuk.attributes.update({'mosg__grid_type': 'standard'})
         self.prob_enuk.attributes.update(
-            {'title':
-             'Operational Mogreps UK Model Forecast'})
+            {'mosg__model_configuration': 'uk_ens'})
+        self.prob_enuk.attributes.update({'mosg__grid_domain': 'uk_extended'})
+        self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
     @ManageWarnings(record=True)
     def test_basic(self, warning_list=None):
@@ -119,14 +123,15 @@ class Test_merge_cubes(IrisTest):
         result = merge_cubes(cubes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [0., 1., 2., 1000.])
+            result.coord("model_realization").points, [3000., 4000.,
+                                                       4001., 4002.])
 
     def test_threshold_data(self):
         """Test threshold data merges OK"""
         cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
         result = merge_cubes(cubes)
         self.assertArrayAlmostEqual(
-            result.coord("model_id").points, [0, 1000])
+            result.coord("model_id").points, [3000., 4000.])
 
 
 if __name__ == '__main__':

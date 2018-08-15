@@ -88,119 +88,53 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertIn("history", result[0].attributes.keys())
         self.assertIn("history", result[1].attributes.keys())
 
-    def test_cubelist_grid_id_same(self):
-        """Test that the utility updates grid_id if in list and not matching"""
-
-        cube1 = self.cube_ukv.copy()
-        cube2 = self.cube.copy()
-        cube1.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        cube2.attributes.update({'grid_id': 'ukvx_standard_v1'})
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        result = _equalise_cube_attributes(cubelist)
-
-        self.assertEqual(result[0].attributes["grid_id"],
-                         result[1].attributes["grid_id"])
-
-    def test_cubelist_grid_id_in_list(self):
-        """Test that the utility updates grid_id if in list and not matching"""
-
-        cube1 = self.cube_ukv.copy()
-        cube2 = self.cube.copy()
-        cube1.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        cube2.attributes.update({'grid_id': 'enukx_standard_v1'})
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        result = _equalise_cube_attributes(cubelist)
-
-        self.assertEqual(result[0].attributes["grid_id"],
-                         result[1].attributes["grid_id"])
-        self.assertEqual(cubelist[0].attributes["grid_id"],
-                         'ukx_standard_v1')
-
-    def test_cubelist_grid_id_in_list2(self):
-        """Test that the utility updates grid_id if in list and not matching
-        where grid_id has already been updated to ukv_standard_v1"""
-
-        cube1 = self.cube_ukv.copy()
-        cube2 = self.cube.copy()
-        cube1.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        cube2.attributes.update({'grid_id': 'ukx_standard_v1'})
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        result = _equalise_cube_attributes(cubelist)
-
-        self.assertEqual(result[0].attributes["grid_id"],
-                         result[1].attributes["grid_id"])
-        self.assertEqual(result[0].attributes["grid_id"],
-                         'ukx_standard_v1')
-
-    def test_cubelist_grid_id_not_in_list(self):
-        """Test leaves grid_id alone if grid_id not matching and not in list
-        In this case the cubes would not merge.
+    def test_cubelist_mosg__model_configuration_identical(self):
+        """
+        Test that the utility does nothing to mosg__model_configuration if
+        they match
         """
 
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
-        cube1.attributes.update({'grid_id': 'ukx_standard_v1'})
-        cube2.attributes.update({'grid_id': 'unknown_grid'})
+        cube1.attributes.update({'mosg__model_configuration':
+                                 'uk_det'})
+        cube2.attributes.update({'mosg__model_configuration':
+                                 'uk_det'})
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
+        self.assertEqual(result[0].attributes["mosg__model_configuration"],
+                         result[1].attributes["mosg__model_configuration"])
+        self.assertEqual(result[0].attributes["mosg__model_configuration"],
+                         'uk_det')
 
-        self.assertIn("grid_id", result[0].attributes.keys())
-        self.assertEqual(result[0].attributes["grid_id"],
-                         'ukx_standard_v1')
-        self.assertIn("grid_id", result[1].attributes.keys())
-        self.assertEqual(result[1].attributes["grid_id"],
-                         'unknown_grid')
-
-    def test_cubelist_title_identical(self):
-        """Test that the utility does nothing to title if they match"""
-
-        cube1 = self.cube_ukv.copy()
-        cube2 = self.cube.copy()
-        cube1.attributes.update({'title':
-                                 'Operational UKV Model Forecast'})
-        cube2.attributes.update({'title':
-                                 'Operational UKV Model Forecast'})
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        result = _equalise_cube_attributes(cubelist)
-        self.assertEqual(result[0].attributes["title"],
-                         result[1].attributes["title"])
-        self.assertEqual(result[0].attributes["title"],
-                         'Operational UKV Model Forecast')
-
-    def test_cubelist_title(self):
+    def test_cubelist_mosg__model_configuration(self):
         """Test that the utility adds coords for model if not matching"""
 
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
-        cube1.attributes.update({'title':
-                                 'Operational UKV Model Forecast'})
-        cube2.attributes.update({'title':
-                                 'Operational Mogreps UK Model Forecast'})
+        cube1.attributes.update({'mosg__model_configuration':
+                                 'uk_det'})
+        cube2.attributes.update({'mosg__model_configuration':
+                                 'uk_ens'})
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(cubelist)
 
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
-                                    np.array([0]))
+                                    np.array([3000]))
         self.assertEqual(result[0].coord("model").points[0],
-                         'Operational UKV Model Forecast')
+                         'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([1000]))
+                                    np.array([4000]))
         self.assertEqual(result[1].coord("model").points[0],
-                         'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", result[0].attributes.keys())
-        self.assertNotIn("title", result[1].attributes.keys())
+                         'uk_ens')
+        self.assertNotIn("mosg__model_configuration",
+                         result[0].attributes.keys())
+        self.assertNotIn("mosg__model_configuration",
+                         result[1].attributes.keys())
 
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):

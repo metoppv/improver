@@ -40,6 +40,16 @@ from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_checker import check_cube_coordinates
 
+# Define model_id keys to match mosg__model_configuration values
+MODEL_ID_DICT = {
+    1000: 'gl_det',
+    2000: 'gl_ens',
+    3000: 'uk_det',
+    4000: 'uk_ens',
+    5000: 'nc_det',
+    6000: 'nc_ens'
+    }
+
 
 def _associate_any_coordinate_with_master_coordinate(
         cube, master_coord="time", coordinates=None):
@@ -291,26 +301,24 @@ def _equalise_cube_attributes(cubes):
             if "history" in unmatching_attributes[i]:
                 cube.attributes.pop("history")
                 unmatching_attributes[i].pop("history")
-            # Normalise grid_id to ukx_standard_1
-            if "grid_id" in unmatching_attributes[i]:
-                if cube.attributes['grid_id'] in ['enukx_standard_v1',
-                                                  'ukvx_standard_v1',
-                                                  'ukx_standard_v1']:
-                    cube.attributes['grid_id'] = 'ukx_standard_v1'
-                unmatching_attributes[i].pop("grid_id")
-            # Add model_id if titles do not match.
-            if "title" in unmatching_attributes[i]:
-                model_title = cube.attributes.pop('title')
-                new_model_id_coord = build_coordinate([1000*i],
+            # Add associated model_id if model_configurations do not match.
+            if "mosg__model_configuration" in unmatching_attributes[i]:
+                model_title = cube.attributes.pop('mosg__model_configuration')
+                for key, val in MODEL_ID_DICT.items():
+                    if val == model_title:
+                        break
+                new_model_id_coord = build_coordinate([key],
                                                       long_name='model_id',
                                                       data_type=np.int)
+                # TODO: Confirm whether long_name should be
+                # mosg__model_configuration instead of model
                 new_model_coord = build_coordinate([model_title],
                                                    long_name='model',
                                                    coord_type=AuxCoord,
                                                    data_type=np.str)
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
-                unmatching_attributes[i].pop("title")
+                unmatching_attributes[i].pop("mosg__model_configuration")
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
