@@ -30,8 +30,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Script to translate meta-data relating to thte grid_id attribute from StaGE version
-1.1.0 to StaGE version 1.2.0.
+Script to translate meta-data relating to thte grid_id attribute from StaGE
+version 1.1.0 to StaGE version 1.2.0.
 """
 
 import os
@@ -62,7 +62,6 @@ def main():
                                       'v1.1.0 meta-data')}
 
     args = ArgParser(**cli_definition).parse_args()
-
 
     cube = load_cube(args.input_filepath)
     cube_changed = stage_v110_to_v120(cube)
