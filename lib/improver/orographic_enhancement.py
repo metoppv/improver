@@ -128,6 +128,11 @@ class OrographicEnhancement(object):
             topography (iris.cube.Cube):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
+        # set coordinates to be monotonically increasing
+        for cube in [temperature, humidity, pressure,
+                     uwind, vwind, topography]:
+            set_increasing_spatial_coords(cube)
+
         # regrid variables to match the high resolution orography
         regridder = iris.analysis.Linear()
         self.temperature = temperature.regrid(topography, regridder)
@@ -249,8 +254,7 @@ class OrographicEnhancement(object):
                     nweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
 
                     # TODO check signs / reasoning.  STEPS adds => assuming a
-                    # "wind to" direction.  STEPS subtracts on y-axis due to
-                    # top-left indexing...
+                    # "wind to" direction
                     new_x = x + int(weight * sin_wind_dir[y, x])
                     new_y = y + int(weight * cos_wind_dir[y, x])
 
@@ -364,9 +368,6 @@ class OrographicEnhancement(object):
         if topography.ndim > 2:
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
-
-        # check x and y axes are increasing - if not, transform
-        set_increasing_spatial_coords(topography)
 
         # convert input cube units
         # iris doesn't recognise 'mb' as a valid unit
