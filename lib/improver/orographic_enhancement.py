@@ -129,6 +129,8 @@ class OrographicEnhancement(object):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
         # set coordinates to be monotonically increasing
+        # TODO check whether this has any impact once outputs are OK -
+        #      if not, remove as it takes time
         for cube in [temperature, humidity, pressure,
                      uwind, vwind, topography]:
             set_increasing_spatial_coords(cube)
@@ -230,17 +232,16 @@ class OrographicEnhancement(object):
         upstream_roi = self.upstream_range_of_influence_km / grid_spacing
         max_roi = np.array((upstream_roi * max_sin_cos), dtype=int)
 
-        # set standard deviation for Gaussian weighting function - in m? km?
-        # grid squares? TODO STEPS comment says m s-2, but that's not what
-        # it does...
-        stddev = wind_speed * self.cloud_lifetime_s
+        # set standard deviation for Gaussian weighting function in grid
+        # squares
+        stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
         variance = np.square(stddev)
 
         # initialise enhancement field
         orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
         sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
 
-        # do loop... TODO refactor
+        # loop... TODO refactor
         for y in range(site_orogenh.data.shape[0]):
             for x in range(site_orogenh.data.shape[1]):
 
@@ -254,9 +255,10 @@ class OrographicEnhancement(object):
                     nweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
 
                     # TODO check signs / reasoning.  STEPS adds => assuming a
-                    # "wind to" direction
-                    new_x = x + int(weight * sin_wind_dir[y, x])
-                    new_y = y + int(weight * cos_wind_dir[y, x])
+                    # "wind from" direction TODO add check for wind-u, wind-v
+                    # (which are from) and grid_north/eastward_wind, which are to
+                    new_x = x - int(weight * sin_wind_dir[y, x])
+                    new_y = y - int(weight * cos_wind_dir[y, x])
 
                     # force coordinates into bounds to avoid truncating the
                     # upstream contribution towards domain edges
