@@ -534,6 +534,37 @@ def compare_coords(cubes):
     return unmatching_coords
 
 
+def set_increasing_spatial_coords(cube):
+    """
+    Checks that the x and y axes on the input cube are in increasing
+    order.  If not, reverses the order of the decreasing coordinate(s)
+    and flips the data array.  Function modifies cube in place.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube
+
+    Raises:
+        ValueError: if coordinate values are randomly ordered (not
+            monotonic)
+
+    """
+    for axis in ['x', 'y']:
+        try:
+            coord = cube.coord(axis=axis)
+        except CoordinateNotFoundError:
+            continue
+
+        if not coord.is_monotonic():
+            'cube spatial coordinate {} is not monotonic'
+            raise ValueError(msg.format(coord.name()))
+    
+        if coord.points[1] < coord.points[0]:
+            coord_axis, = cube.coord_dims(coord)
+            coord.points = np.flip(coord.points)
+            cube.data = np.flip(cube.data, coord_axis)
+
+
 def build_coordinate(data, long_name=None,
                      standard_name=None,
                      var_name=None,
@@ -628,16 +659,16 @@ def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
 
         Args:
             cube (iris.cube.Cube):
-                   The cube which we need to add the cell_method to.
+                The cube which we need to add the cell_method to.
             orig_cell_method(iris.coord.CellMethod):
-                   The original cell method we want to rename and add to the
-                   cube.
+                The original cell method we want to rename and add to the
+                cube.
             new_cell_method_name (string):
-                   The name of the new cell_method we want to rename the
-                   original cell_method to.
+                The name of the new cell_method we want to rename the
+                original cell_method to.
         Raises:
             TypeError: If Input Cell_method is not an instance of
-                   iris.coord.CellMethod.
+                iris.coord.CellMethod.
         """
     if not isinstance(orig_cell_method, iris.coords.CellMethod):
         message = ('Input Cell_method is not an instance of '
