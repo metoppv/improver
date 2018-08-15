@@ -575,6 +575,9 @@ def set_increasing_spatial_coords(cube):
                 raise ValueError(
                     'unrecognised dimension {}'.format(coord_axis))
             coord.points = np.flipud(coord.points)
+            if coord.bounds is not None:
+                coord.bounds = np.flipud(coord.bounds)
+                coord.bounds = np.fliplr(coord.bounds)
 
 
 def build_coordinate(data, long_name=None,
