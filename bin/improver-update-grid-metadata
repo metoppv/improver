@@ -66,7 +66,7 @@ def main():
     cube = load_cube(args.input_filepath)
     cube_changed = stage_v110_to_v120(cube)
 
-    # Create ormalised file paths to make them comparable
+    # Create normalised file paths to make them comparable
     in_file_norm = os.path.normpath(args.input_filepath)
     out_file_norm = os.path.normpath(args.output_filepath)
     if cube_changed or in_file_norm != out_file_norm:
