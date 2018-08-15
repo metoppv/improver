@@ -63,17 +63,18 @@ def main():
 
     args = ArgParser(**cli_definition).parse_args()
 
-    input_file = os.path.normpath(args.input_filepath)
-    output_file = os.path.normpath(args.output_filepath)
 
-    cube = load_cube(input_file)
+    cube = load_cube(args.input_filepath)
     cube_changed = stage_v110_to_v120(cube)
 
-    if cube_changed or input_file != output_file:
+    # Create ormalised file paths to make them comparable
+    in_file_norm = os.path.normpath(args.input_filepath)
+    out_file_norm = os.path.normpath(args.output_filepath)
+    if cube_changed or in_file_norm != out_file_norm:
         # Ensure data are not lazy in case we are writing back to the same
         # file.
         cube.data
-        save_netcdf(cube, output_file)
+        save_netcdf(cube, args.output_filepath)
 
 
 if __name__ == "__main__":
