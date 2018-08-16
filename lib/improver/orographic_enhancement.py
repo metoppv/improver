@@ -255,6 +255,53 @@ class OrographicEnhancement(object):
         stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
         variance = np.square(stddev)
 
+        # TODO new method - coding in progress
+        # TODO mask where wind_speed is zero
+
+        # generate 3d arrays to hold indices and weights of upstream components
+        length = np.amax(max_roi)
+        shape = (wind_speed.shape[0], wind_speed.shape[1], length)
+        weights = [i / a if i < b else 0 
+                   for (a, b) in zip(max_sin_cos.flatten(), max_roi.flatten())
+                   for i in range(length)]
+        weights = np.array(weights, dtype=np.float32).reshape(shape)
+
+        # move the third axis to the front so that other arrays can be broadcast
+        distance_weight = np.moveaxis(weights, -1, 0)
+
+        # calculate positions of source points
+        xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[0]),
+                                 np.arange(wind_speed.shape[1]))
+        x_source = xpos - np.multiply(distance_weight, sin_wind_dir).astype(int)
+        y_source = ypos - np.multiply(distance_weight, cos_wind_dir).astype(int)
+
+        # force coordinates into bounds to avoid truncation at domain edges
+        x_source = np.where(x_source < 0, 0, x_source)
+        x_source = np.where(
+            x_source > wind_speed.shape[1]-1, wind_speed.shape[1]-1, x_source)
+
+        y_source = np.where(y_source < 0, 0, y_source)
+        y_source = np.where(
+            y_source > wind_speed.shape[0]-1, wind_speed.shape[0]-1, y_source)
+
+        # extract values at source points TODO (by list comprenehsion & reshape?)
+        source_values = None
+
+        # calculate weights of source points
+        value_weights = np.exp(np.divide(-0.5 * np.square(distance_weight), variance))
+        sum_of_weights = np.sum(value_weights, axis=0)
+
+        # multiply weights by values at source points
+        weighted_values = np.multiply(source_values, value_weights)
+
+        # sum along first axis and normalise
+        # total_orogenh = np.sum(weighted_values, axis=0)
+        # orogenh = self.efficiency_factor * np.divide(total_orogenh, sum_of_weights)
+
+        # ENDOF new method
+
+        # TODO finish & unit test, then replace below with above
+
         # initialise enhancement field
         orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
         sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
@@ -272,9 +319,7 @@ class OrographicEnhancement(object):
                     weight = i / max_sin_cos[y, x]
                     nweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
 
-                    # TODO check signs / reasoning.  STEPS adds => assuming a
-                    # "wind from" direction TODO add check for wind-u, wind-v
-                    # (which are from) and grid_north/eastward_wind, which are to
+                    # find source points
                     new_x = x - int(weight * sin_wind_dir[y, x])
                     new_y = y - int(weight * cos_wind_dir[y, x])
 
