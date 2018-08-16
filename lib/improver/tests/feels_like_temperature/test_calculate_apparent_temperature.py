@@ -107,8 +107,8 @@ class Test_calculate_apparent_temperature(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_unit_conversion(self):
-        """Tests that input cubes have the same units at the end of the function
-        as they do at input"""
+        """Tests that input cubes have the same units at the end of the
+        function as they do at input"""
 
         self.temperature_cube.convert_units('fahrenheit')
         self.wind_speed_cube.convert_units('knots')
