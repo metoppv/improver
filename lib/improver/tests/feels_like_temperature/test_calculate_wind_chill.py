@@ -34,60 +34,69 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.feels_like_temperature import WindChill
+from improver.feels_like_temperature import calculate_wind_chill
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
 
 
-class Test__init__(IrisTest):
-    """Test class initialisation"""
-
-    def test_initialisation(self):
-        """Test initialisation and types"""
-        pass
-
-
-class Test__repr__(IrisTest):
-    """Test string representation"""
-
-    def test_string(self):
-        """Test string representation"""
-        expected_string = ('<WindChill>')
-        result = str(WindChill())
-        self.assertEqual(result, expected_string)
-
-
-class Test_process(IrisTest):
-    """Test the process method"""
+class Test_calculate_wind_chill(IrisTest):
+    """Test the wind chill function."""
 
     def setUp(self):
         """Creates cubes to input"""
-        self.temperature_cube = set_up_temperature_cube()[0]
-        self.wind_speed_cube = set_up_wind_speed_cube()[0]
+
+        self.temperature_cube = set_up_temperature_cube()[0, :, 0]
+        self.wind_speed_cube = set_up_wind_speed_cube()[0, :, 0]
 
     def test_wind_chill_values(self):
-        """
-        Test output values when from the wind chill equation.
-        """
-        # use a temperature less than 10 degrees C.
-        self.temperature_cube.data = np.full((1, 3, 3), 274.85)
-        self.wind_speed_cube.data = np.full((1, 3, 3), 3)
-        expected_result = np.full((1, 3, 3), 271.67464638070214)
-        result = WindChill().process(
-            self.temperature_cube, self.wind_speed_cube)
+        """Test output values when from the wind chill equation."""
 
+        # use a temperature less than 10 degrees C.
+        self.temperature_cube.data = np.full((1, 3), 274.85)
+        self.wind_speed_cube.data = np.full((1, 3), 3)
+        expected_result = np.full((1, 3), 271.67464638070214)
+        result = calculate_wind_chill(
+            self.temperature_cube, self.wind_speed_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_name_and_units(self):
-        """
-        Test correct outputs for name and units.
-        """
+        """Test correct outputs for name and units."""
+
         expected_name = "wind_chill"
         expected_units = 'K'
-        result = WindChill().process(
+        result = calculate_wind_chill(
             self.temperature_cube, self.wind_speed_cube)
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(result.units, expected_units)
+
+    def test_different_units(self):
+        """Test that values are correct from input cubes with
+        different units"""
+
+        self.temperature_cube.convert_units('fahrenheit')
+        self.wind_speed_cube.convert_units('knots')
+
+        expected_result = np.array(
+            [[257.05949999999996, 220.76791360990788, 231.12778815651941]])
+        result = calculate_wind_chill(
+            self.temperature_cube, self.wind_speed_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+
+    def test_unit_conversion(self):
+        """Tests that input cubes have the same units at the end of the function
+        as they do at input"""
+
+        self.temperature_cube.convert_units('fahrenheit')
+        self.wind_speed_cube.convert_units('knots')
+
+        calculate_wind_chill(
+            self.temperature_cube, self.wind_speed_cube)
+
+        temp_units = self.temperature_cube.units
+        wind_speed_units = self.wind_speed_cube.units
+
+        self.assertEqual(temp_units, 'fahrenheit')
+        self.assertEqual(wind_speed_units, 'knots')
 
 
 if __name__ == '__main__':
