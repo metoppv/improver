@@ -152,6 +152,24 @@ class OrographicEnhancement(object):
         self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
                        np.multiply(grady.data, self.vwind.data))
 
+    def _calculate_svp(self, method):
+        """
+        Calculates saturation vapour pressure using either the STEPS
+        temperature polynomial approximation or the IMPROVER wet bulb
+        temperature plugin functionality.
+
+        Args:
+            method (str):
+                IMPROVER or STEPS.
+        """
+        if method == 'STEPS':
+            print('Code the STEPS method')
+        else:
+            wbt = WetBulbTemperature()
+            self.svp = wbt._pressure_correct_svp(
+                wbt._lookup_svp(self.temperature),
+                self.temperature, self.pressure)
+
     def _generate_mask(self, topography):
         """
         Generates a boolean mask of areas to calculate orographic enhancement.
@@ -317,7 +335,7 @@ class OrographicEnhancement(object):
         return orogenh, orogenh_standard_grid
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
-                topography):
+                topography, svp_method='IMPROVER'):
         """
         Calculate precipitation enhancement over orography on standard (2 km)
         and high resolution (1 km UKPP domain) grids
@@ -337,6 +355,12 @@ class OrographicEnhancement(object):
                 layer
             topography (iris.cube.Cube):
                 Height of topography above sea level on 1 km UKPP domain grid
+
+        Kwargs:
+            svp_method (str):
+                Which method to use to calculate the saturation vapour
+                pressure (IMPROVER or STEPS).  Defaults to using the IMPROVER
+                WetBulbTemperature plugin.
 
         Returns:
             (tuple): tuple containing:
@@ -386,11 +410,8 @@ class OrographicEnhancement(object):
         self._regrid_and_populate(temperature, humidity, pressure,
                                   uwind, vwind, topography)
 
-        # calculate saturation vapour pressure using WetBulbTemperature plugin
-        # functionality
-        wbt = WetBulbTemperature()
-        self.svp = wbt._pressure_correct_svp(
-            wbt._lookup_svp(self.temperature), self.temperature, self.pressure)
+        # calculate saturation vapour pressure
+        self._calculate_svp(method=svp_method)
 
         # generate mask defining where to calculate orographic enhancement
         self.mask = self._generate_mask(topography)

@@ -112,11 +112,57 @@ class Test__regrid_and_populate(IrisTest):
     pass # TODO
 
 
+class Test__calculate_svp(IrisTest):
+    """Test the _calculate_svp method"""
+
+    def setUp(self):
+        """Set up and populate a plugin instance"""
+        x_coord = DimCoord(np.arange(3), 'projection_x_coordinate',
+                           units='km')
+        y_coord = DimCoord(np.arange(3), 'projection_y_coordinate',
+                           units='km')
+
+        temperature = np.array([[277.1, 278.2, 277.7],
+                                [278.6, 278.4, 278.9],
+                                [278.9, 279.0, 279.6]])
+        humidity = np.array([[0.74, 0.85, 0.94],
+                             [0.81, 0.82, 0.91],
+                             [0.86, 0.93, 0.97]])
+        pressure = np.array([[100000., 80000., 90000.],
+                             [90000., 85000., 89000.],
+                             [88000., 84000., 88000.]])
+        
+        self.plugin = OrographicEnhancement()
+        self.plugin.temperature = iris.cube.Cube(
+            temperature, long_name="temperature", units="kelvin",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.humidity = iris.cube.Cube(
+            humidity, long_name="relhumidity", units="1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.pressure = iris.cube.Cube(
+            pressure, long_name="pressure", units="Pa",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+
+    def test_basic(self):
+        """Test output is a cube"""
+        self.plugin._calculate_svp(method='IMPROVER')
+        self.assertIsInstance(self.plugin.svp, iris.cube.Cube)
+
+    def test_values(self):
+        """Test output values from the IMPROVER method"""
+        expected_data = np.array([
+            [813.64530012, 878.02231292, 848.25894782],
+            [903.22241567, 890.54322113, 922.18893543],
+            [922.14742099, 928.39365513, 967.87596347]])
+        self.plugin._calculate_svp(method='IMPROVER')
+        self.assertArrayAlmostEqual(self.plugin.svp.data, expected_data)
+
+
 class Test__generate_mask(IrisTest):
     """Test the _generate_mask method"""
 
     def setUp(self):
-        """Set up plugin instance with data cubes"""
+        """Set up and populate a plugin instance"""
         x_coord = DimCoord(np.arange(5), 'projection_x_coordinate',
                            units='km')
         y_coord = DimCoord(np.arange(5), 'projection_y_coordinate',
@@ -161,12 +207,106 @@ class Test__generate_mask(IrisTest):
 
 class Test__site_orogenh(IrisTest):
     """Test the _site_orogenh method"""
-    pass # TODO
+
+    def setUp(self):
+        """Set up and populate a plugin instance"""
+        x_coord = DimCoord(np.arange(3), 'projection_x_coordinate',
+                           units='km')
+        y_coord = DimCoord(np.arange(3), 'projection_y_coordinate',
+                           units='km')
+
+        temperature = np.array([[277.1, 278.2, 277.7],
+                                [278.6, 278.4, 278.9],
+                                [278.9, 279.0, 279.6]])
+        humidity = np.array([[0.74, 0.85, 0.94],
+                             [0.81, 0.82, 0.91],
+                             [0.86, 0.93, 0.97]])
+        svp = np.array([[813.6, 878.0, 848.3],
+                        [903.2, 890.5, 922.2],
+                        [922.1, 928.4, 967.9]])
+        
+        self.plugin = OrographicEnhancement()
+        self.plugin.temperature = iris.cube.Cube(
+            temperature, long_name="temperature", units="kelvin",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.humidity = iris.cube.Cube(
+            humidity, long_name="relhumidity", units="1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.svp = iris.cube.Cube(
+            svp, long_name="saturation_vapour_pressure", units="Pa",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+
+        self.plugin.mask = np.full((3, 3), False, dtype=bool)
+        self.plugin.mask[0, 0] = True
+        self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
+                                       [0.06, 0.12, 0.22],
+                                       [0.08, 0.16, 0.23]])
+
+    def test_basic(self):
+        """Test output is an array"""
+        result = self.plugin._site_orogenh()
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_values(self):
+        """Test output values are as expected"""
+        expected_values = np.array([
+            [0., 1.67372072, 4.47886658],
+            [1.22878468, 2.45468903, 5.1627059],
+            [1.77400422, 3.86162901, 6.02323198]])
+        result = self.plugin._site_orogenh()
+        self.assertArrayAlmostEqual(result, expected_values)
 
 
 class Test__add_upstream_component(IrisTest):
     """Test the _add_upstream_component method"""
-    pass # TODO
+
+    def setUp(self):
+        """Set up a plugin with wind components"""
+        x_coord = DimCoord(3.*np.arange(5), 'projection_x_coordinate',
+                           units='km')
+        y_coord = DimCoord(3.*np.arange(5), 'projection_y_coordinate',
+                           units='km')
+        uwind = 20.*np.ones((5, 5))
+        vwind = 12.*np.ones((5, 5))
+
+        self.plugin = OrographicEnhancement()
+        self.plugin.uwind = iris.cube.Cube(
+            uwind, long_name="grid_eastward_wind", units="m s-1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.vwind = iris.cube.Cube(
+            vwind, long_name="grid_northward_wind", units="m s-1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+
+        self.site_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
+                                      [4.4, 4.6, 5.8, 6.2, 5.5],
+                                      [5.2, 3.0, 3.4, 5.1, 3.3],
+                                      [0.6, 2.0, 1.8, 4.2, 2.5],
+                                      [0.0, 0.0, 0.2, 3.2, 1.8]])
+
+    def test_basic(self):
+        """Test output is an array"""
+        result = self.plugin._add_upstream_component(
+            self.site_orogenh, grid_spacing=3.)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_values(self):
+        """Test output values are sensible"""
+        expected_values = np.array([
+            [0.953864992, 1.039876340, 1.241069560, 1.506975890, 1.355637310],
+            [1.022974250, 1.057378650, 1.275474070, 1.415430670, 1.320632340],
+            [1.207951190, 0.829501510, 0.769959569, 1.086189750, 0.878462374],
+            [0.150106028, 0.390937656, 0.438210994, 0.834389985, 0.682858706],
+            [0.00137165433, 0.00137165433, 0.0357761718, 0.566698432,
+             0.500449955]])
+        result = self.plugin._add_upstream_component(
+            self.site_orogenh, grid_spacing=3.)
+        self.assertArrayAlmostEqual(result, expected_values)
+
+
+class Test_process(IrisTest):
+    """Test the process method"""
+    pass  # TODO
+
 
 
 if __name__ == '__main__':
