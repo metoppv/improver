@@ -94,11 +94,11 @@ class Test_equalise_cubes(IrisTest):
         result = equalise_cubes(cubelist)
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([3000]))
-        self.assertEqual(result[0].coord("model").points[0],
+        self.assertEqual(result[0].coord("model_configuration").points[0],
                          'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
                                     np.array([4000]))
-        self.assertEqual(result[1].coord("model").points[0],
+        self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
         self.assertNotIn("mosg__model_configuration", result[0].attributes)
         self.assertNotIn("mosg__model_configuration", result[1].attributes)

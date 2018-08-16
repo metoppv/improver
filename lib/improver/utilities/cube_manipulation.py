@@ -310,12 +310,11 @@ def _equalise_cube_attributes(cubes):
                 new_model_id_coord = build_coordinate([key],
                                                       long_name='model_id',
                                                       data_type=np.int)
-                # TODO: Confirm whether long_name should be
-                # mosg__model_configuration instead of model
-                new_model_coord = build_coordinate([model_title],
-                                                   long_name='model',
-                                                   coord_type=AuxCoord,
-                                                   data_type=np.str)
+                new_model_coord = (
+                    build_coordinate([model_title],
+                                     long_name='model_configuration',
+                                     coord_type=AuxCoord,
+                                     data_type=np.str))
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
                 unmatching_attributes[i].pop("mosg__model_configuration")
