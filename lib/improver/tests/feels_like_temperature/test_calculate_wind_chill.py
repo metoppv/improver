@@ -83,7 +83,7 @@ class Test_calculate_wind_chill(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_unit_conversion(self):
-        """Tests that input cubes have the same units at the end of the 
+        """Tests that input cubes have the same units at the end of the
         function as they do at input"""
 
         self.temperature_cube.convert_units('fahrenheit')
