@@ -294,13 +294,17 @@ def _equalise_cube_attributes(cubes):
         Warning: If it does not know what to do with an unmatching
                  attribute. Default is to delete it.
     """
+    # Unmatched warnings matching one of the silent_attributes are deleted
+    # without raising a warning message
+    silent_attributes = ['history', 'title', 'mosg__grid_version']
     unmatching_attributes = compare_attributes(cubes)
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
-            # Remove history.
-            if "history" in unmatching_attributes[i]:
-                cube.attributes.pop("history")
-                unmatching_attributes[i].pop("history")
+            # Remove ignored attributes.
+            for attr in silent_attributes:
+                if attr in unmatching_attributes[i]:
+                    cube.attributes.pop(attr)
+                    unmatching_attributes[i].pop(attr)
             # Add associated model_id if model_configurations do not match.
             if "mosg__model_configuration" in unmatching_attributes[i]:
                 model_title = cube.attributes.pop('mosg__model_configuration')
