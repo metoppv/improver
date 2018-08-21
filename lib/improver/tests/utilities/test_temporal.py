@@ -185,6 +185,19 @@ class Test_forecast_period_coord(IrisTest):
         result = forecast_period_coord(cube, force_lead_time_calculation=True)
         self.assertEqual(result, expected_result)
 
+    def test_check_time_unit_has_bounds(self):
+        """Test that the forecast_period coord has bounds if time has bounds.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.coord('time').bounds = [[402295., 402296.]]
+        cube.coord('forecast_period').bounds = [[4., 5.]]
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_result = fp_coord
+        cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
+        result = forecast_period_coord(cube, force_lead_time_calculation=True)
+        self.assertEqual(result, expected_result)
+
     @ManageWarnings(record=True)
     def test_negative_forecast_periods_warning(self, warning_list=None):
         """Test that a warning is raised if the point within the
