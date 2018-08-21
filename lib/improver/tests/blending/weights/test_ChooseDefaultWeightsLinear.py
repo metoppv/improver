@@ -39,8 +39,41 @@ import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsLinear \
     as LinearWeights
-from improver.tests.blending.weights.test_WeightsUtilities import (
-    set_up_cube, add_realizations)
+from improver.tests.blending.weights.helper_functions import set_up_cube
+
+
+def add_realizations(cube, num):
+    """Create num realizations of input cube.
+        Args:
+            cube : iris.cube.Cube
+                   input cube.
+            num : integer
+                   Number of realizations.
+        Returns:
+            cubeout : iris.cube.Cube
+                      copy of cube with num realizations added.
+    """
+    cubelist = iris.cube.CubeList()
+    for i in range(0, num):
+        newcube = cube.copy()
+        new_ensemble_coord = iris.coords.AuxCoord(i,
+                                                  standard_name='realization')
+        newcube.add_aux_coord(new_ensemble_coord)
+        cubelist.append(newcube)
+    cubeout = cubelist.merge_cube()
+    return cubeout
+
+
+class Test__init__(IrisTest):
+    """Test the __init__ method."""
+
+    def test_fails_y0val_set_wrong(self):
+        """Test it fails if y0val not set properly """
+        msg = ('y0val must be a float >= 0.0')
+        with self.assertRaisesRegex(ValueError, msg):
+            LinearWeights(y0val=-0.1)
+        with self.assertRaisesRegex(ValueError, msg):
+            LinearWeights(y0val=2)
 
 
 class Test_linear_weights(IrisTest):
@@ -50,14 +83,6 @@ class Test_linear_weights(IrisTest):
         """Test that the function returns an array of weights. """
         result = LinearWeights().linear_weights(3)
         self.assertIsInstance(result, np.ndarray)
-
-    def test_fails_y0val_set_wrong(self):
-        """Test it fails if y0val not set properly """
-        msg = ('y0val must be a float >= 0.0')
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=-0.1).linear_weights(3)
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=2).linear_weights(3)
 
     def test_fails_ynval_and_slope_set(self):
         """Test it fails if y0val not set properly """

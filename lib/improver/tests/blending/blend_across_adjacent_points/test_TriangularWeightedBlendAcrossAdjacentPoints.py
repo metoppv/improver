@@ -45,41 +45,8 @@ import numpy as np
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
+from improver.tests.weights.helper_functions import cubes_for_tests
 from improver.utilities.warnings_handler import ManageWarnings
-
-
-def set_up_cube():
-    """A helper function to set up input cubes for unit tests.
-       The cube has latitude, longitude and time dimensions"""
-    data = np.zeros((2, 2, 2))
-
-    orig_cube = Cube(data, units="m",
-                     standard_name="lwe_thickness_of_precipitation_amount")
-    orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                     'latitude', units='degrees'), 1)
-    orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                     units='degrees'), 2)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                     "time", units=tunit), 0)
-    orig_cube.add_aux_coord(DimCoord([0, 1],
-                                     "forecast_period", units="hours"), 0)
-    return orig_cube
-
-
-def cubes_for_tests():
-    """Set up cubes for unit tests."""
-    cube = set_up_cube()
-    data = np.zeros((2, 2, 2))
-    data[0][:][:] = 1.0
-    data[1][:][:] = 2.0
-    cube.data = data
-    forecast_period = 0
-    constr = iris.Constraint(forecast_period=forecast_period)
-    central_cube = cube.extract(constr)
-    return cube, central_cube, forecast_period
 
 
 class Test__repr__(IrisTest):

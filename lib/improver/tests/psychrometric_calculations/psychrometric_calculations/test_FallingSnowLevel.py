@@ -420,12 +420,13 @@ class Test_process(IrisTest):
         data = np.ones((2, 1, 3, 3))
         relh_data = np.ones((2, 1, 3, 3)) * 0.65
 
-        temperature = set_up_cube(data, 'air_temperature', 'K',
-                                  realizations=np.array([0, 1]))
+        temperature = set_up_cube(data, standard_name='air_temperature',
+                                  units='K', realizations=np.array([0, 1]))
         relative_humidity = set_up_cube(relh_data,
-                                        'relative_humidity', '%',
+                                        standard_name='relative_humidity',
+                                        units='%',
                                         realizations=np.array([0, 1]))
-        pressure = set_up_cube(data, 'air_pressure', 'Pa',
+        pressure = set_up_cube(data, standard_name='air_pressure', units='Pa',
                                realizations=np.array([0, 1]))
         self.height_points = np.array([5., 195., 200.])
         self.temperature_cube = set_up_height_cube(

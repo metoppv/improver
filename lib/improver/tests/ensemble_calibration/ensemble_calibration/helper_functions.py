@@ -139,12 +139,12 @@ def set_up_probability_above_threshold_spot_temperature_cube():
             data, "air_temperature", "degreesC"))
 
 
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
+def set_up_cube(data, standard_name=None, units=None, long_name=None,
                 realizations=np.array([0, 1, 2]), timesteps=1,
                 y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
+    cube = Cube(data, standard_name=standard_name, long_name=long_name,
+                units=units)
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
@@ -166,7 +166,7 @@ def set_up_temperature_cube():
     data[0] -= 2
     data[1] += 2
     data[2] += 4
-    return set_up_cube(data, "air_temperature", "K")
+    return set_up_cube(data, standard_name="air_temperature", units="K")
 
 
 def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
@@ -205,7 +205,7 @@ def set_up_wind_speed_cube():
     data[0] += 0
     data[1] += 2
     data[2] += 4
-    return set_up_cube(data, "wind_speed", "m s^-1")
+    return set_up_cube(data, standard_name="wind_speed", units="m s^-1")
 
 
 def add_forecast_reference_time_and_forecast_period(

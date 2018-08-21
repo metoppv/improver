@@ -97,8 +97,8 @@ class Test_add_wxcode_metadata(IrisTest):
         """Set up cube """
         data = np.array([0, 1, 5, 11, 20, 5, 9, 10, 4,
                          2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
-        self.cube = set_up_cube(data, 'air_temperature', 'K',
-                                realizations=np.array([0, 1]))
+        self.cube = set_up_cube(data, standard_name='air_temperature',
+                                units='K', realizations=np.array([0, 1]))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()
