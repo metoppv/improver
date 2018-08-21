@@ -453,6 +453,7 @@ def _equalise_coord_bounds(cubes):
     """
     # Check each cube against all remaining cubes
     def warn(cube):
+        """Raise warning about  mismatched bounds"""
         warnings.warn('Removing mismatched bounds from cube {}'.format(
             cube.name))
     for i, this_cube in enumerate(cubes):
