@@ -35,12 +35,16 @@ Unit tests for the function "cube_manipulation._equalise_coord_bounds".
 import unittest
 
 import iris
+from iris.coords import DimCoord
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.utilities.cube_manipulation import _equalise_coord_bounds
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube
+    helper_functions import (
+        set_up_temperature_cube,
+        set_up_probability_above_threshold_temperature_cube)
 
 from improver.utilities.warnings_handler import ManageWarnings
 
