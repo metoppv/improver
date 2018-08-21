@@ -46,6 +46,8 @@ import numpy as np
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.utilities.cube_metadata import add_coord
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 def set_up_cube():
@@ -260,6 +262,57 @@ class Test_process(IrisTest):
                          result.coord('forecast_period'))
         self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
         self.assertArrayAlmostEqual(expected_data, result.data)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_works_one_thresh(self):
+        """Test that the plugin retains the single threshold from the input
+           cube."""
+        width = 2.0
+
+        changes = {'points': [0.5], 'units': '1'}
+        cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
+
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_mean')
+        result = plugin.process(cube_with_thresh)
+
+        # Test that the result cube retains threshold co-ordinates
+        # from origonal cube.
+        self.assertEqual(cube_with_thresh.coord('threshold'),
+                         result.coord('threshold'))
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_works_two_thresh(self):
+        """Test that the plugin works with a cube that contains multiple
+           thresholds."""
+        width = 2.0
+
+        changes = {'points': [0.25], 'units': '1'}
+        cube_with_thresh1 = add_coord(self.cube.copy(), 'threshold', changes)
+
+        changes = {'points': [0.5], 'units': '1'}
+        cube_with_thresh2 = add_coord(self.cube.copy(), 'threshold', changes)
+
+        changes = {'points': [0.75], 'units': '1'}
+        cube_with_thresh3 = add_coord(self.cube.copy(), 'threshold', changes)
+
+        cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
+                                       cube_with_thresh3])
+        thresh_cubes = concatenate_cubes(cubelist,
+                                         coords_to_slice_over='threshold')
+
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_mean')
+        result = plugin.process(thresh_cubes)
+
+        # Test that the result cube retains threshold co-ordinates
+        # from origonal cube.
+        self.assertEqual(thresh_cubes.coord('threshold'),
+                         result.coord('threshold'))
 
 
 if __name__ == '__main__':
