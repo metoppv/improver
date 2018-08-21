@@ -51,6 +51,7 @@ class Test_demote_float64_precision(IrisTest):
         """Create two temperature cubes to test with."""
         self.cube1 = set_up_temperature_cube()
         self.cube2 = set_up_temperature_cube()
+        self.assertEqual(self.cube1.dtype, np.float64)
 
     def test_basic(self):
         """Test that the function will return a single iris.cube.Cube with
@@ -80,6 +81,7 @@ class Test_demote_float64_precision(IrisTest):
         """Test that the function does not change int data types."""
         result1 = self.cube1
         result1.data = result1.data.astype(np.int32)
+        demote_float64_precision(result1)
         self.assertEqual(result1.dtype, np.int32)
 
 

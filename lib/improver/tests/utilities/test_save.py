@@ -159,10 +159,10 @@ class Test_save_netcdf(IrisTest):
         """
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
-        global_keys = Dataset(self.filepath, mode='r').ncattrs()
-        self.assertEqual(len(global_keys), 10)
+        global_keys_in_file = Dataset(self.filepath, mode='r').ncattrs()
+        self.assertEqual(len(global_keys_in_file), 10)
         self.assertTrue(all(key in self.global_keys_ref
-                            for key in global_keys))
+                            for key in global_keys_in_file))
 
 
 class Test_append_metadata_cube(IrisTest):
