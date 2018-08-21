@@ -39,7 +39,7 @@ import numpy as np
 from improver.blending.weights import ChooseDefaultWeightsNonLinear \
     as NonLinearWeights
 from improver.tests.blending.weights.test_WeightsUtilities import (
-    set_up_cube, add_realizations)
+    set_up_zero_cube, add_realizations)
 
 
 class Test_nonlinear_weights(IrisTest):
@@ -71,7 +71,7 @@ class Test_process(IrisTest):
     """Test the Default non-Linear Weights plugin. """
 
     def setUp(self):
-        self.cube = set_up_cube()
+        self.cube = set_up_zero_cube()
         self.coord_name = "time"
         self.coord_vals = ','.join(
             [str(x) for x in self.cube.coord("time").points])

@@ -38,7 +38,11 @@ from iris.cube import Cube
 
 import numpy as np
 
-def set_up_cube():
+from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
+    import add_forecast_reference_time_and_forecast_period, set_up_cube
+
+
+def set_up_zero_cube():
     """A helper function to set up input cubes for unit tests.
        The cube has latitude, longitude and time dimensions
 
@@ -82,3 +86,90 @@ def cubes_for_tests():
     constr = iris.Constraint(forecast_period=forecast_period)
     central_cube = cube.extract(constr)
     return cube, central_cube, forecast_period
+
+
+def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
+    """Create a cube with metadata and values suitable for air temperature."""
+    if realizations is None:
+        realizations = [0]
+    if data is None:
+        data = np.zeros([1, timesteps, 2, 2]) + 273.15
+    temp_range = np.arange(-2, 30, 2)
+    for timestep in np.arange(timesteps):
+        data[0, timestep] -= temp_range[timestep]
+    cube = set_up_cube(data, standard_name="air_temperature", units="K",
+                       realizations=realizations, timesteps=timesteps,
+                       y_dimension_length=2, x_dimension_length=2)
+    return cube
+
+
+def set_up_basic_model_config_cube():
+    cube = add_model_id_and_model_configuration(
+        set_up_temperature_cube(timesteps=3), model_ids=[1000],
+        model_configurations=["uk_det"])
+    cube = add_forecast_reference_time_and_forecast_period(
+        cube, time_point=[402294.0, 402295.0, 402296.0],
+        fp_point=[6., 7., 8.])
+    return cube
+
+
+def set_up_weights_cube(data=None, timesteps=3, realizations=None):
+    if realizations is None:
+        realizations = [0]
+    if data is None:
+        data = np.zeros([1, timesteps, 2, 2])
+    cube = set_up_cube(data, long_name="weights",
+                       realizations=realizations, timesteps=timesteps,
+                       y_dimension_length=2, x_dimension_length=2)
+    return cube
+
+
+def set_up_basic_weights_cube(
+        model_ids=[1000], model_configurations=["uk_det"],
+        promote_to_new_axis=False, concatenate=True):
+    weights_cube = set_up_weights_cube(timesteps=4)
+    weights_cube = add_forecast_reference_time_and_forecast_period(
+        weights_cube, time_point=[402295.0, 402300.0, 402336.0, 402342.0],
+        fp_point=[7., 12., 48., 54.])
+    weights_cube.data[:,1:3] = np.ones([1, 2, 2, 2])
+    weights_cube = add_model_id_and_model_configuration(
+        weights_cube, model_ids=model_ids,
+        model_configurations=model_configurations,
+        promote_to_new_axis=promote_to_new_axis, concatenate=concatenate)
+    return weights_cube
+
+
+def add_model_id_and_model_configuration(
+        cube, model_ids=[1000, 2000],
+        model_configurations=["uk_det", "uk_ens"], promote_to_new_axis=False,
+        concatenate=True):
+    cubelist = iris.cube.CubeList([])
+    for model_id, model_configuration in zip(model_ids, model_configurations):
+        cube_copy = cube.copy()
+        model_id_coord = iris.coords.AuxCoord(
+            model_id, long_name='model_id')
+        cube_copy.add_aux_coord(model_id_coord)
+        model_config_coord = iris.coords.AuxCoord(
+            model_configuration, long_name='model_configuration')
+        if promote_to_new_axis:
+            cube_copy = iris.util.new_axis(cube_copy, "model_id")
+            index = cube_copy.coord_dims("model_id")[0]
+            cube_copy.add_aux_coord(model_config_coord, data_dims=index)
+        else:
+            cube_copy.add_aux_coord(model_config_coord)
+        cubelist.append(cube_copy)
+    if concatenate:
+        result = cubelist.concatenate_cube()
+    else:
+        result = cubelist
+    return result
+
+
+def add_height(cube, heights):
+    cubelist = iris.cube.CubeList([])
+    for height in heights:
+        cube_copy = cube.copy()
+        height_coord = iris.coords.AuxCoord(height, long_name='height')
+        cube_copy.add_aux_coord(height_coord)
+        cubelist.append(cube_copy)
+    return cubelist.merge_cube()

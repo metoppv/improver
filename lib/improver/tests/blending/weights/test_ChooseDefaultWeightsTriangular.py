@@ -39,7 +39,6 @@ import numpy as np
 import cf_units
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.tests.blending.weights.test_WeightsUtilities import set_up_cube
 
 
 class Test___repr__(IrisTest):
@@ -216,7 +215,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cubes used in unit tests"""
-        self.cube = set_up_cube()
+        self.cube = set_up_zero_cube()
         self.cube.add_aux_coord(AuxCoord(np.arange(2), 'forecast_period',
                                          units='hours'), 0)
         self.coord_name = "forecast_period"
