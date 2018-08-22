@@ -39,20 +39,22 @@ from improver.psychrometric_calculations.psychrometric_calculations \
 def calculate_wind_chill(temperature, wind_speed):
     """
     Calculates the wind chill from 10 m wind speed and temperature based on
-    the wind chill temperature index from the National Weather Service,
-    2001. While the wind chill index is often not used for wind speeds less
-    than 5 km/h, there is no upper limit for the wind speed.
+    the wind chill temperature index from a linear regression equation detailed
+    in THE NEW WIND CHILL EQUIVALENT TEMPERATURE CHART, Osczevski and
+    Bluestein, 2005, table 2.
 
     Args:
       temperature (iris.cube.Cube):
-        Cube of air temperatures (K)
+        Cube of air temperatures
 
       wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds (m/s)
+        Cube of 10m wind speeds
 
     Returns:
       wind_chill (iris.cube.Cube):
-        Cube of wind chill temperatures (K)
+        Cube of wind chill temperatures. The units of wind chill will be the
+        same as the units of the temperature cube when it is input into the
+        function.
 
     References:
     Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
@@ -62,6 +64,32 @@ def calculate_wind_chill(temperature, wind_speed):
     Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
     the New Windchill Chart at Low Wind Speeds. Journal of Applied
     Meteorology and Climatology, 47(10), pp.2737-2738.
+
+    Science background:
+    The 2005 Osczevski and Bluestein paper outlines the research and the
+    assumptions made, and the 2008 paper clarifies poorly explained sections
+    of the first paper.
+
+    A brief summary of their assumptions are given below:
+    The model aims to determine a worst-case scenario of wind chill. The wind
+    speed "threshold" of 4.8 kph (1.34 m/s) stated in the 2005 papers does not
+    refer to a threshold placed on the input windspeed data, which has no upper
+    limit, but is the walking speed of an average person. This is therfore used
+    as the minimum wind speed in their wind chill computer model, because even
+    where wind speed is zero, a person would still experience wind chill from
+    the act of walking (the model assumes that the person is walking into the
+    wind). The model introduces a compensation factor where it assumes that the
+    wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
+    takes into account the thermal resistance of the skin on the human cheek
+    with the assumption that the face is the most exposed area of skin
+    during winter.
+
+    The equation outlined in their paper is also not the equation used in their
+    model (which was computationally expensive) but rather it is a linear
+    regression equation which mimics the output of their model where wind
+    speeds are greater than 3kph (0.8m/s) (clarified in the 2008 paper). The
+    assumption being that lower wind speeds are usually not measured or
+    reported accurately anyway.
     """
     temp_units = temperature.copy().units
     wind_units = wind_speed.copy().units
@@ -74,7 +102,7 @@ def calculate_wind_chill(temperature, wind_speed):
                        + 0.3965*temperature.data*eqn_component)
     wind_chill = temperature.copy(data=wind_chill_data)
     wind_chill.rename("wind_chill")
-    wind_chill.convert_units('K')
+    wind_chill.convert_units(temp_units)
     temperature.convert_units(temp_units)
     wind_speed.convert_units(wind_units)
     return wind_chill
@@ -86,34 +114,40 @@ def calculate_apparent_temperature(temperature, wind_speed,
     Calculates the apparent temperature from 10 m wind speed, temperature
     and actual vapour pressure using the linear regression equation
     for shade described in A Universal Scale of Apparent Temperature,
-    Steadman, 1984.
+    Steadman, 1984, page 1686, table 5.
+
+    The method used to determine the original values used for the regression
+    equation takes into account many variables which are detailed in Steadman's
+    paper.
 
     The paper calculates apparent temperature for wind speeds up to 20 m/s.
     Here, the apparent temperature regression equation has been used for all
     wind speeds.
 
-    The function looks up a value for the saturation vapour pressure of
+    This function looks up a value for the saturation vapour pressure of
     water vapour using the temperature and a table of values. These tabulated
     values are found using lookup_svp and are corrected to the saturated
-    vapour pressure in air using pressure_correct_svp both from the
-    WetBulbTemperature plugin which makes use of the Goff-Gratch method.
+    vapour pressure in air using pressure_correct_svp, both functions are from
+    the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
 
     Args:
       temperature (iris.cube.Cube):
-        Cube of air temperatures (K)
+        Cube of air temperatures
 
       wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds (m/s)
+        Cube of 10m wind speeds
 
       relative_humidity (iris.cube.Cube):
-        Cube of relative humidities (fractional)
+        Cube of relative humidities
 
       pressure (iris.cube.Cube):
-        Cube of air pressure (Pa)
+        Cube of air pressure
 
     Returns:
       apparent_temperature (iris.cube.Cube):
-        Cube of apparent temperatures (K)
+        Cube of apparent temperatures. The units of apparent temperature
+        will be the same as the units of the temperature cube when it is input
+        into the function.
 
     References:
       Steadman, R. (1984). A Universal Scale of Apparent Temperature.
@@ -140,7 +174,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
     # calculate actual vapour pressure
     # and convert relative humidities to fractional values
     avp_data = svp.data*relative_humidity.data
-    avp = svp.copy(avp_data)
+    avp = svp.copy(data=avp_data)
     avp.rename("actual_vapour_pressure")
     avp.convert_units('kPa')
     # calculate apparent temperature
@@ -149,7 +183,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
         - 0.65*wind_speed.data)
     apparent_temperature = temperature.copy(data=apparent_temperature_data)
     apparent_temperature.rename("apparent_temperature")
-    apparent_temperature.convert_units('K')
+    apparent_temperature.convert_units(temp_units)
 
     # convert units back to input units
     temperature.convert_units(temp_units)
@@ -178,36 +212,30 @@ def calculate_feels_like_temperature(temperature, wind_speed,
 
     Args:
       temperature (iris.cube.Cube):
-        Cube of air temperatures (K)
+        Cube of air temperatures
 
       wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds (m/s)
+        Cube of 10m wind speeds
 
       relative_humidity (iris.cube.Cube):
-        Cube of relative humidities (fractional)
+        Cube of relative humidities
 
       pressure (iris.cube.Cube):
-        Cube of air pressure (Pa)
+        Cube of air pressure
 
     Returns:
       feels_like_temperature (iris.cube.Cube):
-        Cube of feels like temperatures (K)
-
+        Cube of feels like temperatures. The units of feels like temperature
+        will be the same as the units of the temperature cube when it is input
+        into the function.
     """
+    temp_units = temperature.units
+    # convert temperature units
+    temperature.convert_units('celsius')
+
     wind_chill = calculate_wind_chill(temperature, wind_speed)
     apparent_temperature = calculate_apparent_temperature(
         temperature, wind_speed, relative_humidity, pressure)
-
-    temp_units = temperature.units
-    apparent_temp_units = apparent_temperature.units
-    wind_chill_units = wind_chill.units
-
-    # convert temperature units
-    temperature.convert_units('celsius')
-    # convert wind chill units
-    wind_chill.convert_units('celsius')
-    # convert apparent temperature units
-    apparent_temperature.convert_units('celsius')
 
     t_data = temperature.data
     feels_like_temperature_data = np.zeros(t_data.shape)
@@ -231,10 +259,7 @@ def calculate_feels_like_temperature(temperature, wind_speed,
 
     feels_like_temperature = temperature.copy(data=feels_like_temperature_data)
     feels_like_temperature.rename("feels_like_temperature")
-    feels_like_temperature.convert_units('K')
-
+    feels_like_temperature.convert_units(temp_units)
     temperature.convert_units(temp_units)
-    apparent_temperature.convert_units(apparent_temp_units)
-    wind_chill.convert_units(wind_chill_units)
 
     return feels_like_temperature

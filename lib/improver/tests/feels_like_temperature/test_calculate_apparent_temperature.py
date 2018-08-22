@@ -99,8 +99,10 @@ class Test_calculate_apparent_temperature(IrisTest):
         self.relative_humidity_cube.convert_units('%')
         self.pressure_cube.convert_units('hPa')
 
-        expected_result = np.array(
+        data = np.array(
             [[291.76999999999998, 299.30183324000001, 308.02746487999997]])
+        # convert to fahrenheit
+        expected_result = data * (9.0/5.0) - 459.67
         result = calculate_apparent_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)

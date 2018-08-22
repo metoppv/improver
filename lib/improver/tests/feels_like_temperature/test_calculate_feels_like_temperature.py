@@ -140,10 +140,12 @@ class Test_calculate_feels_like_temperature(IrisTest):
         self.relative_humidity_cube.convert_units('%')
         self.pressure_cube.convert_units('hPa')
 
-        expected_result = np.array(
+        data = np.array(
             [[[257.05949999999996, 220.76791360990785, 231.12778815651939],
               [244.45492051555226, 259.30003784711084, 275.1347693144458],
               [264.70048734, 274.29471727999999, 286.60422231999996]]])
+        # convert to fahrenheit
+        expected_result = data * (9.0/5.0) - 459.67
         result = calculate_feels_like_temperature(
             self.temperature_cube[0], self.wind_speed_cube[0],
             self.relative_humidity_cube[0], self.pressure_cube[0])

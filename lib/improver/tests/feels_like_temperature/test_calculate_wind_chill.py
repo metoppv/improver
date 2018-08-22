@@ -76,8 +76,10 @@ class Test_calculate_wind_chill(IrisTest):
         self.temperature_cube.convert_units('fahrenheit')
         self.wind_speed_cube.convert_units('knots')
 
-        expected_result = np.array(
+        data = np.array(
             [[257.05949999999996, 220.76791360990788, 231.12778815651941]])
+        # convert to fahrenheit
+        expected_result = data * (9.0/5.0) - 459.67
         result = calculate_wind_chill(
             self.temperature_cube, self.wind_speed_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
