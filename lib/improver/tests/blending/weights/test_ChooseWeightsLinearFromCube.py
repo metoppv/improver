@@ -34,7 +34,6 @@
 import unittest
 
 import iris
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
 
@@ -68,7 +67,7 @@ class Test__repr__(IrisTest):
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
-                weighting_coord_name, config_coord_name)
+            weighting_coord_name, config_coord_name)
         result = str(plugin)
         expected = ("<ChooseWeightsLinearFromCube "
                     "weighting_coord_name = forecast_period, "
@@ -154,12 +153,6 @@ class Test__create_coord_and_dims_list(IrisTest):
         dimension coordinates are checked."""
         cube = set_up_basic_model_config_cube()
         weights_cube = set_up_basic_weights_cube()
-        weights = np.array([[[[0., 0.],
-                              [0., 0.]],
-                             [[0., 0.],
-                              [0., 0.]],
-                             [[0.2, 0.2],
-                              [0.2, 0.2]]]])
 
         expected_coord_list = [(weights_cube.coord("realization"), 0),
                                (cube.coord("time"), 1),
@@ -179,12 +172,6 @@ class Test__create_coord_and_dims_list(IrisTest):
         dimension coordinates are checked."""
         cube = set_up_basic_model_config_cube()
         weights_cube = set_up_basic_weights_cube()
-        weights = np.array([[[[0., 0.],
-                              [0., 0.]],
-                             [[0., 0.],
-                              [0., 0.]],
-                             [[0.2, 0.2],
-                              [0.2, 0.2]]]])
 
         expected_coord_list = [
             (weights_cube.coord("forecast_reference_time"), None),
@@ -492,8 +479,8 @@ class Test_process(IrisTest):
         weights_cube_uk_det = add_height(weights_cube_uk_det, heights)
         weights_cube_uk_det.data[0] = np.ones([1, 2, 2])
         for cube_slice in weights_cube_uk_det.slices_over("realization"):
+            weights_cube_uk_det = cube_slice
             break
-        weights_cube_uk_det = cube_slice
 
         weights_cube_uk_ens = (
             set_up_weights_cube(data=data, timesteps=1, realizations=[1]))
@@ -501,8 +488,8 @@ class Test_process(IrisTest):
         weights_cube_uk_ens = add_height(weights_cube_uk_ens, heights)
         weights_cube_uk_ens.data[1] = np.ones([1, 2, 2])
         for cube_slice in weights_cube_uk_ens.slices_over("realization"):
+            weights_cube_uk_ens = cube_slice
             break
-        weights_cube_uk_ens = cube_slice
 
         weights_cubes = (
             iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens]))

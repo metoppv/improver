@@ -278,12 +278,12 @@ def add_height(cube, heights):
 def add_realizations(cube, num):
     """Create num realizations of input cube.
         Args:
-            cube : iris.cube.Cube
+            cube (iris.cube.Cube):
                    input cube.
-            num : integer
+            num (integer):
                    Number of realizations.
         Returns:
-            cubeout : iris.cube.Cube
+            cubeout (iris.cube.Cube):
                       copy of cube with num realizations added.
     """
     cubelist = iris.cube.CubeList()

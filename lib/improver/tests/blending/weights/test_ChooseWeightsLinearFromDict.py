@@ -34,14 +34,12 @@
 import unittest
 
 import iris
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.blending.weights import ChooseWeightsLinearFromDict
 from improver.tests.blending.weights.helper_functions import (
     set_up_temperature_cube, set_up_basic_model_config_cube,
-    set_up_weights_cube, set_up_basic_weights_cube,
     add_model_id_and_model_configuration, add_height)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
@@ -123,7 +121,7 @@ class Test__check_config_dict(IrisTest):
 
         msg = ('These items in the configuration dictionary')
         with self.assertRaisesRegex(ValueError, msg):
-            result = plugin._check_config_dict()
+            plugin._check_config_dict()
 
     def test_dictionary_key_match(self):
         """Test whether that the dictionary keys match in length as
@@ -263,11 +261,6 @@ class Test__interpolate_to_create_weights(IrisTest):
         required for the interpolation output is below the range specified
         within the inputs."""
         cube = set_up_basic_model_config_cube()
-        weights_cube = set_up_basic_weights_cube()
-
-        config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                  "weights": [0, 1, 1, 0],
-                                  "units": "hours"}}
 
         expected_weights = np.array([[[[0., 0.],
                                        [0., 0.]],
@@ -295,7 +288,6 @@ class Test__interpolate_to_create_weights(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=[402299.0, 402300.0, 402301.0],
             fp_point=[11., 12., 13.])
-        weights_cube = set_up_basic_weights_cube()
 
         expected_weights = np.array([[[[0.8, 0.8],
                                        [0.8, 0.8]],
@@ -323,7 +315,6 @@ class Test__interpolate_to_create_weights(IrisTest):
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=[402294.0, 402295.0, 402296.0],
             fp_point=[53., 54., 55.])
-        weights_cube = set_up_basic_weights_cube()
 
         expected_weights = np.array([[[[0.166667, 0.166667],
                                        [0.166667, 0.166667]],

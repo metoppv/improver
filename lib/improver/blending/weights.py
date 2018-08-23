@@ -254,7 +254,7 @@ class WeightsUtilities(object):
             fill_value=None):
         """Use of scipy.interpolate.interp1d to interpolate. This allows
         the specification of an axis for the interpolation, so that the
-        associated_data can be multi-dimensional numpy array.
+        associated_data can be a multi-dimensional numpy array.
 
         Args:
             source_points (np.ndarray):
@@ -269,8 +269,7 @@ class WeightsUtilities(object):
 
         Keyword Args:
             axis (int):
-                Axis of self.weighting_coord_name within the input cube.
-                This will be used to define the axis of interpolation.
+                Axis along which the interpolation will occur.
             fill_value (tuple):
                 Values that be used if extrapolation is required. The
                 fill values will be used as constants that are extrapolated
@@ -284,10 +283,9 @@ class WeightsUtilities(object):
                 data.
 
         """
+        bounds_error = True
         if fill_value:
             bounds_error = False
-        else:
-            bounds_error = True
 
         f_out = interp1d(source_points, associated_data, axis=axis,
                          fill_value=fill_value, bounds_error=bounds_error)
@@ -296,8 +294,7 @@ class WeightsUtilities(object):
 
 
 class ChooseWeightsLinearFromDict(object):
-    """
-    Plugin for calculate linear weights, where the input is specified using
+    """Plugin for calculate linear weights, where the input is specified using
     a configuration dictionary.
     """
 
@@ -333,18 +330,18 @@ class ChooseWeightsLinearFromDict(object):
 
         Dictionary of format:
         ::
-        {
-            "uk_det": {
-                "forecast_period": [7, 12],
-                "weights": [1, 0],
-                "units": "hours"
+            {
+                "uk_det": {
+                    "forecast_period": [7, 12],
+                    "weights": [1, 0],
+                    "units": "hours"
+                }
+                "uk_ens": {
+                    "forecast_period": [7, 12, 48, 54]
+                    "weights": [0, 1, 1, 0]
+                    "units": "hours"
+                }
             }
-            "uk_ens": {
-                "forecast_period": [7, 12, 48, 54]
-                "weights": [0, 1, 1, 0]
-                "units": "hours"
-            }
-        }
 
         """
         self.config_dict = config_dict
@@ -357,8 +354,8 @@ class ChooseWeightsLinearFromDict(object):
         msg = ("<ChooseWeightsLinearFromDict config_dict = {}, "
                "weighting_coord_name = {}, config_coord_name = {}, "
                "weights_coord_name = {}>".format(
-                  str(self.config_dict), self.weighting_coord_name,
-                  self.config_coord_name, self.weights_coord_name))
+                   str(self.config_dict), self.weighting_coord_name,
+                   self.config_coord_name, self.weights_coord_name))
         return msg
 
     def _check_config_dict(self):
@@ -472,10 +469,10 @@ class ChooseWeightsLinearFromDict(object):
                 otherwise matches the input cube.
         """
         source_points, target_points, associated_data, fill_value = (
-           self._arrange_interpolation_inputs(cube))
+            self._arrange_interpolation_inputs(cube))
         weights = WeightsUtilities.interpolate_to_find_weights(
-                source_points, target_points, associated_data,
-                fill_value=fill_value)
+            source_points, target_points, associated_data,
+            fill_value=fill_value)
         new_weights_cube = self._create_new_weights_cube(cube, weights)
         return new_weights_cube
 
@@ -546,7 +543,7 @@ class ChooseWeightsLinearFromCube(object):
         """Represent the configured plugin instance as a string."""
         msg = ("<ChooseWeightsLinearFromCube weighting_coord_name = {}, "
                "config_coord_name = {}>".format(
-                  self.weighting_coord_name, self.config_coord_name))
+                   self.weighting_coord_name, self.config_coord_name))
         return msg
 
     def _check_weight_cubes(self, cube, weights_cubes):
@@ -635,8 +632,9 @@ class ChooseWeightsLinearFromCube(object):
         fill_value = (lower_fill_value, upper_fill_value)
         return source_points, target_points, associated_data, axis, fill_value
 
+    @staticmethod
     def _create_coord_and_dims_list(
-            self, base_cube, cube_with_exception_coord, coord_list,
+            base_cube, cube_with_exception_coord, coord_list,
             exception_coord_name):
         """Create a list of coordinates and their dimensions, primarily
         for usage when constructing an iris.cube.Cube.
@@ -701,12 +699,14 @@ class ChooseWeightsLinearFromCube(object):
                 Cube containing the output from the interpolation. The
                 metadata is updated using the weights_cube metadata.
         """
-        dim_coords_and_dims = self._create_coord_and_dims_list(
-            weights_cube, cube, weights_cube.dim_coords,
-            self.weighting_coord_name)
-        aux_coords_and_dims = self._create_coord_and_dims_list(
-            weights_cube, cube, weights_cube.aux_coords,
-            self.weighting_coord_name)
+        dim_coords_and_dims = (
+            ChooseWeightsLinearFromCube._create_coord_and_dims_list(
+                weights_cube, cube, weights_cube.dim_coords,
+                self.weighting_coord_name))
+        aux_coords_and_dims = (
+            ChooseWeightsLinearFromCube._create_coord_and_dims_list(
+                weights_cube, cube, weights_cube.aux_coords,
+                self.weighting_coord_name))
 
         new_weights_cube = iris.cube.Cube(
             weights, standard_name=weights_cube.standard_name,
