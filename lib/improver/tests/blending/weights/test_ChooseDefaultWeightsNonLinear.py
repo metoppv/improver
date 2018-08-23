@@ -38,8 +38,8 @@ import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsNonLinear \
     as NonLinearWeights
-from improver.tests.blending.weights.test_WeightsUtilities import (
-    set_up_zero_cube, add_realizations)
+from improver.tests.blending.weights.helper_functions import (
+    set_up_zero_cube, set_up_cube_with_scalar_coord, add_realizations)
 
 
 class Test_nonlinear_weights(IrisTest):
@@ -122,9 +122,10 @@ class Test_process(IrisTest):
 
     def test_works_if_scalar_coord(self):
         """Test it works if scalar coordinate. """
-        coord = self.cube.coord("scalar_coord")
+        cube = set_up_cube_with_scalar_coord()
+        coord = cube.coord("scalar_coord")
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(cube, coord)
         self.assertArrayAlmostEqual(result, np.array([1.0]))
 
     def test_works_with_default_cval(self):

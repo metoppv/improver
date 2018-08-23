@@ -47,8 +47,8 @@ def set_up_zero_cube():
        The cube has latitude, longitude and time dimensions
 
     Returns:
-        cube : iris.cube.Cube
-                dummy cube for testing
+        cube (iris.cube.Cube):
+            dummy cube for testing
 
     """
     data = np.zeros((2, 2, 2))
@@ -69,9 +69,29 @@ def set_up_zero_cube():
     return orig_cube
 
 
+def set_up_cube_with_scalar_coord():
+    """A helper function with a dummy scalar coordinate for testing.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube with dummy scalar coordinate.
+    """
+    cube = set_up_zero_cube()
+    dummy_scalar_coord = (
+        iris.coords.AuxCoord(1, long_name='scalar_coord', units='no_unit'))
+    cube.add_aux_coord(dummy_scalar_coord)
+    return cube
+
+
 def set_up_precipitation_cube():
-    """Set up a precipitation cube."""
-    cube = set_up_cube()
+    """Set up a precipitation cube.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Precipitation cube with some pre-specified values in the cube data
+            for testing.
+    """
+    cube = set_up_zero_cube()
     data = np.zeros((2, 2, 2))
     data[0][:][:] = 1.0
     data[1][:][:] = 2.0
@@ -80,8 +100,17 @@ def set_up_precipitation_cube():
 
 
 def cubes_for_tests():
-    """Set up cubes for unit tests."""
-    cube = set_up_weights_cube()
+    """Set up cubes for unit tests.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube for testing.
+        central_cube (iris.cube.Cube):
+            Cube containing a single forecast period.
+        forecast_period (int):
+            A forecast period.
+    """
+    cube = set_up_precipitation_cube()
     forecast_period = 0
     constr = iris.Constraint(forecast_period=forecast_period)
     central_cube = cube.extract(constr)
@@ -89,7 +118,17 @@ def cubes_for_tests():
 
 
 def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
-    """Create a cube with metadata and values suitable for air temperature."""
+    """Create a cube with metadata and values suitable for air temperature.
+
+     Keyword Args:
+         data (np.ndarray):
+             Data to use for creating the temperature cube.
+         timesteps (int):
+             Number of timesteps to create in cube.
+         realizations (np.array):
+             Values to be used as realizations.
+
+    """
     if realizations is None:
         realizations = [0]
     if data is None:
@@ -104,6 +143,12 @@ def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
 
 
 def set_up_basic_model_config_cube():
+    """Set up cube with model configuration dimension.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube with model configuration dimension.
+    """
     cube = add_model_id_and_model_configuration(
         set_up_temperature_cube(timesteps=3), model_ids=[1000],
         model_configurations=["uk_det"])
@@ -114,6 +159,17 @@ def set_up_basic_model_config_cube():
 
 
 def set_up_weights_cube(data=None, timesteps=3, realizations=None):
+    """Create a cube with metadata and values suitable for weights.
+
+     Keyword Args:
+         data (np.ndarray):
+             Data to use for creating the weights cube.
+         timesteps (int):
+             Number of timesteps to create in cube.
+         realizations (np.array):
+             Values to be used as realizations.
+
+    """
     if realizations is None:
         realizations = [0]
     if data is None:
@@ -126,23 +182,58 @@ def set_up_weights_cube(data=None, timesteps=3, realizations=None):
 
 def set_up_basic_weights_cube(
         model_ids=[1000], model_configurations=["uk_det"],
-        promote_to_new_axis=False, concatenate=True):
+        promote_to_new_axis=False):
+    """Create a weights cube with additional coordinates (forecast period,
+    forecast_reference_time, model_id, model_configuration).
+
+    Keyword Args:
+        model_ids (list):
+            List of model ids.
+        model_configurations (list):
+            List of model configurations.
+        promote_to_new_axis (bool):
+            Specify whether the model_id coordinate should be promoted to
+            be a dimension coordinate.
+
+    Returns:
+        weights_cube (iris.cube.Cube):
+            Cube containing weights.
+    """
     weights_cube = set_up_weights_cube(timesteps=4)
     weights_cube = add_forecast_reference_time_and_forecast_period(
         weights_cube, time_point=[402295.0, 402300.0, 402336.0, 402342.0],
         fp_point=[7., 12., 48., 54.])
-    weights_cube.data[:,1:3] = np.ones([1, 2, 2, 2])
+    weights_cube.data[:, 1:3] = np.ones([1, 2, 2, 2])
     weights_cube = add_model_id_and_model_configuration(
         weights_cube, model_ids=model_ids,
         model_configurations=model_configurations,
-        promote_to_new_axis=promote_to_new_axis, concatenate=concatenate)
+        promote_to_new_axis=promote_to_new_axis)
     return weights_cube
 
 
 def add_model_id_and_model_configuration(
         cube, model_ids=[1000, 2000],
-        model_configurations=["uk_det", "uk_ens"], promote_to_new_axis=False,
-        concatenate=True):
+        model_configurations=["uk_det", "uk_ens"], promote_to_new_axis=False):
+    """Add model id and model configuration coordinates to an input cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to which the model id and model configuration coordinate
+            will be added.
+
+    Keyword Args:
+        model_ids (list):
+            List of the model ids to add to the input cube.
+        model_configurations (list):
+            List of the model configurations to add to the input cube.
+        promote_to_new_axis (bool):
+            Specify whether the model_id coordinate should be promoted to
+            be a dimension coordinate.
+
+    Returns:
+        cubelist.concatenate_cube():
+            Cube with a model id and model configuration coordinate added.
+    """
     cubelist = iris.cube.CubeList([])
     for model_id, model_configuration in zip(model_ids, model_configurations):
         cube_copy = cube.copy()
@@ -158,18 +249,49 @@ def add_model_id_and_model_configuration(
         else:
             cube_copy.add_aux_coord(model_config_coord)
         cubelist.append(cube_copy)
-    if concatenate:
-        result = cubelist.concatenate_cube()
-    else:
-        result = cubelist
-    return result
+    return cubelist.concatenate_cube()
 
 
 def add_height(cube, heights):
+    """Add a heights coordinate to the input cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to which a height coordinate will be added.
+        heights (list or np.ndarray):
+            List of heights.
+
+    Returns:
+        cubelist.merge_cube():
+            Cube with a height coordinate added.
+    """
     cubelist = iris.cube.CubeList([])
     for height in heights:
         cube_copy = cube.copy()
-        height_coord = iris.coords.AuxCoord(height, long_name='height')
+        height_coord = iris.coords.AuxCoord(
+            height, long_name='height', units="m")
         cube_copy.add_aux_coord(height_coord)
         cubelist.append(cube_copy)
     return cubelist.merge_cube()
+
+
+def add_realizations(cube, num):
+    """Create num realizations of input cube.
+        Args:
+            cube : iris.cube.Cube
+                   input cube.
+            num : integer
+                   Number of realizations.
+        Returns:
+            cubeout : iris.cube.Cube
+                      copy of cube with num realizations added.
+    """
+    cubelist = iris.cube.CubeList()
+    for i in range(0, num):
+        newcube = cube.copy()
+        new_ensemble_coord = iris.coords.AuxCoord(i,
+                                                  standard_name='realization')
+        newcube.add_aux_coord(new_ensemble_coord)
+        cubelist.append(newcube)
+    cubeout = cubelist.merge_cube()
+    return cubeout

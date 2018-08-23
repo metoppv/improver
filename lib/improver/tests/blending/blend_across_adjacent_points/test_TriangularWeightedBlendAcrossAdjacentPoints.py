@@ -45,7 +45,7 @@ import numpy as np
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
-from improver.tests.weights.helper_functions import cubes_for_tests
+from improver.tests.blending.weights.helper_functions import cubes_for_tests
 from improver.utilities.warnings_handler import ManageWarnings
 
 

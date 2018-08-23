@@ -50,45 +50,53 @@ from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
 class Test__init__(IrisTest):
     """Test the __init__ method."""
 
-    def test_without_config_dict(self):
-        """Test the class is initialised correctly, if the config_dict
-           argument is supplied."""
+    def test_basic(self):
+        """Test the class is initialised correctly."""
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
         self.assertEqual(weighting_coord_name, plugin.weighting_coord_name)
         self.assertEqual(config_coord_name, plugin.config_coord_name)
-        self.assertEqual(None, plugin.config_dict)
 
 
 class Test__repr__(IrisTest):
     """Test the __repr__ method."""
 
     def test_basic(self):
-        pass
+        """Test the repr function formats the arguments correctly"""
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+        plugin = ChooseWeightsLinearFromCube(
+                weighting_coord_name, config_coord_name)
+        result = str(plugin)
+        expected = ("<ChooseWeightsLinearFromCube "
+                    "weighting_coord_name = forecast_period, "
+                    "config_coord_name = model_configuration>")
+        self.assertEqual(result, expected)
 
 
 class Test__check_weight_cubes(IrisTest):
     """Test the _check_weight_cubes method."""
 
     def test_exception_not_raised(self):
-        """"""
+        """An exception is not raised when the length of the weights_cubes
+        cubelist is the same as the number of points along the
+        config_coord_name dimension within the input cube."""
         cube = set_up_basic_model_config_cube()
         weights_cubes = iris.cube.CubeList([set_up_basic_weights_cube()])
-        print()
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
-        self.assertIsNone(
-            plugin._check_weight_cubes(cube, weights_cubes))
+        self.assertIsNone(plugin._check_weight_cubes(cube, weights_cubes))
 
     def test_exception_raised(self):
-        """"""
+        """An exception is raised when the length of the weights_cubes
+        cubelist is different to the number of points along the
+        config_coord_name dimension within the input cube."""
         cube = set_up_basic_model_config_cube()
         weights_cubes = iris.cube.CubeList([])
-        print()
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
@@ -99,10 +107,11 @@ class Test__check_weight_cubes(IrisTest):
 
 
 class Test__arrange_interpolation_inputs(IrisTest):
-    """Test the linear weights function. """
+    """Test the _arrange_interpolation_inputs function. """
 
     def test_basic(self):
-        """Test that the function returns an array of weights. """
+        """Test that the values for the source_points, target_points,
+        associated_data, axis and fill_value are as expected."""
         expected_source_points = [7, 12, 48, 54]
         expected_target_points = [6., 7., 8.]
         expected_associated_data = np.array([[[[0., 0.],
@@ -114,10 +123,10 @@ class Test__arrange_interpolation_inputs(IrisTest):
                                               [[0., 0.],
                                                [0., 0.]]]])
         expected_axis = 1
-        expected_fill_value = (np.array([[[ 0.,  0.],
-                                          [ 0.,  0.]]]),
-                               np.array([[[ 0.,  0.],
-                                          [ 0.,  0.]]]))
+        expected_fill_value = (np.array([[[0., 0.],
+                                          [0., 0.]]]),
+                               np.array([[[0., 0.],
+                                          [0., 0.]]]))
 
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
@@ -129,7 +138,6 @@ class Test__arrange_interpolation_inputs(IrisTest):
             weighting_coord_name, config_coord_name)
         source_points, target_points, associated_data, axis, fill_value = (
             plugin._arrange_interpolation_inputs(cube, weights_cube))
-        print("fill_value = ", repr(fill_value))
         self.assertArrayAlmostEqual(source_points, expected_source_points)
         self.assertArrayAlmostEqual(target_points, expected_target_points)
         self.assertArrayAlmostEqual(associated_data, expected_associated_data)
@@ -138,83 +146,67 @@ class Test__arrange_interpolation_inputs(IrisTest):
         self.assertArrayAlmostEqual(fill_value[1], expected_fill_value[1])
 
 
-class Test_interpolate_to_find_weights(IrisTest):
-    """Test the linear weights function. """
+class Test__create_coord_and_dims_list(IrisTest):
+    """Test the _create_coord_and_dims_list method."""
 
-    def test_1d_array(self):
-        """Test that the function returns an array of weights. """
-        expected_weights = (
-            np.array([0., 0.5, 1., 1., 1., 0.5, 0.]))
-        source_points = np.array([0, 2, 4, 6])
-        target_points = np.arange(0, 7)
-        associated_data = np.array([0, 1, 1, 0])
-        axis = 0
+    def test_dim_coords(self):
+        """Test that the expected list of coordinates is returned when the
+        dimension coordinates are checked."""
+        cube = set_up_basic_model_config_cube()
+        weights_cube = set_up_basic_weights_cube()
+        weights = np.array([[[[0., 0.],
+                              [0., 0.]],
+                             [[0., 0.],
+                              [0., 0.]],
+                             [[0.2, 0.2],
+                              [0.2, 0.2]]]])
+
+        expected_coord_list = [(weights_cube.coord("realization"), 0),
+                               (cube.coord("time"), 1),
+                               (weights_cube.coord("latitude"), 2),
+                               (weights_cube.coord("longitude"), 3)]
+
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
-        weights = plugin.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        new_coord_list = plugin._create_coord_and_dims_list(
+            weights_cube, cube, weights_cube.dim_coords, weighting_coord_name)
+        self.assertEqual(new_coord_list, expected_coord_list)
 
-    def test_2d_array_same_weights(self):
-        """Test that the function returns an array of weights. """
-        expected_weights = (
-            np.array([[0., 0.5, 1., 1., 1., 0.5, 0.],
-                      [0., 0.5, 1., 1., 1., 0.5, 0.]]))
-        source_points = np.array([0, 2, 4, 6])
-        target_points = np.arange(0, 7)
-        associated_data = np.array([[0, 1, 1, 0], [0, 1, 1, 0]])
-        axis = 1
+    def test_aux_coords(self):
+        """Test that the expected list of coordinates is returned when the
+        dimension coordinates are checked."""
+        cube = set_up_basic_model_config_cube()
+        weights_cube = set_up_basic_weights_cube()
+        weights = np.array([[[[0., 0.],
+                              [0., 0.]],
+                             [[0., 0.],
+                              [0., 0.]],
+                             [[0.2, 0.2],
+                              [0.2, 0.2]]]])
+
+        expected_coord_list = [
+            (weights_cube.coord("forecast_reference_time"), None),
+            (weights_cube.coord("model_configuration"), None),
+            (weights_cube.coord("model_id"), None),
+            (cube.coord("forecast_period"), 1)]
+
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
-        weights = plugin.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
-        self.assertArrayAlmostEqual(weights, expected_weights)
-
-    def test_2d_array_different_weights(self):
-        """Test that the function returns an array of weights. """
-        expected_weights = (
-            np.array([[1., 1., 1., 0.5, 0., 0., 0.],
-                      [0., 0., 0., 0.5, 1., 0.5, 0.]]))
-        source_points = np.array([0, 2, 4, 6])
-        target_points = np.arange(0, 7)
-        associated_data = np.array([[1, 1, 0, 0], [0, 0, 1, 0]])
-        axis = 1
-        weighting_coord_name = "forecast_period"
-        config_coord_name = "model_configuration"
-        plugin = ChooseWeightsLinearFromCube(
-            weighting_coord_name, config_coord_name)
-        weights = plugin.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
-        self.assertArrayAlmostEqual(weights, expected_weights)
-
-    def test_3d_array(self):
-        """Test that the function returns an array of weights. """
-        expected_weights = (
-            np.array([[[1., 1., 1., 0.5, 0., 0., 0.],
-                       [0., 0., 0., 0.5, 1., 0.5, 0.],
-                       [1., 0.5, 0., 0.5, 1., 0.5, 0.]]]))
-        source_points = np.array([0, 2, 4, 6])
-        target_points = np.arange(0, 7)
-        associated_data = np.array([[[1, 1, 0, 0], [0, 0, 1, 0], [1, 0, 1, 0]]])
-        axis = 2
-        weighting_coord_name = "forecast_period"
-        config_coord_name = "model_configuration"
-        plugin = ChooseWeightsLinearFromCube(
-            weighting_coord_name, config_coord_name)
-        weights = plugin.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis)
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        new_coord_list = plugin._create_coord_and_dims_list(
+            weights_cube, cube, weights_cube.aux_coords, weighting_coord_name)
+        self.assertEqual(new_coord_list, expected_coord_list)
 
 
 class Test__create_new_weights_cube(IrisTest):
-    """Test the linear weights function. """
+    """Test the _create_new_weights_cube function. """
 
     def test_with_weights_cube(self):
-        """Test that the function returns an array of weights. """
+        """Test that the the expected cube containg the new weights is
+        returned."""
         cube = set_up_basic_model_config_cube()
         weights_cube = set_up_basic_weights_cube()
         weights = np.array([[[[0., 0.],
@@ -236,16 +228,18 @@ class Test__create_new_weights_cube(IrisTest):
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
         new_weights_cube = plugin._create_new_weights_cube(
-            cube, weights, weights_cube=weights_cube)
+            cube, weights, weights_cube)
         self.assertArrayAlmostEqual(expected_weights, new_weights_cube.data)
         self.assertEqual(weights_cube.metadata, new_weights_cube.metadata)
 
 
 class Test__interpolate_to_create_weights(IrisTest):
-    """Test the linear weights function. """
+    """Test the _interpolate_to_create_weights function. """
 
     def test_below_range(self):
-        """Test that the function returns an array of weights. """
+        """Test that interpolation works as intended when the forecast period
+        required for the interpolation output is below the range specified
+        within the inputs."""
         cube = set_up_basic_model_config_cube()
         weights_cube = set_up_basic_weights_cube()
 
@@ -268,6 +262,9 @@ class Test__interpolate_to_create_weights(IrisTest):
                                weights_cube.metadata)
 
     def test_within_range(self):
+        """Test that interpolation works as intended when the forecast period
+        required for the interpolation output is within the range specified
+        within the inputs."""
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"])
@@ -295,6 +292,9 @@ class Test__interpolate_to_create_weights(IrisTest):
                                weights_cube.metadata)
 
     def test_above_range(self):
+        """Test that interpolation works as intended when the forecast period
+        required for the interpolation output is above the range specified
+        within the inputs."""
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"])
@@ -321,8 +321,9 @@ class Test__interpolate_to_create_weights(IrisTest):
         self.assertAlmostEqual(new_weights_cube.metadata,
                                weights_cube.metadata)
 
-
     def test_spatial_varying_weights(self):
+        """Test that interpolation works as intended when the weights vary
+        spatially."""
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"])
@@ -363,9 +364,13 @@ class Test__interpolate_to_create_weights(IrisTest):
 
 
 class Test_process(IrisTest):
-    """Test the Default Linear Weights plugin. """
+    """Test the process method."""
 
-    def test_forecast_period_and_model_configuration_with_cube(self):
+    def test_forecast_period_and_model_configuration(self):
+        """Test when forecast_period is the weighting_coord_name and
+        model_configuration is the config_coord_name. This demonstrates
+        blending in one model and blending out another model with forecast
+        period."""
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
 
@@ -379,7 +384,7 @@ class Test_process(IrisTest):
         weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
             weights_cube_uk_det, time_point=[402295.0, 402300.0],
             fp_point=[7., 12.])
-        weights_cube_uk_det.data[:,0] = np.ones([1, 2, 2])
+        weights_cube_uk_det.data[:, 0] = np.ones([1, 2, 2])
         weights_cube_uk_det = add_model_id_and_model_configuration(
             weights_cube_uk_det, model_ids=[1000],
             model_configurations=["uk_det"])
@@ -389,7 +394,7 @@ class Test_process(IrisTest):
             weights_cube_uk_ens,
             time_point=[402295.0, 402300.0, 402336.0, 402342.0],
             fp_point=[7., 12., 48., 54.])
-        weights_cube_uk_ens.data[:,1:3] = np.ones([1, 2, 2, 2])
+        weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
         weights_cube_uk_ens = add_model_id_and_model_configuration(
             weights_cube_uk_ens, model_ids=[2000],
             model_configurations=["uk_ens"])
@@ -419,6 +424,9 @@ class Test_process(IrisTest):
                                weights_cubes[0].metadata)
 
     def test_height_and_model_configuration(self):
+        """Test when height is the weighting_coord_name and
+        model_configuration is the config_coord_name. This demonstrates
+        blending in one model and blending out another model with height."""
         weighting_coord_name = "height"
         config_coord_name = "model_configuration"
 
@@ -465,6 +473,9 @@ class Test_process(IrisTest):
                                weights_cubes[0].metadata)
 
     def test_height_and_realization(self):
+        """Test when height is the weighting_coord_name and realization is the
+        config_coord_name. This demonstrates blending in one model and
+        blending out another model with height."""
         weighting_coord_name = "height"
         config_coord_name = "realization"
 
