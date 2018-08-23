@@ -183,7 +183,7 @@ class Utilities(object):
                 Cube containing the saturation vapour pressure of a pure
                 water vapour system. A correction must be applied to the data
                 when used to convert this to the SVP in air; see the
-                WetBulbTemperature._pressure_correct_svp function.
+                WetBulbTemperature.pressure_correct_svp function.
 
         References:
             Numerical data and functional relationships in science and
@@ -291,7 +291,7 @@ class WetBulbTemperature(object):
             warnings.warn(emsg.format(low, high, cube.data.min(),
                                       cube.data.max()))
 
-    def _lookup_svp(self, temperature):
+    def lookup_svp(self, temperature):
         """
         Looks up a value for the saturation vapour pressure of water vapour
         using the temperature and a table of values. These tabulated values
@@ -326,7 +326,7 @@ class WetBulbTemperature(object):
         return svp
 
     @staticmethod
-    def _pressure_correct_svp(svp, temperature, pressure):
+    def pressure_correct_svp(svp, temperature, pressure):
         """
         Convert saturated vapour pressure in a pure water vapour system into
         the saturated vapour pressure in air.
@@ -377,8 +377,8 @@ class WetBulbTemperature(object):
         References:
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
-        svp = self._lookup_svp(temperature)
-        svp = self._pressure_correct_svp(svp, temperature, pressure)
+        svp = self.lookup_svp(temperature)
+        svp = self.pressure_correct_svp(svp, temperature, pressure)
 
         # Calculation
         result_numer = (cc.EARTH_REPSILON * svp.data)

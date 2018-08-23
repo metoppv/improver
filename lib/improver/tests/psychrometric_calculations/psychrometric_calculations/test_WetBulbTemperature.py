@@ -104,7 +104,7 @@ class Test_check_range(Test_WetBulbTemperature):
         assert "Wet bulb temperatures are" in str(warning_list[0])
 
 
-class Test__lookup_svp(Test_WetBulbTemperature):
+class Test_lookup_svp(Test_WetBulbTemperature):
 
     """Test the lookup of saturated vapour pressures."""
 
@@ -112,7 +112,7 @@ class Test__lookup_svp(Test_WetBulbTemperature):
         """Basic extraction of some SVP values from the lookup table."""
         self.temperature.data[1] = 260.5683203
         expected = [9.664590e-03, 206., 2.501530e+04]
-        result = WetBulbTemperature()._lookup_svp(self.temperature)
+        result = WetBulbTemperature().lookup_svp(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
 
@@ -123,7 +123,7 @@ class Test__lookup_svp(Test_WetBulbTemperature):
         self.temperature.data[1] = 150.
         self.temperature.data[2] = 400.
         expected = [9.664590e-03, 9.664590e-03, 2.501530e+04]
-        result = WetBulbTemperature()._lookup_svp(self.temperature)
+        result = WetBulbTemperature().lookup_svp(self.temperature)
         assert len(warning_list) == 1
         assert issubclass(warning_list[0].category, UserWarning)
         assert "Wet bulb temperatures are" in str(warning_list[0])
@@ -131,7 +131,7 @@ class Test__lookup_svp(Test_WetBulbTemperature):
         self.assertEqual(result.units, Unit('Pa'))
 
 
-class Test__pressure_correct_svp(Test_WetBulbTemperature):
+class Test_pressure_correct_svp(Test_WetBulbTemperature):
 
     """Test the conversion of saturated vapour pressures in a pure water
     vapour system into SVPs in air."""
@@ -141,7 +141,7 @@ class Test__pressure_correct_svp(Test_WetBulbTemperature):
         air."""
         svp = self.pressure.copy(data=[197.41815, 474.1368, 999.5001])
         expected = [199.265984, 476.293085, 1006.390954]
-        result = WetBulbTemperature()._pressure_correct_svp(
+        result = WetBulbTemperature().pressure_correct_svp(
             svp, self.temperature, self.pressure)
 
         self.assertArrayAlmostEqual(result.data, expected)
