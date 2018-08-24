@@ -783,9 +783,12 @@ class ChooseWeightsLinearFromCube(object):
 
         self._check_weight_cubes(cube, weights_cubes)
         cube_slices = iris.cube.CubeList([])
-        zipped_cubes = zip(cube.slices_over(self.config_coord_name),
-                           weights_cubes)
-        for cube_slice, weights_cube_slice in zipped_cubes:
+        for cube_slice in cube.slices_over(self.config_coord_name):
+            coord_point, = cube_slice.coord(self.config_coord_name).points
+            coord_values = (
+                {self.config_coord_name: lambda cell: cell == coord_point})
+            constr = iris.Constraint(coord_values=coord_values)
+            weights_cube_slice, = weights_cubes.extract(constr)
             new_weights_cube = self._interpolate_to_create_weights(
                 cube_slice, weights_cube_slice)
             cube_slices.append(new_weights_cube)

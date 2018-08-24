@@ -382,6 +382,59 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.name(), "weights")
 
+    def test_forecast_period_and_model_configuration_three_models(self):
+        """Test when forecast_period is the weighting_coord_name and
+        model_configuration is the config_coord_name. This demonstrates
+        blending in one model and blending out another model with forecast
+        period."""
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+
+        cube = add_model_id_and_model_configuration(
+            set_up_temperature_cube(timesteps=3), model_ids=[1000, 2000, 3000],
+            model_configurations=["uk_det", "uk_ens", "gl_ens"],
+            promote_to_new_axis=True)
+        cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=[402294.0, 402295.0, 402296.0],
+            fp_point=[6., 7., 8.])
+
+        expected_weights = np.array([[[[[1., 1.],
+                                        [1., 1.]],
+                                       [[1., 1.],
+                                        [1., 1.]],
+                                       [[0.66666667, 0.66666667],
+                                        [0.66666667, 0.66666667]]]],
+                                     [[[[0., 0.],
+                                        [0., 0.]],
+                                       [[0., 0.],
+                                        [0., 0.]],
+                                       [[0.16666667, 0.16666667],
+                                        [0.16666667, 0.16666667]]]],
+                                     [[[[0., 0.],
+                                        [0., 0.]],
+                                       [[0., 0.],
+                                        [0., 0.]],
+                                       [[0.16666667, 0.16666667],
+                                        [0.16666667, 0.16666667]]]]])
+
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+        config_dict = {"uk_det": {"forecast_period": [7, 12],
+                                  "weights": [1, 0],
+                                  "units": "hours"},
+                       "uk_ens": {"forecast_period": [7, 12, 48, 54],
+                                  "weights": [0, 1, 1, 0],
+                                  "units": "hours"},
+                       "gl_ens": {"forecast_period": [7, 12, 48, 54],
+                                  "weights": [0, 1, 1, 1],
+                                  "units": "hours"}}
+        plugin = ChooseWeightsLinearFromDict(
+            weighting_coord_name, config_coord_name, config_dict=config_dict)
+        result = plugin.process(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected_weights)
+        self.assertAlmostEqual(result.name(), "weights")
+
     def test_height_and_model_configuration(self):
         """Test when forecast_period is the weighting_coord_name and
         model_configuration is the config_coord_name. This demonstrates

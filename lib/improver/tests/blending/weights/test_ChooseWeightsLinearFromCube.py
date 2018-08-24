@@ -364,8 +364,8 @@ class Test_process(IrisTest):
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412233.0, 412234.0, 412235.0],
-            fp_point=[6., 7., 8.])
+            cube, time_point=[412235.0, 412247.0, 412278],
+            fp_point=[8., 20., 51.])
 
         weights_cube_uk_det = set_up_weights_cube(timesteps=2)
         weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
@@ -389,18 +389,94 @@ class Test_process(IrisTest):
         weights_cubes = (
             iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens]))
 
-        expected_weights = np.array([[[[[1., 1.],
-                                        [1., 1.]],
+        expected_weights = np.array([[[[[0.8, 0.8],
+                                        [0.8, 0.8]],
+                                       [[0., 0.],
+                                        [0., 0.]],
+                                       [[0., 0.],
+                                        [0., 0.]]]],
+                                     [[[[0.2, 0.2],
+                                        [0.2, 0.2]],
                                        [[1., 1.],
                                         [1., 1.]],
-                                       [[0.8, 0.8],
-                                        [0.8, 0.8]]]],
+                                       [[1., 1.],
+                                        [1., 1.]]]]])
+
+        plugin = ChooseWeightsLinearFromCube(
+            weighting_coord_name, config_coord_name)
+        result = plugin.process(cube, weights_cubes)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected_weights)
+        self.assertAlmostEqual(result.metadata,
+                               weights_cubes[0].metadata)
+
+    def test_forecast_period_and_model_configuration_three_models(self):
+        """Test when forecast_period is the weighting_coord_name and
+        model_configuration is the config_coord_name. This demonstrates
+        blending in one model and blending out another model with forecast
+        period."""
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+
+        cube = add_model_id_and_model_configuration(
+            set_up_temperature_cube(timesteps=3), model_ids=[1000, 2000, 3000],
+            model_configurations=["uk_det", "uk_ens", "gl_ens"],
+            promote_to_new_axis=True)
+        cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=[412235.0, 412247.0, 412278],
+            fp_point=[8., 20., 51.])
+
+        weights_cube_uk_det = set_up_weights_cube(timesteps=2)
+        weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
+            weights_cube_uk_det, time_point=[412234.0, 412239.0],
+            fp_point=[7., 12.])
+        weights_cube_uk_det.data[:, 0] = np.ones([1, 2, 2])
+        weights_cube_uk_det = add_model_id_and_model_configuration(
+            weights_cube_uk_det, model_ids=[1000],
+            model_configurations=["uk_det"])
+
+        weights_cube_uk_ens = set_up_weights_cube(timesteps=4)
+        weights_cube_uk_ens = add_forecast_reference_time_and_forecast_period(
+            weights_cube_uk_ens,
+            time_point=[412234.0, 412239.0, 412275.0, 412281.0],
+            fp_point=[7., 12., 48., 54.])
+        weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
+        weights_cube_uk_ens = add_model_id_and_model_configuration(
+            weights_cube_uk_ens, model_ids=[2000],
+            model_configurations=["uk_ens"])
+
+        weights_cube_gl_ens = set_up_weights_cube(timesteps=2)
+        weights_cube_gl_ens = add_forecast_reference_time_and_forecast_period(
+            weights_cube_gl_ens,
+            time_point=[412275.0, 412281.0],
+            fp_point=[48., 54.])
+        weights_cube_gl_ens.data[:, 1] = np.ones([1, 2, 2])
+        weights_cube_gl_ens = add_model_id_and_model_configuration(
+            weights_cube_gl_ens, model_ids=[3000],
+            model_configurations=["gl_ens"])
+
+        weights_cubes = (
+            iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens,
+                                weights_cube_gl_ens]))
+
+        expected_weights = np.array([[[[[0.8, 0.8],
+                                        [0.8, 0.8]],
+                                       [[0., 0.],
+                                        [0., 0.]],
+                                       [[0., 0.],
+                                        [0., 0.]]]],
+                                     [[[[0.2, 0.2],
+                                        [0.2, 0.2]],
+                                       [[1., 1.],
+                                        [1., 1.]],
+                                       [[0.5, 0.5],
+                                        [0.5, 0.5]]]],
                                      [[[[0., 0.],
                                         [0., 0.]],
                                        [[0., 0.],
                                         [0., 0.]],
-                                       [[0.2, 0.2],
-                                        [0.2, 0.2]]]]])
+                                       [[0.5, 0.5],
+                                        [0.5, 0.5]]]]])
 
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
