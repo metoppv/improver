@@ -110,17 +110,17 @@ class Test__arrange_interpolation_inputs(IrisTest):
 
     def test_basic(self):
         """Test that the values for the source_points, target_points,
-        associated_data, axis and fill_value are as expected."""
+        source_weights, axis and fill_value are as expected."""
         expected_source_points = [7, 12, 48, 54]
         expected_target_points = [6., 7., 8.]
-        expected_associated_data = np.array([[[[0., 0.],
-                                               [0., 0.]],
-                                              [[1., 1.],
-                                               [1., 1.]],
-                                              [[1., 1.],
-                                               [1., 1.]],
-                                              [[0., 0.],
-                                               [0., 0.]]]])
+        expected_source_weights = np.array([[[[0., 0.],
+                                              [0., 0.]],
+                                             [[1., 1.],
+                                              [1., 1.]],
+                                             [[1., 1.],
+                                              [1., 1.]],
+                                             [[0., 0.],
+                                              [0., 0.]]]])
         expected_axis = 1
         expected_fill_value = (np.array([[[0., 0.],
                                           [0., 0.]]]),
@@ -135,11 +135,11 @@ class Test__arrange_interpolation_inputs(IrisTest):
 
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
-        source_points, target_points, associated_data, axis, fill_value = (
+        source_points, target_points, source_weights, axis, fill_value = (
             plugin._arrange_interpolation_inputs(cube, weights_cube))
         self.assertArrayAlmostEqual(source_points, expected_source_points)
         self.assertArrayAlmostEqual(target_points, expected_target_points)
-        self.assertArrayAlmostEqual(associated_data, expected_associated_data)
+        self.assertArrayAlmostEqual(source_weights, expected_source_weights)
         self.assertEqual(axis, expected_axis)
         self.assertArrayAlmostEqual(fill_value[0], expected_fill_value[0])
         self.assertArrayAlmostEqual(fill_value[1], expected_fill_value[1])
@@ -286,7 +286,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"])
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[402294.0, 402295.0, 402296.0],
+            cube, time_point=[412280.0, 412281.0, 412282.0],
             fp_point=[53., 54., 55.])
         weights_cube = set_up_basic_weights_cube()
 
@@ -315,7 +315,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"])
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[402294.0, 402295.0, 402296.0],
+            cube, time_point=[412280.0, 412281.0, 412282.0],
             fp_point=[9., 15., 21.])
 
         expected_weights = np.array([[[[1., 0.],
@@ -327,7 +327,7 @@ class Test__interpolate_to_create_weights(IrisTest):
 
         weights_cube = set_up_weights_cube(timesteps=4)
         weights_cube = add_forecast_reference_time_and_forecast_period(
-            weights_cube, time_point=[402294.0, 402300.0, 402306.0, 402312.0],
+            weights_cube, time_point=[412233.0, 412239.0, 412245.0, 412251.0],
             fp_point=[6., 12., 18., 24.])
         weights_cube.data = np.array([[[[1., 0.],
                                         [0., 0.]],
@@ -364,12 +364,12 @@ class Test_process(IrisTest):
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[402294.0, 402295.0, 402296.0],
+            cube, time_point=[412233.0, 412234.0, 412235.0],
             fp_point=[6., 7., 8.])
 
         weights_cube_uk_det = set_up_weights_cube(timesteps=2)
         weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
-            weights_cube_uk_det, time_point=[402295.0, 402300.0],
+            weights_cube_uk_det, time_point=[412234.0, 412239.0],
             fp_point=[7., 12.])
         weights_cube_uk_det.data[:, 0] = np.ones([1, 2, 2])
         weights_cube_uk_det = add_model_id_and_model_configuration(
@@ -379,7 +379,7 @@ class Test_process(IrisTest):
         weights_cube_uk_ens = set_up_weights_cube(timesteps=4)
         weights_cube_uk_ens = add_forecast_reference_time_and_forecast_period(
             weights_cube_uk_ens,
-            time_point=[402295.0, 402300.0, 402336.0, 402342.0],
+            time_point=[412234.0, 412239.0, 412275.0, 412281.0],
             fp_point=[7., 12., 48., 54.])
         weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
         weights_cube_uk_ens = add_model_id_and_model_configuration(

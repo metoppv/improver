@@ -32,7 +32,9 @@
 Functions for use within unit tests for `ensemble_calibration` plugins.
 
 """
+import datetime
 
+import cf_units
 from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
@@ -61,7 +63,7 @@ def set_up_probability_above_threshold_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
+    cube.add_dim_coord(DimCoord(np.linspace(412227.0, 412327.0, timesteps),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
                                 'latitude', units='degrees'), 2)
@@ -108,7 +110,7 @@ def set_up_probability_above_threshold_spot_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
+    cube.add_dim_coord(DimCoord([412227],
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
                                 units="1"), 2)
@@ -150,7 +152,11 @@ def set_up_cube(data, standard_name=None, units=None, long_name=None,
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
+    dt1 = datetime.datetime(2017, 1, 10, 3, 0)
+    dt2 = datetime.datetime(2017, 1, 10, 4, 0)
+    num1 = cf_units.date2num(dt1, time_origin, calendar)
+    num2 = cf_units.date2num(dt2, time_origin, calendar)
+    cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
                                 'latitude', units='degrees'), 2)
@@ -178,7 +184,7 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5],
+    cube.add_dim_coord(DimCoord([412227],
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
                                 units="1"), 2)
@@ -209,7 +215,7 @@ def set_up_wind_speed_cube():
 
 
 def add_forecast_reference_time_and_forecast_period(
-        cube, time_point=402295.0, fp_point=4.0):
+        cube, time_point=412231.0, fp_point=4.0):
     """
     Function to add forecast_reference_time and forecast_period coordinates
     to the input cube.

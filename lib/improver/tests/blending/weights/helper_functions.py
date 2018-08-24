@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to set up cubes for use in weighting-related unit tests."""
 
-from cf_units import Unit
+import datetime
+import numpy as np
 
+import cf_units
+from cf_units import Unit
 import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
-
-import numpy as np
 
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period, set_up_cube
@@ -51,22 +52,16 @@ def set_up_zero_cube():
             dummy cube for testing
 
     """
-    data = np.zeros((2, 2, 2))
-
-    orig_cube = Cube(data, units="m",
-                     standard_name="lwe_thickness_of_precipitation_amount")
-    orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                     'latitude', units='degrees'), 1)
-    orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                     units='degrees'), 2)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                     "time", units=tunit), 0)
-    orig_cube.add_aux_coord(DimCoord([0, 1],
-                                     "forecast_period", units="hours"), 0)
-    return orig_cube
+    data = np.zeros((1, 2, 2, 2))
+    cube = set_up_cube(
+        data, standard_name="lwe_thickness_of_precipitation_amount",
+        units="m", realizations=[0], timesteps=2, y_dimension_length=2,
+        x_dimension_length=2)
+    for cube_slice in cube.slices_over("realization"):
+        cube_slice.remove_coord("realization")
+    cube = add_forecast_reference_time_and_forecast_period(
+        cube_slice, time_point=[412227, 412228.0], fp_point=[0, 1.])
+    return cube
 
 
 def set_up_cube_with_scalar_coord():
@@ -92,15 +87,14 @@ def set_up_precipitation_cube():
             for testing.
     """
     cube = set_up_zero_cube()
-    data = np.zeros((2, 2, 2))
-    data[0][:][:] = 1.0
-    data[1][:][:] = 2.0
-    cube.data = data
+    cube.data = np.zeros((2, 2, 2))
+    cube.data[0][:][:] = 1.0
+    cube.data[1][:][:] = 2.0
     return cube
 
 
-def cubes_for_tests():
-    """Set up cubes for unit tests.
+def cubes_for_triangular_weighted_blend_tests():
+    """Set up cubes for triangular weighted blend unit tests.
 
     Returns:
         cube (iris.cube.Cube):
@@ -153,7 +147,7 @@ def set_up_basic_model_config_cube():
         set_up_temperature_cube(timesteps=3), model_ids=[1000],
         model_configurations=["uk_det"])
     cube = add_forecast_reference_time_and_forecast_period(
-        cube, time_point=[402294.0, 402295.0, 402296.0],
+        cube, time_point=[412233.0, 412234.0, 412235.0],
         fp_point=[6., 7., 8.])
     return cube
 
@@ -201,7 +195,7 @@ def set_up_basic_weights_cube(
     """
     weights_cube = set_up_weights_cube(timesteps=4)
     weights_cube = add_forecast_reference_time_and_forecast_period(
-        weights_cube, time_point=[402295.0, 402300.0, 402336.0, 402342.0],
+        weights_cube, time_point=[412234.0, 412239.0, 412275.0, 412281.0],
         fp_point=[7., 12., 48., 54.])
     weights_cube.data[:, 1:3] = np.ones([1, 2, 2, 2])
     weights_cube = add_model_id_and_model_configuration(
@@ -289,8 +283,8 @@ def add_realizations(cube, num):
     cubelist = iris.cube.CubeList()
     for i in range(0, num):
         newcube = cube.copy()
-        new_ensemble_coord = iris.coords.AuxCoord(i,
-                                                  standard_name='realization')
+        new_ensemble_coord = (
+            iris.coords.AuxCoord(i, standard_name='realization'))
         newcube.add_aux_coord(new_ensemble_coord)
         cubelist.append(newcube)
     cubeout = cubelist.merge_cube()

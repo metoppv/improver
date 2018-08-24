@@ -45,7 +45,8 @@ import numpy as np
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
-from improver.tests.blending.weights.helper_functions import cubes_for_tests
+from improver.tests.blending.weights.helper_functions import (
+    cubes_for_triangular_weighted_blend_tests)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -96,7 +97,8 @@ class Test__find_central_point(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
+        self.cube, self.central_cube, self.forecast_period = (
+            cubes_for_triangular_weighted_blend_tests())
         self.width = 1.0
 
     def test_central_point_available(self):
@@ -128,7 +130,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
+        self.cube, self.central_cube, self.forecast_period = (
+            cubes_for_triangular_weighted_blend_tests())
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])

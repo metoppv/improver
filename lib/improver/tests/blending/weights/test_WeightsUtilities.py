@@ -247,7 +247,7 @@ class Test_process_coord(IrisTest):
     def test_fails_if_can_not_convert_units(self):
         """Test fails if it can not convert units """
         units = 'mm'
-        exp_coord_vals = '402191.5, 402192.5, 402193.5'
+        exp_coord_vals = '412226, 412227, 412228'
         msg = ('Failed to convert coord units ')
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(
@@ -259,7 +259,7 @@ class Test_process_coord(IrisTest):
         expected_num = 3
         expected_array = np.ones(expected_num)
         expected_array[0] = 0.0
-        exp_coord_vals = '402191.5, 402192.5, 402193.5'
+        exp_coord_vals = '412226, 412227, 412228'
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(
              self.cube, self.coordinate, exp_coord_vals)
@@ -277,10 +277,10 @@ class Test_interpolate_to_find_weights(IrisTest):
             np.array([0., 0.5, 1., 1., 1., 0.5, 0.]))
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
-        associated_data = np.array([0, 1, 1, 0])
+        source_weights = np.array([0, 1, 1, 0])
         axis = 0
         weights = WeightsUtilities.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
+            source_points, target_points, source_weights, axis=axis)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_2d_array_same_weights(self):
@@ -292,10 +292,10 @@ class Test_interpolate_to_find_weights(IrisTest):
                       [0., 0.5, 1., 1., 1., 0.5, 0.]]))
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
-        associated_data = np.array([[0, 1, 1, 0], [0, 1, 1, 0]])
+        source_weights = np.array([[0, 1, 1, 0], [0, 1, 1, 0]])
         axis = 1
         weights = WeightsUtilities.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
+            source_points, target_points, source_weights, axis=axis)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_2d_array_different_weights(self):
@@ -307,10 +307,10 @@ class Test_interpolate_to_find_weights(IrisTest):
                       [0., 0., 0., 0.5, 1., 0.5, 0.]]))
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
-        associated_data = np.array([[1, 1, 0, 0], [0, 0, 1, 0]])
+        source_weights = np.array([[1, 1, 0, 0], [0, 0, 1, 0]])
         axis = 1
         weights = WeightsUtilities.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis=axis)
+            source_points, target_points, source_weights, axis=axis)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_3d_array(self):
@@ -322,11 +322,11 @@ class Test_interpolate_to_find_weights(IrisTest):
                        [1., 0.5, 0., 0.5, 1., 0.5, 0.]]]))
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
-        associated_data = (
+        source_weights = (
             np.array([[[1, 1, 0, 0], [0, 0, 1, 0], [1, 0, 1, 0]]]))
         axis = 2
         weights = WeightsUtilities.interpolate_to_find_weights(
-            source_points, target_points, associated_data, axis)
+            source_points, target_points, source_weights, axis)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 

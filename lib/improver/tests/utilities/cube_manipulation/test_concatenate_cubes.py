@@ -84,7 +84,7 @@ class Test_concatenate_cubes(IrisTest):
         cube3.transpose([1, 0, 2, 3])
         expected_result = np.vstack([cube3.data, cube3.data])
 
-        cube2.coord("time").points = 402195.0
+        cube2.coord("time").points = 412230.0
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -146,7 +146,7 @@ class Test_concatenate_cubes(IrisTest):
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
 
-        cube2.coord("time").points = 402195.0
+        cube2.coord("time").points = 412230.0
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -154,7 +154,7 @@ class Test_concatenate_cubes(IrisTest):
             cubelist, coords_to_slice_over=["time"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("time").points, [402192.5, 402195.0])
+            result.coord("time").points, [412227.0, 412230.0])
 
     def test_cubelist_slice_over_realization_only(self):
         """
@@ -165,7 +165,7 @@ class Test_concatenate_cubes(IrisTest):
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
 
-        cube2.coord("time").points = 402195.0
+        cube2.coord("time").points = 412230.0
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -185,21 +185,21 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = 402195.5
+        cube2.coord("time").points = 412230.0
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
         cube1.add_aux_coord(
-            DimCoord([402192.5], "forecast_reference_time", units=tunit))
+            DimCoord([412227.0], "forecast_reference_time", units=tunit))
         cube2.add_aux_coord(
-            DimCoord([402195.5], "forecast_reference_time", units=tunit))
+            DimCoord([412230.0], "forecast_reference_time", units=tunit))
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = concatenate_cubes(cubelist)
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
-            [402192.5, 402195.5])
+            [412227.0, 412230.0])
 
     def test_cubelist_different_var_names(self):
         """
@@ -208,7 +208,7 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = 402195.5
+        cube2.coord("time").points = 412230.0
 
         cube1.coord("time").var_name = "time_0"
         cube2.coord("time").var_name = "time_1"
