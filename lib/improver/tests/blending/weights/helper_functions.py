@@ -175,8 +175,7 @@ def set_up_weights_cube(data=None, timesteps=3, realizations=None):
 
 
 def set_up_basic_weights_cube(
-        model_ids=[1000], model_configurations=["uk_det"],
-        promote_to_new_axis=False):
+        model_ids=None, model_configurations=None, promote_to_new_axis=False):
     """Create a weights cube with additional coordinates (forecast period,
     forecast_reference_time, model_id, model_configuration).
 
@@ -193,6 +192,11 @@ def set_up_basic_weights_cube(
         weights_cube (iris.cube.Cube):
             Cube containing weights.
     """
+    if model_ids is None:
+        model_ids = [1000]
+    if model_configurations is None:
+        model_configurations = ["uk_det"]
+
     weights_cube = set_up_weights_cube(timesteps=4)
     weights_cube = add_forecast_reference_time_and_forecast_period(
         weights_cube, time_point=[412234.0, 412239.0, 412275.0, 412281.0],
@@ -206,8 +210,8 @@ def set_up_basic_weights_cube(
 
 
 def add_model_id_and_model_configuration(
-        cube, model_ids=[1000, 2000],
-        model_configurations=["uk_det", "uk_ens"], promote_to_new_axis=False):
+        cube, model_ids=None, model_configurations=None,
+        promote_to_new_axis=False):
     """Add model id and model configuration coordinates to an input cube.
 
     Args:
@@ -228,6 +232,11 @@ def add_model_id_and_model_configuration(
         cubelist.concatenate_cube():
             Cube with a model id and model configuration coordinate added.
     """
+    if model_ids is None:
+        model_ids = [1000, 2000]
+    if model_configurations is None:
+        model_configurations = ["uk_det", "uk_ens"]
+
     cubelist = iris.cube.CubeList([])
     for model_id, model_configuration in zip(model_ids, model_configurations):
         cube_copy = cube.copy()
