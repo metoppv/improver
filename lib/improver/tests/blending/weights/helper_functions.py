@@ -30,14 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to set up cubes for use in weighting-related unit tests."""
 
-import datetime
 import numpy as np
 
-import cf_units
-from cf_units import Unit
 import iris
-from iris.coords import DimCoord
-from iris.cube import Cube
 
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period, set_up_cube
