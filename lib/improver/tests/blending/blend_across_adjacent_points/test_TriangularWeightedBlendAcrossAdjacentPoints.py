@@ -265,6 +265,25 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_input_cube_no_change(self):
+        """Test that the plugin does not change the origonal input cube."""
+
+        # Add threshold axis to standard input cube.
+        changes = {'points': [0.5], 'units': '1'}
+        cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
+        original_cube = cube_with_thresh.copy()
+
+        width = 2.0
+        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+            'forecast_period', self.forecast_period, 'hours', width,
+            'weighted_mean')
+        result = plugin.process(cube_with_thresh)
+
+        # Test that the input cube is unchanged by the function.
+        self.assertEqual(cube_with_thresh, original_cube)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_works_one_thresh(self):
         """Test that the plugin retains the single threshold from the input
            cube."""
@@ -302,7 +321,7 @@ class Test_process(IrisTest):
 
         # Test that the result cube retains threshold co-ordinates
         # from origonal cube.
-        self.assertEqual(cube_with_thresh.coord('threshold'),
+        self.assertEqual(expected_cube.coord('threshold'),
                          result.coord('threshold'))
         self.assertArrayEqual(expected_cube.data, result.data)
         self.assertEqual(expected_cube, result)
