@@ -683,13 +683,13 @@ class ChooseWeightsLinearFromCube(object):
                     base_cube.coord_dims(coord) ==
                     base_cube.coord_dims(exception_coord_name)):
                 exception_coord = cube_with_exception_coord.coord(coord.name())
-                if len(cube_with_exception_coord.coord_dims(coord)) > 0:
+                if cube_with_exception_coord.coord_dims(coord):
                     index, = cube_with_exception_coord.coord_dims(coord)
                     new_coord_list.append((exception_coord, index))
                 else:
                     new_coord_list.append((exception_coord, None))
             else:
-                if len(base_cube.coord_dims(coord)) > 0:
+                if base_cube.coord_dims(coord):
                     index, = base_cube.coord_dims(coord)
                     new_coord_list.append((coord, index))
                 else:
