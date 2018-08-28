@@ -941,7 +941,7 @@ def demote_float64_precision(input_cubes):
         assert isinstance(cube, iris.cube.Cube), 'Object is not a cube'
 
         # Modify data if it is float64
-        if cube.data.dtype.num == np.dtype(np.float64).num:
+        if cube.dtype == np.float64:
             cube.data = cube.data.astype(np.float32)
 
 
