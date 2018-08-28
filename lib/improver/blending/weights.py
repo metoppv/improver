@@ -675,7 +675,7 @@ class ChooseWeightsLinearFromCube(object):
                 exception_coord_name taken from the cube_with_exception_coord.
                 If the coordinate does not have an associated dimension e.g.
                 the coordinate is a scalar coordinate, then the index of the
-                coordinate is set equal to 1.
+                coordinate is set equal to None.
         """
         new_coord_list = []
         for coord in coord_list:

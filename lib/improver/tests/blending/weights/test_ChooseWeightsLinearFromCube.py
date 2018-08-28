@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the weights.WeightsLinear plugin."""
+"""Unit tests for the ChooseWeightsLinearFromCube plugin."""
 
 
 import unittest
@@ -364,7 +364,7 @@ class Test_process(IrisTest):
         cube = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412235.0, 412247.0, 412278],
+            cube, time_point=[412235.0, 412247.0, 412278.0],
             fp_point=[8., 20., 51.])
 
         weights_cube_uk_det = set_up_weights_cube(timesteps=2)
@@ -423,7 +423,7 @@ class Test_process(IrisTest):
             model_configurations=["uk_det", "uk_ens", "gl_ens"],
             promote_to_new_axis=True)
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412235.0, 412247.0, 412278],
+            cube, time_point=[412235.0, 412247.0, 412278.0],
             fp_point=[8., 20., 51.])
 
         weights_cube_uk_det = set_up_weights_cube(timesteps=2)
@@ -537,8 +537,8 @@ class Test_process(IrisTest):
 
     def test_height_and_realization(self):
         """Test when height is the weighting_coord_name and realization is the
-        config_coord_name. This demonstrates blending in one model and
-        blending out another model with height."""
+        config_coord_name. This demonstrates blending in one member and
+        blending out another member with height."""
         weighting_coord_name = "height"
         config_coord_name = "realization"
 

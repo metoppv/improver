@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the weights.WeightsLinear plugin."""
+"""Unit tests for the ChooseWeightsLinearFromDict plugin."""
 
 
 import unittest
@@ -49,8 +49,7 @@ class Test__init__(IrisTest):
     """Test the __init__ method."""
 
     def test_with_config_dict(self):
-        """Test the class is initialised correctly, if the config_dict
-           argument is supplied."""
+        """Test the class is initialised correctly."""
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
@@ -58,7 +57,7 @@ class Test__init__(IrisTest):
                                   "units": "hours"}}
         weights_coord_name = "weights"
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         self.assertEqual(weighting_coord_name, plugin.weighting_coord_name)
         self.assertEqual(config_coord_name, plugin.config_coord_name)
         self.assertEqual(config_dict, plugin.config_dict)
@@ -86,7 +85,8 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected)
 
     def test_alternative_name(self):
-        """Test the repr function formats the arguments correctly"""
+        """Test the repr function formats the arguments correctly when using
+        an alternative name for the weights_coord_name."""
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
@@ -122,19 +122,18 @@ class Test__check_config_dict(IrisTest):
         msg = ('These items in the configuration dictionary')
         with self.assertRaisesRegex(ValueError, msg):
             ChooseWeightsLinearFromDict(
-                weighting_coord_name, config_coord_name,
-                config_dict=config_dict)
+                weighting_coord_name, config_coord_name, config_dict)
 
     def test_dictionary_key_match(self):
-        """Test whether that the dictionary keys match in length as
-        expected."""
+        """Test that an exception is not raised when the dictionary keys
+        match in length as expected."""
         config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
                                   "weights": [0, 1, 1, 0],
                                   "units": "hours"}}
         weighting_coord_name = "forecast_period"
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         result = plugin._check_config_dict()
         self.assertIsNone(result)
 
@@ -159,7 +158,7 @@ class Test__arrange_interpolation_inputs(IrisTest):
         cube = set_up_basic_model_config_cube()
 
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         source_points, target_points, source_weights, fill_value = (
             plugin._arrange_interpolation_inputs(cube))
         self.assertArrayAlmostEqual(source_points, expected_source_points)
@@ -186,7 +185,7 @@ class Test__arrange_interpolation_inputs(IrisTest):
         cube = set_up_basic_model_config_cube()
 
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         source_points, target_points, source_weights, fill_value = (
             plugin._arrange_interpolation_inputs(cube))
         self.assertArrayAlmostEqual(source_points, expected_source_points)
@@ -256,9 +255,13 @@ class Test__interpolate_to_create_weights(IrisTest):
 
     def setUp(self):
         """Set up configuration dictionary."""
-        self.config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                       "weights": [0, 1, 1, 0],
-                                       "units": "hours"}}
+        config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
+                                  "weights": [0, 1, 1, 0],
+                                  "units": "hours"}}
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+        self.plugin = ChooseWeightsLinearFromDict(
+            weighting_coord_name, config_coord_name, config_dict)
 
     def test_below_range(self):
         """Test that interpolation works as intended when the forecast period
@@ -273,11 +276,7 @@ class Test__interpolate_to_create_weights(IrisTest):
                                       [[0.2, 0.2],
                                        [0.2, 0.2]]]])
 
-        weighting_coord_name = "forecast_period"
-        config_coord_name = "model_configuration"
-        plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, self.config_dict)
-        new_weights_cube = plugin._interpolate_to_create_weights(cube)
+        new_weights_cube = self.plugin._interpolate_to_create_weights(cube)
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data, expected_weights)
         self.assertEqual(new_weights_cube.name(), "weights")
@@ -300,11 +299,7 @@ class Test__interpolate_to_create_weights(IrisTest):
                                       [[1., 1.],
                                        [1., 1.]]]])
 
-        weighting_coord_name = "forecast_period"
-        config_coord_name = "model_configuration"
-        plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, self.config_dict)
-        new_weights_cube = plugin._interpolate_to_create_weights(cube)
+        new_weights_cube = self.plugin._interpolate_to_create_weights(cube)
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data, expected_weights)
         self.assertEqual(new_weights_cube.name(), "weights")
@@ -327,11 +322,7 @@ class Test__interpolate_to_create_weights(IrisTest):
                                       [[0., 0.],
                                        [0., 0.]]]])
 
-        weighting_coord_name = "forecast_period"
-        config_coord_name = "model_configuration"
-        plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, self.config_dict)
-        new_weights_cube = plugin._interpolate_to_create_weights(cube)
+        new_weights_cube = self.plugin._interpolate_to_create_weights(cube)
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data, expected_weights)
         self.assertEqual(new_weights_cube.name(), "weights")
@@ -376,7 +367,7 @@ class Test_process(IrisTest):
                                   "weights": [0, 1, 1, 0],
                                   "units": "hours"}}
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         result = plugin.process(cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
@@ -429,7 +420,7 @@ class Test_process(IrisTest):
                                   "weights": [0, 1, 1, 1],
                                   "units": "hours"}}
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         result = plugin.process(cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
@@ -464,7 +455,7 @@ class Test_process(IrisTest):
                                   "weights": [0, 1],
                                   "units": "m"}}
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         result = plugin.process(cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
@@ -502,7 +493,7 @@ class Test_process(IrisTest):
                            "weights": [0, 1],
                            "units": "m"}}
         plugin = ChooseWeightsLinearFromDict(
-            weighting_coord_name, config_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_coord_name, config_dict)
         result = plugin.process(cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
