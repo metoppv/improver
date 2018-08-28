@@ -55,19 +55,19 @@ def set_up_cube():
        The cube has latitude, longitude and time dimensions"""
     data = np.zeros((2, 2, 2))
 
-    orig_cube = Cube(data, units="m",
-                     standard_name="lwe_thickness_of_precipitation_amount")
+    orig_cube = Cube(data, units='m',
+                     standard_name='lwe_thickness_of_precipitation_amount')
     orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
                                      'latitude', units='degrees'), 1)
     orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
                                      units='degrees'), 2)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
+    time_origin = 'hours since 1970-01-01 00:00:00'
+    calendar = 'gregorian'
     tunit = Unit(time_origin, calendar)
     orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                     "time", units=tunit), 0)
+                                     'time', units=tunit), 0)
     orig_cube.add_aux_coord(DimCoord([0, 1],
-                                     "forecast_period", units="hours"), 0)
+                                     'forecast_period', units='hours'), 0)
     return orig_cube
 
 
@@ -110,9 +110,9 @@ class Test__init__(IrisTest):
         forecast_period = 1
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'time', forecast_period, 'hours', width, 'weighted_mean')
-        expected_coord = "time"
+        expected_coord = 'time'
         expected_width = 3.0
-        expected_parameter_units = "hours"
+        expected_parameter_units = 'hours'
         self.assertEqual(plugin.coord, expected_coord)
         self.assertEqual(plugin.width, expected_width)
         self.assertEqual(plugin.parameter_units, expected_parameter_units)
@@ -153,7 +153,7 @@ class Test__find_central_point(IrisTest):
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', forecast_period, 'hours', self.width,
             'weighted_mean')
-        msg = "The central point of"
+        msg = 'The central point of'
         with self.assertRaisesRegex(ValueError, msg):
             plugin._find_central_point(self.cube)
 
@@ -268,11 +268,33 @@ class Test_process(IrisTest):
     def test_works_one_thresh(self):
         """Test that the plugin retains the single threshold from the input
            cube."""
-        width = 2.0
 
+        # Creates a cube containing the expected outputs.
+        fill_value = 1 + 1/3.0
+        data = np.full((2, 2), fill_value)
+
+        expected_cube = (Cube(data, units='m',
+                         standard_name='lwe_thickness_of_precipitation_amount')
+                         )
+        expected_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
+                                    'latitude', units='degrees'), 0)
+        expected_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
+                                    'longitude', units='degrees'), 1)
+
+        time_origin = 'hours since 1970-01-01 00:00:00'
+        calendar = 'gregorian'
+        tunit = Unit(time_origin, calendar)
+        expected_cube.add_aux_coord(DimCoord([402192.5], 'time', units=tunit))
+        expected_cube.add_aux_coord(DimCoord([0], 'forecast_period',
+                                             units='hours'))
+        # Add threshold axis to expected output cube.
         changes = {'points': [0.5], 'units': '1'}
+        expected_cube = add_coord(expected_cube, 'threshold', changes)
+
+        # Add threshold axis to standard input cube.
         cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
 
+        width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width,
             'weighted_mean')
@@ -282,6 +304,8 @@ class Test_process(IrisTest):
         # from origonal cube.
         self.assertEqual(cube_with_thresh.coord('threshold'),
                          result.coord('threshold'))
+        self.assertArrayEqual(expected_cube.data, result.data)
+        self.assertEqual(expected_cube, result)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
