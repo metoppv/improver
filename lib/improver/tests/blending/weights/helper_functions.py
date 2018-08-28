@@ -52,9 +52,8 @@ def set_up_zero_cube():
         data, standard_name="lwe_thickness_of_precipitation_amount",
         units="m", realizations=[0], timesteps=2, y_dimension_length=2,
         x_dimension_length=2)
-    cube_slice = cube.copy()
-    for cube_slice in cube.slices_over("realization"):
-        cube_slice.remove_coord("realization")
+    cube_slice = cube.extract(iris.Constraint(realization=0))
+    cube_slice.remove_coord("realization")
     cube = add_forecast_reference_time_and_forecast_period(
         cube_slice, time_point=[412227.0, 412228.0], fp_point=[0., 1.])
     return cube
