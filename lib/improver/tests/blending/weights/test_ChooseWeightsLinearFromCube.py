@@ -75,8 +75,8 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, expected)
 
 
-class Test__check_weight_cubes(IrisTest):
-    """Test the _check_weight_cubes method."""
+class Test__check_weights_cubes(IrisTest):
+    """Test the _check_weights_cubes method."""
 
     def test_exception_not_raised(self):
         """An exception is not raised when the length of the weights_cubes
@@ -88,7 +88,7 @@ class Test__check_weight_cubes(IrisTest):
         config_coord_name = "model_configuration"
         plugin = ChooseWeightsLinearFromCube(
             weighting_coord_name, config_coord_name)
-        self.assertIsNone(plugin._check_weight_cubes(cube, weights_cubes))
+        self.assertIsNone(plugin._check_weights_cubes(cube, weights_cubes))
 
     def test_exception_raised(self):
         """An exception is raised when the length of the weights_cubes
@@ -102,7 +102,7 @@ class Test__check_weight_cubes(IrisTest):
             weighting_coord_name, config_coord_name)
         msg = ('The coordinate used to configure the weights')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._check_weight_cubes(cube, weights_cubes)
+            plugin._check_weights_cubes(cube, weights_cubes)
 
 
 class Test__arrange_interpolation_inputs(IrisTest):

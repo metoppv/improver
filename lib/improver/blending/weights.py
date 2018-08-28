@@ -557,7 +557,7 @@ class ChooseWeightsLinearFromCube(object):
                    self.weighting_coord_name, self.config_coord_name))
         return msg
 
-    def _check_weight_cubes(self, cube, weights_cubes):
+    def _check_weights_cubes(self, cube, weights_cubes):
         """Check that the number of weights cubes provided matches the
         number of points along the self.config_coord_name dimension within
         the input cube.
@@ -670,8 +670,12 @@ class ChooseWeightsLinearFromCube(object):
 
         Returns:
             new_coord_list (list):
-                List of coordinates, which may include the exception_coord_name
-                taken from the cube_with_exception_coord.
+                List of tuples where each tuple is of the form
+                (coordinate, index_of_coord). This list, may include the
+                exception_coord_name taken from the cube_with_exception_coord.
+                If the coordinate does not have an associated dimension e.g.
+                the coordinate is a scalar coordinate, then the index of the
+                coordinate is set equal to 1.
         """
         new_coord_list = []
         for coord in coord_list:
@@ -695,7 +699,7 @@ class ChooseWeightsLinearFromCube(object):
     def _create_new_weights_cube(self, cube, weights, weights_cube):
         """Create a cube to contain the output of the interpolation.
         It is currently assumed that the output weights matches the size
-        of the input cube. This will be true, if the only difference between
+        of the input cube. This will be true if the only difference between
         the cube and the weights cube is along the dimension of the
         self.weighting_coord_name coordinate.
 
@@ -742,7 +746,7 @@ class ChooseWeightsLinearFromCube(object):
                 for setting up the interpolation and create the new weights
                 cube.
             weights_cube (iris.cube.Cube):
-                Cube containg the weights that will be interpolated to find
+                Cube containing the weights that will be interpolated to find
                 new weights at the specified points.
 
         Returns:
@@ -763,7 +767,7 @@ class ChooseWeightsLinearFromCube(object):
 
     def process(self, cube, weights_cubes):
         """Calculation of linear weights based on an input weights cube.
-        Weights are calculated for individually for each point in
+        Weights are calculated individually for each point in
         self.config_coord_name. Weights are normalised across the cube
         dimension specified by self.config_coord_name.
 
@@ -772,6 +776,12 @@ class ChooseWeightsLinearFromCube(object):
                 Cube containing the coordinate information that will be used
                 for setting up the interpolation and create the new weights
                 cube.
+            weights_cubes (iris.cube.CubeList):
+                CubeList where each cube should correspond to a point along
+                the self.config_coord_name dimension of the input cube.
+                For example, if self.config_coord_name is model_configuration,
+                then there should be a separate cube for each model
+                configuration.
 
         Returns:
             new_weights_cube (iris.cube.Cube):
@@ -781,7 +791,7 @@ class ChooseWeightsLinearFromCube(object):
         if isinstance(weights_cubes, iris.cube.Cube):
             weights_cubes = iris.cube.CubeList([weights_cubes])
 
-        self._check_weight_cubes(cube, weights_cubes)
+        self._check_weights_cubes(cube, weights_cubes)
         cube_slices = iris.cube.CubeList([])
         for cube_slice in cube.slices_over(self.config_coord_name):
             coord_point, = cube_slice.coord(self.config_coord_name).points
