@@ -80,8 +80,9 @@ class OrographicEnhancement(object):
     @staticmethod
     def _orography_gradients(topography):
         """
-        Checks topography height is in same units as spatial dimensions, then
-        calculates dimensionless gradient in both directions.
+        Checks spatial dimensions are in the same coordinates as topography
+        height; if not converts COORDINATE units in place.  Then calculates
+        dimensionless gradient along both axes.
 
         Args:
             topography (iris.cube.Cube):
@@ -108,9 +109,9 @@ class OrographicEnhancement(object):
     def _regrid_and_populate(self, temperature, humidity, pressure,
                              uwind, vwind, topography):
         """
-        Regrids input variables onto the high resolution orography field and
-        calculates v.gradZ.  Populates class instance with the regridded
-        variables.
+        Regrids input variables onto the high resolution orography field, then
+        populates the class instance with regridded variables before converting
+        to the required units.  Also calculates V.gradZ. as a class member.
 
         Args:
             temperature (iris.cube.Cube):
@@ -128,9 +129,8 @@ class OrographicEnhancement(object):
             topography (iris.cube.Cube):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
+
         # set coordinates to be monotonically increasing
-        # TODO check whether this has any impact once outputs are OK -
-        #      if not, remove as it takes time
         for cube in [temperature, humidity, pressure,
                      uwind, vwind, topography]:
             set_increasing_spatial_coords(cube)
@@ -145,12 +145,42 @@ class OrographicEnhancement(object):
         self.uwind = uwind.regrid(topography, regridder)
         self.vwind = vwind.regrid(topography, regridder)
 
+        # convert units as required for orographic enhancement calculation
+        self.pressure.convert_units('Pa')
+        self.temperature.convert_units('kelvin')
+        self.humidity.convert_units('1')
+        self.uwind.convert_units('m s-1')
+        self.vwind.convert_units('m s-1')
+        topography.convert_units('m')
+
         # calculate orography gradients
         gradx, grady = self._orography_gradients(topography)
 
         # calculate v.gradZ
         self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
                        np.multiply(grady.data, self.vwind.data))
+
+    @staticmethod
+    def _calculate_steps_svp_millibars(temperature):
+        """
+        Calculates the saturation vapour pressure using the approximation
+        method from STEPS.
+
+        Args:
+            temperature (np.ndarray):
+                Temperature in Kelvin
+
+        Returns:
+            svp (np.ndarray):
+                Saturation vapour pressure in hPa / millibars
+        """
+        prefactor = 1013.25
+        T_mat = 1. - (373.15 / temperature)
+        T_mat_sq = np.square(T_mat)
+        exponent = (13.3185*T_mat - 1.9760*T_mat_sq -
+                    0.6445*np.multiply(T_mat, T_mat_sq) -
+                    0.1299*np.square(T_mat_sq))
+        return prefactor * np.exp(exponent)
 
     def _calculate_svp(self, method):
         """
@@ -163,7 +193,12 @@ class OrographicEnhancement(object):
                 IMPROVER or STEPS.
         """
         if method == 'STEPS':
-            print('Code the STEPS method')
+            svp_mb = self._calculate_steps_svp_millibars(self.temperature.data)
+            svp_cube = self.pressure.copy(data=svp_mb)
+            svp_cube.units = Unit('hPa')
+            svp_cube.convert_units('Pa')
+            svp_cube.rename('saturated_vapour_pressure')
+            self.svp = svp_cube
         else:
             wbt = WetBulbTemperature()
             self.svp = wbt._pressure_correct_svp(
@@ -186,6 +221,7 @@ class OrographicEnhancement(object):
         # calculate mean 3x3 (square nbhood) orography heights
         radius = convert_number_of_grid_cells_into_distance(topography, 1)
         topo_nbhood = SquareNeighbourhood().run(topography, radius)
+        topo_nbhood.convert_units('m')
 
         # create mask
         mask = np.full(topo_nbhood.shape, False, dtype=bool)
@@ -214,16 +250,14 @@ class OrographicEnhancement(object):
             numerator[~self.mask], self.temperature.data[~self.mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
 
-    def _add_upstream_component(self, site_orogenh, grid_spacing=1.):
+    def _add_upstream_component(self, site_orogenh, grid_spacing):
         """
         Add upstream component to site orographic enhancement
 
         Args:
             site_orogenh (np.ndarray):
                 Site orographic enhancement in mm h-1
-
-        Kwargs:
-            grid_spacing (int):
+            grid_spacing (float):
                 Grid spacing of site_orogenh points in km
 
         Returns:
@@ -254,6 +288,45 @@ class OrographicEnhancement(object):
         # squares
         stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
         variance = np.square(stddev)
+
+        # NOTE don't delete this method yet - it's 3x faster than below...
+        # initialise enhancement field
+        orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
+        sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
+
+        # loop over destination points
+        for y in range(site_orogenh.data.shape[0]):
+            for x in range(site_orogenh.data.shape[1]):
+
+                # if there is no wind at this pixel, continue
+                if mask[y, x]:
+                    continue
+
+                # loop over upstream pixels
+                for i in range(max_roi[y, x]):
+                    weight = i / max_sin_cos[y, x]
+
+                    # find source points
+                    x_src = x - int(weight * sin_wind_dir[y, x])
+                    y_src = y - int(weight * cos_wind_dir[y, x])
+
+                    # force coordinates into bounds to avoid truncating the
+                    # upstream contribution towards domain edges
+                    x_src = max(x_src, 0)
+                    x_src = min(x_src, site_orogenh.data.shape[1]-1)
+                    y_src = max(y_src, 0)
+                    y_src = min(y_src, site_orogenh.data.shape[0]-1)
+
+                    # calculate point weight and increment orogenh
+                    pweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
+                    orogenh[y, x] += pweight * site_orogenh[y_src, x_src]
+                    sum_of_weights[y, x] += pweight
+
+        orogenh[~mask] = self.efficiency_factor * np.divide(
+            orogenh[~mask], sum_of_weights[~mask])
+
+        """
+        # TODO this is 3x slower than the loop - optimise!
 
         # generate 3d arrays to hold indices and weights of upstream components
         length = np.amax(max_roi)
@@ -304,41 +377,7 @@ class OrographicEnhancement(object):
         orogenh = self.efficiency_factor * np.divide(total_orogenh, sum_of_weights)
 
         """
-        # NOTE don't delete this method yet - it's 3x faster than the above...
-        # initialise enhancement field
-        orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
-        sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
 
-        # loop over destination points
-        for y in range(site_orogenh.data.shape[0]):
-            for x in range(site_orogenh.data.shape[1]):
-
-                # if there is no wind at this pixel, continue
-                if mask[y, x]:
-                    continue
-
-                # loop over upstream cells and add weighted component
-                for i in range(max_roi[y, x]):
-                    weight = i / max_sin_cos[y, x]
-                    nweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
-
-                    # find source points
-                    new_x = x - int(weight * sin_wind_dir[y, x])
-                    new_y = y - int(weight * cos_wind_dir[y, x])
-
-                    # force coordinates into bounds to avoid truncating the
-                    # upstream contribution towards domain edges
-                    new_x = max(new_x, 0)
-                    new_x = min(new_x, site_orogenh.data.shape[1]-1)
-                    new_y = max(new_y, 0)
-                    new_y = min(new_y, site_orogenh.data.shape[0]-1)
-
-                    orogenh[y, x] += nweight * site_orogenh[new_y, new_x]
-                    sum_of_weights[y, x] += nweight
-
-        orogenh[~mask] = self.efficiency_factor * np.divide(
-            orogenh[~mask], sum_of_weights[~mask])
-        """
         return orogenh
 
     @staticmethod
@@ -443,16 +482,9 @@ class OrographicEnhancement(object):
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
 
-        # convert input cube units
-        # iris doesn't recognise 'mb' as a valid unit
+        # check pressure cube units (iris doesn't recognise 'mb')
         if pressure.units == Unit('mb'):
             pressure.units = Unit('hPa')
-        pressure.convert_units('Pa')
-        temperature.convert_units('kelvin')
-        humidity.convert_units('1')
-        uwind.convert_units('m s-1')
-        vwind.convert_units('m s-1')
-        topography.convert_units('m')
 
         # regrid variables to match topography and populate class instance
         self._regrid_and_populate(temperature, humidity, pressure,
@@ -468,7 +500,12 @@ class OrographicEnhancement(object):
         site_orogenh_data = self._site_orogenh()
 
         # integrate upstream component
-        orogenh_data = self._add_upstream_component(site_orogenh_data)
+        grid_coord_km = topography.coord(axis='x').copy()
+        grid_coord_km.convert_units('km')
+        grid_spacing_km = np.diff(grid_coord_km.points)[0]
+
+        orogenh_data = self._add_upstream_component(
+            site_orogenh_data, grid_spacing_km)
 
         # create data cubes on the two required output grids
         orogenh, orogenh_standard_grid = self._create_output_cubes(
