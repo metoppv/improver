@@ -139,11 +139,6 @@ def main():
                         help='The forecast_reference_time to be used after '
                              'blending has been applied in the format '
                              'YYYYMMDDTHHMMZ.')
-    parser.add_argument('--coords_for_bounds_removal',
-                        metavar='COORDS_FOR_BOUNDS_REMOVAL', nargs="+",
-                        help='The forecast_reference_time to be used after '
-                             'blending has been applied in the format '
-                             'YYYYMMDDTHHMMZ.')
     args = parser.parse_args()
     # Fix default values for slope and cval. The argparser default value isn't
     # used for this, because it would make it impossible to tell whether a
@@ -195,8 +190,7 @@ def main():
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
         args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,
-        cycletime=args.cycletime,
-        coords_for_bounds_removal=args.coords_for_bounds_removal)
+        cycletime=args.cycletime)
     result = BlendingPlugin.process(cube, weights)
     save_netcdf(result, args.output_filepath)
 
