@@ -78,7 +78,33 @@ class OrographicEnhancement(object):
                           self.efficiency_factor, self.cloud_lifetime_s)
 
     @staticmethod
-    def _orography_gradients(topography):
+    def _smooth_data(data, axis):
+        """
+        Smooths input matrix over 3 grid cells along specified axis.
+
+        Args:
+            data (np.ndarray):
+                2D input data to be smoothed
+            axis (int):
+                Axis (0 or 1) over which to perform smoothing
+
+        Returns:
+            smoothed_data (np.ndarray):
+                Smoothed data
+        """
+        data_m = np.copy(data)
+        data_p = np.copy(data)
+
+        if axis == 0:
+            data_m[:-1, :] = data[1:, :]
+            data_p[1:, :] = data[:-1, :]
+        elif axis == 1:
+            data_m[:, :-1] = data[:, 1:]
+            data_p[:, 1:] = data[:, :-1]
+
+        return (data + data_m + data_p)/3.
+
+    def _orography_gradients(self, topography):
         """
         Checks spatial dimensions are in the same coordinates as topography
         height; if not converts COORDINATE units in place.  Then calculates
@@ -98,8 +124,17 @@ class OrographicEnhancement(object):
         topography.coord(axis='x').convert_units(topography.units)
         topography.coord(axis='y').convert_units(topography.units)
 
-        gradx, grady = DifferenceBetweenAdjacentGridSquares(
-            gradient=True).process(topography)
+        # smooth topography along perpendicular axis before calculating
+        # gradients in each direction (as done in STEPS)
+        topo_smx = self._smooth_data(topography.data, axis=0)
+        topo_smx_cube = topography.copy(data=topo_smx)
+        gradx, _ = DifferenceBetweenAdjacentGridSquares(
+            gradient=True).process(topo_smx_cube)
+
+        topo_smy = self._smooth_data(topography.data, axis=1)
+        topo_smy_cube = topography.copy(data=topo_smy)
+        _, grady = DifferenceBetweenAdjacentGridSquares(
+            gradient=True).process(topo_smy_cube)
 
         gradx.units = '1'
         grady.units = '1'
@@ -207,8 +242,8 @@ class OrographicEnhancement(object):
 
     def _generate_mask(self, topography):
         """
-        Generates a boolean mask of areas to calculate orographic enhancement.
-        Criteria for calculation are:
+        Generates a boolean mask of areas NOT to calculate orographic
+        enhancement.  Criteria for calculation are:
             - 3x3 mean topography height >= threshold (20 m)
             - Relative humidity (fraction) >= threshold (0.8)
             - v dot grad z (wind x topography gradient) >= threshold (0.0005)
@@ -227,7 +262,7 @@ class OrographicEnhancement(object):
         mask = np.full(topo_nbhood.shape, False, dtype=bool)
         mask = np.where(topo_nbhood.data < self.orog_thresh_m, True, mask)
         mask = np.where(self.humidity.data < self.rh_thresh_ratio, True, mask)
-        mask = np.where(self.vgradz < self.vgradz_thresh_ms, True, mask)
+        mask = np.where(abs(self.vgradz) < self.vgradz_thresh_ms, True, mask)
         return mask
 
     def _site_orogenh(self):
@@ -282,7 +317,7 @@ class OrographicEnhancement(object):
 
         # calculate maximum upstream radius of influence at each grid cell
         upstream_roi = self.upstream_range_of_influence_km / grid_spacing
-        max_roi = np.array((upstream_roi * max_sin_cos), dtype=int)
+        max_roi = (upstream_roi * max_sin_cos).astype(int)
 
         # set standard deviation for Gaussian weighting function in grid
         # squares
@@ -298,17 +333,17 @@ class OrographicEnhancement(object):
         for y in range(site_orogenh.data.shape[0]):
             for x in range(site_orogenh.data.shape[1]):
 
-                # if there is no wind at this pixel, continue
+                # if there is no wind, skip this pixel
                 if mask[y, x]:
                     continue
 
                 # loop over upstream pixels
                 for i in range(max_roi[y, x]):
-                    weight = i / max_sin_cos[y, x]
+                    dist = i / max_sin_cos[y, x]
 
-                    # find source points
-                    x_src = x - int(weight * sin_wind_dir[y, x])
-                    y_src = y - int(weight * cos_wind_dir[y, x])
+                    # locate source point
+                    x_src = x - int(dist * sin_wind_dir[y, x])
+                    y_src = y - int(dist * cos_wind_dir[y, x])
 
                     # force coordinates into bounds to avoid truncating the
                     # upstream contribution towards domain edges
@@ -318,9 +353,9 @@ class OrographicEnhancement(object):
                     y_src = min(y_src, site_orogenh.data.shape[0]-1)
 
                     # calculate point weight and increment orogenh
-                    pweight = np.exp(-0.5 * pow(weight, 2) / variance[y, x])
-                    orogenh[y, x] += pweight * site_orogenh[y_src, x_src]
-                    sum_of_weights[y, x] += pweight
+                    weight = np.exp(-0.5 * pow(dist, 2) / variance[y, x])
+                    orogenh[y, x] += weight * site_orogenh[y_src, x_src]
+                    sum_of_weights[y, x] += weight
 
         orogenh[~mask] = self.efficiency_factor * np.divide(
             orogenh[~mask], sum_of_weights[~mask])
