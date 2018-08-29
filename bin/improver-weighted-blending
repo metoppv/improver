@@ -118,10 +118,6 @@ def main():
                                 'non linear weights will be. '
                                 'A value of 1 implies equal weighting. If not '
                                 'set, a default value of cval=0.85 is set.')
-    parser.add_argument('--coord_adj', metavar='COORD_ADJUSTMENT_FUNCTION',
-                        type=str,
-                        help='Function to apply to the coordinate after the '
-                             'blending has been applied.')
     parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
                         help='The forecast_reference_time to be used after '
                              'blending has been applied in the format '
@@ -138,8 +134,6 @@ def main():
         cval = args.cval
     else:
         cval = 0.85
-    if args.coord_adj:
-        args.coord_adj = eval(args.coord_adj)
 
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
@@ -174,7 +168,7 @@ def main():
             cube, args.coordinate, coord_unit=coord_unit)
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
-        args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,
+        args.coordinate, args.weighting_mode,
         cycletime=args.cycletime)
     result = BlendingPlugin.process(cube, weights)
     save_netcdf(result, args.output_filepath)

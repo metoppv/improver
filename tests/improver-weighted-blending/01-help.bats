@@ -40,7 +40,6 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
                                   [--cycletime CYCLETIME]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
@@ -79,9 +78,6 @@ optional arguments:
                         Units for time coordinate. Default= hours since
                         1970-01-01 00:00:00
   --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
-  --coord_adj COORD_ADJUSTMENT_FUNCTION
-                        Function to apply to the coordinate after the blending
-                        has been applied.
   --cycletime CYCLETIME
                         The forecast_reference_time to be used after blending
                         has been applied in the format YYYYMMDDTHHMMZ.
