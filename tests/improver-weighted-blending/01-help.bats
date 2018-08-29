@@ -75,7 +75,7 @@ optional arguments:
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
   --coordinate_unit UNIT_STRING
-                        Units for time coordinate. Default= hours since
+                        Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00
   --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --cycletime CYCLETIME

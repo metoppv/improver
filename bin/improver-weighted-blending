@@ -71,7 +71,7 @@ def main():
                              'will be applied.')
     parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
                         default='hours since 1970-01-01 00:00:00',
-                        help='Units for time coordinate. Default= '
+                        help='Units for blending coordinate. Default= '
                              'hours since 1970-01-01 00:00:00')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         help='Calendar for time coordinate. Default=gregorian')
