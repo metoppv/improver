@@ -37,7 +37,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
+                                  [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--cycletime CYCLETIME]
@@ -49,8 +49,8 @@ usage: improver-weighted-blending [-h] [--profile]
 Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
 apply these weights to the dataset using the BasicWeightedAverage plugin.
-Required for ChooseDefaultWeightsLinear: y0val and ONE of slope, ynval.
-Required for ChooseDefaultWeightsNonLinear: cval.
+Required for ChooseDefaultWeightsLinear: y0val and ynval. Required for
+ChooseDefaultWeightsNonLinear: cval.
 
 positional arguments:
   WEIGHTS_CALCULATION_METHOD
@@ -85,12 +85,9 @@ optional arguments:
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
 
-  --slope LINEAR_SLOPE  The slope of the line used for choosing default linear
-                        weights. Only one of ynval and slope may be set.
   --ynval LINEAR_END_POINT
                         The relative value of the weighting end point for
-                        choosing default linear weights. Only one of ynval and
-                        slope may be set.
+                        choosing default linear weights.
   --y0val LINEAR_STARTING_POINT
                         The relative value of the weighting start point for
                         choosing default linear weights. This must be a

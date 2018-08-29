@@ -54,9 +54,8 @@ def main():
         'blending plugins using the ChooseDefaultWeightsLinear or '
         'ChooseDefaultWeightsNonLinear plugins. Then apply these '
         'weights to the dataset using the BasicWeightedAverage plugin.'
-        ' Required for ChooseDefaultWeightsLinear: y0val and ONE '
-        'of slope, ynval. Required for '
-        'ChooseDefaultWeightsNonLinear: cval.')
+        ' Required for ChooseDefaultWeightsLinear: y0val and ynval.'
+        ' Required for ChooseDefaultWeightsNonLinear: cval.')
     parser.add_argument('wts_calc_method',
                         metavar='WEIGHTS_CALCULATION_METHOD',
                         choices=['linear', 'nonlinear'],
@@ -93,16 +92,10 @@ def main():
                                        'Options for the linear weights '
                                        'calculation in '
                                        'ChooseDefaultWeightsLinear')
-    lin_opts = linear.add_mutually_exclusive_group()
-    lin_opts.add_argument('--slope', metavar='LINEAR_SLOPE', type=float,
-                          help='The slope of the line used for choosing '
-                               'default linear weights. Only one of ynval '
-                               'and slope may be set.')
-    lin_opts.add_argument('--ynval', metavar='LINEAR_END_POINT',
+    linear.add_argument('--ynval', metavar='LINEAR_END_POINT',
                           type=float,
                           help='The relative value of the weighting end '
-                               'point for choosing default linear weights. '
-                               'Only one of ynval and slope may be set.')
+                               'point for choosing default linear weights.')
     linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
                         help='The relative value of the weighting start '
                              'point for choosing default linear weights. '
@@ -123,13 +116,9 @@ def main():
                              'blending has been applied in the format '
                              'YYYYMMDDTHHMMZ.')
     args = parser.parse_args()
-    # Fix default values for slope and cval. The argparser default value isn't
+    # Fix default value for cval. The argparser default value isn't
     # used for this, because it would make it impossible to tell whether a
     # a value was user inputted (which is needed for wrong_args_error calls).
-    if args.slope:
-        slope = args.slope
-    else:
-        slope = 0.0
     if args.cval:
         cval = args.cval
     else:
@@ -138,8 +127,8 @@ def main():
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
     elif ((args.wts_calc_method == "nonlinear") and
-          np.any([args.y0val, args.ynval, args.slope])):
-        parser.wrong_args_error('y0val, slope, ynval', 'non-linear')
+          np.any([args.y0val, args.ynval])):
+        parser.wrong_args_error('y0val, ynval', 'non-linear')
 
     if args.coordinate == 'time':
         coord_unit = Unit(args.coordinate_unit, args.calendar)
@@ -160,7 +149,7 @@ def main():
 
     if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(
-            args.y0val, slope, args.ynval).process(
+            y0val=args.y0val, ynval=args.ynval).process(
                 cube, args.coordinate, coord_unit=coord_unit)
 
     else:

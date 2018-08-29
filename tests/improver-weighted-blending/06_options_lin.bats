@@ -31,24 +31,6 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear coordinate input output y0val slope" {
-  improver_check_skip_acceptance
-  KGO="weighted_blending/options_lin/kgo.nc"
-
-  # Run weighted blending with linear weights and suboptions: y0val and slope. Check it passes.
-  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_mean' --y0val 4.0 --slope -2.0 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
-
-
 @test "weighted-blending --linear coordinate input output y0val ynval" {
   improver_check_skip_acceptance
   KGO="weighted_blending/options_lin/kgo.nc"

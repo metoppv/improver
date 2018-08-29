@@ -42,7 +42,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
+                                  [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--cycletime CYCLETIME]
@@ -50,7 +50,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, slope, ynval
+improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, ynval
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
