@@ -277,7 +277,7 @@ class Test_process(IrisTest):
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width,
             'weighted_mean')
-        result = plugin.process(cube_with_thresh)
+        _ = plugin.process(cube_with_thresh)
 
         # Test that the input cube is unchanged by the function.
         self.assertEqual(cube_with_thresh, original_cube)
