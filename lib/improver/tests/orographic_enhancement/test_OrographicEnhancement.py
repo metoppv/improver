@@ -69,6 +69,38 @@ class Test__repr__(IrisTest):
         self.assertEqual(str(plugin), expected)
 
 
+class Test__smooth_data(IrisTest):
+    """Test the _smooth_data method"""
+
+    def setUp(self):
+        """Set up an input array"""
+        self.plugin = OrographicEnhancement()
+        self.data = np.array([[200., 450., 850.],
+                              [320., 500., 1000.],
+                              [230., 600., 900.]])
+
+    def test_basic(self):
+        """Test output is np.array"""
+        result = self.plugin._smooth_data(self.data, axis=0)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_axis_zero(self):
+        """Test smoothing along first axis"""
+        expected_result = np.array([[240., 466.66666667, 900.],
+                                    [250., 516.66666667, 916.66666667],
+                                    [260., 566.66666667, 933.33333333]])
+        result = self.plugin._smooth_data(self.data, axis=0)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_axis_one(self):
+        """Test smoothing along second axis"""
+        expected_result = np.array([[283.33333333, 500., 716.66666667],
+                                    [380., 606.66666667, 833.33333333],
+                                    [353.33333333, 576.66666667, 800.]])
+        result = self.plugin._smooth_data(self.data, axis=1)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
 class Test__orography_gradients(IrisTest):
     """Test the _orography_gradients method"""
 
@@ -76,8 +108,8 @@ class Test__orography_gradients(IrisTest):
         """Set up an input cube"""
         self.plugin = OrographicEnhancement()
         data = np.array([[200., 450., 850.],
-                         [300., 600., 1000.],
-                         [250., 600., 900.]])
+                         [320., 500., 1000.],
+                         [230., 600., 900.]])
         x_coord = DimCoord(np.arange(3), 'projection_x_coordinate',
                            units='km')
         y_coord = DimCoord(np.arange(3), 'projection_y_coordinate',
@@ -91,15 +123,16 @@ class Test__orography_gradients(IrisTest):
         gradx, grady = self.plugin._orography_gradients(self.topography)
         self.assertIsInstance(gradx, iris.cube.Cube)
         self.assertIsInstance(grady, iris.cube.Cube)
-        
+
     def test_values(self):
         """Test output values and units"""
-        expected_gradx = np.array([[0.175, 0.325, 0.475],
-                                   [0.250, 0.350, 0.450],
-                                   [0.375, 0.325, 0.275]])
-        expected_grady = np.array([[0.175, 0.225, 0.275],
-                                   [0.025, 0.075, 0.025],
-                                   [-0.125, -0.075, -0.225]])
+        expected_gradx = np.array([[0.12333333, 0.33, 0.53666667],
+                                   [0.2, 0.33333333, 0.46666667],
+                                   [0.27666667, 0.33666667, 0.39666667]])
+
+        expected_grady = np.array([[0.15833333, 0.175, 0.19166667],
+                                   [0.035, 0.03833333, 0.04166667],
+                                   [-0.08833333, -0.09833333, -0.10833333]])
         gradx, grady = self.plugin._orography_gradients(self.topography)
         self.assertArrayAlmostEqual(gradx.data, expected_gradx)
         self.assertArrayAlmostEqual(grady.data, expected_grady)
