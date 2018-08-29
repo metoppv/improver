@@ -392,7 +392,6 @@ def update_cube_blended_metadata(cube, coord, forecast_reference_time):
 
     # Sort out time coordinates
     cube, = unify_forecast_reference_time(cube, forecast_reference_time)
-
     if cube_coord.name() in "model_configuration":
         cube.remove_coord("model_id")
         cube.attributes["mosg__model_configuration"] = "blend"
