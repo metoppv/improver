@@ -57,16 +57,18 @@ class Test_equalise_cubes(IrisTest):
         self.cube = set_up_temperature_cube()
         self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
         self.cube_ukv.remove_coord('realization')
-        self.cube_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        self.cube_ukv.attributes.update({'title':
-                                         'Operational UKV Model Forecast'})
+        self.cube_ukv.attributes['mosg__grid_type'] = 'standard'
+        self.cube_ukv.attributes['mosg__model_configuration'] = 'uk_det'
+        self.cube_ukv.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube_ukv.attributes['mosg__grid_version'] = '1.2.0'
         add_forecast_reference_time_and_forecast_period(self.cube_ukv,
                                                         fp_point=4.0)
         add_forecast_reference_time_and_forecast_period(self.cube,
                                                         fp_point=7.0)
-        self.cube.attributes.update({'grid_id': 'enukx_standard_v1'})
-        self.cube.attributes.update({'title':
-                                     'Operational Mogreps UK Model Forecast'})
+        self.cube.attributes['mosg__grid_type'] = 'standard'
+        self.cube.attributes['mosg__model_configuration'] = 'uk_ens'
+        self.cube.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube.attributes['mosg__grid_version'] = '1.2.0'
         self.cube.attributes["history"] = (
             "2017-01-18T08:59:53: StaGE Decoupler")
         self.cube_ukv.attributes["history"] = (
@@ -91,19 +93,19 @@ class Test_equalise_cubes(IrisTest):
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
         result = equalise_cubes(cubelist)
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
-                                    np.array([0]))
-        self.assertEqual(result[0].coord("model").points[0],
-                         'Operational UKV Model Forecast')
+                                    np.array([3000]))
+        self.assertEqual(result[0].coord("model_configuration").points[0],
+                         'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([1000]))
-        self.assertEqual(result[1].coord("model").points[0],
-                         'Operational Mogreps UK Model Forecast')
-        self.assertNotIn("title", result[0].attributes)
-        self.assertNotIn("title", result[1].attributes)
-        self.assertAlmostEqual(result[0].attributes["grid_id"],
-                               result[1].attributes["grid_id"])
-        self.assertEqual(result[0].attributes["grid_id"],
-                         'ukx_standard_v1')
+                                    np.array([4000]))
+        self.assertEqual(result[1].coord("model_configuration").points[0],
+                         'uk_ens')
+        self.assertNotIn("mosg__model_configuration", result[0].attributes)
+        self.assertNotIn("mosg__model_configuration", result[1].attributes)
+        self.assertAlmostEqual(result[0].attributes["mosg__grid_domain"],
+                               result[1].attributes["mosg__grid_domain"])
+        self.assertEqual(result[0].attributes["mosg__grid_domain"],
+                         'uk_extended')
         self.assertNotIn("history", result[0].attributes.keys())
         self.assertNotIn("history", result[1].attributes.keys())
 
@@ -131,7 +133,7 @@ class Test_equalise_cubes(IrisTest):
         result = equalise_cubes(cubelist)
         self.assertEqual(len(result), 4)
         self.assertAlmostEqual(result[3].coord('model_realization').points,
-                               1002.0)
+                               4002.0)
 
 
 if __name__ == '__main__':

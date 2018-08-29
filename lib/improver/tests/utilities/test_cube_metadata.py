@@ -37,8 +37,9 @@ import iris
 from copy import copy, deepcopy
 from iris.tests import IrisTest
 from iris.cube import Cube
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from cf_units import Unit
+from datetime import datetime
 
 from improver.utilities.cube_metadata import (
     add_coord,
@@ -53,6 +54,8 @@ from improver.utilities.cube_metadata import (
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
+from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.temporal import forecast_period_coord
 
 
 def create_cube_with_threshold(data=None,
@@ -84,6 +87,10 @@ def create_cube_with_threshold(data=None,
     cube.add_dim_coord(DimCoord(threshold_values,
                                 long_name='threshold',
                                 units=units), 0)
+    cube.add_aux_coord(AuxCoord([402190.],
+                                standard_name='forecast_reference_time',
+                                units=tunit), None)
+    cube.add_aux_coord(forecast_period_coord(cube), 1)
     cube.attributes['relative_to_threshold'] = 'above'
     return cube
 
@@ -474,6 +481,111 @@ class Test_update_cell_methods(IrisTest):
         msg = "No action has been specified within the cell method definition."
         with self.assertRaisesRegex(ValueError, msg):
             update_cell_methods(cube, cell_methods)
+
+
+class Test_update_cube_blended_metadata(IrisTest):
+
+    """Test the update_cube_blended_metadata method."""
+
+    def setUp(self):
+        """Create cube with appropriate meta-data for testing"""
+        self.cube = create_cube_with_threshold()
+        self.cube.add_aux_coord(AuxCoord([1000.],
+                                long_name='model_id',
+                                units=Unit(1)), None)
+        self.cube.add_aux_coord(build_coordinate(['gl_det'],
+                                long_name='model_configuration',
+                                coord_type=AuxCoord,
+                                data_type=np.str), None)
+        self.new_forecast_reference_time = datetime(2015, 11, 18, 23, 0)
+        self.expected_fp_points = [5400., 9000.]
+        self.expected_frt_points = [402191.]
+
+    def test_basic(self):
+        """Test that the function leaves a Cube."""
+        update_cube_blended_metadata(self.cube, "model_id",
+                                     self.new_forecast_reference_time)
+        self.assertIsInstance(self.cube, Cube)
+
+    def test_cube_updated(self):
+        """Test for updated meta-data on cube."""
+        update_cube_blended_metadata(self.cube, "model_id",
+                                     self.new_forecast_reference_time)
+        for coord in self.cube.coords():
+            self.assertFalse(coord.name() in 'model_id')
+            self.assertFalse(coord.name() in 'model_configuration')
+        self.assertTrue('mosg__model_configuration' in
+                        self.cube.attributes.keys())
+        self.assertTrue(
+            self.cube.attributes['mosg__model_configuration'] == 'blend')
+        self.assertTrue(
+            self.cube.attributes['title'] == 'IMPROVER Model Forecast')
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_reference_time').points,
+            self.expected_frt_points)
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_period').points, self.expected_fp_points)
+
+    def test_cube_with_bounds(self):
+        """Test for updated meta-data on cube with time bounds."""
+        self.cube.coord('time').bounds = [[402192., 402193.],
+                                          [402193., 402194.]]
+        self.cube.coord('forecast_period').bounds = [[7200., 10800.],
+                                                     [10800., 14400.]]
+        update_cube_blended_metadata(self.cube, "model_id",
+                                     self.new_forecast_reference_time)
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_reference_time').points,
+            self.expected_frt_points)
+        self.assertTrue(
+            self.cube.coord('forecast_reference_time').bounds is None)
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_period').points, self.expected_fp_points)
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_period').bounds, [[3600., 7200.],
+                                                        [7200., 10800.]])
+
+    def test_cube_updated_using_coord(self):
+        """Test for updated meta-data on cube when argument is a coord."""
+        use_coord = self.cube.coord("model_configuration")
+        update_cube_blended_metadata(self.cube, use_coord,
+                                     self.new_forecast_reference_time)
+        for coord in self.cube.coords():
+            self.assertFalse(coord.name() in 'model_id')
+            self.assertFalse(coord.name() in 'model_configuration')
+        self.assertTrue('mosg__model_configuration' in
+                        self.cube.attributes.keys())
+        self.assertTrue(
+            self.cube.attributes['mosg__model_configuration'] == 'blend')
+        self.assertTrue(
+            self.cube.attributes['title'] == 'IMPROVER Model Forecast')
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_reference_time').points,
+            self.expected_frt_points)
+        self.assertArrayAlmostEqual(
+            self.cube.coord('forecast_period').points, self.expected_fp_points)
+
+    def test_title_not_updated(self):
+        """Test that an existing title is left unchanged. """
+        self.cube.attributes['title'] = 'Expected'
+        update_cube_blended_metadata(self.cube, "model_id",
+                                     self.new_forecast_reference_time)
+        self.assertTrue(
+            self.cube.attributes['title'] == 'Expected')
+
+    @ManageWarnings(record=True)
+    def test_unhandled_coord(self, warning_list=None):
+        """Test that title is added, warning is raised when specifying an
+        unhandled coordinate"""
+        expected_warning = "Not configured to handle meta-data for blends over"
+        update_cube_blended_metadata(self.cube, "time",
+                                     self.new_forecast_reference_time)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(expected_warning in str(item)
+                            for item in warning_list))
+        self.assertTrue(
+            self.cube.attributes['title'] == 'IMPROVER Model Forecast')
 
 
 class Test_amend_metadata(IrisTest):

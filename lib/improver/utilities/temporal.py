@@ -105,13 +105,10 @@ def forecast_period_coord(
     """
     Return or calculate the lead time coordinate (forecast_period)
     within a cube, either by reading the forecast_period coordinate,
-    or by calculating the difference between the time and the
-    forecast_reference_time. If the forecast_period coordinate is
-    present, the points are assumed to represent the desired lead times
-    with the bounds not being considered. The units of the
-    forecast_period, time and forecast_reference_time coordinates are
-    converted, if required. The final coordinate will have units of
-    seconds.
+    or by calculating the difference between the time (points and bounds) and
+    the forecast_reference_time. The units of the forecast_period, time and
+    forecast_reference_time coordinates are converted, if required. The final
+    coordinate will have units of seconds.
 
     Args:
         cube (Iris.cube.Cube):
@@ -163,6 +160,17 @@ def forecast_period_coord(
         # Convert the timedeltas to a total in seconds.
         required_lead_times = np.array(
             [x.total_seconds() for x in required_lead_times]).astype(fr_type)
+        if t_coord.bounds is not None:
+            time_bounds = np.array(
+                [c.bound for c in t_coord.cells()])
+            required_lead_bounds = (
+                time_bounds - forecast_reference_time_points)
+            # Convert the timedeltas to a total in seconds.
+            required_lead_bounds = np.array(
+                [[b.total_seconds() for b in x]
+                 for x in required_lead_bounds]).astype(fr_type)
+        else:
+            required_lead_bounds = None
         coord_type = iris.coords.AuxCoord
         if cube.coords("forecast_period"):
             if isinstance(
@@ -171,6 +179,7 @@ def forecast_period_coord(
         result_coord = coord_type(
             required_lead_times,
             standard_name='forecast_period',
+            bounds=required_lead_bounds,
             units="seconds")
         result_coord.convert_units(result_units)
         if np.any(result_coord.points < 0):

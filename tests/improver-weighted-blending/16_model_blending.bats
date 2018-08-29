@@ -35,8 +35,10 @@
   improver_check_skip_acceptance
   KGO="weighted_blending/model/kgo.nc"
 
-  # Run weighted blending with linear weights for two input files and check it passes.
-  run improver weighted-blending 'linear' 'model' 'weighted_mean' --slope 0 --y0val 1 \
+  # Run weighted blending with linear weights for two input files and check it
+  # passes.
+  run improver weighted-blending 'linear' 'model_configuration' 'weighted_mean' \
+      --slope 0 --y0val 1 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
