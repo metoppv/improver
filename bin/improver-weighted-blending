@@ -69,10 +69,6 @@ def main():
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
-    parser.add_argument('--coord_exp_val', metavar='COORD_EXPECTED_VALUES',
-                        type=str,
-                        help='Optional string of expected coordinate points '
-                        'seperated by , e.g. "1496289600, 1496293200"')
     parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
                         default='hours since 1970-01-01 00:00:00',
                         help='Units for time coordinate. Default= '
@@ -180,13 +176,13 @@ def main():
     if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(
-                cube, args.coordinate, args.coord_exp_val, coord_unit,
-                args.wts_redistrib_method)
+                cube, args.coordinate, coord_unit=coord_unit,
+                weights_distrib_method=args.wts_redistrib_method)
 
     else:
         weights = ChooseDefaultWeightsNonLinear(cval).process(
-            cube, args.coordinate, args.coord_exp_val, coord_unit,
-            args.wts_redistrib_method)
+            cube, args.coordinate, coord_unit=coord_unit,
+            weights_distrib_method=args.wts_redistrib_method)
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
         args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,

@@ -40,7 +40,6 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
