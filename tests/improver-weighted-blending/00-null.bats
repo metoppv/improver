@@ -41,7 +41,6 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   [--cycletime CYCLETIME]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER

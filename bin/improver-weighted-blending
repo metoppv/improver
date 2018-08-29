@@ -122,15 +122,6 @@ def main():
                         type=str,
                         help='Function to apply to the coordinate after the '
                              'blending has been applied.')
-    parser.add_argument('--wts_redistrib_method',
-                        metavar='METHOD_TO_REDISTRIBUTE_WEIGHTS',
-                        default='evenly',
-                        help='The method to use when redistributing weights '
-                             'in cases where forecasts are missing. Options: '
-                             '"evenly": redistribute weights evenly between '
-                             'the forecasts that are available. '
-                             '"proportional": redistribute weights using the '
-                             'original weighting function.')
     parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
                         help='The forecast_reference_time to be used after '
                              'blending has been applied in the format '
@@ -176,13 +167,11 @@ def main():
     if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(
             args.y0val, slope, args.ynval).process(
-                cube, args.coordinate, coord_unit=coord_unit,
-                weights_distrib_method=args.wts_redistrib_method)
+                cube, args.coordinate, coord_unit=coord_unit)
 
     else:
         weights = ChooseDefaultWeightsNonLinear(cval).process(
-            cube, args.coordinate, coord_unit=coord_unit,
-            weights_distrib_method=args.wts_redistrib_method)
+            cube, args.coordinate, coord_unit=coord_unit)
 
     BlendingPlugin = WeightedBlendAcrossWholeDimension(
         args.coordinate, args.weighting_mode, coord_adjust=args.coord_adj,

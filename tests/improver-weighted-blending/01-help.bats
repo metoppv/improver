@@ -41,7 +41,6 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   [--cycletime CYCLETIME]
                                   WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
@@ -83,12 +82,6 @@ optional arguments:
   --coord_adj COORD_ADJUSTMENT_FUNCTION
                         Function to apply to the coordinate after the blending
                         has been applied.
-  --wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS
-                        The method to use when redistributing weights in cases
-                        where forecasts are missing. Options: "evenly":
-                        redistribute weights evenly between the forecasts that
-                        are available. "proportional": redistribute weights
-                        using the original weighting function.
   --cycletime CYCLETIME
                         The forecast_reference_time to be used after blending
                         has been applied in the format YYYYMMDDTHHMMZ.
