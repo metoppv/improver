@@ -35,7 +35,9 @@ import numpy as np
 
 import iris
 
-from improver.utilities.cube_manipulation import compare_coords
+from improver.utilities.cube_manipulation import (compare_coords,
+                                                  build_coordinate)
+from improver.utilities.temporal import forecast_period_coord
 
 # Define correct v1.2.0 meta-data for v1.1.0 data.
 GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
@@ -273,6 +275,59 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
                                        changes))
             warnings.warn(msg)
     return result
+
+
+def update_cube_blended_metadata(cube, coord, forecast_reference_time):
+    """
+    Update the meta-data in cube to be consistent with having been blended
+    over the specified coord.
+    If coord matches a "model_configuration" or "model_id", these will both
+    be removed and appropriate attributes added.
+    A title attribute containing "IMPROVER Model Forecast" will be added to
+    the cube if one is not already present. This should be true when blending
+    across models as "title" will have been removed by
+    cube_manipulation._equalise_cube_attributes().
+    The forecast_reference_time coordinate is replaced with the specified value
+    and the forecast_period coordinate is recalculated from the time and
+    forecast_reference_time coordinates.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing blended data. This is modified in place.
+        coord (iris.coords.Coord or string):
+            Coord or name of coord over which blending took place.
+            It should match a scalar coordinate on cube.
+        forecast_reference_time (datetime.datetime)
+            New forecast reference time to attach to the cube. Other relative
+            time coordinates will be adjusted accordingly.
+    """
+    cube_coord = cube.coord(coord)
+    if "title" not in cube.attributes.keys():
+        cube.attributes["title"] = "IMPROVER Model Forecast"
+    if cube_coord.name() in "model_id":
+        cube_coord = cube.coord("model_configuration")
+
+    # Sort out time coordinates
+    frt_units = cube.coord('forecast_reference_time').units
+    frt_points = [frt_units.date2num(forecast_reference_time)]
+    cube.replace_coord(
+        build_coordinate(
+            frt_points,
+            standard_name="forecast_reference_time",
+            bounds=None,
+            template_coord=cube.coord('forecast_reference_time')))
+    cube.replace_coord(
+        forecast_period_coord(
+            cube, force_lead_time_calculation=True))
+
+    if cube_coord.name() in "model_configuration":
+        cube.remove_coord("model_id")
+        cube.attributes["mosg__model_configuration"] = "blend"
+        cube.remove_coord(cube_coord)
+    else:
+        msg = ("Not configured to handle meta-data for blends over "
+               "coord {}".format(cube_coord.name()))
+        warnings.warn(msg)
 
 
 def amend_metadata(cube,

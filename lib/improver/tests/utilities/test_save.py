@@ -53,9 +53,11 @@ def set_up_test_cube():
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
     cube.attributes['source_realizations'] = np.arange(12)
     # Desired attributes that will be global in netCDF file
-    cube.attributes['title'] = 'Operational MOGREPS-UK Forecast Model'
     cube.attributes['um_version'] = '10.4'
-    cube.attributes['grid_id'] = 'enukx_standard_v1'
+    cube.attributes['mosg__grid_type'] = 'standard'
+    cube.attributes['mosg__model_configuration'] = 'uk_ens'
+    cube.attributes['mosg__grid_domain'] = 'uk_extended'
+    cube.attributes['mosg__grid_version'] = '1.2.0'
     cube.attributes['source'] = 'Met Office Unified Model'
     cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['institution'] = 'Met Office'
@@ -70,6 +72,8 @@ class Test_save_netcdf(IrisTest):
     def setUp(self):
         """ Set up cube to write, read and check """
         self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
+                                'mosg__grid_type', 'mosg__model_configuration',
+                                'mosg__grid_domain', 'mosg__grid_version',
                                 'Conventions', 'institution', 'history',
                                 'bald__isPrefixedBy']
         self.directory = mkdtemp()
@@ -155,10 +159,10 @@ class Test_save_netcdf(IrisTest):
         """
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
-        global_keys = Dataset(self.filepath, mode='r').ncattrs()
-        self.assertEqual(len(global_keys), 8)
+        global_keys_in_file = Dataset(self.filepath, mode='r').ncattrs()
+        self.assertEqual(len(global_keys_in_file), 10)
         self.assertTrue(all(key in self.global_keys_ref
-                            for key in global_keys))
+                            for key in global_keys_in_file))
 
 
 class Test_append_metadata_cube(IrisTest):
