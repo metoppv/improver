@@ -53,12 +53,14 @@ class Test_compare_attributes(IrisTest):
         self.cube = set_up_temperature_cube()
         self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
         self.cube_ukv.remove_coord('realization')
-        self.cube_ukv.attributes.update({'grid_id': 'ukvx_standard_v1'})
-        self.cube_ukv.attributes.update({'title':
-                                         'Operational UKV Model Forecast'})
-        self.cube.attributes.update({'grid_id': 'enukx_standard_v1'})
-        self.cube.attributes.update({'title':
-                                     'Operational Mogreps UK Model Forecast'})
+        self.cube_ukv.attributes['mosg__grid_type'] = 'standard'
+        self.cube_ukv.attributes['mosg__model_configuration'] = 'uk_det'
+        self.cube_ukv.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube_ukv.attributes['mosg__grid_version'] = '1.1.0'
+        self.cube.attributes['mosg__grid_type'] = 'standard'
+        self.cube.attributes['mosg__model_configuration'] = 'uk_ens'
+        self.cube.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.cube.attributes['mosg__grid_version'] = '1.2.0'
 
     def test_basic(self):
         """Test that the utility returns a list and have no differences."""
@@ -97,18 +99,15 @@ class Test_compare_attributes(IrisTest):
 
     def test_multiple_differences(self):
         """Test that the utility returns multiple differences"""
-        cube_no_attributes = set_up_temperature_cube()
-        cubelist = iris.cube.CubeList([cube_no_attributes,
-                                       self.cube, self.cube_ukv])
+        cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
         result = compare_attributes(cubelist)
         self.assertAlmostEqual(result,
-                               [{},
-                                {'grid_id': 'enukx_standard_v1',
-                                 'title':
-                                 'Operational Mogreps UK Model Forecast'},
-                                {'grid_id': 'ukvx_standard_v1',
-                                 'title':
-                                 'Operational UKV Model Forecast'}])
+                               [{'mosg__model_configuration': 'uk_ens',
+                                 'mosg__grid_version':
+                                 '1.2.0'},
+                                {'mosg__model_configuration': 'uk_det',
+                                 'mosg__grid_version':
+                                 '1.1.0'}])
 
 
 if __name__ == '__main__':
