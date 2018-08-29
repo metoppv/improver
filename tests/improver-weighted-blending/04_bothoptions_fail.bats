@@ -32,24 +32,24 @@
 
 @test "weighted-blending --linear --nonlinear" {
   # Run blending with linear and nonlinear: check it fails.
-  run improver weighted-blending 'linear nonlinear' 'time'  'weighted_mean'\
+  run improver weighted-blending --wts_calc_method 'linear nonlinear' 'time'  'weighted_mean'\
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
+                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--cycletime CYCLETIME]
-                                  WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: argument WEIGHTS_CALCULATION_METHOD: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear')
+improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear')
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

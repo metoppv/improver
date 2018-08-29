@@ -35,13 +35,13 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
+                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--cycletime CYCLETIME]
-                                  WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
@@ -53,11 +53,6 @@ Required for ChooseDefaultWeightsLinear: y0val and ynval. Required for
 ChooseDefaultWeightsNonLinear: cval.
 
 positional arguments:
-  WEIGHTS_CALCULATION_METHOD
-                        Method to use to calculate weights used in blending.
-                        "linear": calculate linearly varying blending weights.
-                        "nonlinear": calculate blending weights that decrease
-                        exponentially with increasing blending coordinate.
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.
@@ -74,6 +69,12 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --wts_calc_method WEIGHTS_CALCULATION_METHOD
+                        Method to use to calculate weights used in blending.
+                        "linear" (default): calculate linearly varying
+                        blending weights. "nonlinear": calculate blending
+                        weights that decrease exponentially with increasing
+                        blending coordinate.
   --coordinate_unit UNIT_STRING
                         Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00

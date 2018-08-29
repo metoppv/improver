@@ -33,20 +33,20 @@
 
 @test "weighted-blending --linear --ynval --cval" {
   # Run blending with linear weights calculation but nonlinear args: check it fails.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1 --cval 0.5\
+  run improver weighted-blending 'time' 'weighted_mean' --ynval 1 --cval 0.5\
       "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
+                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--cycletime CYCLETIME]
-                                  WEIGHTS_CALCULATION_METHOD
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE

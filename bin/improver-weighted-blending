@@ -56,14 +56,16 @@ def main():
         'weights to the dataset using the BasicWeightedAverage plugin.'
         ' Required for ChooseDefaultWeightsLinear: y0val and ynval.'
         ' Required for ChooseDefaultWeightsNonLinear: cval.')
-    parser.add_argument('wts_calc_method',
+    parser.add_argument('--wts_calc_method',
                         metavar='WEIGHTS_CALCULATION_METHOD',
                         choices=['linear', 'nonlinear'],
+                        default='linear',
                         help='Method to use to calculate weights used in '
-                             'blending. "linear": calculate linearly varying '
-                             'blending weights. "nonlinear": calculate '
-                             'blending weights that decrease exponentially '
-                             'with increasing blending coordinate.')
+                             'blending. "linear" (default): calculate linearly'
+                             ' varying blending weights. "nonlinear": '
+                             'calculate blending weights that decrease '
+                             'exponentially with increasing blending '
+                             'coordinate.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '

@@ -37,7 +37,7 @@
 
   # Run weighted blending with linear weights and check it passes, creating
   # a source_realization attribute.
-  run improver weighted-blending 'linear' 'realization' 'weighted_mean' \
+  run improver weighted-blending 'realization' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/realizations/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
