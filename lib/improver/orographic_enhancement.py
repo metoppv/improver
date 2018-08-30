@@ -269,7 +269,7 @@ class OrographicEnhancement(object):
         """
         Calculate precipitation enhancement over orography at each site using:
 
-            orogenh = ((humidity * svp * vgradz) / 
+            orogenh = ((humidity * svp * vgradz) /
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
         Returns:

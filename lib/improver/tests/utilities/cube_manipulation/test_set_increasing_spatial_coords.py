@@ -34,7 +34,6 @@ Unit tests for the function "cube_manipulation.set_increasing_spatial_coords".
 
 import unittest
 import numpy as np
-from cf_units import Unit
 
 import iris
 from iris.coords import DimCoord
@@ -46,7 +45,7 @@ from improver.utilities.cube_manipulation import set_increasing_spatial_coords
 class Test_set_increasing_spatial_coords(IrisTest):
     """Test function to ensure spatial coordinates are in the increasing
     direction"""
-    
+
     def setUp(self):
         """Create test cubes"""
         data = np.arange(9).reshape(3, 3)
