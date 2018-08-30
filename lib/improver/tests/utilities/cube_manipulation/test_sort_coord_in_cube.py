@@ -36,6 +36,7 @@ import unittest
 
 import iris
 from iris.tests import IrisTest
+from iris.coords import AuxCoord
 import numpy as np
 
 from improver.utilities.cube_manipulation import sort_coord_in_cube
@@ -88,6 +89,33 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertDictEqual(
             self.ascending_cube.coord(coord_name).attributes,
             {"positive": "up"})
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_auxcoord(self):
+        """Test that the above sorting is successful when an AuxCoord is
+        used."""
+        expected_data = np.array(
+            [[[[1.00, 1.00, 1.00],
+               [1.00, 1.00, 1.00],
+               [1.00, 1.00, 1.00]]],
+             [[[2.00, 2.00, 2.00],
+               [2.00, 2.00, 2.00],
+               [2.00, 2.00, 2.00]]],
+             [[[3.00, 3.00, 3.00],
+               [3.00, 3.00, 3.00],
+               [3.00, 3.00, 3.00]]]])
+        coord_name = "height_aux"
+        height_coord = self.ascending_cube.coord('height')
+        height_coord_index, = self.ascending_cube.coord_dims('height')
+        new_coord = AuxCoord(height_coord.points, long_name=coord_name)
+        self.ascending_cube.add_aux_coord(new_coord, height_coord_index)
+        result = sort_coord_in_cube(self.ascending_cube, coord_name)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(self.ascending_cube.coord_dims(coord_name),
+                         result.coord_dims(coord_name))
+        self.assertArrayAlmostEqual(
+            self.ascending_height_points,
+            result.coord(coord_name).points)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_ascending_then_descending(self):
