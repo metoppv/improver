@@ -32,7 +32,6 @@
 
 import unittest
 import numpy as np
-from cf_units import Unit
 
 import iris
 from iris.coords import DimCoord
@@ -164,7 +163,7 @@ class Test__calculate_svp(IrisTest):
         pressure = np.array([[100000., 80000., 90000.],
                              [90000., 85000., 89000.],
                              [88000., 84000., 88000.]])
-        
+
         self.plugin = OrographicEnhancement()
         self.plugin.temperature = iris.cube.Cube(
             temperature, long_name="temperature", units="kelvin",

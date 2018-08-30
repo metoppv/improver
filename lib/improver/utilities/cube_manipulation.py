@@ -562,9 +562,9 @@ def set_increasing_spatial_coords(cube):
         coord = cube.coord(axis=axis)
 
         if not coord.is_monotonic():
-            'cube spatial coordinate {} is not monotonic'
+            msg = 'cube spatial coordinate {} is not monotonic'
             raise ValueError(msg.format(coord.name()))
-    
+
         if coord.points[1] < coord.points[0]:
             coord_axis, = cube.coord_dims(coord)
             if coord_axis == 0:
