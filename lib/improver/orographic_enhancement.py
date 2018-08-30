@@ -324,60 +324,18 @@ class OrographicEnhancement(object):
         stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
         variance = np.square(stddev)
 
-        # NOTE don't delete this method yet - it's 3x faster than below...
-        # initialise enhancement field
-        orogenh = np.zeros(site_orogenh.shape, dtype=np.float32)
-        sum_of_weights = np.zeros(site_orogenh.shape, dtype=np.float32)
-
-        # loop over destination points
-        for y in range(site_orogenh.data.shape[0]):
-            for x in range(site_orogenh.data.shape[1]):
-
-                # if there is no wind, skip this pixel
-                if mask[y, x]:
-                    continue
-
-                # loop over upstream pixels
-                for i in range(max_roi[y, x]):
-                    dist = i / max_sin_cos[y, x]
-
-                    # locate source point
-                    x_src = x - int(dist * sin_wind_dir[y, x])
-                    y_src = y - int(dist * cos_wind_dir[y, x])
-
-                    # force coordinates into bounds to avoid truncating the
-                    # upstream contribution towards domain edges
-                    x_src = max(x_src, 0)
-                    x_src = min(x_src, site_orogenh.data.shape[1]-1)
-                    y_src = max(y_src, 0)
-                    y_src = min(y_src, site_orogenh.data.shape[0]-1)
-
-                    # calculate point weight and increment orogenh
-                    weight = np.exp(-0.5 * pow(dist, 2) / variance[y, x])
-                    orogenh[y, x] += weight * site_orogenh[y_src, x_src]
-                    sum_of_weights[y, x] += weight
-
-        orogenh[~mask] = self.efficiency_factor * np.divide(
-            orogenh[~mask], sum_of_weights[~mask])
-
-        """
-        # TODO this is 3x slower than the loop - optimise!
-
         # generate 3d arrays to hold indices and weights of upstream components
         length = np.amax(max_roi)
-        shape = (wind_speed.shape[0], wind_speed.shape[1], length)
-        weights = np.fromiter(
-            (i / a if (i < b and not np.isclose(a, 0)) else np.nan
-             for (a, b) in zip(max_sin_cos.flatten(), max_roi.flatten())
-             for i in range(length)), np.float32,
-            count=wind_speed.size*length).reshape(shape)
-
-        # move the third axis to the front so that other arrays can be broadcast
-        distance_weight = np.moveaxis(weights, -1, 0)
+        shape = (length, wind_speed.shape[0], wind_speed.shape[1])
+        distance_weight = np.full(shape, np.nan, dtype=np.float32)
+        for y in range(distance_weight.shape[1]):
+            for x in range(distance_weight.shape[2]):
+                distance_weight[:max_roi[y, x], y, x] = (
+                    np.arange(max_roi[y, x]) / max_sin_cos[y, x])
 
         # calculate positions of source points
-        xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[0]),
-                                 np.arange(wind_speed.shape[1]))
+        xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
+                                 np.arange(wind_speed.shape[0]))
         x_source = xpos - np.multiply(distance_weight,
                                       sin_wind_dir).astype(int)
         y_source = ypos - np.multiply(distance_weight,
@@ -396,22 +354,19 @@ class OrographicEnhancement(object):
         source_values = np.fromiter(
             (site_orogenh[y, x] for (x, y) in zip(x_source.flatten(),
                                                   y_source.flatten())),
-             np.float32, count=x_source.size).reshape(x_source.shape)
+            np.float32, count=x_source.size).reshape(x_source.shape)
 
-        # calculate weights of source points
+        # calculate weighted values at source points
         value_weight = np.where(
-            np.isfinite(distance_weight),
+            (np.isfinite(distance_weight)) & (variance > 0),
             np.exp(np.divide(-0.5 * np.square(distance_weight), variance)), 0)
         sum_of_weights = np.sum(value_weight, axis=0)
-
-        # multiply weights by values at source points
         weighted_values = np.multiply(source_values, value_weight)
 
-        # sum along first axis and normalise
-        total_orogenh = np.sum(weighted_values, axis=0)
-        orogenh = self.efficiency_factor * np.divide(total_orogenh, sum_of_weights)
-
-        """
+        # calculate total enhancement
+        orogenh = np.sum(weighted_values, axis=0)
+        orogenh[~mask] = self.efficiency_factor * np.divide(
+            orogenh[~mask], sum_of_weights[~mask])
 
         return orogenh
 
