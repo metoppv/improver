@@ -40,8 +40,9 @@ from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_metadata import update_cube_blended_metadata
 from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -139,15 +140,8 @@ def main():
     else:
         coord_unit = 'no_unit'
 
-    # Read in cubes and merge together if more than one found.
-    cubelist = iris.cube.CubeList([])
-    for ifile in args.input_filepaths:
-        cube_in = load_cube(ifile)
-        cubelist.append(cube_in)
-    if len(cubelist) == 1:
-        cube = cubelist[0]
-    else:
-        cube = merge_cubes(cubelist)
+    cubelist = load_cubelist(args.input_filepaths)
+    cube = merge_cubes(cubelist)
 
     if args.wts_calc_method == "linear":
         weights = ChooseDefaultWeightsLinear(

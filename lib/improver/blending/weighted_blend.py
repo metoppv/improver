@@ -37,7 +37,8 @@ import iris
 from iris.analysis import Aggregator
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import add_renamed_cell_method
+from improver.utilities.cube_manipulation import (add_renamed_cell_method,
+                                                  sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.temporal import (
     cycletime_to_number, forecast_period_coord)
@@ -465,6 +466,9 @@ class WeightedBlendAcrossWholeDimension(object):
         if not cube.coords(self.coord):
             msg = ('Coordinate to be collapsed not found in cube.')
             raise CoordinateNotFoundError(msg)
+
+        # Ensure input cube is ascending along specified coordinate
+        cube = sort_coord_in_cube(cube, self.coord, order="ascending")
 
         # Check that the points within the time coordinate are equal
         # if the coordinate being blended is forecast_reference_time.
