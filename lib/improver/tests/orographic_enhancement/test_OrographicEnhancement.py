@@ -141,7 +141,7 @@ class Test__orography_gradients(IrisTest):
 
 class Test__regrid_and_populate(IrisTest):
     """Test the _regrid_and_populate method"""
-    pass # TODO
+    pass  # TODO
 
 
 class Test__calculate_svp(IrisTest):
@@ -256,7 +256,7 @@ class Test__site_orogenh(IrisTest):
         svp = np.array([[813.6, 878.0, 848.3],
                         [903.2, 890.5, 922.2],
                         [922.1, 928.4, 967.9]])
-        
+
         self.plugin = OrographicEnhancement()
         self.plugin.temperature = iris.cube.Cube(
             temperature, long_name="temperature", units="kelvin",
@@ -337,7 +337,6 @@ class Test__add_upstream_component(IrisTest):
 class Test_process(IrisTest):
     """Test the process method"""
     pass  # TODO
-
 
 
 if __name__ == '__main__':
