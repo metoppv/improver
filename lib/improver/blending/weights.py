@@ -362,15 +362,17 @@ class ChooseWeightsLinear(object):
         self.config_source = dict_or_cubes
         self.weighting_coord_name = weighting_coord_name
         self.config_coord_name = config_coord_name
-        self.config_dict = config_dict
+        self.config_dict = (
+            config_dict if self.config_source == "dict" else None)
         self.weights_coord_name = (
             weights_coord_name if self.config_source == "dict" else None)
 
         if self.config_source == "dict":
             self._check_config_dict()
         elif self.config_source != "cubes":
-            raise ValueError('Configuration source argument "dict_or_cubes" '
-                             'must be "dict" or "cubes"')
+            raise ValueError(
+                'Configuration source argument "dict_or_cubes" must be '
+                '"dict" or "cubes", found {}'.format(self.config_source))
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
@@ -402,6 +404,38 @@ class ChooseWeightsLinear(object):
                            self.config_dict[key][self.weights_coord_name],
                            weighting_len, weights_len))
                 raise ValueError(msg)
+
+    def _check_weights_cubes(self, cube, weights_cubes):
+        """Check that the number of weights cubes provided matches the
+        number of points along the self.config_coord_name dimension within
+        the input cube.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube containing the coordinate information that will be used
+                for checked.
+            weights_cube (iris.cube.CubeList):
+                CubeList where the number of cubes is expected the match
+                the number of points along the self.config_coord_name
+                dimension within the input cube. For example, if the
+                model_configuration dimension within the input cube has a
+                length of 2, then it is expected that there will be 2 cubes
+                within the weights_cubes CubeList.
+
+        Raises:
+            ValueError: If the number of cubes in weights_cubes does not
+                match the number of points along the self.config_coord_name
+                dimension.
+        """
+        if (len(cube.coord(self.config_coord_name).points) !=
+                len(weights_cubes)):
+            msg = ("The coordinate used to configure the weights needs to "
+                   "have the same length as the number of weights cubes. "
+                   "\n{} is {} != number of weights cubes is {}".format(
+                       self.config_coord_name,
+                       len(cube.coord(self.config_coord_name).points),
+                       len(weights_cubes)))
+            raise ValueError(msg)
 
     def _get_interpolation_inputs_from_cube(self, cube, weights_cube):
         """Organise the inputs required for the linear interpolation.
@@ -643,7 +677,7 @@ class ChooseWeightsLinear(object):
         else:
             source_points, target_points, source_weights, fill_value = (
                 self._get_interpolation_inputs_from_dict(cube))
-            axis=None
+            axis = None
 
         weights = WeightsUtilities.interpolate_to_find_weights(
             source_points, target_points, source_weights, axis=axis,
@@ -698,7 +732,7 @@ class ChooseWeightsLinear(object):
             else:
                 new_weights_cube = (
                     self._interpolate_to_create_weights(cube_slice))
- 
+
             cube_slices.append(new_weights_cube)
 
         # Normalise the weights.
@@ -709,7 +743,6 @@ class ChooseWeightsLinear(object):
                 new_weights_cube.data, axis=axis))
 
         return new_weights_cube
-
 
 
 class ChooseWeightsLinearFromDict(object):
