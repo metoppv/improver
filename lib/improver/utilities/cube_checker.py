@@ -50,7 +50,7 @@ def check_cube_not_float64(cube):
     if cube.dtype == np.float64:
         raise TypeError("64 bit cube not allowed: {!r}".format(cube))
     for coord in cube.coords():
-        if coord.name() == "time":
+        if coord.name() in ["time", "forecast_reference_time"]:
             continue
         if coord.points.dtype == np.float64:
             raise TypeError(
