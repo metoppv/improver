@@ -366,6 +366,9 @@ class Test__create_new_weights_cube(IrisTest):
                                        "weights": [0, 1, 1, 0],
                                        "units": "hours"}}
         self.weights = np.array([0., 0., 0.2])
+        self.expected_weights = np.array([[[[0., 0.], [0., 0.]],
+                                           [[0., 0.], [0., 0.]],
+                                           [[0.2, 0.2], [0.2, 0.2]]]])
 
     def test_with_weights_cube(self):
         """Test that the the expected cube containg the new weights is
@@ -377,49 +380,29 @@ class Test__create_new_weights_cube(IrisTest):
                               [0., 0.]],
                              [[0.2, 0.2],
                               [0.2, 0.2]]]])
-
-        expected_weights = np.array([[[[0., 0.],
-                                       [0., 0.]],
-                                      [[0., 0.],
-                                       [0., 0.]],
-                                      [[0.2, 0.2],
-                                       [0.2, 0.2]]]])
-
         plugin = ChooseWeightsLinear(self.weighting_coord_name)
         new_weights_cube = plugin._create_new_weights_cube(
             self.cube, weights, weights_cube)
-        self.assertArrayAlmostEqual(expected_weights, new_weights_cube.data)
-        self.assertEqual(weights_cube.metadata, new_weights_cube.metadata)
+        self.assertArrayAlmostEqual(new_weights_cube.data,
+                                    self.expected_weights)
+        self.assertAlmostEqual(new_weights_cube.metadata,
+                               weights_cube.metadata)
 
     def test_with_dict(self):
         """Test a new weights cube is created as intended, with the desired
         cube name."""
-        expected_weights = np.array([[[[0., 0.],
-                                       [0., 0.]],
-                                      [[0., 0.],
-                                       [0., 0.]],
-                                      [[0.2, 0.2],
-                                       [0.2, 0.2]]]])
-
         plugin = ChooseWeightsLinear(
             self.weighting_coord_name, use_dict=True,
             config_dict=self.config_dict)
         new_weights_cube = plugin._create_new_weights_cube(
             self.cube, self.weights)
-        self.assertArrayAlmostEqual(expected_weights, new_weights_cube.data)
+        self.assertArrayAlmostEqual(new_weights_cube.data,
+                                    self.expected_weights)
         self.assertEqual(new_weights_cube.name(), "weights")
 
     def test_with_dict_alternative_name(self):
         """Test a new weights cube is created as intended, with the desired
         cube name when an alternative weights_key_name is specified."""
-        cube = set_up_basic_model_config_cube()
-        expected_weights = np.array([[[[0., 0.],
-                                       [0., 0.]],
-                                      [[0., 0.],
-                                       [0., 0.]],
-                                      [[0.2, 0.2],
-                                       [0.2, 0.2]]]])
-
         self.config_dict["uk_det"]["alternative_name"] = (
             self.config_dict["uk_det"].pop("weights"))
         weighting_coord_name = "forecast_period"
@@ -428,7 +411,8 @@ class Test__create_new_weights_cube(IrisTest):
             config_dict=self.config_dict, weights_key_name="alternative_name")
         new_weights_cube = (
             plugin._create_new_weights_cube(self.cube, self.weights))
-        self.assertArrayAlmostEqual(expected_weights, new_weights_cube.data)
+        self.assertArrayAlmostEqual(new_weights_cube.data,
+                                    self.expected_weights)
         self.assertEqual(new_weights_cube.name(), "alternative_name")
 
 

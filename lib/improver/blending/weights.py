@@ -267,7 +267,7 @@ class ChooseWeightsLinear(object):
         Args:
             weighting_coord_name (str):
                 Standard name of the coordinate along which the weights will be
-                calculated. For example, if the intention is to provide weights
+                interpolated. For example, if the intention is to provide weights
                 varying with forecast period, then this argument would be
                 "forecast_period".  If use_dict == True, this coordinate must
                 be included within the configuration dictionary.
@@ -328,7 +328,8 @@ class ChooseWeightsLinear(object):
         return msg
 
     def _check_config_dict(self):
-        """Check whether the items within the configuration dictionary
+        """
+        Check whether the items within the configuration dictionary
         are present and of matching lengths.
 
         Raises:
@@ -355,7 +356,8 @@ class ChooseWeightsLinear(object):
                 raise ValueError(msg)
 
     def _get_interpolation_inputs_from_cube(self, cube, weights_cube):
-        """Organise the inputs required for the linear interpolation.
+        """
+        Generate inputs required for the linear interpolation.
 
         Args:
             cube (iris.cube.Cube):
@@ -413,7 +415,8 @@ class ChooseWeightsLinear(object):
         return source_points, target_points, source_weights, axis, fill_value
 
     def _get_interpolation_inputs_from_dict(self, cube):
-        """Organise the inputs required for the linear interpolation.
+        """
+        Generate inputs required for linear interpolation.
 
         Args:
             cube (iris.cube.Cube):
@@ -463,7 +466,9 @@ class ChooseWeightsLinear(object):
     def _interpolate_to_find_weights(
             source_points, target_points, source_weights, axis=0,
             fill_value=None):
-        """Use of scipy.interpolate.interp1d to interpolate. This allows
+        """
+        Use of scipy.interpolate.interp1d to interpolate source_weights
+        (valid at source_points) onto target_points grid.  This allows
         the specification of an axis for the interpolation, so that the
         source_weights can be a multi-dimensional numpy array.
 
@@ -482,14 +487,13 @@ class ChooseWeightsLinear(object):
             axis (int):
                 Axis along which the interpolation will occur.
             fill_value (tuple):
-                Values that be used if extrapolation is required. The
-                fill values will be used as constants that are extrapolated
-                if the target_points are outside the source_points
-                provided.
+                Values to be used if extrapolation is required.  The
+                fill values are used for target_points that are outside
+                the source_points grid.
 
         Returns:
             weights (np.ndarray):
-                Weights following interpolation.
+                Weights corresponding to target_points following interpolation.
         """
         bounds_error = True
         if fill_value is not None:
