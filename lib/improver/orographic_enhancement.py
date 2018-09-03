@@ -78,15 +78,11 @@ class OrographicEnhancement(object):
                           self.upstream_range_of_influence_km,
                           self.efficiency_factor, self.cloud_lifetime_s)
 
-    def _orography_gradients(self, topography):
+    def _orography_gradients(self):
         """
         Checks spatial dimensions are in the same coordinates as topography
         height; if not converts COORDINATE units in place.  Then calculates
         dimensionless gradient along both axes.
-
-        Args:
-            topography (iris.cube.Cube):
-                Height of topography above sea level
 
         Returns:
             (tuple): tuple containing:
@@ -95,20 +91,20 @@ class OrographicEnhancement(object):
                 **grady**: iris.cube.Cube of dimensionless topography gradient
                     in the positive y direction
         """
-        topography.coord(axis='x').convert_units(topography.units)
-        xdim = topography.coord_dims(topography.coord(axis='x'))[0]
-        topography.coord(axis='y').convert_units(topography.units)
-        ydim = topography.coord_dims(topography.coord(axis='y'))[0]
+        self.topography.coord(axis='x').convert_units(self.topography.units)
+        xdim = self.topography.coord_dims(self.topography.coord(axis='x'))[0]
+        self.topography.coord(axis='y').convert_units(self.topography.units)
+        ydim = self.topography.coord_dims(self.topography.coord(axis='y'))[0]
 
         # smooth topography along perpendicular axis before calculating
         # gradients in each direction (as done in STEPS)
-        topo_smx = uniform_filter1d(topography.data, 3, axis=ydim)
-        topo_smx_cube = topography.copy(data=topo_smx)
+        topo_smx = uniform_filter1d(self.topography.data, 3, axis=ydim)
+        topo_smx_cube = self.topography.copy(data=topo_smx)
         gradx, _ = DifferenceBetweenAdjacentGridSquares(
             gradient=True).process(topo_smx_cube)
 
-        topo_smy = uniform_filter1d(topography.data, 3, axis=xdim)
-        topo_smy_cube = topography.copy(data=topo_smy)
+        topo_smy = uniform_filter1d(self.topography.data, 3, axis=xdim)
+        topo_smy_cube = self.topography.copy(data=topo_smy)
         _, grady = DifferenceBetweenAdjacentGridSquares(
             gradient=True).process(topo_smy_cube)
 
@@ -164,10 +160,13 @@ class OrographicEnhancement(object):
         self.humidity.convert_units('1')
         self.uwind.convert_units('m s-1')
         self.vwind.convert_units('m s-1')
-        topography.convert_units('m')  # TODO should be "self" if modifying?
+
+        # sort topography
+        self.topography = topography.copy()
+        self.topography.convert_units('m')
 
         # calculate orography gradients
-        gradx, grady = self._orography_gradients(topography)
+        gradx, grady = self._orography_gradients()
 
         # calculate v.gradZ
         self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
@@ -218,7 +217,7 @@ class OrographicEnhancement(object):
                 wbt._lookup_svp(self.temperature),
                 self.temperature, self.pressure)
 
-    def _generate_mask(self, topography):
+    def _generate_mask(self):
         """
         Generates a boolean mask of areas NOT to calculate orographic
         enhancement.  Criteria for calculation are:
@@ -232,8 +231,8 @@ class OrographicEnhancement(object):
                 default zero value
         """
         # calculate mean 3x3 (square nbhood) orography heights
-        radius = convert_number_of_grid_cells_into_distance(topography, 1)
-        topo_nbhood = SquareNeighbourhood().run(topography, radius)
+        radius = convert_number_of_grid_cells_into_distance(self.topography, 1)
+        topo_nbhood = SquareNeighbourhood().run(self.topography, radius)
         topo_nbhood.convert_units('m')
 
         # create mask
@@ -262,6 +261,47 @@ class OrographicEnhancement(object):
         site_orogenh[~self.mask] = prefactor * np.divide(
             numerator[~self.mask], self.temperature.data[~self.mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
+
+    @staticmethod
+    def _locate_source_points(
+            wind_speed, distance, sin_wind_dir, cos_wind_dir):
+        """
+        Generate 3D arrays of source points from which to add upstream
+        orographic enhancement contribution
+
+        Args:
+            wind_speed (np.ndarray):
+                2D array of wind speed magnitudes
+            distance (np.ndarray):
+                3D array of grid point source-to-destination distances
+            sin_wind_dir (np.ndarray):
+                2D array of sin wind direction wrt grid north
+            cos_wind_dir (np.ndarray):
+                2D array of cos wind direction wrt grid north
+
+        Returns:
+            (tuple): tuple containing:
+                **x_source** (np.ndarray):
+                    3D array of source point x-coordinates
+                **y_source** (np.ndarray):
+                    3D array of source point y-coordinates
+        """
+
+        xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
+                                 np.arange(wind_speed.shape[0]))
+        x_source = xpos - np.multiply(distance, sin_wind_dir).astype(int)
+        y_source = ypos - np.multiply(distance, cos_wind_dir).astype(int)
+
+        # force coordinates into bounds to avoid truncation at domain edges
+        x_source = np.where(x_source < 0, 0, x_source)
+        x_source = np.where(x_source > wind_speed.shape[1]-1,
+                            wind_speed.shape[1]-1, x_source)
+
+        y_source = np.where(y_source < 0, 0, y_source)
+        y_source = np.where(y_source > wind_speed.shape[0]-1,
+                            wind_speed.shape[0]-1, y_source)
+
+        return x_source, y_source
 
     def _add_upstream_component(self, site_orogenh, grid_spacing):
         """
@@ -302,7 +342,7 @@ class OrographicEnhancement(object):
         stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
         variance = np.square(stddev)
 
-        # generate 3d arrays to hold indices and weights of upstream components
+        # generate 3d array of distances to upstream components
         length = np.amax(max_roi)
         shape = (length, wind_speed.shape[0], wind_speed.shape[1])
         distance_weight = np.full(shape, np.nan, dtype=np.float32)
@@ -312,21 +352,8 @@ class OrographicEnhancement(object):
                     np.arange(max_roi[y, x]) / max_sin_cos[y, x])
 
         # calculate positions of source points
-        xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
-                                 np.arange(wind_speed.shape[0]))
-        x_source = xpos - np.multiply(distance_weight,
-                                      sin_wind_dir).astype(int)
-        y_source = ypos - np.multiply(distance_weight,
-                                      cos_wind_dir).astype(int)
-
-        # force coordinates into bounds to avoid truncation at domain edges
-        x_source = np.where(x_source < 0, 0, x_source)
-        x_source = np.where(x_source > wind_speed.shape[1]-1,
-                            wind_speed.shape[1]-1, x_source)
-
-        y_source = np.where(y_source < 0, 0, y_source)
-        y_source = np.where(y_source > wind_speed.shape[0]-1,
-                            wind_speed.shape[0]-1, y_source)
+        x_source, y_source = self._locate_source_points(
+            wind_speed, distance_weight, sin_wind_dir, cos_wind_dir)
 
         # extract values at source points
         source_values = np.fromiter(
@@ -462,13 +489,13 @@ class OrographicEnhancement(object):
         self._calculate_svp(method=svp_method)
 
         # generate mask defining where to calculate orographic enhancement
-        self.mask = self._generate_mask(topography)
+        self.mask = self._generate_mask()
 
         # calculate site-specific orographic enhancement
         site_orogenh_data = self._site_orogenh()
 
         # integrate upstream component
-        grid_coord_km = topography.coord(axis='x').copy()
+        grid_coord_km = self.topography.coord(axis='x').copy()
         grid_coord_km.convert_units('km')
         grid_spacing_km = np.diff(grid_coord_km.points)[0]
 
