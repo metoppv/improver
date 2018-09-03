@@ -68,38 +68,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(str(plugin), expected)
 
 
-class Test__smooth_data(IrisTest):
-    """Test the _smooth_data method"""
-
-    def setUp(self):
-        """Set up an input array"""
-        self.plugin = OrographicEnhancement()
-        self.data = np.array([[200., 450., 850.],
-                              [320., 500., 1000.],
-                              [230., 600., 900.]])
-
-    def test_basic(self):
-        """Test output is np.array"""
-        result = self.plugin._smooth_data(self.data, axis=0)
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_axis_zero(self):
-        """Test smoothing along first axis"""
-        expected_result = np.array([[240., 466.66666667, 900.],
-                                    [250., 516.66666667, 916.66666667],
-                                    [260., 566.66666667, 933.33333333]])
-        result = self.plugin._smooth_data(self.data, axis=0)
-        self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_axis_one(self):
-        """Test smoothing along second axis"""
-        expected_result = np.array([[283.33333333, 500., 716.66666667],
-                                    [380., 606.66666667, 833.33333333],
-                                    [353.33333333, 576.66666667, 800.]])
-        result = self.plugin._smooth_data(self.data, axis=1)
-        self.assertArrayAlmostEqual(result, expected_result)
-
-
 class Test__orography_gradients(IrisTest):
     """Test the _orography_gradients method"""
 

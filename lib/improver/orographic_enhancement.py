@@ -35,6 +35,7 @@ over orography.
 
 import numpy as np
 from cf_units import Unit
+from scipy.ndimage import uniform_filter1d
 
 import iris
 from iris.analysis.cartography import rotate_winds
@@ -45,7 +46,7 @@ from improver.psychrometric_calculations.psychrometric_calculations \
     import WetBulbTemperature
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    compare_coords, set_increasing_spatial_coords)
+    compare_coords, sort_coord_in_cube)
 from improver.utilities.spatial import (
     convert_number_of_grid_cells_into_distance,
     DifferenceBetweenAdjacentGridSquares)
@@ -77,33 +78,6 @@ class OrographicEnhancement(object):
                           self.upstream_range_of_influence_km,
                           self.efficiency_factor, self.cloud_lifetime_s)
 
-    @staticmethod
-    def _smooth_data(data, axis):
-        """
-        Smooths input matrix over 3 grid cells along specified axis.
-
-        Args:
-            data (np.ndarray):
-                2D input data to be smoothed
-            axis (int):
-                Axis (0 or 1) over which to perform smoothing
-
-        Returns:
-            smoothed_data (np.ndarray):
-                Smoothed data
-        """
-        data_m = np.copy(data)
-        data_p = np.copy(data)
-
-        if axis == 0:
-            data_m[:-1, :] = data[1:, :]
-            data_p[1:, :] = data[:-1, :]
-        elif axis == 1:
-            data_m[:, :-1] = data[:, 1:]
-            data_p[:, 1:] = data[:, :-1]
-
-        return (data + data_m + data_p)/3.
-
     def _orography_gradients(self, topography):
         """
         Checks spatial dimensions are in the same coordinates as topography
@@ -122,16 +96,18 @@ class OrographicEnhancement(object):
                     in the positive y direction
         """
         topography.coord(axis='x').convert_units(topography.units)
+        xdim = topography.coord_dims(topography.coord(axis='x'))[0]
         topography.coord(axis='y').convert_units(topography.units)
+        ydim = topography.coord_dims(topography.coord(axis='y'))[0]
 
         # smooth topography along perpendicular axis before calculating
         # gradients in each direction (as done in STEPS)
-        topo_smx = self._smooth_data(topography.data, axis=0)
+        topo_smx = uniform_filter1d(topography.data, 3, axis=ydim)
         topo_smx_cube = topography.copy(data=topo_smx)
         gradx, _ = DifferenceBetweenAdjacentGridSquares(
             gradient=True).process(topo_smx_cube)
 
-        topo_smy = self._smooth_data(topography.data, axis=1)
+        topo_smy = uniform_filter1d(topography.data, 3, axis=xdim)
         topo_smy_cube = topography.copy(data=topo_smy)
         _, grady = DifferenceBetweenAdjacentGridSquares(
             gradient=True).process(topo_smy_cube)
@@ -165,16 +141,18 @@ class OrographicEnhancement(object):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
 
-        # set coordinates to be monotonically increasing
+        # set spatial coordinates to be monotonically increasing
         for cube in [temperature, humidity, pressure,
                      uwind, vwind, topography]:
-            set_increasing_spatial_coords(cube)
+            for coord in [cube.coord('projection_x_coordinate').name(),
+                          cube.coord('projection_y_coordinate').name()]:
+                sort_coord_in_cube(cube, coord)
 
         # regrid variables to match the high resolution orography
         regridder = iris.analysis.Linear()
-        self.temperature = temperature.regrid(topography, regridder)
-        self.pressure = pressure.regrid(topography, regridder)
-        self.humidity = humidity.regrid(topography, regridder)
+        self.temperature = temperature.copy().regrid(topography, regridder)
+        self.pressure = pressure.copy().regrid(topography, regridder)
+        self.humidity = humidity.copy().regrid(topography, regridder)
 
         uwind, vwind = rotate_winds(uwind, vwind, topography.coord_system())
         self.uwind = uwind.regrid(topography, regridder)
@@ -186,7 +164,7 @@ class OrographicEnhancement(object):
         self.humidity.convert_units('1')
         self.uwind.convert_units('m s-1')
         self.vwind.convert_units('m s-1')
-        topography.convert_units('m')
+        topography.convert_units('m')  # TODO should be "self" if modifying?
 
         # calculate orography gradients
         gradx, grady = self._orography_gradients(topography)
