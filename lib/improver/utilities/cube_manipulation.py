@@ -534,52 +534,6 @@ def compare_coords(cubes):
     return unmatching_coords
 
 
-def set_increasing_spatial_coords(cube):
-    """
-    Checks that the x and y axes on the input cube are in increasing
-    order.  If not, reverses the order of the decreasing coordinate(s)
-    and flips the data array.  Function modifies cube in place.
-
-    TODO this can be done with many fewer checks in numpy version 1.12
-    and above using: np.flip(cube.data, coord_axis).  This should remove
-    the requirement for a strictly 2D (y, x) cube.
-
-    Args:
-        cube (iris.cube.Cube):
-            2D input cube with x and y axes
-
-    Raises:
-        ValueError: if cube has more than two dimensions
-        iris.exceptions.CoordinateNotFoundError: if cube is missing an
-            x or y axis
-        ValueError: if coordinate values are randomly ordered (not
-            monotonic)
-    """
-    if cube.ndim != 2:
-        raise ValueError('cube has {} (!= 2) dimensions'.format(cube.ndim))
-
-    for axis in ['x', 'y']:
-        coord = cube.coord(axis=axis)
-
-        if not coord.is_monotonic():
-            msg = 'cube spatial coordinate {} is not monotonic'
-            raise ValueError(msg.format(coord.name()))
-
-        if coord.points[1] < coord.points[0]:
-            coord_axis, = cube.coord_dims(coord)
-            if coord_axis == 0:
-                cube.data = np.flipud(cube.data)
-            elif coord_axis == 1:
-                cube.data = np.fliplr(cube.data)
-            else:
-                raise ValueError(
-                    'unrecognised dimension {}'.format(coord_axis))
-            coord.points = np.flipud(coord.points)
-            if coord.bounds is not None:
-                coord.bounds = np.flipud(coord.bounds)
-                coord.bounds = np.fliplr(coord.bounds)
-
-
 def build_coordinate(data, long_name=None,
                      standard_name=None,
                      var_name=None,
