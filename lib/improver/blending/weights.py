@@ -267,10 +267,10 @@ class ChooseWeightsLinear(object):
         Args:
             weighting_coord_name (str):
                 Standard name of the coordinate along which the weights will be
-                interpolated. For example, if the intention is to provide weights
-                varying with forecast period, then this argument would be
-                "forecast_period".  If use_dict == True, this coordinate must
-                be included within the configuration dictionary.
+                interpolated. For example, if the intention is to provide
+                weights varying with forecast period, then this argument would
+                be "forecast_period".  If use_dict == True, this coordinate
+                must be included within the configuration dictionary.
 
         Keyword Args:
             config_coord_name (str):
@@ -576,7 +576,7 @@ class ChooseWeightsLinear(object):
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation.  If
-                self.use_dict == False, this is based on the input weights_cube;
+                self.use_dict == False, this is based on "weights_cube",
                 otherwise on "cube".
         """
 
