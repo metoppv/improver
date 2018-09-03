@@ -263,7 +263,8 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
+        self.assertArrayAlmostEqual(result[0][0].data, predictor_data,
+                                    decimal=4)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
@@ -346,7 +347,8 @@ class Test_process(IrisTest):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
+        self.assertArrayAlmostEqual(result[0][0].data, predictor_data,
+                                    decimal=4)
         self.assertArrayAlmostEqual(result[1][0].data, variance_data)
 
     @ManageWarnings(
