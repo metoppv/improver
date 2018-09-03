@@ -477,7 +477,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         for pct in self.percentiles:
             pctcube = cube.copy()
             pctcube.add_aux_coord(iris.coords.DimCoord(
-                pct, long_name=pct_coord_name, units='%'))
+                np.float32(pct), long_name=pct_coord_name, units='%'))
             pctcubelist.append(pctcube)
         result = pctcubelist.merge_cube()
         # If percentile coord is not already a dimension, promote it.
