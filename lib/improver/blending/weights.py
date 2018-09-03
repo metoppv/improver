@@ -258,27 +258,26 @@ class ChooseWeightsLinear(object):
     """Plugin to interpolate weights linearly to the required points, where
     original weights are provided as a cube or configuration dictionary"""
 
-    def __init__(self, weighting_coord_name, config_coord_name,
-                 use_dict=False, config_dict=None,
-                 weights_coord_name="weights"):
+    def __init__(self, weighting_coord_name,
+                 config_coord_name="model_configuration", use_dict=False,
+                 config_dict=None, weights_key_name="weights"):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
         Args:
             weighting_coord_name (str):
-                Name of the coordinate along which the weights will be
-                calculated. For example, if the intention is to provide
-                weights along the forecast_period coordinate within the
-                configuration dictionary, which can be linearly interpolated
-                to create all required weights, then this argument would be
-                "forecast_period".
-                This must be included within the configuration dictionary.
-            config_coord_name (str):
-                Name of the coordinate used for configuration. For example,
-                if the intention is to create weights for different models,
-                then model_configuration may appropriate.
+                Standard name of the coordinate along which the weights will be
+                calculated. For example, if the intention is to provide weights
+                varying with forecast period, then this argument would be
+                "forecast_period".  If use_dict == True, this coordinate must
+                be included within the configuration dictionary.
 
         Keyword Args:
+            config_coord_name (str):
+                Name of the coordinate used to select the configuration.
+                For example, if the intention is to create weights that scale
+                differently with the weighting_coord for different models, then
+                "model_configuration" would be the config_coord.
             use_dict (bool):
                 Whether to seek configuration information from a dictionary or
                 a weights cube.  Default uses a cube.
@@ -288,10 +287,10 @@ class ChooseWeightsLinear(object):
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.  Ignored if
                 use_dict == False.
-            weights_coord_name (str):
-                Name of the string within the configuration dictionary used
-                to specify the weights. This name is also used as the name
-                of the cube output from this plugin.  Ignored if
+            weights_key_name (str):
+                Name of the key string within the configuration dictionary used
+                to specify the weights. This is also used as the name of the
+                weights cube output from this plugin.  Ignored if
                 use_dict == False.
 
         Dictionary of format:
@@ -314,7 +313,7 @@ class ChooseWeightsLinear(object):
         self.weighting_coord_name = weighting_coord_name
         self.config_coord_name = config_coord_name
         self.config_dict = config_dict if self.use_dict else None
-        self.weights_coord_name = weights_coord_name if self.use_dict else None
+        self.weights_key_name = weights_key_name if self.use_dict else None
         if self.use_dict:
             self._check_config_dict()
 
@@ -322,15 +321,15 @@ class ChooseWeightsLinear(object):
         """Represent the plugin instance as a string"""
         msg = ("<ChooseWeightsLinear(): weighting_coord_name = {}, "
                "config_coord_name = {}, use_dict = {}, config_dict = {}, "
-               "weights_coord_name = {}>".format(
+               "weights_key_name = {}>".format(
                    self.weighting_coord_name, self.config_coord_name,
                    self.use_dict, str(self.config_dict),
-                   self.weights_coord_name))
+                   self.weights_key_name))
         return msg
 
     def _check_config_dict(self):
         """Check whether the items within the configuration dictionary
-        are of matching lengths.
+        are present and of matching lengths.
 
         Raises:
             ValueError: If items within the configuration dictionary are
@@ -343,49 +342,17 @@ class ChooseWeightsLinear(object):
             weighting_len = (
                 len(self.config_dict[key][self.weighting_coord_name]))
             weights_len = (
-                len(self.config_dict[key][self.weights_coord_name]))
+                len(self.config_dict[key][self.weights_key_name]))
             if weighting_len != weights_len:
                 msg = ("{} is {}, {} is {}."
                        "These items in the configuration dictionary "
                        "have different lengths i.e. {} != {}".format(
                            self.weighting_coord_name,
                            self.config_dict[key][self.weighting_coord_name],
-                           self.weights_coord_name,
-                           self.config_dict[key][self.weights_coord_name],
+                           self.weights_key_name,
+                           self.config_dict[key][self.weights_key_name],
                            weighting_len, weights_len))
                 raise ValueError(msg)
-
-    def _check_weights_cubes(self, cube, weights_cubes):
-        """Check that the number of weights cubes provided matches the
-        number of points along the self.config_coord_name dimension within
-        the input cube.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube containing the coordinate information that will be used
-                for checked.
-            weights_cube (iris.cube.CubeList):
-                CubeList where the number of cubes is expected the match
-                the number of points along the self.config_coord_name
-                dimension within the input cube. For example, if the
-                model_configuration dimension within the input cube has a
-                length of 2, then it is expected that there will be 2 cubes
-                within the weights_cubes CubeList.
-
-        Raises:
-            ValueError: If the number of cubes in weights_cubes does not
-                match the number of points along the self.config_coord_name
-                dimension.
-        """
-        if (len(cube.coord(self.config_coord_name).points) !=
-                len(weights_cubes)):
-            msg = ("The coordinate used to configure the weights needs to "
-                   "have the same length as the number of weights cubes. "
-                   "\n{} is {} != number of weights cubes is {}".format(
-                       self.config_coord_name,
-                       len(cube.coord(self.config_coord_name).points),
-                       len(weights_cubes)))
-            raise ValueError(msg)
 
     def _get_interpolation_inputs_from_cube(self, cube, weights_cube):
         """Organise the inputs required for the linear interpolation.
@@ -487,7 +454,7 @@ class ChooseWeightsLinear(object):
 
         target_points = cube.coord(self.weighting_coord_name).points
         source_weights = (
-            self.config_dict[config_point][self.weights_coord_name])
+            self.config_dict[config_point][self.weights_key_name])
 
         fill_value = (source_weights[0], source_weights[-1])
         return source_points, target_points, source_weights, fill_value
@@ -605,8 +572,8 @@ class ChooseWeightsLinear(object):
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation.  If
-                self.use_dict == False, this is based on the input
-                weights_cube; otherwise on the data cube.
+                self.use_dict == False, this is based on the input weights_cube;
+                otherwise on "cube".
         """
 
         if self.use_dict:
@@ -617,7 +584,7 @@ class ChooseWeightsLinear(object):
                 cubelist.append(cube_slice)
             new_weights_cube = (
                 check_cube_coordinates(cube, cubelist.merge_cube()))
-            new_weights_cube.rename(self.weights_coord_name)
+            new_weights_cube.rename(self.weights_key_name)
 
         else:
             dim_coords_and_dims = (
@@ -658,7 +625,7 @@ class ChooseWeightsLinear(object):
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation. This
-                has been renamed using the self.weights_coord_name but
+                has been renamed using the self.weights_key_name but
                 otherwise matches the input cube.
         """
         if self.use_dict:
@@ -708,8 +675,18 @@ class ChooseWeightsLinear(object):
         if not self.use_dict:
             if isinstance(weights_cubes, iris.cube.Cube):
                 weights_cubes = iris.cube.CubeList([weights_cubes])
-            self._check_weights_cubes(cube, weights_cubes)
 
+            # check that the number of weights cubes matches the length of the
+            # configuration coordinate
+            config_points = len(cube.coord(self.config_coord_name).points)
+            if len(weights_cubes) != config_points:
+                msg = ("The coordinate used to configure the weights needs to "
+                       "have the same length as the number of weights cubes. "
+                       "\n{} is {} != number of weights cubes is {}")
+                raise ValueError(msg.format(
+                    self.config_coord_name, config_points, len(weights_cubes)))
+
+        # calculate weights
         cube_slices = iris.cube.CubeList([])
         for cube_slice in cube.slices_over(self.config_coord_name):
             if self.use_dict:
@@ -724,7 +701,7 @@ class ChooseWeightsLinear(object):
                     cube_slice, weights_cube_slice)
             cube_slices.append(new_weights_cube)
 
-        # Normalise the weights.
+        # normalise weights
         new_weights_cube = cube_slices.merge_cube()
         axis = new_weights_cube.coord_dims(self.config_coord_name)
         new_weights_cube.data = (

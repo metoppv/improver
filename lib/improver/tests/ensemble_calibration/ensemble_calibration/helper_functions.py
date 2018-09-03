@@ -215,7 +215,7 @@ def set_up_wind_speed_cube():
 
 
 def add_forecast_reference_time_and_forecast_period(
-        cube, time_point=412231.0, fp_point=4.0):
+        cube, time_point=402295.0, fp_point=4.0):
     """
     Function to add forecast_reference_time and forecast_period coordinates
     to the input cube.
