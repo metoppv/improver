@@ -255,8 +255,8 @@ class WeightsUtilities(object):
 
 
 class ChooseWeightsLinear(object):
-    """Plugin to calculate linear weights, where the input is specified using
-    a configuration dictionary or cubes of weights"""
+    """Plugin to interpolate weights linearly to the required points, where
+    original weights are provided as a cube or configuration dictionary"""
 
     def __init__(self, weighting_coord_name, config_coord_name,
                  use_dict=False, config_dict=None,
@@ -278,11 +278,10 @@ class ChooseWeightsLinear(object):
                 if the intention is to create weights for different models,
                 then model_configuration may appropriate.
 
-
         Keyword Args:
             use_dict (bool):
                 Whether to seek configuration information from a dictionary or
-                a weights cube.  Default False uses a cube.
+                a weights cube.  Default uses a cube.
             config_dict (dict):
                 Dictionary containing the configuration information, namely
                 an initial set of weights and information regarding the
@@ -316,7 +315,6 @@ class ChooseWeightsLinear(object):
         self.config_coord_name = config_coord_name
         self.config_dict = config_dict if self.use_dict else None
         self.weights_coord_name = weights_coord_name if self.use_dict else None
-
         if self.use_dict:
             self._check_config_dict()
 
@@ -495,6 +493,47 @@ class ChooseWeightsLinear(object):
         return source_points, target_points, source_weights, fill_value
 
     @staticmethod
+    def _interpolate_to_find_weights(
+            source_points, target_points, source_weights, axis=0,
+            fill_value=None):
+        """Use of scipy.interpolate.interp1d to interpolate. This allows
+        the specification of an axis for the interpolation, so that the
+        source_weights can be a multi-dimensional numpy array.
+
+        Args:
+            source_points (np.ndarray):
+                Points within the configuration dictionary that will
+                be used as the input to the interpolation.
+            target_points (np.ndarray):
+                Points within the cube that will be the target points
+                for the interpolation.
+            source_weights (np.ndarray):
+                Weights from the configuration dictionary that will be
+                used as the input to the interpolation.
+
+        Keyword Args:
+            axis (int):
+                Axis along which the interpolation will occur.
+            fill_value (tuple):
+                Values that be used if extrapolation is required. The
+                fill values will be used as constants that are extrapolated
+                if the target_points are outside the source_points
+                provided.
+
+        Returns:
+            weights (np.ndarray):
+                Weights following interpolation.
+        """
+        bounds_error = True
+        if fill_value is not None:
+            bounds_error = False
+
+        f_out = interp1d(source_points, source_weights, axis=axis,
+                         fill_value=fill_value, bounds_error=bounds_error)
+        weights = f_out(target_points)
+        return weights
+
+    @staticmethod
     def _create_coord_and_dims_list(
             base_cube, cube_with_exception_coord, coord_list,
             exception_coord_name):
@@ -600,48 +639,7 @@ class ChooseWeightsLinear(object):
 
         return new_weights_cube
 
-    @staticmethod
-    def _interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=0,
-            fill_value=None):
-        """Use of scipy.interpolate.interp1d to interpolate. This allows
-        the specification of an axis for the interpolation, so that the
-        source_weights can be a multi-dimensional numpy array.
-
-        Args:
-            source_points (np.ndarray):
-                Points within the configuration dictionary that will
-                be used as the input to the interpolation.
-            target_points (np.ndarray):
-                Points within the cube that will be the target points
-                for the interpolation.
-            source_weights (np.ndarray):
-                Weights from the configuration dictionary that will be
-                used as the input to the interpolation.
-
-        Keyword Args:
-            axis (int):
-                Axis along which the interpolation will occur.
-            fill_value (tuple):
-                Values that be used if extrapolation is required. The
-                fill values will be used as constants that are extrapolated
-                if the target_points are outside the source_points
-                provided.
-
-        Returns:
-            weights (np.ndarray):
-                Weights following interpolation.
-        """
-        bounds_error = True
-        if fill_value is not None:
-            bounds_error = False
-
-        f_out = interp1d(source_points, source_weights, axis=axis,
-                         fill_value=fill_value, bounds_error=bounds_error)
-        weights = f_out(target_points)
-        return weights
-
-    def _create_weights(self, cube, weights_cube=None):
+    def _calculate_weights(self, cube, weights_cube=None):
         """Method to wrap the calls to other methods to support calculation
         of the weights by interpolation.
 
@@ -715,14 +713,14 @@ class ChooseWeightsLinear(object):
         cube_slices = iris.cube.CubeList([])
         for cube_slice in cube.slices_over(self.config_coord_name):
             if self.use_dict:
-                new_weights_cube = self._create_weights(cube_slice)
+                new_weights_cube = self._calculate_weights(cube_slice)
             else:
                 coord_point, = cube_slice.coord(self.config_coord_name).points
                 coord_values = (
                     {self.config_coord_name: lambda cell: cell == coord_point})
                 constr = iris.Constraint(coord_values=coord_values)
                 weights_cube_slice, = weights_cubes.extract(constr)
-                new_weights_cube = self._create_weights(
+                new_weights_cube = self._calculate_weights(
                     cube_slice, weights_cube_slice)
             cube_slices.append(new_weights_cube)
 
