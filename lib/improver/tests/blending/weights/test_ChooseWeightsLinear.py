@@ -420,8 +420,74 @@ class Test__create_new_weights_cube(IrisTest):
         self.assertEqual(new_weights_cube.name(), "alternative_name")
 
 
-class Test__interpolate_to_create_weights(IrisTest):
-    """Test the _interpolate_to_create_weights method"""
+class Test__interpolate_to_find_weights(IrisTest):
+    """Test the _interpolate_to_find_weights method."""
+
+    def setUp(self):
+        """Set up plugin instance"""
+        weighting_coord_name = "forecast_period"
+        config_coord_name = "model_configuration"
+        self.plugin = ChooseWeightsLinear(
+            weighting_coord_name, config_coord_name)
+
+    def test_1d_array(self):
+        """Test that the interpolation produces the expected result for a
+        1d input array."""
+        expected_weights = (
+            np.array([0., 0.5, 1., 1., 1., 0.5, 0.]))
+        source_points = np.array([0, 2, 4, 6])
+        target_points = np.arange(0, 7)
+        source_weights = np.array([0, 1, 1, 0])
+        weights = self.plugin._interpolate_to_find_weights(
+            source_points, target_points, source_weights, axis=0)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+    def test_2d_array_same_weights(self):
+        """Test that the interpolation produces the expected result for a
+        2d input array, where the two each of the input dimensions have the
+        same weights within the input numpy array."""
+        expected_weights = (
+            np.array([[0., 0.5, 1., 1., 1., 0.5, 0.],
+                      [0., 0.5, 1., 1., 1., 0.5, 0.]]))
+        source_points = np.array([0, 2, 4, 6])
+        target_points = np.arange(0, 7)
+        source_weights = np.array([[0, 1, 1, 0], [0, 1, 1, 0]])
+        weights = self.plugin._interpolate_to_find_weights(
+            source_points, target_points, source_weights, axis=1)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+    def test_2d_array_different_weights(self):
+        """Test that the interpolation produces the expected result for a
+        2d input array, where the two each of the input dimensions have
+        different weights within the input numpy array."""
+        expected_weights = (
+            np.array([[1., 1., 1., 0.5, 0., 0., 0.],
+                      [0., 0., 0., 0.5, 1., 0.5, 0.]]))
+        source_points = np.array([0, 2, 4, 6])
+        target_points = np.arange(0, 7)
+        source_weights = np.array([[1, 1, 0, 0], [0, 0, 1, 0]])
+        weights = self.plugin._interpolate_to_find_weights(
+            source_points, target_points, source_weights, axis=1)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+    def test_3d_array(self):
+        """Test that the interpolation produces the expected result for a
+        3d input array."""
+        expected_weights = (
+            np.array([[[1., 1., 1., 0.5, 0., 0., 0.],
+                       [0., 0., 0., 0.5, 1., 0.5, 0.],
+                       [1., 0.5, 0., 0.5, 1., 0.5, 0.]]]))
+        source_points = np.array([0, 2, 4, 6])
+        target_points = np.arange(0, 7)
+        source_weights = (
+            np.array([[[1, 1, 0, 0], [0, 0, 1, 0], [1, 0, 1, 0]]]))
+        weights = self.plugin._interpolate_to_find_weights(
+            source_points, target_points, source_weights, axis=2)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+
+class Test__create_weights(IrisTest):
+    """Test the _create_weights method"""
 
     def setUp(self):
         """Set up some cubes and plugins to work with"""
@@ -465,7 +531,7 @@ class Test__interpolate_to_create_weights(IrisTest):
         within the inputs."""
         cube = set_up_basic_model_config_cube()
         new_weights_cube = (
-            self.plugin_cubes._interpolate_to_create_weights(
+            self.plugin_cubes._create_weights(
                 cube, self.weights_cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
@@ -479,7 +545,7 @@ class Test__interpolate_to_create_weights(IrisTest):
         within the inputs."""
         cube = set_up_basic_model_config_cube()
         new_weights_cube = (
-            self.plugin_dict._interpolate_to_create_weights(cube))
+            self.plugin_dict._create_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
                                     self.expected_weights_below_range)
@@ -493,7 +559,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
             fp_point=[11., 12., 13.])
         new_weights_cube = (
-            self.plugin_cubes._interpolate_to_create_weights(
+            self.plugin_cubes._create_weights(
                 cube, self.weights_cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
@@ -509,7 +575,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
             fp_point=[11., 12., 13.])
         new_weights_cube = (
-            self.plugin_dict._interpolate_to_create_weights(cube))
+            self.plugin_dict._create_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
                                     self.expected_weights_within_range)
@@ -523,7 +589,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             self.temp_cube, time_point=[412280.0, 412281.0, 412282.0],
             fp_point=[53., 54., 55.])
         new_weights_cube = (
-            self.plugin_cubes._interpolate_to_create_weights(
+            self.plugin_cubes._create_weights(
                 cube, self.weights_cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
@@ -539,7 +605,7 @@ class Test__interpolate_to_create_weights(IrisTest):
             self.temp_cube, time_point=[402294.0, 402295.0, 402296.0],
             fp_point=[53., 54., 55.])
         new_weights_cube = (
-            self.plugin_dict._interpolate_to_create_weights(cube))
+            self.plugin_dict._create_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
                                     self.expected_weights_above_range)
@@ -573,7 +639,7 @@ class Test__interpolate_to_create_weights(IrisTest):
                                         [0., 1.]]]])
 
         new_weights_cube = (
-            self.plugin_cubes._interpolate_to_create_weights(
+            self.plugin_cubes._create_weights(
                 cube, weights_cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data, expected_weights)
