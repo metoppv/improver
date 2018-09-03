@@ -81,13 +81,13 @@ class Test__orography_gradients(IrisTest):
                            units='km')
         y_coord = DimCoord(np.arange(3), 'projection_y_coordinate',
                            units='km')
-        self.topography = iris.cube.Cube(
+        self.plugin.topography = iris.cube.Cube(
             data, long_name="topography", units="m",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
     def test_basic(self):
         """Test outputs are cubes"""
-        gradx, grady = self.plugin._orography_gradients(self.topography)
+        gradx, grady = self.plugin._orography_gradients()
         self.assertIsInstance(gradx, iris.cube.Cube)
         self.assertIsInstance(grady, iris.cube.Cube)
 
@@ -100,7 +100,7 @@ class Test__orography_gradients(IrisTest):
         expected_grady = np.array([[0.15833333, 0.175, 0.19166667],
                                    [0.035, 0.03833333, 0.04166667],
                                    [-0.08833333, -0.09833333, -0.10833333]])
-        gradx, grady = self.plugin._orography_gradients(self.topography)
+        gradx, grady = self.plugin._orography_gradients()
         self.assertArrayAlmostEqual(gradx.data, expected_gradx)
         self.assertArrayAlmostEqual(grady.data, expected_grady)
         for cube in [gradx, grady]:
@@ -163,6 +163,7 @@ class Test__generate_mask(IrisTest):
 
     def setUp(self):
         """Set up and populate a plugin instance"""
+        self.plugin = OrographicEnhancement()
         x_coord = DimCoord(np.arange(5), 'projection_x_coordinate',
                            units='km')
         y_coord = DimCoord(np.arange(5), 'projection_y_coordinate',
@@ -174,11 +175,9 @@ class Test__generate_mask(IrisTest):
                                     [25., 60., 80., 160., 220.],
                                     [50., 80., 100., 200., 250.],
                                     [50., 80., 100., 200., 250.]])
-        self.topography = iris.cube.Cube(
+        self.plugin.topography = iris.cube.Cube(
             topography_data, long_name="topography", units="m",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
-        self.plugin = OrographicEnhancement()
 
         humidity_data = np.full((5, 5), 0.9)
         humidity_data[1, 3] = 0.5
@@ -191,7 +190,7 @@ class Test__generate_mask(IrisTest):
 
     def test_basic(self):
         """Test output is array"""
-        result = self.plugin._generate_mask(self.topography)
+        result = self.plugin._generate_mask()
         self.assertIsInstance(result, np.ndarray)
 
     def test_values(self):
@@ -201,7 +200,7 @@ class Test__generate_mask(IrisTest):
                                     [False, False, False, False, False],
                                     [True, True, True, True, True],
                                     [True, True, True, True, True]])
-        result = self.plugin._generate_mask(self.topography)
+        result = self.plugin._generate_mask()
         self.assertArrayEqual(result, expected_output)
 
 
@@ -255,6 +254,11 @@ class Test__site_orogenh(IrisTest):
             [1.77400422, 3.86162901, 6.02323198]])
         result = self.plugin._site_orogenh()
         self.assertArrayAlmostEqual(result, expected_values)
+
+
+class Test__locate_source_points(IrisTest):
+    """Test the _locate_source_points method"""
+    pass  # TODO
 
 
 class Test__add_upstream_component(IrisTest):
