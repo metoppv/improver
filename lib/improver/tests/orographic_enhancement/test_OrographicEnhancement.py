@@ -35,9 +35,56 @@ import numpy as np
 
 import iris
 from iris.coords import DimCoord
+from iris.coord_systems import GeogCS, TransverseMercator
 from iris.tests import IrisTest
 
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.orographic_enhancement import OrographicEnhancement
+
+
+# define UKPP projection
+TMercCS = TransverseMercator(
+    latitude_of_projection_origin=49.0, longitude_of_central_meridian=-2.0,
+    false_easting=400000.0, false_northing=-100000.0,
+    scale_factor_at_central_meridian=0.9996013045310974,
+    ellipsoid=GeogCS(semi_major_axis=6377563.396, semi_minor_axis=6356256.91))
+
+
+def set_up_variable_cube(data, name="temperature", units="degC",
+                         xo=400000., yo=0.):
+    """
+    Set up cube containing diagnostic variable data for regridding tests.
+    Data are on a 2 km Transverse Mercator grid with an inverted y-axis,
+    located in the UK.
+    """
+    y_points = 2000.*(data.shape[0] - np.arange(data.shape[0])) + yo
+    x_points = 2000.*np.arange(data.shape[1]) + xo
+
+    y_coord = DimCoord(
+        y_points, 'projection_y_coordinate', units='m', coord_system=TMercCS)
+    x_coord = DimCoord(
+        x_points, 'projection_x_coordinate', units='m', coord_system=TMercCS)
+
+    cube = iris.cube.Cube(data, long_name=name, units=units,
+                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+    return cube
+
+
+def set_up_orography_cube(data, xo=400000., yo=0.):
+    """
+    Set up cube containing high resolution UK orography data
+    """
+    y_points = 1000.*(data.shape[0] - np.arange(data.shape[0])) + yo
+    x_points = 1000.*np.arange(data.shape[1]) + xo
+
+    y_coord = DimCoord(
+        y_points, 'projection_y_coordinate', units='m', coord_system=TMercCS)
+    x_coord = DimCoord(
+        x_points, 'projection_x_coordinate', units='m', coord_system=TMercCS)
+
+    cube = iris.cube.Cube(data, long_name="topography", units="m",
+                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+    return cube
 
 
 class Test__init__(IrisTest):
@@ -109,16 +156,142 @@ class Test__orography_gradients(IrisTest):
 
 class Test__regrid_variable(IrisTest):
     """Test the _regrid_variable method"""
-    pass  # TODO
+
+    def setUp(self):
+        """Set up input cubes"""
+        temperature = np.arange(6).reshape(2, 3)
+        self.temperature_cube = set_up_variable_cube(temperature)
+        orography = np.array([[20., 30., 40., 30., 25., 25.],
+                              [30., 50., 80., 60., 50., 45.],
+                              [50., 65., 90., 70., 60., 50.],
+                              [45., 60., 85., 65., 55., 45.]])
+        orography_cube = set_up_orography_cube(orography)
+        self.plugin = OrographicEnhancement()
+        self.plugin.topography = sort_coord_in_cube(
+            orography_cube, orography_cube.coord(axis='y'))
+
+    def test_basic(self):
+        """Test cube of the correct shape is returned"""
+        expected_data = np.array([[4.5, 5., 5.5, 6., 6.5, 7.],
+                                  [3., 3.5, 4., 4.5, 5., 5.5],
+                                  [1.5, 2., 2.5, 3., 3.5, 4.],
+                                  [0., 0.5, 1., 1.5, 2., 2.5]])
+        result = self.plugin._regrid_variable(self.temperature_cube, "degC")
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_axis_inversion(self):
+        """Test axes are output in ascending order"""
+        result = self.plugin._regrid_variable(self.temperature_cube, "degC")
+        x_points = result.coord(axis='x').points
+        y_points = result.coord(axis='y').points
+        self.assertTrue(x_points[1] > x_points[0])
+        self.assertTrue(y_points[1] > y_points[0])
+
+    def test_unit_conversion(self):
+        """Test units are correctly converted"""
+        expected_data = np.array([
+            [277.65, 278.15, 278.65, 279.15, 279.65, 280.15],
+            [276.15, 276.65, 277.15, 277.65, 278.15, 278.65],
+            [274.65, 275.15, 275.65, 276.15, 276.65, 277.15],
+            [273.15, 273.65, 274.15, 274.65, 275.15, 275.65]])
+        result = self.plugin._regrid_variable(self.temperature_cube, "kelvin")
+        self.assertEqual(result.units, 'kelvin')
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 class Test__regrid_and_populate(IrisTest):
     """Test the _regrid_and_populate method"""
-    pass  # TODO
+
+    def setUp(self):
+        temperature = np.arange(6).reshape(2, 3)
+        self.temperature = set_up_variable_cube(temperature)
+        humidity = np.arange(0.75, 0.86, 0.02).reshape(2, 3)
+        self.humidity = set_up_variable_cube(humidity, 'relhumidity', '1')
+        pressure = np.arange(820, 921, 20).reshape(2, 3)
+        self.pressure = set_up_variable_cube(pressure, 'pressure', 'hPa')
+        uwind = np.ones((2, 3), dtype=np.float32)
+        self.uwind = set_up_variable_cube(uwind, 'wind-u', 'knots')
+        vwind = np.ones((2, 3), dtype=np.float32)
+        self.vwind = set_up_variable_cube(vwind, 'wind-v', 'knots')
+
+        orography = np.array([[20., 30., 40., 30., 25., 25.],
+                              [30., 50., 80., 60., 50., 45.],
+                              [50., 65., 90., 70., 60., 50.],
+                              [45., 60., 85., 65., 55., 45.]])
+        self.orography_cube = set_up_orography_cube(orography)
+
+    def test_basic(self):
+        """Test function populates class instance"""
+        plugin = OrographicEnhancement()
+        plugin._regrid_and_populate(
+            self.temperature, self.humidity, self.pressure,
+            self.uwind, self.vwind, self.orography_cube)
+        self.assertIsInstance(plugin.temperature, iris.cube.Cube)
+        self.assertIsInstance(plugin.humidity, iris.cube.Cube)
+        self.assertIsInstance(plugin.pressure, iris.cube.Cube)
+        self.assertIsInstance(plugin.uwind, iris.cube.Cube)
+        self.assertIsInstance(plugin.vwind, iris.cube.Cube)
+        self.assertIsInstance(plugin.topography, iris.cube.Cube)
+        self.assertIsInstance(plugin.vgradz, np.ndarray)
+
+    def test_variables(self):
+        """Test variable values are sensible"""
+        expected_temperature = np.array([
+            [277.65, 278.15, 278.65, 279.15, 279.65, 280.15],
+            [276.15, 276.65, 277.15, 277.65, 278.15, 278.65],
+            [274.65, 275.15, 275.65, 276.15, 276.65, 277.15],
+            [273.15, 273.65, 274.15, 274.65, 275.15, 275.65]])
+
+        expected_humidity = np.array([[0.84, 0.85, 0.86, 0.87, 0.88, 0.89],
+                                      [0.81, 0.82, 0.83, 0.84, 0.85, 0.86],
+                                      [0.78, 0.79, 0.80, 0.81, 0.82, 0.83],
+                                      [0.75, 0.76, 0.77, 0.78, 0.79, 0.80]])
+
+        expected_pressure = np.array([
+            [91000., 92000., 93000., 94000., 95000., 96000.],
+            [88000., 89000., 90000., 91000., 92000., 93000.],
+            [85000., 86000., 87000., 88000., 89000., 90000.],
+            [82000., 83000., 84000., 85000., 86000., 87000.]])
+
+        expected_wind = 0.51444447*np.ones((4, 6))
+
+        plugin = OrographicEnhancement()
+        plugin._regrid_and_populate(
+            self.temperature, self.humidity, self.pressure,
+            self.uwind, self.vwind, self.orography_cube)
+
+        for cube, array in zip(
+                [plugin.temperature, plugin.humidity, plugin.pressure,
+                 plugin.uwind, plugin.vwind], [expected_temperature,
+                 expected_humidity, expected_pressure, expected_wind,
+                 expected_wind]):
+            self.assertArrayAlmostEqual(cube.data, array)
+
+        self.assertArrayAlmostEqual(
+            plugin.topography.data, np.flipud(self.orography_cube.data))
+
+    def test_vgradz(self):
+        """Test values of vgradz are sensible"""
+        expected_vgradz = np.array([
+            [0.01371852, 0.01800556, 0.00814537, -0.00128611,
+             0.00085741, 0.0004287],
+            [0.00257222, 0.00857407, 0., -0.00900278,
+             -0.00557315, -0.00428704],
+            [-0.00214352, -0.0004287, -0.00943148, -0.01714815,
+             -0.0120037, -0.00900278],
+            [0.0004287, -0.00643055, -0.01929167, -0.02700833,
+             -0.01929167, -0.01457593]])
+
+        plugin = OrographicEnhancement()
+        plugin._regrid_and_populate(
+            self.temperature, self.humidity, self.pressure,
+            self.uwind, self.vwind, self.orography_cube)
+        self.assertArrayAlmostEqual(plugin.vgradz, expected_vgradz)
 
 
-class Test__calculate_svp(IrisTest):
-    """Test the _calculate_svp method"""
+class SVPTest(IrisTest):
+    """Shared setUp method for saturation vapour pressure functions"""
 
     def setUp(self):
         """Set up and populate a plugin instance"""
@@ -148,6 +321,29 @@ class Test__calculate_svp(IrisTest):
             pressure, long_name="pressure", units="Pa",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
+
+class Test__calculate_steps_svp_millibars(SVPTest):
+    """Test the _calculate_steps_svp_millibars method"""
+
+    def test_basic(self):
+        """Test output is an array"""
+        result = self.plugin._calculate_steps_svp_millibars(
+            self.plugin.temperature.data)
+        self.assertIsInstance(result, np.ndarray)
+
+    def test_values(self):
+        """Test output values"""
+        expected_result = np.array([[8.1005659, 8.7493667, 8.4489765],
+                                    [8.9964323, 8.8721398, 9.1857549],
+                                    [9.1857549, 9.2496397, 9.6412525]])
+        result = self.plugin._calculate_steps_svp_millibars(
+            self.plugin.temperature.data)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+
+class Test__calculate_svp(SVPTest):
+    """Test the _calculate_svp method"""
+
     def test_basic(self):
         """Test output is a cube"""
         self.plugin._calculate_svp(method='IMPROVER')
@@ -156,10 +352,19 @@ class Test__calculate_svp(IrisTest):
     def test_values(self):
         """Test output values from the IMPROVER method"""
         expected_data = np.array([
-            [813.64530012, 878.02231292, 848.25894782],
-            [903.22241567, 890.54322113, 922.18893543],
-            [922.14742099, 928.39365513, 967.87596347]])
+            [813.645300, 878.022313, 848.258948],
+            [903.222415, 890.543221, 922.188935],
+            [922.147421, 928.393655, 967.875963]])
         self.plugin._calculate_svp(method='IMPROVER')
+        self.assertArrayAlmostEqual(self.plugin.svp.data, expected_data)
+
+    def test_values_steps(self):
+        """Test output values from the STEPS method"""
+        expected_data = np.array([
+            [810.056593, 874.936670, 844.897647],
+            [899.643230, 887.213984, 918.575494],
+            [918.575494, 924.963966, 964.125249]])
+        self.plugin._calculate_svp(method='STEPS')
         self.assertArrayAlmostEqual(self.plugin.svp.data, expected_data)
 
 
@@ -240,11 +445,14 @@ class Test__site_orogenh(IrisTest):
             svp, long_name="saturation_vapour_pressure", units="Pa",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
-        self.plugin.mask = np.full((3, 3), False, dtype=bool)
-        self.plugin.mask[0, 0] = True
         self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
                                        [0.06, 0.12, 0.22],
                                        [0.08, 0.16, 0.23]])
+
+        topography_data = np.full((3, 3), 50., dtype=np.float32)
+        self.plugin.topography = iris.cube.Cube(
+            topography_data, long_name="topography", units="m",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
     def test_basic(self):
         """Test output is an array"""
