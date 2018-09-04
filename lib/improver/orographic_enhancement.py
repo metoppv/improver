@@ -296,6 +296,39 @@ class OrographicEnhancement(object):
             numerator[~mask], self.temperature.data[~mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
 
+    def _get_distance_weights(self, wind_speed, max_sin_cos):
+        """
+        Generate 3d array of distances to upstream components
+
+        Args:
+            wind_speed (np.ndarray):
+                2D array of wind speeds
+            max_roi (np.ndarray):
+                2D array of maximum ranges of influence in grid squares
+            max_sin_cos (np.ndarray):
+                2D array containing the larger of sin(wind_direction) or
+                cos(wind_direction) with respect to grid north
+
+        Returns:
+            distance_weight (np.ndarray):
+                3D array of source-to-destination distances in grid points,
+                with np.nan filled in for out of range values
+        """
+        # calculate maximum upstream radius of influence at each grid cell
+        upstream_roi = (
+            self.upstream_range_of_influence_km / self.grid_spacing_km)
+        max_roi = (upstream_roi * max_sin_cos).astype(int)
+
+        length = np.amax(max_roi)
+        shape = (length, wind_speed.shape[0], wind_speed.shape[1])
+        distance_weight = np.full(shape, np.nan, dtype=np.float32)
+        for y in range(distance_weight.shape[1]):
+            for x in range(distance_weight.shape[2]):
+                distance_weight[:max_roi[y, x], y, x] = (
+                    np.arange(max_roi[y, x]) / max_sin_cos[y, x])
+
+        return distance_weight
+
     @staticmethod
     def _locate_source_points(
             wind_speed, distance, sin_wind_dir, cos_wind_dir):
@@ -340,15 +373,61 @@ class OrographicEnhancement(object):
 
         return x_source, y_source
 
-    def _add_upstream_component(self, site_orogenh, grid_spacing):
+    def _compute_weighted_values(self, site_orogenh, x_source, y_source,
+                                 distance_weight, wind_speed):
+        """
+        Extract orographic enhancement values from source points and weight
+        according to source-destination distance.
+
+        Args:
+            site_orogenh (np.ndarray):
+                2D array of point orographic enhancement values
+            x_source (np.ndarray):
+                3D array of x-coordinates of source points from which to read
+                upstream contribution
+            y_source (np.ndarray):
+                3D array of y-coordinates of source points from which to read
+                upstream contribution
+            distance_weight:
+                3D array of grid point source-to-destination distances
+            wind_speed:
+                2D array of wind speeds
+
+        Returns:
+            (tuple): tuple containing:
+                **orogenh** (np.ndarray):
+                    2D array containing a weighted sum of orographic
+                    enhancement components from upstream source points
+                **sum_of_weights** (np.ndarray):
+                    2D array containing weights for normalisation
+        """
+        source_values = np.fromiter(
+            (site_orogenh[y, x] for (x, y) in zip(x_source.flatten(),
+                                                  y_source.flatten())),
+            np.float32, count=x_source.size).reshape(x_source.shape)
+
+        # set standard deviation for Gaussian weighting function in grid
+        # squares
+        stddev = 0.001 * wind_speed * (
+            self.cloud_lifetime_s / self.grid_spacing_km)
+        variance = np.square(stddev)
+
+        # calculate weighted values at source points
+        value_weight = np.where(
+            (np.isfinite(distance_weight)) & (variance > 0),
+            np.exp(np.divide(-0.5 * np.square(distance_weight), variance)), 0)
+        sum_of_weights = np.sum(value_weight, axis=0)
+        weighted_values = np.multiply(source_values, value_weight)
+
+        return np.sum(weighted_values, axis=0), sum_of_weights
+
+    def _add_upstream_component(self, site_orogenh):
         """
         Add upstream component to site orographic enhancement
 
         Args:
             site_orogenh (np.ndarray):
                 Site orographic enhancement in mm h-1
-            grid_spacing (float):
-                Grid spacing of site_orogenh points in km
 
         Returns:
             orogenh (np.ndarray):
@@ -370,43 +449,18 @@ class OrographicEnhancement(object):
         max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
                                abs(sin_wind_dir), abs(cos_wind_dir))
 
-        # calculate maximum upstream radius of influence at each grid cell
-        upstream_roi = self.upstream_range_of_influence_km / grid_spacing
-        max_roi = (upstream_roi * max_sin_cos).astype(int)
-
-        # set standard deviation for Gaussian weighting function in grid
-        # squares
-        stddev = 0.001 * wind_speed * self.cloud_lifetime_s / grid_spacing
-        variance = np.square(stddev)
-
-        # generate 3d array of distances to upstream components
-        length = np.amax(max_roi)
-        shape = (length, wind_speed.shape[0], wind_speed.shape[1])
-        distance_weight = np.full(shape, np.nan, dtype=np.float32)
-        for y in range(distance_weight.shape[1]):
-            for x in range(distance_weight.shape[2]):
-                distance_weight[:max_roi[y, x], y, x] = (
-                    np.arange(max_roi[y, x]) / max_sin_cos[y, x])
+        # generate 3D array of distances to source points
+        distance_weight = self._get_distance_weights(wind_speed, max_sin_cos)
 
         # calculate positions of source points
         x_source, y_source = self._locate_source_points(
             wind_speed, distance_weight, sin_wind_dir, cos_wind_dir)
 
-        # extract values at source points
-        source_values = np.fromiter(
-            (site_orogenh[y, x] for (x, y) in zip(x_source.flatten(),
-                                                  y_source.flatten())),
-            np.float32, count=x_source.size).reshape(x_source.shape)
+        # compute weighted enhancements summed over all source points
+        orogenh, sum_of_weights = self._compute_weighted_values(
+            site_orogenh, x_source, y_source, distance_weight, wind_speed)
 
-        # calculate weighted values at source points
-        value_weight = np.where(
-            (np.isfinite(distance_weight)) & (variance > 0),
-            np.exp(np.divide(-0.5 * np.square(distance_weight), variance)), 0)
-        sum_of_weights = np.sum(value_weight, axis=0)
-        weighted_values = np.multiply(source_values, value_weight)
-
-        # calculate total enhancement
-        orogenh = np.sum(weighted_values, axis=0)
+        # normalise by weights and scale by efficiency factor
         orogenh[~mask] = self.efficiency_factor * np.divide(
             orogenh[~mask], sum_of_weights[~mask])
 
@@ -528,10 +582,10 @@ class OrographicEnhancement(object):
         # integrate upstream component
         grid_coord_km = self.topography.coord(axis='x').copy()
         grid_coord_km.convert_units('km')
-        grid_spacing_km = np.diff(grid_coord_km.points)[0]
+        self.grid_spacing_km = (
+            grid_coord_km.points[1] - grid_coord_km.points[0])
 
-        orogenh_data = self._add_upstream_component(
-            site_orogenh_data, grid_spacing_km)
+        orogenh_data = self._add_upstream_component(site_orogenh_data)
 
         # create data cubes on the two required output grids
         orogenh, orogenh_standard_grid = self._create_output_cubes(
