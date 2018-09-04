@@ -46,7 +46,7 @@ from improver.psychrometric_calculations.psychrometric_calculations \
     import WetBulbTemperature
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    compare_coords, sort_coord_in_cube)
+    compare_coords, enforce_coordinate_ordering, sort_coord_in_cube)
 from improver.utilities.spatial import (
     convert_number_of_grid_cells_into_distance,
     DifferenceBetweenAdjacentGridSquares)
@@ -132,6 +132,10 @@ class OrographicEnhancement(object):
             var_cube = sort_coord_in_cube(
                 var_cube, var_cube.coord(axis=axis))
 
+        var_cube = enforce_coordinate_ordering(
+            var_cube, [var_cube.coord(axis='y').name(),
+                       var_cube.coord(axis='x').name()])
+
         regridder = iris.analysis.Linear()
         out_cube = (var_cube.copy()).regrid(self.topography, regridder)
         out_cube.convert_units(unit)
@@ -160,48 +164,32 @@ class OrographicEnhancement(object):
             topography (iris.cube.Cube):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
-        """
-        # set spatial coordinates to be monotonically increasing
-        for cube in [temperature, humidity, pressure,
-                     uwind, vwind, topography]:
-            for coord in [cube.coord(axis='x').name(),
-                          cube.coord(axis='y').name()]:
-                cube = sort_coord_in_cube(cube, coord)
-
-        # regrid variables to match the high resolution orography
-        regridder = iris.analysis.Linear()
-        self.temperature = temperature.copy().regrid(topography, regridder)
-        self.pressure = pressure.copy().regrid(topography, regridder)
-        self.humidity = humidity.copy().regrid(topography, regridder)
-
-        uwind, vwind = rotate_winds(uwind, vwind, topography.coord_system())
-        self.uwind = uwind.regrid(topography, regridder)
-        self.vwind = vwind.regrid(topography, regridder)
-
-        # convert units as required for orographic enhancement calculation
-        self.pressure.convert_units('Pa')
-        self.temperature.convert_units('kelvin')
-        self.humidity.convert_units('1')
-        self.uwind.convert_units('m s-1')
-        self.vwind.convert_units('m s-1')
-        """
-
-        # convert topography into metres
+        # convert topography grid, datatype and units
         for axis in ['x', 'y']:
             topography = sort_coord_in_cube(
                 topography, topography.coord(axis=axis))
-
+        topography = enforce_coordinate_ordering(
+            topography, [topography.coord(axis='y').name(),
+                         topography.coord(axis='x').name()])
         self.topography = topography.copy(
             data=topography.data.astype(np.float32))
         self.topography.convert_units('m')
 
         # rotate winds
-        uwind, vwind = rotate_winds(uwind, vwind, topography.coord_system())
-
-        # remove auxiliary spatial coordinates from rotated winds
-        for cube in [uwind, vwind]:
-            for axis in ['x', 'y']:
-                cube.remove_coord(cube.coord(axis=axis, dim_coords=False))
+        try:
+            uwind, vwind = rotate_winds(
+                uwind, vwind, topography.coord_system())
+        except ValueError as err:
+            if 'Duplicate coordinates are not permitted' in str(err):
+                # ignore error raised if uwind and vwind do not need rotating
+                pass
+            else:
+                raise ValueError(str(err))
+        else:
+            # remove auxiliary spatial coordinates from rotated winds
+            for cube in [uwind, vwind]:
+                for axis in ['x', 'y']:
+                    cube.remove_coord(cube.coord(axis=axis, dim_coords=False))
 
         # regrid and convert input variables
         self.temperature = self._regrid_variable(temperature, 'kelvin')
@@ -298,13 +286,14 @@ class OrographicEnhancement(object):
             site_orogenh (np.ndarray):
                 Orographic enhancement values in mm/h
         """
+        mask = self._generate_mask()
         site_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
 
         prefactor = 3600./R_WATER_VAPOUR
         numerator = np.multiply(self.humidity.data, self.svp.data)
         numerator = np.multiply(numerator, self.vgradz)
-        site_orogenh[~self.mask] = prefactor * np.divide(
-            numerator[~self.mask], self.temperature.data[~self.mask])
+        site_orogenh[~mask] = prefactor * np.divide(
+            numerator[~mask], self.temperature.data[~mask])
         return np.where(site_orogenh > 0, site_orogenh, 0)
 
     @staticmethod
@@ -312,7 +301,8 @@ class OrographicEnhancement(object):
             wind_speed, distance, sin_wind_dir, cos_wind_dir):
         """
         Generate 3D arrays of source points from which to add upstream
-        orographic enhancement contribution
+        orographic enhancement contribution.  Assumes spatial coordinate
+        ordering [y, x].
 
         Args:
             wind_speed (np.ndarray):
@@ -531,9 +521,6 @@ class OrographicEnhancement(object):
 
         # calculate saturation vapour pressure
         self._calculate_svp(method=svp_method)
-
-        # generate mask defining where to calculate orographic enhancement
-        self.mask = self._generate_mask()
 
         # calculate site-specific orographic enhancement
         site_orogenh_data = self._site_orogenh()
