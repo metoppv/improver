@@ -254,7 +254,7 @@ class Test__regrid_and_populate(IrisTest):
             [85000., 86000., 87000., 88000., 89000., 90000.],
             [82000., 83000., 84000., 85000., 86000., 87000.]])
 
-        expected_wind = 0.51444447*np.ones((4, 6))
+        expected_wind = np.full((4, 6), 0.51444447, dtype=np.float32)
 
         plugin = OrographicEnhancement()
         plugin._regrid_and_populate(
@@ -469,27 +469,27 @@ class Test__site_orogenh(IrisTest):
         self.assertArrayAlmostEqual(result, expected_values)
 
 
+class Test__get_distance_weights(IrisTest):
+    """Test the _get_distance_weights function"""
+    pass  # TODO
+
+
 class Test__locate_source_points(IrisTest):
     """Test the _locate_source_points method"""
 
     def setUp(self):
         """Define matrices"""
         self.wind_speed = np.ones((3, 4), dtype=np.float32)
-        self.sin_wind_dir = 0.4*np.ones((3, 4), dtype=np.float32)
-        self.cos_wind_dir = np.sqrt(0.84)*np.ones((3, 4), dtype=np.float32)
-        max_roi = np.full((3, 4), 4, dtype=int)
-
-        length = np.amax(max_roi)
-        shape = (length, self.wind_speed.shape[0], self.wind_speed.shape[1])
-        self.distance_weight = np.full(shape, np.nan, dtype=np.float32)
-        for y in range(self.distance_weight.shape[1]):
-            for x in range(self.distance_weight.shape[2]):
-                self.distance_weight[:max_roi[y, x], y, x] = (
-                    np.arange(max_roi[y, x]) / self.cos_wind_dir[y, x])
+        self.sin_wind_dir = np.full((3, 4), 0.4, dtype=np.float32)
+        self.cos_wind_dir = np.full((3, 4), np.sqrt(0.84), dtype=np.float32)
+        self.plugin = OrographicEnhancement()
+        self.plugin.grid_spacing_km = 3.
+        self.distance_weight = self.plugin._get_distance_weights(
+            self.wind_speed, self.cos_wind_dir)
 
     def test_basic(self):
         """Test location of source points"""
-        xsrc, ysrc = OrographicEnhancement()._locate_source_points(
+        xsrc, ysrc = self.plugin._locate_source_points(
             self.wind_speed, self.distance_weight,
             self.sin_wind_dir, self.cos_wind_dir)
 
@@ -507,6 +507,52 @@ class Test__locate_source_points(IrisTest):
         self.assertArrayEqual(ysrc, expected_ysrc)
 
 
+class Test__compute_weighted_values(IrisTest):
+    """Test the _compute_weighted_values method"""
+
+    def setUp(self):
+        """Set up plugin and some inputs"""
+        self.plugin = OrographicEnhancement()
+        self.plugin.grid_spacing_km = 3.
+
+        self.site_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
+                                      [4.4, 4.6, 5.8, 6.2, 5.5],
+                                      [5.2, 3.0, 3.4, 5.1, 3.3],
+                                      [0.6, 2.0, 1.8, 4.2, 2.5],
+                                      [0.0, 0.0, 0.2, 3.2, 1.8]])
+
+        self.wind_speed = np.full((5, 5), 25., dtype=np.float32)
+        sin_wind_dir = np.full((5, 5), 0.4, dtype=np.float32)
+        cos_wind_dir = np.full((5, 5), np.sqrt(0.84), dtype=np.float32)
+        self.distance_weight = self.plugin._get_distance_weights(
+            self.wind_speed, cos_wind_dir)
+        self.xsrc, self.ysrc = self.plugin._locate_source_points(
+            self.wind_speed, self.distance_weight, sin_wind_dir, cos_wind_dir)
+
+    def test_basic(self):
+        """Test output is two arrays"""
+        orogenh, weights = self.plugin._compute_weighted_values(
+            self.site_orogenh, self.xsrc, self.ysrc,
+            self.distance_weight, self.wind_speed)
+        self.assertIsInstance(orogenh, np.ndarray)
+        self.assertIsInstance(weights, np.ndarray)
+
+    def test_values(self):
+        """Test values are as expected"""
+        expected_orogenh = np.array([
+            [6.0531969, 6.7725644, 8.2301264, 9.9942646, 8.1690931],
+            [6.3531971, 6.7725644, 8.4301271, 9.3942642, 8.1690931],
+            [7.2848172, 5.1725645, 6.1178742, 8.0310230, 5.9690924],
+            [3.0469213, 3.4817038, 3.4649093, 6.6558237, 4.1816435],
+            [0.4585612, 1.0727906, 1.1036499, 5.1721582, 3.0895371]])
+        expected_weights = np.full((5, 5), 1.4763895, dtype=np.float32)
+        orogenh, weights = self.plugin._compute_weighted_values(
+            self.site_orogenh, self.xsrc, self.ysrc,
+            self.distance_weight, self.wind_speed)
+        self.assertArrayAlmostEqual(orogenh, expected_orogenh)
+        self.assertArrayAlmostEqual(weights, expected_weights)
+
+
 class Test__add_upstream_component(IrisTest):
     """Test the _add_upstream_component method"""
 
@@ -516,8 +562,8 @@ class Test__add_upstream_component(IrisTest):
                            units='km')
         y_coord = DimCoord(3.*np.arange(5), 'projection_y_coordinate',
                            units='km')
-        uwind = 20.*np.ones((5, 5))
-        vwind = 12.*np.ones((5, 5))
+        uwind = np.full((5, 5), 20., dtype=np.float32)
+        vwind = np.full((5, 5), 12., dtype=np.float32)
 
         self.plugin = OrographicEnhancement()
         self.plugin.uwind = iris.cube.Cube(
@@ -526,6 +572,7 @@ class Test__add_upstream_component(IrisTest):
         self.plugin.vwind = iris.cube.Cube(
             vwind, long_name="grid_northward_wind", units="m s-1",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.grid_spacing_km = 3.
 
         self.site_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
                                       [4.4, 4.6, 5.8, 6.2, 5.5],
@@ -535,8 +582,7 @@ class Test__add_upstream_component(IrisTest):
 
     def test_basic(self):
         """Test output is an array"""
-        result = self.plugin._add_upstream_component(
-            self.site_orogenh, grid_spacing=3.)
+        result = self.plugin._add_upstream_component(self.site_orogenh)
         self.assertIsInstance(result, np.ndarray)
 
     def test_values(self):
@@ -548,8 +594,7 @@ class Test__add_upstream_component(IrisTest):
             [0.418468, 0.659300, 0.496544, 0.927728, 0.735382],
             [0.036423, 0.036423, 0.152506, 0.660092, 0.558801]])
 
-        result = self.plugin._add_upstream_component(
-            self.site_orogenh, grid_spacing=3.)
+        result = self.plugin._add_upstream_component(self.site_orogenh)
         self.assertArrayAlmostEqual(result, expected_values)
 
 
