@@ -107,6 +107,11 @@ class Test__orography_gradients(IrisTest):
             self.assertEqual(cube.units, '1')
 
 
+class Test__regrid_variable(IrisTest):
+    """Test the _regrid_variable method"""
+    pass  # TODO
+
+
 class Test__regrid_and_populate(IrisTest):
     """Test the _regrid_and_populate method"""
     pass  # TODO
@@ -258,7 +263,40 @@ class Test__site_orogenh(IrisTest):
 
 class Test__locate_source_points(IrisTest):
     """Test the _locate_source_points method"""
-    pass  # TODO
+
+    def setUp(self):
+        """Define matrices"""
+        self.wind_speed = np.ones((3, 4), dtype=np.float32)
+        self.sin_wind_dir = 0.4*np.ones((3, 4), dtype=np.float32)
+        self.cos_wind_dir = np.sqrt(0.84)*np.ones((3, 4), dtype=np.float32)
+        max_roi = np.full((3, 4), 4, dtype=int)
+
+        length = np.amax(max_roi)
+        shape = (length, self.wind_speed.shape[0], self.wind_speed.shape[1])
+        self.distance_weight = np.full(shape, np.nan, dtype=np.float32)
+        for y in range(self.distance_weight.shape[1]):
+            for x in range(self.distance_weight.shape[2]):
+                self.distance_weight[:max_roi[y, x], y, x] = (
+                    np.arange(max_roi[y, x]) / self.cos_wind_dir[y, x])
+
+    def test_basic(self):
+        """Test location of source points"""
+        xsrc, ysrc = OrographicEnhancement()._locate_source_points(
+            self.wind_speed, self.distance_weight,
+            self.sin_wind_dir, self.cos_wind_dir)
+
+        expected_xsrc = np.array([[[0, 1, 2, 3], [0, 1, 2, 3], [0, 1, 2, 3]],
+                                  [[0, 1, 2, 3], [0, 1, 2, 3], [0, 1, 2, 3]],
+                                  [[0, 0, 1, 2], [0, 0, 1, 2], [0, 0, 1, 2]],
+                                  [[0, 0, 1, 2], [0, 0, 1, 2], [0, 0, 1, 2]]])
+
+        expected_ysrc = np.array([[[0, 0, 0, 0], [1, 1, 1, 1], [2, 2, 2, 2]],
+                                  [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]],
+                                  [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+                                  [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]])
+
+        self.assertArrayEqual(xsrc, expected_xsrc)
+        self.assertArrayEqual(ysrc, expected_ysrc)
 
 
 class Test__add_upstream_component(IrisTest):
@@ -296,14 +334,20 @@ class Test__add_upstream_component(IrisTest):
     def test_values(self):
         """Test output values are sensible"""
         expected_values = np.array([
-            [0.953865, 1.039876, 1.241069, 1.506976, 1.355637],
-            [1.022974, 1.057379, 1.275474, 1.415431, 1.320632],
-            [1.207951, 0.829502, 0.769960, 1.086190, 0.878462],
-            [0.150106, 0.390938, 0.438211, 0.834390, 0.682859],
-            [0.001372, 0.001372, 0.035776, 0.566698, 0.500450]])
+            [0.953865, 1.039876, 1.241070, 1.506976, 1.355637],
+            [1.005472, 1.039876, 1.275474, 1.403762, 1.355637],
+            [1.161275, 0.782825, 0.863303, 1.226206, 0.942638],
+            [0.418468, 0.659300, 0.496544, 0.927728, 0.735382],
+            [0.036423, 0.036423, 0.152506, 0.660092, 0.558801]])
+
         result = self.plugin._add_upstream_component(
             self.site_orogenh, grid_spacing=3.)
         self.assertArrayAlmostEqual(result, expected_values)
+
+
+class Test__create_output_cubes(IrisTest):
+    """Test the _create_output_cubes method"""
+    pass  # TODO
 
 
 class Test_process(IrisTest):

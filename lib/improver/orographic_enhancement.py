@@ -113,6 +113,30 @@ class OrographicEnhancement(object):
 
         return gradx, grady
 
+    def _regrid_variable(self, var_cube, unit):
+        """
+        Sorts spatial coordinates in ascending order, regrids the input
+        variable onto the topography grid and converts to the required
+        units.
+
+        Args:
+            var_cube (iris.cube.Cube):
+                Cube containing input variable data
+            unit (str):
+                Required unit for input data
+
+        Returns:
+            (iris.cube.Cube): regridded data cube
+        """
+        for axis in ['x', 'y']:
+            var_cube = sort_coord_in_cube(
+                var_cube, var_cube.coord(axis=axis))
+
+        regridder = iris.analysis.Linear()
+        out_cube = (var_cube.copy()).regrid(self.topography, regridder)
+        out_cube.convert_units(unit)
+        return out_cube
+
     def _regrid_and_populate(self, temperature, humidity, pressure,
                              uwind, vwind, topography):
         """
@@ -136,13 +160,13 @@ class OrographicEnhancement(object):
             topography (iris.cube.Cube):
                 Height of topography above sea level on 1 km UKPP domain grid
         """
-
+        """
         # set spatial coordinates to be monotonically increasing
         for cube in [temperature, humidity, pressure,
                      uwind, vwind, topography]:
-            for coord in [cube.coord('projection_x_coordinate').name(),
-                          cube.coord('projection_y_coordinate').name()]:
-                sort_coord_in_cube(cube, coord)
+            for coord in [cube.coord(axis='x').name(),
+                          cube.coord(axis='y').name()]:
+                cube = sort_coord_in_cube(cube, coord)
 
         # regrid variables to match the high resolution orography
         regridder = iris.analysis.Linear()
@@ -160,10 +184,31 @@ class OrographicEnhancement(object):
         self.humidity.convert_units('1')
         self.uwind.convert_units('m s-1')
         self.vwind.convert_units('m s-1')
+        """
 
-        # sort topography
-        self.topography = topography.copy()
+        # convert topography into metres
+        for axis in ['x', 'y']:
+            topography = sort_coord_in_cube(
+                topography, topography.coord(axis=axis))
+
+        self.topography = topography.copy(
+            data=topography.data.astype(np.float32))
         self.topography.convert_units('m')
+
+        # rotate winds
+        uwind, vwind = rotate_winds(uwind, vwind, topography.coord_system())
+
+        # remove auxiliary spatial coordinates from rotated winds
+        for cube in [uwind, vwind]:
+            for axis in ['x', 'y']:
+                cube.remove_coord(cube.coord(axis=axis, dim_coords=False))
+
+        # regrid and convert input variables
+        self.temperature = self._regrid_variable(temperature, 'kelvin')
+        self.humidity = self._regrid_variable(humidity, '1')
+        self.pressure = self._regrid_variable(pressure, 'Pa')
+        self.uwind = self._regrid_variable(uwind, 'm s-1')
+        self.vwind = self._regrid_variable(vwind, 'm s-1')
 
         # calculate orography gradients
         gradx, grady = self._orography_gradients()
@@ -289,8 +334,10 @@ class OrographicEnhancement(object):
 
         xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
                                  np.arange(wind_speed.shape[0]))
-        x_source = xpos - np.multiply(distance, sin_wind_dir).astype(int)
-        y_source = ypos - np.multiply(distance, cos_wind_dir).astype(int)
+        x_source = np.around(xpos - np.multiply(distance,
+                                                sin_wind_dir)).astype(int)
+        y_source = np.around(ypos - np.multiply(distance,
+                                                cos_wind_dir)).astype(int)
 
         # force coordinates into bounds to avoid truncation at domain edges
         x_source = np.where(x_source < 0, 0, x_source)
@@ -375,16 +422,13 @@ class OrographicEnhancement(object):
 
         return orogenh
 
-    @staticmethod
-    def _create_output_cubes(orogenh_data, high_res_cube, reference_cube):
+    def _create_output_cubes(self, orogenh_data, reference_cube):
         """
         Create two output cubes of orographic enhancement on different grids
 
         Args:
             orogenh_data (np.ndarray):
                 Orographic enhancement value in mm h-1
-            high_res_cube (iris.cube.Cube):
-                Cube on the 1 km UKPP grid
             reference_cube (iris.cube.Cube):
                 Cube with the correct time and forecast period coordinates on
                 the UK 2 km standard grid
@@ -398,8 +442,8 @@ class OrographicEnhancement(object):
                     with masked np.nans
         """
         # create cube containing high resolution data in mm/h
-        x_coord = high_res_cube.coord(axis='x')
-        y_coord = high_res_cube.coord(axis='y')
+        x_coord = self.topography.coord(axis='x')
+        y_coord = self.topography.coord(axis='y')
         attributes = {'institution': 'Met Office', 'source': 'IMPROVER'}
         orogenh = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
@@ -504,6 +548,6 @@ class OrographicEnhancement(object):
 
         # create data cubes on the two required output grids
         orogenh, orogenh_standard_grid = self._create_output_cubes(
-            orogenh_data, topography, temperature)
+            orogenh_data, temperature)
 
         return orogenh, orogenh_standard_grid
