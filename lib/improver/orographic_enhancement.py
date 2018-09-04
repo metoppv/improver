@@ -354,7 +354,6 @@ class OrographicEnhancement(object):
                 **y_source** (np.ndarray):
                     3D array of source point y-coordinates
         """
-
         xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
                                  np.arange(wind_speed.shape[0]))
         x_source = np.around(xpos - np.multiply(distance,
