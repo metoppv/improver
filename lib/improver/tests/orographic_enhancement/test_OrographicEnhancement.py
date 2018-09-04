@@ -263,9 +263,9 @@ class Test__regrid_and_populate(IrisTest):
 
         for cube, array in zip(
                 [plugin.temperature, plugin.humidity, plugin.pressure,
-                 plugin.uwind, plugin.vwind], [expected_temperature,
-                 expected_humidity, expected_pressure, expected_wind,
-                 expected_wind]):
+                 plugin.uwind, plugin.vwind],
+                [expected_temperature, expected_humidity, expected_pressure,
+                 expected_wind, expected_wind]):
             self.assertArrayAlmostEqual(cube.data, array)
 
         self.assertArrayAlmostEqual(
