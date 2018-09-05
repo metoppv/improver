@@ -123,10 +123,11 @@ class OrographicEnhancement(object):
             var_cube (iris.cube.Cube):
                 Cube containing input variable data
             unit (str):
-                Required unit for input data
+                Required unit for this variable
 
         Returns:
-            (iris.cube.Cube): regridded data cube
+            out_cube (iris.cube.Cube):
+                Cube containing regridded variable data
         """
         for axis in ['x', 'y']:
             var_cube = sort_coord_in_cube(
