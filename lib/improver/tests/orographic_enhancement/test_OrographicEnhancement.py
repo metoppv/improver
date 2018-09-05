@@ -513,31 +513,24 @@ class Test__get_distance_weights(IrisTest):
     """Test the _get_distance_weights function"""
 
     def setUp(self):
-        """Define matrices"""
+        """Define input matrices and plugin"""
         self.wind_speed = np.ones((3, 4), dtype=np.float32)
-        self.sin_wind_dir = np.full((3, 4), 0.4, dtype=np.float32)
-        self.cos_wind_dir = np.full((3, 4), np.sqrt(0.84), dtype=np.float32)
+        sin_wind_dir = np.linspace(0, 1, 12).reshape(3, 4)
+        cos_wind_dir = np.sqrt(1. - np.square(sin_wind_dir))
+        self.max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
+                                    abs(sin_wind_dir), abs(cos_wind_dir))
         self.plugin = OrographicEnhancement()
         self.plugin.grid_spacing_km = 3.
 
     def test_basic(self):
         """Test the function returns an array of the expected shape"""
         distance_weight = self.plugin._get_distance_weights(
-            self.wind_speed, self.cos_wind_dir)
+            self.wind_speed, self.max_sin_cos)
         self.assertIsInstance(distance_weight, np.ndarray)
-        self.assertSequenceEqual(distance_weight.shape, (4, 3, 4))
+        self.assertSequenceEqual(distance_weight.shape, (5, 3, 4))
 
-    def test_values(self):
-        """Test for expected values"""
-        expected_data = np.array(
-            [np.full((3, 4), 0.), np.full((3, 4), 1.09108949),
-             np.full((3, 4), 2.18217897), np.full((3, 4), 3.27326846)])
-        distance_weight = self.plugin._get_distance_weights(
-            self.wind_speed, self.cos_wind_dir)
-        self.assertArrayAlmostEqual(distance_weight, expected_data)
-
-    def test_nans(self):
-        """Test there are some nans in the array where expected"""
+    def test_values_with_nans(self):
+        """Test for expected values including nans"""
         slice_0 = np.zeros((3, 4), dtype=np.float32)
         slice_1 = np.array([
             [1., 1.00415802, 1.01695037, 1.03940225],
@@ -552,13 +545,8 @@ class Test__get_distance_weights(IrisTest):
         slice_4[-1, -1] = 4.
         expected_data = np.array([slice_0, slice_1, slice_2, slice_3, slice_4])
 
-        sin_wind_dir = np.linspace(0, 1, 12).reshape(3, 4)
-        cos_wind_dir = np.sqrt(1. - np.square(sin_wind_dir))
-        max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
-                               abs(sin_wind_dir), abs(cos_wind_dir))
         distance_weight = self.plugin._get_distance_weights(
-            self.wind_speed, max_sin_cos)
-
+            self.wind_speed, self.max_sin_cos)
         self.assertTrue(
             np.allclose(distance_weight, expected_data, equal_nan=True))
 
@@ -567,7 +555,7 @@ class Test__locate_source_points(IrisTest):
     """Test the _locate_source_points method"""
 
     def setUp(self):
-        """Define matrices"""
+        """Define input matrices and plugin"""
         self.wind_speed = np.ones((3, 4), dtype=np.float32)
         self.sin_wind_dir = np.full((3, 4), 0.4, dtype=np.float32)
         self.cos_wind_dir = np.full((3, 4), np.sqrt(0.84), dtype=np.float32)
