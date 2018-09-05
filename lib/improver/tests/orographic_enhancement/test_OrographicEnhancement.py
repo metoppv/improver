@@ -43,7 +43,7 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.orographic_enhancement import OrographicEnhancement
 
 
-# define UKPP projection
+# UKPP projection
 TMercCS = TransverseMercator(
     latitude_of_projection_origin=49.0, longitude_of_central_meridian=-2.0,
     false_easting=400000.0, false_northing=-100000.0,
@@ -83,7 +83,7 @@ def set_up_variable_cube(data, name="temperature", units="degC",
 
 def set_up_invalid_variable_cube(valid_cube):
     """
-    Generate a new cube with one extra dimension from a 2D valid cube, to
+    Generate a new cube with an extra dimension from a 2D variable cube, to
     create an invalid cube for testing the process method.
     """
     data = np.array([valid_cube.data, valid_cube.data])
@@ -688,7 +688,7 @@ class Test_process(DataCubeTest):
         _ = self.plugin.process(
             self.temperature, self.humidity, self.pressure,
             self.uwind, self.vwind, self.orography_cube)
-        
+
         for cube, copy in zip(cube_list, copied_cubes):
             self.assertArrayAlmostEqual(cube.data, copy.data)
             self.assertEqual(cube.metadata, copy.metadata)
