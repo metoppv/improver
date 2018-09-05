@@ -544,11 +544,13 @@ class OrographicEnhancement(object):
                     Precipitation enhancement due to orography in mm/h on the
                     2 km standard grid
 
-        Reference:
+        References:
             Alpert, P. and Shafir, H., 1989: Meso-Gamma-Scale Distribution of
-            Orographic Precipitation: Numerical Study and Comparison with
-            Precipitation Derived from Radar Measurements.  Journal of Applied
-            Meteorology, 28, 1105-1117.
+                Orographic Precipitation: Numerical Study and Comparison with
+                Precipitation Derived from Radar Measurements.  Journal of
+                Applied Meteorology, 28, 1105-1117.
+            Roe, G., 2005: Orographic Precipitation.  Annual Review of Earth
+                and Planetary Sciences, 33, 645-671.
         """
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(
