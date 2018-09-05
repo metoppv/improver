@@ -677,7 +677,63 @@ class Test__add_upstream_component(IrisTest):
 
 class Test__create_output_cubes(IrisTest):
     """Test the _create_output_cubes method"""
-    pass  # TODO
+
+    def setUp(self):
+        """Set up a plugin instance, data array and cubes"""
+        self.plugin = OrographicEnhancement()
+        topography = set_up_orography_cube(np.zeros((3, 4), dtype=np.float32))
+        self.plugin.topography = sort_coord_in_cube(
+            topography, topography.coord(axis='y'))
+        self.temperature = set_up_variable_cube(
+            np.full((2, 4), 280.15), units='kelvin', xo=398000.)
+        self.orogenh = np.array([[1.1, 1.2, 1.5, 1.4],
+                                 [1.0, 1.3, 1.4, 1.6],
+                                 [0.8, 0.9, 1.2, 0.9]])
+
+    def test_basic(self):
+        """Test that two cubes are returned"""
+        output, regridded_output = self.plugin._create_output_cubes(
+            self.orogenh, self.temperature)
+        self.assertIsInstance(output, iris.cube.Cube)
+        self.assertIsInstance(regridded_output, iris.cube.Cube)
+
+    def test_values(self):
+        """Test first cube is unchanged and regridded output cube is masked
+        as expected"""
+        expected_data = np.array([[np.nan, 1.0, 1.4, np.nan],
+                                  [np.nan, np.nan, np.nan, np.nan]])
+        expected_mask = np.where(np.isfinite(expected_data), False, True)
+        output, regridded_output = self.plugin._create_output_cubes(
+            self.orogenh, self.temperature)
+        self.assertArrayAlmostEqual(output.data, self.orogenh)
+        self.assertTrue(np.allclose(regridded_output.data.data,
+                                    expected_data, equal_nan=True))
+        self.assertArrayEqual(regridded_output.data.mask, expected_mask)
+
+    def test_metadata(self):
+        """Check output metadata on both cubes is as expected"""
+        tref = sort_coord_in_cube(
+            self.temperature, self.temperature.coord(axis='y'))
+        expected_attributes = {'institution': 'Met Office',
+                               'source': 'IMPROVER'}
+
+        output, regridded_output = self.plugin._create_output_cubes(
+            self.orogenh, self.temperature)
+
+        for axis in ['x', 'y']:
+            self.assertEqual(output.coord(axis=axis),
+                             self.plugin.topography.coord(axis=axis))
+            self.assertEqual(regridded_output.coord(axis=axis),
+                             tref.coord(axis=axis))
+
+        for cube in [output, regridded_output]:
+            self.assertEqual(cube.name(), 'orographic_enhancement')
+            self.assertEqual(cube.units, 'mm h-1')
+            for t_coord in ['time', 'forecast_period',
+                            'forecast_reference_time']:
+                self.assertEqual(
+                    cube.coord(t_coord), self.temperature.coord(t_coord))
+            self.assertDictEqual(cube.attributes, expected_attributes)
 
 
 class Test_process(DataCubeTest):
@@ -729,21 +785,6 @@ class Test_process(DataCubeTest):
         for cube, copy in zip(cube_list, copied_cubes):
             self.assertArrayAlmostEqual(cube.data, copy.data)
             self.assertEqual(cube.metadata, copy.metadata)
-
-    def test_regrid(self):
-        """Test output cubes have correct coordinates"""
-        tref = sort_coord_in_cube(
-            self.temperature, self.temperature.coord(axis='y'))
-
-        orogenh, orogenh_standard_grid = self.plugin.process(
-            self.temperature, self.humidity, self.pressure,
-            self.uwind, self.vwind, self.orography_cube)
-
-        for axis in ['x', 'y']:
-            self.assertEqual(orogenh.coord(axis=axis),
-                             self.plugin.topography.coord(axis=axis))
-            self.assertEqual(orogenh_standard_grid.coord(axis=axis),
-                             tref.coord(axis=axis))
 
     def test_values(self):
         """Test values of outputs"""
