@@ -501,6 +501,10 @@ class OrographicEnhancement(object):
         orogenh_standard_grid = orogenh.regrid(
             reference_cube, iris.analysis.Linear(extrapolation_mode='mask'))
 
+        for axis in ['x', 'y']:
+            orogenh_standard_grid = sort_coord_in_cube(
+                orogenh_standard_grid, orogenh_standard_grid.coord(axis=axis))
+
         return orogenh, orogenh_standard_grid
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
