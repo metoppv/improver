@@ -651,16 +651,16 @@ class ChooseWeightsLinear(object):
         return new_weights_cube
 
     def process(self, cube, weights_cubes=None):
-        """Calculation of linear weights based on an input weights cube.
-        Weights are calculated individually for each point in
-        self.config_coord_name. Weights are normalised across the cube
-        dimension specified by self.config_coord_name.
+        """Calculation of linear weights based on an input weights cube
+        or dictionary.  If self.use_dict == False, weights are calculated
+        individually for each point in self.config_coord_name using the
+        input weights_cubes, before being normalised across the
+        self.config_coord_name dimension.
 
         Args:
             cube (iris.cube.Cube):
-                Cube containing the coordinate information that will be used
-                for setting up the interpolation and create the new weights
-                cube.
+                Cube containing the coordinate (source point) information
+                that will be used for setting up the interpolation.
 
         Kwargs:
             weights_cubes (iris.cube.CubeList):
@@ -672,8 +672,7 @@ class ChooseWeightsLinear(object):
 
         Returns:
             new_weights_cube (iris.cube.Cube):
-                Cube containing the output from the interpolation. This
-                contains the metadata from the weights cubes.
+                Cube containing the output from the interpolation.
         """
 
         if not self.use_dict:
@@ -702,7 +701,7 @@ class ChooseWeightsLinear(object):
                 constr = iris.Constraint(coord_values=coord_values)
                 weights_cube_slice, = weights_cubes.extract(constr)
                 new_weights_cube = self._calculate_weights(
-                    cube_slice, weights_cube_slice)
+                    cube_slice, weights_cube=weights_cube_slice)
             cube_slices.append(new_weights_cube)
 
         # normalise weights

@@ -53,7 +53,7 @@ class Test_calculate_wind_chill(IrisTest):
 
         # use a temperature less than 10 degrees C.
         self.temperature_cube.data = np.full((1, 3), 274.85)
-        self.wind_speed_cube.data = np.full((1, 3), 3)
+        self.wind_speed_cube.data = np.full((1, 3), 3.)
         expected_result = np.full((1, 3), 271.67464638070214)
         result = calculate_wind_chill(
             self.temperature_cube, self.wind_speed_cube)

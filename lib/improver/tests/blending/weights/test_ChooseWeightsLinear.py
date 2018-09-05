@@ -405,7 +405,6 @@ class Test__create_new_weights_cube(IrisTest):
         cube name when an alternative weights_key_name is specified."""
         self.config_dict["uk_det"]["alternative_name"] = (
             self.config_dict["uk_det"].pop("weights"))
-        weighting_coord_name = "forecast_period"
         plugin = ChooseWeightsLinear(
             self.weighting_coord_name, use_dict=True,
             config_dict=self.config_dict, weights_key_name="alternative_name")

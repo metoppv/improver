@@ -71,7 +71,7 @@ class Test_calculate_apparent_temperature(IrisTest):
 
         # use a temperature greater than 20 degress C.
         self.temperature_cube.data = np.full((1, 3), 295.15)
-        self.wind_speed_cube.data = np.full((1, 3), 5)
+        self.wind_speed_cube.data = np.full((1, 3), 5.)
         expected_result = (
             [[290.07999999999998, 290.47834089999998, 290.87672928000001]])
         result = calculate_apparent_temperature(
