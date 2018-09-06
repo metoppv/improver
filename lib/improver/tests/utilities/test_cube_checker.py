@@ -53,6 +53,7 @@ class Test_check_cube_not_float64(IrisTest):
     """Test whether a cube contains any float64 values."""
 
     def setUp(self):
+        """Set up a cube to test."""
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5
@@ -102,7 +103,7 @@ class Test_check_cube_not_float64(IrisTest):
             [np.float64(min(self.cube.coord("time").points))],
             standard_name="forecast_reference_time")
         self.cube.add_aux_coord(frt_coord)
-        check_cube_not_float64(self.cube)       
+        check_cube_not_float64(self.cube)
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
