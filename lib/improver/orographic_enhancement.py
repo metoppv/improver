@@ -86,8 +86,8 @@ class OrographicEnhancement(object):
                   upstream contributions (self.efficiency_factor)
 
         Create placeholder class members for regridded variable cubes
-        (orography, temperature, humidity, pressure and wind components) and
-        V.gradZ array
+        (orography, temperature, humidity, pressure and wind components),
+        saturation vapour pressure, V.gradZ (uplift) array and grid spacing.
         """
         self.orog_thresh_m = 20.
         self.rh_thresh_ratio = 0.8
@@ -105,11 +105,15 @@ class OrographicEnhancement(object):
         self.pressure = None
         self.uwind = None
         self.vwind = None
+
+        # initialise class members for derived variables and metadata
         self.vgradz = None
+        self.svp = None
+        self.grid_spacing_km = None
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        return ('<OrographicEnhancement()>')
+        return '<OrographicEnhancement()>'
 
     def _orography_gradients(self):
         """
@@ -150,7 +154,7 @@ class OrographicEnhancement(object):
         """
         Sorts spatial coordinates in ascending order, regrids the input
         variable onto the topography grid and converts to the required
-        units.
+        units.  This function does not modify the input variable cube.
 
         Args:
             var_cube (iris.cube.Cube):

@@ -235,6 +235,15 @@ class Test__regrid_variable(IrisTest):
         self.assertArrayAlmostEqual(result.data, correct_cube.data)
         self.assertEqual(result.metadata, correct_cube.metadata)
 
+    def test_input_unchanged(self):
+        """Test the input cube is not modified in place"""
+        reference_cube = self.temperature_cube.copy()
+        _ = self.plugin._regrid_variable(self.temperature_cube, "degC")
+        self.assertArrayAlmostEqual(
+            self.temperature_cube.data, reference_cube.data)
+        self.assertEqual(
+            self.temperature_cube.metadata, reference_cube.metadata)
+
 
 class DataCubeTest(IrisTest):
     """Shared setUp function for tests requiring full input data cubes
