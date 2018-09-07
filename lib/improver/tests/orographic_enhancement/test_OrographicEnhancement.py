@@ -332,82 +332,6 @@ class Test__regrid_and_populate(DataCubeTest):
         self.assertArrayAlmostEqual(self.plugin.vgradz, expected_vgradz)
 
 
-class SVPTest(IrisTest):
-    """Shared setUp method for saturation vapour pressure functions"""
-
-    def setUp(self):
-        """Set up and populate a plugin instance"""
-        x_coord = DimCoord(np.arange(3), 'projection_x_coordinate',
-                           units='km')
-        y_coord = DimCoord(np.arange(3), 'projection_y_coordinate',
-                           units='km')
-
-        temperature = np.array([[277.1, 278.2, 277.7],
-                                [278.6, 278.4, 278.9],
-                                [278.9, 279.0, 279.6]])
-        humidity = np.array([[0.74, 0.85, 0.94],
-                             [0.81, 0.82, 0.91],
-                             [0.86, 0.93, 0.97]])
-        pressure = np.array([[100000., 80000., 90000.],
-                             [90000., 85000., 89000.],
-                             [88000., 84000., 88000.]])
-
-        self.plugin = OrographicEnhancement()
-        self.plugin.temperature = iris.cube.Cube(
-            temperature, long_name="temperature", units="kelvin",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        self.plugin.humidity = iris.cube.Cube(
-            humidity, long_name="relhumidity", units="1",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        self.plugin.pressure = iris.cube.Cube(
-            pressure, long_name="pressure", units="Pa",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
-
-class Test__calculate_steps_svp_millibars(SVPTest):
-    """Test the _calculate_steps_svp_millibars method"""
-
-    def test_basic(self):
-        """Test output is an array"""
-        result = self.plugin._calculate_steps_svp_millibars()
-        self.assertIsInstance(result, np.ndarray)
-
-    def test_values(self):
-        """Test output values"""
-        expected_result = np.array([[8.1005659, 8.7493667, 8.4489765],
-                                    [8.9964323, 8.8721398, 9.1857549],
-                                    [9.1857549, 9.2496397, 9.6412525]])
-        result = self.plugin._calculate_steps_svp_millibars()
-        self.assertArrayAlmostEqual(result, expected_result)
-
-
-class Test__calculate_svp(SVPTest):
-    """Test the _calculate_svp method"""
-
-    def test_basic(self):
-        """Test output is a cube"""
-        self.plugin._calculate_svp(method='IMPROVER')
-        self.assertIsInstance(self.plugin.svp, iris.cube.Cube)
-
-    def test_values(self):
-        """Test output values from the IMPROVER method"""
-        expected_data = np.array([
-            [813.645300, 878.022313, 848.258948],
-            [903.222415, 890.543221, 922.188935],
-            [922.147421, 928.393655, 967.875963]])
-        self.plugin._calculate_svp(method='IMPROVER')
-        self.assertArrayAlmostEqual(self.plugin.svp.data, expected_data)
-
-    def test_values_steps(self):
-        """Test output values from the STEPS method"""
-        expected_data = np.array([
-            [810.056593, 874.936670, 844.897647],
-            [899.643230, 887.213984, 918.575494],
-            [918.575494, 924.963966, 964.125249]])
-        self.plugin._calculate_svp(method='STEPS')
-        self.assertArrayAlmostEqual(self.plugin.svp.data, expected_data)
-
-
 class Test__generate_mask(IrisTest):
     """Test the _generate_mask method"""
 
@@ -803,35 +727,6 @@ class Test_process(DataCubeTest):
         self.assertArrayAlmostEqual(
             orogenh_standard_grid.data, expected_data_regridded)
         self.assertAlmostEqual(self.plugin.grid_spacing_km, 1.)
-
-    def test_values_steps_svp(self):
-        """Test alternative saturation vapour pressure calculation"""
-        expected_data = np.array([
-            [0.9510500, 1.2217609, 0.8999338, 0.3295326, 0.0626779, 0.0056204],
-            [0.6023227, 0.8736715, 0.6324546, 0.3295326, 0.0626779, 0.0056204],
-            [0.1489346, 0.1489346, 0.3212678, 0.1030262, 0.0191615, 0.0056204],
-            [0.0030737, 0.0030737, 0.0030737, 0.0030737, 0.0076350,
-             0.0008802]])
-        orogenh, _ = self.plugin.process(
-            self.temperature, self.humidity, self.pressure,
-            self.uwind, self.vwind, self.orography_cube, svp_method='STEPS')
-        self.assertArrayAlmostEqual(orogenh.data, expected_data)
-
-    def test_pressure_units(self):
-        """Test plugin deals appropriately with pressure in millibars"""
-        expected_data = np.array([
-            [0.9548712, 1.2267057, 0.9035998, 0.3308798, 0.0629348, 0.0056434],
-            [0.6047199, 0.8771427, 0.6350170, 0.3308798, 0.0629348, 0.0056434],
-            [0.1495147, 0.1495147, 0.3225299, 0.1034328, 0.0192389, 0.0056434],
-            [0.0030856, 0.0030856, 0.0030856, 0.0030856, 0.0076650,
-             0.0008837]])
-
-        self.pressure.units = Unit('mb')
-        orogenh, _ = self.plugin.process(
-            self.temperature, self.humidity, self.pressure,
-            self.uwind, self.vwind, self.orography_cube)
-        self.assertEqual(self.plugin.pressure.units, 'Pa')
-        self.assertArrayAlmostEqual(orogenh.data, expected_data)
 
 
 if __name__ == '__main__':
