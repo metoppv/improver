@@ -134,6 +134,12 @@ class Test__init__(IrisTest):
         self.assertAlmostEqual(plugin.efficiency_factor, 0.23265)
         self.assertAlmostEqual(plugin.cloud_lifetime_s, 102.)
 
+        none_type_attributes = [
+            'topography', 'temperature', 'humidity', 'pressure',
+            'uwind', 'vwind', 'svp', 'vgradz', 'grid_spacing_km']
+        for attr in none_type_attributes:
+            self.assertIsNone(getattr(plugin, attr))
+
 
 class Test__repr__(IrisTest):
     """Test the __repr__ method"""
