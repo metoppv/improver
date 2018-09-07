@@ -228,6 +228,13 @@ class Test__regrid_variable(IrisTest):
         self.assertEqual(result.units, 'kelvin')
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_null(self):
+        """Test cube is unchanged if axes and grid are already correct"""
+        correct_cube = self.plugin.topography.copy()
+        result = self.plugin._regrid_variable(correct_cube, "m")
+        self.assertArrayAlmostEqual(result.data, correct_cube.data)
+        self.assertEqual(result.metadata, correct_cube.metadata)
+
 
 class DataCubeTest(IrisTest):
     """Shared setUp function for tests requiring full input data cubes
@@ -438,11 +445,10 @@ class Test__generate_mask(IrisTest):
 
     def test_values(self):
         """Test output mask is correct"""
-        expected_output = np.array([[True, True, False, False, False],
-                                    [False, False, False, True, False],
-                                    [False, False, False, False, False],
-                                    [True, True, True, True, True],
-                                    [True, True, True, True, True]])
+        expected_output = np.full((5, 5), False, dtype=bool)
+        expected_output[0, :2] = True   # orography too low
+        expected_output[1, 3] = True    # humidity too low
+        expected_output[3:, :] = True   # vgradz too low
         result = self.plugin._generate_mask()
         self.assertArrayEqual(result, expected_output)
 
