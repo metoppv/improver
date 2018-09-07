@@ -124,10 +124,12 @@ class OrographicEnhancement(object):
 
         Returns:
             (tuple): tuple containing:
-                **gradx**: iris.cube.Cube of dimensionless topography gradient
-                    in the positive x direction
-                **grady**: iris.cube.Cube of dimensionless topography gradient
-                    in the positive y direction
+                **gradx** (iris.cube.Cube):
+                    2D cube of dimensionless topography gradients in the
+                    positive x direction
+                **grady** (iris.cube.Cube):
+                    2D cube of dimensionless topography gradients in the
+                    positive y direction
         """
         self.topography.coord(axis='x').convert_units(self.topography.units)
         xdim = self.topography.coord_dims(self.topography.coord(axis='x'))[0]
