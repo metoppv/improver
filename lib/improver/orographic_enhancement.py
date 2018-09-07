@@ -240,51 +240,6 @@ class OrographicEnhancement(object):
         self.vgradz = (np.multiply(gradx.data, self.uwind.data) +
                        np.multiply(grady.data, self.vwind.data))
 
-    def _calculate_steps_svp_millibars(self):
-        """
-        Calculates the saturation vapour pressure using the approximation
-        method from STEPS (polynomial in normalised inverse temperature
-        t_norm).
-
-        Args:
-            temperature (np.ndarray):
-                Temperature in Kelvin
-
-        Returns:
-            svp (np.ndarray):
-                Saturation vapour pressure in hPa / millibars
-        """
-        prefactor = 1013.25
-        t_norm = 1. - (373.15 / self.temperature.data)
-        t_norm_sq = np.square(t_norm)
-        exponent = (13.3185*t_norm - 1.9760*t_norm_sq -
-                    0.6445*np.multiply(t_norm, t_norm_sq) -
-                    0.1299*np.square(t_norm_sq))
-        return prefactor * np.exp(exponent)
-
-    def _calculate_svp(self, method):
-        """
-        Calculates saturation vapour pressure using either the STEPS
-        temperature polynomial approximation or the IMPROVER wet bulb
-        temperature plugin functionality.
-
-        Args:
-            method (str):
-                IMPROVER or STEPS.
-        """
-        if method == 'STEPS':
-            svp_mb = self._calculate_steps_svp_millibars()
-            svp_cube = self.pressure.copy(data=svp_mb)
-            svp_cube.units = Unit('hPa')
-            svp_cube.convert_units('Pa')
-            svp_cube.rename('saturated_vapour_pressure')
-            self.svp = svp_cube
-        else:
-            wbt = WetBulbTemperature()
-            self.svp = wbt.pressure_correct_svp(
-                wbt.lookup_svp(self.temperature),
-                self.temperature, self.pressure)
-
     def _generate_mask(self):
         """
         Generates a boolean mask of areas NOT to calculate orographic
@@ -545,7 +500,7 @@ class OrographicEnhancement(object):
         return orogenh, orogenh_standard_grid
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
-                topography, svp_method='IMPROVER'):
+                topography):
         """
         Calculate precipitation enhancement over orography on standard and
         high resolution grids.  Input variables are expected to be on the same
@@ -567,12 +522,6 @@ class OrographicEnhancement(object):
             topography (iris.cube.Cube):
                 Height of topography above sea level on high resolution (1 km)
                 UKPP domain grid
-
-        Kwargs:
-            svp_method (str):
-                Which method to use to calculate the saturation vapour
-                pressure (IMPROVER or STEPS).  Defaults to using the IMPROVER
-                WetBulbTemperature plugin.
 
         Returns:
             (tuple): tuple containing:
@@ -601,16 +550,15 @@ class OrographicEnhancement(object):
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
 
-        # check pressure cube units (iris doesn't recognise 'mb')
-        if pressure.units == Unit('mb'):
-            pressure.units = Unit('hPa')
-
         # regrid variables to match topography and populate class instance
         self._regrid_and_populate(temperature, humidity, pressure,
                                   uwind, vwind, topography)
 
         # calculate saturation vapour pressure
-        self._calculate_svp(method=svp_method)
+        wbt = WetBulbTemperature()
+        self.svp = wbt.pressure_correct_svp(
+            wbt.lookup_svp(self.temperature),
+            self.temperature, self.pressure)
 
         # calculate site-specific orographic enhancement
         point_orogenh_data = self._point_orogenh()
