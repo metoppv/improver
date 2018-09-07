@@ -34,7 +34,6 @@ over orography.
 """
 
 import numpy as np
-from cf_units import Unit
 from scipy.ndimage import uniform_filter1d
 
 import iris
