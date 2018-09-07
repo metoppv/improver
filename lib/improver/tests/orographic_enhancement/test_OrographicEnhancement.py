@@ -140,13 +140,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation of plugin"""
-        expected = ('OrographicEnhancement() instance with orography '
-                    'threshold 20.0 m, relative humidity threshold 0.8, '
-                    'v.gradz threshold 0.0005 m/s, maximum upstream influence '
-                    '15.0 km, upstream efficiency factor 0.23265, cloud '
-                    'lifetime 102.0 s')
         plugin = OrographicEnhancement()
-        self.assertEqual(str(plugin), expected)
+        self.assertEqual(str(plugin), '<OrographicEnhancement()>')
 
 
 class Test__orography_gradients(IrisTest):
@@ -367,8 +362,7 @@ class Test__calculate_steps_svp_millibars(SVPTest):
 
     def test_basic(self):
         """Test output is an array"""
-        result = self.plugin._calculate_steps_svp_millibars(
-            self.plugin.temperature.data)
+        result = self.plugin._calculate_steps_svp_millibars()
         self.assertIsInstance(result, np.ndarray)
 
     def test_values(self):
@@ -376,8 +370,7 @@ class Test__calculate_steps_svp_millibars(SVPTest):
         expected_result = np.array([[8.1005659, 8.7493667, 8.4489765],
                                     [8.9964323, 8.8721398, 9.1857549],
                                     [9.1857549, 9.2496397, 9.6412525]])
-        result = self.plugin._calculate_steps_svp_millibars(
-            self.plugin.temperature.data)
+        result = self.plugin._calculate_steps_svp_millibars()
         self.assertArrayAlmostEqual(result, expected_result)
 
 
@@ -454,8 +447,8 @@ class Test__generate_mask(IrisTest):
         self.assertArrayEqual(result, expected_output)
 
 
-class Test__site_orogenh(IrisTest):
-    """Test the _site_orogenh method"""
+class Test__point_orogenh(IrisTest):
+    """Test the _point_orogenh method"""
 
     def setUp(self):
         """Set up and populate a plugin instance"""
@@ -486,7 +479,7 @@ class Test__site_orogenh(IrisTest):
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
         self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
-                                       [0.06, 0.12, 0.22],
+                                       [-0.06, 0.12, 0.22],
                                        [0.08, 0.16, 0.23]])
 
         topography_data = np.full((3, 3), 50., dtype=np.float32)
@@ -496,21 +489,21 @@ class Test__site_orogenh(IrisTest):
 
     def test_basic(self):
         """Test output is an array"""
-        result = self.plugin._site_orogenh()
+        result = self.plugin._point_orogenh()
         self.assertIsInstance(result, np.ndarray)
 
     def test_values(self):
         """Test output values are as expected"""
         expected_values = np.array([
             [0., 1.67372072, 4.47886658],
-            [1.22878468, 2.45468903, 5.1627059],
+            [0., 2.45468903, 5.1627059],
             [1.77400422, 3.86162901, 6.02323198]])
-        result = self.plugin._site_orogenh()
+        result = self.plugin._point_orogenh()
         self.assertArrayAlmostEqual(result, expected_values)
 
 
-class Test__get_distance_weights(IrisTest):
-    """Test the _get_distance_weights function"""
+class Test__get_point_distances(IrisTest):
+    """Test the _get_point_distances function"""
 
     def setUp(self):
         """Define input matrices and plugin"""
@@ -524,10 +517,10 @@ class Test__get_distance_weights(IrisTest):
 
     def test_basic(self):
         """Test the function returns an array of the expected shape"""
-        distance_weight = self.plugin._get_distance_weights(
+        distance = self.plugin._get_point_distances(
             self.wind_speed, self.max_sin_cos)
-        self.assertIsInstance(distance_weight, np.ndarray)
-        self.assertSequenceEqual(distance_weight.shape, (5, 3, 4))
+        self.assertIsInstance(distance, np.ndarray)
+        self.assertSequenceEqual(distance.shape, (5, 3, 4))
 
     def test_values_with_nans(self):
         """Test for expected values including nans"""
@@ -545,10 +538,10 @@ class Test__get_distance_weights(IrisTest):
         slice_4[-1, -1] = 4.
         expected_data = np.array([slice_0, slice_1, slice_2, slice_3, slice_4])
 
-        distance_weight = self.plugin._get_distance_weights(
+        distance = self.plugin._get_point_distances(
             self.wind_speed, self.max_sin_cos)
         self.assertTrue(
-            np.allclose(distance_weight, expected_data, equal_nan=True))
+            np.allclose(distance, expected_data, equal_nan=True))
 
 
 class Test__locate_source_points(IrisTest):
@@ -564,10 +557,10 @@ class Test__locate_source_points(IrisTest):
 
     def test_basic(self):
         """Test location of source points"""
-        distance_weight = self.plugin._get_distance_weights(
+        distance = self.plugin._get_point_distances(
             self.wind_speed, self.cos_wind_dir)
         xsrc, ysrc = self.plugin._locate_source_points(
-            self.wind_speed, distance_weight,
+            self.wind_speed, distance,
             self.sin_wind_dir, self.cos_wind_dir)
 
         expected_xsrc = np.array([[[0, 1, 2, 3], [0, 1, 2, 3], [0, 1, 2, 3]],
@@ -592,25 +585,25 @@ class Test__compute_weighted_values(IrisTest):
         self.plugin = OrographicEnhancement()
         self.plugin.grid_spacing_km = 3.
 
-        self.site_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
-                                      [4.4, 4.6, 5.8, 6.2, 5.5],
-                                      [5.2, 3.0, 3.4, 5.1, 3.3],
-                                      [0.6, 2.0, 1.8, 4.2, 2.5],
-                                      [0.0, 0.0, 0.2, 3.2, 1.8]])
+        self.point_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
+                                       [4.4, 4.6, 5.8, 6.2, 5.5],
+                                       [5.2, 3.0, 3.4, 5.1, 3.3],
+                                       [0.6, 2.0, 1.8, 4.2, 2.5],
+                                       [0.0, 0.0, 0.2, 3.2, 1.8]])
 
         self.wind_speed = np.full((5, 5), 25., dtype=np.float32)
         sin_wind_dir = np.full((5, 5), 0.4, dtype=np.float32)
         cos_wind_dir = np.full((5, 5), np.sqrt(0.84), dtype=np.float32)
-        self.distance_weight = self.plugin._get_distance_weights(
+        self.distance = self.plugin._get_point_distances(
             self.wind_speed, cos_wind_dir)
         self.xsrc, self.ysrc = self.plugin._locate_source_points(
-            self.wind_speed, self.distance_weight, sin_wind_dir, cos_wind_dir)
+            self.wind_speed, self.distance, sin_wind_dir, cos_wind_dir)
 
     def test_basic(self):
         """Test output is two arrays"""
         orogenh, weights = self.plugin._compute_weighted_values(
-            self.site_orogenh, self.xsrc, self.ysrc,
-            self.distance_weight, self.wind_speed)
+            self.point_orogenh, self.xsrc, self.ysrc,
+            self.distance, self.wind_speed)
         self.assertIsInstance(orogenh, np.ndarray)
         self.assertIsInstance(weights, np.ndarray)
 
@@ -624,8 +617,8 @@ class Test__compute_weighted_values(IrisTest):
             [0.4585612, 1.0727906, 1.1036499, 5.1721582, 3.0895371]])
         expected_weights = np.full((5, 5), 1.4763895, dtype=np.float32)
         orogenh, weights = self.plugin._compute_weighted_values(
-            self.site_orogenh, self.xsrc, self.ysrc,
-            self.distance_weight, self.wind_speed)
+            self.point_orogenh, self.xsrc, self.ysrc,
+            self.distance, self.wind_speed)
         self.assertArrayAlmostEqual(orogenh, expected_orogenh)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
@@ -651,15 +644,15 @@ class Test__add_upstream_component(IrisTest):
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         self.plugin.grid_spacing_km = 3.
 
-        self.site_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
-                                      [4.4, 4.6, 5.8, 6.2, 5.5],
-                                      [5.2, 3.0, 3.4, 5.1, 3.3],
-                                      [0.6, 2.0, 1.8, 4.2, 2.5],
-                                      [0.0, 0.0, 0.2, 3.2, 1.8]])
+        self.point_orogenh = np.array([[4.1, 4.6, 5.6, 6.8, 5.5],
+                                       [4.4, 4.6, 5.8, 6.2, 5.5],
+                                       [5.2, 3.0, 3.4, 5.1, 3.3],
+                                       [0.6, 2.0, 1.8, 4.2, 2.5],
+                                       [0.0, 0.0, 0.2, 3.2, 1.8]])
 
     def test_basic(self):
         """Test output is an array"""
-        result = self.plugin._add_upstream_component(self.site_orogenh)
+        result = self.plugin._add_upstream_component(self.point_orogenh)
         self.assertIsInstance(result, np.ndarray)
 
     def test_values(self):
@@ -671,7 +664,7 @@ class Test__add_upstream_component(IrisTest):
             [0.418468, 0.659300, 0.496544, 0.927728, 0.735382],
             [0.036423, 0.036423, 0.152506, 0.660092, 0.558801]])
 
-        result = self.plugin._add_upstream_component(self.site_orogenh)
+        result = self.plugin._add_upstream_component(self.point_orogenh)
         self.assertArrayAlmostEqual(result, expected_values)
 
 
