@@ -61,10 +61,11 @@ IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
                     " convergence",
                     "\nThe final iteration resulted in a percentage "
                     "change that is greater than the"
-                    " accepted threshold "]
+                    " accepted threshold ",
+                    "Conversion of the second argument of issubdtype"]
 WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
                  ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
-                 UserWarning, UserWarning]
+                 UserWarning, UserWarning, FutureWarning]
 
 
 class Test__init__(IrisTest):
