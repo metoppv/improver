@@ -883,11 +883,10 @@ class Test__apply_params(IrisTest):
             predictor_cube, variance_cube, optimised_coeffs,
             self.coeff_names, predictor_of_mean_flag)
 
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Ensemble calibration not available"
-                        in str(warning_list[0]))
+        self.assertTrue(any(["Ensemble calibration not available"
+                             in str(warning) for warning in warning_list]))
 
 
 if __name__ == '__main__':
