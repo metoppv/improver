@@ -48,10 +48,20 @@ Arguments:
                     doc, unit, cli. pycodestyle, pylintE, licence, doc, unit,
                     and cli are the default tests.
     SUBCLI          Name(s) of cli tests to run without running the rest.
-                    Valid names are either directory names which appear in
-                    tests/ minus the "improver-" prefix, or paths to individual
-                    BATS test files. The default is to run all cli tests in the
-                    tests/ directory. For example, 'improver tests cli nbhood'
+                    Valid names are either:
+                     * directory names which appear in tests/ minus the
+                       "improver-" prefix, e.g. 'nbhood'
+                     * as above, but also including a bats file, e.g.
+                       'nbhood/01-help.bats'
+                     * full or relative paths to directories or individual BATS
+                       test files, e.g.
+                       'tests/improver-nbhood/01-help.bats' or
+                       '$HOME/improver/tests/improver-nbhood/'.
+                    The default is to run all cli tests in the tests/
+                    directory. If a directory is given, all tests within the
+                    directory will be run. If a specific BATS file is given,
+                    only that will be run. For example,
+                    'improver tests cli nbhood'
                     will run neighbourhood processing cli tests in
                     tests/improver-nbhood/*.bats.
                     'improver tests cli ~/improver/tests/improver-nbhood/01-help.bats'
