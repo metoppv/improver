@@ -37,6 +37,48 @@ import iris
 
 from improver.utilities.cube_manipulation import compare_coords
 
+# Define correct v1.2.0 meta-data for v1.1.0 data.
+GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
+                                        'mosg__model_configuration': 'uk_ens',
+                                        'mosg__grid_domain': 'uk_extended',
+                                        'mosg__grid_version': '1.1.0'},
+                  'engl_standard_v1': {'mosg__grid_type': 'standard',
+                                       'mosg__model_configuration': 'gl_ens',
+                                       'mosg__grid_domain': 'global',
+                                       'mosg__grid_version': '1.1.0'},
+                  'ukvx_standard_v1': {'mosg__grid_type': 'standard',
+                                       'mosg__model_configuration': 'uk_det',
+                                       'mosg__grid_domain': 'uk_extended',
+                                       'mosg__grid_version': '1.1.0'},
+                  'glm_standard_v1': {'mosg__grid_type': 'standard',
+                                      'mosg__model_configuration': 'gl_det',
+                                      'mosg__grid_domain': 'global',
+                                      'mosg__grid_version': '1.1.0'},
+                  }
+
+
+def stage_v110_to_v120(cube):
+    """Translates meta-data relating to the grid_id attribute from StaGE
+    version 1.1.0 to StaGE version 1.2.0.
+    Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
+    are ignored.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to modify meta-data in (modified in place)
+
+    Returns:
+        boolean (bool):
+            True if meta-data have been changed by this function.
+    """
+    try:
+        grid_id = cube.attributes.pop('grid_id')
+    except KeyError:
+        # Not a version 1.1.0 grid, so exit.
+        return False
+    cube.attributes.update(GRID_ID_LOOKUP[grid_id])
+    return True
+
 
 def add_coord(cube, coord_name, changes, warnings_on=False):
     """Add coord to the cube.

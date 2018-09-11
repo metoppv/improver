@@ -41,9 +41,11 @@ from iris.coords import DimCoord
 from cf_units import Unit
 
 from improver.utilities.cube_metadata import (
-    add_coord, update_coord, update_attribute,
+    add_coord, update_coord, update_attribute, stage_v110_to_v120,
     amend_metadata, resolve_metadata_diff, delete_attributes)
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import set_up_temperature_cube
 
 
 def create_cube_with_threshold(data=None,
@@ -77,6 +79,41 @@ def create_cube_with_threshold(data=None,
                                 units=units), 0)
     cube.attributes['relative_to_threshold'] = 'above'
     return cube
+
+
+class Test_stage_v110_to_v120(IrisTest):
+    """Test the stage_v110_to_v120 function"""
+
+    def setUp(self):
+        """Set up variables for use in testing."""
+        self.cube = set_up_temperature_cube()
+
+    def test_basic(self):
+        """Test that cube is unchanged and function returns False"""
+        result = self.cube.copy()
+        output = stage_v110_to_v120(result)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.data, self.cube.data)
+        self.assertEqual(result.attributes, self.cube.attributes)
+        self.assertFalse(output)
+
+    def test_update_ukv(self):
+        """Test that cube attributes from ukv 1.1.0 are updated"""
+        self.cube.attributes['grid_id'] = 'ukvx_standard_v1'
+        output = stage_v110_to_v120(self.cube)
+        self.assertTrue('mosg__grid_type' in self.cube.attributes.keys())
+        self.assertTrue('mosg__model_configuration' in
+                        self.cube.attributes.keys())
+        self.assertTrue('mosg__grid_domain' in self.cube.attributes.keys())
+        self.assertTrue('mosg__grid_version' in self.cube.attributes.keys())
+        self.assertFalse('grid_id' in self.cube.attributes.keys())
+        self.assertEqual('standard', self.cube.attributes['mosg__grid_type'])
+        self.assertEqual('uk_det',
+                         self.cube.attributes['mosg__model_configuration'])
+        self.assertEqual('uk_extended',
+                         self.cube.attributes['mosg__grid_domain'])
+        self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
+        self.assertTrue(output)
 
 
 class Test_add_coord(IrisTest):
