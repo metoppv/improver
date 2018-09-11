@@ -227,8 +227,8 @@ for i in $opts; do
     cli_tasks+="${fname##*improver-}|"
     cli_tasks+="*/${fname}?(/)|"
   fi
-  cli_tasks+='*.bats|'
 done
+cli_tasks+='*.bats|'
 cli_tasks+=')'
 
 BATS_OPT=
@@ -270,7 +270,7 @@ fi
 
 # If cli sub test is not specified by user, do all cli tests.
 # Otherwise set CLISUBTEST to the sub test to run.
-CLISUBTEST=$cli_tasks
+CLISUBTEST="$IMPROVER_DIR/tests/"
 STRIPPED_TEST="$(echo -e "${TESTS}" | tr -d '[:space:]')"
 if [[ $STRIPPED_TEST == "cli" ]]; then
     if [[ -n "$SUBCLI" ]]; then
