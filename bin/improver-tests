@@ -145,17 +145,30 @@ function improver_test_cli {
     fi
 
     for SUBTEST in $CLISUBTEST; do
-        test_dir=$IMPROVER_DIR/tests/improver-$SUBTEST/
-        test_dir="$(echo -e "${test_dir}" | tr -d '[:space:]')"
+        if [[ -e "$IMPROVER_DIR/tests/improver-$SUBTEST" ]]; then
+            # A shorthand path.
+            TEST_TARGET="$IMPROVER_DIR/tests/improver-$SUBTEST"
+        elif [[ -e "$TEST_INPUT_PWD/$SUBTEST" ]]; then
+            # A relative path to a file or directory.
+            TEST_TARGET="$TEST_INPUT_PWD/$SUBTEST"
+        else
+            # Assume a full path to a file or directory.
+            TEST_TARGET="$SUBTEST"
+        fi
         if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
             PROVE_VERBOSE_OPT=
             if [[ -n $DEBUG_OPT ]]; then
                 PROVE_VERBOSE_OPT='-v'
             fi
             prove $PROVE_VERBOSE_OPT --directives -r -j 4 \
-                -e "bats --tap" --ext ".bats" --timer $test_dir
+                -e "bats --tap" --ext ".bats" --timer $TEST_TARGET
         else
-            bats $(find $test_dir -name "*.bats")
+            if [[ -f "$TEST_TARGET" ]]; then
+                # A particular file rather than a directory.
+                bats "$TEST_TARGET"
+            else
+                bats $(find "$TEST_TARGET" -name "*.bats")
+            fi
         fi
     done
     echo_ok "CLI tests"
@@ -164,7 +177,7 @@ function improver_test_cli {
 function print_usage {
     # Output CLI usage information.
     cat <<'__USAGE__'
-improver tests [OPTIONS] [SUBTEST...]
+improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
 Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
 
@@ -175,17 +188,32 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pycodestyle, pylint, pylintE, licence, doc, unit, cli.
-                    pycodestyle, pylintE, licence, doc, unit, and cli are the default tests.
-    SUBCLI          Name(s) of cli subtests to run without running the rest.
-                    Valid names are tasks which appear in /improver/tests/
-                    without the "improver-" prefix. The default is to run all
-                    cli tests in the /improver/tests/ directory.
-                    e.g. 'improver tests cli nbhood' will run neighbourhood
-                    processing cli tests only.
+                    Valid names are: pycodestyle, pylint, pylintE, licence,
+                    doc, unit, cli. pycodestyle, pylintE, licence, doc, unit,
+                    and cli are the default tests.
+    SUBCLI          Name(s) of cli tests to run without running the rest.
+                    Valid names are either:
+                     * directory names which appear in tests/ minus the
+                       "improver-" prefix, e.g. 'nbhood'
+                     * as above, but also including a bats file, e.g.
+                       'nbhood/01-help.bats'
+                     * full or relative paths to directories or individual BATS
+                       test files, e.g.
+                       'tests/improver-nbhood/01-help.bats' or
+                       '$HOME/improver/tests/improver-nbhood/'.
+                    The default is to run all cli tests in the tests/
+                    directory. If a directory is given, all tests within the
+                    directory will be run. If a specific BATS file is given,
+                    only that will be run. For example,
+                    'improver tests cli nbhood'
+                    will run neighbourhood processing cli tests in
+                    tests/improver-nbhood/*.bats.
+                    'improver tests cli ~/improver/tests/improver-nbhood/01-help.bats'
+                    will only run that specific nbhood CLI test.
 __USAGE__
 }
 
+TEST_INPUT_PWD=$(cd $PWD && pwd -P)
 cd $IMPROVER_DIR/lib
 #cd $IMPROVER_DIR
 
@@ -197,8 +225,10 @@ for i in $opts; do
   fname=${i##*/}
   if [[ "$fname" != "bin" ]] && [[ "$fname" != "lib" ]]; then
     cli_tasks+="${fname##*improver-}|"
+    cli_tasks+="*/${fname}?(/)|"
   fi
 done
+cli_tasks+='*.bats|'
 cli_tasks+=')'
 
 BATS_OPT=
@@ -240,7 +270,7 @@ fi
 
 # If cli sub test is not specified by user, do all cli tests.
 # Otherwise set CLISUBTEST to the sub test to run.
-CLISUBTEST=$cli_tasks
+CLISUBTEST="$IMPROVER_DIR/tests/"
 STRIPPED_TEST="$(echo -e "${TESTS}" | tr -d '[:space:]')"
 if [[ $STRIPPED_TEST == "cli" ]]; then
     if [[ -n "$SUBCLI" ]]; then
