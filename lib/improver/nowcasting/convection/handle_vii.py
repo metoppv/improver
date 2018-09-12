@@ -39,21 +39,25 @@ from improver.utilities.cube_checker import check_cube_coordinates
 
 class ApplyIce(object):
     """
-
-    Keyword Args:
-        ice_thresholds (tuple):
-            Values for increasing prob(lightning) with column-ice data.
-            These are the three vertically-integrated ice thresholds in kg/m2.
-
-        ice_scaling (tuple):
-            Values for increasing prob(lightning) with column-ice data.
-            These are the three prob(lightning) values to scale to.
+    Class to update nowcast lightning probabilities based on
+    vertically integrated ice (from radar data).  Called from
+    lightning.NowcastLightning.process().
     """
     def __init__(self,
                  ice_thresholds=(0.5, 1.0, 2.0),
                  ice_scaling=(0.1, 0.5, 0.9)):
         """
-        Set up class for modifying lightning probability with ice data.
+        Initialise class for modifying lightning probability with vertically
+        integrated ice (VII) data.
+
+        Keyword Args:
+            ice_thresholds (tuple):
+                Values for increasing prob(lightning) with column-ice data.
+                These are the three VII thresholds in kg/m2.
+
+            ice_scaling (tuple):
+                Values for increasing prob(lightning) with VII data.
+                These are the three prob(lightning) values to scale to.
         """
         self.ice_thresholds = ice_thresholds
         self.ice_scaling = ice_scaling

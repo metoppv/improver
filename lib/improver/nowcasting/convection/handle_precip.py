@@ -40,32 +40,9 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 class ApplyPrecip(object):
     """
-
-    Keyword Args:
-        probprecip_thresholds (tuple):
-            Values for limiting prob(lightning) with prob(precip)
-            These are the three prob(precip) thresholds and are designed
-            to prevent a large probability of lightning being output if
-            the probability of precipitation is very low.
-
-        problightning_scaling (tuple):
-            Values for limiting prob(lightning) with prob(precip)
-            These are the three prob(lightning) values to scale to.
-
-        hvyprecip_threshs (tuple):
-            probability thresholds for increasing the prob(lightning)
-            First value for heavy precip (>7mm/hr)
-                relates to problightning_values[2]
-            Second value for intense precip (>35mm/hr)
-                relates to problightning_values[1]
-
-        problightning_values (dict):
-            Lightning probability values to increase first-guess to if
-            the lightning_thresholds are exceeded in the nowcast data.
-            Dict must have keys 1 and 2 and contain float values.
-            The default values are selected to represent lightning risk
-            index values of 1 and 2 relating to the key.
-
+    Class to update nowcast lightning probabilities based on
+    precipitation rate probabilities.  Called from
+    lightning.NowcastLightning.process().
     """
     def __init__(self,
                  problightning_values={1: 1., 2: 0.25},
@@ -73,7 +50,33 @@ class ApplyPrecip(object):
                  problightning_scaling=(0.0067, 0.2, 1.),
                  hvyprecip_threshs=(0.4, 0.2)):
         """
-        Set up class for modifying lightning probability with ice data.
+        Initialise class for modifying nowcast lightning probability with
+        precipitation data.
+
+        Keyword Args:
+            probprecip_thresholds (tuple):
+                Values for limiting prob(lightning) with prob(precip).
+                These are the three prob(precip) thresholds and are designed
+                to prevent a large probability of lightning being output if
+                the probability of precipitation is very low.
+
+            problightning_scaling (tuple):
+                Values for limiting prob(lightning) with prob(precip)
+                These are the three prob(lightning) values to scale to.
+
+            hvyprecip_threshs (tuple):
+                probability thresholds for increasing the prob(lightning)
+                First value for heavy precip (>7mm/hr)
+                    relates to problightning_values[2]
+                Second value for intense precip (>35mm/hr)
+                    relates to problightning_values[1]
+
+            problightning_values (dict):
+                Lightning probability values to increase first-guess to if
+                the lightning_thresholds are exceeded in the nowcast data.
+                Dict must have keys 1 and 2 and contain float values.
+                The default values are selected to represent lightning risk
+                index values of 1 and 2 relating to the key.
         """
         self.precipthr = probprecip_thresholds
         self.ltngthr = problightning_scaling
@@ -104,8 +107,8 @@ class ApplyPrecip(object):
 
     def process(self, first_guess_cube, precip_cube):
         """
-        Modify Nowcast of lightning probability with ice data from radarnet
-        composite (VII; Vertically Integrated Ice)
+        Modify Nowcast of lightning probability with precipitation rate
+        probabilities at thresholds of 0.5, 7 and 35 mm/h.
 
         Args:
             first_guess_cube (iris.cube.Cube):
@@ -124,6 +127,7 @@ class ApplyPrecip(object):
         """
         first_guess_cube.coord('forecast_period').convert_units('minutes')
         new_cube_list = iris.cube.CubeList([])
+        # extract precipitation probabilities at required thresholds
         for cube_slice in first_guess_cube.slices_over('time'):
             thistime = iris_time_to_datetime(
                 cube_slice.coord('time').copy())[0]

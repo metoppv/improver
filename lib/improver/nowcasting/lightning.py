@@ -42,72 +42,30 @@ class NowcastLightning(object):
     """Produce Nowcast of lightning probability.
 
     This Plugin selects a first-guess lightning probability field from
-    MOGREPS-UK data matching the nowcast validity-time and modifies this
+    MOGREPS-UK data matching the nowcast validity-time, and modifies this
     based on information from the nowcast. The default behaviour makes
-    these adjustments:
-    lightning mapping (lightning rate in "min^-1"):
-        upper: lightning rate <function> => min lightning prob 1.0
-            The <function> returns a linear value from 0.5 to 2.5
-            over the 6-hour forecast_period.
-        lower: lightning rate 0.0 => min lightning prob 0.25
-            Zero is a special value indicating that lightning is
-            present within 50km.
-    precipitation mapping:
-        upper:  precip probability 0.1 => max lightning prob 1.0
-        middle: precip probability 0.05 => max lightning prob 0.2
-        lower:  precip probability 0.0 => max lightning prob 0.0067
+    these adjustments to the upper and lower limits of lightning probability:
 
-        heavy:  prob(precip>7mm/hr)  0.4 => min lightning prob 0.25
+    lightning mapping (lightning rate in "min^-1"):
+        upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
+            The <function> returns a linear value from 0.5 to 2.5 over a
+            6-hour forecast_period.
+        lower: lightning rate == 0.0 => min lightning prob 0.25
+
+        There are two special values in the lightning rate field:
+            0: No lightning at point, but lightning present within 50 km
+            -1: No lightning at point or within 50 km
+
+    precipitation mapping (for prob(precip > 0.5 mm/hr)):
+        upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
+        middle: precip probability >= 0.05 => max lightning prob 0.2
+        lower:  precip probability >= 0.0 => max lightning prob 0.0067
+
+        heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25
                 equiv radar refl 37dBZ
-        intense:prob(precip>35mm/hr) 0.2 => min lightning prob 1.0
+        intense:prob(precip > 35mm/hr) >= 0.2 => min lightning prob 1.0
                 equiv radar refl 48dBZ
 
-    Keyword Args:
-        radius (float):
-            This value controls the halo radius (metres)
-            The value supplied applies at T+0
-            and increases to 2*radius at T+6 hours
-            The radius is applied using the circular neighbourhood plugin.
-
-        lightning_thresholds (tuple):
-            Lightning rate thresholds for adjusting the first-guess
-            lightning probability (strikes per minute == "min^-1").
-            First element must be a function that takes one argument and
-            returns a float of the lightning rate threshold for increasing
-            first-guess lightning probability to risk 1 when given an int/float
-            forecast-lead-time in minutes.
-            Second element must be a float for the lightning rate threshold
-            for increasing first-guess lightning probability to risk 2.
-            There are two special values in the lightning rate field:
-                0: No lightning at point, but lightning present within 50km.
-                -1: No lightning at point or within 50km halo.
-            Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.)
-            This gives a decreasing influence on the extrapolated lightning
-            nowcast over forecast_period while retaining an influence from the
-            50km halo..
-
-        problightning_values (dict):
-            Lightning probability values to increase first-guess to if
-            the lightning_thresholds are exceeded in the nowcast data.
-            Dict must have keys 1 and 2 and contain float values.
-            The default values are selected to represent lightning risk
-            index values of 1 and 2 relating to the key.
-
-        precip_method = (improver.nowcasting.lightning.
-                         handle_precip.ApplyPrecip()):
-            Initiated plugin with a process method that takes two
-            iris.cube.Cube arguments of lightning probability and precipitation
-            probability and returns an updated lightning probability cube.
-            Default value of None causes a plugin to be initiated using the
-            problightning_values available in this plugin.
-
-        ice_method = (improver.nowcasting.lightning.handle_vii.ApplyIce()):
-            Initiated plugin with a process method that takes two
-            iris.cube.Cube arguments of lightning probability and vertically
-            integrated ice and returns an updated lightning probability cube.
-
-        debug (boolean):
-            True results in verbose output for debugging purposes.
     """
     def __init__(self, radius=10000.,
                  lightning_thresholds=(
@@ -117,7 +75,53 @@ class NowcastLightning(object):
                  ice_method=ApplyIce(),
                  debug=False):
         """
-        Set up class for Nowcast of lightning probability.
+        Initialise class for Nowcast of lightning probability.
+
+        Keyword Args:
+            radius (float):
+                Radius (metres) over which to neighbourhood process the output
+                lightning probability.  The value supplied applies at T+0
+                and increases to 2*radius at T+6 hours.  The radius is applied
+                in "process" using the circular neighbourhood plugin.
+
+            lightning_thresholds (tuple):
+                Lightning rate thresholds for adjusting the first-guess
+                lightning probability (strikes per minute == "min^-1").
+                First element must be a function that takes "forecast_period"
+                in minutes and returns the lightning rate threshold for
+                increasing first-guess lightning probability to risk 1 (LR1).
+                Default value is (lambda mins: 0.5 + mins * 2. / 360., 0.).
+                This gives a decreasing influence on the extrapolated lightning
+                nowcast over forecast_period while retaining an influence from
+                the 50 km halo.
+                Second element is the lightning rate threshold (as float) for
+                increasing first-guess lightning probability to risk 2 (LR2).
+
+            problightning_values (dict):
+                Lightning probability values to increase first-guess to if
+                the lightning_thresholds are exceeded in the nowcast data.
+                Dict must have keys 1 and 2 and contain float values.
+                The default values are selected to represent lightning risk
+                index values of 1 and 2 relating to the key.
+
+            precip_method = (improver.nowcasting.lightning.
+                             handle_precip.ApplyPrecip()):
+                Initiated plugin with a process method that takes two
+                iris.cube.Cube arguments of lightning probability and
+                precipitation probability and returns an updated lightning
+                probability cube.  Default value of None causes a plugin to
+                be initiated using the problightning_values available in this
+                plugin.
+
+            ice_method = (improver.nowcasting.lightning.handle_vii.ApplyIce()):
+                Initiated plugin with a process method that takes two
+                iris.cube.Cube arguments of lightning probability and
+                vertically integrated ice and returns an updated lightning
+                probability cube.
+
+            debug (boolean):
+                True results in verbose output for debugging purposes.
+
         """
         self.debug = debug
         self.radius = radius
