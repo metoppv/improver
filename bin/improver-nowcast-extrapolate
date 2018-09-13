@@ -38,7 +38,7 @@ import numpy as np
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_json
 from improver.utilities.save import save_netcdf
 
 
@@ -52,7 +52,7 @@ def main():
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                       help="Directory to write output files.")
+                       default="", help="Directory to write output files.")
     group.add_argument("--output_filepaths", nargs="+", type=str,
                        help="List of full paths to output nowcast files, in "
                        "order of increasing lead time.")
@@ -63,6 +63,10 @@ def main():
     parser.add_argument("--northward_advection_filepath", type=str, help="Path"
                         " to input file containing Northward advection "
                         "velocities.")
+    parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
+                        help="Filename for the json file containing "
+                        "required changes to the metadata. "
+                        "Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
@@ -74,7 +78,12 @@ def main():
     ucube = load_cube(args.eastward_advection_filepath)
     vcube = load_cube(args.northward_advection_filepath)
 
-    advection_plugin = AdvectField(ucube, vcube)
+    metadata_dict = None
+    if args.json_file:
+        # Load JSON file for metadata amendments.
+        metadata_dict = load_json(args.json_file)
+
+    advection_plugin = AdvectField(ucube, vcube, metadata_dict=metadata_dict)
 
     # generate list of lead times in minutes
     lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,

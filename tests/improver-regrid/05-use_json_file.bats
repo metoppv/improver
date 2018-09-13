@@ -29,22 +29,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nowcast-optical-flow no arguments" {
-  run improver nowcast-optical-flow
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nowcast-optical-flow [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     [--output_dir OUTPUT_DIR]
-                                     [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
-                                     [--json_file JSON_FILE]
-                                     [--ofc_box_size OFC_BOX_SIZE]
-                                     [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                     INPUT_FILEPATHS INPUT_FILEPATHS
-                                     INPUT_FILEPATHS
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "regrid" {
+  improver_check_skip_acceptance
+  KGO="regrid/metadata/kgo.nc"
+
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/regrid/metadata/metadata.json"
+
+  # Run cube regrid processing and check it passes.
+  run improver regrid \
+      "$IMPROVER_ACC_TEST_DIR/regrid/basic/global_cutout.nc" \
+      "$IMPROVER_ACC_TEST_DIR/regrid/basic/ukvx_grid.nc" \
+      "$TEST_DIR/output.nc" \
+      "--json_file" "$JSONFILE"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

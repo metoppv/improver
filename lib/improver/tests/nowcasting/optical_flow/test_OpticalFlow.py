@@ -646,6 +646,20 @@ class Test_process(IrisTest):
             self.assertIn("precipitation_advection", cube.name())
             self.assertIn("velocity", cube.name())
 
+    def test_metadata(self):
+        """Test correct output types and metadata"""
+        metadata_dict = {"attributes": {
+                            "mosg__grid_version": "1.0.0",
+                            "mosg__model_configuration": "nc_det",
+                            "source": "Met Office Nowcast",
+                            "institution": "Met Office",
+                            "title": "Nowcast on UK 2 km Standard Grid"}}
+        plugin = OpticalFlow(iterations=20, metadata_dict=metadata_dict)
+        plugin.data_smoothing_radius_km = 6.
+        ucube, vcube = plugin.process(self.cube1, self.cube2, boxsize=3)
+        for cube in [ucube, vcube]:
+            self.assertEqual(cube.attributes, metadata_dict["attributes"])
+
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)

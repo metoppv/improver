@@ -31,12 +31,30 @@
 """Module for loading cubes."""
 
 import glob
+import json
 
 import iris
 from iris.exceptions import ConstraintMismatchError
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
+
+
+def load_json(filepath):
+    """Load a json file from the defined filepath.
+
+    Args:
+        filepath (str):
+            Filepath that will be loaded as a json file.
+
+    Returns:
+        result (dict):
+            Dictionary resulting from reading the json file.
+
+    """
+    with open(filepath, 'r') as input_file:
+        result = json.load(input_file)
+    return result
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):

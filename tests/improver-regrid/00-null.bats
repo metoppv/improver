@@ -35,6 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
+                       [--json_file JSON_FILE]
                        SOURCE_DATA TARGET_GRID OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]

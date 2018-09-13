@@ -38,7 +38,7 @@ import json
 import warnings
 
 from improver.cube_combiner import CubeCombiner
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_json
 from improver.utilities.save import save_netcdf
 
 
@@ -104,14 +104,13 @@ def main():
     expanded_coord = None
     if args.metadata_jsonfile:
         # Read in extraction recipes for all diagnostics.
-        with open(args.metadata_jsonfile, 'r') as input_file:
-            new_metadata = json.load(input_file)
-            if 'coordinates' in new_metadata:
-                new_coords = new_metadata['coordinates']
-            if 'attributes' in new_metadata:
-                new_attr = new_metadata['attributes']
-            if 'expanded_coord' in new_metadata:
-                expanded_coord = new_metadata['expanded_coord']
+        new_metadata = load_json(args.metadata_jsonfile)
+        if 'coordinates' in new_metadata:
+            new_coords = new_metadata['coordinates']
+        if 'attributes' in new_metadata:
+            new_attr = new_metadata['attributes']
+        if 'expanded_coord' in new_metadata:
+            expanded_coord = new_metadata['expanded_coord']
 
     result = (
         CubeCombiner(args.operation, warnings_on=args.warnings_on).process(

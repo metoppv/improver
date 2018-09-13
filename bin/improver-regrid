@@ -34,7 +34,7 @@
 import iris
 
 from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_json
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_metadata import amend_metadata, delete_attributes
 
@@ -43,48 +43,43 @@ def main():
     """Regrid data from a source cube on to a target grid described by another
        cube."""
 
-    cli_specific_arguments = [(['source_data_filepath'],
-                               {'metavar': 'SOURCE_DATA',
-                                'help': ('A cube of data that is to be '
-                                         'regridded onto the target_grid.')}),
-                              (['target_grid_filepath'],
-                               {'metavar': 'TARGET_GRID',
-                                'help': ('A cube containing the grid to which '
-                                         'the source_data is to be regridded.'
-                                         )}),
-                              (['output_filepath'],
-                               {'metavar': 'OUTPUT_FILE',
-                                'help': ('The output path for the processed '
-                                         'NetCDF')}),
-                              (['--nearest'],
-                               {'default': False,
-                                'action': 'store_true',
-                                'help': ('If True, regridding will be '
-                                         'performed using iris.analysis.'
-                                         'Nearest() instead of Linear(). '
-                                         'Use for less continuous fields, e.g.'
-                                         ' precipitation.')}),
-                              (['--extrapolation_mode'],
-                               {'default': 'nanmask',
-                                'help': ('Mode to use for extrapolating data '
-                                         'into regions beyond the limits of '
-                                         'the source_data domain. Modes are: '
-                                         'extrapolate - The extrapolation '
-                                         'points will take their value from '
-                                         'the nearest source point. '
-                                         'nan - The extrapolation points will '
-                                         'be be set to NaN. error - A '
-                                         'ValueError exception will be raised,'
-                                         ' notifying an attempt to extrapolate'
-                                         '. mask  - The extrapolation points '
-                                         'will always be masked, even if the '
-                                         'source data is not a MaskedArray. '
-                                         'nanmask - If the source data is a '
-                                         'MaskedArray the extrapolation points'
-                                         ' will be masked. Otherwise they will'
-                                         ' be set to NaN. Defaults to nanmask.'
-                                         )}),
-                              ]
+    cli_specific_arguments = [
+        (['source_data_filepath'],
+         {'metavar': 'SOURCE_DATA',
+          'help': ('A cube of data that is to be '
+                   'regridded onto the target_grid.')}),
+        (['target_grid_filepath'],
+         {'metavar': 'TARGET_GRID',
+          'help': ('A cube containing the grid to which '
+                   'the source_data is to be regridded.')}),
+        (['output_filepath'],
+         {'metavar': 'OUTPUT_FILE',
+          'help': ('The output path for the processed NetCDF')}),
+        (['--nearest'],
+         {'default': False,
+          'action': 'store_true',
+          'help': ('If True, regridding will be performed using iris.analysis.'
+                   'Nearest() instead of Linear(). Use for less continuous '
+                   'fields, e.g. precipitation.')}),
+        (['--extrapolation_mode'],
+         {'default': 'nanmask',
+          'help': ('Mode to use for extrapolating data into regions beyond '
+                   'the limits of the source_data domain. Modes are: '
+                   'extrapolate - The extrapolation points will take their '
+                   'value from the nearest source point. '
+                   'nan - The extrapolation points will be be set to NaN. '
+                   'error - A ValueError exception will be raised, '
+                   'notifying an attempt to extrapolate. '
+                   'mask  - The extrapolation points will always be masked, '
+                   'even if the source data is not a MaskedArray. '
+                   'nanmask - If the source data is a MaskedArray the '
+                   'extrapolation points will be masked. Otherwise they will '
+                   'be set to NaN. Defaults to nanmask.')}),
+        (['--json_file'],
+         {'metavar': 'JSON_FILE',
+          'default': None,
+          'help': ('Filename for the json file containing required changes '
+                   'to the metadata. Defaults to None.')}), ]
 
     cli_definition = {'central_arguments': [],
                       'specific_arguments': cli_specific_arguments,
@@ -105,10 +100,15 @@ def main():
             extrapolation_mode=args.extrapolation_mode)
 
     source_on_target = source_data.regrid(target_grid, regridder)
-    target_grid_attributes = {k: v for (k, v) in target_grid.attributes.items()
-                              if 'mosg__grid' in k}
-    amend_metadata(source_on_target, revised_attributes=target_grid_attributes)
-    delete_attributes(source_on_target, ['title'])
+    if args.json_file:
+        metadata_dict = load_json(args.json_file)
+        amend_metadata(source_on_target, **metadata_dict)
+    else:
+        target_grid_attributes = (
+            {k: v for (k, v) in target_grid.attributes.items()
+             if 'mosg__grid' in k})
+        amend_metadata(source_on_target, attributes=target_grid_attributes)
+        delete_attributes(source_on_target, ['title'])
     save_netcdf(source_on_target, args.output_filepath)
 
 

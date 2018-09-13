@@ -35,6 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
+                       [--json_file JSON_FILE]
                        SOURCE_DATA TARGET_GRID OUTPUT_FILE
 
 Regrid data from source_data on to the grid contained within target_grid using
@@ -68,6 +69,9 @@ optional arguments:
                         a MaskedArray the extrapolation points will be masked.
                         Otherwise they will be set to NaN. Defaults to
                         nanmask.
+  --json_file JSON_FILE
+                        Filename for the json file containing required changes
+                        to the metadata. Defaults to None.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

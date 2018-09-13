@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata."""
 
+from datetime import datetime
 import warnings
 import numpy as np
 
@@ -269,6 +270,13 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
             msg = ("Deleted attribute "
                    "{}".format(attribute_name))
             warnings.warn(msg)
+    elif changes == "add":
+        if attribute_name in ["history"]:
+            add_history_attribute(result)
+        else:
+            msg = ("Only the history attribute can be added. "
+                   "The attribute specified was {}".format(attribute_name))
+            raise ValueError(msg)
     else:
         result.attributes[attribute_name] = changes
         if warnings_on:
@@ -279,58 +287,119 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     return result
 
 
-def amend_metadata(cube,
-                   new_diagnostic_name=None,
-                   data_type=None,
-                   revised_coords=None,
-                   revised_attributes=None,
-                   warnings_on=False):
-    """Amend the metadata in the combined cube.
+def update_cell_methods(cube, cell_method_definition):
+    """Update cell methods. If the cell method defined in the
+    cell_method_definition matches a cell method that already exists within
+    the cube, then the cell method is removed. If the cell method defined
+    in the cell method definition does not match a cell method within the
+    cube, then the cell method is added.
+
+    The cube will be modified in-place.
 
     Args:
         cube (iris.cube.Cube):
-            Cube containing combined data.
-        new_diagnostic_name (str):
-            New name for the combined diagnostic.
-        data_type (numpy.dtype):
-            data type of cube data.
-        revised_coords (dict or None):
-            Revised coordinates for combined cube.
-        revised_attributes (dict or None):
-            Revised attributes for combined cube.
+            Cube containing cell methods that will be updated.
+        cell_method_definition (dict):
+            Dictionary potentially containing the keys: "comments", "coords",
+            "intervals" and "method", as supported by iris.coords.CellMethod.
+
+    """
+    if "method" not in cell_method_definition:
+        cell_method_definition["method"] = ''
+
+    for key in ["coords", "intervals", "comments"]:
+        if key not in cell_method_definition:
+            cell_method_definition[key] = ()
+
+    if not cell_method_definition["coords"]:
+        coords = ()
+    else:
+        coords = tuple([cell_method_definition["coords"]])
+
+    cell_method = iris.coords.CellMethod(
+        method=cell_method_definition["method"],
+        coords=coords,
+        intervals=cell_method_definition["intervals"],
+        comments=cell_method_definition["comments"])
+
+    cm_list = []
+    for cm in cube.cell_methods:
+        if cm != cell_method:
+            cm_list.append(cm)
+
+    if cell_method not in cube.cell_methods:
+        cm_list.append(cell_method)
+
+    cube.cell_methods = cm_list
+
+
+def amend_metadata(cube,
+                   name=None,
+                   data_type=None,
+                   coordinates=None,
+                   attributes=None,
+                   cell_methods=None,
+                   units=None,
+                   warnings_on=False):
+    """Amend the metadata in the incoming cube. Please note that if keyword
+    arguments to this function are supplied by unpacking a dictionary, then
+    the keys of the dictionary need to correspond to the keyword arguments.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube.
 
     Keyword Args:
+        name (str):
+            New name for the diagnostic.
+        data_type (numpy.dtype):
+            Data type of cube data.
+        coordinates (dict or None):
+            Revised coordinates for incoming cube.
+        attributes (dict or None):
+            Revised attributes for incoming cube.
+        cell_methods ():
+            Cell methods for modification within the incoming cube.
+        units ():
+            Units for use in converting the units of the input cube.
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
     Returns:
         result (iris.cube.Cube):
-            Cube with corrected Metadata.
+            Cube with corrected metadata.
 
     """
     result = cube
     if data_type:
         result.data = result.data.astype(data_type)
-    if new_diagnostic_name:
-        result.rename(new_diagnostic_name)
+    if name:
+        result.rename(name)
 
-    if revised_coords is not None:
-        for key in revised_coords:
+    if coordinates is not None:
+        for key in coordinates:
             # If and exising coordinate.
             if key in [coord.name() for coord in cube.coords()]:
-                changes = revised_coords[key]
+                changes = coordinates[key]
                 result = update_coord(result, key, changes,
                                       warnings_on=warnings_on)
             else:
-                changes = revised_coords[key]
+                changes = coordinates[key]
                 result = add_coord(result, key, changes,
                                    warnings_on=warnings_on)
 
-    if revised_attributes is not None:
-        for key in revised_attributes:
-            changes = revised_attributes[key]
+    if attributes is not None:
+        for key in attributes:
+            changes = attributes[key]
             result = update_attribute(result, key, changes,
                                       warnings_on=warnings_on)
+
+    if cell_methods is not None:
+        for key in cell_methods:
+            update_cell_methods(result, cell_methods[key])
+
+    if units is not None:
+        result.convert_units(units)
 
     return result
 
@@ -417,3 +486,15 @@ def delete_attributes(cube, patterns):
 
     for key in grid_attributes:
         cube.attributes.pop(key)
+
+
+def add_history_attribute(cube):
+    """Add a history attribute to a cube. This uses the current datetime to
+    generate the timestamp for the history attribute.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube to which the history attribute will be added.
+    """
+    timestamp = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S%z")
+    cube.attributes["history"] = timestamp

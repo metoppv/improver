@@ -228,10 +228,10 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up plugin instance and a cube to advect"""
-        vel_x = set_up_xy_velocity_cube("advection_velocity_x")
-        vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
-        vel_y.rename("advection_velocity_y")
-        self.plugin = AdvectField(vel_x, vel_y)
+        self.vel_x = set_up_xy_velocity_cube("advection_velocity_x")
+        self.vel_y = self.vel_x.copy(data=2.*np.ones(shape=(4, 3)))
+        self.vel_y.rename("advection_velocity_y")
+        self.plugin = AdvectField(self.vel_x, self.vel_y)
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
@@ -252,6 +252,19 @@ class Test_process(IrisTest):
         """Test plugin returns a cube"""
         result = self.plugin.process(self.cube, self.timestep)
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_metadata(self):
+        """Test plugin returns a cube with the desired metadata."""
+        metadata_dict = {"attributes": {
+                            "mosg__grid_version": "1.0.0",
+                            "mosg__model_configuration": "nc_det",
+                            "source": "Met Office Nowcast",
+                            "institution": "Met Office",
+                            "title": "Nowcast on UK 2 km Standard Grid"}}
+        plugin = AdvectField(self.vel_x, self.vel_y,
+                             metadata_dict=metadata_dict)
+        result = plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.attributes, metadata_dict["attributes"])
 
     def test_advected_values(self):
         """Test output cube data is as expected"""

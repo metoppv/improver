@@ -39,8 +39,9 @@ import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
+from improver.utilities.cube_manipulation import merge_cubes, _strip_var_names
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_json
 from improver.utilities.save import save_netcdf
 
 
@@ -66,6 +67,10 @@ def main():
                         default=None,  help="Optional list of full paths to "
                         "output nowcast files. Overrides OUTPUT_DIR. Ignored "
                         "unless '--extrapolate' is set.")
+    parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
+                        help="Filename for the json file containing "
+                        "required changes to the metadata. "
+                        "Defaults to None.", type=str)
 
     # OpticalFlow plugin configurable parameters
     parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "
@@ -97,8 +102,14 @@ def main():
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")
 
+    metadata_dict = None
+    if args.json_file:
+        # Load JSON file for metadata amendments.
+        metadata_dict = load_json(args.json_file)
+
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
-    ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations)
+    ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations,
+                             metadata_dict=metadata_dict)
     ucubes = iris.cube.CubeList([])
     vcubes = iris.cube.CubeList([])
     for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
@@ -108,12 +119,12 @@ def main():
         vcubes.append(vcube)
 
     # average optical flow velocity components
-    ucube = ucubes.merge_cube()
+    ucube = merge_cubes(ucubes)
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
 
-    vcube = vcubes.merge_cube()
+    vcube = merge_cubes(vcubes)
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
     vmean.coord("time").units = time_coord.units
@@ -125,7 +136,8 @@ def main():
 
     # advect latest input data to the required lead times
     if args.extrapolate:
-        advection_plugin = AdvectField(umean, vmean)
+        advection_plugin = (
+            AdvectField(umean, vmean, metadata_dict=metadata_dict))
 
         # generate list of lead times in minutes
         lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
@@ -139,6 +151,7 @@ def main():
         for i, lead_time in enumerate(lead_times):
             # cast to float as datetime.timedelta cannot accept np.int
             timestep = datetime.timedelta(seconds=60.*lead_time)
+            cube_list = _strip_var_names(cube_list)
             forecast_cube = advection_plugin.process(cube_list[-1], timestep)
 
             # save to a suitably-named output file

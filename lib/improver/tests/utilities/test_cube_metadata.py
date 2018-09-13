@@ -41,8 +41,15 @@ from iris.coords import DimCoord
 from cf_units import Unit
 
 from improver.utilities.cube_metadata import (
-    add_coord, update_coord, update_attribute, stage_v110_to_v120,
-    amend_metadata, resolve_metadata_diff, delete_attributes)
+    add_coord,
+    add_history_attribute,
+    amend_metadata,
+    delete_attributes,
+    resolve_metadata_diff,
+    stage_v110_to_v120,
+    update_cell_methods,
+    update_coord,
+    update_attribute)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
@@ -301,13 +308,30 @@ class Test_update_attribute(IrisTest):
                          'between')
 
     def test_attributes_added(self):
-        """Test update_attribute adds attributeOK. """
+        """Test update_attribute adds attribute OK. """
         cube = create_cube_with_threshold()
         attribute_name = 'new_attribute'
         changes = 'new_value'
         result = update_attribute(cube, attribute_name, changes)
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
+
+    def test_history_attribute_added(self):
+        """Test update_attribute adds attribute OK. """
+        cube = create_cube_with_threshold()
+        attribute_name = 'history'
+        changes = 'add'
+        result = update_attribute(cube, attribute_name, changes)
+        self.assertTrue("history" in result.attributes.keys())
+
+    def test_failure_to_add_history_attribute(self):
+        """Test update_attribute adds attribute OK. """
+        cube = create_cube_with_threshold()
+        attribute_name = 'new_attribute'
+        changes = 'add'
+        msg = "Only the history attribute can be added"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_attribute(cube, attribute_name, changes)
 
     def test_attributes_deleted(self):
         """Test update_attribute deletes attribute OK. """
@@ -333,6 +357,59 @@ class Test_update_attribute(IrisTest):
         self.assertFalse('relative_to_threshold' in result.attributes)
 
 
+class Test_update_cell_methods(IrisTest):
+
+    """Test that the cell methods are updated."""
+
+    def test_add_cell_method(self):
+        cube = create_cube_with_threshold()
+        cell_methods = {'method': 'point',
+                        'coords': 'time',
+                        'intervals': (),
+                        'comments': ()}
+        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        update_cell_methods(cube, cell_methods)
+        self.assertTrue(expected_cell_method in cube.cell_methods)
+
+    def test_add_cell_method_partial_information(self):
+        cube = create_cube_with_threshold()
+        cell_methods = {'method': 'point',
+                        'coords': 'time'}
+        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        update_cell_methods(cube, cell_methods)
+        self.assertTrue(expected_cell_method in cube.cell_methods)
+
+    def test_add_cell_method_no_method(self):
+        cube = create_cube_with_threshold()
+        cell_methods = {'method': '',
+                        'coords': 'time',
+                        'intervals': (),
+                        'comments': ()}
+        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        update_cell_methods(cube, cell_methods)
+        self.assertTrue(expected_cell_method in cube.cell_methods)
+
+    def test_add_cell_method_no_coords(self):
+        cube = create_cube_with_threshold()
+        cell_methods = {'method': 'point',
+                        'coords': (),
+                        'intervals': (),
+                        'comments': ()}
+        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        update_cell_methods(cube, cell_methods)
+        self.assertTrue(expected_cell_method in cube.cell_methods)
+
+    def test_remove_cell_method(self):
+        cube = create_cube_with_threshold()
+        cell_methods = {'method': 'point',
+                        'coords': 'time',
+                        'intervals': (),
+                        'comments': ()}
+        cube.cell_methods = (iris.coords.CellMethod(**cell_methods),)
+        update_cell_methods(cube, cell_methods)
+        self.assertEqual(cube.cell_methods, ())
+
+
 class Test_amend_metadata(IrisTest):
 
     """Test the amend_metadata method."""
@@ -340,29 +417,28 @@ class Test_amend_metadata(IrisTest):
     def test_basic(self):
         """Test that the function returns a Cube. """
         cube = create_cube_with_threshold()
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                None, None)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
 
     def test_attributes_updated_and_added(self):
-        """Test amend_metadata  updates and adds attributes OK. """
+        """Test amend_metadata updates and adds attributes OK. """
         cube = create_cube_with_threshold()
         attributes = {'relative_to_threshold': 'between',
                       'new_attribute': 'new_value'}
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                None, attributes)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                attributes=attributes)
         self.assertEqual(result.attributes['relative_to_threshold'],
                          'between')
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
     def test_attributes_deleted(self):
-        """Test amend_metadata  updates attributes OK. """
+        """Test amend_metadata updates attributes OK. """
         cube = create_cube_with_threshold()
         attributes = {'relative_to_threshold': 'delete'}
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                None, attributes)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                attributes=attributes)
         self.assertFalse('relative_to_threshold' in result.attributes)
 
     def test_coords_updated(self):
@@ -370,8 +446,8 @@ class Test_amend_metadata(IrisTest):
         cube = create_cube_with_threshold()
         updated_coords = {'threshold': {'points': [2.0]},
                           'time': {'points': [402193.5, 402194.5]}}
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                updated_coords, None)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                coordinates=updated_coords)
         self.assertArrayEqual(result.coord('threshold').points,
                               np.array([2.0]))
         self.assertArrayEqual(result.coord('time').points,
@@ -382,12 +458,39 @@ class Test_amend_metadata(IrisTest):
         cube = create_cube_with_threshold()
         coords = {'threshold': 'delete',
                   'new_coord': {'points': [2.0]}}
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                coords, None)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                coordinates=coords)
         found_key = 'threshold' in [coord.name() for coord in result.coords()]
         self.assertFalse(found_key)
         self.assertArrayEqual(result.coord('new_coord').points,
                               np.array([2.0]))
+
+    def test_cell_method_updated_and_added(self):
+        """Test amend_metadata updates and adds a cell method. """
+        cube = create_cube_with_threshold()
+        cell_methods = {"1": {"method": "point",
+                              "coords": "time"}}
+        expected_cell_method = iris.coords.CellMethod(**cell_methods["1"])
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                cell_methods=cell_methods)
+        self.assertTrue(expected_cell_method in result.cell_methods)
+
+    def test_cell_method_deleted(self):
+        """Test amend_metadata updates attributes OK. """
+        cube = create_cube_with_threshold()
+        cell_methods = {"1": {"method": "point",
+                              "coords": "time"}}
+        cell_method = iris.coords.CellMethod(**cell_methods["1"])
+        cube.cell_methods = (cell_method,)
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                cell_methods=cell_methods)
+        self.assertEqual(result.cell_methods, ())
+
+    def test_convert_units(self):
+        """Test amend_metadata updates attributes OK. """
+        cube = set_up_temperature_cube()
+        result = amend_metadata(cube, units="Celsius")
+        self.assertEqual(result.units, "Celsius")
 
     @ManageWarnings(record=True)
     def test_warnings_on_works(self, warning_list=None):
@@ -397,8 +500,9 @@ class Test_amend_metadata(IrisTest):
         updated_coords = {'threshold': {'points': [2.0]}}
         warning_msg_attr = "Adding or updating attribute"
         warning_msg_coord = "Updated coordinate"
-        result = amend_metadata(cube, 'new_cube_name', np.dtype,
-                                updated_coords, updated_attributes,
+        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
+                                coordinates=updated_coords,
+                                attributes=updated_attributes,
                                 warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -590,6 +694,26 @@ class Test_delete_attributes(IrisTest):
         delete_attributes(self.cube, attributes_to_delete)
 
         self.assertDictEqual(expected, self.cube.attributes)
+
+
+class Test_add_history_attribute(IrisTest):
+
+    """Test the add_history_attribute function."""
+
+    def test_add_history(self):
+        """Test that a history attribute has been added."""
+        cube = set_up_temperature_cube()
+        add_history_attribute(cube)
+        self.assertTrue("history" in cube.attributes)
+
+    def test_history_already_exists(self):
+        """Test that the history attribute remains unchanged, if it
+        already exists."""
+        cube = set_up_temperature_cube()
+        expected_history = "2018-09-13T11:28:29"
+        cube.attributes["history"] = expected_history
+        add_history_attribute(cube)
+        self.assertTrue("history" in cube.attributes)
 
 
 if __name__ == '__main__':
