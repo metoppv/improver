@@ -548,6 +548,7 @@ class SquareNeighbourhood(object):
             self, cube, mask, grid_cells_x, grid_cells_y):
         """
         Apply neighbourhood processing consisting of the following steps:
+
         1. Pad a halo around the input cube to allow vectorised
            neighbourhooding at edgepoints.
         2. Cumulate the array along the x and y axes.
