@@ -64,7 +64,7 @@ BOUNDS_FOR_ECDF = {
     "precipitation_rate": Bounds((0, 0.00003), "m s-1"),
     "rainfall_rate": Bounds((0, 0.00003), "m s-1"),
     "rainfall_rate_in_vicinity": Bounds((0, 0.00003), "m s-1"),
-    "relative_humidity": Bounds((0, 1.0), "1"),
+    "relative_humidity": Bounds((0, 2.0), "1"),
     "thickness_of_precipitation_amount": Bounds((0, 0.2), "m"),
     "thickness_of_precipitation_amount_in_vicinity": Bounds((0, 0.2), "m"),
     "lwe_snowfall_rate": Bounds((0, 0.00001), "m s-1"),
