@@ -429,7 +429,6 @@ def _equalise_cell_methods(cubes):
             they do not match.
     Warns:
         Warning: If only a single cube.
-.
     """
     if len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found '
