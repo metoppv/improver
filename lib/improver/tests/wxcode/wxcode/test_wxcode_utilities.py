@@ -98,7 +98,9 @@ def set_up_wxcube(time_points=None):
     Returns:
         cube (Iris.cube.Cube):
             cube of weather codes set to 1
-            size (time_points,16,16)
+            data shape (time_points, 16, 16)
+            grid covers 0 to 30km west of origin and
+            0 to 30km north of origin. origin = 54.9N 2.5W
     """
 
     if time_points is None:
@@ -158,7 +160,8 @@ def set_up_wxcube_lat_lon(time_points=None):
     Returns:
         cube (Iris.cube.Cube):
             lat lon cube of weather codes set to 1
-            size (time_points,16,16)
+            data shape (time_points, 16, 16)
+            grid covering 8W to 7E, 49N to 64N
     """
 
     if time_points is None:
@@ -342,10 +345,10 @@ class Test_update_daynight(IrisTest):
                          self.wxmeaning)
 
     def test_wxcode_updated(self):
-        """Test Correct wxcodes returned for lat lon cube."""
+        """Test Correct wxcodes returned for cube."""
         cube = set_up_wxcube()
         cube.data = self.cube_data
-
+        # Only 1,3,10, 14, 17, 20, 23, 26 and 29 change from day to night
         expected_result = np.array([[
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
             [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
@@ -367,7 +370,7 @@ class Test_update_daynight(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
 
     def test_wxcode_time_as_attribute(self):
-        """ """
+        """ Test code works if time is an attribute not a dimension """
         cube = set_up_wxcube()
         cube.data = self.cube_data
         cube = iris.util.squeeze(cube)
@@ -391,6 +394,20 @@ class Test_update_daynight(IrisTest):
         result = update_daynight(cube)
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.data.shape, (16, 16))
+
+    def test_wxcode_time_as_array(self):
+        """ Test code works if time is an array of dimension > 1 """
+        num1 = datetime_to_numdateval(year=2018, month=9, day=12, hour=5,
+                                      minutes=0)
+        num2 = datetime_to_numdateval(year=2018, month=9, day=12, hour=6,
+                                      minutes=0)
+        num3 = datetime_to_numdateval(year=2018, month=9, day=12, hour=7,
+                                      minutes=0)
+        cube = set_up_wxcube(time_points=[num1, num2, num3])
+        expected_result = np.ones((3, 16, 16))
+        expected_result[0, :, :] = 0
+        result = update_daynight(cube)
+        self.assertArrayEqual(result.data, expected_result)
 
     def test_basic_lat_lon(self):
         """Test that the function returns a weather code lat lon cube.."""
