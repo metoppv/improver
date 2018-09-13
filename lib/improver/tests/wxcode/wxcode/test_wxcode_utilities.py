@@ -42,6 +42,7 @@ import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from cf_units import Unit, date2num
 
@@ -344,6 +345,14 @@ class Test_update_daynight(IrisTest):
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
+
+    def test_raise_error_no_time_coordinate(self):
+        """Test that the function raises an error if no time coordinate."""
+        cube = set_up_wxcube()
+        cube.coord('time').rename('nottime')
+        msg = "cube must have time coordinate"
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            update_daynight(cube)
 
     def test_wxcode_updated(self):
         """Test Correct wxcodes returned for cube."""

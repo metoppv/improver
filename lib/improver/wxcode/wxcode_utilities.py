@@ -34,6 +34,7 @@ from collections import OrderedDict
 import numpy as np
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 import improver.utilities.solar as solar
 
@@ -127,10 +128,14 @@ def update_daynight(cubewx):
     Returns:
         cubewx_daynight(Iris.cube.Cube):
             Cube containing day and night weather symbols
+
+    Raises:
+        CoordinateNotFoundError : cube must have time coordinate.
+
     """
     if not cubewx.coords("time"):
         msg = ("cube must have time coordinate ")
-        raise ValueError(msg)
+        raise CoordinateNotFoundError(msg)
     time_dim = cubewx.coord_dims('time')
     if not time_dim:
         cubewx_daynight = iris.util.new_axis(cubewx.copy(), 'time')
@@ -138,8 +143,12 @@ def update_daynight(cubewx):
         cubewx_daynight = cubewx.copy()
     daynight_mask = solar.DayNightMask().process(cubewx_daynight)
 
+    # Loop over the codes which decrease by 1 if a night time value
+    # e.g. 1 - sunny day becomes 0 - clear night.
     for val in DAYNIGHT_CODES:
         index = np.where(cubewx_daynight.data == val)
+        # daynight mask is 1 for day, 0 for night so need to 1-mask
+        # to correct weather code value.
         cubewx_daynight.data[index] = (cubewx_daynight.data[index]
                                        - 1 +
                                        daynight_mask.data[index])

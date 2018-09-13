@@ -473,7 +473,7 @@ class Test_process(IrisTest):
                               expected_wxcode)
 
     def test_day_night(self):
-        """Test process returns a weather code cube with right values. """
+        """Test process returns the right values for night. """
         plugin = WeatherSymbols()
         for i, cube in enumerate(self.cubes):
             self.cubes[i].coord('time').points = (cube.coord('time').points +
@@ -486,7 +486,7 @@ class Test_process(IrisTest):
                               expected_wxcode)
 
     def test_weather_data(self):
-        """Test process returns the right weather values. """
+        """Test process returns the right weather values.part2 """
         plugin = WeatherSymbols()
         data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
                               0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
