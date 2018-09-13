@@ -78,12 +78,14 @@ class OrographicEnhancement(object):
 
             Parameters for calculating upstream contribution:
                 - Maximum range of an upstream cell to contribute to the total
-                  enhancement (self.upstream_range_of_influence_km)
+                  enhancement (self.upstream_range_of_influence_km).  This is
+                  15 km in STEPS.
                 - Cloud lifetime (self.cloud_lifetime_s) defines the standard
                   deviation of the distance weighting function for upstream
-                  enhancement contributions
+                  enhancement contributions.  This is 102 seconds in STEPS.
                 - Scaling factor by which to multiply the weighted sum of
-                  upstream contributions (self.efficiency_factor)
+                  upstream contributions (self.efficiency_factor).  This is
+                  0.23265 in STEPS.
 
         Create placeholder class members for regridded variable cubes
         (orography, temperature, humidity, pressure and wind components),
@@ -136,8 +138,8 @@ class OrographicEnhancement(object):
         self.topography.coord(axis='y').convert_units(self.topography.units)
         ydim = self.topography.coord_dims(self.topography.coord(axis='y'))[0]
 
-        # smooth topography along perpendicular axis before calculating
-        # gradients in each direction (as done in STEPS)
+        # smooth topography by +/- one grid cell along the perpendicular axis
+        # before calculating each gradient (as done in STEPS)
         topo_smx = uniform_filter1d(self.topography.data, 3, axis=ydim)
         topo_smx_cube = self.topography.copy(data=topo_smx)
         gradx, _ = DifferenceBetweenAdjacentGridSquares(
@@ -248,10 +250,12 @@ class OrographicEnhancement(object):
     def _generate_mask(self):
         """
         Generates a boolean mask of areas NOT to calculate orographic
-        enhancement.  Criteria for calculation are:
+        enhancement.  Criteria for calculating orographic enhancement are that
+        all of the following are true:
             - 3x3 mean topography height >= threshold (20 m)
             - Relative humidity (fraction) >= threshold (0.8)
             - v dot grad z (wind x topography gradient) >= threshold (0.0005)
+        The mask is therefore "True" if any of these conditions are false.
 
         Returns:
             mask (np.ndarray):
@@ -404,8 +408,8 @@ class OrographicEnhancement(object):
 
         # set standard deviation for Gaussian weighting function in grid
         # squares
-        stddev = 0.001 * wind_speed * (
-            self.cloud_lifetime_s / self.grid_spacing_km)
+        grid_spacing_m = 1000.*self.grid_spacing_km
+        stddev = wind_speed * self.cloud_lifetime_s / grid_spacing_m
         variance = np.square(stddev)
 
         # calculate weighted values at source points
@@ -471,15 +475,15 @@ class OrographicEnhancement(object):
                 Orographic enhancement value in mm h-1
             reference_cube (iris.cube.Cube):
                 Cube with the correct time and forecast period coordinates on
-                the UK 2 km standard grid
+                the UK standard grid
 
         Returns:
             (tuple): tuple containing:
                 **orogenh** (iris.cube.Cube):
                     Orographic enhancement cube on 1 km UKPP grid
                 **orogenh_standard_grid** (iris.cube.Cube):
-                    Orographic enhancement cube on 2 km standard grid, padded
-                    with masked np.nans
+                    Orographic enhancement cube on the UK standard grid, padded
+                    with masked np.nans where outside the UKPP domain
         """
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
@@ -535,7 +539,8 @@ class OrographicEnhancement(object):
                     1 km Transverse Mercator UKPP grid domain
                 **orogenh_standard_grid** (iris.cube.Cube):
                     Precipitation enhancement due to orography in mm/h on the
-                    2 km standard grid
+                    UK standard grid, padded with masked np.nans where outside
+                    the UKPP domain
         """
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(
@@ -545,12 +550,14 @@ class OrographicEnhancement(object):
             msg = 'Input cube coordinates {} are unmatched'
             raise ValueError(msg.format(unmatched_coords))
 
-        # check all cubes are 2D spatial fields
+        # check one of the input variable cubes is a 2D spatial field (this is
+        # equivalent to checking all cubes whose coords are matched above)
         msg = 'Require 2D fields as input; found {} dimensions'
         if temperature.ndim > 2:
             raise ValueError(msg.format(temperature.ndim))
         check_for_x_and_y_axes(temperature)
 
+        # check the topography cube is a 2D spatial field
         if topography.ndim > 2:
             raise ValueError(msg.format(topography.ndim))
         check_for_x_and_y_axes(topography)
