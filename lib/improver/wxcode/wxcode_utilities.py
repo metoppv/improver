@@ -36,7 +36,6 @@ import numpy as np
 import iris
 
 import improver.utilities.solar as solar
-from improver.utilities.temporal import iris_time_to_datetime
 
 _WX_DICT_IN = {0: 'Clear_Night',
                1: 'Sunny_Day',

@@ -41,7 +41,7 @@ import numpy as np
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import DimCoord
 
 from cf_units import Unit, date2num
 
@@ -313,6 +313,7 @@ class Test_update_daynight(IrisTest):
     """Test updating weather cube depending on whether it is day or night"""
 
     def setUp(self):
+        """Set up for update_daynight class"""
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.cube_data = np.array([[
