@@ -95,12 +95,12 @@ def main():
     orography = load_cube(args.orography_filepath)[0]
 
     # calculate orographic enhancement
-    #orogenh_high_res, orogenh_standard = OrographicEnhancement().process(
-    #    temperature, humidity, pressure, uwind, vwind, orography)
+    orogenh_high_res, orogenh_standard = OrographicEnhancement().process(
+        temperature, humidity, pressure, uwind, vwind, orography)
 
     # save output files
-    #save_netcdf(orogenh_high_res, args.output_high_resolution)
-    #save_netcdf(orogenh_standard, args.output_standard_grid)
+    save_netcdf(orogenh_high_res, args.output_high_resolution)
+    save_netcdf(orogenh_standard, args.output_standard_grid)
 
 
 if __name__ == "__main__":
