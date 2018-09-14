@@ -239,6 +239,46 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
 
+    def test_identical_slices(self):
+        """Test that identical successive slices of the cube produce
+           identical results."""
+        expected = np.array(
+            [[[1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [1.00, 1.00, 1.00, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan, np.nan]],
+             [[np.nan, 1.00, 1.00, 1.00, 1.00],
+              [np.nan, 0.50, 0.75, 0.75, 1.00],
+              [np.nan, 0.50, 0.75, 0.75, 1.00],
+              [np.nan, 0.00, 0.50, 0.50, 1.00],
+              [np.nan, np.nan, np.nan, np.nan, np.nan]],
+             [[np.nan, np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, np.nan, np.nan, np.nan],
+              [np.nan, np.nan, 1.00, 1.00, 1.00],
+              [np.nan, np.nan, 1.00, 1.00, 1.00],
+              [np.nan, np.nan, 1.00, 1.00, 1.00]]])
+        cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),(1, 0, 2, 2)), num_grid_points=5,
+            num_realization_points=2)
+        # The neighbourhood code adds bounds to the coordinates if they are
+        # not present so add them now to make it easier to compare input and
+        # output from the plugin.
+        cube.coord("projection_x_coordinate").guess_bounds()
+        cube.coord("projection_y_coordinate").guess_bounds()
+        cube = iris.util.squeeze(cube)
+        coord_for_masking = "topographic_zone"
+        radii = 2000
+        num_zones = len(self.mask_cube.coord(coord_for_masking).points)
+        expected_shape = tuple(
+            [cube.data.shape[0], num_zones] + list(cube.data.shape[1:])
+        )
+        result = ApplyNeighbourhoodProcessingWithAMask(
+            coord_for_masking, radii).process(cube, self.mask_cube)
+        self.assertEqual(result.data.shape, expected_shape)
+        for slice in result.slices_over("realization"):
+            self.assertArrayAlmostEqual(slice.data, expected)
+
 
 if __name__ == '__main__':
     unittest.main()
