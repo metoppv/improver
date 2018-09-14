@@ -151,6 +151,11 @@ def main():
         for i, lead_time in enumerate(lead_times):
             # cast to float as datetime.timedelta cannot accept np.int
             timestep = datetime.timedelta(seconds=60.*lead_time)
+            # Strip the var_names for the cubes within cube_list.
+            # This is required because merge_cubes has already stripped the
+            # var_names from umean and vmean, however, the cubes in cube_list
+            # can still have var_names, which can cause coordinates to mismatch
+            # within the advection plugin.
             cube_list = _strip_var_names(cube_list)
             forecast_cube = advection_plugin.process(cube_list[-1], timestep)
 
