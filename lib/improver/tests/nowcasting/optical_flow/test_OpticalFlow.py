@@ -65,7 +65,7 @@ class Test__repr__(IrisTest):
         """Test string representation"""
         expected_string = ('<OpticalFlow: data_smoothing_radius_km: 14.0, '
                            'data_smoothing_method: box, iterations: 100, '
-                           'point_weight: 0.1>')
+                           'point_weight: 0.1, metadata_dict: {}>')
         result = str(OpticalFlow())
         self.assertEqual(result, expected_string)
 

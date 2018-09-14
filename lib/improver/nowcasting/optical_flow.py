@@ -135,7 +135,10 @@ class AdvectField(object):
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<AdvectField>')
+        result = ('<AdvectField: vel_x={}, vel_y={}, '
+                  'metadata_dict={}>'.format(
+                      self.vel_x.name(), self.vel_y.name(),
+                      self.metadata_dict))
         return result
 
     @staticmethod
@@ -398,10 +401,10 @@ class OpticalFlow(object):
         """Represent the plugin instance as a string."""
         result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
                   'data_smoothing_method: {}, iterations: {}, '
-                  'point_weight: {}>')
+                  'point_weight: {}, metadata_dict: {}>')
         return result.format(
             self.data_smoothing_radius_km, self.data_smoothing_method,
-            self.iterations, self.point_weight)
+            self.iterations, self.point_weight, self.metadata_dict)
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
