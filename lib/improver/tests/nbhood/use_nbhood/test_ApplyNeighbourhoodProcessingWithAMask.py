@@ -259,7 +259,7 @@ class Test_process(IrisTest):
               [np.nan, np.nan, 1.00, 1.00, 1.00],
               [np.nan, np.nan, 1.00, 1.00, 1.00]]])
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),(1, 0, 2, 2)), num_grid_points=5,
+            zero_point_indices=((0, 0, 2, 2), (1, 0, 2, 2)), num_grid_points=5,
             num_realization_points=2)
         # The neighbourhood code adds bounds to the coordinates if they are
         # not present so add them now to make it easier to compare input and
