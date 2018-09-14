@@ -141,17 +141,19 @@ def update_daynight(cubewx):
         cubewx_daynight = iris.util.new_axis(cubewx.copy(), 'time')
     else:
         cubewx_daynight = cubewx.copy()
-    daynight_mask = solar.DayNightMask().process(cubewx_daynight)
+    daynightplugin = solar.DayNightMask()
+    daynight_mask = daynightplugin.process(cubewx_daynight)
 
     # Loop over the codes which decrease by 1 if a night time value
     # e.g. 1 - sunny day becomes 0 - clear night.
     for val in DAYNIGHT_CODES:
         index = np.where(cubewx_daynight.data == val)
-        # daynight mask is 1 for day, 0 for night so need to 1-mask
-        # to correct weather code value.
-        cubewx_daynight.data[index] = (cubewx_daynight.data[index]
-                                       - 1 +
-                                       daynight_mask.data[index])
+        # Where day leave as is, where night correct weather
+        # code to value  - 1.
+        cubewx_daynight.data[index] = np.where(
+            daynight_mask.data[index] == daynightplugin.day,
+            cubewx_daynight.data[index],
+            cubewx_daynight.data[index] - 1)
 
     if not time_dim:
         cubewx_daynight = iris.util.squeeze(cubewx_daynight)
