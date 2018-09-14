@@ -71,7 +71,7 @@ def main():
                         help='Full path to write orographic enhancement file '
                         'on standard grid')
 
-    parser.add_argument('--boundary_height_metres', type=float, default=955.,
+    parser.add_argument('--boundary_height_metres', type=float, default=1000.,
                         help='Model height level to extract variables for '
                         'calculating orographic enhancement, as proxy for '
                         'the boundary layer.')

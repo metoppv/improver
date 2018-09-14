@@ -46,7 +46,7 @@
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
       "$TEST_DIR/output_hi_res.nc" \
       "$TEST_DIR/output_standard.nc" \
-      --boundary_height_m=10.
+      --boundary_height_m=500.
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output_hi_res.nc" $KGO_HI_RES
