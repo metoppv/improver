@@ -49,23 +49,23 @@ def main():
 
     parser = ArgParser(description="Calculate orographic enhancement.")
 
-    parser.add_argument('--temperature_filepath', help='Full path to input '
+    parser.add_argument('temperature_filepath', help='Full path to input '
                         'NetCDF temperature file')
-    parser.add_argument('--humidity_filepath', help='Full path to input '
+    parser.add_argument('humidity_filepath', help='Full path to input '
                         'NetCDF relative humidity file')
-    parser.add_argument('--pressure_filepath', help='Full path to input '
+    parser.add_argument('pressure_filepath', help='Full path to input '
                         'NetCDF pressure file')
-    parser.add_argument('--windspeed_filepath', help='Full path to input '
+    parser.add_argument('windspeed_filepath', help='Full path to input '
                         'NetCDF wind speed file')
-    parser.add_argument('--winddir_filepath', help='Full path to input '
+    parser.add_argument('winddir_filepath', help='Full path to input '
                         'NetCDF wind direction file')
 
-    parser.add_argument('--orography_filepath', help='Full path to input '
+    parser.add_argument('orography_filepath', help='Full path to input '
                         'NetCDF high resolution (1km) orography ancillary')
 
-    parser.add_argument('--output_high_resolution', help='Full path to write '
+    parser.add_argument('output_high_resolution', help='Full path to write '
                         'orographic enhancement file on high resolution grid')
-    parser.add_argument('--output_standard_grid', help='Full path to write '
+    parser.add_argument('output_standard_grid', help='Full path to write '
                         'orographic enhancement file on standard grid')
 
     parser.add_argument('--boundary_height_metres', type=float, default=955.,
@@ -98,7 +98,6 @@ def main():
     # save output files
     save_netcdf(orogenh_high_res, args.output_high_resolution)
     save_netcdf(orogenh_standard, args.output_standard_grid)
-
 
 
 if __name__ == "__main__":
