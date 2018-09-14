@@ -29,9 +29,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "orographic-enhancement no arguments" {
-  run improver orographic-enhancement
-  [[ "$status" -eq 2 ]]
+@test "orographic-enhancement help" {
+  run improver orographic-enhancement -h
+  [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-orographic-enhancement [-h] [--profile]
                                        [--profile_file PROFILE_FILE]
@@ -40,6 +40,34 @@ usage: improver-orographic-enhancement [-h] [--profile]
                                        PRESSURE_FILEPATH WINDSPEED_FILEPATH
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
                                        OUTPUT_HIGH_RES OUTPUT_STANDARD
+
+Calculate orographic enhancement.
+
+positional arguments:
+  TEMPERATURE_FILEPATH  Full path to input NetCDF temperature file
+  HUMIDITY_FILEPATH     Full path to input NetCDF relhumidity file
+  PRESSURE_FILEPATH     Full path to input NetCDF pressure file
+  WINDSPEED_FILEPATH    Full path to input NetCDF wind speed file
+  WINDDIR_FILEPATH      Full path to input NetCDF wind direction file
+  OROGRAPHY_FILEPATH    Full path to input NetCDF high resolution (1 km)
+                        orography ancillary
+  OUTPUT_HIGH_RES       Full path to write orographic enhancement file on high
+                        resolution (1 km) grid
+  OUTPUT_STANDARD       Full path to write orographic enhancement file on
+                        standard grid
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+  --boundary_height_metres BOUNDARY_HEIGHT_METRES
+                        Model height level to extract variables for
+                        calculating orographic enhancement, as proxy for the
+                        boundary layer.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
+
+
+

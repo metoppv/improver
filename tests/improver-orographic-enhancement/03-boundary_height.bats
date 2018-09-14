@@ -29,17 +29,32 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "orographic-enhancement no arguments" {
-  run improver orographic-enhancement
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-orographic-enhancement [-h] [--profile]
-                                       [--profile_file PROFILE_FILE]
-                                       [--boundary_height_metres BOUNDARY_HEIGHT_METRES]
-                                       TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
-                                       PRESSURE_FILEPATH WINDSPEED_FILEPATH
-                                       WINDDIR_FILEPATH OROGRAPHY_FILEPATH
-                                       OUTPUT_HIGH_RES OUTPUT_STANDARD
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "orographic-enhancement boundary height" {
+  improver_check_skip_acceptance
+  KGO_HI_RES="orographic_enhancement/boundary_height/kgo_hi_res.nc"
+  KGO_STANDARD="orographic_enhancement/boundary_height/kgo_standard.nc"
+
+  # Run orographic enhancement and check it passes
+  run improver orographic-enhancement \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/humidity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/pressure.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
+      "$TEST_DIR/output_hi_res.nc" \
+      "$TEST_DIR/output_standard.nc" \
+      --boundary_height_m=10.
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output_hi_res.nc" $KGO_HI_RES
+  improver_check_recreate_kgo "output_standard.nc" $KGO_STANDARD
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output_hi_res.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_HI_RES"
+  improver_compare_output "$TEST_DIR/output_standard.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_STANDARD"
 }
