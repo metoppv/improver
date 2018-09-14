@@ -89,7 +89,7 @@ def main():
     wind_dir = load_cube(args.winddir_filepath, constraint)
 
     # resolve u and v wind components
-    uwind, vwind = ResolveWindComponents(wind_speed, wind_dir)
+    uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
 
     # load orography
     orography = load_cube(args.orography_filepath)[0]
