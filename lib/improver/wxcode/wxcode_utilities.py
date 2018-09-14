@@ -33,6 +33,11 @@
 from collections import OrderedDict
 import numpy as np
 
+import iris
+from iris.exceptions import CoordinateNotFoundError
+
+import improver.utilities.solar as solar
+
 _WX_DICT_IN = {0: 'Clear_Night',
                1: 'Sunny_Day',
                2: 'Partly_Cloudy_Night',
@@ -66,6 +71,8 @@ _WX_DICT_IN = {0: 'Clear_Night',
                30: 'Thunder'}
 
 WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
+
+DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
 def add_wxcode_metadata(cube):
@@ -109,3 +116,45 @@ def expand_nested_lists(query, key):
         else:
             items.extend([item])
     return items
+
+
+def update_daynight(cubewx):
+    """ Update weather cube depending on whether it is day or night
+
+    Args:
+        cubewx(Iris.cube.Cube):
+            Cube containing only daytime weather symbols.
+
+    Returns:
+        cubewx_daynight(Iris.cube.Cube):
+            Cube containing day and night weather symbols
+
+    Raises:
+        CoordinateNotFoundError : cube must have time coordinate.
+
+    """
+    if not cubewx.coords("time"):
+        msg = ("cube must have time coordinate ")
+        raise CoordinateNotFoundError(msg)
+    time_dim = cubewx.coord_dims('time')
+    if not time_dim:
+        cubewx_daynight = iris.util.new_axis(cubewx.copy(), 'time')
+    else:
+        cubewx_daynight = cubewx.copy()
+    daynightplugin = solar.DayNightMask()
+    daynight_mask = daynightplugin.process(cubewx_daynight)
+
+    # Loop over the codes which decrease by 1 if a night time value
+    # e.g. 1 - sunny day becomes 0 - clear night.
+    for val in DAYNIGHT_CODES:
+        index = np.where(cubewx_daynight.data == val)
+        # Where day leave as is, where night correct weather
+        # code to value  - 1.
+        cubewx_daynight.data[index] = np.where(
+            daynight_mask.data[index] == daynightplugin.day,
+            cubewx_daynight.data[index],
+            cubewx_daynight.data[index] - 1)
+
+    if not time_dim:
+        cubewx_daynight = iris.util.squeeze(cubewx_daynight)
+    return cubewx_daynight

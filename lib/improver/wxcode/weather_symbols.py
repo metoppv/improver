@@ -36,7 +36,8 @@ import copy
 import iris
 
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
-                                              expand_nested_lists)
+                                              expand_nested_lists,
+                                              update_daynight)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 
 
@@ -435,5 +436,6 @@ class WeatherSymbols(object):
 
                 # Set grid locations to suitable weather symbol
                 symbols.data[np.where(eval(test_chain))] = symbol_code
-
+        # Update symbols for day or night.
+        symbols = update_daynight(symbols)
         return symbols
