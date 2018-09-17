@@ -276,8 +276,8 @@ class Test_process(IrisTest):
         result = ApplyNeighbourhoodProcessingWithAMask(
             coord_for_masking, radii).process(cube, self.mask_cube)
         self.assertEqual(result.data.shape, expected_shape)
-        for slice in result.slices_over("realization"):
-            self.assertArrayAlmostEqual(slice.data, expected)
+        for realization_slice in result.slices_over("realization"):
+            self.assertArrayAlmostEqual(realization_slice.data, expected)
 
 
 if __name__ == '__main__':
