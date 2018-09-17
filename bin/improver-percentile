@@ -108,7 +108,7 @@ def main():
         if np.ma.is_masked(cube.data):
             fast_percentile_method = False
         elif np.ma.isMaskedArray(cube.data):
-        cube.data = cube.data.data
+            cube.data = cube.data.data
 
         result = PercentileConverter(
             args.coordinates, percentiles=percentiles,
