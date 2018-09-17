@@ -252,9 +252,11 @@ class OrographicEnhancement(object):
         Generates a boolean mask of areas NOT to calculate orographic
         enhancement.  Criteria for calculating orographic enhancement are that
         all of the following are true:
+
             - 3x3 mean topography height >= threshold (20 m)
             - Relative humidity (fraction) >= threshold (0.8)
             - v dot grad z (wind x topography gradient) >= threshold (0.0005)
+
         The mask is therefore "True" if any of these conditions are false.
 
         Returns:
