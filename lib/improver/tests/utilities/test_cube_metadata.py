@@ -362,6 +362,8 @@ class Test_update_cell_methods(IrisTest):
     """Test that the cell methods are updated."""
 
     def test_add_cell_method(self):
+        """Test adding a cell method, where all cell method elements are
+        present i.e. method, coords, intervals and comments."""
         cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': 'time',
@@ -372,6 +374,8 @@ class Test_update_cell_methods(IrisTest):
         self.assertTrue(expected_cell_method in cube.cell_methods)
 
     def test_add_cell_method_partial_information(self):
+        """Test adding a cell method, where there is only partial
+        information available i.e. just method and coords."""
         cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': 'time'}
@@ -380,6 +384,7 @@ class Test_update_cell_methods(IrisTest):
         self.assertTrue(expected_cell_method in cube.cell_methods)
 
     def test_add_cell_method_no_method(self):
+        """Test add a cell method, where no method element is specified."""
         cube = create_cube_with_threshold()
         cell_methods = {'method': '',
                         'coords': 'time',
@@ -390,6 +395,7 @@ class Test_update_cell_methods(IrisTest):
         self.assertTrue(expected_cell_method in cube.cell_methods)
 
     def test_add_cell_method_no_coords(self):
+        """Test add a cell method, where no coords element is specified."""
         cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': (),
@@ -400,6 +406,8 @@ class Test_update_cell_methods(IrisTest):
         self.assertTrue(expected_cell_method in cube.cell_methods)
 
     def test_remove_cell_method(self):
+        """Test removing a cell method, when the specified cell method is
+        already on the input cube."""
         cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': 'time',
