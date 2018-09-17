@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to create spotdata cubes."""
 
+import numpy as np
+
 import iris
 from iris.coords import DimCoord, AuxCoord
 
@@ -38,15 +40,16 @@ def build_spotdata_cube(data, name, units,
                         altitude, latitude, longitude, wmo_id,
                         scalar_coords=None,
                         neighbour_methods=None, neighbour_methods_dim=1,
-                        grid_attributes=None, grid_attributes_dim=2)
+                        grid_attributes=None, grid_attributes_dim=2):
     """
-    Function to build a spotdata cube
+    Function to build a spotdata cube with expected dimension and auxiliary
+    coordinate structure.
 
     Args:
         data (float or np.ndarray):
             Float spot data or array of data points from several sites.
             The spot index should be the first dimension if the array is
-            multi-dimensional.
+            multi-dimensional (see optional additional dimensions below).
         name (str):
             Cube name (eg 'air_temperature')
         units (str):
@@ -57,8 +60,8 @@ def build_spotdata_cube(data, name, units,
             Float or 1d array of site latitudes in degrees
         longitude (float or np.ndarray):
             Float or 1d array of site longitudes in degrees
-        wmo_id (float or np.ndarray):
-            Float or 1d array of site 5-digit WMO identifiers
+        wmo_id (string or list):
+            String or list of site 5-digit WMO identifiers
 
     Kwargs:
         scalar_coords (list):
@@ -74,21 +77,55 @@ def build_spotdata_cube(data, name, units,
     """
 
     # construct auxiliary coordinates
-    alt_coord = DimCoord(altitude, 'altitude', units='m')
-    lat_coord = DimCoord(latitude, 'latitude', units='degrees')
-    lon_coord = DimCoord(longitude, 'longitude', units='degrees')
-    id_coord = AuxCoord(wmo_id, 'wmo_id')
+    alt_coord = AuxCoord(altitude, 'altitude', units='m')
+    lat_coord = AuxCoord(latitude, 'latitude', units='degrees')
+    lon_coord = AuxCoord(longitude, 'longitude', units='degrees')
+    id_coord = AuxCoord(wmo_id, long_name='wmo_id')
+
+    aux_coords_and_dims = []
+    for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
+        aux_coords_and_dims.append((coord, 0))
+
+    # append scalar coordinates
+    if scalar_coords is not None:
+        for coord in scalar_coords:
+            aux_coords_and_dims.append((coord, None))
 
     # construct dimension coordinates
-    n_sites = len(data) if isinstance(data, np.ndarray) else 1
-    spot_index = DimCoord(n_sites, 'spot_index', units='1')
+    if np.isscalar(data):
+        data = np.array([data])
+    spot_index = DimCoord(
+        np.arange(len(data)), long_name='spot_index', units='1')
     dim_coords_and_dims = [(spot_index, 0)]
 
     if neighbour_methods is not None:
         neighbour_methods_coord = DimCoord(
-            len(neighbour_methods), 'neighbour_selection_method', units='1')
-        ne
+            np.arange(len(neighbour_methods)),
+            long_name='neighbour_selection_method', units='1')
+        neighbour_methods_key = AuxCoord(
+            neighbour_methods, long_name='neighbour_selection_method_name')
 
+        dim_coords_and_dims.append((neighbour_methods_coord,
+                                    neighbour_methods_dim))
+        aux_coords_and_dims.append((neighbour_methods_key,
+                                    neighbour_methods_dim))
 
+    if grid_attributes is not None:
+        grid_attributes_coord = DimCoord(
+            np.arange(len(grid_attributes)),
+            long_name='grid_attributes', units='1')
+        grid_attributes_key = AuxCoord(
+            grid_attributes, long_name='grid_attributes_key')
 
+        dim_coords_and_dims.append((grid_attributes_coord,
+                                    grid_attributes_dim))
+        aux_coords_and_dims.append((grid_attributes_key,
+                                    grid_attributes_dim))
 
+    # create output cube
+    spot_cube = iris.cube.Cube(
+        data, long_name=name, units=units,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims)
+
+    return spot_cube
