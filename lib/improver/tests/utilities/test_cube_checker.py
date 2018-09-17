@@ -64,7 +64,7 @@ class Test_check_cube_not_float64(IrisTest):
         check_cube_not_float64(self.cube)
 
     def test_float64_cube_data(self):
-        """Test a failure of a cube with 64 bit .data."""
+        """Test a failure of a cube with 64 bit data."""
         self.cube.data = self.cube.data.astype(np.float64)
         msg = "64 bit cube not allowed"
         with self.assertRaisesRegex(TypeError, msg):
