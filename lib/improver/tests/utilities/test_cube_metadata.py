@@ -34,7 +34,7 @@ import unittest
 import numpy as np
 
 import iris
-from copy import copy
+from copy import copy, deepcopy
 from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord
@@ -320,7 +320,7 @@ class Test_update_attribute(IrisTest):
         """Test update_attribute adds attribute OK. """
         cube = create_cube_with_threshold()
         attribute_name = 'history'
-        changes = 'add'
+        changes = ['add', "Nowcast"]
         result = update_attribute(cube, attribute_name, changes)
         self.assertTrue("history" in result.attributes.keys())
 
@@ -365,57 +365,119 @@ class Test_update_cell_methods(IrisTest):
         """Test adding a cell method, where all cell method elements are
         present i.e. method, coords, intervals and comments."""
         cube = create_cube_with_threshold()
-        cell_methods = {'method': 'point',
+        cell_methods = {'action': 'add',
+                        'method': 'point',
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        expected_cell_method = iris.coords.CellMethod(**cm)
         update_cell_methods(cube, cell_methods)
-        self.assertTrue(expected_cell_method in cube.cell_methods)
+        self.assertEqual((expected_cell_method,), cube.cell_methods)
 
     def test_add_cell_method_partial_information(self):
         """Test adding a cell method, where there is only partial
         information available i.e. just method and coords."""
         cube = create_cube_with_threshold()
-        cell_methods = {'method': 'point',
+        cell_methods = {'action': 'add',
+                        'method': 'point',
                         'coords': 'time'}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        expected_cell_method = iris.coords.CellMethod(**cm)
         update_cell_methods(cube, cell_methods)
-        self.assertTrue(expected_cell_method in cube.cell_methods)
+        self.assertEqual((expected_cell_method,), cube.cell_methods)
 
-    def test_add_cell_method_no_method(self):
-        """Test add a cell method, where no method element is specified."""
+    def test_add_cell_method_empty_method(self):
+        """Test add a cell method, where the method element is specified
+        as an emtpy string."""
         cube = create_cube_with_threshold()
-        cell_methods = {'method': '',
+        cell_methods = {'action': 'add',
+                        'method': '',
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods)
-        update_cell_methods(cube, cell_methods)
-        self.assertTrue(expected_cell_method in cube.cell_methods)
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        expected_cell_method = iris.coords.CellMethod(**cm)
+        msg = "No method has been specified within the cell method"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_cell_methods(cube, cell_methods)
 
     def test_add_cell_method_no_coords(self):
         """Test add a cell method, where no coords element is specified."""
         cube = create_cube_with_threshold()
-        cell_methods = {'method': 'point',
+        cell_methods = {'action': 'add',
+                        'method': 'point',
                         'coords': (),
                         'intervals': (),
                         'comments': ()}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        expected_cell_method = iris.coords.CellMethod(**cm)
         update_cell_methods(cube, cell_methods)
+        self.assertEqual((expected_cell_method,), cube.cell_methods)
+
+    def test_add_cell_method_already_on_cube(self):
+        """Test that there is no change to the cell method, if the specified
+        cell method is already on the cube."""
+        cube = create_cube_with_threshold()
+        cell_methods = {'action': 'add',
+                        'method': 'point',
+                        'coords': 'time'}
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        expected_cell_method = iris.coords.CellMethod(**cm)
+        update_cell_methods(cube, cell_methods)
+        self.assertEqual((expected_cell_method,), cube.cell_methods)
+
+    def test_add_additional_cell_method_to_cube(self):
+        """Test that there is no change to the cell method, if the specified
+        cell method is already on the cube."""
+        cube = create_cube_with_threshold()
+        existing_cell_methods = {'action': 'add',
+                                 'method': 'point',
+                                 'coords': 'time'}
+        additional_cell_methods = {'action': 'add',
+                                   'method': 'mean',
+                                   'coords': 'realization'}
+        cm = deepcopy(existing_cell_methods)
+        cm.pop('action')
+        cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        cm = deepcopy(additional_cell_methods)
+        cm.pop('action')
+        expected_cell_method = iris.coords.CellMethod(**cm)
+        update_cell_methods(cube, additional_cell_methods)
         self.assertTrue(expected_cell_method in cube.cell_methods)
 
     def test_remove_cell_method(self):
         """Test removing a cell method, when the specified cell method is
         already on the input cube."""
         cube = create_cube_with_threshold()
+        cell_methods = {'action': 'delete',
+                        'method': 'point',
+                        'coords': 'time',
+                        'intervals': (),
+                        'comments': ()}
+        cm = deepcopy(cell_methods)
+        cm.pop('action')
+        cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        update_cell_methods(cube, cell_methods)
+        self.assertEqual(cube.cell_methods, ())
+
+    def test_add_cell_method_no_action(self):
+        """Test adding a cell method, where no action is specified."""
+        cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
-        cube.cell_methods = (iris.coords.CellMethod(**cell_methods),)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual(cube.cell_methods, ())
+        expected_cell_method = iris.coords.CellMethod(**cell_methods)
+        msg = "No action has been specified within the cell method definition."
+        with self.assertRaisesRegex(ValueError, msg):
+            update_cell_methods(cube, cell_methods)
 
 
 class Test_amend_metadata(IrisTest):
@@ -476,9 +538,12 @@ class Test_amend_metadata(IrisTest):
     def test_cell_method_updated_and_added(self):
         """Test amend_metadata updates and adds a cell method. """
         cube = create_cube_with_threshold()
-        cell_methods = {"1": {"method": "point",
+        cell_methods = {"1": {"action": "add",
+                              "method": "point",
                               "coords": "time"}}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods["1"])
+        cm = deepcopy(cell_methods)
+        cm["1"].pop("action")
+        expected_cell_method = iris.coords.CellMethod(**cm["1"])
         result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
                                 cell_methods=cell_methods)
         self.assertTrue(expected_cell_method in result.cell_methods)
@@ -486,9 +551,12 @@ class Test_amend_metadata(IrisTest):
     def test_cell_method_deleted(self):
         """Test amend_metadata updates attributes OK. """
         cube = create_cube_with_threshold()
-        cell_methods = {"1": {"method": "point",
+        cell_methods = {"1": {"action": "delete",
+                              "method": "point",
                               "coords": "time"}}
-        cell_method = iris.coords.CellMethod(**cell_methods["1"])
+        cm = deepcopy(cell_methods)
+        cm["1"].pop("action")
+        cell_method = iris.coords.CellMethod(**cm["1"])
         cube.cell_methods = (cell_method,)
         result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
                                 cell_methods=cell_methods)
@@ -711,17 +779,19 @@ class Test_add_history_attribute(IrisTest):
     def test_add_history(self):
         """Test that a history attribute has been added."""
         cube = set_up_temperature_cube()
-        add_history_attribute(cube)
+        add_history_attribute(cube, ["add", "Nowcast"])
         self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
 
     def test_history_already_exists(self):
-        """Test that the history attribute remains unchanged, if it
+        """Test that the history attribute is overwritten, if it
         already exists."""
         cube = set_up_temperature_cube()
         expected_history = "2018-09-13T11:28:29"
         cube.attributes["history"] = expected_history
-        add_history_attribute(cube)
+        add_history_attribute(cube, ["Nowcast", "add"])
         self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
 
 
 if __name__ == '__main__':

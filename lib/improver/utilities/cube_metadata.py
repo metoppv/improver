@@ -270,9 +270,9 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
             msg = ("Deleted attribute "
                    "{}".format(attribute_name))
             warnings.warn(msg)
-    elif changes == "add":
+    elif "add" in changes:
         if attribute_name in ["history"]:
-            add_history_attribute(result)
+            add_history_attribute(result, changes)
         else:
             msg = ("Only the history attribute can be added. "
                    "The attribute specified was {}".format(attribute_name))
@@ -288,11 +288,13 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
 
 
 def update_cell_methods(cube, cell_method_definition):
-    """Update cell methods. If the cell method defined in the
-    cell_method_definition matches a cell method that already exists within
-    the cube, then the cell method is removed. If the cell method defined
-    in the cell method definition does not match a cell method within the
-    cube, then the cell method is added.
+    """Update cell methods. An "action" keyword is expected within the
+    cell method definition to specify whether the cell method is to be added
+    or deleted. If the cell method defined in the cell_method_definition
+    matches a cell method that already exists within the cube, then the
+    cell method is removed. If the cell method defined in the cell method
+    definition does not match a cell method within the cube, then the
+    cell method is added.
 
     The cube will be modified in-place.
 
@@ -302,10 +304,29 @@ def update_cell_methods(cube, cell_method_definition):
         cell_method_definition (dict):
             Dictionary potentially containing the keys: "comments", "coords",
             "intervals" and "method", as supported by iris.coords.CellMethod.
+            The dictionary must specify an "action" keyword.
+
+    Raises:
+        ValueError: If no action is specified for the cell method, then raise
+                    an error.
+        ValueError: If no method is specified for the cell method, then raise
+                    an error.
 
     """
-    if "method" not in cell_method_definition:
-        cell_method_definition["method"] = ''
+    if "action" not in cell_method_definition:
+        msg = ("No action has been specified within the cell method "
+               "definition. Please specify an action either 'add' or 'delete'."
+               "The cell method definition provided "
+               "was {}".format(cell_method_definition))
+        raise ValueError(msg)
+
+    if not cell_method_definition["method"]:
+        msg = ("No method has been specified within the cell method "
+               "definition. Please specify a method to describe "
+               "the name of the operation, see iris.coords.CellMethod."
+               "The cell method definition provided "
+               "was {}".format(cell_method_definition))
+        raise ValueError(msg)
 
     for key in ["coords", "intervals", "comments"]:
         if key not in cell_method_definition:
@@ -324,11 +345,13 @@ def update_cell_methods(cube, cell_method_definition):
 
     cm_list = []
     for cm in cube.cell_methods:
-        if cm != cell_method:
-            cm_list.append(cm)
+        if cm == cell_method and cell_method_definition["action"] == "delete":
+            continue
+        cm_list.append(cm)
 
-    if cell_method not in cube.cell_methods:
-        cm_list.append(cell_method)
+    if cell_method_definition["action"] == "add":
+        if cell_method not in cube.cell_methods:
+            cm_list.append(cell_method)
 
     cube.cell_methods = cm_list
 
@@ -353,14 +376,14 @@ def amend_metadata(cube,
         name (str):
             New name for the diagnostic.
         data_type (numpy.dtype):
-            Data type of cube data.
+            Data type that the cube data will be converted to.
         coordinates (dict or None):
             Revised coordinates for incoming cube.
         attributes (dict or None):
             Revised attributes for incoming cube.
-        cell_methods ():
+        cell_methods (dict or None):
             Cell methods for modification within the incoming cube.
-        units ():
+        units (str, cf_units.Unit or None):
             Units for use in converting the units of the input cube.
         warnings_on (bool):
             If True output warnings for mismatching metadata.
@@ -368,6 +391,58 @@ def amend_metadata(cube,
     Returns:
         result (iris.cube.Cube):
             Cube with corrected metadata.
+
+    Example inputs:
+    ::
+
+        coordinates: The name of the coordinate is required, in addition
+            to details regarding the coordinate required by the coordinate.
+            The type of the coordinate is specified using a "metatype" key.
+            Available keys are:
+                * metatype: Type of coordinate e.g. DimCoord or AuxCoord.
+                * points: Point values for coordinate.
+                * bounds: Bounds associated with each coordinate point.
+                * units: Units of coordinate
+            For example:
+            "threshold": {
+                "metatype": "DimCoord",
+                "points": [1.0],
+                "bounds": [[0.1, 1.0]],
+                "units": "mm hr-1"
+            }
+
+        attributes: Attributes are specified using the name of the attribute
+            to be modified as the key. For all keys, apart from "history",
+            the value of the items in the dictionary can either be the value
+            that will be added e.g. "source": "Met Office Radarnet" will add
+            a "source" attribute with the value of "Met Office Radarnet", or
+            "source": "delete" will delete the source attribute.
+            For non-history attributes, the available options are e.g.:
+                * "source": "Met Office Radarnet"
+                * "source": "delete"
+            For example:
+            {
+                "experiment_number": "delete",
+                "field_code": "delete",
+                "source": "Met Office Radarnet",
+            }
+            As the history attribute requires a timestamp to be created that
+            represents now, this needs to be automatically created at runtime.
+            If a history attribute is added, a name is also added.
+            For the history attribute, the available options are e.g.
+                * "history": ["add", "Nowcast"]
+                * "history": "delete"
+
+        cell_methods: Cell methods are specified using a all arguments taken
+            by iris.coords.CellMethod. Additionally, an action key is required
+            to specify whether the specified cell method will be added or
+            deleted.
+            For example:
+                {
+                    "action": "delete",
+                    "method": "point",
+                    "coords": "time"
+                }
 
     """
     result = cube
@@ -378,7 +453,8 @@ def amend_metadata(cube,
 
     if coordinates is not None:
         for key in coordinates:
-            # If and exising coordinate.
+            # If the coordinate already exists in the cube, then update it.
+            # Otherwise, add the coordinate.
             if key in [coord.name() for coord in cube.coords()]:
                 changes = coordinates[key]
                 result = update_coord(result, key, changes,
@@ -488,13 +564,18 @@ def delete_attributes(cube, patterns):
         cube.attributes.pop(key)
 
 
-def add_history_attribute(cube):
+def add_history_attribute(cube, values):
     """Add a history attribute to a cube. This uses the current datetime to
-    generate the timestamp for the history attribute.
+    generate the timestamp for the history attribute. The new history attribute
+    will overwrite any existing history attribute.
 
     Args:
         cube (iris.cube.Cube):
             The cube to which the history attribute will be added.
+        values (list):
+            List usually of the form ["add", "Description"] with "description"
+            extra details that are to be included within the history attribute.
     """
+    description, = [value for value in values if value != "add"]
     timestamp = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S%z")
-    cube.attributes["history"] = timestamp
+    cube.attributes["history"] = "{}: {}".format(timestamp, description)

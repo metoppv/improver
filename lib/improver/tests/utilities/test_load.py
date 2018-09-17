@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for loading functionality."""
 
+import json
 import os
 import unittest
 from subprocess import call as Call
@@ -41,7 +42,7 @@ from iris.tests import IrisTest
 from iris.exceptions import ConstraintMismatchError
 import numpy as np
 
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_cube, load_cubelist, load_json
 from improver.utilities.save import save_netcdf
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
@@ -78,6 +79,39 @@ def create_sample_cube_with_additional_coordinate(
             DimCoord(np.array([val]), long_name=coord_name))
         cubes.append(temp_cube)
     return cubes.merge_cube()
+
+
+class Test_load_json(IrisTest):
+
+    """Test the loading of a json file."""
+
+    def setUp(self):
+        """Set up json file for testing."""
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.json")
+        self.metadata_dict = (
+            {
+                "attributes": {
+                    "mosg__grid_version": "1.0.0",
+                    "mosg__model_configuration": "nc_det",
+                    "source": "Met Office Nowcast",
+                    "institution": "Met Office",
+                    "title": "Nowcast on UK 2 km Standard Grid",
+                    "history": "add"
+                }
+            })
+        with open(self.filepath, "w") as f:
+            json.dump(self.metadata_dict, f)
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        Call(['rm', '-f', self.filepath])
+        Call(['rmdir', self.directory])
+
+    def test_load_json(self):
+        """Test loading a json file returns the expected output."""
+        result = load_json(self.filepath)
+        self.assertEqual(result, self.metadata_dict)
 
 
 class Test_load_cube(IrisTest):
