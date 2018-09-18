@@ -49,7 +49,7 @@ class NowcastLightning(object):
         upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
             The <function> returns a linear value from 0.5 to 2.5 over a
             6-hour forecast_period.
-        lower: lightning rate == 0.0 => min lightning prob 0.25
+        lower: lightning rate == 0.0 => min lightning prob 0.25 (LR2)
 
         There are two special values in the lightning rate field:
             0: No lightning at point, but lightning present within 50 km
@@ -57,12 +57,12 @@ class NowcastLightning(object):
 
     precipitation mapping (for prob(precip > 0.5 mm/hr)):
         upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
-        middle: precip probability >= 0.05 => max lightning prob 0.2
-        lower:  precip probability >= 0.0 => max lightning prob 0.0067
+        middle: precip probability >= 0.05 => max lightning prob 0.25 (LR2)
+        lower:  precip probability >= 0.0 => max lightning prob 0.0067 (LR3)
 
-        heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25
+        heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25 (LR2)
                 equiv radar refl 37dBZ
-        intense:prob(precip > 35mm/hr) >= 0.2 => min lightning prob 1.0
+        intense:prob(precip > 35mm/hr) >= 0.2 => min lightning prob 1.0 (LR1)
                 equiv radar refl 48dBZ
 
     """
@@ -129,7 +129,7 @@ class NowcastLightning(object):
         #    ltngthr (tuple):
         #        Values for limiting prob(lightning) with prob(precip)
         #        These are the three prob(lightning) values to scale to.
-        self.ltngthr = (0.0067, 0.2, 1.)
+        self.ltngthr = (0.0067, 0.25, 1.)
         #    probability thresholds for increasing the prob(lightning)
         #        phighthresh for heavy precip (>7mm/hr)
         #            relates to problightning_values[2]

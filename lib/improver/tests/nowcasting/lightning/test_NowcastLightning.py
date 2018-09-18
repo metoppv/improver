@@ -369,7 +369,7 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[0, 0, 7, 7] = 0.075
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
-        expected.data[0, 7, 7] = 0.6
+        expected.data[0, 7, 7] = 0.625
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
