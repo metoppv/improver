@@ -77,7 +77,7 @@ class Test_process(IrisTest):
         # below. A bug?
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube(dtype=np.float64)))
+                set_up_temperature_cube()))
 
         self.historic_temperature_forecast_cube = (
             _create_historic_forecasts(self.current_temperature_forecast_cube))
@@ -189,7 +189,7 @@ class Test_process(IrisTest):
         """
         predictor_data = np.array(
             [[231.150024, 242.400024, 253.650024],
-             [264.900024, 276.150024, 287.400024],
+             [264.899994, 276.149994, 287.399994],
              [298.650024, 309.900024, 321.150024]],
             dtype=np.float32
         )
@@ -228,15 +228,15 @@ class Test_process(IrisTest):
             statsmodels_found = False
         if statsmodels_found:
             predictor_data = np.array(
-                [[230.722473, 241.944397, 253.166321],
-                 [264.388245, 275.610168, 286.832092],
-                 [298.054016, 309.27594, 320.497864]],
+                [[231.1493, 242.3992, 253.6492],
+                 [264.8991, 276.149, 287.399],
+                 [298.649, 309.8989, 321.1488]],
                 dtype=np.float32
             )
             variance_data = np.array(
-                [[0.05635014, 0.05635014, 0.05635014],
-                 [0.05635014, 0.05635014, 0.05635014],
-                 [0.05635014, 0.05635014, 0.05635014]],
+                [[0.000001, 0.000001, 0.000001],
+                 [0.000001, 0.000001, 0.000001],
+                 [0.000001, 0.000001, 0.000001]],
                 dtype=np.float32
             )
         else:
