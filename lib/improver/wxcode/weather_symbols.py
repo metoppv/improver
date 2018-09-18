@@ -39,6 +39,8 @@ from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
+from improver.wxcode.wxcode_decision_tree_global import (
+    wxcode_decision_tree_global)
 
 
 class WeatherSymbols(object):
@@ -49,7 +51,7 @@ class WeatherSymbols(object):
     defined in the input cubes.
     """
 
-    def __init__(self):
+    def __init__(self, wxtree='uk'):
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -58,7 +60,10 @@ class WeatherSymbols(object):
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
         """
-        self.queries = wxcode_decision_tree()
+        if wxtree == 'global':
+            self.queries = wxcode_decision_tree_global()
+        else:
+            self.queries = wxcode_decision_tree()
         self.float_tolerance = 0.01
 
     def __repr__(self):

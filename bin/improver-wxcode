@@ -38,11 +38,13 @@ from argparse import RawTextHelpFormatter
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
+from improver.wxcode.wxcode_decision_tree_global import (
+    wxcode_decision_tree_global)
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
 
-def interrogate_decision_tree():
+def interrogate_decision_tree(wxtree):
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a list of the diagnostic names, the thresholds needed,
@@ -57,7 +59,10 @@ def interrogate_decision_tree():
 
     # Get current weather symbol decision tree and populate a list of
     # required inputs for printing.
-    queries = wxcode_decision_tree()
+    if wxtree == 'uk':
+        queries = wxcode_decision_tree()
+    elif wxtree == 'global':
+        queries = wxcode_decision_tree_global()
 
     # Diagnostic names and threshold values.
     requirements = {}
@@ -99,15 +104,21 @@ def main():
     the weather symbols plugin.
     """
 
-    diagnostics = interrogate_decision_tree()
+    diagnostics = interrogate_decision_tree('uk')
     n_files = len(diagnostics)
     dlist = (' - {}\n'*n_files)
+
+    diagnostics_global = interrogate_decision_tree('global')
+    n_files_global = len(diagnostics_global)
+    dlist_global = (' - {}\n'*n_files_global)
 
     parser = ArgParser(
         description='Calculate gridded weather symbol codes.\nThis plugin '
         'requires a specific set of input diagnostics, where data\nmay be in '
         'any units to which the thresholds given below can\nbe converted:\n' +
-        dlist.format(*diagnostics),
+        dlist.format(*diagnostics)
+        + '\n\n or for global data \n\n' +
+        dlist_global.format(*diagnostics_global),
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
@@ -115,11 +126,17 @@ def main():
         help='Paths to files containing the required input diagnostics.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+    parser.add_argument("--wxtree", metavar="WXTREE",
+                        default="uk",
+                        choices=["uk", "global"],
+                        help="Weather Code tree"
+                        " Default=uk ", type=str)
 
     args = parser.parse_args()
+
     cubes = load_cubelist(args.input_filepaths)
 
-    result = (WeatherSymbols().process(cubes))
+    result = (WeatherSymbols(wxtree=args.wxtree).process(cubes))
     save_netcdf(result, args.output_filepath)
 
 

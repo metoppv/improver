@@ -85,9 +85,6 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
         solar_hour_angle (float or numpy.array)
             Hour angles in degrees East-West
     """
-    if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
-        msg = ('Longitudes must be between -180.0 and 180.0')
-        raise ValueError(msg)
     if day_of_year < 0 or day_of_year > 365:
         msg = ('Day of the year must be between 0 and 365')
         raise ValueError(msg)
@@ -129,9 +126,6 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
         solar_elevation (float or numpy.array):
             Solar elevation in degrees for each location.
     """
-    if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
-        msg = ('Longitudes must be between -180.0 and 180.0')
-        raise ValueError(msg)
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = ('Latitudes must be between -90.0 and 90.0')
         raise ValueError(msg)
@@ -175,9 +169,6 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
         latitudes (numpy.array):
             latitudes of the daynight terminator
     """
-    if np.min(longitudes) < -180.0 or np.max(longitudes) > 180.0:
-        msg = ('Longitudes must be between -180.0 and 180.0')
-        raise ValueError(msg)
     if day_of_year < 0 or day_of_year > 365:
         msg = ('Day of the year must be between 0 and 365')
         raise ValueError(msg)
