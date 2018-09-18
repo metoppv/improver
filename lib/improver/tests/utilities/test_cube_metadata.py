@@ -398,9 +398,6 @@ class Test_update_cell_methods(IrisTest):
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
-        cm = deepcopy(cell_methods)
-        cm.pop('action')
-        expected_cell_method = iris.coords.CellMethod(**cm)
         msg = "No method has been specified within the cell method"
         with self.assertRaisesRegex(ValueError, msg):
             update_cell_methods(cube, cell_methods)
@@ -474,7 +471,6 @@ class Test_update_cell_methods(IrisTest):
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
-        expected_cell_method = iris.coords.CellMethod(**cell_methods)
         msg = "No action has been specified within the cell method definition."
         with self.assertRaisesRegex(ValueError, msg):
             update_cell_methods(cube, cell_methods)
