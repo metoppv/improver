@@ -117,6 +117,10 @@ def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
          realizations (np.array):
              Values to be used as realizations.
 
+    Returns:
+        cube (iris.cube.Cube):
+            Cube containing temperature data.
+
     """
     if realizations is None:
         realizations = [0]
@@ -157,6 +161,10 @@ def set_up_weights_cube(data=None, timesteps=3, realizations=None):
              Number of timesteps to create in cube.
          realizations (np.array):
              Values to be used as realizations.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube containing weights.
 
     """
     if realizations is None:

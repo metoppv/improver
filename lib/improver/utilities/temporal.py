@@ -525,3 +525,26 @@ class TemporalInterpolation(object):
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
+
+
+def unify_forecast_reference_time(cubes, cycletime):
+    """Function to unify the forecast_reference_time across the input cubes
+    provided. The cycletime specified is used as the
+    forecast_reference_time.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            Cubes that will have their forecast_reference_time unified.
+        cycletime (datetime.datetime):
+            Datetime for the cycletime that will be used to replace the
+            forecast_reference_time on the individual cubes.
+
+    """
+    result_cubes = iris.cube.CubeList([])
+    for cube in cubes:
+        cube.coord("forecast_reference_time").points = cycletime.timestamp()
+        fp_coord = (
+            forecast_period_coord(cube, force_lead_time_calculation=True))
+        cube.coord("forecast_period").points = fp_coord.points
+        result_cubes.append(cube)
+    return result_cubes
