@@ -201,7 +201,7 @@ class Test_compute_initial_guess(IrisTest):
         result = plugin.compute_initial_guess(
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
-        self.assertIsInstance(result, list)
+        self.assertIsInstance(result, np.ndarray)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -226,7 +226,7 @@ class Test_compute_initial_guess(IrisTest):
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=no_of_realizations)
-        self.assertIsInstance(result, list)
+        self.assertIsInstance(result, np.ndarray)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -292,7 +292,7 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
-        data = [1, 1, 2.66666667, 1]
+        data = np.array([1, 1, 2.66663, 1], dtype=np.float32)
 
         cube = self.cube
 
@@ -309,7 +309,7 @@ class Test_compute_initial_guess(IrisTest):
             truth, current_forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
 
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(result, data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -358,7 +358,7 @@ class Test_compute_initial_guess(IrisTest):
         as the predictor, when one value from the input data is set to NaN.
         The coefficients are estimated using a linear model.
         """
-        data = [1, 1, 2.66666667, 1]
+        data = np.array([1, 1, 2.666633, 1], dtype=np.float32)
 
         cube = self.cube
 
@@ -509,8 +509,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             statsmodels_found = False
 
         if statsmodels_found:
-            data = [0.23710627, 0.0037429, 0.10456126, 0.10277997, 0.66682032,
-                    0.7364042]
+            data = [-0.00114, -0.00006, 1.00037, -0.00196, 0.99999, -0.00315]
         else:
             data = [4.30804737e-02, 1.39042785e+00, 8.99047025e-04,
                     2.02661310e-01, 9.27197381e-01, 3.17407626e-01]
@@ -532,7 +531,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         optimised_coeffs, coeff_names = result
 
         for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
+            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
+                                        decimal=5)
         self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
 
     @ManageWarnings(
@@ -626,7 +626,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         optimised_coeffs = result[0]
 
         for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
+            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
+                                        decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -655,7 +656,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         optimised_coeffs = result[0]
 
         for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
+            self.assertArrayAlmostEqual(
+                optimised_coeffs[key], data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

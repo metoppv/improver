@@ -222,7 +222,7 @@ class PercentileBlendingAggregator(object):
         data = data.reshape(input_shape)
         # Create the resulting data array, which is the shape of the original
         # data without dimension we are collapsing over
-        result = np.zeros(input_shape[1:])
+        result = np.zeros(input_shape[1:], dtype=np.float32)
         # Loop over the flattened data, i.e. across all the data points in
         # each slice of the coordinate we are collapsing over, finding the
         # blended percentile values at each point.
@@ -275,7 +275,7 @@ class PercentileBlendingAggregator(object):
         # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
         # Create an array to store the weighted blending pdf
-        combined_pdf = np.zeros((num, len(percentiles)))
+        combined_pdf = np.zeros((num, len(percentiles)), dtype=np.float32)
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the pdf, for each of the other
         # points in the axis we are blending over. Use the values from the
@@ -306,7 +306,8 @@ class PercentileBlendingAggregator(object):
         # back from probability values to the original percentiles.
         new_combined_perc = np.interp(percentiles,
                                       combined_perc_values,
-                                      combined_perc_thres_data)
+                                      combined_perc_thres_data).astype(
+                                          np.float32)
         return new_combined_perc
 
 
@@ -538,7 +539,8 @@ class WeightedBlendAcrossWholeDimension(object):
                 # Blend the cube across the coordinate
                 # Use percentile Aggregator if required
                 if perc_coord and self.mode == "weighted_mean":
-                    percentiles = np.array(perc_coord.points, dtype=float)
+                    percentiles = np.array(
+                        perc_coord.points, dtype=np.float32)
                     perc_dim, = cube_thres.coord_dims(perc_coord.name())
 
                     # The iris.analysis.Aggregator moves the coordinate being
@@ -555,7 +557,8 @@ class WeightedBlendAcrossWholeDimension(object):
                     # Set equal weights if none are provided
                     if weights is None:
                         num = len(cube_thres.coord(self.coord).points)
-                        weights = np.ones(num) / float(num)
+                        weights = (np.ones(num, dtype=np.float32) /
+                                   np.float32(num))
                     # Set up aggregator
                     PERCENTILE_BLEND = (Aggregator(
                         'mean',  # Use CF-compliant cell method.
@@ -565,6 +568,11 @@ class WeightedBlendAcrossWholeDimension(object):
                                                     arr_percent=percentiles,
                                                     arr_weights=weights,
                                                     perc_dim=perc_dim)
+                    # Ensure collapsed coordinates do not promote themselves
+                    # to float64.
+                    for coord in cube_new.coords():
+                        if coord.points.dtype == np.float64:
+                            coord.points = coord.points.astype(np.float32)
 
                 # Else do a simple weighted average
                 elif self.mode == "weighted_mean":
@@ -574,9 +582,11 @@ class WeightedBlendAcrossWholeDimension(object):
                     coord_dim_thres = cube_thres.coord_dims(self.coord)
                     if weights is not None:
                         weights_array = (
-                            iris.util.broadcast_to_shape(np.array(weights),
-                                                         cube_thres.shape,
-                                                         coord_dim_thres))
+                            iris.util.broadcast_to_shape(
+                                np.array(weights, dtype=np.float32),
+                                cube_thres.shape,
+                                coord_dim_thres)
+                        )
                     orig_cell_methods = cube_thres.cell_methods
                     # Calculate the weighted average.
                     cube_new = cube_thres.collapsed(self.coord,
@@ -596,7 +606,8 @@ class WeightedBlendAcrossWholeDimension(object):
                     # Set equal weights if none are provided
                     if weights is None:
                         num = len(cube_thres.coord(self.coord).points)
-                        weights = np.ones(num) / float(num)
+                        weights = (np.ones(num, np.float32) /
+                                   np.float32(num))
                     # Set up aggregator
                     MAX_PROBABILITY = (Aggregator(
                         'maximum',  # Use CF-compliant cell method.

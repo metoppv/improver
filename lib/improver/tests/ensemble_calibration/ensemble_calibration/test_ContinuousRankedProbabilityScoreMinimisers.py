@@ -89,7 +89,7 @@ class Test_normal_crps_minimiser(IrisTest):
             forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 16.6076833546)
+        self.assertAlmostEqual(result, 16.607763767419634)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -124,7 +124,7 @@ class Test_normal_crps_minimiser(IrisTest):
             forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 4886.94724835)
+        self.assertAlmostEqual(result, 4886.9467779764836)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -204,7 +204,7 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
             forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 13.1827829517)
+        self.assertAlmostEqual(result, 13.182782882390779)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -239,7 +239,7 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
             forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 533.487612959)
+        self.assertAlmostEqual(result, 533.48760954557883)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -312,7 +312,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
+            result, [-0.059093, -0.099905, 0.008257, 1.009563])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -401,7 +401,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
-            result, [-0.303343, -0.022553, 0.008502, 1.009565])
+            result, [-0.279861, -0.043563, 0.00839, 1.009562])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -531,7 +531,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, [-0.08169791, -0.09784413, 0.00822535, 1.00956199])
+            result, [-0.059093, -0.099905, 0.008257, 1.009563])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -645,7 +645,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
-            result, [-0.303343, -0.022553, 0.008502, 1.009565])
+            result, [-0.279861, -0.043563, 0.00839, 1.009562])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",

@@ -80,7 +80,8 @@ class Test_triangular_weights(IrisTest):
             coord_vals, midpoint, width)
         self.assertIsInstance(weights, np.ndarray)
         self.assertEqual(len(weights), len(coord_vals))
-        self.assertEqual(weights.sum(), 1.0)
+        # Using float32s for weights can give 1.0000001 here - good enough.
+        self.assertAlmostEqual(weights.sum(), 1.0, places=6)
 
     def test_basic_weights(self):
         """Test that the function returns the correct triangular weights in a

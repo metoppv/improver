@@ -49,7 +49,10 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
-    data = (np.linspace(-45.0, 45.0, 9).reshape(1, 1, 3, 3) + 273.15)
+    data = (
+        np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape(1, 1, 3, 3) +
+        273.15
+    )
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
     cube.attributes['source_realizations'] = np.arange(12)
     # Desired attributes that will be global in netCDF file

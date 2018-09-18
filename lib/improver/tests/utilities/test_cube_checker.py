@@ -39,13 +39,71 @@ from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes, check_cube_coordinates,
-    find_dimension_coordinate_mismatch,
+    check_cube_not_float64, check_for_x_and_y_axes,
+    check_cube_coordinates, find_dimension_coordinate_mismatch,
     find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 from improver.tests.wind_calculations.wind_gust_diagnostic.\
     test_WindGustDiagnostic import create_cube_with_percentile_coord
+
+
+class Test_check_cube_not_float64(IrisTest):
+
+    """Test whether a cube contains any float64 values."""
+
+    def setUp(self):
+        """Set up a cube to test."""
+        self.cube = set_up_cube(
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
+            num_grid_points=5
+        )
+
+    def test_float32_ok(self):
+        """Test a cube that should pass."""
+        check_cube_not_float64(self.cube)
+
+    def test_float64_cube_data(self):
+        """Test a failure of a cube with 64 bit data."""
+        self.cube.data = self.cube.data.astype(np.float64)
+        msg = "64 bit cube not allowed"
+        with self.assertRaisesRegex(TypeError, msg):
+            check_cube_not_float64(self.cube)
+
+    def test_float64_cube_coord_points(self):
+        """Test a failure of a cube with 64 bit coord points."""
+        self.cube.coord("projection_x_coordinate").points = (
+            self.cube.coord("projection_x_coordinate").points.astype(
+                np.float64)
+        )
+        msg = "64 bit coord points not allowed"
+        with self.assertRaisesRegex(TypeError, msg):
+            check_cube_not_float64(self.cube)
+
+    def test_float64_cube_coord_bounds(self):
+        """Test a failure of a cube with 64 bit coord bounds."""
+        x_coord = self.cube.coord("projection_x_coordinate")
+        # Default np.array for float input is np.float64.
+        x_coord.bounds = (
+            np.array([(point - 10., point + 10.) for point in x_coord.points])
+        )
+        msg = "64 bit coord bounds not allowed"
+        with self.assertRaisesRegex(TypeError, msg):
+            check_cube_not_float64(self.cube)
+
+    def test_float64_cube_time_coord_points_ok(self):
+        """Test a pass of a cube with 64 bit time coord points."""
+        self.cube.coord("time").points = (
+             self.cube.coord("time").points.astype(np.float64))
+        check_cube_not_float64(self.cube)
+
+    def test_float64_cube_forecast_ref_time_coord_points_ok(self):
+        """Test a pass of a cube with 64 bit fcast ref time coord points."""
+        frt_coord = iris.coords.AuxCoord(
+            [np.float64(min(self.cube.coord("time").points))],
+            standard_name="forecast_reference_time")
+        self.cube.add_aux_coord(frt_coord)
+        check_cube_not_float64(self.cube)
 
 
 class Test_check_for_x_and_y_axes(IrisTest):

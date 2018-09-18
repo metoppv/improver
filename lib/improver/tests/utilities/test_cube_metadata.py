@@ -185,9 +185,9 @@ class Test_update_coord(IrisTest):
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord('threshold').points,
-                              np.array([2.0]))
+                              np.array([2.0], dtype=np.float32))
         self.assertArrayEqual(result.coord('threshold').bounds,
-                              np.array([[0.1, 2.0]]))
+                              np.array([[0.1, 2.0]], dtype=np.float32))
         self.assertEqual(str(result.coord('threshold').units),
                          'mm')
 
@@ -244,7 +244,8 @@ class Test_update_coord(IrisTest):
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0]]}
         result = update_coord(cube, 'threshold', changes)
         self.assertArrayEqual(result.coord('threshold').bounds,
-                              np.array([[0.1, 2.0], [2.0, 3.0]]))
+                              np.array([[0.1, 2.0], [2.0, 3.0]],
+                                       dtype=np.float32))
 
     def test_coords_update_fails_bounds_differ(self):
         """Test that update_coord fails if bounds differ."""

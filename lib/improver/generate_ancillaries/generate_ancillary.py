@@ -229,8 +229,9 @@ class GenerateOrographyBandAncils(object):
         Raises:
             KeyError: if the key does not match any in THRESHOLD_DICT.
         """
+        thresholds = np.array(thresholds, dtype=np.float32)
         thresholds = Unit(units).convert(
-            np.array(thresholds), standard_orography.units)
+            thresholds, standard_orography.units)
         coords = standard_orography.coords()
 
         lower_threshold, upper_threshold = thresholds

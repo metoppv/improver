@@ -89,10 +89,10 @@ class Test_load_cube(IrisTest):
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_temperature_cube()
         save_netcdf(self.cube, self.filepath)
-        self.realization_points = np.array([0, 1, 2])
-        self.time_points = np.array([402192.5])
-        self.latitude_points = np.array([-45., 0., 45.])
-        self.longitude_points = np.array([120., 150., 180.])
+        self.realization_points = np.array([0, 1, 2], dtype=np.float32)
+        self.time_points = np.array([402192.5], dtype=np.float32)
+        self.latitude_points = np.array([-45., 0., 45.], dtype=np.float32)
+        self.longitude_points = np.array([120., 150., 180.], dtype=np.float32)
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
@@ -259,9 +259,9 @@ class Test_load_cubelist(IrisTest):
         self.cube = set_up_temperature_cube()
         save_netcdf(self.cube, self.filepath)
         self.realization_points = np.array([0, 1, 2])
-        self.time_points = np.array(402192.5)
-        self.latitude_points = np.array([-45., 0., 45.])
-        self.longitude_points = np.array([120., 150., 180.])
+        self.time_points = np.array(402192.5, dtype=np.float32)
+        self.latitude_points = np.array([-45., 0., 45.], dtype=np.float32)
+        self.longitude_points = np.array([120., 150., 180.], dtype=np.float32)
         self.low_cloud_filepath = os.path.join(self.directory, "low_cloud.nc")
         self.med_cloud_filepath = os.path.join(self.directory,
                                                "medium_cloud.nc")

@@ -166,15 +166,17 @@ class ImportSiteData(object):
 
         site_data = [site_data[i_site] for i_site in valid_entries]
 
-        self.latitudes = np.array([site['latitude'] for site in site_data])
-        self.longitudes = np.array([site['longitude'] for site in site_data])
+        self.latitudes = np.array([site['latitude'] for site in site_data],
+                                  dtype=np.float32)
+        self.longitudes = np.array([site['longitude'] for site in site_data],
+                                   dtype=np.float32)
 
         n_sites = len(self.latitudes)
 
         # If altitudes are unset use np.nan to indicate that they are at the
         # altitude of their neighbouring grid point. Likewise, if sites are
         # wmo sites set wmo_site to wmo_id, else set it to 0.
-        self.altitudes = np.full(n_sites, np.nan)
+        self.altitudes = np.full(n_sites, np.nan, dtype=np.float32)
         self.wmo_site = np.full(n_sites, 0, dtype=int)
         for i_site, site in enumerate(site_data):
             if ('altitude' in site.keys() and
@@ -185,7 +187,7 @@ class ImportSiteData(object):
 
         # Identify UTC offset if it is provided in the input, otherwise set it
         # based upon site longitude.
-        self.utc_offsets = np.full(n_sites, np.nan)
+        self.utc_offsets = np.full(n_sites, np.nan, dtype=np.float32)
         for i_site, site in enumerate(site_data):
             if 'gmtoffset' in site.keys():
                 self.utc_offsets[i_site] = site['gmtoffset']

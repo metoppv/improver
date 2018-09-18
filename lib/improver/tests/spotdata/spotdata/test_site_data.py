@@ -53,22 +53,39 @@ class Test_ImportSiteData(IrisTest):
 
         self.data_directory = mkdtemp()
         self.site_data = [
-            {'latitude': -51.6927, 'wmo_id': None, 'altitude': 0,
-             'gmtoffset': -3.0, 'longitude': -57.8557},
-            {'latitude': -47.24417, 'wmo_id': 15, 'altitude': 205,
-             'gmtoffset': -4.0, 'longitude': -72.585},
-            {'latitude': -40.35, 'wmo_id': 10, 'altitude': 54,
-             'gmtoffset': 0.0, 'longitude': -9.8833},
-            {'latitude': -33.8, 'wmo_id': 17, 'altitude': 25,
-             'gmtoffset': 2.0, 'longitude': 18.37},
-            {'latitude': -27.45, 'wmo_id': 18, 'altitude': 38,
-             'gmtoffset': 10.0, 'longitude': 153.03}
+            {'latitude': -51.6927,
+             'wmo_id': None,
+             'altitude': 0,
+             'gmtoffset': -3.0,
+             'longitude': -57.8557},
+            {'latitude': -47.24417,
+             'wmo_id': 15,
+             'altitude': 205,
+             'gmtoffset': -4.0,
+             'longitude': -72.585},
+            {'latitude': -40.35,
+             'wmo_id': 10,
+             'altitude': 54,
+             'gmtoffset': 0.0,
+             'longitude': -9.8833},
+            {'latitude': -33.8,
+             'wmo_id': 17,
+             'altitude': 25,
+             'gmtoffset': 2.0,
+             'longitude': 18.37},
+            {'latitude': -27.45,
+             'wmo_id': 18,
+             'altitude': 38,
+             'gmtoffset': 10.0,
+             'longitude': 153.03}
             ]
 
-        self.latitudes = [site['latitude'] for site in self.site_data]
-        self.longitudes = (
-            [site['longitude'] for site in self.site_data])
-        self.altitudes = [site['altitude'] for site in self.site_data]
+        self.latitudes = np.array(
+            [site['latitude'] for site in self.site_data], dtype=np.float32)
+        self.longitudes = np.array(
+            [site['longitude'] for site in self.site_data], dtype=np.float32)
+        self.altitudes = np.array(
+            [site['altitude'] for site in self.site_data], dtype=np.float32)
         self.wmo_sites = [0, 15, 10, 17, 18]
         self.variables = ['latitude', 'longitude', 'altitude', 'utc_offset']
 
@@ -116,8 +133,10 @@ class Test_from_file(Test_ImportSiteData):
         result = Plugin(self.method).process(self.site_path)
 
         for key in self.variables:
-            expected_vals = np.array([site[key] for site in expected])
-            result_vals = np.array([result[index][key] for index in result])
+            expected_vals = np.array([site[key] for site in expected],
+                                     dtype=np.float32)
+            result_vals = np.array([result[index][key] for index in result],
+                                   dtype=np.float32)
             self.assertArrayEqual(expected_vals, result_vals)
 
         # check that wmo sites are correctly flagged.
@@ -183,10 +202,12 @@ class Test_from_file(Test_ImportSiteData):
 
         self.assertArrayEqual(
             expected_altitudes,
-            np.array([result[index]['altitude'] for index in result]))
+            np.array([result[index]['altitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_utc_offsets,
-            np.array([result[index]['utc_offset'] for index in result]))
+            np.array([result[index]['utc_offset'] for index in result],
+                     dtype=np.float32))
 
 
 class Test_runtime_list(Test_ImportSiteData):
@@ -217,19 +238,24 @@ class Test_runtime_list(Test_ImportSiteData):
 
         self.assertArrayEqual(
             self.latitudes,
-            np.array([result[index]['latitude'] for index in result]))
+            np.array([result[index]['latitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             self.longitudes,
-            np.array([result[index]['longitude'] for index in result]))
+            np.array([result[index]['longitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             self.altitudes,
-            np.array([result[index]['altitude'] for index in result]))
+            np.array([result[index]['altitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_wmo_sites,
-            np.array([result[index]['wmo_site'] for index in result]))
+            np.array([result[index]['wmo_site'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_utc_offsets,
-            np.array([result[index]['utc_offset'] for index in result]))
+            np.array([result[index]['utc_offset'] for index in result],
+                     dtype=np.float32))
 
     def test_only_lat_lon(self):
         """
@@ -251,16 +277,20 @@ class Test_runtime_list(Test_ImportSiteData):
 
         self.assertArrayEqual(
             self.latitudes,
-            np.array([result[index]['latitude'] for index in result]))
+            np.array([result[index]['latitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             self.longitudes,
-            np.array([result[index]['longitude'] for index in result]))
+            np.array([result[index]['longitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_altitudes,
-            np.array([result[index]['altitude'] for index in result]))
+            np.array([result[index]['altitude'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_utc_offsets,
-            np.array([result[index]['utc_offset'] for index in result]))
+            np.array([result[index]['utc_offset'] for index in result],
+                     dtype=np.float32))
         self.assertArrayEqual(
             expected_wmo_sites,
             np.array([result[index]['wmo_site'] for index in result]))

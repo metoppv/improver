@@ -194,6 +194,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
     else:
         if 'points' in changes:
             new_points = np.array(changes['points'])
+            if new_points.dtype == np.float64:
+                new_points = new_points.astype(np.float32)
             if (len(new_points) ==
                     len(new_coord.points)):
                 new_coord.points = new_points
@@ -204,6 +206,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                 raise ValueError(msg)
         if 'bounds' in changes:
             new_bounds = np.array(changes['bounds'])
+            if new_bounds.dtype == np.float64:
+                new_bounds = new_bounds.astype(np.float32)
             if new_coord.bounds is not None:
                 if (len(new_bounds) == len(new_coord.bounds) and
                         len(new_coord.points)*2 ==
