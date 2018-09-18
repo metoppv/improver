@@ -113,9 +113,9 @@ class Test__process_haloes(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-class Test__update_meta(IrisTest):
+class Test__update_metadata(IrisTest):
 
-    """Test the _update_meta method."""
+    """Test the _update_metadata method."""
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
@@ -131,7 +131,7 @@ class Test__update_meta(IrisTest):
         and an empty dictionary of attributes."""
         plugin = Plugin()
         self.cube.attributes = {'source': 'testing'}
-        result = plugin._update_meta(self.cube)
+        result = plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "lightning_probability")
         self.assertEqual(result.attributes, {})
@@ -144,7 +144,7 @@ class Test__update_meta(IrisTest):
         """Test that the method does not modify the input cube data."""
         plugin = Plugin()
         incube = self.cube.copy()
-        plugin._update_meta(incube)
+        plugin._update_metadata(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
 
 
