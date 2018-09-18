@@ -64,15 +64,6 @@ class Test__repr__(IrisTest):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 With:
-<ApplyPrecip:
- precipitation mapping:
-   upper:  precip probability {precu} => max lightning prob {lprecu}
-   middle: precip probability {precm} => max lightning prob {lprecm}
-   lower:  precip probability {precl} => max lightning prob {lprecl}
-
-   heavy:  prob(precip>7mm/hr)  {pphvy} => min lightning prob {lprobl}
-   intense:prob(precip>35mm/hr) {ppint} => min lightning prob {lprobu}
->
 <ApplyIce:
  VII (ice) mapping (kg/m2):
    upper:  VII {viiu} => max lightning prob {lviiu}
@@ -331,6 +322,114 @@ class Test__modify_first_guess(IrisTest):
                                             self.ltng_cube,
                                             self.precip_cube,
                                             None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+
+class Test_apply_precip(IrisTest):
+
+    """Test the apply_precip method."""
+
+    def setUp(self):
+        """Create a cube with a single non-zero point."""
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]))
+        self.fg_cube.rename("probability_of_lightning")
+        self.fg_cube.coord('forecast_period').points = [0.]
+        self.precip_cube = (
+            add_forecast_reference_time_and_forecast_period(
+                set_up_cube(num_realization_points=3), fp_point=0.0))
+        threshold_coord = self.precip_cube.coord('realization')
+        threshold_coord.points = [0.5, 7.0, 35.0]
+        threshold_coord.rename('threshold')
+        threshold_coord.units = cf_units.Unit('kg m^-2')
+        self.precip_cube.rename("probability_of_precipitation")
+        self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
+        self.precip_cube.data[1:, 0, ...] = 0.
+        self.precip_cube.coord('forecast_period').points = [4.]
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        plugin = Plugin()
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_input(self):
+        """Test that the method does not modify the input cubes."""
+        plugin = Plugin()
+        cube_a = self.fg_cube.copy()
+        cube_b = self.precip_cube.copy()
+        plugin.apply_precip(cube_a, cube_b)
+        self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
+        self.assertArrayAlmostEqual(cube_b.data, self.precip_cube.data)
+
+    def test_precip_zero(self):
+        """Test that zero precip probs reduce lightning risk"""
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.0067
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_small(self):
+        """Test that small precip probs reduce lightning risk"""
+        self.precip_cube.data[:, 0, 7, 7] = 0.
+        self.precip_cube.data[0, 0, 7, 7] = 0.075
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.6
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_heavy(self):
+        """Test that prob of heavy precip increases lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 0.5
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.0
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.25
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_heavy_null(self):
+        """Test that low prob of heavy precip does not increase
+        lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 0.3
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.1
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.1
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_intense(self):
+        """Test that prob of intense precip increases lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 1.0
+        self.precip_cube.data[2, 0, 7, 7] = 0.5
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.0
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 1.0
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_precip_intense_null(self):
+        """Test that low prob of intense precip does not increase
+        lightning risk"""
+        self.precip_cube.data[0, 0, 7, 7] = 1.0
+        self.precip_cube.data[1, 0, 7, 7] = 1.0
+        self.precip_cube.data[2, 0, 7, 7] = 0.1
+        # Set first-guess to zero
+        self.fg_cube.data[0, 7, 7] = 0.1
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
+        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 

@@ -34,8 +34,8 @@ import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.rescale import apply_double_scaling
 from improver.nowcasting.convection.handle_vii import ApplyIce
-from improver.nowcasting.convection.handle_precip import ApplyPrecip
 
 
 class NowcastLightning(object):
@@ -71,7 +71,6 @@ class NowcastLightning(object):
                  lightning_thresholds=(
                      lambda mins: 0.5 + mins * 2. / 360., 0.),
                  problightning_values={1: 1., 2: 0.25},
-                 precip_method=None,
                  ice_method=ApplyIce(),
                  debug=False):
         """
@@ -104,15 +103,6 @@ class NowcastLightning(object):
                 The default values are selected to represent lightning risk
                 index values of 1 and 2 relating to the key.
 
-            precip_method = (improver.nowcasting.lightning.
-                             handle_precip.ApplyPrecip()):
-                Initiated plugin with a process method that takes two
-                iris.cube.Cube arguments of lightning probability and
-                precipitation probability and returns an updated lightning
-                probability cube.  Default value of None causes a plugin to
-                be initiated using the problightning_values available in this
-                plugin.
-
             ice_method = (improver.nowcasting.lightning.handle_vii.ApplyIce()):
                 Initiated plugin with a process method that takes two
                 iris.cube.Cube arguments of lightning probability and
@@ -137,11 +127,33 @@ class NowcastLightning(object):
         # Prob(lightning) value for Lightning Risk 1 & 2 levels
         self.pl_dict = problightning_values
 
-        if precip_method is None:
-            self.precip_plugin = ApplyPrecip(problightning_values=self.pl_dict)
-        else:
-            self.precip_plugin = precip_method
         self.ice_plugin = ice_method
+
+        # Set values for handling precipitation rate data
+        #    precipthr (tuple):
+        #        Values for limiting prob(lightning) with prob(precip).
+        #        These are the three prob(precip) thresholds and are designed
+        #        to prevent a large probability of lightning being output if
+        #        the probability of precipitation is very low.
+        self.precipthr = (0.0, 0.05, 0.1)
+        #    ltngthr (tuple):
+        #        Values for limiting prob(lightning) with prob(precip)
+        #        These are the three prob(lightning) values to scale to.
+        self.ltngthr = (0.0067, 0.2, 1.)
+        #    probability thresholds for increasing the prob(lightning)
+        #        phighthresh for heavy precip (>7mm/hr)
+        #            relates to problightning_values[2]
+        #        ptorrthresh for intense precip (>35mm/hr)
+        #            relates to problightning_values[1]
+        self.phighthresh = 0.4
+        self.ptorrthresh = 0.2
+        #    pl_dict (dict):
+        #        Lightning probability values to increase first-guess to if
+        #        the lightning_thresholds are exceeded in the nowcast data.
+        #        Dict must have keys 1 and 2 and contain float values.
+        #        The default values are selected to represent lightning risk
+        #        index values of 1 and 2 relating to the key.
+        self.pl_dict = {1: 1., 2: 0.25}
 
     def __repr__(self):
         """
@@ -153,12 +165,10 @@ class NowcastLightning(object):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 With:
-{precip}
 {ice}
 >""".format(radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
-            precip=self.precip_plugin,
             ice=self.ice_plugin)
 
     def _process_haloes(self, cube):
@@ -284,12 +294,79 @@ With:
             cube, merged_cube)
 
         # Apply precipitation adjustments.
-        merged_cube = self.precip_plugin.process(merged_cube, precip_cube)
+        merged_cube = self.apply_precip(merged_cube, precip_cube)
 
         # If we have VII data, increase prob(lightning) accordingly.
         if vii_cube:
             merged_cube = self.ice_plugin.process(merged_cube, vii_cube)
         return merged_cube
+
+    def apply_precip(self, first_guess_cube, precip_cube):
+        """
+        Modify Nowcast of lightning probability with precipitation rate
+        probabilities at thresholds of 0.5, 7 and 35 mm/h.
+
+        Args:
+            first_guess_cube (iris.cube.Cube):
+                First-guess lightning probability.
+                This is modified in-place.
+
+            precip_cube (iris.cube.Cube):
+                Nowcast precipitation probability
+                    (threshold > 0.5, 7., 35.)
+
+        Returns:
+            new_cube (iris.cube.Cube):
+                Output cube containing Nowcast lightning probability.
+                This cube will have the same dimensions and meta-data as
+                first_guess_cube.
+        """
+        first_guess_cube.coord('forecast_period').convert_units('minutes')
+        new_cube_list = iris.cube.CubeList([])
+        # extract precipitation probabilities at required thresholds
+        for cube_slice in first_guess_cube.slices_over('time'):
+            thistime = iris_time_to_datetime(
+                cube_slice.coord('time').copy())[0]
+            this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=0.5))
+            high_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=7.))
+            torr_precip = precip_cube.extract(iris.Constraint(time=thistime) &
+                                              iris.Constraint(threshold=35.))
+            err_string = "No matching {} cube for {}"
+            assert isinstance(this_precip,
+                              iris.cube.Cube), err_string.format("any precip",
+                                                                 thistime)
+            assert isinstance(high_precip,
+                              iris.cube.Cube), err_string.format("high precip",
+                                                                 thistime)
+            assert isinstance(torr_precip,
+                              iris.cube.Cube), err_string.format(
+                                  "intense precip",
+                                  thistime)
+            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
+            #   prob(precip > 7mm/hr) > phighthresh
+            cube_slice.data = np.where(
+                np.logical_and(high_precip.data >= self.phighthresh,
+                               cube_slice.data < self.pl_dict[2]),
+                self.pl_dict[2], cube_slice.data)
+            # Increase prob(lightning) to Risk 1 (pl_dict[1]) when
+            #   prob(precip > 35mm/hr) > ptorrthresh
+            cube_slice.data = np.where(
+                np.logical_and(torr_precip.data >= self.ptorrthresh,
+                               cube_slice.data < self.pl_dict[1]),
+                self.pl_dict[1], cube_slice.data)
+
+            # Decrease prob(lightning) where prob(precip > 0) is low.
+            cube_slice.data = apply_double_scaling(
+                this_precip, cube_slice, self.precipthr, self.ltngthr)
+
+            new_cube_list.append(cube_slice)
+
+        new_cube = new_cube_list.merge_cube()
+        new_cube = check_cube_coordinates(
+            first_guess_cube, new_cube)
+        return new_cube
 
     def process(self, cubelist):
         """
