@@ -167,7 +167,7 @@ class Test__modify_first_guess(IrisTest):
         threshold_coord = self.precip_cube.coord('realization')
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
+        threshold_coord.units = cf_units.Unit('mm hr-1')
         self.precip_cube.data[1:, 0, ...] = 0.
         # iris.util.queeze is applied here to demote the singular coord "time"
         # to a scalar coord.
@@ -334,7 +334,7 @@ class Test_apply_precip(IrisTest):
         threshold_coord = self.precip_cube.coord('realization')
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
+        threshold_coord.units = cf_units.Unit('mm hr-1')
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
@@ -542,7 +542,7 @@ class Test_process(IrisTest):
         threshold_coord = self.precip_cube.coord('realization')
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
+        threshold_coord.units = cf_units.Unit('mm hr-1')
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.

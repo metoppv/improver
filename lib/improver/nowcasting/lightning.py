@@ -207,7 +207,7 @@ class NowcastLightning(object):
             print(('In {}, new_cube is {}'.format(self, new_cube)))
         return new_cube
 
-    def _modify_first_guess(self, cube, fg_cube, ltng_cube, precip_cube,
+    def _modify_first_guess(self, cube, fg_cube, ltng_cube, prob_precip_cube,
                             vii_cube):
         """
         Modify first-guess lightning probability with nowcast data
@@ -226,7 +226,7 @@ class NowcastLightning(object):
                 Nowcast lightning rate
                 Must have same dimensions as cube
 
-            precip_cube (iris.cube.Cube):
+            prob_precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability (threshold > 0.5, 7, 35)
                 Must have same other dimensions as cube
 
@@ -291,45 +291,50 @@ class NowcastLightning(object):
             cube, merged_cube)
 
         # Apply precipitation adjustments.
-        merged_cube = self.apply_precip(merged_cube, precip_cube)
+        merged_cube = self.apply_precip(merged_cube, prob_precip_cube)
 
         # If we have VII data, increase prob(lightning) accordingly.
         if vii_cube:
             merged_cube = self.apply_ice(merged_cube, vii_cube)
         return merged_cube
 
-    def apply_precip(self, first_guess_cube, precip_cube):
+    def apply_precip(self, prob_lightning_cube, prob_precip_cube):
         """
         Modify Nowcast of lightning probability with precipitation rate
         probabilities at thresholds of 0.5, 7 and 35 mm/h.
 
         Args:
-            first_guess_cube (iris.cube.Cube):
+            prob_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability.
                 This is modified in-place.
 
-            precip_cube (iris.cube.Cube):
+            prob_precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability
                     (threshold > 0.5, 7., 35.)
 
         Returns:
             new_cube (iris.cube.Cube):
-                Output cube containing Nowcast lightning probability.
+                Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
-                first_guess_cube.
+                prob_lightning_cube.
         """
-        first_guess_cube.coord('forecast_period').convert_units('minutes')
+        prob_lightning_cube.coord('forecast_period').convert_units('minutes')
         new_cube_list = iris.cube.CubeList([])
+        # check prob-precip threshold units are as expected
+        prob_precip_cube.coord('threshold').convert_units('mm hr-1')
         # extract precipitation probabilities at required thresholds
-        for cube_slice in first_guess_cube.slices_over('time'):
+        for cube_slice in prob_lightning_cube.slices_over('time'):
             thistime = iris_time_to_datetime(
                 cube_slice.coord('time').copy())[0]
-            this_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=0.5))
-            high_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=7.))
-            torr_precip = precip_cube.extract(iris.Constraint(time=thistime) &
-                                              iris.Constraint(threshold=35.))
+            this_precip = prob_precip_cube.extract(
+                iris.Constraint(time=thistime) &
+                iris.Constraint(threshold=0.5))
+            high_precip = prob_precip_cube.extract(
+                iris.Constraint(time=thistime) &
+                iris.Constraint(threshold=7.))
+            torr_precip = prob_precip_cube.extract(
+                iris.Constraint(time=thistime) &
+                iris.Constraint(threshold=35.))
             err_string = "No matching {} cube for {}"
             assert isinstance(this_precip,
                               iris.cube.Cube), err_string.format("any precip",
@@ -362,16 +367,16 @@ class NowcastLightning(object):
 
         new_cube = new_cube_list.merge_cube()
         new_cube = check_cube_coordinates(
-            first_guess_cube, new_cube)
+            prob_lightning_cube, new_cube)
         return new_cube
 
-    def apply_ice(self, first_guess_cube, ice_cube):
+    def apply_ice(self, prob_lightning_cube, ice_cube):
         """
         Modify Nowcast of lightning probability with ice data from radarnet
         composite (VII; Vertically Integrated Ice)
 
         Args:
-            first_guess_cube (iris.cube.Cube):
+            prob_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability.
                 This is modified in-place.
             ice_cube (iris.cube.Cube):
@@ -379,13 +384,15 @@ class NowcastLightning(object):
 
         Returns:
             new_cube (iris.cube.Cube):
-                Output cube containing Nowcast lightning probability.
+                Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
-                first_guess_cube.
+                prob_lightning_cube.
         """
-        first_guess_cube.coord('forecast_period').convert_units('minutes')
+        prob_lightning_cube.coord('forecast_period').convert_units('minutes')
+        # check prob-ice threshold units are as expected
+        ice_cube.coord('threshold').convert_units('kg m^-2')
         new_cube_list = iris.cube.CubeList([])
-        for cube_slice in first_guess_cube.slices_over('time'):
+        for cube_slice in prob_lightning_cube.slices_over('time'):
             fcmins = cube_slice.coord('forecast_period').points[0]
             for threshold, prob_max in zip(self.ice_thresholds,
                                            self.ice_scaling):
@@ -402,7 +409,7 @@ class NowcastLightning(object):
 
         new_cube = new_cube_list.merge_cube()
         new_cube = check_cube_coordinates(
-            first_guess_cube, new_cube)
+            prob_lightning_cube, new_cube)
         return new_cube
 
     def process(self, cubelist):
@@ -428,14 +435,14 @@ class NowcastLightning(object):
         fg_cube = cubelist.extract("probability_of_lightning").merge_cube()
         ltng_cube = cubelist.extract("rate_of_lightning").merge_cube()
         ltng_cube.convert_units("min^-1")  # Ensure units are correct.
-        precip_cube = cubelist.extract("probability_of_precipitation")
-        precip_cube = precip_cube.merge_cube()
+        prob_precip_cube = cubelist.extract("probability_of_precipitation")
+        prob_precip_cube = prob_precip_cube.merge_cube()
         vii_cube = cubelist.extract("probability_of_vertical_integral_of_ice")
         if vii_cube:
             vii_cube = vii_cube.merge_cube()
-        precip_slice = precip_cube.extract(iris.Constraint(threshold=0.5))
+        precip_slice = prob_precip_cube.extract(iris.Constraint(threshold=0.5))
         new_cube = self._update_meta(precip_slice)
         new_cube = self._modify_first_guess(
-            new_cube, fg_cube, ltng_cube, precip_cube, vii_cube)
+            new_cube, fg_cube, ltng_cube, prob_precip_cube, vii_cube)
         new_cube = self._process_haloes(new_cube)
         return new_cube
