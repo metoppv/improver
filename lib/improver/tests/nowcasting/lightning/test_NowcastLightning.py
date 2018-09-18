@@ -63,13 +63,6 @@ class Test__repr__(IrisTest):
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
-With:
-<ApplyIce:
- VII (ice) mapping (kg/m2):
-   upper:  VII {viiu} => max lightning prob {lviiu}
-   middle: VII {viim} => max lightning prob {lviim}
-   lower:  VII {viil} => max lightning prob {lviil}
->
 >""".format(radius=10000., debug=False,
             lthru=set_lightning_thresholds[0], lthrl=0.,
             lprobu=1., lprobl=0.25,
@@ -430,6 +423,103 @@ class Test_apply_precip(IrisTest):
         expected = set_up_cube_with_no_realizations()
         expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+
+class Test_apply_ice(IrisTest):
+
+    """Test the nowcast convection handle_vii ApplyIce plugin."""
+
+    def setUp(self):
+        """Create a cube with a single non-zero point."""
+        self.fg_cube = add_forecast_reference_time_and_forecast_period(
+            set_up_cube_with_no_realizations(zero_point_indices=[]))
+        self.fg_cube.rename("probability_of_lightning")
+        self.fg_cube.coord('forecast_period').points = [0.]
+        self.ice_cube = squeeze(
+            add_forecast_reference_time_and_forecast_period(
+                set_up_cube(num_realization_points=3,
+                            zero_point_indices=[]),
+                fp_point=0.0))
+        threshold_coord = self.ice_cube.coord('realization')
+        threshold_coord.points = [0.5, 1.0, 2.0]
+        threshold_coord.rename('threshold')
+        threshold_coord.units = cf_units.Unit('kg m^-2')
+        self.ice_cube.data = np.zeros_like(self.ice_cube.data)
+        self.ice_cube.rename("probability_of_vertical_integral_of_ice")
+
+    def test_basic(self):
+        """Test that the method returns the expected cube type"""
+        plugin = Plugin()
+        result = plugin.apply_ice(self.fg_cube, self.ice_cube)
+        self.assertIsInstance(result, Cube)
+
+    def test_input(self):
+        """Test that the method does not modify the input cubes."""
+        plugin = Plugin()
+        cube_a = self.fg_cube.copy()
+        cube_b = self.ice_cube.copy()
+        plugin.apply_ice(cube_a, cube_b)
+        self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
+        self.assertArrayAlmostEqual(cube_b.data, self.ice_cube.data)
+
+    def test_ice_null(self):
+        """Test that small VII probs do not increase lightning risk"""
+        self.ice_cube.data[:, 7, 7] = 0.
+        self.ice_cube.data[0, 7, 7:9] = 0.5
+        self.fg_cube.data[0, 7, 7] = 0.25
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.25
+        result = plugin.apply_ice(self.fg_cube,
+                                self.ice_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_ice_zero(self):
+        """Test that zero VII probs do not increase lightning risk"""
+        self.ice_cube.data[:, 7, 7] = 0.
+        self.fg_cube.data[0, 7, 7] = 0.
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.
+        result = plugin.apply_ice(self.fg_cube,
+                                self.ice_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_ice_small(self):
+        """Test that small VII probs do increase lightning risk"""
+        self.ice_cube.data[:, 7, 7] = 0.
+        self.ice_cube.data[0, 7, 7] = 0.5
+        self.fg_cube.data[0, 7, 7] = 0.
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.05
+        result = plugin.apply_ice(self.fg_cube,
+                                self.ice_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_ice_large(self):
+        """Test that large VII probs do increase lightning risk"""
+        self.ice_cube.data[:, 7, 7] = 1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.9
+        result = plugin.apply_ice(self.fg_cube,
+                                self.ice_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_ice_large_long_fc(self):
+        """Test that large VII probs do not increase lightning risk when
+        forecast lead time is large"""
+        self.ice_cube.data[:, 7, 7] = 1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        self.fg_cube.coord('forecast_period').points = [3.]
+        plugin = Plugin()
+        expected = set_up_cube_with_no_realizations()
+        expected.data[0, 7, 7] = 0.0
+        result = plugin.apply_ice(self.fg_cube,
+                                self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 

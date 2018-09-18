@@ -34,8 +34,7 @@ import iris
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.utilities.rescale import apply_double_scaling
-from improver.nowcasting.convection.handle_vii import ApplyIce
+from improver.utilities.rescale import apply_double_scaling, rescale
 
 
 class NowcastLightning(object):
@@ -71,7 +70,6 @@ class NowcastLightning(object):
                  lightning_thresholds=(
                      lambda mins: 0.5 + mins * 2. / 360., 0.),
                  problightning_values={1: 1., 2: 0.25},
-                 ice_method=ApplyIce(),
                  debug=False):
         """
         Initialise class for Nowcast of lightning probability.
@@ -103,12 +101,6 @@ class NowcastLightning(object):
                 The default values are selected to represent lightning risk
                 index values of 1 and 2 relating to the key.
 
-            ice_method = (improver.nowcasting.lightning.handle_vii.ApplyIce()):
-                Initiated plugin with a process method that takes two
-                iris.cube.Cube arguments of lightning probability and
-                vertically integrated ice and returns an updated lightning
-                probability cube.
-
             debug (boolean):
                 True results in verbose output for debugging purposes.
 
@@ -126,8 +118,6 @@ class NowcastLightning(object):
         self.lrt_lev1, self.lrt_lev2 = lightning_thresholds
         # Prob(lightning) value for Lightning Risk 1 & 2 levels
         self.pl_dict = problightning_values
-
-        self.ice_plugin = ice_method
 
         # Set values for handling precipitation rate data
         #    precipthr (tuple):
@@ -155,6 +145,16 @@ class NowcastLightning(object):
         #        index values of 1 and 2 relating to the key.
         self.pl_dict = {1: 1., 2: 0.25}
 
+        # Set values for handling vertically-integrated-ice (VII) data
+        #    ice_thresholds (tuple):
+        #        Values for increasing prob(lightning) with column-ice data.
+        #        These are the three VII thresholds in kg/m2.
+        self.ice_thresholds = (0.5, 1.0, 2.0)
+        #    ice_scaling (tuple):
+        #        Values for increasing prob(lightning) with VII data.
+        #        These are the three prob(lightning) values to scale to.
+        self.ice_scaling = (0.1, 0.5, 0.9)
+
     def __repr__(self):
         """
         Docstring to describe the repr, which should return a
@@ -164,12 +164,9 @@ class NowcastLightning(object):
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
-With:
-{ice}
 >""".format(radius=self.radius, debug=self.debug,
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
-            lprobu=self.pl_dict[1], lprobl=self.pl_dict[2],
-            ice=self.ice_plugin)
+            lprobu=self.pl_dict[1], lprobl=self.pl_dict[2])
 
     def _process_haloes(self, cube):
         """
@@ -298,7 +295,7 @@ With:
 
         # If we have VII data, increase prob(lightning) accordingly.
         if vii_cube:
-            merged_cube = self.ice_plugin.process(merged_cube, vii_cube)
+            merged_cube = self.apply_ice(merged_cube, vii_cube)
         return merged_cube
 
     def apply_precip(self, first_guess_cube, precip_cube):
@@ -361,6 +358,46 @@ With:
             cube_slice.data = apply_double_scaling(
                 this_precip, cube_slice, self.precipthr, self.ltngthr)
 
+            new_cube_list.append(cube_slice)
+
+        new_cube = new_cube_list.merge_cube()
+        new_cube = check_cube_coordinates(
+            first_guess_cube, new_cube)
+        return new_cube
+
+    def apply_ice(self, first_guess_cube, ice_cube):
+        """
+        Modify Nowcast of lightning probability with ice data from radarnet
+        composite (VII; Vertically Integrated Ice)
+
+        Args:
+            first_guess_cube (iris.cube.Cube):
+                First-guess lightning probability.
+                This is modified in-place.
+            ice_cube (iris.cube.Cube):
+                Analysis of vertically integrated ice (VII) from radar
+
+        Returns:
+            new_cube (iris.cube.Cube):
+                Output cube containing Nowcast lightning probability.
+                This cube will have the same dimensions and meta-data as
+                first_guess_cube.
+        """
+        first_guess_cube.coord('forecast_period').convert_units('minutes')
+        new_cube_list = iris.cube.CubeList([])
+        for cube_slice in first_guess_cube.slices_over('time'):
+            fcmins = cube_slice.coord('forecast_period').points[0]
+            for threshold, prob_max in zip(self.ice_thresholds,
+                                           self.ice_scaling):
+                ice_slice = ice_cube.extract(
+                    iris.Constraint(threshold=threshold))
+                ice_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
+                cube_slice.data = np.maximum(
+                    rescale(ice_slice.data,
+                            data_range=(0., 1.),
+                            scale_range=ice_scaling,
+                            clip=True),
+                    cube_slice.data)
             new_cube_list.append(cube_slice)
 
         new_cube = new_cube_list.merge_cube()
