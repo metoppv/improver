@@ -265,7 +265,8 @@ class Test_process(IrisTest):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(result[0][0].data, predictor_data,
                                     decimal=4)
-        self.assertArrayAlmostEqual(result[1][0].data, variance_data)
+        self.assertArrayAlmostEqual(result[1][0].data, variance_data,
+                                    decimal=4)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
