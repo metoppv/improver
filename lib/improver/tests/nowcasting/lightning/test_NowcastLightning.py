@@ -83,7 +83,21 @@ class Test__process_haloes(IrisTest):
     """Test the _process_haloes method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create a cube with a single non-zero point like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        realization: 1;
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 4.0 hours
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+"""
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube())
 
@@ -119,7 +133,22 @@ class Test__update_metadata(IrisTest):
     """Test the _update_metadata method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create a cube with a single non-zero point like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        realization: 1;
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 4.0 hours
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+          threshold: 0.5 mm hr-1
+     Data:
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+"""
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube())
         coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
@@ -151,7 +180,40 @@ class Test__modify_first_guess(IrisTest):
     """Test the _modify_first_guess method."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point."""
+        """Create cubes with a single zero prob(precip) point.
+        The cubes look like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 4.0 hours (simulates UM data)
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+       self.cube:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+       self.fg_cube:
+          All points contain float(1.)
+       self.ltng_cube:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          All points contain float(1.)
+       self.precip_cube:
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 7., 35.] mm hr-1.
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+          and [1:, 0, ...] which are float(0.)
+       self.vii_cube:
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 1., 2.] kg m^-2.
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+          All points contain float(0.)
+"""
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(), fp_point=0.0)
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
@@ -229,12 +291,13 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_e.data, self.vii_cube.data)
 
     def test_precip_zero(self):
-        """Test that ApplyPrecip is being called"""
+        """Test that apply_precip is being called"""
         # Set lightning data to zero so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
@@ -250,8 +313,9 @@ class Test__modify_first_guess(IrisTest):
         self.ltng_cube.data[0, 7, 7] = -1.
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
-        plugin = Plugin()
+        plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
@@ -265,10 +329,11 @@ class Test__modify_first_guess(IrisTest):
         # Set precip data to 0.1, at the top of the upper low range.
         self.precip_cube.data[0, 0, 7, 7] = 0.1
         # Set lightning data to -1 so it has a Null impact
-        self.ltng_cube.data = self.ltng_cube.data * 0. - 1.
+        self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations(zero_point_indices=[])
+        # expected.data contains all ones.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -280,14 +345,12 @@ class Test__modify_first_guess(IrisTest):
         """Test that large lightning rates increase lightning risk"""
         # Set precip data to 1. so it has a Null impact
         self.precip_cube.data[0, 0, 7, 7] = 1.
-        # Set first-guess data zero point to be increased
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations())
+        # Set first-guess data zero point that will be increased
+        self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations())
-        expected.data[0, 7, 7] = 1.
+        expected = set_up_cube_with_no_realizations(zero_point_indices=[])
+        # expected.data contains all ones.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -301,12 +364,12 @@ class Test__modify_first_guess(IrisTest):
         self.precip_cube.data[0, 0, 7, 7] = 1.
         # Set lightning data to zero to represent the data halo
         self.ltng_cube.data[0, 7, 7] = 0.
-        # Set first-guess data zero point to be increased
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations())
+        # Set first-guess data zero point that will be increased
+        self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
@@ -321,14 +384,38 @@ class Test_apply_precip(IrisTest):
     """Test the apply_precip method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create cubes with a single zero prob(precip) point.
+        The cubes look like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 4.0 hours (simulates UM data)
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+       self.fg_cube:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          All points contain float(1.)
+          Cube name is "probability_of_lightning".
+       self.precip_cube:
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 7., 35.] mm hr-1.
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+          and [1:, 0, ...] which are float(0.)
+          Cube name is "probability_of_precipitation".
+          Cube has added attribute {'relative_to_threshold': 'above'}
+"""
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]))
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
         self.fg_cube.rename("probability_of_lightning")
-        self.fg_cube.coord('forecast_period').points = [0.]
         self.precip_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3), fp_point=0.0))
+                set_up_cube(num_realization_points=3)))
         threshold_coord = self.precip_cube.coord('realization')
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
@@ -336,7 +423,6 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
-        self.precip_cube.coord('forecast_period').points = [4.]
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -357,6 +443,7 @@ class Test_apply_precip(IrisTest):
         """Test that zero precip probs reduce lightning risk"""
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -367,6 +454,7 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[0, 0, 7, 7] = 0.075
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.625
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -379,6 +467,7 @@ class Test_apply_precip(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.0
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -392,6 +481,7 @@ class Test_apply_precip(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.1
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.1
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -405,6 +495,7 @@ class Test_apply_precip(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.0
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 1.0
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -419,6 +510,7 @@ class Test_apply_precip(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.1
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -426,14 +518,35 @@ class Test_apply_precip(IrisTest):
 
 class Test_apply_ice(IrisTest):
 
-    """Test the nowcast convection handle_vii ApplyIce plugin."""
+    """Test the apply_ice method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create cubes with a single zero prob(precip) point.
+        The cubes look like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+       self.fg_cube:
+          All points contain float(1.)
+          Cube name is "probability_of_lightning".
+       self.ice_cube:
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 1., 2.] kg m^-2.
+          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+          All points contain float(0.)
+          Cube name is "probability_of_vertical_integral_of_ice".
+"""
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]))
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
         self.fg_cube.rename("probability_of_lightning")
-        self.fg_cube.coord('forecast_period').points = [0.]
         self.ice_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
@@ -468,6 +581,7 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.25
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin.apply_ice(self.fg_cube,
                                 self.ice_cube)
@@ -479,6 +593,7 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.
         result = plugin.apply_ice(self.fg_cube,
                                 self.ice_cube)
@@ -491,6 +606,7 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.05
         result = plugin.apply_ice(self.fg_cube,
                                 self.ice_cube)
@@ -502,6 +618,7 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
         result = plugin.apply_ice(self.fg_cube,
                                 self.ice_cube)
@@ -515,6 +632,7 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.coord('forecast_period').points = [3.]
         plugin = Plugin()
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0
         result = plugin.apply_ice(self.fg_cube,
                                 self.ice_cube)
@@ -526,17 +644,54 @@ class Test_process(IrisTest):
     """Test the nowcast lightning plugin."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create cubes with a single zero prob(precip) point.
+        The cubes look like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 4.0 hours (simulates UM data)
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+       self.fg_cube:
+          All points contain float(1.)
+          Cube name is "probability_of_lightning".
+       self.ltng_cube:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          All points contain float(1.)
+          Cube name is "rate_of_lightning".
+          Cube units are "min^-1".
+       self.precip_cube:
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 7., 35.] mm hr-1.
+          All points contain float(1.) except the
+          zero point [0, 0, 7, 7] which is float(0.)
+          and [1:, 0, ...] which are float(0.)
+          Cube name is "probability_of_precipitation".
+          Cube has added attribute {'relative_to_threshold': 'above'}
+       self.vii_cube:
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          With extra coordinate of length(3) "threshold" containing
+          points [0.5, 1., 2.] kg m^-2.
+          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+          All points contain float(0.)
+          Cube name is "probability_of_vertical_integral_of_ice".
+"""
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.fg_cube.rename("probability_of_lightning")
         self.ltng_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]))
+            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            fp_point=0.0)
         self.ltng_cube.rename("rate_of_lightning")
         self.ltng_cube.units = cf_units.Unit("min^-1")
         self.precip_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3), fp_point=0.0))
+                set_up_cube(num_realization_points=3)))
         threshold_coord = self.precip_cube.coord('realization')
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
@@ -544,7 +699,6 @@ class Test_process(IrisTest):
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
-        self.precip_cube.coord('forecast_period').points = [4.]
         self.vii_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
@@ -558,10 +712,11 @@ class Test_process(IrisTest):
         self.vii_cube.rename("probability_of_vertical_integral_of_ice")
 
     def set_up_vii_input_output(self):
-        """Used to set up four standard VII tests."""
+        """Used to modify setUp() to set up four standard VII tests."""
 
         # Repeat all tests relating to vii from Test__modify_first_guess
         expected = set_up_cube_with_no_realizations()
+        # expected.data contains all ones except where modified below:
 
         # Set up precip_cube with increasing intensity along x-axis
         # y=5; no precip
