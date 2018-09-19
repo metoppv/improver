@@ -104,9 +104,9 @@ class NowcastLightning(object):
         #        lrt_lev1 must be a function that takes "forecast_period"
         #        in minutes and returns the lightning rate threshold for
         #        increasing first-guess lightning probability to risk 1 (LR1).
-        #        This gives a decreasing influence on the extrapolated lightning
-        #        nowcast over forecast_period while retaining an influence from
-        #        the 50 km halo.
+        #        This gives a decreasing influence on the extrapolated
+        #        lightning nowcast over forecast_period while retaining an
+        #        influence from the 50 km halo.
         self.lrt_lev1 = lambda mins: 0.5 + mins * 2. / 360.
         # Lightning-rate threshold for Lightning Risk 2 level
         #        lrt_lev2 is the lightning rate threshold (as float) for
@@ -252,7 +252,7 @@ class NowcastLightning(object):
             #   lightning halo (lrt_lev2; 50km of an observed ATDNet strike):
             cube_slice.data = np.where(
                 (prob_lightning_slice.data >= self.lrt_lev2) &
-                    (cube_slice.data < self.pl_dict[2]),
+                (cube_slice.data < self.pl_dict[2]),
                 self.pl_dict[2], cube_slice.data)
             lratethresh = self.lrt_lev1(fcmins)
 
@@ -260,7 +260,7 @@ class NowcastLightning(object):
             #   lightning storm (lrt_lev1; ~5km of an observed ATDNet strike):
             cube_slice.data = np.where(
                 (prob_lightning_slice.data >= lratethresh) &
-                    (cube_slice.data < self.pl_dict[1]),
+                (cube_slice.data < self.pl_dict[1]),
                 self.pl_dict[1], cube_slice.data)
 
             new_cube_list.append(cube_slice)
@@ -335,13 +335,13 @@ class NowcastLightning(object):
             #   prob(precip > 7mm/hr) > phighthresh
             cube_slice.data = np.where(
                 (high_precip.data >= self.phighthresh) &
-                    (cube_slice.data < self.pl_dict[2]),
+                (cube_slice.data < self.pl_dict[2]),
                 self.pl_dict[2], cube_slice.data)
             # Increase prob(lightning) to Risk 1 (pl_dict[1]) when
             #   prob(precip > 35mm/hr) > ptorrthresh
             cube_slice.data = np.where(
                 (torr_precip.data >= self.ptorrthresh) &
-                    (cube_slice.data < self.pl_dict[1]),
+                (cube_slice.data < self.pl_dict[1]),
                 self.pl_dict[1], cube_slice.data)
 
             # Decrease prob(lightning) where prob(precip > 0) is low.

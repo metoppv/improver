@@ -69,7 +69,10 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         # Have to pass in a lambda to ensure two strings match the same
         # function address.
-        set_lightning_thresholds = lambda mins: mins
+        def local_function(mins):
+            """To ensure plugin lambda function is expressed fairly in repr."""
+            return lambda mins: mins
+        set_lightning_thresholds = local_function
         plugin = Plugin()
         plugin.lrt_lev1 = set_lightning_thresholds
         result = str(plugin)
@@ -654,7 +657,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin.apply_ice(self.fg_cube,
-                                self.ice_cube)
+                                  self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_zero(self):
@@ -666,7 +669,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.
         result = plugin.apply_ice(self.fg_cube,
-                                self.ice_cube)
+                                  self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_small(self):
@@ -679,7 +682,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.05
         result = plugin.apply_ice(self.fg_cube,
-                                self.ice_cube)
+                                  self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_large(self):
@@ -691,7 +694,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
         result = plugin.apply_ice(self.fg_cube,
-                                self.ice_cube)
+                                  self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_large_long_fc(self):
@@ -705,7 +708,7 @@ class Test_apply_ice(IrisTest):
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0
         result = plugin.apply_ice(self.fg_cube,
-                                self.ice_cube)
+                                  self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 
@@ -853,7 +856,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the first_guess cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_lightning\'\), expecting 1.")
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_"
+               "lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.ltng_cube,
@@ -863,7 +867,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the lightning cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'rate_of_lightning\'\), expecting 1.")
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'rate_of_"
+               "lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.fg_cube,
@@ -873,7 +878,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the precip cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_precipitation\'\), expecting 1.")
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_"
+               "precipitation\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.fg_cube,
