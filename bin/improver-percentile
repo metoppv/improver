@@ -105,8 +105,14 @@ def main():
         # Switch back to use the slow scipy method if the cube contains masked
         # data which the numpy method cannot handle.
         fast_percentile_method = True
+
         if np.ma.is_masked(cube.data):
+            # Check for masked points:
             fast_percentile_method = False
+        elif np.ma.isMaskedArray(cube.data):
+            # Check if we have a masked array with an empty mask. If so,
+            # replace it with a non-masked array:
+            cube.data = cube.data.data
 
         result = PercentileConverter(
             args.coordinates, percentiles=percentiles,
