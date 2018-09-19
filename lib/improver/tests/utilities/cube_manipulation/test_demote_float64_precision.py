@@ -49,8 +49,8 @@ class Test_demote_float64_precision(IrisTest):
 
     def setUp(self):
         """Create two temperature cubes to test with."""
-        self.cube1 = set_up_temperature_cube()
-        self.cube2 = set_up_temperature_cube()
+        self.cube1 = set_up_temperature_cube(dtype=np.float64)
+        self.cube2 = set_up_temperature_cube(dtype=np.float64)
         self.assertEqual(self.cube1.dtype, np.float64)
 
     def test_basic(self):
