@@ -35,6 +35,36 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 import numpy as np
 
 
+def check_cube_not_float64(cube):
+    """Check a cube does not contain any float64 data, excepting time
+    coordinates.
+
+    Args:
+        cube (iris.cube.Cube):
+            The input cube that will be checked for float64 inclusion.
+
+    Raises:
+        TypeError : Raised if float64 values are found in the cube.
+
+    """
+    if cube.dtype == np.float64:
+        raise TypeError("64 bit cube not allowed: {!r}".format(cube))
+    for coord in cube.coords():
+        if coord.name() in ["time", "forecast_reference_time"]:
+            continue
+        if coord.points.dtype == np.float64:
+            raise TypeError(
+                "64 bit coord points not allowed: {} in {!r}".format(
+                    coord, cube)
+            )
+        if (hasattr(coord, "bounds") and coord.bounds is not None and
+                coord.bounds.dtype == np.float64):
+            raise TypeError(
+                "64 bit coord bounds not allowed: {} in {!r}".format(
+                    coord, cube)
+            )
+
+
 def check_for_x_and_y_axes(cube, require_dim_coords=False):
     """
     Check whether the cube has an x and y axis, otherwise raise an error.

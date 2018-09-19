@@ -71,9 +71,11 @@ class Test_calculate_apparent_temperature(IrisTest):
 
         # use a temperature greater than 20 degress C.
         self.temperature_cube.data = np.full((1, 3), 295.15)
-        self.wind_speed_cube.data = np.full((1, 3), 5.)
-        expected_result = (
-            [[290.07999999999998, 290.47834089999998, 290.87672928000001]])
+        self.wind_speed_cube.data = np.full((1, 3), 5)
+        expected_result = np.array(
+            [[290.07998657, 290.47833252, 290.8767395]],
+            dtype=np.float32
+        )
         result = calculate_apparent_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)
@@ -100,13 +102,13 @@ class Test_calculate_apparent_temperature(IrisTest):
         self.pressure_cube.convert_units('hPa')
 
         data = np.array(
-            [[291.76999999999998, 299.30183324000001, 308.02746487999997]])
+            [[291.77001953, 299.30181885, 308.02746582]])
         # convert to fahrenheit
-        expected_result = data * (9.0/5.0) - 459.67
+        expected_result = (data * (9.0/5.0) - 459.67).astype(np.float32)
         result = calculate_apparent_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
 
     def test_unit_conversion(self):
         """Tests that input cubes have the same units at the end of the

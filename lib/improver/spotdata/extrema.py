@@ -199,7 +199,8 @@ def make_local_time_cube(cube):
                                 units=hour_coordinates.units)
 
     # Create empty array to contain extrema data.
-    new_data = np.full((len(local_times), cube.data.shape[1]), np.nan)
+    new_data = np.full((len(local_times), cube.data.shape[1]), np.nan,
+                       dtype=np.float32)
 
     # Create ascending indices to help with filling new_data array.
     n_sites = cube.data.shape[1]

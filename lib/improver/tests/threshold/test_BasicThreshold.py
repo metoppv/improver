@@ -194,7 +194,7 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
         expected_units = 1
-        expected_coord = DimCoord(0.1,
+        expected_coord = DimCoord(np.array([0.1], dtype=np.float32),
                                   long_name='threshold',
                                   units=self.cube.units)
         self.assertEqual(result.name(), expected_name)
@@ -208,7 +208,8 @@ class Test_process(IrisTest):
         """Test that a threshold dimension coordinate is added."""
         plugin = Threshold(0.1)
         result = plugin.process(self.cube)
-        expected_coord = DimCoord([0.1], long_name='threshold',
+        expected_coord = DimCoord(np.array([0.1], dtype=np.float32),
+                                  long_name='threshold',
                                   units=self.cube.units)
         self.assertEqual(result.coord('threshold'), expected_coord)
 

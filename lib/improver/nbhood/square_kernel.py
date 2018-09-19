@@ -120,7 +120,11 @@ class SquareNeighbourhood(object):
         summed_cube = cube.copy()
         if iscomplex:
             data = cube.data.astype(complex)
+        elif cube.name().startswith("probability_of"):
+            # No need for high precision calculation, just between 0 and 1.
+            data = cube.data.astype(np.float32)
         else:
+            # Go to high precision for safety.
             data = cube.data.astype(np.longdouble)
         data_summed_along_y = np.cumsum(data, axis=0)
         data_summed_along_x = (
@@ -170,13 +174,17 @@ class SquareNeighbourhood(object):
                 np.linspace(
                     orig_points[0] - 2*width*increment,
                     orig_points[-1] + 2*width*increment,
-                    num_of_new_points))
+                    num_of_new_points,
+                    dtype=np.float32)
+            )
         elif method == 'remove':
             end_width = -2*width if width != 0 else None
             new_points = np.float32(orig_points[2*width:end_width])
+        new_points = new_points.astype(orig_points.dtype)
 
         new_points_bounds = np.array([new_points - 0.5*increment,
-                                      new_points + 0.5*increment]).T
+                                      new_points + 0.5*increment],
+                                     dtype=np.float32).T
         return coord.copy(points=new_points, bounds=new_points_bounds)
 
     @staticmethod
@@ -548,6 +556,7 @@ class SquareNeighbourhood(object):
             self, cube, mask, grid_cells_x, grid_cells_y):
         """
         Apply neighbourhood processing consisting of the following steps:
+
         1. Pad a halo around the input cube to allow vectorised
            neighbourhooding at edgepoints.
         2. Cumulate the array along the x and y axes.
@@ -588,7 +597,9 @@ class SquareNeighbourhood(object):
             self.mean_over_neighbourhood(summed_up_cube, summed_up_mask,
                                          grid_cells_x, grid_cells_y,
                                          is_complex))
-
+        if neighbourhood_averaged_cube.dtype in [np.float64, np.longdouble]:
+            neighbourhood_averaged_cube.data = (
+                neighbourhood_averaged_cube.data.astype(np.float32))
         return neighbourhood_averaged_cube
 
     def _remove_padding_and_mask(

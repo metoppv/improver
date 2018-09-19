@@ -98,8 +98,9 @@ def calculate_wind_chill(temperature, wind_speed):
     # convert wind speed to km/h
     wind_speed.convert_units('km h-1')
     eqn_component = (wind_speed.data)**0.16
-    wind_chill_data = (13.12 + 0.6215*temperature.data-11.37*eqn_component
-                       + 0.3965*temperature.data*eqn_component)
+    wind_chill_data = (
+        13.12 + 0.6215*temperature.data-11.37*eqn_component
+        + 0.3965*temperature.data*eqn_component).astype(np.float32)
     wind_chill = temperature.copy(data=wind_chill_data)
     wind_chill.rename("wind_chill")
     wind_chill.convert_units(temp_units)
@@ -180,7 +181,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
     # calculate apparent temperature
     apparent_temperature_data = (
         -2.7 + 1.04*temperature.data + 2.0*avp.data
-        - 0.65*wind_speed.data)
+        - 0.65*wind_speed.data).astype(np.float32)
     apparent_temperature = temperature.copy(data=apparent_temperature_data)
     apparent_temperature.rename("apparent_temperature")
     apparent_temperature.convert_units(temp_units)
@@ -238,7 +239,7 @@ def calculate_feels_like_temperature(temperature, wind_speed,
         temperature, wind_speed, relative_humidity, pressure)
 
     t_data = temperature.data
-    feels_like_temperature_data = np.zeros(t_data.shape)
+    feels_like_temperature_data = np.zeros(t_data.shape, dtype=np.float32)
     alpha = np.zeros(t_data.shape)
 
     # if temperature < 10 degrees Celsius:

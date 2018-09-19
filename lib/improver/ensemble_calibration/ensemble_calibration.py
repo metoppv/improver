@@ -227,9 +227,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         if predictor_of_mean_flag.lower() in ["mean"]:
             beta = initial_guess[2:]
         elif predictor_of_mean_flag.lower() in ["realizations"]:
-            beta = np.array([initial_guess[2]]+(initial_guess[3:]**2).tolist())
+            beta = np.array(
+                [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
+                dtype=np.float32
+            )
 
-        new_col = np.ones(truth.shape)
+        new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
         sigma = np.sqrt(
@@ -283,9 +286,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         if predictor_of_mean_flag.lower() in ["mean"]:
             beta = initial_guess[2:]
         elif predictor_of_mean_flag.lower() in ["realizations"]:
-            beta = np.array([initial_guess[2]]+(initial_guess[3:]**2).tolist())
+            beta = np.array(
+                [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
+                dtype=np.float32
+            )
 
-        new_col = np.ones(truth.shape)
+        new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
         sigma = np.sqrt(
@@ -443,7 +449,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                             forecast_predictor, "realization"))
                     forecast_data = np.array(
                         convert_cube_data_to_2d(
-                            forecast_predictor, transpose=False))
+                            forecast_predictor, transpose=False),
+                        dtype=np.float32
+                    )
                     # Find all values that are not NaN.
                     truth_not_nan = ~np.isnan(truth_data)
                     forecast_not_nan = ~np.isnan(forecast_data)
@@ -460,7 +468,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 else:
                     initial_guess = (
                         [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
-        return initial_guess
+        return np.array(initial_guess, dtype=np.float32)
 
     def estimate_coefficients_for_ngr(
             self, current_forecast, historic_forecast, truth):
@@ -896,7 +904,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     optimised_coeffs_at_date = (
                         dict(list(zip(coeff_names, optimised_coeffs_at_date))))
                     optimised_coeffs_at_date["beta"] = np.array(
-                        [optimised_coeffs_at_date["beta"]]+excess_beta)
+                        [optimised_coeffs_at_date["beta"]]+excess_beta,
+                        dtype=np.float32)
                 else:
                     msg = ("Number of coefficient names {} with names {} "
                            "is not equal to the number of "
@@ -918,7 +927,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                             optimised_coeffs_at_date["beta"]]
                     forecast_predictor_flat = (
                         forecast_predictor_at_date.data.flatten())
-                    new_col = np.ones(forecast_predictor_flat.shape)
+                    new_col = np.ones(forecast_predictor_flat.shape,
+                                      dtype=np.float32)
                     all_data = np.column_stack(
                         (new_col, forecast_predictor_flat))
                     predicted_mean = np.dot(all_data, beta)
@@ -938,7 +948,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                             forecast_predictor_at_date))
                     forecast_var_flat = forecast_var_at_date.data.flatten()
 
-                    new_col = np.ones(forecast_var_flat.shape)
+                    new_col = np.ones(forecast_var_flat.shape,
+                                      dtype=np.float32)
                     all_data = (
                         np.column_stack((new_col, forecast_predictor_flat)))
                     predicted_mean = np.dot(all_data, beta)
@@ -1085,6 +1096,13 @@ class EnsembleCalibration(object):
             predictor_of_mean_flag=self.predictor_of_mean_flag)
         (calibrated_forecast_predictor, calibrated_forecast_variance,
          calibrated_forecast_coefficients) = ac.apply_params_entry()
+
+        # TODO: track down where np.float64 promotion takes place.
+        for cube in calibrated_forecast_predictor:
+            cube.data = cube.data.astype(np.float32)
+        for cube in calibrated_forecast_variance:
+            cube.data = cube.data.astype(np.float32)
+
         calibrated_forecast_predictor_and_variance = iris.cube.CubeList([
             calibrated_forecast_predictor, calibrated_forecast_variance])
         return calibrated_forecast_predictor_and_variance

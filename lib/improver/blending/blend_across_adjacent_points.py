@@ -37,6 +37,7 @@ import iris
 from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class TriangularWeightedBlendAcrossAdjacentPoints(object):
@@ -172,5 +173,11 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         weights = self.WeightsPlugin.process(
             cube, self.coord, self.central_point)
         blended_cube = self.BlendingPlugin.process(cube, weights)
+
+        # With one threshold dimension (such as for low cloud), the threshold
+        # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
+        # promotes threshold to match the dimensions of central_point_cube.
+        blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
+
         blended_cube = central_point_cube.copy(blended_cube.data)
         return blended_cube

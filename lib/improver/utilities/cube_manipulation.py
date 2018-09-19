@@ -693,16 +693,16 @@ def add_renamed_cell_method(cube, orig_cell_method, new_cell_method_name):
 
         Args:
             cube (iris.cube.Cube):
-                   The cube which we need to add the cell_method to.
+                The cube which we need to add the cell_method to.
             orig_cell_method(iris.coord.CellMethod):
-                   The original cell method we want to rename and add to the
-                   cube.
+                The original cell method we want to rename and add to the
+                cube.
             new_cell_method_name (string):
-                   The name of the new cell_method we want to rename the
-                   original cell_method to.
+                The name of the new cell_method we want to rename the
+                original cell_method to.
         Raises:
             TypeError: If Input Cell_method is not an instance of
-                   iris.coord.CellMethod.
+                iris.coord.CellMethod.
         """
     if not isinstance(orig_cell_method, iris.coords.CellMethod):
         message = ('Input Cell_method is not an instance of '

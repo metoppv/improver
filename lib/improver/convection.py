@@ -116,6 +116,7 @@ class DiagnoseConvectivePrecipitation(object):
     def _calculate_convective_ratio(self, cubelist, threshold_list):
         """
         Calculate the convective ratio by:
+
         1. Apply neighbourhood processing to cubes that have been thresholded
            using an upper and lower threshold.
         2. Calculate the convective ratio by:

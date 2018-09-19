@@ -33,6 +33,9 @@
 import iris
 
 
+from improver.utilities.cube_checker import check_cube_not_float64
+
+
 def append_metadata_cube(cubelist, global_keys):
     """ Create a metadata cube associated with statistical
         post-processing attributes of the input cube list.
@@ -98,6 +101,9 @@ def save_netcdf(cubelist, filename):
     """
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = [cubelist]
+
+    for cube in cubelist:
+        check_cube_not_float64(cube)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'mosg__grid_type', 'mosg__model_configuration',

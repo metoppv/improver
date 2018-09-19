@@ -187,7 +187,7 @@ class AdvectField(object):
                 regions
         """
         # Initialise advected field with np.nan
-        adv_field = np.full(data.shape, np.nan)
+        adv_field = np.full(data.shape, np.nan, dtype=np.float32)
 
         # Set up grids of data coordinates (meshgrid inverts coordinate order)
         ydim, xdim = data.shape
@@ -199,8 +199,8 @@ class AdvectField(object):
         # is generally fractional: eg with advection velocities of 0.5 grid
         # squares per second, the value at [2, 2] is represented by the value
         # that was at [1.5, 1.5] 1 second ago.
-        xsrc_point_frac = -grid_vel_x * timestep + xgrid.astype(float)
-        ysrc_point_frac = -grid_vel_y * timestep + ygrid.astype(float)
+        xsrc_point_frac = -grid_vel_x * timestep + xgrid.astype(np.float32)
+        ysrc_point_frac = -grid_vel_y * timestep + ygrid.astype(np.float32)
 
         # For all the points where fractional source coordinates are within
         # the bounds of the field, set the output field to 0
@@ -221,8 +221,10 @@ class AdvectField(object):
         # surrounding the source coordinates
         x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
         y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
-        x_weights = [1. - x_weight_upper, x_weight_upper]
-        y_weights = [1. - y_weight_upper, y_weight_upper]
+        x_weights = np.array([1. - x_weight_upper, x_weight_upper],
+                             dtype=np.float32)
+        y_weights = np.array([1. - y_weight_upper, y_weight_upper],
+                             dtype=np.float32)
 
         # Check whether the input data is masked - if so substitute NaNs for
         # the masked data.  Note there is an implicit type conversion here: if
@@ -278,7 +280,7 @@ class AdvectField(object):
             """Calculate grid spacing along a given spatial axis"""
             new_coord = coord.copy()
             new_coord.convert_units('m')
-            return float(np.diff((new_coord).points)[0])
+            return np.float32(np.diff((new_coord).points)[0])
 
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
         grid_vel_y = self.vel_y.data / grid_spacing(cube.coord(axis="y"))
@@ -298,12 +300,22 @@ class AdvectField(object):
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
         new_time = (cube.coord("time").units).date2num(new_datetime)
+
+        if np.int64(new_time) == new_time:
+            new_time = np.int64(new_time)
+        else:
+            new_time = np.float64(new_time)
+
         advected_cube.coord("time").points = new_time
 
         forecast_period_seconds = timestep.total_seconds()
+
+        forecast_period_seconds = np.float32(forecast_period_seconds)
+
         forecast_period_coord = AuxCoord(forecast_period_seconds,
                                          standard_name="forecast_period",
                                          units="s")
+
         try:
             advected_cube.remove_coord("forecast_period")
         except CoordinateNotFoundError:
@@ -419,7 +431,8 @@ class OpticalFlow(object):
             diffs = self.interp_to_midpoint(
                 np.diff(data, axis=axis), axis=1-axis)
             outdata.append(diffs)
-        smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
+        smoothed_diffs = np.zeros(
+            [self.shape[0]+1, self.shape[1]+1], dtype=np.float32)
         smoothed_diffs[1:-1, 1:-1] = 0.5*(outdata[0] + outdata[1])
         return self.interp_to_midpoint(smoothed_diffs)
 
@@ -435,7 +448,8 @@ class OpticalFlow(object):
                 Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
-        smoothed_diffs = np.zeros([self.shape[0]+1, self.shape[1]+1])
+        smoothed_diffs = np.zeros(
+            [self.shape[0]+1, self.shape[1]+1], dtype=np.float32)
         smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
         return self.interp_to_midpoint(smoothed_diffs)
 
@@ -470,7 +484,7 @@ class OpticalFlow(object):
                     (self.data2[i:i+self.boxsize, j:j+self.boxsize]).sum())
                 weight = 1. - np.exp(-1.*weight/0.8)
                 weights.append(weight)
-        weights = np.array(weights)
+        weights = np.array(weights, dtype=np.float32)
         weights[weights < 0.01] = 0
         return boxes, weights
 
@@ -489,7 +503,8 @@ class OpticalFlow(object):
         """
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
                               self.boxsize, axis=1)
-        grid_data = grid_data[:self.shape[0], :self.shape[1]]
+        grid_data = grid_data[:self.shape[0],
+                              :self.shape[1]].astype(np.float32)
         return grid_data
 
     @staticmethod
@@ -553,6 +568,8 @@ class OpticalFlow(object):
         elif method == 'box':
             smoothed_field = scipy.ndimage.filters.uniform_filter(
                 field, size=radius*2+1, mode='nearest')
+        # Ensure the dtype does not change.
+        smoothed_field = smoothed_field.astype(field.dtype)
         return smoothed_field
 
     def _smart_smooth(self, vel_point, vel_iter, weights):
@@ -576,9 +593,9 @@ class OpticalFlow(object):
                 Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
-        neighbour_kernel = np.array([[0.5, 1, 0.5],
-                                     [1.0, 0, 1.0],
-                                     [0.5, 1, 0.5]])/6.
+        neighbour_kernel = (np.array([[0.5, 1, 0.5],
+                                      [1.0, 0, 1.0],
+                                      [0.5, 1, 0.5]])/6.).astype(np.float32)
 
         # smooth input data and weights fields
         vel_neighbour = scipy.ndimage.convolve(weights*vel_iter,
@@ -733,7 +750,9 @@ class OpticalFlow(object):
             deriv_x = deriv_x.flatten()
             deriv_y = deriv_y.flatten()
             deriv_t = deriv_t.flatten()
-            deriv_xy = (np.array([deriv_x, deriv_y])).transpose()
+            # deriv_xy must be float64 in order to work OK.
+            deriv_xy = (
+                np.array([deriv_x, deriv_y], dtype=np.float64)).transpose()
 
             # Solve equations for u and v through matrix inversion
             u, v = self.solve_for_uv(deriv_xy, deriv_t)
@@ -743,8 +762,8 @@ class OpticalFlow(object):
         # (c) Reshape displacement arrays to match array of subbox points
         newshape = [int((self.shape[0]-1)/self.boxsize) + 1,
                     int((self.shape[1]-1)/self.boxsize) + 1]
-        umat = np.array(velocity[0]).reshape(newshape)
-        vmat = np.array(velocity[1]).reshape(newshape)
+        umat = np.array(velocity[0], dtype=np.float32).reshape(newshape)
+        vmat = np.array(velocity[1], dtype=np.float32).reshape(newshape)
         weights = box_weights.reshape(newshape)
 
         # (d) Check for extreme advection displacements (over a significant
@@ -920,7 +939,7 @@ class OpticalFlow(object):
         # calculate smoothing radius in grid square units
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
-        grid_length_km = float(np.diff((new_coord).points)[0])
+        grid_length_km = np.float32(np.diff((new_coord).points)[0])
         data_smoothing_radius = \
             int(self.data_smoothing_radius_km / grid_length_km)
 
@@ -952,15 +971,15 @@ class OpticalFlow(object):
             msg = ("No non-zero data in input fields: setting optical flow "
                    "velocities to zero")
             warnings.warn(msg)
-            ucomp = np.zeros(data1.shape)
-            vcomp = np.zeros(data2.shape)
+            ucomp = np.zeros(data1.shape, dtype=np.float32)
+            vcomp = np.zeros(data2.shape, dtype=np.float32)
         else:
             # calculate dimensionless displacement between the two input fields
             ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0,
                                                       data_smoothing_radius)
             # convert displacements to velocities in metres per second
             for vel in [ucomp, vcomp]:
-                vel *= (1000.*grid_length_km)
+                vel *= np.float32(1000.*grid_length_km)
                 vel /= cube_time_diff.total_seconds()
 
         # create velocity output cubes based on metadata from later input cube

@@ -71,9 +71,10 @@ class Test_calculate_feels_like_temperature(IrisTest):
         """Test values of feels like temperature when temperature < 10
         degrees C."""
 
-        self.temperature_cube.data = np.full((3, 1, 3, 3), 282.15)
-        expected_result = (
-            [[291.86349999999999, 278.64456962610683, 277.09415911417699]])
+        self.temperature_cube.data = np.full((3, 1, 3, 3), 282.15,
+                                             dtype=np.float32)
+        expected_result = np.array(
+            [[291.863495, 278.644562,  277.094147]], dtype=np.float32)
         result = calculate_feels_like_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)
@@ -84,8 +85,8 @@ class Test_calculate_feels_like_temperature(IrisTest):
         and 20 degress C."""
 
         self.temperature_cube.data = np.full((3, 1, 3, 3), 287.15)
-        expected_result = (
-            [[290.98659999999995, 283.21703936566627, 280.66949456155015]])
+        expected_result = np.array(
+            [[290.986603, 283.217041, 280.669495]], dtype=np.float32)
         result = calculate_feels_like_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)
@@ -96,8 +97,8 @@ class Test_calculate_feels_like_temperature(IrisTest):
         degrees C."""
 
         self.temperature_cube.data = np.full((3, 1, 3, 3), 294.15)
-        expected_result = (
-            [[292.28999999999996, 287.78967281999996, 283.28939005999996]])
+        expected_result = np.array(
+            [[292.290009, 287.789673, 283.289398]], dtype=np.float32)
         result = calculate_feels_like_temperature(
             self.temperature_cube, self.wind_speed_cube,
             self.relative_humidity_cube, self.pressure_cube)
@@ -112,9 +113,11 @@ class Test_calculate_feels_like_temperature(IrisTest):
         data = data + 273.15
         self.temperature_cube.data = data
         expected_result = np.array(
-            [[[280.05499999999995, 260.53790629143003, 264.74498482704507],
-              [270.41447781935329, 276.82207516713441, 273.33273779977668],
-              [264.11408954000001, 265.66779343999997, 267.76949669999999]]])
+            [[[280.05499268, 260.53790283, 264.74499512],
+              [270.41448975, 276.82208252, 273.33273315],
+              [264.11410522, 265.66778564, 267.76950073]]],
+            dtype=np.float32
+        )
         result = calculate_feels_like_temperature(
             self.temperature_cube, self.wind_speed_cube[0],
             self.relative_humidity_cube[0], self.pressure_cube[0])
@@ -141,15 +144,15 @@ class Test_calculate_feels_like_temperature(IrisTest):
         self.pressure_cube.convert_units('hPa')
 
         data = np.array(
-            [[[257.05949999999996, 220.76791360990785, 231.12778815651939],
-              [244.45492051555226, 259.30003784711084, 275.1347693144458],
-              [264.70048734, 274.29471727999999, 286.60422231999996]]])
+            [[[257.05947876, 220.76792908, 231.12779236],
+              [244.45491028, 259.30001831, 275.13476562],
+              [264.70050049, 274.29473877, 286.60421753]]])
         # convert to fahrenheit
-        expected_result = data * (9.0/5.0) - 459.67
+        expected_result = (data * (9.0/5.0) - 459.67).astype(np.float32)
         result = calculate_feels_like_temperature(
             self.temperature_cube[0], self.wind_speed_cube[0],
             self.relative_humidity_cube[0], self.pressure_cube[0])
-        self.assertArrayAlmostEqual(result.data, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
 
     def test_unit_conversion(self):
         """Test that input cubes have the same units at the end of the function

@@ -334,7 +334,8 @@ class Test_process(IrisTest):
         expected_weights_data = np.array([[[1e20, 1.0],
                                            [0.33, 0.17]],
                                           [[1e20, 0.0],
-                                           [0.67, 0.83]]])
+                                           [0.67, 0.83]]],
+                                         dtype=np.float32)
         expected_weights_mask = np.array([[[True, False],
                                            [False, False]],
                                           [[True, False],
@@ -352,7 +353,8 @@ class Test_process(IrisTest):
         expected_weights_data = np.array([[[1.0, 1.0],
                                            [0.33, 0.17]],
                                           [[0.0, 0.0],
-                                           [0.67, 0.83]]])
+                                           [0.67, 0.83]]],
+                                         dtype=np.float32)
         landmask_data = np.array([[1, 1],
                                   [1, 1]])
         landmask = self.landmask.copy(landmask_data)
@@ -368,7 +370,8 @@ class Test_process(IrisTest):
         expected_weights_data = np.array([[[1.0, 1.0],
                                            [0.33, 0.17]],
                                           [[0.0, 0.0],
-                                           [0.67, 0.83]]])
+                                           [0.67, 0.83]]],
+                                         dtype=np.float32)
         result = self.plugin.process(
             self.orography, self.thresholds_dict)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -425,9 +428,9 @@ class Test_process(IrisTest):
         the orography. The thresholds are converted to match the units of the
         orography."""
         expected_weights_data = np.array([[[1e20, 1.0],
-                                           [0.33, 0.17]],
+                                           [0.333, 0.167]],
                                           [[1e20, 0.0],
-                                           [0.67, 0.83]]])
+                                           [0.67, 0.83]]], dtype=np.float32)
         expected_weights_mask = np.array([[[True, False],
                                            [False, False]],
                                           [[True, False],
@@ -445,11 +448,11 @@ class Test_process(IrisTest):
         """Test that if only one band is specified, the results are as
         expected."""
         expected_weights_data = np.array([[1e20, 1.0],
-                                          [1.0, 1.0]])
+                                          [1.0, 1.0]], dtype=np.float32)
         expected_weights_mask = np.array([[True, False],
                                           [False, False]])
         orography_data = np.array([[10., 20.],
-                                   [30., 40.]])
+                                   [30., 40.]], dtype=np.float32)
         orography = self.orography.copy(data=orography_data)
         thresholds_dict = {'bounds': [[0, 50]], 'units': 'm'}
         result = self.plugin.process(

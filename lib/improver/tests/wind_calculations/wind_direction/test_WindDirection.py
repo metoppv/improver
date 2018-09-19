@@ -265,9 +265,9 @@ class Test_calc_wind_dir_mean(IrisTest):
         self.plugin.realization_axis = 0
 
         self.expected_wind_mean = (
-            np.array([[[176.636273, 46.002444, 90.0, 90.0],
-                       [170.0, 170.0, 47.0, 36.544233],
-                       [333.413224, 320.035216, 10.0, 10.0]]]))
+            np.array([[[176.636276, 46.002445, 90.0, 90.0],
+                       [170.0, 170.0, 47.0, 36.544231],
+                       [333.413239, 320.035217, 10.0, 10.0]]]))
 
     def test_complex(self):
         """Test that the function defines correct complex mean."""

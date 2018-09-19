@@ -472,8 +472,21 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.data,
                               expected_wxcode)
 
+    def test_day_night(self):
+        """Test process returns the right values for night. """
+        plugin = WeatherSymbols()
+        for i, cube in enumerate(self.cubes):
+            self.cubes[i].coord('time').points = (cube.coord('time').points +
+                                                  11.5)
+        result = plugin.process(self.cubes)
+        expected_wxcode = np.array([0, 2, 5,
+                                    6, 7, 8,
+                                    9, 11, 12]).reshape(1, 3, 3)
+        self.assertArrayEqual(result.data,
+                              expected_wxcode)
+
     def test_weather_data(self):
-        """Test process returns the right weather values. """
+        """Test process returns the right weather values.part2 """
         plugin = WeatherSymbols()
         data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
                               0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,

@@ -768,7 +768,7 @@ class ChooseDefaultWeightsLinear(object):
         """
         # Special case num_of_weights == 1 i.e. Scalar coordinate.
         if num_of_weights == 1:
-            weights = np.array([1.0])
+            weights = np.array([1.0], dtype=np.float32)
             return weights
         if self.ynval is not None:
             if self.slope == 0.0:
@@ -782,7 +782,8 @@ class ChooseDefaultWeightsLinear(object):
         for tval in range(0, num_of_weights):
             weights_list.append(self.slope*tval + self.y0val)
 
-        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
+        weights = WeightsUtilities.normalise_weights(
+            np.array(weights_list, dtype=np.float32))
 
         return weights
 
@@ -876,7 +877,8 @@ class ChooseDefaultWeightsNonLinear(object):
         for tval_minus1 in range(0, num_of_weights):
             weights_list.append(self.cval**(tval_minus1))
 
-        weights = WeightsUtilities.normalise_weights(np.array(weights_list))
+        weights = WeightsUtilities.normalise_weights(
+            np.array(weights_list, dtype=np.float32))
 
         return weights
 
@@ -987,7 +989,7 @@ class ChooseDefaultWeightsTriangular(object):
             return weight
 
         slope = 1.0/width
-        weights = np.zeros(coord_vals.shape)
+        weights = np.zeros(coord_vals.shape, dtype=np.float32)
         # Find the indices of the points where there will be non-zero weights.
         condition = ((coord_vals >= (midpoint-width)) &
                      (coord_vals <= (midpoint+width)))

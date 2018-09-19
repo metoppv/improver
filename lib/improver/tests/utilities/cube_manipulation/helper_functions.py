@@ -56,11 +56,14 @@ def set_up_percentile_cube(data, phenomenon_standard_name, phenomenon_units,
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps),
+    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps,
+                                            dtype=np.float32),
                                 "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
+                                            dtype=np.float32),
                                 "latitude", units="degrees"), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
+                                            dtype=np.float32),
                                 "longitude", units="degrees"), 3)
     return cube
 
@@ -75,7 +78,7 @@ def set_up_percentile_temperature_cube():
                        [0.5, 0.5, 0.5]]],
                      [[[2.0, 3.0, 4.0],
                        [0.8, 1.2, 1.6],
-                       [1.5, 2.0, 3.0]]]])
+                       [1.5, 2.0, 3.0]]]], dtype=np.float32)
     return (
         set_up_percentile_cube(data, "air_temperature", "K"))
 

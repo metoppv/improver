@@ -33,6 +33,7 @@
 import unittest
 from subprocess import call as Call
 from tempfile import mkdtemp
+import datetime
 
 import numpy as np
 
@@ -40,16 +41,163 @@ import numpy as np
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
-from cf_units import Unit
+from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
+
+from cf_units import Unit, date2num
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
 
 from improver.wxcode.wxcode_utilities import (WX_DICT,
                                               add_wxcode_metadata,
-                                              expand_nested_lists)
+                                              expand_nested_lists,
+                                              update_daynight)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
+
+
+def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=44):
+    """
+    Convert date and time to a numdateval for use in a cube
+
+    Args:
+        year (int):
+           require year, default is 2018
+        month (int):
+           require year, default is 9
+        day (int):
+           require year, default is 12
+        hour (int):
+           require year, default is 5
+        minutes (int):
+           require year, default is 44
+
+    Default values should be roughly sunrise in Exeter.
+
+    Returns:
+        numdateval (float):
+           date and time as a value relative to time_origin
+    """
+
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    dateval = datetime.datetime(year, month, day, hour, minutes)
+    numdateval = date2num(dateval, time_origin, calendar)
+    return numdateval
+
+
+def set_up_wxcube(time_points=None):
+    """
+    Set up a wxcube
+
+    Args:
+        time_points (np.ndarray):
+           Array of time points
+
+    Returns:
+        cube (Iris.cube.Cube):
+            cube of weather codes set to 1
+            data shape (time_points, 16, 16)
+            grid covers 0 to 30km west of origin and
+            0 to 30km north of origin. origin = 54.9N 2.5W
+    """
+
+    if time_points is None:
+        time_points = np.array([datetime_to_numdateval()])
+
+    num_grid_points = 16
+    data = np.ones((len(time_points),
+                    num_grid_points,
+                    num_grid_points))
+
+    cube = Cube(data, long_name="weather_code",
+                units="1")
+    cube = add_wxcode_metadata(cube)
+
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+
+    cube.add_dim_coord(DimCoord(time_points,
+                                standard_name="time", units=tunit), 0)
+
+    step_size = 2000
+    y_points = np.arange(0, step_size*num_grid_points, step_size)
+    cube.add_dim_coord(
+        DimCoord(
+            y_points,
+            'projection_y_coordinate',
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
+        ),
+        1
+    )
+
+    x_points = np.linspace(-30000, 0, num_grid_points)
+    cube.add_dim_coord(
+        DimCoord(
+            x_points,
+            'projection_x_coordinate',
+            units='m',
+            coord_system=STANDARD_GRID_CCRS
+        ),
+        2
+    )
+
+    return cube
+
+
+def set_up_wxcube_lat_lon(time_points=None):
+
+    """
+    Set up a lat-lon wxcube
+
+    Args:
+        time_points (np.ndarray):
+           Array of time points
+
+    Returns:
+        cube (Iris.cube.Cube):
+            lat lon cube of weather codes set to 1
+            data shape (time_points, 16, 16)
+            grid covering 8W to 7E, 49N to 64N
+    """
+
+    if time_points is None:
+        time_points = np.array([datetime_to_numdateval()])
+
+    data = np.ones((len(time_points), 16, 16))
+    cube = Cube(data,  long_name="weather_code",
+                units="1")
+    cube = add_wxcode_metadata(cube)
+
+    time_origin = "hours since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+
+    cube.add_dim_coord(
+        DimCoord(time_points, "time", units=tunit), 0)
+
+    lon_points = np.linspace(-8, 7, 16)
+    lat_points = np.linspace(49, 64, 16)
+
+    cube.add_dim_coord(
+        DimCoord(lat_points,
+                 'latitude',
+                 units='degrees',
+                 coord_system=ELLIPSOID),
+        1
+    )
+    cube.add_dim_coord(
+        DimCoord(lon_points,
+                 'longitude',
+                 units='degrees',
+                 coord_system=ELLIPSOID),
+        2
+    )
+    return cube
 
 
 class Test_wx_dict(IrisTest):
@@ -95,10 +243,12 @@ class Test_add_wxcode_metadata(IrisTest):
 
     def setUp(self):
         """Set up cube """
-        data = np.array([0, 1, 5, 11, 20, 5, 9, 10, 4,
-                         2, 0, 1, 29, 30, 1, 5, 6, 6]).reshape(2, 1, 3, 3)
-        self.cube = set_up_cube(data, standard_name='air_temperature',
-                                units='K', realizations=np.array([0, 1]))
+        data = np.array(
+            [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
+            dtype=np.float32
+        ).reshape(2, 1, 3, 3)
+        self.cube = set_up_cube(data, 'air_temperature', 'K',
+                                realizations=np.array([0, 1]))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()
@@ -160,6 +310,152 @@ class Test_expand_nested_lists(IrisTest):
         result = expand_nested_lists(self.dictionary, 'list_of_lists')
         for val in result:
             self.assertEqual(val, 'a')
+
+
+class Test_update_daynight(IrisTest):
+    """Test updating weather cube depending on whether it is day or night"""
+
+    def setUp(self):
+        """Set up for update_daynight class"""
+        self.wxcode = np.array(list(WX_DICT.keys()))
+        self.wxmeaning = " ".join(WX_DICT.values())
+        self.cube_data = np.array([[
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+            [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+            [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+            [17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
+            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
+            [23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
+            [26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
+            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+            [29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]]])
+
+    def test_basic(self):
+        """Test that the function returns a weather code cube."""
+        cube = set_up_wxcube()
+        result = update_daynight(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'weather_code')
+        self.assertEqual(result.units, Unit("1"))
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+
+    def test_raise_error_no_time_coordinate(self):
+        """Test that the function raises an error if no time coordinate."""
+        cube = set_up_wxcube()
+        cube.coord('time').rename('nottime')
+        msg = "cube must have time coordinate"
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            update_daynight(cube)
+
+    def test_wxcode_updated(self):
+        """Test Correct wxcodes returned for cube."""
+        cube = set_up_wxcube()
+        cube.data = self.cube_data
+        # Only 1,3,10, 14, 17, 20, 23, 26 and 29 change from day to night
+        expected_result = np.array([[
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]]])
+        result = update_daynight(cube)
+        self.assertArrayEqual(result.data, expected_result)
+
+    def test_wxcode_time_as_attribute(self):
+        """ Test code works if time is an attribute not a dimension """
+        cube = set_up_wxcube()
+        cube.data = self.cube_data
+        cube = iris.util.squeeze(cube)
+        expected_result = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]])
+        result = update_daynight(cube)
+        self.assertArrayEqual(result.data, expected_result)
+        self.assertEqual(result.data.shape, (16, 16))
+
+    def test_wxcode_time_as_array(self):
+        """ Test code works if time is an array of dimension > 1 """
+        num1 = datetime_to_numdateval(year=2018, month=9, day=12, hour=5,
+                                      minutes=0)
+        num2 = datetime_to_numdateval(year=2018, month=9, day=12, hour=6,
+                                      minutes=0)
+        num3 = datetime_to_numdateval(year=2018, month=9, day=12, hour=7,
+                                      minutes=0)
+        cube = set_up_wxcube(time_points=[num1, num2, num3])
+        expected_result = np.ones((3, 16, 16))
+        expected_result[0, :, :] = 0
+        result = update_daynight(cube)
+        self.assertArrayEqual(result.data, expected_result)
+
+    def test_basic_lat_lon(self):
+        """Test that the function returns a weather code lat lon cube.."""
+        cube = set_up_wxcube_lat_lon()
+        result = update_daynight(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), 'weather_code')
+        self.assertEqual(result.units, Unit("1"))
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+
+    def test_wxcode_updated_on_latlon(self):
+        """Test Correct wxcodes returned for lat lon cube."""
+        cube = set_up_wxcube_lat_lon()
+        cube.data = self.cube_data
+
+        expected_result = np.array([[
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+            [9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+            [13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+            [16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
+            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            [19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
+            [22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
+            [25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
+            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+            [28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]]])
+        result = update_daynight(cube)
+        self.assertArrayEqual(result.data, expected_result)
 
 
 if __name__ == '__main__':

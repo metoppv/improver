@@ -249,6 +249,8 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     lower_array = np.array([low_endpoint])
     upper_array = np.array([high_endpoint])
     array_1d = np.concatenate((lower_array, array_1d, upper_array))
+    if array_1d.dtype == np.float64:
+        array_1d = array_1d.astype(np.float32)
     return array_1d
 
 

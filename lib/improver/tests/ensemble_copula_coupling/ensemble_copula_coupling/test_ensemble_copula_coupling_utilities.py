@@ -482,7 +482,7 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         """
         expected = np.array([[[[226.15, 237.4, 248.65],
                                [259.9, 271.15, 282.4],
-                               [293.65, 304.9, 316.15]]]])
+                               [293.65, 304.9, 316.15]]]], dtype=np.float32)
 
         cube = self.current_temperature_forecast_cube
         for cube_slice in cube.slices_over("percentile_over_realization"):

@@ -63,11 +63,14 @@ def set_up_probability_above_threshold_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(412227.0, 412327.0, timesteps),
+    cube.add_dim_coord(DimCoord(np.linspace(412227.0, 412327.0, timesteps,
+                                            dtype=np.float32),
                                 "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
+                                            dtype=np.float32),
                                 'latitude', units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
+                                            dtype=np.float32),
                                 'longitude', units='degrees'), 3)
     cube.attributes["relative_to_threshold"] = "above"
     return cube
@@ -85,7 +88,7 @@ def set_up_probability_above_threshold_temperature_cube():
                        [0.2, 0.0, 0.0]]],
                      [[[1.0, 0.2, 0.5],
                        [0.2, 0.0, 0.1],
-                       [0.0, 0.0, 0.0]]]])
+                       [0.0, 0.0, 0.0]]]], dtype=np.float32)
     return (
         set_up_probability_above_threshold_cube(data, "air_temperature",
                                                 "degreesC"))
@@ -110,13 +113,18 @@ def set_up_probability_above_threshold_spot_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([412227],
+    cube.add_dim_coord(DimCoord(np.array([412227], dtype=np.float32),
                                 "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
-                                units="1"), 2)
-    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+    cube.add_dim_coord(
+        DimCoord(np.arange(9, dtype=np.float32), long_name='locnum',
+                 units="1"),
+        2
+    )
+    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, y_dimension_length,
+                                            dtype=np.float32),
                                 'latitude', units='degrees'), data_dims=2)
-    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length),
+    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length,
+                                            dtype=np.float32),
                                 'longitude', units='degrees'), data_dims=2)
     cube.attributes["relative_to_threshold"] = "above"
     return cube
@@ -135,15 +143,15 @@ def set_up_probability_above_threshold_spot_temperature_cube():
                        0.2, 0.0, 0.0]],
                      [[1.0, 0.2, 0.5,
                        0.2, 0.0, 0.1,
-                       0.0, 0.0, 0.0]]])
+                       0.0, 0.0, 0.0]]], dtype=np.float32)
     return (
         set_up_probability_above_threshold_spot_cube(
             data, "air_temperature", "degreesC"))
 
 
-def set_up_cube(data, standard_name=None, units=None, long_name=None,
-                realizations=np.array([0, 1, 2]), timesteps=1,
-                y_dimension_length=3, x_dimension_length=3):
+def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
+                realizations=np.array([0, 1, 2], dtype=np.float32),
+                timesteps=1, y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     cube = Cube(data, standard_name=standard_name, long_name=long_name,
                 units=units)
@@ -156,23 +164,30 @@ def set_up_cube(data, standard_name=None, units=None, long_name=None,
     dt2 = datetime.datetime(2017, 1, 10, 4, 0)
     num1 = cf_units.date2num(dt1, time_origin, calendar)
     num2 = cf_units.date2num(dt2, time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps),
+    cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps,
+                                            dtype=np.float32),
                                 "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
+                                            dtype=np.float32),
                                 'latitude', units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length),
+    cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
+                                            dtype=np.float32),
                                 'longitude', units='degrees'), 3)
     return cube
 
 
-def set_up_temperature_cube():
+def set_up_temperature_cube(dtype=np.float32):
     """Create a cube with metadata and values suitable for air temperature."""
     data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 1, 3, 3) +
             273.15)
     data[0] -= 2
     data[1] += 2
     data[2] += 4
+<<<<<<< HEAD
     return set_up_cube(data, standard_name="air_temperature", units="K")
+=======
+    return set_up_cube(data.astype(dtype), "air_temperature", "K")
+>>>>>>> upstream/feature_branch_331_grid_blending
 
 
 def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
@@ -184,14 +199,19 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
+<<<<<<< HEAD
     cube.add_dim_coord(DimCoord([412227],
+=======
+    cube.add_dim_coord(DimCoord(np.array(402192.5, dtype=np.float32),
+>>>>>>> upstream/feature_branch_331_grid_blending
                                 "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(np.arange(9), long_name='locnum',
+    cube.add_dim_coord(DimCoord(np.arange(9, dtype=np.float32),
+                                long_name='locnum',
                                 units="1"), 2)
-    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, 9), 'latitude',
-                                units='degrees'), data_dims=2)
-    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, 9), 'longitude',
-                                units='degrees'), data_dims=2)
+    cube.add_aux_coord(AuxCoord(np.linspace(-45.0, 45.0, 9, dtype=np.float32),
+                                'latitude', units='degrees'), data_dims=2)
+    cube.add_aux_coord(AuxCoord(np.linspace(120, 180, 9, dtype=np.float32),
+                                'longitude', units='degrees'), data_dims=2)
     return cube
 
 
@@ -202,7 +222,7 @@ def set_up_spot_temperature_cube():
     data[0] -= 2
     data[1] += 2
     data[2] += 4
-    return set_up_spot_cube(data, "air_temperature", "K")
+    return set_up_spot_cube(data.astype(np.float32), "air_temperature", "K")
 
 
 def set_up_wind_speed_cube():
@@ -211,7 +231,11 @@ def set_up_wind_speed_cube():
     data[0] += 0
     data[1] += 2
     data[2] += 4
+<<<<<<< HEAD
     return set_up_cube(data, standard_name="wind_speed", units="m s^-1")
+=======
+    return set_up_cube(data.astype(np.float32), "wind_speed", "m s^-1")
+>>>>>>> upstream/feature_branch_331_grid_blending
 
 
 def add_forecast_reference_time_and_forecast_period(
@@ -265,7 +289,7 @@ def _create_truth(cube):
     there will be one forecast per day at the same hour of the day.
     """
     truth = CubeList([])
-    time_range = [24.0, 48.0, 72.0, 96.0, 120.0]
+    time_range = np.array([24.0, 48.0, 72.0, 96.0, 120.0], dtype=np.float32)
     for index in time_range:
         temp_cube = cube.copy()
         index -= temp_cube.coord("forecast_period").points[0]

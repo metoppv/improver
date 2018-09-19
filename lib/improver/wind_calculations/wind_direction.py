@@ -201,6 +201,9 @@ class WindDirection(object):
         round_angle = np.around(angle, 2)
         angle = np.where(round_angle == 360, 0.0, angle)
 
+        # We don't need 64 bit precision.
+        angle = angle.astype(np.float32)
+
         return angle
 
     def calc_wind_dir_mean(self):

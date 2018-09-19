@@ -60,7 +60,8 @@ class Test_convert_cube_data_to_2d(IrisTest):
                               [282.4, 286.4, 288.4],
                               [293.65, 297.65, 299.65],
                               [304.9, 308.9, 310.9],
-                              [316.15, 320.15, 322.15]])
+                              [316.15, 320.15, 322.15]],
+                             dtype=np.float32)
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -104,7 +105,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
                           282.4, 293.65, 304.9, 316.15]]).T
 
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(result, data, decimal=5)
 
     def test_2d_cube(self):
         """
@@ -117,7 +118,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
                           282.4, 293.65, 304.9, 316.15]]).T
 
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(result, data, decimal=5)
 
     def test_1d_cube(self):
         """
@@ -129,7 +130,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         data = np.array([[226.15, 237.4, 248.65]]).T
 
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(result, data, decimal=5)
 
     def test_5d_cube(self):
         """
@@ -167,7 +168,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
                          [316.15, 320.15, 322.15]])
 
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(result, data, decimal=5)
 
 
 class Test_check_predictor_of_mean_flag(IrisTest):

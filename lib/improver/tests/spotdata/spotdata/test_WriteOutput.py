@@ -51,9 +51,9 @@ class Test_write_output(IrisTest):
         """Create a cube containing a regular lat-lon grid and other necessary
         ingredients for unit tests."""
 
-        data = np.zeros((20, 20))
-        latitudes = np.linspace(-90, 90, 20)
-        longitudes = np.linspace(-180, 180, 20)
+        data = np.zeros((20, 20)).astype(np.float32)
+        latitudes = np.linspace(-90, 90, 20).astype(np.float32)
+        longitudes = np.linspace(-180, 180, 20).astype(np.float32)
         latitude = DimCoord(latitudes, standard_name='latitude',
                             units='degrees')
         longitude = DimCoord(longitudes, standard_name='longitude',
