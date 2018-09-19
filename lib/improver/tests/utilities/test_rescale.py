@@ -151,16 +151,16 @@ class Test_apply_double_scaling(IrisTest):
 
     def test_values_default(self):
         """Test that the method returns the expected data values with default
-        function"""
+        minimum function"""
         # Create an array of correct shape and fill with expected value
         expected = np.full_like(self.cube_a.data, 0.9)
         # Row zero should be changed to all-zeroes
         expected[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
                              0., 0., 0., 0., 0., 0., 0., 0.]
-        # Row one should be like ltng_cube but with most values reduced to 0.5
+        # Row one should be like cube_a but with most values reduced to 0.5
         expected[0, 1, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.5,
                              0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        # Row two should be like ltng_cube but with late values limited to 0.9
+        # Row two should be like cube_a but with late values limited to 0.9
         expected[0, 2, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
                              0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
         self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
@@ -184,10 +184,10 @@ class Test_apply_double_scaling(IrisTest):
         expected = self.cube_a.data.copy()
         # Row zero should be unchanged from ltng_cube
         expected[0, 0, :] = np.arange(0., 1.6, 0.1)
-        # Row one should be like ltng_cube but with early values raised to 0.5
+        # Row one should be like cube_a but with early values raised to 0.5
         expected[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.6, 0.7,
                              0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        # Row two should be like ltng_cube but with most values raised to 0.9
+        # Row two should be like cube_a but with most values raised to 0.9
         expected[0, 2, :] = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
                              0.9, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
         self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,

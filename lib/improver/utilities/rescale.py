@@ -87,9 +87,11 @@ def apply_double_scaling(data_cube, scaled_cube,
                          data_vals, scaling_vals,
                          combine_function=np.minimum):
     """
-    Update scaled_cube based on the contents of data_cube so that
-    scaled_cube is at least the value of the data_cube after rescaling
-    based on an upper, mid and lower threshold.
+    From data_cube, an array of limiting values is created based on a linear
+    rescaling from three data_vals to three scaling_vals
+    The three values refer to a lower-bound, a mid-point and an upper-bound.
+    The scaled_cube is updated so that its data are at least or at most the
+    value of the limiting values array.
 
     Args:
         data_cube (iris.cube.Cube):
@@ -100,6 +102,12 @@ def apply_double_scaling(data_cube, scaled_cube,
             Lower, mid and upper points to rescale data_cube from
         scaling_vals (tuple of three values):
             Lower, mid and upper points to rescale data_cube to
+
+    Keyword Args:
+        combine_function (callable):
+            Function that takes two arrays of the same shape and returns
+            one array of the same shape.
+            Expected to be numpy.minimum (default) or numpy.maximum.
 
     Returns:
         data (numpy.array):
@@ -116,5 +124,5 @@ def apply_double_scaling(data_cube, scaled_cube,
                 data_range=(data_vals[1], data_vals[2]),
                 scale_range=(scaling_vals[1], scaling_vals[2]),
                 clip=True))
-    # Ensure prob(lightning) is no larger than the local upper-limit:
+    # Ensure scaled_cube is no larger or smaller than the local_limit:
     return combine_function(scaled_cube.data, local_limit)
