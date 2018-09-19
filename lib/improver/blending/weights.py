@@ -259,8 +259,8 @@ class ChooseWeightsLinear(object):
     original weights are provided as a cube or configuration dictionary"""
 
     def __init__(self, weighting_coord_name,
-                 config_coord_name="model_configuration", use_dict=False,
-                 config_dict=None, weights_key_name="weights"):
+                 config_coord_name="model_configuration", config_dict=None,
+                 weights_key_name="weights"):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -269,8 +269,9 @@ class ChooseWeightsLinear(object):
                 Standard name of the coordinate along which the weights will be
                 interpolated. For example, if the intention is to provide
                 weights varying with forecast period, then this argument would
-                be "forecast_period".  If use_dict == True, this coordinate
-                must be included within the configuration dictionary.
+                be "forecast_period".  If a configuration dictionary is
+                provided, then this coordinate must be included within the
+                configuration dictionary.
 
         Keyword Args:
             config_coord_name (str):
@@ -278,20 +279,16 @@ class ChooseWeightsLinear(object):
                 For example, if the intention is to create weights that scale
                 differently with the weighting_coord for different models, then
                 "model_configuration" would be the config_coord.
-            use_dict (bool):
-                Whether to seek configuration information from a dictionary or
-                a weights cube.  Default uses a cube.
             config_dict (dict):
                 Dictionary containing the configuration information, namely
                 an initial set of weights and information regarding the
                 points along the specified coordinate at which the weights are
-                valid. An example dictionary is shown below.  Ignored if
-                use_dict == False.
+                valid. An example dictionary is shown below.
             weights_key_name (str):
                 Name of the key string within the configuration dictionary used
                 to specify the weights. This is also used as the name of the
                 weights cube output from this plugin.  Ignored if
-                use_dict == False.
+                config_dict is None.
 
         Dictionary of format:
         ::
@@ -309,22 +306,20 @@ class ChooseWeightsLinear(object):
             }
 
         """
-        self.use_dict = use_dict
         self.weighting_coord_name = weighting_coord_name
         self.config_coord_name = config_coord_name
-        self.config_dict = config_dict if self.use_dict else None
-        self.weights_key_name = weights_key_name if self.use_dict else None
-        if self.use_dict:
+        self.config_dict = config_dict
+        self.weights_key_name = weights_key_name
+        if self.config_dict:
             self._check_config_dict()
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
         msg = ("<ChooseWeightsLinear(): weighting_coord_name = {}, "
-               "config_coord_name = {}, use_dict = {}, config_dict = {}, "
+               "config_coord_name = {}, config_dict = {}, "
                "weights_key_name = {}>".format(
                    self.weighting_coord_name, self.config_coord_name,
-                   self.use_dict, str(self.config_dict),
-                   self.weights_key_name))
+                   str(self.config_dict), self.weights_key_name))
         return msg
 
     def _check_config_dict(self):
@@ -487,7 +482,7 @@ class ChooseWeightsLinear(object):
             axis (int):
                 Axis along which the interpolation will occur.
             fill_value (tuple):
-                Values to be used if extrapolation is required.  The
+                Values to be used if extrapolation is required. The
                 fill values are used for target_points that are outside
                 the source_points grid.
 
@@ -570,17 +565,18 @@ class ChooseWeightsLinear(object):
         Kwargs:
             weights_cube (iris.cube.Cube):
                 Cube containg the weights that will be interpolated to find
-                new weights at the specified points.  Ignored if
-                self.use_dict == True.
+                new weights at the specified points. Ignored if a
+                configuration dictionary (self.config_dict) is provided.
 
         Returns:
             new_weights_cube (iris.cube.Cube):
-                Cube containing the output from the interpolation.  If
-                self.use_dict == False, this is based on "weights_cube",
+                Cube containing the output from the interpolation.  If a
+                configuration dictionary is not provided
+                (self.config_dict is None), this is based on "weights_cube",
                 otherwise on "cube".
         """
 
-        if self.use_dict:
+        if self.config_dict:
             cubelist = iris.cube.CubeList([])
             for cube_slice, weight in (
                     zip(cube.slices_over(self.weighting_coord_name), weights)):
@@ -623,8 +619,8 @@ class ChooseWeightsLinear(object):
         Kwargs:
             weights_cube (iris.cube.Cube):
                 Cube containing the weights that will be interpolated to find
-                new weights at the specified points.  Ignored if
-                self.use_dict == True.
+                new weights at the specified points. Ignored if a
+                configuration dictionary (self.config_dict) is provided.
 
         Returns:
             new_weights_cube (iris.cube.Cube):
@@ -632,7 +628,7 @@ class ChooseWeightsLinear(object):
                 has been renamed using the self.weights_key_name but
                 otherwise matches the input cube.
         """
-        if self.use_dict:
+        if self.config_dict:
             source_points, target_points, source_weights, fill_value = (
                 self._get_interpolation_inputs_from_dict(cube))
             axis = 0
@@ -652,7 +648,7 @@ class ChooseWeightsLinear(object):
 
     def process(self, cubes, weights_cubes=None):
         """Calculation of linear weights based on an input weights cube
-        or dictionary.  If self.use_dict == False, weights are calculated
+        or dictionary.  If self.config_dict == None, weights are calculated
         individually for each point in self.config_coord_name using the
         input weights_cubes, before being normalised across the
         self.config_coord_name dimension.
@@ -668,14 +664,13 @@ class ChooseWeightsLinear(object):
                 the self.config_coord_name dimension of the input cube.
                 For example, if self.config_coord_name is model_configuration,
                 then there should be a separate cube for each model
-                configuration.  Ignored if self.use_dict == True.
+                configuration.  Ignored a configuration dictionary is provided.
 
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation.
         """
-
-        if not self.use_dict:
+        if not self.config_dict:
             if isinstance(weights_cubes, iris.cube.Cube):
                 weights_cubes = iris.cube.CubeList([weights_cubes])
 
@@ -691,7 +686,7 @@ class ChooseWeightsLinear(object):
         # calculate weights
         cube_slices = iris.cube.CubeList([])
         for cube in cubes:
-            if self.use_dict:
+            if self.config_dict:
                 new_weights_cube = self._calculate_weights(cube)
             else:
                 coord_point, = cube.coord(self.config_coord_name).points

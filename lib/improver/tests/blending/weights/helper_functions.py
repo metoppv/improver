@@ -92,12 +92,13 @@ def cubes_for_triangular_weighted_blend_tests():
     """Set up cubes for triangular weighted blend unit tests.
 
     Returns:
-        cube (iris.cube.Cube):
-            Cube for testing.
-        central_cube (iris.cube.Cube):
-            Cube containing a single forecast period.
-        forecast_period (int):
-            A forecast period.
+        (tuple): tuple containing:
+            **cube** (iris.cube.Cube):
+                Cube for testing.
+            **central_cube** (iris.cube.Cube):
+                Cube containing a single forecast period.
+            **forecast_period** (int):
+                A forecast period.
     """
     cube = set_up_precipitation_cube()
     forecast_period = 0

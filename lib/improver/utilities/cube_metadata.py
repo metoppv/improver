@@ -37,7 +37,8 @@ import iris
 
 from improver.utilities.cube_manipulation import (compare_coords,
                                                   build_coordinate)
-from improver.utilities.temporal import forecast_period_coord
+from improver.utilities.temporal import (
+    forecast_period_coord, unify_forecast_reference_time)
 
 # Define correct v1.2.0 meta-data for v1.1.0 data.
 GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
