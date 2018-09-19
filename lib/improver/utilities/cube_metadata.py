@@ -308,17 +308,7 @@ def update_cube_blended_metadata(cube, coord, forecast_reference_time):
         cube_coord = cube.coord("model_configuration")
 
     # Sort out time coordinates
-    frt_units = cube.coord('forecast_reference_time').units
-    frt_points = [frt_units.date2num(forecast_reference_time)]
-    cube.replace_coord(
-        build_coordinate(
-            frt_points,
-            standard_name="forecast_reference_time",
-            bounds=None,
-            template_coord=cube.coord('forecast_reference_time')))
-    cube.replace_coord(
-        forecast_period_coord(
-            cube, force_lead_time_calculation=True))
+    cube, = unify_forecast_reference_time(cube, forecast_reference_time)
 
     if cube_coord.name() in "model_configuration":
         cube.remove_coord("model_id")
