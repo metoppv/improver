@@ -149,12 +149,15 @@ def set_up_probability_above_threshold_spot_temperature_cube():
             data, "air_temperature", "degreesC"))
 
 
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
-                realizations=np.array([0, 1, 2], dtype=np.float32),
-                timesteps=1, y_dimension_length=3, x_dimension_length=3):
+def set_up_cube(data, name, units, realizations=np.array([0, 1, 2],
+                dtype=np.float32), timesteps=1, y_dimension_length=3,
+                x_dimension_length=3):
     """Create a cube containing multiple realizations."""
-    cube = Cube(data, standard_name=standard_name, long_name=long_name,
-                units=units)
+    try:
+        cube = Cube(data, standard_name=name, units=units)
+    except ValueError as err:
+        cube = Cube(data, long_name=name, units=units)
+
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
@@ -183,11 +186,7 @@ def set_up_temperature_cube(dtype=np.float32):
     data[0] -= 2
     data[1] += 2
     data[2] += 4
-<<<<<<< HEAD
-    return set_up_cube(data, standard_name="air_temperature", units="K")
-=======
     return set_up_cube(data.astype(dtype), "air_temperature", "K")
->>>>>>> upstream/feature_branch_331_grid_blending
 
 
 def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
@@ -199,11 +198,7 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-<<<<<<< HEAD
-    cube.add_dim_coord(DimCoord([412227],
-=======
-    cube.add_dim_coord(DimCoord(np.array(402192.5, dtype=np.float32),
->>>>>>> upstream/feature_branch_331_grid_blending
+    cube.add_dim_coord(DimCoord(np.array(412227, dtype=np.float32),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.arange(9, dtype=np.float32),
                                 long_name='locnum',
@@ -231,11 +226,7 @@ def set_up_wind_speed_cube():
     data[0] += 0
     data[1] += 2
     data[2] += 4
-<<<<<<< HEAD
-    return set_up_cube(data, standard_name="wind_speed", units="m s^-1")
-=======
     return set_up_cube(data.astype(np.float32), "wind_speed", "m s^-1")
->>>>>>> upstream/feature_branch_331_grid_blending
 
 
 def add_forecast_reference_time_and_forecast_period(

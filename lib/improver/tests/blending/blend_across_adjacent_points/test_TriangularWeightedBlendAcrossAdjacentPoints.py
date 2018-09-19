@@ -262,20 +262,9 @@ class Test_process(IrisTest):
         fill_value = 1 + 1/3.0
         data = np.full((2, 2), fill_value)
 
-        expected_cube = (Cube(data, units='m',
-                         standard_name='lwe_thickness_of_precipitation_amount')
-                         )
-        expected_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                    'latitude', units='degrees'), 0)
-        expected_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
-                                    'longitude', units='degrees'), 1)
+        # Take a slice of the time coordinate.
+        expected_cube = self.cube[0].copy(data)
 
-        time_origin = 'hours since 1970-01-01 00:00:00'
-        calendar = 'gregorian'
-        tunit = Unit(time_origin, calendar)
-        expected_cube.add_aux_coord(DimCoord([402192.5], 'time', units=tunit))
-        expected_cube.add_aux_coord(DimCoord([0], 'forecast_period',
-                                             units='hours'))
         # Add threshold axis to expected output cube.
         changes = {'points': [0.5], 'units': '1'}
         expected_cube = add_coord(expected_cube, 'threshold', changes)
@@ -291,6 +280,10 @@ class Test_process(IrisTest):
 
         # Test that the result cube retains threshold co-ordinates
         # from origonal cube.
+        print("self.cube = ", self.cube)
+        print("self.cube = ", self.cube.coord("time"))
+        print("result = ", result)
+        print("expected = ", expected_cube)
         self.assertEqual(expected_cube.coord('threshold'),
                          result.coord('threshold'))
         self.assertArrayEqual(expected_cube.data, result.data)
@@ -314,6 +307,7 @@ class Test_process(IrisTest):
 
         cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
                                        cube_with_thresh3])
+
         thresh_cubes = concatenate_cubes(cubelist,
                                          coords_to_slice_over='threshold')
 

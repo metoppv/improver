@@ -290,7 +290,7 @@ class Test_process(IrisTest):
         orography_data = np.array([[[[10., 25.],
                                      [75., 100.]]]])
         orography = set_up_cube(
-            orography_data, standard_name="altitude", units="m",
+            orography_data, "altitude", "m",
             realizations=np.array([0]),
             y_dimension_length=2, x_dimension_length=2)
         orography = orography[0, 0, ...]
@@ -322,7 +322,7 @@ class Test_process(IrisTest):
         orography_data = np.array([[[[0., 25.],
                                      [75., 100.]]]])
         orography = set_up_cube(
-            orography_data, standard_name="altitude", units="m",
+            orography_data, "altitude", "m",
             realizations=np.array([0]),
             y_dimension_length=2, x_dimension_length=2)
         msg = "The input orography cube should be two-dimensional"

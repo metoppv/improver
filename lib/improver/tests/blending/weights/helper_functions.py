@@ -49,9 +49,8 @@ def set_up_zero_cube():
     """
     data = np.zeros((1, 2, 2, 2))
     cube = set_up_cube(
-        data, standard_name="lwe_thickness_of_precipitation_amount",
-        units="m", realizations=[0], timesteps=2, y_dimension_length=2,
-        x_dimension_length=2)
+        data, "lwe_thickness_of_precipitation_amount", "m", realizations=[0],
+        timesteps=2, y_dimension_length=2, x_dimension_length=2)
     cube_slice = cube.extract(iris.Constraint(realization=0))
     cube_slice.remove_coord("realization")
     cube = add_forecast_reference_time_and_forecast_period(
@@ -130,9 +129,9 @@ def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
     temp_range = np.arange(-2, 30, 2)
     for timestep in np.arange(timesteps):
         data[0, timestep] -= temp_range[timestep]
-    cube = set_up_cube(data, standard_name="air_temperature", units="K",
-                       realizations=realizations, timesteps=timesteps,
-                       y_dimension_length=2, x_dimension_length=2)
+    cube = set_up_cube(data, "air_temperature", "K", realizations=realizations,
+                       timesteps=timesteps, y_dimension_length=2,
+                       x_dimension_length=2)
     return cube
 
 
@@ -172,7 +171,7 @@ def set_up_weights_cube(data=None, timesteps=3, realizations=None):
         realizations = [0]
     if data is None:
         data = np.zeros([1, timesteps, 2, 2])
-    cube = set_up_cube(data, long_name="weights",
+    cube = set_up_cube(data, "weights", "1",
                        realizations=realizations, timesteps=timesteps,
                        y_dimension_length=2, x_dimension_length=2)
     return cube
