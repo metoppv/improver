@@ -56,15 +56,16 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         # Have to pass in a lambda to ensure two strings match the same
         # function address.
-        set_lightning_thresholds = (lambda mins: mins, 0.)
-        result = str(Plugin(
-            lightning_thresholds=set_lightning_thresholds))
+        set_lightning_thresholds = lambda mins: mins
+        plugin = Plugin()
+        plugin.lrt_lev1 = set_lightning_thresholds
+        result = str(plugin)
         msg = ("""<NowcastLightning: radius={radius}, debug={debug},
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 >""".format(radius=10000., debug=False,
-            lthru=set_lightning_thresholds[0], lthrl=0.,
+            lthru=set_lightning_thresholds, lthrl=0.,
             lprobu=1., lprobl=0.25,
             precu=0.1, precm=0.05, precl=0.0,
             lprecu=1., lprecm=0.2, lprecl=0.0067,
@@ -127,14 +128,11 @@ class Test__update_metadata(IrisTest):
     def test_basic(self):
         """Test that the method returns the expected cube type
         and that the metadata are as expected.
-        We expect a new name, the threshold coord to be removed
-        and an empty dictionary of attributes."""
+        We expect a new name and the threshold coord to be removed."""
         plugin = Plugin()
-        self.cube.attributes = {'source': 'testing'}
         result = plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "lightning_probability")
-        self.assertEqual(result.attributes, {})
         msg = ("Expected to find exactly 1 threshold coordinate, but found "
                "none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
