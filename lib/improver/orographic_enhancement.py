@@ -179,7 +179,9 @@ class OrographicEnhancement(object):
                        var_cube.coord(axis='x').name()])
 
         regridder = iris.analysis.Linear()
-        out_cube = (var_cube.copy()).regrid(self.topography, regridder)
+        out_cube = (
+            var_cube.copy(var_cube.data.astype(np.float32))).regrid(
+                self.topography, regridder)
         out_cube.convert_units(unit)
         return out_cube
 
@@ -470,7 +472,8 @@ class OrographicEnhancement(object):
 
     def _create_output_cubes(self, orogenh_data, reference_cube):
         """
-        Create two output cubes of orographic enhancement on different grids
+        Create two output cubes of orographic enhancement on different grids.
+        Casts coordinate points and bounds explicitly to np.float32.
 
         Args:
             orogenh_data (np.ndarray):
@@ -490,6 +493,11 @@ class OrographicEnhancement(object):
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
         y_coord = self.topography.coord(axis='y')
+        for coord in [x_coord, y_coord]:
+            coord.points = coord.points.astype(np.float32)
+            if coord.bounds is not None:
+                coord.bounds = coord.bounds.astype(np.float32)
+
         attributes = {'institution': 'Met Office', 'source': 'IMPROVER'}
         orogenh = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
@@ -507,6 +515,13 @@ class OrographicEnhancement(object):
         for axis in ['x', 'y']:
             orogenh_standard_grid = sort_coord_in_cube(
                 orogenh_standard_grid, orogenh_standard_grid.coord(axis=axis))
+            orogenh_standard_grid.coord(axis=axis).points = (
+                orogenh_standard_grid.coord(axis=axis).points.astype(
+                    np.float32))
+            if orogenh_standard_grid.coord(axis=axis).bounds is not None:
+                orogenh_standard_grid.coord(axis=axis).bounds = (
+                    orogenh_standard_grid.coord(axis=axis).bounds.astype(
+                        np.float32))
 
         return orogenh, orogenh_standard_grid
 
