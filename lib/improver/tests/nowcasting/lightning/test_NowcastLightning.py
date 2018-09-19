@@ -60,14 +60,6 @@ class Test__init__(IrisTest):
         plugin = Plugin(radius=radius)
         self.assertEqual(plugin.radius, radius)
 
-    def test_with_debug(self):
-        """
-        Test that the debug keyword is accepted.
-        """
-        debug = True
-        plugin = Plugin(debug=debug)
-        self.assertEqual(plugin.debug, debug)
-
 
 class Test__repr__(IrisTest):
 
@@ -81,11 +73,11 @@ class Test__repr__(IrisTest):
         plugin = Plugin()
         plugin.lrt_lev1 = set_lightning_thresholds
         result = str(plugin)
-        msg = ("""<NowcastLightning: radius={radius}, debug={debug},
+        msg = ("""<NowcastLightning: radius={radius},
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
->""".format(radius=10000., debug=False,
+>""".format(radius=10000.,
             lthru=set_lightning_thresholds, lthrl=0.,
             lprobu=1., lprobl=0.25,
             precu=0.1, precm=0.05, precl=0.0,
@@ -97,56 +89,6 @@ class Test__repr__(IrisTest):
             lviil=0.1)
               )
         self.assertEqual(result, msg)
-
-
-class Test__process_haloes(IrisTest):
-
-    """Test the _process_haloes method."""
-
-    def setUp(self):
-        """Create a cube with a single non-zero point like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        realization: 1;
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 4.0 hours
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-     Data:
-          All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
-"""
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube())
-
-    def test_basic(self):
-        """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin._process_haloes(self.cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_input(self):
-        """Test that the method does not modify the input cube."""
-        plugin = Plugin()
-        incube = self.cube.copy()
-        plugin._process_haloes(incube)
-        self.assertArrayAlmostEqual(incube.data, self.cube.data)
-
-    def test_data(self):
-        """Test that the method returns the expected data"""
-        plugin = Plugin(3000.)
-        expected = self.cube.data.copy()
-        expected[0, 0, 6, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875,
-                                11./12., 1., 1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 7, :] = [1., 1., 1., 1., 1., 1., 0.875, 5./6., 0.875,
-                                1., 1., 1., 1., 1., 1., 1.]
-        expected[0, 0, 8, :] = [1., 1., 1., 1., 1., 1., 11./12., 0.875,
-                                11./12., 1., 1., 1., 1., 1., 1., 1.]
-        result = plugin._process_haloes(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected)
 
 
 class Test__update_metadata(IrisTest):
@@ -195,6 +137,15 @@ class Test__update_metadata(IrisTest):
         plugin._update_metadata(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
         self.assertEqual(incube.metadata, self.cube.metadata)
+
+    def test_missing_threshold_coord(self):
+        """Test that the method raises an error in Iris if the cube doesn't
+        have a threshold coordinate to remove."""
+        self.cube.remove_coord('threshold')
+        plugin = Plugin()
+        msg = ("Expected to find exactly 1 threshold coordinate, but found no")
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin._update_metadata(self.cube)
 
 
 class Test__modify_first_guess(IrisTest):
