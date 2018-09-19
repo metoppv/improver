@@ -89,6 +89,14 @@ class NowcastLightning(object):
         self.neighbourhood = NeighbourhoodProcessing(
             'circular', radii, lead_times=lead_times)
 
+        #    pl_dict (dict):
+        #        Lightning probability values to increase first-guess to if
+        #        the lightning_thresholds are exceeded in the nowcast data.
+        #        Dict must have keys 1 and 2 and contain float values.
+        #        The default values are selected to represent lightning risk
+        #        index values of 1 and 2 relating to the key.
+        self.pl_dict = {1: 1., 2: 0.25}
+
         # Lightning-rate threshold for Lightning Risk 1 level
         # (dependent on forecast-length)
         #        Lightning rate thresholds for adjusting the first-guess
@@ -99,21 +107,11 @@ class NowcastLightning(object):
         #        This gives a decreasing influence on the extrapolated lightning
         #        nowcast over forecast_period while retaining an influence from
         #        the 50 km halo.
-
         self.lrt_lev1 = lambda mins: 0.5 + mins * 2. / 360.
         # Lightning-rate threshold for Lightning Risk 2 level
         #        lrt_lev2 is the lightning rate threshold (as float) for
         #        increasing first-guess lightning probability to risk 2 (LR2).
         self.lrt_lev2 = 0.
-        # Prob(lightning) value for Lightning Risk 1 & 2 levels
-        #    pl_dict (dict):
-        #        Lightning probability values to increase first-guess to if
-        #        the lightning_thresholds are exceeded in the nowcast data.
-        #        Dict must have keys 1 and 2 and contain float values.
-        #        The default values are selected to represent lightning risk
-        #        index values of 1 and 2 relating to the key.
-
-        self.pl_dict = {1: 1., 2: 0.25}
 
         # Set values for handling precipitation rate data
         #    precipthr (tuple):
@@ -133,13 +131,6 @@ class NowcastLightning(object):
         #            relates to problightning_values[1]
         self.phighthresh = 0.4
         self.ptorrthresh = 0.2
-        #    pl_dict (dict):
-        #        Lightning probability values to increase first-guess to if
-        #        the lightning_thresholds are exceeded in the nowcast data.
-        #        Dict must have keys 1 and 2 and contain float values.
-        #        The default values are selected to represent lightning risk
-        #        index values of 1 and 2 relating to the key.
-        self.pl_dict = {1: 1., 2: 0.25}
 
         # Set values for handling vertically-integrated-ice (VII) data
         #    ice_thresholds (tuple):
@@ -202,7 +193,9 @@ class NowcastLightning(object):
                 First-guess lightning probability
                 Must have same x & y dimensions as cube
                 Time dimension should overlap that of cube (closest slice in
-                time is used with a maximum time mismatch of 2 hours.
+                time is used with a maximum time mismatch of 2 hours).
+                This is included to allow this cube to come from a different
+                modelling system, such as the UM.
 
             lightning_rate_cube (iris.cube.Cube):
                 Nowcast lightning rate
