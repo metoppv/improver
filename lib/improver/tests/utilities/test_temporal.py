@@ -448,7 +448,10 @@ class Test_get_forecast_times(IrisTest):
 
 class Test_unify_forecast_reference_time(IrisTest):
 
+    """Test the unify_forecast_reference_time function."""
+
     def setUp(self):
+        """Set up a UK deterministic cube for testing."""
         cube_uk_det = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), model_ids=[1000],
             model_configurations=["uk_det"], promote_to_new_axis=True)
@@ -457,6 +460,10 @@ class Test_unify_forecast_reference_time(IrisTest):
             fp_point=[6., 8., 10.])
 
     def test_cubelist_input(self):
+        """Test when supplying a cubelist as input containing cubes
+        representing UK deterministic and UK ensemble model configuration
+        and unifying the forecast_reference_time, so that both model
+        configurations have a common forecast_reference_time."""
         cube_uk_ens = add_model_id_and_model_configuration(
             set_up_temperature_cube(timesteps=3), model_ids=[2000],
             model_configurations=["uk_ens"], promote_to_new_axis=True)
@@ -485,6 +492,9 @@ class Test_unify_forecast_reference_time(IrisTest):
         self.assertEqual(result, expected)
 
     def test_cube_input(self):
+        """Test when supplying a cube representing a UK deterministic model
+        configuration only. This effectively updates the
+        forecast_reference_time on the cube to the specified cycletime."""
         cycletime = datetime.datetime(2017, 1, 10, 6, 0)
 
         expected_uk_det = self.cube_uk_det.copy()
@@ -500,6 +510,10 @@ class Test_unify_forecast_reference_time(IrisTest):
         self.assertEqual(result[0], expected_uk_det)
 
     def test_cube_input_no_forecast_period_coordinate(self):
+        """Test when supplying a cube representing a UK deterministic model
+        configuration only. This forces a forecast_period coordinate to be
+        created from a forecast_reference_time coordinate and a time
+        coordinate."""
         cycletime = datetime.datetime(2017, 1, 10, 6, 0)
 
         expected_uk_det = self.cube_uk_det.copy()
