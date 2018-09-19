@@ -104,7 +104,23 @@ class Test_apply_double_scaling(IrisTest):
     """Test the apply_double_scaling method."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point."""
+        """Create cubes with a single zero prob(precip) point.
+        The cubes look like this:
+     precipitation_amount / (kg m^-2)
+     Dimension coordinates:
+        time: 1;
+        projection_y_coordinate: 16;
+        projection_x_coordinate: 16;
+     Auxiliary coordinates:
+          forecast_period (on time coord): 0.0 hours
+     Scalar coordinates:
+          forecast_reference_time: 2015-11-23 03:00:00
+     Data:
+       self.cube_a:
+          All points contain float(1.)
+       self.cube_b:
+          All points contain float(1.)
+"""
         self.cube_a = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]),
             fp_point=0.0)
