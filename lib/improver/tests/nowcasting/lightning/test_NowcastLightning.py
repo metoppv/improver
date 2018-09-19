@@ -48,6 +48,27 @@ from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
 
+class Test__init__(IrisTest):
+
+    """Test the __init__ method accepts keyword arguments."""
+
+    def test_with_radius(self):
+        """
+        Test that the radius keyword is accepted.
+        """
+        radius = 20000.
+        plugin = Plugin(radius=radius)
+        self.assertEqual(plugin.radius, radius)
+
+    def test_with_debug(self):
+        """
+        Test that the debug keyword is accepted.
+        """
+        debug = True
+        plugin = Plugin(debug=debug)
+        self.assertEqual(plugin.debug, debug)
+
+
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -173,6 +194,7 @@ class Test__update_metadata(IrisTest):
         incube = self.cube.copy()
         plugin._update_metadata(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
+        self.assertEqual(incube.metadata, self.cube.metadata)
 
 
 class Test__modify_first_guess(IrisTest):
@@ -263,7 +285,7 @@ class Test__modify_first_guess(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_input(self):
-        """Test that the method does not modify the input cube."""
+        """Test that the method does not modify the input cubes."""
         plugin = Plugin()
         cube_a = self.cube.copy()
         cube_b = self.fg_cube.copy()
@@ -276,7 +298,7 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
 
     def test_input_with_vii(self):
-        """Test that the method does not modify the input cube."""
+        """Test that the method does not modify the input cubes."""
         plugin = Plugin()
         cube_a = self.cube.copy()
         cube_b = self.fg_cube.copy()
@@ -292,7 +314,7 @@ class Test__modify_first_guess(IrisTest):
 
     def test_precip_zero(self):
         """Test that apply_precip is being called"""
-        # Set lightning data to zero so it has a Null impact
+        # Set lightning data to "no-data" so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
@@ -326,14 +348,15 @@ class Test__modify_first_guess(IrisTest):
 
     def test_null(self):
         """Test that large precip probs and -1 lrates have no impact"""
-        # Set precip data to 0.1, at the top of the upper low range.
+        # Set prob(precip) data for lowest threshold to to 0.1, the highest
+        # value that has no impact.
         self.precip_cube.data[0, 0, 7, 7] = 0.1
         # Set lightning data to -1 so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations(zero_point_indices=[])
-        # expected.data contains all ones.
+        expected = self.fg_cube.copy()
+        # expected.data should be an unchanged copy of fg_cube.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -344,6 +367,8 @@ class Test__modify_first_guess(IrisTest):
     def test_lrate_large(self):
         """Test that large lightning rates increase lightning risk"""
         # Set precip data to 1. so it has a Null impact
+        # Set prob(precip) data for lowest threshold to to 1., so it has a Null
+        # impact when lightning is present.
         self.precip_cube.data[0, 0, 7, 7] = 1.
         # Set first-guess data zero point that will be increased
         self.fg_cube.data[0, 7, 7] = 0.
@@ -360,7 +385,8 @@ class Test__modify_first_guess(IrisTest):
 
     def test_lrate_halo(self):
         """Test that zero lightning rates increase lightning risk"""
-        # Set precip data to 1. so it has a Null impact
+        # Set prob(precip) data for lowest threshold to to 1., so it has a Null
+        # impact when lightning is present.
         self.precip_cube.data[0, 0, 7, 7] = 1.
         # Set lightning data to zero to represent the data halo
         self.ltng_cube.data[0, 7, 7] = 0.
