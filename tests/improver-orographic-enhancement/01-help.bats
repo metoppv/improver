@@ -41,14 +41,20 @@ usage: improver-orographic-enhancement [-h] [--profile]
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
                                        OUTPUT_HIGH_RES OUTPUT_STANDARD
 
-Calculate orographic enhancement.
+Calculate orographic enhancement using the ResolveWindComponents() and
+OrographicEnhancement() plugins.
 
 positional arguments:
-  TEMPERATURE_FILEPATH  Full path to input NetCDF temperature file
-  HUMIDITY_FILEPATH     Full path to input NetCDF relhumidity file
-  PRESSURE_FILEPATH     Full path to input NetCDF pressure file
-  WINDSPEED_FILEPATH    Full path to input NetCDF wind speed file
-  WINDDIR_FILEPATH      Full path to input NetCDF wind direction file
+  TEMPERATURE_FILEPATH  Full path to input NetCDF file of temperature on
+                        height levels
+  HUMIDITY_FILEPATH     Full path to input NetCDF file of relative humidity on
+                        height levels
+  PRESSURE_FILEPATH     Full path to input NetCDF file of pressure on height
+                        levels
+  WINDSPEED_FILEPATH    Full path to input NetCDF file of wind speed on height
+                        levels
+  WINDDIR_FILEPATH      Full path to input NetCDF file of wind direction on
+                        height levels
   OROGRAPHY_FILEPATH    Full path to input NetCDF high resolution (1 km)
                         orography ancillary
   OUTPUT_HIGH_RES       Full path to write orographic enhancement file on high

@@ -47,18 +47,25 @@ def main():
     """Calculate orographic enhancement of precipitation from model pressure,
     temperature, relative humidity and wind input files"""
 
-    parser = ArgParser(description="Calculate orographic enhancement.")
+    parser = ArgParser(description='Calculate orographic enhancement using the'
+                       ' ResolveWindComponents() and OrographicEnhancement() '
+                       'plugins.')
 
     parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
-                        help='Full path to input NetCDF temperature file')
+                        help='Full path to input NetCDF file of temperature on '
+                        'height levels')
     parser.add_argument('humidity_filepath', metavar='HUMIDITY_FILEPATH',
-                        help='Full path to input NetCDF relhumidity file')
+                        help='Full path to input NetCDF file of relative '
+                        'humidity on height levels')
     parser.add_argument('pressure_filepath', metavar='PRESSURE_FILEPATH',
-                        help='Full path to input NetCDF pressure file')
+                        help='Full path to input NetCDF file of pressure on '
+                        'height levels')
     parser.add_argument('windspeed_filepath', metavar='WINDSPEED_FILEPATH',
-                        help='Full path to input NetCDF wind speed file')
+                        help='Full path to input NetCDF file of wind speed on '
+                        'height levels')
     parser.add_argument('winddir_filepath', metavar='WINDDIR_FILEPATH',
-                        help='Full path to input NetCDF wind direction file')
+                        help='Full path to input NetCDF file of wind direction'
+                        ' on height levels')
 
     parser.add_argument('orography_filepath', metavar='OROGRAPHY_FILEPATH',
                         help='Full path to input NetCDF high resolution (1 km)'
@@ -82,11 +89,27 @@ def main():
     bh = args.boundary_height_metres
     constraint = iris.Constraint(height=lambda h: bh - 0.1 < h < bh + 0.1)
 
+    load_error_msg = 'No data available from {} at height {} m'
+
     temperature = load_cube(args.temperature_filepath, constraint)
+    if temperature is None:
+        raise ValueError(load_error_msg.format(args.temperature_filepath, bh))
+
     humidity = load_cube(args.humidity_filepath, constraint)
+    if humidity is None:
+        raise ValueError(load_error_msg.format(args.humidity_filepath, bh))
+
     pressure = load_cube(args.pressure_filepath, constraint)
+    if pressure is None:
+        raise ValueError(load_error_msg.format(args.pressure_filepath, bh))
+
     wind_speed = load_cube(args.windspeed_filepath, constraint)
+    if wind_speed is None:
+        raise ValueError(load_error_msg.format(args.windspeed_filepath, bh))
+
     wind_dir = load_cube(args.winddir_filepath, constraint)
+    if wind_dir is None:
+        raise ValueError(load_error_msg.format(args.winddir_filepath, bh))
 
     # resolve u and v wind components
     uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
