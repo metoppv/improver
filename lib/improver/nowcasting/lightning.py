@@ -31,6 +31,7 @@
 """Module for NowcastLightning class and associated functions."""
 import numpy as np
 import iris
+from iris.exceptions import ConstraintMismatchError
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import iris_time_to_datetime
@@ -222,7 +223,8 @@ class NowcastLightning(object):
             first_guess_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability
                 Must have same x & y dimensions as cube
-                Time dimension should overlap that of cube
+                Time dimension should overlap that of cube (closest slice in
+                time is used with a maximum time mismatch of 2 hours.
 
             prob_lightning_cube (iris.cube.Cube):
                 Nowcast lightning rate
@@ -243,6 +245,11 @@ class NowcastLightning(object):
         Returns:
             new_cube (iris.cube.Cube):
                 Output cube containing Nowcast lightning probability.
+
+        Raises:
+            iris.exceptions.ConstraintMismatchError:
+                If prob_lightning_cube or first_guess_lightning_cube do not
+                contain the expected times.
         """
         new_cube_list = iris.cube.CubeList([])
         for cube_slice in cube.slices_over('time'):
@@ -261,13 +268,11 @@ class NowcastLightning(object):
             err_string = "No matching {} cube for {}"
             if not isinstance(prob_lightning_slice,
                               iris.cube.Cube):
-                raise ValueError(err_string.format("lightning", this_time))
-            if not isinstance(cube_slice,
-                              iris.cube.Cube):
-                raise ValueError(err_string.format("output", this_time))
-            if not isinstance(first_guess_slice,
-                              iris.cube.Cube):
-                raise ValueError(err_string.format("first-guess", this_time))
+                raise ConstraintMismatchError(
+                    err_string.format("lightning", this_time))
+            if abs((first_guess_time - this_time).total_seconds()) > 7201.:
+                raise ConstraintMismatchError(
+                    err_string.format("first-guess", this_time))
             cube_slice.data = first_guess_slice.data
             cube_slice.coord('forecast_period').convert_units('minutes')
             fcmins = cube_slice.coord('forecast_period').points[0]
@@ -323,6 +328,10 @@ class NowcastLightning(object):
                 Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
                 prob_lightning_cube.
+
+        Raises:
+            iris.exceptions.ConstraintMismatchError:
+                If prob_precip_cube does not contain the expected thresholds.
         """
         prob_lightning_cube.coord('forecast_period').convert_units('minutes')
         new_cube_list = iris.cube.CubeList([])
@@ -342,16 +351,15 @@ class NowcastLightning(object):
                 iris.Constraint(time=this_time) &
                 iris.Constraint(threshold=35.))
             err_string = "No matching {} cube for {}"
-            assert isinstance(this_precip,
-                              iris.cube.Cube), err_string.format("any precip",
-                                                                 this_time)
-            assert isinstance(high_precip,
-                              iris.cube.Cube), err_string.format("high precip",
-                                                                 this_time)
-            assert isinstance(torr_precip,
-                              iris.cube.Cube), err_string.format(
-                                  "intense precip",
-                                  this_time)
+            if not isinstance(this_precip, iris.cube.Cube):
+                raise ConstraintMismatchError(
+                    err_string.format("any precip", this_time))
+            if not isinstance(high_precip, iris.cube.Cube):
+                raise ConstraintMismatchError(
+                    err_string.format("high precip", this_time))
+            if not isinstance(torr_precip, iris.cube.Cube):
+                raise ConstraintMismatchError(
+                    err_string.format("intense precip", this_time))
             # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
             #   prob(precip > 7mm/hr) > phighthresh
             cube_slice.data = np.where(
@@ -393,17 +401,24 @@ class NowcastLightning(object):
                 Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
                 prob_lightning_cube.
+
+        Raises:
+            iris.exceptions.ConstraintMismatchError:
+                If ice_cube does not contain the expected thresholds.
         """
         prob_lightning_cube.coord('forecast_period').convert_units('minutes')
         # check prob-ice threshold units are as expected
         ice_cube.coord('threshold').convert_units('kg m^-2')
         new_cube_list = iris.cube.CubeList([])
+        err_string = "No matching prob(Ice) cube for threshold {}"
         for cube_slice in prob_lightning_cube.slices_over('time'):
             fcmins = cube_slice.coord('forecast_period').points[0]
             for threshold, prob_max in zip(self.ice_thresholds,
                                            self.ice_scaling):
                 ice_slice = ice_cube.extract(
                     iris.Constraint(threshold=threshold))
+                if not isinstance(ice_slice, iris.cube.Cube):
+                    raise ConstraintMismatchError(err_string.format(threshold))
                 ice_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
                 cube_slice.data = np.maximum(
                     rescale(ice_slice.data,
@@ -438,18 +453,29 @@ class NowcastLightning(object):
                 Output cube containing Nowcast lightning probability.
                 This cube will have the same dimensions as the input
                 Nowcast precipitation probability.
+
+        Raises:
+            iris.exceptions.ConstraintMismatchError:
+                If cubelist does not contain the expected cubes.
         """
-        first_guess_lightning_cube = cubelist.extract("probability_of_lightning").merge_cube()
-        prob_lightning_cube = cubelist.extract("rate_of_lightning").merge_cube()
-        prob_lightning_cube.convert_units("min^-1")  # Ensure units are correct.
-        prob_precip_cube = cubelist.extract("probability_of_precipitation")
-        prob_precip_cube = prob_precip_cube.merge_cube()
-        prob_vii_cube = cubelist.extract("probability_of_vertical_integral_of_ice")
+        first_guess_lightning_cube = cubelist.extract(
+            "probability_of_lightning", strict=True)
+        prob_lightning_cube = cubelist.extract(
+            "rate_of_lightning", strict=True)
+        prob_lightning_cube.convert_units("min^-1")  # Ensure units are correct
+        prob_precip_cube = cubelist.extract(
+            "probability_of_precipitation", strict=True)
+        prob_vii_cube = cubelist.extract(
+            "probability_of_vertical_integral_of_ice")
         if prob_vii_cube:
             prob_vii_cube = prob_vii_cube.merge_cube()
         precip_slice = prob_precip_cube.extract(iris.Constraint(threshold=0.5))
+        if not isinstance(precip_slice, iris.cube.Cube):
+            raise ConstraintMismatchError(
+                "Cannot find prob(precip > 0.5) cube in cubelist.")
         new_cube = self._update_metadata(precip_slice)
         new_cube = self._modify_first_guess(
-            new_cube, first_guess_lightning_cube, prob_lightning_cube, prob_precip_cube, prob_vii_cube)
+            new_cube, first_guess_lightning_cube, prob_lightning_cube,
+            prob_precip_cube, prob_vii_cube)
         new_cube = self._process_haloes(new_cube)
         return new_cube

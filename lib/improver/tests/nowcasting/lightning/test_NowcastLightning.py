@@ -37,7 +37,7 @@ from iris.util import squeeze
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
+from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
 import numpy as np
 import cf_units
 
@@ -312,6 +312,45 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
         self.assertArrayAlmostEqual(cube_e.data, self.vii_cube.data)
 
+    def test_missing_lightning(self):
+        """Test that the method raises an error if the lightning cube doesn't
+        match the meta-data cube time coordinate."""
+        self.ltng_cube.coord('time').points = [1.0]
+        plugin = Plugin()
+        msg = ("No matching lightning cube for")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin._modify_first_guess(self.cube,
+                                       self.fg_cube,
+                                       self.ltng_cube,
+                                       self.precip_cube,
+                                       None)
+
+    def test_missing_first_guess(self):
+        """Test that the method raises an error if the first-guess cube doesn't
+        match the meta-data cube time coordinate."""
+        self.fg_cube.coord('time').points = [1.0]
+        plugin = Plugin()
+        msg = ("No matching first-guess cube for")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin._modify_first_guess(self.cube,
+                                       self.fg_cube,
+                                       self.ltng_cube,
+                                       self.precip_cube,
+                                       None)
+
+    def test_cube_has_no_time_coord(self):
+        """Test that the method raises an error if the meta-data cube has no
+        time coordinate."""
+        self.cube.remove_coord('time')
+        plugin = Plugin()
+        msg = ("Expected to find exactly 1 time coordinate, but found none.")
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin._modify_first_guess(self.cube,
+                                       self.fg_cube,
+                                       self.ltng_cube,
+                                       self.precip_cube,
+                                       None)
+
     def test_precip_zero(self):
         """Test that apply_precip is being called"""
         # Set lightning data to "no-data" so it has a Null impact
@@ -465,6 +504,33 @@ class Test_apply_precip(IrisTest):
         self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.precip_cube.data)
 
+    def test_missing_threshold_low(self):
+        """Test that the method raises an error if the precip_cube doesn't
+        have a threshold coordinate for 0.5."""
+        self.precip_cube.coord('threshold').points = [1.0, 7., 35.]
+        plugin = Plugin()
+        msg = ("No matching any precip cube for")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_precip(self.fg_cube, self.precip_cube)
+
+    def test_missing_threshold_mid(self):
+        """Test that the method raises an error if the precip_cube doesn't
+        have a threshold coordinate for 7.0."""
+        self.precip_cube.coord('threshold').points = [0.5, 8., 35.]
+        plugin = Plugin()
+        msg = ("No matching high precip cube for")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_precip(self.fg_cube, self.precip_cube)
+
+    def test_missing_threshold_high(self):
+        """Test that the method raises an error if the precip_cube doesn't
+        have a threshold coordinate for 35.0."""
+        self.precip_cube.coord('threshold').points = [0.5, 7., 20.]
+        plugin = Plugin()
+        msg = ("No matching intense precip cube for")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_precip(self.fg_cube, self.precip_cube)
+
     def test_precip_zero(self):
         """Test that zero precip probs reduce lightning risk"""
         plugin = Plugin()
@@ -599,6 +665,33 @@ class Test_apply_ice(IrisTest):
         plugin.apply_ice(cube_a, cube_b)
         self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.ice_cube.data)
+
+    def test_missing_threshold_low(self):
+        """Test that the method raises an error if the ice_cube doesn't
+        have a threshold coordinate for 0.5."""
+        self.ice_cube.coord('threshold').points = [0.4, 1., 2.]
+        plugin = Plugin()
+        msg = ("No matching prob\(Ice\) cube for threshold 0.5")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_ice(self.fg_cube, self.ice_cube)
+
+    def test_missing_threshold_mid(self):
+        """Test that the method raises an error if the ice_cube doesn't
+        have a threshold coordinate for 1.0."""
+        self.ice_cube.coord('threshold').points = [0.5, 0.9, 2.]
+        plugin = Plugin()
+        msg = ("No matching prob\(Ice\) cube for threshold 1.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_ice(self.fg_cube, self.ice_cube)
+
+    def test_missing_threshold_high(self):
+        """Test that the method raises an error if the ice_cube doesn't
+        have a threshold coordinate for 2.0."""
+        self.ice_cube.coord('threshold').points = [0.5, 1., 4.]
+        plugin = Plugin()
+        msg = ("No matching prob\(Ice\) cube for threshold 2.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.apply_ice(self.fg_cube, self.ice_cube)
 
     def test_ice_null(self):
         """Test that small VII probs do not increase lightning risk"""
@@ -804,6 +897,48 @@ class Test_process(IrisTest):
             self.precip_cube,
             self.vii_cube]))
         self.assertIsInstance(result, Cube)
+
+    def test_no_first_guess_cube(self):
+        """Test that the method raises an error if the first_guess cube is
+        omitted from the cubelist"""
+        plugin = Plugin()
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_lightning\'\), expecting 1.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.process(CubeList([
+                self.ltng_cube,
+                self.precip_cube]))
+
+    def test_no_lightning_cube(self):
+        """Test that the method raises an error if the lightning cube is
+        omitted from the cubelist"""
+        plugin = Plugin()
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'rate_of_lightning\'\), expecting 1.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.process(CubeList([
+                self.fg_cube,
+                self.precip_cube]))
+
+    def test_no_precip_cube(self):
+        """Test that the method raises an error if the precip cube is
+        omitted from the cubelist"""
+        plugin = Plugin()
+        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_precipitation\'\), expecting 1.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.process(CubeList([
+                self.fg_cube,
+                self.ltng_cube]))
+
+    def test_precip_has_no_thresholds(self):
+        """Test that the method raises an error if the threshold coord is
+        omitted from the precip_cube"""
+        self.precip_cube.remove_coord('threshold')
+        plugin = Plugin()
+        msg = ("Cannot find prob\(precip > 0.5\) cube in cubelist.")
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+            plugin.process(CubeList([
+                self.fg_cube,
+                self.ltng_cube,
+                self.precip_cube]))
 
     def test_result_with_vii(self):
         """Test that the method returns the expected data when vii is
