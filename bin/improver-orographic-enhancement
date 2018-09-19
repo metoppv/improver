@@ -52,8 +52,8 @@ def main():
                        'plugins.')
 
     parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
-                        help='Full path to input NetCDF file of temperature on '
-                        'height levels')
+                        help='Full path to input NetCDF file of temperature on'
+                        ' height levels')
     parser.add_argument('humidity_filepath', metavar='HUMIDITY_FILEPATH',
                         help='Full path to input NetCDF file of relative '
                         'humidity on height levels')
