@@ -34,7 +34,7 @@
 import unittest
 
 from iris.util import squeeze
-from iris.coords import DimCoord
+from iris.coords import DimCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
@@ -119,19 +119,22 @@ class Test__update_metadata(IrisTest):
             set_up_cube())
         coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
         self.cube.add_aux_coord(coord)
+        self.cube.add_cell_method(CellMethod('mean', coords='realization'))
 
     def test_basic(self):
         """Test that the method returns the expected cube type
         and that the metadata are as expected.
-        We expect a new name and the threshold coord to be removed."""
+        We expect a new name, the threshold coord to be removed and
+        cell methods to be discarded."""
         plugin = Plugin()
         result = plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), "lightning_probability")
+        self.assertEqual(result.name(), "probability_of_lightning")
         msg = ("Expected to find exactly 1 threshold coordinate, but found "
                "none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             result.coord('threshold')
+        self.assertEqual(result.cell_methods, ())
 
     def test_input(self):
         """Test that the method does not modify the input cube data."""

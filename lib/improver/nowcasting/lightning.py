@@ -160,9 +160,10 @@ class NowcastLightning(object):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
-        1. Rename to "lightning_probability"
+        1. Rename to "probability_of_lightning"
         2. Remove "threshold" coord
-             (or causes iris.exceptions.CoordinateNotFoundError)
+            (or causes iris.exceptions.CoordinateNotFoundError)
+        3. Discard all cell_methods
 
         Args:
             cube (iris.cube.Cube):
@@ -175,8 +176,9 @@ class NowcastLightning(object):
                 The data array will be a copy of the input cube.data
         """
         new_cube = cube.copy()
-        new_cube.rename("lightning_probability")
+        new_cube.rename("probability_of_lightning")
         new_cube.remove_coord('threshold')
+        new_cube.cell_methods = None
         return new_cube
 
     def _modify_first_guess(self, cube, first_guess_lightning_cube,
@@ -224,6 +226,7 @@ class NowcastLightning(object):
                 contain the expected times.
         """
         new_cube_list = iris.cube.CubeList([])
+        # Loop over required forecast validity times
         for cube_slice in cube.slices_over('time'):
             this_point = cube_slice.coord('time').points[0]
             this_time = iris_time_to_datetime(
@@ -242,6 +245,8 @@ class NowcastLightning(object):
                               iris.cube.Cube):
                 raise ConstraintMismatchError(
                     err_string.format("lightning", this_time))
+            # Fail if the closest available "first guess" forecast is more
+            # than 2 hours away from the required validity time.
             if abs((first_guess_time - this_time).total_seconds()) > 7201.:
                 raise ConstraintMismatchError(
                     err_string.format("first-guess", this_time))
@@ -288,12 +293,12 @@ class NowcastLightning(object):
         Args:
             prob_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability.
-                This is modified in-place.
+                Units of forecast_period coord modified in-place to minutes
 
             prob_precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability
-                    (threshold > 0.5, 7., 35. mm hr-1)
-                    Units of threshold coord modified in-place to mm hr-1
+                (threshold > 0.5, 7., 35. mm hr-1)
+                Units of threshold coord modified in-place to mm hr-1
 
         Returns:
             new_cube (iris.cube.Cube):
@@ -358,7 +363,7 @@ class NowcastLightning(object):
 
     def apply_ice(self, prob_lightning_cube, ice_cube):
         """
-        Modify Nowcast of lightning probability with ice data from radarnet
+        Modify Nowcast of lightning probability with ice data from a radar
         composite (VII; Vertically Integrated Ice)
 
         Args:
