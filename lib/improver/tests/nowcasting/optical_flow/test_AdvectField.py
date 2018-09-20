@@ -267,7 +267,23 @@ class Test_process(IrisTest):
         plugin = AdvectField(self.vel_x, self.vel_y,
                              metadata_dict=metadata_dict)
         result = plugin.process(self.cube, self.timestep)
+        result.attributes.pop("history")
         self.assertEqual(result.attributes, metadata_dict["attributes"])
+
+    def test_check_source_metadata(self):
+        """Test plugin returns a cube with the desired metadata."""
+        institution_cube = self.cube.copy()
+        institution_cube.attributes["institution"] = "Met Office"
+        expected_source = "Met Office Nowcast"
+        plugin = AdvectField(self.vel_x, self.vel_y)
+        result = plugin.process(institution_cube, self.timestep)
+        self.assertEqual(result.attributes["source"], expected_source)
+
+    def test_check_history_metadata(self):
+        """Test plugin returns a cube with the desired metadata."""
+        plugin = AdvectField(self.vel_x, self.vel_y)
+        result = plugin.process(self.cube, self.timestep)
+        self.assertTrue("history" in result.attributes.keys())
 
     def test_advected_values(self):
         """Test output cube data is as expected"""

@@ -44,7 +44,8 @@ from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
-from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.cube_metadata import (
+    amend_metadata, add_history_attribute)
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
@@ -338,6 +339,16 @@ class AdvectField(object):
         except CoordinateNotFoundError:
             pass
         advected_cube.add_aux_coord(forecast_period_coord)
+
+        # Modify the source attribute to describe the advected field as a
+        # Nowcast
+        if "institution" in advected_cube.attributes.keys():
+            advected_cube.attributes["source"] = (
+                "{} Nowcast".format(advected_cube.attributes["institution"]))
+        else:
+            advected_cube.attributes["source"] = "Nowcast"
+        add_history_attribute(advected_cube, ["add", "Nowcast"])
+
         advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
         return advected_cube
 
