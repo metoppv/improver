@@ -134,15 +134,8 @@ class NeighbourSelection(object):
                 cube.coord(axis='y').nearest_neighbour_index(y_point))
         return nearest_indices
 
-    def select_minimum_dz(self, site_coords, nearest_indices, land_mask):
-
-        for x_index, y_index in nearest_indices:
-            central_point = list_entry_from_index(nearest_indices, point)
-
-            nbhood = self.neighbourhood_indices(*central_point, land_mask)
-
-
-    def geocentric_cartesian(self, cube, x_coords, y_coords):
+    @staticmethod
+    def geocentric_cartesian(cube, x_coords, y_coords):
         coordinate_system = cube.coord_system().as_cartopy_crs()
         cartesian_calculator = coordinate_system.as_geocentric()
         z_coords = np.zeros_like(x_coords)
@@ -150,7 +143,7 @@ class NeighbourSelection(object):
             coordinate_system, x_coords, y_coords, z_coords)
         return cartesian_nodes
 
-    def build_KDTree(self, orography, land_mask):
+    def build_KDTree(self, land_mask):
 
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)
@@ -163,13 +156,20 @@ class NeighbourSelection(object):
         y_coords = land_mask.coord(axis='y').points[y_indices]
 
         if self.geodetic_coordinate_system:
-            nodes = self.geocentric_cartesian(orography, x_coords, y_coords)
+            nodes = self.geocentric_cartesian(land_mask, x_coords, y_coords)
         else:
             nodes = list(zip(x_coords, y_coords))
 
         index_nodes = np.array(list(zip(x_indices, y_indices)))
 
         return spatial.cKDTree(nodes), index_nodes
+
+    def select_minimum_dz(self, site_coords, nearest_indices, land_mask):
+
+        for x_index, y_index in nearest_indices:
+            central_point = list_entry_from_index(nearest_indices, point)
+
+            nbhood = self.neighbourhood_indices(*central_point, land_mask)
 
     def process(self, sites, orography, land_mask):
 
@@ -194,7 +194,7 @@ class NeighbourSelection(object):
         # If further constraints are being applied, build a KD Tree which
         # includes points filtered by constraint.
         if self.land_constraint or self.minimum_dz:
-            tree, index_nodes = self.build_KDTree(orography, land_mask)
+            tree, index_nodes = self.build_KDTree(land_mask)
 
             # Site coordinates made cartesian for global coordinate system
             if self.geodetic_coordinate_system:
@@ -210,7 +210,8 @@ class NeighbourSelection(object):
                                                nearest_indices)
             else:
                 distances, node_indices = tree.query(
-                    [site_coords], distance_upper_bound=self.search_radius)
+                    [site_coords], distance_upper_bound=self.search_radius,
+                    k=36)
 
         # Return cube of neighbours
         print("Returning cube of neighbours")
