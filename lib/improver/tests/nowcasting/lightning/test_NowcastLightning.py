@@ -625,7 +625,7 @@ class Test_apply_ice(IrisTest):
         have a threshold coordinate for 0.5."""
         self.ice_cube.coord('threshold').points = [0.4, 1., 2.]
         plugin = Plugin()
-        msg = ("No matching prob\(Ice\) cube for threshold 0.5")
+        msg = (r"No matching prob\(Ice\) cube for threshold 0.5")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.apply_ice(self.fg_cube, self.ice_cube)
 
@@ -634,7 +634,7 @@ class Test_apply_ice(IrisTest):
         have a threshold coordinate for 1.0."""
         self.ice_cube.coord('threshold').points = [0.5, 0.9, 2.]
         plugin = Plugin()
-        msg = ("No matching prob\(Ice\) cube for threshold 1.")
+        msg = (r"No matching prob\(Ice\) cube for threshold 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.apply_ice(self.fg_cube, self.ice_cube)
 
@@ -643,7 +643,7 @@ class Test_apply_ice(IrisTest):
         have a threshold coordinate for 2.0."""
         self.ice_cube.coord('threshold').points = [0.5, 1., 4.]
         plugin = Plugin()
-        msg = ("No matching prob\(Ice\) cube for threshold 2.")
+        msg = (r"No matching prob\(Ice\) cube for threshold 2.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.apply_ice(self.fg_cube, self.ice_cube)
 
@@ -856,8 +856,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the first_guess cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               "lightning\'\), expecting 1.")
+        msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
+               r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.ltng_cube,
@@ -867,8 +867,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the lightning cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'rate_of_"
-               "lightning\'\), expecting 1.")
+        msg = (r"Got 0 cubes for constraint Constraint\(name=\'rate_of_"
+               r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.fg_cube,
@@ -878,8 +878,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the precip cube is
         omitted from the cubelist"""
         plugin = Plugin()
-        msg = ("Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               "precipitation\'\), expecting 1.")
+        msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
+               r"precipitation\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.fg_cube,
@@ -890,7 +890,7 @@ class Test_process(IrisTest):
         omitted from the precip_cube"""
         self.precip_cube.remove_coord('threshold')
         plugin = Plugin()
-        msg = ("Cannot find prob\(precip > 0.5\) cube in cubelist.")
+        msg = (r"Cannot find prob\(precip > 0.5\) cube in cubelist.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             plugin.process(CubeList([
                 self.fg_cube,

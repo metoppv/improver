@@ -155,7 +155,8 @@ class NowcastLightning(object):
             lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2])
 
-    def _update_metadata(self, cube):
+    @staticmethod
+    def _update_metadata(cube):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
