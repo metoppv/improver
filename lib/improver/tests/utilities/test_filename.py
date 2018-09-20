@@ -37,11 +37,12 @@ from cf_units import Unit
 import iris
 from iris.coords import DimCoord, AuxCoord
 from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
 from improver.utilities.filename import generate_file_name
 
 
-class Test_generate_file_name(unittest.TestCase):
+class Test_generate_file_name(IrisTest):
     """Test the generate_file_name function"""
 
     def setUp(self):
@@ -56,7 +57,7 @@ class Test_generate_file_name(unittest.TestCase):
         t_coord = AuxCoord(np.linspace(402192.5, 402292.5, 1),
                            "time", units=tunit)
 
-        fp_coord = AuxCoord(900, "forecast_period", units="s")
+        fp_coord = AuxCoord(15, "forecast_period", units="minutes")
 
         self.cube = iris.cube.Cube(data, "air_temperature", units='degreesC',
                                    dim_coords_and_dims=[(y_coord, 0),
@@ -70,9 +71,16 @@ class Test_generate_file_name(unittest.TestCase):
         self.assertIsInstance(name, str)
         self.assertEqual(name, "20151119T0030Z-PT0000H15M-air_temperature.nc")
 
+    def test_input_cube_unmodified(self):
+        """Test the function does not modify the input cube"""
+        reference_cube = self.cube.copy()
+        _ = generate_file_name(self.cube)
+        self.assertArrayAlmostEqual(self.cube.data, reference_cube.data)
+        self.assertEqual(self.cube.metadata, reference_cube.metadata)
+
     def test_longer_lead_time(self):
         """Test with lead time > 1 hr"""
-        self.cube.coord("forecast_period").points[0] += 3600
+        self.cube.coord("forecast_period").points[0] += 60
         name = generate_file_name(self.cube)
         self.assertEqual(name, "20151119T0030Z-PT0001H15M-air_temperature.nc")
 
@@ -101,7 +109,6 @@ class Test_generate_file_name(unittest.TestCase):
         name = generate_file_name(self.cube, parameter='another_temperature')
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-another_temperature.nc")
-
 
 
 if __name__ == '__main__':
