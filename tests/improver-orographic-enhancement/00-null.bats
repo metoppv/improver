@@ -39,7 +39,7 @@ usage: improver-orographic-enhancement [-h] [--profile]
                                        TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
                                        PRESSURE_FILEPATH WINDSPEED_FILEPATH
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
-                                       OUTPUT_HIGH_RES OUTPUT_STANDARD
+                                       OUTPUT_DIR
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

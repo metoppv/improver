@@ -41,6 +41,7 @@ from improver.wind_calculations.wind_components import ResolveWindComponents
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.filename import generate_file_name
 
 
 def main():
@@ -49,7 +50,9 @@ def main():
 
     parser = ArgParser(description='Calculate orographic enhancement using the'
                        ' ResolveWindComponents() and OrographicEnhancement() '
-                       'plugins.')
+                       'plugins. Outputs data on the high resolution orography'
+                       ' grid and regridded to the coarser resolution of the '
+                       'input diagnostic variables.')
 
     parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
                         help='Full path to input NetCDF file of temperature on'
@@ -66,18 +69,14 @@ def main():
     parser.add_argument('winddir_filepath', metavar='WINDDIR_FILEPATH',
                         help='Full path to input NetCDF file of wind direction'
                         ' on height levels')
-
     parser.add_argument('orography_filepath', metavar='OROGRAPHY_FILEPATH',
-                        help='Full path to input NetCDF high resolution (1 km)'
-                        ' orography ancillary')
-
-    parser.add_argument('output_high_resolution', metavar='OUTPUT_HIGH_RES',
-                        help='Full path to write orographic enhancement file '
-                        'on high resolution (1 km) grid')
-    parser.add_argument('output_standard_grid', metavar='OUTPUT_STANDARD',
-                        help='Full path to write orographic enhancement file '
-                        'on standard grid')
-
+                        help='Full path to input NetCDF high resolution '
+                        'orography ancillary. This should be on the same or a '
+                        'finer resolution grid than the input variables, and '
+                        'defines the grid on which the orographic enhancement '
+                        'will be calculated.')
+    parser.add_argument('output_dir', metavar='OUTPUT_DIR', help='Directory '
+                        'to write output orographic enhancement files')
     parser.add_argument('--boundary_height_metres', type=float, default=1000.,
                         help='Model height level to extract variables for '
                         'calculating orographic enhancement, as proxy for '
@@ -121,9 +120,17 @@ def main():
     orogenh_high_res, orogenh_standard = OrographicEnhancement().process(
         temperature, humidity, pressure, uwind, vwind, orography)
 
+    # generate file names
+    fname_standard = os.path.join(
+        args.output_dir, generate_file_name(orogenh_standard))
+    fname_high_res = os.path.join(
+        args.output_dir, generate_file_name(
+            orogenh_high_res,
+            parameter="orographic_enhancement_high_resolution"))
+
     # save output files
-    save_netcdf(orogenh_high_res, args.output_high_resolution)
-    save_netcdf(orogenh_standard, args.output_standard_grid)
+    save_netcdf(orogenh_standard, fname_standard)
+    save_netcdf(orogenh_high_res, fname_high_res)
 
 
 if __name__ == "__main__":

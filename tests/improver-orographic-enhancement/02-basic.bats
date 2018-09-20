@@ -44,16 +44,18 @@
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
-      "$TEST_DIR/output_hi_res.nc" \
-      "$TEST_DIR/output_standard.nc"
+      "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "output_hi_res.nc" $KGO_HI_RES
-  improver_check_recreate_kgo "output_standard.nc" $KGO_STANDARD
+  OUTPUT_STANDARD="20180810T1200Z-PT0006H00M-orographic_enhancement.nc"
+  OUTPUT_HI_RES="20180810T1200Z-PT0006H00M-orographic_enhancement_high_resolution.nc"
+
+  improver_check_recreate_kgo $OUTPUT_HI_RES $KGO_HI_RES
+  improver_check_recreate_kgo $OUTPUT_STANDARD $KGO_STANDARD
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output_hi_res.nc" \
+  improver_compare_output "$TEST_DIR/$OUTPUT_HI_RES" \
       "$IMPROVER_ACC_TEST_DIR/$KGO_HI_RES"
-  improver_compare_output "$TEST_DIR/output_standard.nc" \
+  improver_compare_output "$TEST_DIR/$OUTPUT_STANDARD" \
       "$IMPROVER_ACC_TEST_DIR/$KGO_STANDARD"
 }

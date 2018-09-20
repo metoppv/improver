@@ -39,10 +39,12 @@ usage: improver-orographic-enhancement [-h] [--profile]
                                        TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
                                        PRESSURE_FILEPATH WINDSPEED_FILEPATH
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
-                                       OUTPUT_HIGH_RES OUTPUT_STANDARD
+                                       OUTPUT_DIR
 
 Calculate orographic enhancement using the ResolveWindComponents() and
-OrographicEnhancement() plugins.
+OrographicEnhancement() plugins. Outputs data on the high resolution orography
+grid and regridded to the coarser resolution of the input diagnostic
+variables.
 
 positional arguments:
   TEMPERATURE_FILEPATH  Full path to input NetCDF file of temperature on
@@ -55,12 +57,12 @@ positional arguments:
                         levels
   WINDDIR_FILEPATH      Full path to input NetCDF file of wind direction on
                         height levels
-  OROGRAPHY_FILEPATH    Full path to input NetCDF high resolution (1 km)
-                        orography ancillary
-  OUTPUT_HIGH_RES       Full path to write orographic enhancement file on high
-                        resolution (1 km) grid
-  OUTPUT_STANDARD       Full path to write orographic enhancement file on
-                        standard grid
+  OROGRAPHY_FILEPATH    Full path to input NetCDF high resolution orography
+                        ancillary. This should be on the same or a finer
+                        resolution grid than the input variables, and defines
+                        the grid on which the orographic enhancement will be
+                        calculated.
+  OUTPUT_DIR            Directory to write output orographic enhancement files
 
 optional arguments:
   -h, --help            show this help message and exit

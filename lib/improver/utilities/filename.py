@@ -33,7 +33,7 @@
 from iris.exceptions import CoordinateNotFoundError
 
 
-def generate_file_name(cube):
+def generate_file_name(cube, parameter=None):
     """
     From a forecast cube, generate an IMPROVER-suitable file name using the
     correct lead time.  Based on existing StaGE functionality.  Requires a
@@ -44,6 +44,10 @@ def generate_file_name(cube):
     Args:
         cube (iris.cube.Cube):
             Cube containing nowcast data
+
+    Kwargs:
+        parameter (str):
+            Optional parameter name to use
 
     Returns:
         filename (str):
@@ -59,7 +63,7 @@ def generate_file_name(cube):
         vtime.year, vtime.month, vtime.day, vtime.hour, vtime.minute)
 
     try:
-        forecast_period_coord = cube.coord('forecast_period')
+        forecast_period_coord = cube.coord('forecast_period').copy()
         forecast_period_coord.convert_units('s')
         forecast_period, = forecast_period_coord.points
         forecast_period_hours = int(forecast_period // 3600)
@@ -70,10 +74,11 @@ def generate_file_name(cube):
     except CoordinateNotFoundError:
         forecast_period_string = 'PT0000H00M'
 
-    parameter = cube.name().replace(' ', '_').lower()
-    for char in ["/", "(", ")"]:
-        parameter = parameter.replace(char, '')
-    parameter = parameter.replace('__', '_')
+    if parameter is None:
+        parameter = cube.name().replace(' ', '_').lower()
+        for char in ["/", "(", ")"]:
+            parameter = parameter.replace(char, '')
+        parameter = parameter.replace('__', '_')
 
     filename = '{}-{}-{}.nc'.format(
         validity_time_string, forecast_period_string, parameter)

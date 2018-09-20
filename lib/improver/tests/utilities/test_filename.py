@@ -96,6 +96,13 @@ class Test_generate_file_name(unittest.TestCase):
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-rainfall_rate_composite.nc")
 
+    def test_parameter_name(self):
+        """Test basic file name generation"""
+        name = generate_file_name(self.cube, parameter='another_temperature')
+        self.assertEqual(
+            name, "20151119T0030Z-PT0000H15M-another_temperature.nc")
+
+
 
 if __name__ == '__main__':
     unittest.main()
