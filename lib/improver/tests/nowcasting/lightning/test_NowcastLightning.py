@@ -82,14 +82,7 @@ class Test__repr__(IrisTest):
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 >""".format(radius=10000.,
             lthru=set_lightning_thresholds, lthrl=0.,
-            lprobu=1., lprobl=0.25,
-            precu=0.1, precm=0.05, precl=0.0,
-            lprecu=1., lprecm=0.2, lprecl=0.0067,
-            pphvy=0.4, ppint=0.2,
-            viiu=2.0, viim=1.0,
-            viil=0.5,
-            lviiu=0.9, lviim=0.5,
-            lviil=0.1)
+            lprobu=1., lprobl=0.25)
               )
         self.assertEqual(result, msg)
 
@@ -460,6 +453,13 @@ class Test_apply_precip(IrisTest):
         plugin.apply_precip(cube_a, cube_b)
         self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.precip_cube.data)
+
+    def test_nearby_threshold_low(self):
+        """Test that the method accepts a threshold point within machine
+        tolerance."""
+        self.precip_cube.coord('threshold').points = [0.5000000001, 7., 35.]
+        plugin = Plugin()
+        plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_missing_threshold_low(self):
         """Test that the method raises an error if the precip_cube doesn't

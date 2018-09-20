@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for NowcastLightning class and associated functions."""
+from math import isclose
 import numpy as np
 import iris
 from iris.exceptions import ConstraintMismatchError
@@ -320,13 +321,13 @@ class NowcastLightning(object):
                 cube_slice.coord('time').copy())[0]
             this_precip = prob_precip_cube.extract(
                 iris.Constraint(time=this_time) &
-                iris.Constraint(threshold=0.5))
+                iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
             high_precip = prob_precip_cube.extract(
                 iris.Constraint(time=this_time) &
-                iris.Constraint(threshold=7.))
+                iris.Constraint(threshold=lambda t: isclose(t.point, 7.)))
             torr_precip = prob_precip_cube.extract(
                 iris.Constraint(time=this_time) &
-                iris.Constraint(threshold=35.))
+                iris.Constraint(threshold=lambda t: isclose(t.point, 35.)))
             err_string = "No matching {} cube for {}"
             if not isinstance(this_precip, iris.cube.Cube):
                 raise ConstraintMismatchError(
@@ -397,7 +398,8 @@ class NowcastLightning(object):
             for threshold, prob_max in zip(self.ice_thresholds,
                                            self.ice_scaling):
                 ice_slice = ice_cube.extract(
-                    iris.Constraint(threshold=threshold))
+                    iris.Constraint(
+                        threshold=lambda t: isclose(t.point, threshold)))
                 if not isinstance(ice_slice, iris.cube.Cube):
                     raise ConstraintMismatchError(err_string.format(threshold))
                 # Linearly reduce impact of ice as fcmins increases to 2H30M.
@@ -451,7 +453,8 @@ class NowcastLightning(object):
             "probability_of_vertical_integral_of_ice")
         if prob_vii_cube:
             prob_vii_cube = prob_vii_cube.merge_cube()
-        precip_slice = prob_precip_cube.extract(iris.Constraint(threshold=0.5))
+        precip_slice = prob_precip_cube.extract(
+            iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
         if not isinstance(precip_slice, iris.cube.Cube):
             raise ConstraintMismatchError(
                 "Cannot find prob(precip > 0.5) cube in cubelist.")
