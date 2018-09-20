@@ -629,6 +629,8 @@ class Test__create_output_cubes(IrisTest):
             topography, topography.coord(axis='y'))
         self.temperature = set_up_variable_cube(
             np.full((2, 4), 280.15), units='kelvin', xo=398000.)
+        self.temperature.attributes['institution'] = 'Met Office'
+        self.temperature.attributes['source'] = 'Met Office Unified Model'
         self.orogenh = np.array([[1.1, 1.2, 1.5, 1.4],
                                  [1.0, 1.3, 1.4, 1.6],
                                  [0.8, 0.9, 1.2, 0.9]])
@@ -660,7 +662,7 @@ class Test__create_output_cubes(IrisTest):
         tref = sort_coord_in_cube(
             self.temperature, self.temperature.coord(axis='y'))
         expected_attributes = {'institution': 'Met Office',
-                               'source': 'IMPROVER'}
+                               'source': 'Met Office Unified Model'}
 
         output, regridded_output = self.plugin._create_output_cubes(
             self.orogenh, self.temperature)
@@ -679,6 +681,25 @@ class Test__create_output_cubes(IrisTest):
                 self.assertEqual(
                     cube.coord(t_coord), self.temperature.coord(t_coord))
             self.assertDictEqual(cube.attributes, expected_attributes)
+
+    def test_grid_metadata(self):
+        """Test correct grid metadata inheritance from a StaGE cube"""
+        self.temperature.attributes['history'] = 'StaGE Decoupler'
+        self.temperature.attributes['mosg__grid_type'] = 'standard'
+        self.temperature.attributes['mosg__grid_version'] = '1.2.0'
+        self.temperature.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.temperature.attributes['mosg__model_configuration'] = 'uk_det'
+
+        output, regridded_output = self.plugin._create_output_cubes(
+            self.orogenh, self.temperature)
+
+        for attr in ['mosg__grid_type', 'mosg__grid_version',
+                     'mosg__grid_domain', 'mosg__model_configuration']:
+            self.assertEqual(regridded_output.attributes[attr],
+                             self.temperature.attributes[attr])
+        self.assertEqual(
+            output.attributes['mosg__model_configuration'],
+            self.temperature.attributes['mosg__model_configuration'])
 
 
 class Test_process(DataCubeTest):
