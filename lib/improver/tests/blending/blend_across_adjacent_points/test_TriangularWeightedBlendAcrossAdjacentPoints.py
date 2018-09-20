@@ -296,14 +296,17 @@ class Test_process(IrisTest):
            thresholds."""
         width = 2.0
 
+        thresh_cube = self.cube.copy()
+        thresh_cube.remove_coord("forecast_reference_time")
+
         changes = {'points': [0.25], 'units': '1'}
-        cube_with_thresh1 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh1 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         changes = {'points': [0.5], 'units': '1'}
-        cube_with_thresh2 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh2 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         changes = {'points': [0.75], 'units': '1'}
-        cube_with_thresh3 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh3 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
                                        cube_with_thresh3])
