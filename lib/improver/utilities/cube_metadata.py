@@ -567,7 +567,8 @@ def delete_attributes(cube, patterns):
 def add_history_attribute(cube, values):
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
-    will overwrite any existing history attribute.
+    will overwrite any existing history attribute. The history attribute
+    will be the format "Timestamp: Description".
 
     Args:
         cube (iris.cube.Cube):

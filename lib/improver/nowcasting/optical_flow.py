@@ -106,7 +106,8 @@ class AdvectField(object):
         Keyword Args:
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
-                of the output cube. Please see the cube_metadata.amend_metadata
+                of the output cube. Please see the
+                :func:`improver.utilities.cube_metadata.amend_metadata`
                 for information regarding the allowed contents of the metadata
                 dictionary.
         """
