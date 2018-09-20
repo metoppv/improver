@@ -279,11 +279,7 @@ class Test_process(IrisTest):
         result = plugin.process(cube_with_thresh)
 
         # Test that the result cube retains threshold co-ordinates
-        # from origonal cube.
-        print("self.cube = ", self.cube)
-        print("self.cube = ", self.cube.coord("time"))
-        print("result = ", result)
-        print("expected = ", expected_cube)
+        # from original cube.
         self.assertEqual(expected_cube.coord('threshold'),
                          result.coord('threshold'))
         self.assertArrayEqual(expected_cube.data, result.data)
@@ -320,7 +316,7 @@ class Test_process(IrisTest):
         result = plugin.process(thresh_cubes)
 
         # Test that the result cube retains threshold co-ordinates
-        # from origonal cube.
+        # from original cube.
         self.assertEqual(thresh_cubes.coord('threshold'),
                          result.coord('threshold'))
 
