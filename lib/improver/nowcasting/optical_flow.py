@@ -933,15 +933,17 @@ class OpticalFlow(object):
 
         # if time difference is not 15 minutes, update data smoothing radius
         if cube_time_diff.total_seconds() != 900:
-            self.data_smoothing_radius_km *= (
+            data_smoothing_radius_km = self.data_smoothing_radius_km * (
                 cube_time_diff.total_seconds()/900.)
+        else:
+            data_smoothing_radius_km = self.data_smoothing_radius_km
 
         # calculate smoothing radius in grid square units
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
         grid_length_km = np.float32(np.diff((new_coord).points)[0])
         data_smoothing_radius = \
-            int(self.data_smoothing_radius_km / grid_length_km)
+            int(data_smoothing_radius_km / grid_length_km)
 
         # Fail verbosely if data smoothing radius is too small and will
         # trigger silent failures downstream
