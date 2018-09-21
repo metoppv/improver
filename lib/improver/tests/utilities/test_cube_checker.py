@@ -70,6 +70,14 @@ class Test_check_cube_not_float64(IrisTest):
         with self.assertRaisesRegex(TypeError, msg):
             check_cube_not_float64(self.cube)
 
+    def test_float64_cube_data_with_fix(self):
+        """Test a cube with 64 bit data is converted to 32 bit data."""
+        self.cube.data = self.cube.data.astype(np.float64)
+        expected_cube = self.cube.copy()
+        expected_cube.data = expected_cube.data.astype(np.float64)
+        check_cube_not_float64(self.cube, fix=True)
+        self.assertEqual(self.cube, expected_cube)
+
     def test_float64_cube_coord_points(self):
         """Test a failure of a cube with 64 bit coord points."""
         self.cube.coord("projection_x_coordinate").points = (
@@ -79,6 +87,21 @@ class Test_check_cube_not_float64(IrisTest):
         msg = "64 bit coord points not allowed"
         with self.assertRaisesRegex(TypeError, msg):
             check_cube_not_float64(self.cube)
+
+    def test_float64_cube_coord_points_with_fix(self):
+        """Test a failure of a cube with 64 bit coord points."""
+        self.cube.coord("projection_x_coordinate").points = (
+            self.cube.coord("projection_x_coordinate").points.astype(
+                np.float64))
+        expected_cube = self.cube.copy()
+        expected_cube.coord("projection_x_coordinate").points = (
+            expected_cube.coord("projection_x_coordinate").points.astype(
+            np.float64))
+        expected_coord = expected_cube.coord("projection_x_coordinate")
+        check_cube_not_float64(self.cube, fix=True)
+        self.assertEqual(self.cube, expected_cube)
+        self.assertEqual(
+            self.cube.coord("projection_x_coordinate"), expected_coord)
 
     def test_float64_cube_coord_bounds(self):
         """Test a failure of a cube with 64 bit coord bounds."""
@@ -90,6 +113,23 @@ class Test_check_cube_not_float64(IrisTest):
         msg = "64 bit coord bounds not allowed"
         with self.assertRaisesRegex(TypeError, msg):
             check_cube_not_float64(self.cube)
+
+    def test_float64_cube_coord_bounds_with_fix(self):
+        """Test a failure of a cube with 64 bit coord bounds."""
+        x_coord = self.cube.coord("projection_x_coordinate")
+        # Default np.array for float input is np.float64.
+        x_coord.bounds = (
+            np.array([(point - 10., point + 10.) for point in x_coord.points])
+        )
+        expected_cube = self.cube.copy()
+        expected_cube.coord("projection_x_coordinate").points = (
+            expected_cube.coord("projection_x_coordinate").points.astype(
+            np.float64))
+        expected_coord = expected_cube.coord("projection_x_coordinate")
+        check_cube_not_float64(self.cube, fix=True)
+        self.assertEqual(self.cube, expected_cube)
+        self.assertEqual(
+            self.cube.coord("projection_x_coordinate"), expected_coord)
 
     def test_float64_cube_time_coord_points_ok(self):
         """Test a pass of a cube with 64 bit time coord points."""
