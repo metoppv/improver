@@ -92,21 +92,21 @@ class Test__update_metadata(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        realization: 1;
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 4.0 hours
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-          threshold: 0.5 mm hr-1
-     Data:
-          All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
-"""
+        precipitation_amount / (kg m^-2)
+        Dimension coordinates:
+            realization: 1;
+            time: 1;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
+        Auxiliary coordinates:
+            forecast_period (on time coord): 4.0 hours
+        Scalar coordinates:
+            forecast_reference_time: 2015-11-23 03:00:00
+            threshold: 0.5 mm hr-1
+        Data:
+            All points contain float(1.) except the
+            zero point [0, 0, 7, 7] which is float(0.)
+        """
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube())
         coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
@@ -151,39 +151,39 @@ class Test__modify_first_guess(IrisTest):
     def setUp(self):
         """Create cubes with a single zero prob(precip) point.
         The cubes look like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 4.0 hours (simulates UM data)
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-     Data:
-       self.cube:
-          Describes the nowcast fields to be calculated.
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          All points contain float(1.) except the
-          zero point [0, 7, 7] which is float(0.)
-       self.fg_cube:
-          All points contain float(1.)
-       self.ltng_cube:
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          All points contain float(1.)
-       self.precip_cube:
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 7., 35.] mm hr-1.
-          All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
-          and [1:, 0, ...] which are float(0.)
-       self.vii_cube:
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 1., 2.] kg m^-2.
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-          All points contain float(0.)
-"""
+        precipitation_amount / (kg m^-2)
+        Dimension coordinates:
+            time: 1;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
+        Auxiliary coordinates:
+            forecast_period (on time coord): 4.0 hours (simulates UM data)
+        Scalar coordinates:
+            forecast_reference_time: 2015-11-23 03:00:00
+        Data:
+        self.cube:
+            Describes the nowcast fields to be calculated.
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            All points contain float(1.) except the
+            zero point [0, 7, 7] which is float(0.)
+        self.fg_cube:
+            All points contain float(1.)
+        self.ltng_cube:
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            All points contain float(1.)
+        self.precip_cube:
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm hr-1.
+            All points contain float(1.) except the
+            zero point [0, 0, 7, 7] which is float(0.)
+            and [1:, 0, ...] which are float(0.)
+        self.vii_cube:
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m^-2.
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+            All points contain float(0.)
+        """
         self.cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(), fp_point=0.0)
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
@@ -373,29 +373,29 @@ class Test_apply_precip(IrisTest):
     def setUp(self):
         """Create cubes with a single zero prob(precip) point.
         The cubes look like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 4.0 hours (simulates UM data)
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-     Data:
-       self.fg_cube:
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          All points contain float(1.)
-          Cube name is "probability_of_lightning".
-       self.precip_cube:
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 7., 35.] mm hr-1.
-          All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
-          and [1:, 0, ...] which are float(0.)
-          Cube name is "probability_of_precipitation".
-          Cube has added attribute {'relative_to_threshold': 'above'}
-"""
+        precipitation_amount / (kg m^-2)
+        Dimension coordinates:
+            time: 1;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
+        Auxiliary coordinates:
+            forecast_period (on time coord): 4.0 hours (simulates UM data)
+        Scalar coordinates:
+            forecast_reference_time: 2015-11-23 03:00:00
+        Data:
+        self.fg_cube:
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            All points contain float(1.)
+            Cube name is "probability_of_lightning".
+        self.precip_cube:
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm hr-1.
+            All points contain float(1.) except the
+            zero point [0, 0, 7, 7] which is float(0.)
+            and [1:, 0, ...] which are float(0.)
+            Cube name is "probability_of_precipitation".
+            Cube has added attribute {'relative_to_threshold': 'above'}
+        """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]),
             fp_point=0.0)
@@ -532,26 +532,26 @@ class Test_apply_ice(IrisTest):
     def setUp(self):
         """Create cubes with a single zero prob(precip) point.
         The cubes look like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-     Data:
-       self.fg_cube:
-          All points contain float(1.)
-          Cube name is "probability_of_lightning".
-       self.ice_cube:
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 1., 2.] kg m^-2.
-          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-          All points contain float(0.)
-          Cube name is "probability_of_vertical_integral_of_ice".
-"""
+        precipitation_amount / (kg m^-2)
+        Dimension coordinates:
+            time: 1;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
+        Auxiliary coordinates:
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+        Scalar coordinates:
+            forecast_reference_time: 2015-11-23 03:00:00
+        Data:
+        self.fg_cube:
+            All points contain float(1.)
+            Cube name is "probability_of_lightning".
+        self.ice_cube:
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m^-2.
+            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+            All points contain float(0.)
+            Cube name is "probability_of_vertical_integral_of_ice".
+        """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]),
             fp_point=0.0)
@@ -673,41 +673,41 @@ class Test_process(IrisTest):
     def setUp(self):
         """Create cubes with a single zero prob(precip) point.
         The cubes look like this:
-     precipitation_amount / (kg m^-2)
-     Dimension coordinates:
-        time: 1;
-        projection_y_coordinate: 16;
-        projection_x_coordinate: 16;
-     Auxiliary coordinates:
-          forecast_period (on time coord): 4.0 hours (simulates UM data)
-     Scalar coordinates:
-          forecast_reference_time: 2015-11-23 03:00:00
-     Data:
-       self.fg_cube:
-          All points contain float(1.)
-          Cube name is "probability_of_lightning".
-       self.ltng_cube:
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          All points contain float(1.)
-          Cube name is "rate_of_lightning".
-          Cube units are "min^-1".
-       self.precip_cube:
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 7., 35.] mm hr-1.
-          All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
-          and [1:, 0, ...] which are float(0.)
-          Cube name is "probability_of_precipitation".
-          Cube has added attribute {'relative_to_threshold': 'above'}
-       self.vii_cube:
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          With extra coordinate of length(3) "threshold" containing
-          points [0.5, 1., 2.] kg m^-2.
-          forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-          Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-          All points contain float(0.)
-          Cube name is "probability_of_vertical_integral_of_ice".
-"""
+        precipitation_amount / (kg m^-2)
+        Dimension coordinates:
+            time: 1;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
+        Auxiliary coordinates:
+            forecast_period (on time coord): 4.0 hours (simulates UM data)
+        Scalar coordinates:
+            forecast_reference_time: 2015-11-23 03:00:00
+        Data:
+        self.fg_cube:
+            All points contain float(1.)
+            Cube name is "probability_of_lightning".
+        self.ltng_cube:
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            All points contain float(1.)
+            Cube name is "rate_of_lightning".
+            Cube units are "min^-1".
+        self.precip_cube:
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm hr-1.
+            All points contain float(1.) except the
+            zero point [0, 0, 7, 7] which is float(0.)
+            and [1:, 0, ...] which are float(0.)
+            Cube name is "probability_of_precipitation".
+            Cube has added attribute {'relative_to_threshold': 'above'}
+        self.vii_cube:
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            With extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m^-2.
+            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
+            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
+            All points contain float(0.)
+            Cube name is "probability_of_vertical_integral_of_ice".
+        """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]))
         self.fg_cube.rename("probability_of_lightning")
