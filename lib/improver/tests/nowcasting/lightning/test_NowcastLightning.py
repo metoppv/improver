@@ -165,9 +165,10 @@ class Test__modify_first_guess(IrisTest):
           forecast_reference_time: 2015-11-23 03:00:00
      Data:
        self.cube:
+          Describes the nowcast fields to be calculated.
           forecast_period (on time coord): 0.0 hours (simulates nowcast data)
           All points contain float(1.) except the
-          zero point [0, 0, 7, 7] which is float(0.)
+          zero point [0, 7, 7] which is float(0.)
        self.fg_cube:
           All points contain float(1.)
        self.ltng_cube:
@@ -234,19 +235,6 @@ class Test__modify_first_guess(IrisTest):
                                             self.vii_cube)
         self.assertIsInstance(result, Cube)
 
-    def test_input(self):
-        """Test that the method does not modify the input cubes."""
-        plugin = Plugin()
-        cube_a = self.cube.copy()
-        cube_b = self.fg_cube.copy()
-        cube_c = self.ltng_cube.copy()
-        cube_d = self.precip_cube.copy()
-        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, None)
-        self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
-        self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
-        self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
-        self.assertArrayAlmostEqual(cube_d.data, self.precip_cube.data)
-
     def test_input_with_vii(self):
         """Test that the method does not modify the input cubes."""
         plugin = Plugin()
@@ -307,7 +295,7 @@ class Test__modify_first_guess(IrisTest):
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
         result = plugin._modify_first_guess(self.cube,
@@ -325,7 +313,7 @@ class Test__modify_first_guess(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
         result = plugin._modify_first_guess(self.cube,
@@ -355,6 +343,8 @@ class Test__modify_first_guess(IrisTest):
 
     def test_lrate_large(self):
         """Test that large lightning rates increase lightning risk"""
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
         # Set precip data to 1. so it has a Null impact
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
@@ -363,8 +353,6 @@ class Test__modify_first_guess(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations(zero_point_indices=[])
-        # expected.data contains all ones.
         result = plugin._modify_first_guess(self.cube,
                                             self.fg_cube,
                                             self.ltng_cube,
@@ -373,7 +361,8 @@ class Test__modify_first_guess(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_lrate_halo(self):
-        """Test that zero lightning rates increase lightning risk"""
+        """Test that lightning in 50 km vicinity / halo (encoded as lightning
+        rate zero) increases lightning risk at point"""
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
         self.precip_cube.data[0, 0, 7, 7] = 1.
@@ -383,7 +372,7 @@ class Test__modify_first_guess(IrisTest):
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
         plugin = Plugin(0.)
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin._modify_first_guess(self.cube,
@@ -491,7 +480,7 @@ class Test_apply_precip(IrisTest):
     def test_precip_zero(self):
         """Test that zero precip probs reduce lightning risk"""
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -502,7 +491,7 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[:, 0, 7, 7] = 0.
         self.precip_cube.data[0, 0, 7, 7] = 0.075
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.625
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -515,7 +504,7 @@ class Test_apply_precip(IrisTest):
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.0
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -529,7 +518,7 @@ class Test_apply_precip(IrisTest):
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.1
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.1
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -543,9 +532,8 @@ class Test_apply_precip(IrisTest):
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.0
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
-        # expected.data contains all ones except:
-        expected.data[0, 7, 7] = 1.0
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -558,7 +546,7 @@ class Test_apply_precip(IrisTest):
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.1
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
         result = plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -656,7 +644,7 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[0, 7, 7:9] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.25
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
         result = plugin.apply_ice(self.fg_cube,
@@ -668,7 +656,7 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[:, 7, 7] = 0.
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.
         result = plugin.apply_ice(self.fg_cube,
@@ -681,7 +669,7 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[0, 7, 7] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.05
         result = plugin.apply_ice(self.fg_cube,
@@ -693,7 +681,7 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
         result = plugin.apply_ice(self.fg_cube,
@@ -705,9 +693,9 @@ class Test_apply_ice(IrisTest):
         forecast lead time is large"""
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.
-        self.fg_cube.coord('forecast_period').points = [3.]
+        self.fg_cube.coord('forecast_period').points = [3.]  # hours
         plugin = Plugin()
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0
         result = plugin.apply_ice(self.fg_cube,
@@ -791,7 +779,7 @@ class Test_process(IrisTest):
         """Used to modify setUp() to set up four standard VII tests."""
 
         # Repeat all tests relating to vii from Test__modify_first_guess
-        expected = set_up_cube_with_no_realizations()
+        expected = self.fg_cube.copy()
         # expected.data contains all ones except where modified below:
 
         # Set up precip_cube with increasing intensity along x-axis
