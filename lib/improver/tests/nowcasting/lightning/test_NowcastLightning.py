@@ -854,6 +854,7 @@ class Test_process(IrisTest):
         expected = self.set_up_vii_input_output()
 
         # No halo - we're only testing this method.
+        # 2000m is the grid-length, so halo includes only one pixel.
         plugin = Plugin(2000.)
         result = plugin.process(CubeList([
             self.fg_cube,
@@ -878,6 +879,7 @@ class Test_process(IrisTest):
         # and 0.25 for heavy precip
         expected.data[0, 8, 5:8] = [0., 0., 0.25]
         # No halo - we're only testing this method.
+        # 2000m is the grid-length, so halo includes only one pixel.
         plugin = Plugin(2000.)
         result = plugin.process(CubeList([
             self.fg_cube,
