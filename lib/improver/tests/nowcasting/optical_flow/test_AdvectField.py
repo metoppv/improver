@@ -271,10 +271,19 @@ class Test_process(IrisTest):
         self.assertEqual(result.attributes, metadata_dict["attributes"])
 
     def test_check_source_metadata(self):
-        """Test plugin returns a cube with the desired metadata."""
+        """Test plugin returns a cube with the desired source attribute."""
         institution_cube = self.cube.copy()
         institution_cube.attributes["institution"] = "Met Office"
         expected_source = "Met Office Nowcast"
+        plugin = AdvectField(self.vel_x, self.vel_y)
+        result = plugin.process(institution_cube, self.timestep)
+        self.assertEqual(result.attributes["source"], expected_source)
+
+    def test_check_source_metadata_no_institution(self):
+        """Test plugin returns a cube with the desired source attribute
+        without an institution."""
+        institution_cube = self.cube.copy()
+        expected_source = "Nowcast"
         plugin = AdvectField(self.vel_x, self.vel_y)
         result = plugin.process(institution_cube, self.timestep)
         self.assertEqual(result.attributes["source"], expected_source)

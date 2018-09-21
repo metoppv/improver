@@ -96,7 +96,7 @@ class Test_check_cube_not_float64(IrisTest):
         expected_cube = self.cube.copy()
         expected_cube.coord("projection_x_coordinate").points = (
             expected_cube.coord("projection_x_coordinate").points.astype(
-            np.float64))
+                np.float64))
         expected_coord = expected_cube.coord("projection_x_coordinate")
         check_cube_not_float64(self.cube, fix=True)
         self.assertEqual(self.cube, expected_cube)
@@ -124,7 +124,7 @@ class Test_check_cube_not_float64(IrisTest):
         expected_cube = self.cube.copy()
         expected_cube.coord("projection_x_coordinate").points = (
             expected_cube.coord("projection_x_coordinate").points.astype(
-            np.float64))
+                np.float64))
         expected_coord = expected_cube.coord("projection_x_coordinate")
         check_cube_not_float64(self.cube, fix=True)
         self.assertEqual(self.cube, expected_cube)
