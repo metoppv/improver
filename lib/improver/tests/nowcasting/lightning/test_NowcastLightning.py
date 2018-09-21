@@ -219,15 +219,6 @@ class Test__modify_first_guess(IrisTest):
                                                  self.fg_cube,
                                                  self.ltng_cube,
                                                  self.precip_cube,
-                                                 None)
-        self.assertIsInstance(result, Cube)
-
-    def test_basic_with_vii(self):
-        """Test that the method returns the expected cube type"""
-        result = self.plugin._modify_first_guess(self.cube,
-                                                 self.fg_cube,
-                                                 self.ltng_cube,
-                                                 self.precip_cube,
                                                  self.vii_cube)
         self.assertIsInstance(result, Cube)
 
