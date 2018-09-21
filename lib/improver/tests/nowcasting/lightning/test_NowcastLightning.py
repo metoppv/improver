@@ -32,7 +32,6 @@
 
 
 import unittest
-
 from iris.util import squeeze
 from iris.coords import DimCoord, CellMethod
 from iris.cube import Cube, CubeList
@@ -113,14 +112,14 @@ class Test__update_metadata(IrisTest):
         coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
         self.cube.add_aux_coord(coord)
         self.cube.add_cell_method(CellMethod('mean', coords='realization'))
+        self.plugin = Plugin()
 
     def test_basic(self):
         """Test that the method returns the expected cube type
         and that the metadata are as expected.
         We expect a new name, the threshold coord to be removed and
         cell methods to be discarded."""
-        plugin = Plugin()
-        result = plugin._update_metadata(self.cube)
+        result = self.plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_lightning")
         msg = ("Expected to find exactly 1 threshold coordinate, but found "
@@ -131,9 +130,8 @@ class Test__update_metadata(IrisTest):
 
     def test_input(self):
         """Test that the method does not modify the input cube data."""
-        plugin = Plugin()
         incube = self.cube.copy()
-        plugin._update_metadata(incube)
+        self.plugin._update_metadata(incube)
         self.assertArrayAlmostEqual(incube.data, self.cube.data)
         self.assertEqual(incube.metadata, self.cube.metadata)
 
@@ -141,10 +139,9 @@ class Test__update_metadata(IrisTest):
         """Test that the method raises an error in Iris if the cube doesn't
         have a threshold coordinate to remove."""
         self.cube.remove_coord('threshold')
-        plugin = Plugin()
         msg = ("Expected to find exactly 1 threshold coordinate, but found no")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin._update_metadata(self.cube)
+            self.plugin._update_metadata(self.cube)
 
 
 class Test__modify_first_guess(IrisTest):
@@ -214,36 +211,34 @@ class Test__modify_first_guess(IrisTest):
         threshold_coord.rename('threshold')
         threshold_coord.units = cf_units.Unit('kg m^-2')
         self.vii_cube.data = np.zeros_like(self.vii_cube.data)
+        self.plugin = Plugin()
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
         self.assertIsInstance(result, Cube)
 
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            self.vii_cube)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 self.vii_cube)
         self.assertIsInstance(result, Cube)
 
     def test_input_with_vii(self):
         """Test that the method does not modify the input cubes."""
-        plugin = Plugin()
         cube_a = self.cube.copy()
         cube_b = self.fg_cube.copy()
         cube_c = self.ltng_cube.copy()
         cube_d = self.precip_cube.copy()
         cube_e = self.vii_cube.copy()
-        plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, cube_e)
+        self.plugin._modify_first_guess(cube_a, cube_b, cube_c, cube_d, cube_e)
         self.assertArrayAlmostEqual(cube_a.data, self.cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_c.data, self.ltng_cube.data)
@@ -254,40 +249,37 @@ class Test__modify_first_guess(IrisTest):
         """Test that the method raises an error if the lightning cube doesn't
         match the meta-data cube time coordinate."""
         self.ltng_cube.coord('time').points = [1.0]
-        plugin = Plugin()
         msg = ("No matching lightning cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin._modify_first_guess(self.cube,
-                                       self.fg_cube,
-                                       self.ltng_cube,
-                                       self.precip_cube,
-                                       None)
+            self.plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            None)
 
     def test_missing_first_guess(self):
         """Test that the method raises an error if the first-guess cube doesn't
         match the meta-data cube time coordinate."""
         self.fg_cube.coord('time').points = [1.0]
-        plugin = Plugin()
         msg = ("No matching first-guess cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin._modify_first_guess(self.cube,
-                                       self.fg_cube,
-                                       self.ltng_cube,
-                                       self.precip_cube,
-                                       None)
+            self.plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            None)
 
     def test_cube_has_no_time_coord(self):
         """Test that the method raises an error if the meta-data cube has no
         time coordinate."""
         self.cube.remove_coord('time')
-        plugin = Plugin()
         msg = ("Expected to find exactly 1 time coordinate, but found none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin._modify_first_guess(self.cube,
-                                       self.fg_cube,
-                                       self.ltng_cube,
-                                       self.precip_cube,
-                                       None)
+            self.plugin._modify_first_guess(self.cube,
+                                            self.fg_cube,
+                                            self.ltng_cube,
+                                            self.precip_cube,
+                                            None)
 
     def test_precip_zero(self):
         """Test that apply_precip is being called"""
@@ -427,19 +419,18 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
+        self.plugin = Plugin()
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertIsInstance(result, Cube)
 
     def test_input(self):
         """Test that the method does not modify the input cubes."""
-        plugin = Plugin()
         cube_a = self.fg_cube.copy()
         cube_b = self.precip_cube.copy()
-        plugin.apply_precip(cube_a, cube_b)
+        self.plugin.apply_precip(cube_a, cube_b)
         self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.precip_cube.data)
 
@@ -447,54 +438,48 @@ class Test_apply_precip(IrisTest):
         """Test that the method accepts a threshold point within machine
         tolerance."""
         self.precip_cube.coord('threshold').points = [0.5000000001, 7., 35.]
-        plugin = Plugin()
-        plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_missing_threshold_low(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 0.5."""
         self.precip_cube.coord('threshold').points = [1.0, 7., 35.]
-        plugin = Plugin()
         msg = ("No matching any precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_precip(self.fg_cube, self.precip_cube)
+            self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_missing_threshold_mid(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 7.0."""
         self.precip_cube.coord('threshold').points = [0.5, 8., 35.]
-        plugin = Plugin()
         msg = ("No matching high precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_precip(self.fg_cube, self.precip_cube)
+            self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_missing_threshold_high(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 35.0."""
         self.precip_cube.coord('threshold').points = [0.5, 7., 20.]
-        plugin = Plugin()
         msg = ("No matching intense precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_precip(self.fg_cube, self.precip_cube)
+            self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_precip_zero(self):
         """Test that zero precip probs reduce lightning risk"""
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_small(self):
         """Test that small precip probs reduce lightning risk"""
         self.precip_cube.data[:, 0, 7, 7] = 0.
         self.precip_cube.data[0, 0, 7, 7] = 0.075
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.625
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_heavy(self):
@@ -503,11 +488,10 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[1, 0, 7, 7] = 0.5
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.0
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_heavy_null(self):
@@ -517,24 +501,22 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[1, 0, 7, 7] = 0.3
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.1
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.1
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_intense(self):
         """Test that prob of intense precip increases lightning risk"""
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
         self.precip_cube.data[0, 0, 7, 7] = 1.0
         self.precip_cube.data[1, 0, 7, 7] = 1.0
         self.precip_cube.data[2, 0, 7, 7] = 0.5
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.0
-        plugin = Plugin()
-        expected = self.fg_cube.copy()
-        # expected.data contains all ones
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_intense_null(self):
@@ -545,11 +527,10 @@ class Test_apply_precip(IrisTest):
         self.precip_cube.data[2, 0, 7, 7] = 0.1
         # Set first-guess to zero
         self.fg_cube.data[0, 7, 7] = 0.1
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25  # Heavy-precip result only
-        result = plugin.apply_precip(self.fg_cube, self.precip_cube)
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 
@@ -595,19 +576,18 @@ class Test_apply_ice(IrisTest):
         threshold_coord.units = cf_units.Unit('kg m^-2')
         self.ice_cube.data = np.zeros_like(self.ice_cube.data)
         self.ice_cube.rename("probability_of_vertical_integral_of_ice")
+        self.plugin = Plugin()
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin.apply_ice(self.fg_cube, self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube, self.ice_cube)
         self.assertIsInstance(result, Cube)
 
     def test_input(self):
         """Test that the method does not modify the input cubes."""
-        plugin = Plugin()
         cube_a = self.fg_cube.copy()
         cube_b = self.ice_cube.copy()
-        plugin.apply_ice(cube_a, cube_b)
+        self.plugin.apply_ice(cube_a, cube_b)
         self.assertArrayAlmostEqual(cube_a.data, self.fg_cube.data)
         self.assertArrayAlmostEqual(cube_b.data, self.ice_cube.data)
 
@@ -615,52 +595,47 @@ class Test_apply_ice(IrisTest):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 0.5."""
         self.ice_cube.coord('threshold').points = [0.4, 1., 2.]
-        plugin = Plugin()
         msg = (r"No matching prob\(Ice\) cube for threshold 0.5")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_ice(self.fg_cube, self.ice_cube)
+            self.plugin.apply_ice(self.fg_cube, self.ice_cube)
 
     def test_missing_threshold_mid(self):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 1.0."""
         self.ice_cube.coord('threshold').points = [0.5, 0.9, 2.]
-        plugin = Plugin()
         msg = (r"No matching prob\(Ice\) cube for threshold 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_ice(self.fg_cube, self.ice_cube)
+            self.plugin.apply_ice(self.fg_cube, self.ice_cube)
 
     def test_missing_threshold_high(self):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 2.0."""
         self.ice_cube.coord('threshold').points = [0.5, 1., 4.]
-        plugin = Plugin()
         msg = (r"No matching prob\(Ice\) cube for threshold 2.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.apply_ice(self.fg_cube, self.ice_cube)
+            self.plugin.apply_ice(self.fg_cube, self.ice_cube)
 
     def test_ice_null(self):
         """Test that small VII probs do not increase lightning risk"""
         self.ice_cube.data[:, 7, 7] = 0.
         self.ice_cube.data[0, 7, 7:9] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.25
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
-        result = plugin.apply_ice(self.fg_cube,
-                                  self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_zero(self):
         """Test that zero VII probs do not increase lightning risk"""
         self.ice_cube.data[:, 7, 7] = 0.
         self.fg_cube.data[0, 7, 7] = 0.
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.
-        result = plugin.apply_ice(self.fg_cube,
-                                  self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_small(self):
@@ -668,24 +643,22 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[:, 7, 7] = 0.
         self.ice_cube.data[0, 7, 7] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.05
-        result = plugin.apply_ice(self.fg_cube,
-                                  self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_large(self):
         """Test that large VII probs do increase lightning risk"""
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
-        result = plugin.apply_ice(self.fg_cube,
-                                  self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_large_long_fc(self):
@@ -694,12 +667,11 @@ class Test_apply_ice(IrisTest):
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.
         self.fg_cube.coord('forecast_period').points = [3.]  # hours
-        plugin = Plugin()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0
-        result = plugin.apply_ice(self.fg_cube,
-                                  self.ice_cube)
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 
@@ -774,6 +746,7 @@ class Test_process(IrisTest):
         threshold_coord.units = cf_units.Unit('kg m^-2')
         self.vii_cube.data = np.zeros_like(self.vii_cube.data)
         self.vii_cube.rename("probability_of_vertical_integral_of_ice")
+        self.plugin = Plugin()
 
     def set_up_vii_input_output(self):
         """Used to modify setUp() to set up four standard VII tests."""
@@ -825,8 +798,7 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
-        plugin = Plugin()
-        result = plugin.process(CubeList([
+        result = self.plugin.process(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube]))
@@ -835,8 +807,7 @@ class Test_process(IrisTest):
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type when vii is
         present"""
-        plugin = Plugin()
-        result = plugin.process(CubeList([
+        result = self.plugin.process(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube,
@@ -846,33 +817,30 @@ class Test_process(IrisTest):
     def test_no_first_guess_cube(self):
         """Test that the method raises an error if the first_guess cube is
         omitted from the cubelist"""
-        plugin = Plugin()
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
                r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.process(CubeList([
+            self.plugin.process(CubeList([
                 self.ltng_cube,
                 self.precip_cube]))
 
     def test_no_lightning_cube(self):
         """Test that the method raises an error if the lightning cube is
         omitted from the cubelist"""
-        plugin = Plugin()
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'rate_of_"
                r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.process(CubeList([
+            self.plugin.process(CubeList([
                 self.fg_cube,
                 self.precip_cube]))
 
     def test_no_precip_cube(self):
         """Test that the method raises an error if the precip cube is
         omitted from the cubelist"""
-        plugin = Plugin()
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
                r"precipitation\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.process(CubeList([
+            self.plugin.process(CubeList([
                 self.fg_cube,
                 self.ltng_cube]))
 
@@ -880,10 +848,9 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the threshold coord is
         omitted from the precip_cube"""
         self.precip_cube.remove_coord('threshold')
-        plugin = Plugin()
         msg = (r"Cannot find prob\(precip > 0.5\) cube in cubelist.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            plugin.process(CubeList([
+            self.plugin.process(CubeList([
                 self.fg_cube,
                 self.ltng_cube,
                 self.precip_cube]))
