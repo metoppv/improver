@@ -533,8 +533,11 @@ def unify_forecast_reference_time(cubes, cycletime):
     provided. The cycletime specified is used as the forecast_reference_time.
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes (iris.cube.CubeList or iris.cube.Cube):
             Cubes that will have their forecast_reference_time unified.
+            If a single cube is provided the forecast_reference_time will be
+            updated. Any bounds on the forecast_reference_time coord will be
+            discarded.
         cycletime (datetime.datetime):
             Datetime for the cycletime that will be used to replace the
             forecast_reference_time on the individual cubes.

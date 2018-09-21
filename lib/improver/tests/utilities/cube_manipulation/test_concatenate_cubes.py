@@ -84,7 +84,7 @@ class Test_concatenate_cubes(IrisTest):
         cube3.transpose([1, 0, 2, 3])
         expected_result = np.vstack([cube3.data, cube3.data])
 
-        cube2.coord("time").points = np.array([412230.0], dtype=np.float32)
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -146,7 +146,7 @@ class Test_concatenate_cubes(IrisTest):
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
 
-        cube2.coord("time").points = np.array([412230.0], dtype=np.float32)
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -165,7 +165,7 @@ class Test_concatenate_cubes(IrisTest):
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
 
-        cube2.coord("time").points = np.float32(412230.0)
+        cube2.coord("time").points = np.float64(412230.0)
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
@@ -185,7 +185,7 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = np.array([412230.0], dtype=np.float32)
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
@@ -208,7 +208,7 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = np.float32(412230.0)
+        cube2.coord("time").points = np.float64(412230.0)
 
         cube1.coord("time").var_name = "time_0"
         cube2.coord("time").var_name = "time_1"
