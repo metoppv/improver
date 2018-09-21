@@ -66,7 +66,11 @@ optional arguments:
                         velocities.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
-                        to the metadata. Defaults to None.
+                        to the metadata. Information describing the intended
+                        contents of the json file is available in
+                        improver.utilities.cube_metadata.amend_metadata.Every
+                        output cube will have the metadata_dict applied.
+                        Defaults to None.
   --max_lead_time MAX_LEAD_TIME
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL

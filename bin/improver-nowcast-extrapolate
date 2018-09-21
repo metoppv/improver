@@ -65,8 +65,12 @@ def main():
                         "velocities.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
-                        "required changes to the metadata. "
-                        "Defaults to None.", type=str)
+                        "required changes to the metadata. Information "
+                        "describing the intended contents of the json file "
+                        "is available in "
+                        "improver.utilities.cube_metadata.amend_metadata."
+                        "Every output cube will have the metadata_dict "
+                        "applied. Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,

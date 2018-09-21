@@ -375,7 +375,11 @@ class OpticalFlow(object):
                 The value for good convergence is 20 (Bowler et al. 2004).
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
-                of the output cube.
+                of the output cube. Please see the
+                :func:`improver.utilities.cube_metadata.amend_metadata`
+                for information regarding the allowed contents of the metadata
+                dictionary. This metadata_dict is used to amend both of the
+                resulting u and v cubes.
 
         Raises:
             ValueError:
