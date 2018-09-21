@@ -42,7 +42,7 @@ from improver.utilities.cube_checker import (
     check_cube_not_float64, check_for_x_and_y_axes,
     check_cube_coordinates, find_dimension_coordinate_mismatch,
     find_percentile_coordinate)
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
+from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 from improver.tests.wind_calculations.wind_gust_diagnostic.\
     test_WindGustDiagnostic import create_cube_with_percentile_coord
