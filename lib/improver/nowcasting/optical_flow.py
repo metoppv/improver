@@ -931,8 +931,9 @@ class OpticalFlow(object):
             msg = "Expected positive time difference cube2 - cube1: got {} s"
             raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
 
-        # if time difference is not 15 minutes, update data smoothing radius
-        if cube_time_diff.total_seconds() != 900:
+        # if time difference is greater 15 minutes, increase data smoothing
+        # radius so that larger advection displacements can be resolved
+        if cube_time_diff.total_seconds() > 900:
             data_smoothing_radius_km = self.data_smoothing_radius_km * (
                 cube_time_diff.total_seconds()/900.)
         else:
