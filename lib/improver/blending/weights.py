@@ -259,8 +259,7 @@ class ChooseWeightsLinear(object):
     original weights are provided as a cube or configuration dictionary"""
 
     def __init__(self, weighting_coord_name,
-                 config_coord_name="model_configuration", config_dict=None,
-                 weights_key_name="weights"):
+                 config_coord_name="model_configuration", config_dict=None):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -284,11 +283,6 @@ class ChooseWeightsLinear(object):
                 an initial set of weights and information regarding the
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.
-            weights_key_name (str):
-                Name of the key string within the configuration dictionary used
-                to specify the weights. This is also used as the name of the
-                weights cube output from this plugin.  Ignored if
-                config_dict is None.
 
         Dictionary of format:
         ::
@@ -309,17 +303,16 @@ class ChooseWeightsLinear(object):
         self.weighting_coord_name = weighting_coord_name
         self.config_coord_name = config_coord_name
         self.config_dict = config_dict
-        self.weights_key_name = weights_key_name
+        self.weights_key_name = "weights"
         if self.config_dict:
             self._check_config_dict()
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
         msg = ("<ChooseWeightsLinear(): weighting_coord_name = {}, "
-               "config_coord_name = {}, config_dict = {}, "
-               "weights_key_name = {}>".format(
+               "config_coord_name = {}, config_dict = {}>".format(
                    self.weighting_coord_name, self.config_coord_name,
-                   str(self.config_dict), self.weights_key_name))
+                   str(self.config_dict)))
         return msg
 
     def _check_config_dict(self):
@@ -459,8 +452,7 @@ class ChooseWeightsLinear(object):
 
     @staticmethod
     def _interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=0,
-            fill_value=None):
+            source_points, target_points, source_weights, fill_value, axis=0):
         """
         Use of scipy.interpolate.interp1d to interpolate source_weights
         (valid at source_points) onto target_points grid.  This allows
@@ -477,25 +469,21 @@ class ChooseWeightsLinear(object):
             source_weights (np.ndarray):
                 Weights from the configuration dictionary that will be
                 used as the input to the interpolation.
-
-        Keyword Args:
-            axis (int):
-                Axis along which the interpolation will occur.
             fill_value (tuple):
                 Values to be used if extrapolation is required. The
                 fill values are used for target_points that are outside
                 the source_points grid.
 
+        Keyword Args:
+            axis (int):
+                Axis along which the interpolation will occur.
+
         Returns:
             weights (np.ndarray):
                 Weights corresponding to target_points following interpolation.
         """
-        bounds_error = True
-        if fill_value is not None:
-            bounds_error = False
-
         f_out = interp1d(source_points, source_weights, axis=axis,
-                         fill_value=fill_value, bounds_error=bounds_error)
+                         fill_value=fill_value, bounds_error=False)
         weights = f_out(target_points)
         return weights
 
@@ -638,8 +626,8 @@ class ChooseWeightsLinear(object):
                     cube, weights_cube=weights_cube))
 
         weights = self._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=axis,
-            fill_value=fill_value)
+            source_points, target_points, source_weights, fill_value,
+            axis=axis)
 
         new_weights_cube = self._create_new_weights_cube(
             cube, weights, weights_cube=weights_cube)

@@ -82,13 +82,6 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.config_dict, self.config_dict)
         self.assertEqual(plugin.weights_key_name, "weights")
 
-    def test_weights_key_name(self):
-        """Test initialisation from dict with alternative weights_key_name"""
-        plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict,
-            weights_key_name="forecast_period")
-        self.assertEqual(plugin.weights_key_name, "forecast_period")
-
 
 class Test__repr__(IrisTest):
     """Test the __repr__ method"""
@@ -99,8 +92,7 @@ class Test__repr__(IrisTest):
         plugin = ChooseWeightsLinear(weighting_coord_name)
         expected_result = (
             "<ChooseWeightsLinear(): weighting_coord_name = forecast_period, "
-            "config_coord_name = model_configuration, config_dict = None, "
-            "weights_key_name = weights>")
+            "config_coord_name = model_configuration, config_dict = None>")
         self.assertEqual(str(plugin), expected_result)
 
     def test_dict(self):
@@ -115,8 +107,7 @@ class Test__repr__(IrisTest):
             "<ChooseWeightsLinear(): weighting_coord_name = forecast_period, "
             "config_coord_name = model_configuration, "
             "config_dict = {'uk_det': {'forecast_period': [7, 12, 48, 54], "
-            "'weights': [0, 1, 1, 0], 'units': 'hours'}}, weights_key_name "
-            "= weights>")
+            "'weights': [0, 1, 1, 0], 'units': 'hours'}}>")
         self.assertEqual(str(plugin), expected_result)
 
 
@@ -261,21 +252,24 @@ class Test__interpolate_to_find_weights(IrisTest):
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
         source_weights = np.array([0, 1, 1, 0])
+        fill_value = (0, 0)
         weights = self.plugin._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=0)
+            source_points, target_points, source_weights, fill_value, axis=0)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
-    def test_1d_array_with_fill_value(self):
+    def test_1d_array_use_fill_value(self):
         """Test that the interpolation produces the expected result for a
-        1d input array where a fill_value is specified."""
+        1d input array where interpolation beyond of bounds of the input data
+        uses the fill_value."""
         expected_weights = (
             np.array([3., 3., 0., 0.5, 1., 1., 1., 0.5, 0., 4., 4.]))
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(-2, 9)
         source_weights = np.array([0, 1, 1, 0])
+        fill_value = (3, 4)
         weights = self.plugin._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=0,
-            fill_value=(3, 4))
+            source_points, target_points, source_weights, fill_value,
+            axis=0)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_2d_array_same_weights(self):
@@ -288,8 +282,9 @@ class Test__interpolate_to_find_weights(IrisTest):
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
         source_weights = np.array([[0, 1, 1, 0], [0, 1, 1, 0]])
+        fill_value = (0, 0)
         weights = self.plugin._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=1)
+            source_points, target_points, source_weights, fill_value, axis=1)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_2d_array_different_weights(self):
@@ -302,8 +297,9 @@ class Test__interpolate_to_find_weights(IrisTest):
         source_points = np.array([0, 2, 4, 6])
         target_points = np.arange(0, 7)
         source_weights = np.array([[1, 1, 0, 0], [0, 0, 1, 0]])
+        fill_value = (0, 0)
         weights = self.plugin._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=1)
+            source_points, target_points, source_weights, fill_value, axis=1)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_3d_array(self):
@@ -317,8 +313,9 @@ class Test__interpolate_to_find_weights(IrisTest):
         target_points = np.arange(0, 7)
         source_weights = (
             np.array([[[1, 1, 0, 0], [0, 0, 1, 0], [1, 0, 1, 0]]]))
+        fill_value = (0, 0)
         weights = self.plugin._interpolate_to_find_weights(
-            source_points, target_points, source_weights, axis=2)
+            source_points, target_points, source_weights, fill_value, axis=2)
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
@@ -405,20 +402,6 @@ class Test__create_new_weights_cube(IrisTest):
         self.assertArrayAlmostEqual(new_weights_cube.data,
                                     self.expected_weights)
         self.assertEqual(new_weights_cube.name(), "weights")
-
-    def test_with_dict_alternative_name(self):
-        """Test a new weights cube is created as intended, with the desired
-        cube name when an alternative weights_key_name is specified."""
-        self.config_dict["uk_det"]["alternative_name"] = (
-            self.config_dict["uk_det"].pop("weights"))
-        plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict,
-            weights_key_name="alternative_name")
-        new_weights_cube = (
-            plugin._create_new_weights_cube(self.cube, self.weights))
-        self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights)
-        self.assertEqual(new_weights_cube.name(), "alternative_name")
 
 
 class Test__calculate_weights(IrisTest):
