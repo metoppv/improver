@@ -173,7 +173,18 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         xname = cube.coord(axis='x').name()
         result_slices = iris.cube.CubeList([])
         # Take 2D slices of the input cube for memory issues.
+        prev_x_y_slice = None
         for x_y_slice in cube.slices([yname, xname]):
+            if (prev_x_y_slice is not None and
+                    np.array_equal(prev_x_y_slice.data, x_y_slice.data)):
+                # Use same result as last time!
+                prev_result = result_slices[-1].copy()
+                for coord in x_y_slice.coords(dim_coords=False):
+                    prev_result.coord(coord).points = coord.points.copy()
+                result_slices.append(prev_result)
+                continue
+            prev_x_y_slice = x_y_slice
+
             cube_slices = iris.cube.CubeList([])
             # Apply each mask in in mask_cube to the 2D input slice.
             for cube_slice in mask_cube.slices_over(self.coord_for_masking):
