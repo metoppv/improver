@@ -400,7 +400,7 @@ class Test__create_new_weights_cube(IrisTest):
         new_weights_cube = plugin._create_new_weights_cube(
             self.cube, self.weights)
         self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights)
+                                    self.expected_weights[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
 
@@ -462,7 +462,7 @@ class Test__calculate_weights(IrisTest):
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_below_range)
+            self.expected_weights_below_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
     def test_within_range_cubes(self):
@@ -492,7 +492,7 @@ class Test__calculate_weights(IrisTest):
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_within_range)
+            self.expected_weights_within_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
     def test_above_range_cubes(self):
@@ -522,7 +522,7 @@ class Test__calculate_weights(IrisTest):
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_above_range)
+            self.expected_weights_above_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
     def test_spatial_varying_weights(self):
@@ -643,18 +643,7 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("model_id"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[[[1., 1.],
-                                        [1., 1.]],
-                                       [[1., 1.],
-                                        [1., 1.]],
-                                       [[0.8, 0.8],
-                                        [0.8, 0.8]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0.2, 0.2],
-                                        [0.2, 0.2]]]]])
+        expected_weights = np.array([[[1., 1., 0.8]], [[0., 0., 0.2]]])
 
         plugin = ChooseWeightsLinear(
             self.weighting_coord_name, config_dict=self.config_dict_fp)
@@ -751,24 +740,9 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("model_id"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[[[1., 1.],
-                                        [1., 1.]],
-                                       [[1., 1.],
-                                        [1., 1.]],
-                                       [[0.66666667, 0.66666667],
-                                        [0.66666667, 0.66666667]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0.16666667, 0.16666667],
-                                        [0.16666667, 0.16666667]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0.16666667, 0.16666667],
-                                        [0.16666667, 0.16666667]]]]])
+        expected_weights = np.array([[[1., 1., 0.66666667]],
+                                     [[0., 0., 0.16666667]],
+                                     [[0., 0., 0.16666667]]])
 
         self.config_dict_fp["gl_ens"] = {"forecast_period": [7, 12, 48, 54],
                                          "weights": [0, 1, 1, 1],
@@ -846,14 +820,8 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("realization"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[[[1., 1.],
-                                        [1., 1.]]],
-                                      [[[0.5, 0.5],
-                                        [0.5, 0.5]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]]],
-                                      [[[0.5, 0.5],
-                                        [0.5, 0.5]]]]])
+        expected_weights = np.array([[[1.], [0.5]],
+                                     [[0.], [0.5]]])
 
         config_dict = {0: {"height": [15, 25],
                            "weights": [1, 0],

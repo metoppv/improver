@@ -568,10 +568,13 @@ class ChooseWeightsLinear(object):
             cubelist = iris.cube.CubeList([])
             for cube_slice, weight in (
                     zip(cube.slices_over(self.weighting_coord_name), weights)):
-                cube_slice.data = np.full_like(cube_slice.data, weight)
-                cubelist.append(cube_slice)
+                sub_slice = cube_slice[...,0,0]
+                sub_slice.remove_coord(sub_slice.coord(axis='x'))
+                sub_slice.remove_coord(sub_slice.coord(axis='y'))
+                sub_slice.data = np.full_like(sub_slice.data, weight)
+                cubelist.append(sub_slice)
             new_weights_cube = (
-                check_cube_coordinates(cube, cubelist.merge_cube()))
+                check_cube_coordinates(cube[...,0,0], cubelist.merge_cube()))
             new_weights_cube.rename(self.weights_key_name)
 
         else:
@@ -657,6 +660,8 @@ class ChooseWeightsLinear(object):
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation.
+                This cube will only include spatial dimensions if using
+                weights_cubes instead of a weights dict.
         """
         if not self.config_dict:
             if isinstance(weights_cubes, iris.cube.Cube):
