@@ -461,7 +461,8 @@ class Test__calculate_weights(IrisTest):
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
+        self.assertArrayAlmostEqual(
+            new_weights_cube.data,
             self.expected_weights_below_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
@@ -491,7 +492,8 @@ class Test__calculate_weights(IrisTest):
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
+        self.assertArrayAlmostEqual(
+            new_weights_cube.data,
             self.expected_weights_within_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
@@ -521,7 +523,8 @@ class Test__calculate_weights(IrisTest):
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
+        self.assertArrayAlmostEqual(
+            new_weights_cube.data,
             self.expected_weights_above_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
