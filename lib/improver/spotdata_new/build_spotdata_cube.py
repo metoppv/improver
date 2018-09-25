@@ -45,6 +45,19 @@ def build_spotdata_cube(data, name, units,
     Function to build a spotdata cube with expected dimension and auxiliary
     coordinate structure.
 
+    It can be used to create spot data cubes. In this case the data is the
+    spot data values at each site, and the coordinates that describe each site.
+
+    It can also be used to create cubes which describe the grid points that are
+    used to extract each site from a gridded field, for different selection
+    method. The selection methods are specified by the neighbour_methods
+    coordinate. The grid_attribute coordinate encapsulates information required
+    to extract data, for example the x/y indices that identify the grid point
+    neighbour.
+
+    .. See the documentation for examples of these cubes.
+    .. include:: extended_documentation/build_spotdata_cube_examples.rst
+
     Args:
         data (float or np.ndarray):
             Float spot data or array of data points from several sites.
@@ -67,11 +80,11 @@ def build_spotdata_cube(data, name, units,
         scalar_coords (list):
             Optional list of iris.coord.AuxCoord instances
         neighbour_methods (list):
-            Optional list of neighbour method names
+            Optional list of neighbour method names, e.g. 'nearest'
         neighbour_methods_dim (int):
             Data dimension to match the neighbour method list
         grid_attributes (list):
-            Optional list of grid attribute names
+            Optional list of grid attribute names, e.g. x-index, y-index
         grid_attributes_dim (int):
             Data dimension to match the grid attributes list
     """

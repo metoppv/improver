@@ -140,6 +140,20 @@ class Test_build_spotdata_cube(IrisTest):
         self.assertEqual(result.coord_dims('neighbour_selection_method')[0], 1)
         self.assertEqual(result.coord_dims('grid_attributes')[0], 2)
 
+    def test_3d_spot_cube_with_unequal_length_coordinates(self):
+        """Test error is raised if coordinates lengths do not match data
+        dimensions."""
+
+        data = np.ones((4, 2, 2), dtype=np.float32)
+
+        msg = "Unequal lengths"
+        with self.assertRaisesRegex(ValueError, msg):
+            build_spotdata_cube(
+                data, 'air_temperature', 'degC', self.altitude, self.latitude,
+                self.longitude, self.wmo_id,
+                neighbour_methods=self.neighbour_methods,
+                grid_attributes=self.grid_attributes)
+
     def test_scalar_coords(self):
         """Test additional scalar coordinates"""
         time_origin = "hours since 1970-01-01 00:00:00"
