@@ -45,7 +45,10 @@ from iris.time import PartialDateTime
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
     iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
-    extract_cube_at_time, set_utc_offset, get_forecast_times)
+    extract_cube_at_time, set_utc_offset, get_forecast_times,
+    unify_forecast_reference_time)
+from improver.tests.blending.weights.helper_functions import (
+    set_up_temperature_cube, add_model_id_and_model_configuration)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
@@ -156,6 +159,20 @@ class Test_forecast_period_coord(IrisTest):
         expected_units = str(fp_coord.units)
         result = forecast_period_coord(
             cube, force_lead_time_calculation=True)
+        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertEqual(result.units, expected_units)
+
+    def test_check_coordinate_in_hours_force_lead_time_calculation(self):
+        """Test that the data within the coord is as expected with the
+        expected units, when the input cube has a forecast_period coordinate.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        fp_coord = cube.coord("forecast_period").copy()
+        expected_points = fp_coord.points
+        expected_units = str(fp_coord.units)
+        result = forecast_period_coord(
+            cube, force_lead_time_calculation=True,
+            result_units=fp_coord.units)
         self.assertArrayAlmostEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
 
@@ -427,6 +444,93 @@ class Test_get_forecast_times(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             get_forecast_times(144, forecast_date=forecast_date,
                                forecast_time=6)
+
+
+class Test_unify_forecast_reference_time(IrisTest):
+
+    """Test the unify_forecast_reference_time function."""
+
+    def setUp(self):
+        """Set up a UK deterministic cube for testing."""
+        cube_uk_det = add_model_id_and_model_configuration(
+            set_up_temperature_cube(timesteps=3), model_ids=[1000],
+            model_configurations=["uk_det"], promote_to_new_axis=True)
+        self.cube_uk_det = add_forecast_reference_time_and_forecast_period(
+            cube_uk_det, time_point=[412233.0, 412235.0, 412237.0],
+            fp_point=[6., 8., 10.])
+
+    def test_cubelist_input(self):
+        """Test when supplying a cubelist as input containing cubes
+        representing UK deterministic and UK ensemble model configuration
+        and unifying the forecast_reference_time, so that both model
+        configurations have a common forecast_reference_time."""
+        cube_uk_ens = add_model_id_and_model_configuration(
+            set_up_temperature_cube(timesteps=3), model_ids=[2000],
+            model_configurations=["uk_ens"], promote_to_new_axis=True)
+        cube_uk_ens = add_forecast_reference_time_and_forecast_period(
+            cube_uk_ens, time_point=[412231.0, 412233.0, 412235.0],
+            fp_point=[5., 7., 9.])
+        cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
+
+        cycletime = datetime.datetime(2017, 1, 10, 6, 0)
+
+        expected_uk_det = self.cube_uk_det.copy()
+        frt_units = expected_uk_det.coord('forecast_reference_time').units
+        frt_points = [frt_units.date2num(cycletime)]
+        expected_uk_det.coord("forecast_reference_time").points = frt_points
+        expected_uk_det.coord("forecast_period").points = (
+            np.array([3., 5., 7.]))
+        expected_uk_ens = cube_uk_ens.copy()
+        expected_uk_ens.coord("forecast_reference_time").points = frt_points
+        expected_uk_ens.coord("forecast_period").points = (
+            np.array([1., 3., 5.]))
+        expected = iris.cube.CubeList([expected_uk_det, expected_uk_ens])
+
+        result = unify_forecast_reference_time(cubes, cycletime)
+
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(result, expected)
+
+    def test_cube_input(self):
+        """Test when supplying a cube representing a UK deterministic model
+        configuration only. This effectively updates the
+        forecast_reference_time on the cube to the specified cycletime."""
+        cycletime = datetime.datetime(2017, 1, 10, 6, 0)
+
+        expected_uk_det = self.cube_uk_det.copy()
+        frt_units = expected_uk_det.coord('forecast_reference_time').units
+        frt_points = [frt_units.date2num(cycletime)]
+        expected_uk_det.coord("forecast_reference_time").points = frt_points
+        expected_uk_det.coord("forecast_period").points = (
+            np.array([3., 5., 7.]))
+
+        result = unify_forecast_reference_time(self.cube_uk_det, cycletime)
+
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(result[0], expected_uk_det)
+
+    def test_cube_input_no_forecast_period_coordinate(self):
+        """Test when supplying a cube representing a UK deterministic model
+        configuration only. This forces a forecast_period coordinate to be
+        created from a forecast_reference_time coordinate and a time
+        coordinate."""
+        cycletime = datetime.datetime(2017, 1, 10, 6, 0)
+
+        expected_uk_det = self.cube_uk_det.copy()
+        frt_units = expected_uk_det.coord('forecast_reference_time').units
+        frt_points = [frt_units.date2num(cycletime)]
+        expected_uk_det.coord("forecast_reference_time").points = frt_points
+        expected_uk_det.coord("forecast_period").points = (
+            np.array([3., 5., 7.]))
+        expected_uk_det.coord("forecast_period").convert_units("seconds")
+
+        cube_uk_det = self.cube_uk_det.copy()
+        cube_uk_det.remove_coord("forecast_period")
+
+        result = unify_forecast_reference_time(cube_uk_det, cycletime)
+
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(result[0], expected_uk_det)
 
 
 if __name__ == '__main__':

@@ -110,18 +110,18 @@ class Test__slice_over_coordinate(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.coord("time").points = np.float32(402195.5)
+        cube2.coord("time").points = np.float64(402195.5)
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
         cube1.add_aux_coord(
-            DimCoord(np.array([402192.5], dtype=np.float32),
+            DimCoord(np.array([402192.5], dtype=np.float64),
                      "forecast_reference_time", units=tunit),
             data_dims=1)
         cube1.add_aux_coord(
             DimCoord([0], "forecast_period", units="hours"), data_dims=1)
         cube2.add_aux_coord(
-            DimCoord(np.array([402195.5], dtype=np.float32),
+            DimCoord(np.array([402195.5], dtype=np.float64),
                      "forecast_reference_time", units=tunit),
             data_dims=1)
         cube2.add_aux_coord(
