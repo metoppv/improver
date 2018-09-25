@@ -39,7 +39,9 @@ usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
                        SOURCE_DATA TARGET_GRID OUTPUT_FILE
 
 Regrid data from source_data on to the grid contained within target_grid using
-iris.analysis.Linear() or optionally iris.analysis.Nearest()
+iris.analysis.Linear() or optionally iris.analysis.Nearest(). Meta-data
+attributes starting with "mosg__" or "institution" are copied from the input
+cube to the output cube before applying any attributes from a json file
 
 positional arguments:
   SOURCE_DATA           A cube of data that is to be regridded onto the
