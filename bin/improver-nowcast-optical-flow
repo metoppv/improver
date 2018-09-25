@@ -36,12 +36,13 @@ import datetime
 import os
 import iris
 import numpy as np
+import json
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
 from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube, load_json
+from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
@@ -109,7 +110,8 @@ def main():
     metadata_dict = None
     if args.json_file:
         # Load JSON file for metadata amendments.
-        metadata_dict = load_json(args.json_file)
+        with open(args.json_file, 'r') as input_file:
+            metadata_dict = json.load(input_file)
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
     ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations,
