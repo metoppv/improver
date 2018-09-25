@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the function "cube_manipulation._strip_var_names".
+Unit tests for the function "cube_manipulation.strip_var_names".
 """
 
 import unittest
@@ -37,13 +37,13 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import _strip_var_names
+from improver.utilities.cube_manipulation import strip_var_names
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 
 
-class Test__strip_var_names(IrisTest):
+class Test_strip_var_names(IrisTest):
 
     """Test the _slice_var_names utility."""
 
@@ -54,7 +54,7 @@ class Test__strip_var_names(IrisTest):
     def test_basic(self):
         """Test that the utility returns an iris.cube.CubeList."""
         self.cube.var_name = "air_temperature"
-        result = _strip_var_names(self.cube)
+        result = strip_var_names(self.cube)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_cube_var_name_is_none(self):
@@ -63,7 +63,7 @@ class Test__strip_var_names(IrisTest):
         var_name of None.
         """
         self.cube.var_name = "air_temperature"
-        result = _strip_var_names(self.cube)
+        result = strip_var_names(self.cube)
         self.assertIsNone(result[0].var_name, None)
 
     def test_cube_coord_var_name_is_none(self):
@@ -73,7 +73,7 @@ class Test__strip_var_names(IrisTest):
         self.cube.coord("time").var_name = "time"
         self.cube.coord("latitude").var_name = "latitude"
         self.cube.coord("longitude").var_name = "longitude"
-        result = _strip_var_names(self.cube)
+        result = strip_var_names(self.cube)
         for cube in result:
             for coord in cube.coords():
                 self.assertIsNone(coord.var_name, None)
@@ -84,7 +84,7 @@ class Test__strip_var_names(IrisTest):
         cube2 = self.cube
         cubes = iris.cube.CubeList([cube1, cube2])
         self.cube.var_name = "air_temperature"
-        result = _strip_var_names(cubes)
+        result = strip_var_names(cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
         for cube in result:
             for coord in cube.coords():

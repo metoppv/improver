@@ -39,7 +39,7 @@ import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
-from improver.utilities.cube_manipulation import merge_cubes, _strip_var_names
+from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube, load_json
 from improver.utilities.save import save_netcdf
@@ -160,7 +160,7 @@ def main():
             # var_names from umean and vmean, however, the cubes in cube_list
             # can still have var_names, which can cause coordinates to mismatch
             # within the advection plugin.
-            cube_list = _strip_var_names(cube_list)
+            cube_list = strip_var_names(cube_list)
             forecast_cube = advection_plugin.process(cube_list[-1], timestep)
 
             # save to a suitably-named output file
