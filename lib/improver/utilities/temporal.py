@@ -46,6 +46,8 @@ from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cube_manipulation import build_coordinate
+
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
@@ -100,8 +102,7 @@ def cycletime_to_number(
 
 
 def forecast_period_coord(
-        cube,
-        force_lead_time_calculation=False):
+        cube, force_lead_time_calculation=False, result_units="seconds"):
     """
     Return or calculate the lead time coordinate (forecast_period)
     within a cube, either by reading the forecast_period coordinate,
@@ -120,6 +121,8 @@ def forecast_period_coord(
             forecast_reference_time and the time coordinate, even if
             the forecast_period coordinate exists.
             Default is False.
+        result_units (str or cf_units.Unit):
+            Desired units for the resulting forecast period coordinate.
 
     Returns:
         coord (iris.coords.AuxCoord or DimCoord):
@@ -127,11 +130,9 @@ def forecast_period_coord(
             'forecast_period'. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
             DimCoord and this coord does not need changing, otherwise
-            it will be an AuxCoord. Units are seconds.
+            it will be an AuxCoord. Units are result_units.
 
     """
-    result_units = "seconds"
-    # Try to return forecast period coordinate in hours.
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
         try:
@@ -529,3 +530,54 @@ class TemporalInterpolation(object):
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
+
+
+def unify_forecast_reference_time(cubes, cycletime):
+    """Function to unify the forecast_reference_time across the input cubes
+    provided. The cycletime specified is used as the forecast_reference_time.
+
+    Args:
+        cubes (iris.cube.CubeList or iris.cube.Cube):
+            Cubes that will have their forecast_reference_time unified.
+            If a single cube is provided the forecast_reference_time will be
+            updated. Any bounds on the forecast_reference_time coord will be
+            discarded.
+        cycletime (datetime.datetime):
+            Datetime for the cycletime that will be used to replace the
+            forecast_reference_time on the individual cubes.
+
+    Returns:
+        result_cubes (iris.cube.CubeList):
+            Cubes that have had their forecast_reference_time unified.
+
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    result_cubes = iris.cube.CubeList([])
+    for cube in cubes:
+        frt_units = cube.coord('forecast_reference_time').units
+        frt_points = [frt_units.date2num(cycletime)]
+        cube.replace_coord(
+            build_coordinate(
+                frt_points,
+                standard_name="forecast_reference_time",
+                bounds=None,
+                template_coord=cube.coord('forecast_reference_time')))
+
+        # If a forecast period coordinate already exists on a cube, replace
+        # this coordinate, otherwise create a new coordinate.
+        fp_units = "seconds"
+        if cube.coords("forecast_period"):
+            fp_units = cube.coord("forecast_period").units
+            cube.replace_coord(
+                forecast_period_coord(
+                    cube, force_lead_time_calculation=True,
+                    result_units=fp_units))
+        else:
+            fp_coord = forecast_period_coord(
+                cube, force_lead_time_calculation=True, result_units=fp_units)
+            dims = cube.coord_dims("time")
+            cube.add_aux_coord(fp_coord, dims)
+        result_cubes.append(cube)
+    return result_cubes

@@ -56,6 +56,7 @@ class Test_conform_metadata(IrisTest):
             set_up_cube(data, "air_temperature", "Kelvin"))
         cube = cube[0]
         cube.remove_coord("realization")
+        cube.coord("time").points = 412228.0
         self.cube = cube
 
         # Cube with multiple times.
@@ -139,10 +140,10 @@ class Test_conform_metadata(IrisTest):
         """Test that a cube is dealt with correctly, if the cube contains
         a forecast_reference_time and forecast_period coordinate and a
         cycletime is specified."""
-        expected_forecast_reference_time = np.array([402294.])
+        expected_forecast_reference_time = np.array([412227.])
         expected_forecast_period = np.array([1.])  # 1 hour.
         result = conform_metadata(
-            self.cube, self.cube_orig, self.coord, cycletime="20151123T0600Z")
+            self.cube, self.cube_orig, self.coord, cycletime="20170110T0300Z")
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
             expected_forecast_reference_time)
@@ -157,11 +158,11 @@ class Test_conform_metadata(IrisTest):
         cycletime is specified. The same value for the forecast_period should
         be created compared to when the when the input cube has a forecast
         period coordinate."""
-        expected_forecast_reference_time = np.array([402294.])
+        expected_forecast_reference_time = np.array([412227.])
         expected_forecast_period = np.array([3600.])
         result = conform_metadata(
             self.cube_without_fp, self.cube_orig_without_fp, self.coord,
-            cycletime="20151123T0600Z")
+            cycletime="20170110T0300Z")
         self.assertEqual(
             result.coord("forecast_reference_time").points,
             expected_forecast_reference_time)
