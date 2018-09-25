@@ -47,7 +47,8 @@ def generate_file_name(cube, parameter=None):
 
     Kwargs:
         parameter (str):
-            Optional parameter name to use
+            Optional parameter name to use in the output filename rather than
+            taking the name of the cube diagnostic.
 
     Returns:
         filename (str):

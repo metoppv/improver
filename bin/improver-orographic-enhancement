@@ -31,17 +31,51 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate orographic enhancement."""
 
-import datetime
 import os
 import iris
-import numpy as np
 
 from improver.argparser import ArgParser
+from improver.constants import make_constant_with_units
 from improver.wind_calculations.wind_components import ResolveWindComponents
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.filename import generate_file_name
+
+
+def load_and_extract(cube_filepath, bh):
+    """
+    Function to load a cube, attempt to extract a height level, converting
+    the units of the input boundary height to match the cube's vertical
+    coordinate if necessary. If no matching level is available an error
+    is raised.
+
+    Args:
+        cube_filepath (string):
+            Path to the input NetCDF file.
+        bh (iris.coords.AuxCoord):
+            The boundary height to be extracted with the input units.
+    Returns:
+        cube (iris.cube.Cube):
+            A cube containing the extracted height level.
+    Raises:
+        ValueError: If height level is not found in the input cube.
+    """
+    cube = load_cube(cube_filepath)
+
+    bh_cube_units = bh.copy()
+    bh_cube_units.convert_units(cube.coord(axis='z').units)
+    bh_cube_units = float(bh_cube_units.points[0])
+    constraint = iris.Constraint(
+        height=lambda h: bh_cube_units - 0.1 < h < bh_cube_units + 0.1)
+
+    cube = cube.extract(constraint)
+
+    if cube is not None:
+        return cube
+
+    raise ValueError('No data available from {} at height {}{}'.format(
+            cube_filepath, bh.points[0], bh.units))
 
 
 def main():
@@ -77,43 +111,30 @@ def main():
                         'will be calculated.')
     parser.add_argument('output_dir', metavar='OUTPUT_DIR', help='Directory '
                         'to write output orographic enhancement files')
-    parser.add_argument('--boundary_height_metres', type=float, default=1000.,
+    parser.add_argument('--boundary_height', type=float, default=1000.,
                         help='Model height level to extract variables for '
                         'calculating orographic enhancement, as proxy for '
                         'the boundary layer.')
+    parser.add_argument('--boundary_height_units', type=str, default='m',
+                        help='Units of the boundary height specified for '
+                        'extracting model levels.')
 
     args = parser.parse_args()
 
     # read input variables
-    bh = args.boundary_height_metres
-    constraint = iris.Constraint(height=lambda h: bh - 0.1 < h < bh + 0.1)
+    bh = args.boundary_height
+    bh = make_constant_with_units(bh, args.boundary_height_units)
 
-    load_error_msg = 'No data available from {} at height {} m'
-
-    temperature = load_cube(args.temperature_filepath, constraint)
-    if temperature is None:
-        raise ValueError(load_error_msg.format(args.temperature_filepath, bh))
-
-    humidity = load_cube(args.humidity_filepath, constraint)
-    if humidity is None:
-        raise ValueError(load_error_msg.format(args.humidity_filepath, bh))
-
-    pressure = load_cube(args.pressure_filepath, constraint)
-    if pressure is None:
-        raise ValueError(load_error_msg.format(args.pressure_filepath, bh))
-
-    wind_speed = load_cube(args.windspeed_filepath, constraint)
-    if wind_speed is None:
-        raise ValueError(load_error_msg.format(args.windspeed_filepath, bh))
-
-    wind_dir = load_cube(args.winddir_filepath, constraint)
-    if wind_dir is None:
-        raise ValueError(load_error_msg.format(args.winddir_filepath, bh))
+    temperature = load_and_extract(args.temperature_filepath, bh)
+    humidity = load_and_extract(args.humidity_filepath, bh)
+    pressure = load_and_extract(args.pressure_filepath, bh)
+    wind_speed = load_and_extract(args.windspeed_filepath, bh)
+    wind_dir = load_and_extract(args.winddir_filepath, bh)
 
     # resolve u and v wind components
     uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
 
-    # load 1 km orography
+    # load high resolution orography
     orography = load_cube(args.orography_filepath)
 
     # calculate orographic enhancement

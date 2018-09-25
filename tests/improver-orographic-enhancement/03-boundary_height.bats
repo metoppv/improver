@@ -44,7 +44,7 @@
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
-      "$TEST_DIR" --boundary_height_m=500.
+      "$TEST_DIR" --boundary_height=500. --boundary_height_units=m
   [[ "$status" -eq 0 ]]
 
   OUTPUT_STANDARD="20180810T1200Z-PT0006H00M-orographic_enhancement.nc"

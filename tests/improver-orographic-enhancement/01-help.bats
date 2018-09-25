@@ -35,7 +35,8 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-orographic-enhancement [-h] [--profile]
                                        [--profile_file PROFILE_FILE]
-                                       [--boundary_height_metres BOUNDARY_HEIGHT_METRES]
+                                       [--boundary_height BOUNDARY_HEIGHT]
+                                       [--boundary_height_units BOUNDARY_HEIGHT_UNITS]
                                        TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
                                        PRESSURE_FILEPATH WINDSPEED_FILEPATH
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
@@ -69,10 +70,13 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --boundary_height_metres BOUNDARY_HEIGHT_METRES
+  --boundary_height BOUNDARY_HEIGHT
                         Model height level to extract variables for
                         calculating orographic enhancement, as proxy for the
                         boundary layer.
+  --boundary_height_units BOUNDARY_HEIGHT_UNITS
+                        Units of the boundary height specified for extracting
+                        model levels.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

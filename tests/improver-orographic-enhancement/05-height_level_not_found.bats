@@ -29,19 +29,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "orographic-enhancement no arguments" {
-  run improver orographic-enhancement
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "orographic-enhancement boundary height unavailable" {
+  improver_check_skip_acceptance
+  KGO_HI_RES="orographic_enhancement/boundary_height/kgo_hi_res.nc"
+  KGO_STANDARD="orographic_enhancement/boundary_height/kgo_standard.nc"
+
+  # Run orographic enhancement and check it passes
+  run improver orographic-enhancement \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/humidity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/pressure.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
+      "$TEST_DIR" --boundary_height=500000. --boundary_height_units=m
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-orographic-enhancement [-h] [--profile]
-                                       [--profile_file PROFILE_FILE]
-                                       [--boundary_height BOUNDARY_HEIGHT]
-                                       [--boundary_height_units BOUNDARY_HEIGHT_UNITS]
-                                       TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
-                                       PRESSURE_FILEPATH WINDSPEED_FILEPATH
-                                       WINDDIR_FILEPATH OROGRAPHY_FILEPATH
-                                       OUTPUT_DIR
-improver-orographic-enhancement: error: the following arguments are required: TEMPERATURE_FILEPATH, HUMIDITY_FILEPATH, PRESSURE_FILEPATH, WINDSPEED_FILEPATH, WINDDIR_FILEPATH, OROGRAPHY_FILEPATH, OUTPUT_DIR
+ValueError: No data available from
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

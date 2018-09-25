@@ -29,19 +29,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "orographic-enhancement no arguments" {
-  run improver orographic-enhancement
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-orographic-enhancement [-h] [--profile]
-                                       [--profile_file PROFILE_FILE]
-                                       [--boundary_height BOUNDARY_HEIGHT]
-                                       [--boundary_height_units BOUNDARY_HEIGHT_UNITS]
-                                       TEMPERATURE_FILEPATH HUMIDITY_FILEPATH
-                                       PRESSURE_FILEPATH WINDSPEED_FILEPATH
-                                       WINDDIR_FILEPATH OROGRAPHY_FILEPATH
-                                       OUTPUT_DIR
-improver-orographic-enhancement: error: the following arguments are required: TEMPERATURE_FILEPATH, HUMIDITY_FILEPATH, PRESSURE_FILEPATH, WINDSPEED_FILEPATH, WINDDIR_FILEPATH, OROGRAPHY_FILEPATH, OUTPUT_DIR
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "orographic-enhancement boundary height convert units" {
+  improver_check_skip_acceptance
+  KGO_HI_RES="orographic_enhancement/boundary_height/kgo_hi_res.nc"
+  KGO_STANDARD="orographic_enhancement/boundary_height/kgo_standard.nc"
+
+  # Run orographic enhancement and check it passes
+  run improver orographic-enhancement \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/humidity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/pressure.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
+      "$TEST_DIR" --boundary_height=1640.41994751 --boundary_height_units=ft
+  [[ "$status" -eq 0 ]]
+
+  OUTPUT_STANDARD="20180810T1200Z-PT0006H00M-orographic_enhancement.nc"
+  OUTPUT_HI_RES="20180810T1200Z-PT0006H00M-orographic_enhancement_high_resolution.nc"
+
+  improver_check_recreate_kgo $OUTPUT_HI_RES $KGO_HI_RES
+  improver_check_recreate_kgo $OUTPUT_STANDARD $KGO_STANDARD
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/$OUTPUT_HI_RES" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_HI_RES"
+  improver_compare_output "$TEST_DIR/$OUTPUT_STANDARD" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_STANDARD"
 }
