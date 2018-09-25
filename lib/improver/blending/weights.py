@@ -662,6 +662,7 @@ class ChooseWeightsLinear(object):
                 Cube containing the output from the interpolation.
                 This cube will only include spatial dimensions if using
                 weights_cubes instead of a weights dict.
+                DimCoords (such as model_id) will be in sorted-ascending order.
         """
         if not self.config_dict:
             if isinstance(weights_cubes, iris.cube.Cube):

@@ -723,10 +723,10 @@ class Test_process(IrisTest):
 
     def test_forecast_period_and_model_configuration_three_models_dict(self):
         """Test blending three models over forecast period with a
-        configuration dictionary."""
+        configuration dictionary returns a sorted weights cube."""
         cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), model_ids=[1000, 2000, 3000],
-            model_configurations=["uk_det", "uk_ens", "gl_ens"],
+            set_up_temperature_cube(timesteps=3), model_ids=[1000, 3000, 2000],
+            model_configurations=["uk_det", "gl_ens", "uk_ens"],
             promote_to_new_axis=True)
         cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=[402294.0, 402295.0, 402296.0],
@@ -750,6 +750,11 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.name(), "weights")
+        self.assertArrayAlmostEqual(result.coord('model_id').points,
+                                    [1000, 2000, 3000])
+        self.assertArrayEqual(
+            result.coord('model_configuration').points,
+            ["uk_det", "uk_ens", "gl_ens"])
 
     def test_height_and_realization_cubes(self):
         """Test when height is the weighting_coord_name and realization is the
