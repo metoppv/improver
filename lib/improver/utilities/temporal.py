@@ -130,7 +130,7 @@ def forecast_period_coord(
             'forecast_period'. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
             DimCoord and this coord does not need changing, otherwise
-            it will be an AuxCoord. Units are seconds.
+            it will be an AuxCoord. Units are result_units.
 
     """
     if cube.coords("forecast_period") and not force_lead_time_calculation:

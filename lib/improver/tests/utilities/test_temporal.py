@@ -469,7 +469,7 @@ class Test_unify_forecast_reference_time(IrisTest):
             model_configurations=["uk_ens"], promote_to_new_axis=True)
         cube_uk_ens = add_forecast_reference_time_and_forecast_period(
             cube_uk_ens, time_point=[412231.0, 412233.0, 412235.0],
-            fp_point=[4., 6., 8.])
+            fp_point=[5., 7., 9.])
         cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
 
         cycletime = datetime.datetime(2017, 1, 10, 6, 0)
