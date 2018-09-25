@@ -35,6 +35,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 import numpy as np
+from copy import deepcopy
 
 from improver.blending.weights import ChooseWeightsLinear
 from improver.tests.blending.weights.helper_functions import (
@@ -44,6 +45,10 @@ from improver.tests.blending.weights.helper_functions import (
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
+CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
+                              "weights": [0, 1, 1, 0],
+                              "units": "hours"}}
+
 
 class Test__init__(IrisTest):
     """Test the __init__ method"""
@@ -52,9 +57,7 @@ class Test__init__(IrisTest):
         """Set up some initialisation arguments"""
         self.weighting_coord_name = "forecast_period"
         self.config_coord_name = "model_configuration"
-        self.config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                       "weights": [0, 1, 1, 0],
-                                       "units": "hours"}}
+        self.config_dict = CONFIG_DICT_UKV
 
     def test_basic(self):
         """Test default initialisation from cubes"""
@@ -98,9 +101,7 @@ class Test__repr__(IrisTest):
     def test_dict(self):
         """Test with configuration dictionary"""
         weighting_coord_name = "forecast_period"
-        config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                  "weights": [0, 1, 1, 0],
-                                  "units": "hours"}}
+        config_dict = CONFIG_DICT_UKV
         plugin = ChooseWeightsLinear(
             weighting_coord_name, config_dict=config_dict)
         expected_result = (
@@ -116,9 +117,7 @@ class Test__check_config_dict(IrisTest):
 
     def setUp(self):
         """Set up some plugin inputs"""
-        self.config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                       "weights": [0, 1, 1, 0],
-                                       "units": "hours"}}
+        self.config_dict = deepcopy(CONFIG_DICT_UKV)
         self.weighting_coord_name = "forecast_period"
 
     def test_dictionary_key_mismatch(self):
@@ -198,9 +197,7 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
     def test_basic(self):
         """Test that the values for the source_points, target_points,
         source_weights, axis and fill_value are as expected."""
-        config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                  "weights": [0, 1, 1, 0],
-                                  "units": "hours"}}
+        config_dict = CONFIG_DICT_UKV
 
         plugin = ChooseWeightsLinear(
             self.weighting_coord_name, config_dict=config_dict)
@@ -366,9 +363,7 @@ class Test__create_new_weights_cube(IrisTest):
         """Set up some plugin inputs"""
         self.cube = set_up_basic_model_config_cube()
         self.weighting_coord_name = "forecast_period"
-        self.config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                       "weights": [0, 1, 1, 0],
-                                       "units": "hours"}}
+        self.config_dict = CONFIG_DICT_UKV
         self.weights = np.array([0., 0., 0.2])
         self.expected_weights = np.array([[[[0., 0.], [0., 0.]],
                                            [[0., 0.], [0., 0.]],
@@ -415,9 +410,7 @@ class Test__calculate_weights(IrisTest):
 
         self.weights_cube = set_up_basic_weights_cube()
 
-        config_dict = {"uk_det": {"forecast_period": [7, 12, 48, 54],
-                                  "weights": [0, 1, 1, 0],
-                                  "units": "hours"}}
+        config_dict = CONFIG_DICT_UKV
         weighting_coord_name = "forecast_period"
 
         self.plugin_cubes = ChooseWeightsLinear(weighting_coord_name)
