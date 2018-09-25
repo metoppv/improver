@@ -31,6 +31,7 @@
 """Module containing utilities for modifying cube metadata."""
 
 from datetime import datetime
+from dateutil import tz
 import warnings
 import numpy as np
 
@@ -290,11 +291,7 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
 def update_cell_methods(cube, cell_method_definition):
     """Update cell methods. An "action" keyword is expected within the
     cell method definition to specify whether the cell method is to be added
-    or deleted. If the cell method defined in the cell_method_definition
-    matches a cell method that already exists within the cube, then the
-    cell method is removed. If the cell method defined in the cell method
-    definition does not match a cell method within the cube, then the
-    cell method is added.
+    or deleted.
 
     The cube will be modified in-place.
 
@@ -304,7 +301,8 @@ def update_cell_methods(cube, cell_method_definition):
         cell_method_definition (dict):
             Dictionary potentially containing the keys: "comments", "coords",
             "intervals" and "method", as supported by iris.coords.CellMethod.
-            The dictionary must specify an "action" keyword.
+            The dictionary must specify an "action" and a "method" keyword.
+            Any other keys are ignored.
 
     Raises:
         ValueError: If no action is specified for the cell method, then raise
@@ -578,5 +576,6 @@ def add_history_attribute(cube, values):
             extra details that are to be included within the history attribute.
     """
     description, = [value for value in values if value != "add"]
-    timestamp = datetime.strftime(datetime.now(), "%Y-%m-%dT%H:%M:%S%z")
+    tzinfo = tz.tzoffset('Z', 0)
+    timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
     cube.attributes["history"] = "{}: {}".format(timestamp, description)
