@@ -736,11 +736,11 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("model_id"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[1., 1., 0.66666667]],
-                                     [[0., 0., 0.16666667]],
-                                     [[0., 0., 0.16666667]]])
+        expected_weights = np.array([[[1., 1., 0.72]],
+                                     [[0., 0., 0.18]],
+                                     [[0., 0., 0.1]]])
 
-        self.config_dict_fp["gl_ens"] = {"forecast_period": [7, 12, 48, 54],
+        self.config_dict_fp["gl_ens"] = {"forecast_period": [7, 16, 48, 54],
                                          "weights": [0, 1, 1, 1],
                                          "units": "hours"}
 
