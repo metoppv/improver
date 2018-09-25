@@ -186,6 +186,10 @@ class AdvectField(object):
                 2D float array of advected data values with masked "no data"
                 regions
         """
+        # Cater for special case where timestep (integer) is 0
+        if timestep == 0:
+            return data
+
         # Initialise advected field with np.nan
         adv_field = np.full(data.shape, np.nan, dtype=np.float32)
 
