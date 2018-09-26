@@ -300,7 +300,7 @@ def update_cell_methods(cube, cell_method_definition):
             Cube containing cell methods that will be updated.
         cell_method_definition (dict):
             A dictionary which must contain an "action" keyword with a value of
-            either "add" or "delete", which detirmines whether to add or delete
+            either "add" or "delete", which determines whether to add or delete
             the cell method. The rest of the keys are passed to the
             iris.coords.CellMethod function. Of these keys, "method", is
             compulsory, and "comments", "coords" and "invevals" are optional.
