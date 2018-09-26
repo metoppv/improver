@@ -33,8 +33,6 @@
 
 @test "orographic-enhancement boundary height unavailable" {
   improver_check_skip_acceptance
-  KGO_HI_RES="orographic_enhancement/boundary_height/kgo_hi_res.nc"
-  KGO_STANDARD="orographic_enhancement/boundary_height/kgo_standard.nc"
 
   # Run orographic enhancement and check it passes
   run improver orographic-enhancement \
