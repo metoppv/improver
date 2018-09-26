@@ -41,20 +41,21 @@ from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.filename import generate_file_name
+from improver.utilities.cube_extraction import extract_subcube
 
 
-def load_and_extract(cube_filepath, bh):
+def load_and_extract(cube_filepath, height_value, units):
     """
-    Function to load a cube, attempt to extract a height level, converting
-    the units of the input boundary height to match the cube's vertical
-    coordinate if necessary. If no matching level is available an error
-    is raised.
+    Function to load a cube, attempt to extract a height level.
+    If no matching level is available an error is raised.
 
     Args:
         cube_filepath (string):
             Path to the input NetCDF file.
-        bh (iris.coords.AuxCoord):
+        height_value (float):
             The boundary height to be extracted with the input units.
+        units (string):
+            The units of the height level to be extracted.
     Returns:
         cube (iris.cube.Cube):
             A cube containing the extracted height level.
@@ -63,19 +64,17 @@ def load_and_extract(cube_filepath, bh):
     """
     cube = load_cube(cube_filepath)
 
-    bh_cube_units = bh.copy()
-    bh_cube_units.convert_units(cube.coord(axis='z').units)
-    bh_cube_units = float(bh_cube_units.points[0])
-    constraint = iris.Constraint(
-        height=lambda h: bh_cube_units - 0.1 < h < bh_cube_units + 0.1)
-
-    cube = cube.extract(constraint)
+    # Write constraint in this format so a constraint is constructed that
+    # is suitable for floating point comparison
+    height_constraint = ["height=[{}:{}]".format(height_value-0.1,
+                                                 height_value+0.1)]
+    cube = extract_subcube(cube, height_constraint, units=[units])
 
     if cube is not None:
         return cube
 
     raise ValueError('No data available from {} at height {}{}'.format(
-            cube_filepath, bh.points[0], bh.units))
+            cube_filepath, height_value, units))
 
 
 def main():
@@ -121,15 +120,14 @@ def main():
 
     args = parser.parse_args()
 
-    # read input variables
-    bh = args.boundary_height
-    bh = make_constant_with_units(bh, args.boundary_height_units)
+    constraint_info=(args.boundary_height, args.boundary_height_units)
 
-    temperature = load_and_extract(args.temperature_filepath, bh)
-    humidity = load_and_extract(args.humidity_filepath, bh)
-    pressure = load_and_extract(args.pressure_filepath, bh)
-    wind_speed = load_and_extract(args.windspeed_filepath, bh)
-    wind_dir = load_and_extract(args.winddir_filepath, bh)
+    temperature = load_and_extract(args.temperature_filepath, *constraint_info)
+    humidity = load_and_extract(args.humidity_filepath, *constraint_info)
+    pressure = load_and_extract(args.pressure_filepath, *constraint_info)
+    wind_speed = load_and_extract(args.windspeed_filepath, *constraint_info)
+    wind_dir = load_and_extract(args.winddir_filepath, *constraint_info)
+
 
     # resolve u and v wind components
     uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
