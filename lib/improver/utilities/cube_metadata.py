@@ -299,10 +299,13 @@ def update_cell_methods(cube, cell_method_definition):
         cube (iris.cube.Cube):
             Cube containing cell methods that will be updated.
         cell_method_definition (dict):
-            Dictionary potentially containing the keys: "comments", "coords",
-            "intervals" and "method", as supported by iris.coords.CellMethod.
-            The dictionary must specify an "action" and a "method" keyword.
-            Any other keys are ignored.
+            A dictionary which must contain an "action" keyword with a value of
+            either "add" or "delete", which detirmines whether to add or delete
+            the cell method. The rest of the keys are passed to the
+            iris.coords.CellMethod function. Of these keys, "method", is
+            compulsory, and "comments", "coords" and "invevals" are optional.
+            If any addtional keys are provided in the dictionary they are
+            ignored.
 
     Raises:
         ValueError: If no action is specified for the cell method, then raise
