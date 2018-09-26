@@ -120,14 +120,13 @@ def main():
 
     args = parser.parse_args()
 
-    constraint_info=(args.boundary_height, args.boundary_height_units)
+    constraint_info = (args.boundary_height, args.boundary_height_units)
 
     temperature = load_and_extract(args.temperature_filepath, *constraint_info)
     humidity = load_and_extract(args.humidity_filepath, *constraint_info)
     pressure = load_and_extract(args.pressure_filepath, *constraint_info)
     wind_speed = load_and_extract(args.windspeed_filepath, *constraint_info)
     wind_dir = load_and_extract(args.winddir_filepath, *constraint_info)
-
 
     # resolve u and v wind components
     uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
