@@ -179,7 +179,9 @@ class OrographicEnhancement(object):
                        var_cube.coord(axis='x').name()])
 
         regridder = iris.analysis.Linear()
-        out_cube = (var_cube.copy()).regrid(self.topography, regridder)
+        out_cube = (
+            var_cube.copy(var_cube.data.astype(np.float32))).regrid(
+                self.topography, regridder)
         out_cube.convert_units(unit)
         return out_cube
 
@@ -470,7 +472,8 @@ class OrographicEnhancement(object):
 
     def _create_output_cubes(self, orogenh_data, reference_cube):
         """
-        Create two output cubes of orographic enhancement on different grids
+        Create two output cubes of orographic enhancement on different grids.
+        Casts coordinate points and bounds explicitly to np.float32.
 
         Args:
             orogenh_data (np.ndarray):
@@ -490,14 +493,27 @@ class OrographicEnhancement(object):
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
         y_coord = self.topography.coord(axis='y')
-        attributes = {'institution': 'Met Office', 'source': 'IMPROVER'}
+        for coord in [x_coord, y_coord]:
+            coord.points = coord.points.astype(np.float32)
+            if coord.bounds is not None:
+                coord.bounds = coord.bounds.astype(np.float32)
+
+        aux_coords = []
+        for coord in ['time', 'forecast_reference_time', 'forecast_period']:
+            aux_coords.append((reference_cube.coord(coord), None))
+
+        attributes = {}
+        for attr in ['institution', 'source', 'mosg__model_configuration']:
+            try:
+                attributes[attr] = reference_cube.attributes[attr]
+            except KeyError:
+                continue
+
         orogenh = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
             units="mm h-1", attributes=attributes,
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        orogenh.add_aux_coord(reference_cube.coord('time'))
-        orogenh.add_aux_coord(reference_cube.coord('forecast_reference_time'))
-        orogenh.add_aux_coord(reference_cube.coord('forecast_period'))
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+            aux_coords_and_dims=aux_coords)
 
         # regrid the orographic enhancement cube onto the standard grid and
         # mask extrapolated points
@@ -507,6 +523,23 @@ class OrographicEnhancement(object):
         for axis in ['x', 'y']:
             orogenh_standard_grid = sort_coord_in_cube(
                 orogenh_standard_grid, orogenh_standard_grid.coord(axis=axis))
+            orogenh_standard_grid.coord(axis=axis).points = (
+                orogenh_standard_grid.coord(axis=axis).points.astype(
+                    np.float32))
+            if orogenh_standard_grid.coord(axis=axis).bounds is not None:
+                orogenh_standard_grid.coord(axis=axis).bounds = (
+                    orogenh_standard_grid.coord(axis=axis).bounds.astype(
+                        np.float32))
+
+        # add relevant grid definition attributes
+        try:
+            if 'StaGE' in reference_cube.attributes['history']:
+                for attr in ['mosg__grid_type', 'mosg__grid_domain',
+                             'mosg__grid_version']:
+                    orogenh_standard_grid.attributes[attr] = (
+                        reference_cube.attributes[attr])
+        except KeyError:
+            pass
 
         return orogenh, orogenh_standard_grid
 
