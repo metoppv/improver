@@ -141,7 +141,7 @@ class Test_interp_to_midpoint(OpticalFlowUtilityTest):
         """Test returns empty array if averaging over an axis of length 1"""
         small_array = self.plugin.data1[0, :].reshape((1, 5))
         result = self.plugin.interp_to_midpoint(small_array)
-        self.assertFalse(result)
+        self.assertEqual(result.size, 0.)
 
     def test_small_array_single_axis(self):
         """Test sensible output if averaging over one valid axis"""
@@ -653,10 +653,31 @@ class Test_process(IrisTest):
             np.mean(ucube.data), -2.1719086)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
 
-    def test_update_smoothing_radius(self):
-        """Test data smoothing radius is updated if cube time difference is not
-        15 minutes.  We don't care about the error this trips, we just want to
-        make sure the radius is updated correctly."""
+    def test_decrease_time_interval(self):
+        """Test that decreasing the time interval between radar frames below
+        15 minutes does not alter the smoothing radius. To test this the time
+        interval is halved, which should give an answer identical to the values
+        test above multiplied by a factor of two."""
+        time_unit = self.cube2.coord("time").units
+        new_time = time_unit.num2date(self.cube2.coord("time").points[0])
+        new_time -= datetime.timedelta(seconds=450)
+        self.cube2.remove_coord("time")
+        time_coord = DimCoord(time_unit.date2num(new_time),
+                              standard_name="time", units=time_unit)
+        self.cube2.add_aux_coord(time_coord)
+
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(
+            np.mean(ucube.data), -2.1719086 * 2.)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084 * 2.)
+
+    def test_increase_time_interval(self):
+        """Test that increasing the time interval between radar frames above
+        15 minutes leads to an increase in the data smoothing radius. In this
+        test this will result in a smoothing radius larger than the box size,
+        which is not allowed and will raise an exception. The updated radius
+        value in this case is 12 km (6 grid squares), exceeding the 3 square
+        box size."""
         time_unit = self.cube2.coord("time").units
         new_time = time_unit.num2date(self.cube2.coord("time").points[0])
         new_time += datetime.timedelta(seconds=900)
@@ -664,9 +685,9 @@ class Test_process(IrisTest):
         time_coord = DimCoord(time_unit.date2num(new_time),
                               standard_name="time", units=time_unit)
         self.cube2.add_aux_coord(time_coord)
-        with self.assertRaises(ValueError):
+        msg = "Box size ([0-9]+) too small"
+        with self.assertRaisesRegex(ValueError, msg):
             _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
-        self.assertAlmostEqual(self.plugin.data_smoothing_radius_km, 12.)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
