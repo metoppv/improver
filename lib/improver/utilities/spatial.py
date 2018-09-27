@@ -527,7 +527,7 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
     return i_latitude, j_longitude
 
 
-def coordinate_transform(src_crs, trg_crs, y_points, x_points):
+def coordinate_transform(src_crs, trg_crs, x_points, y_points):
     """
     Transforms x_point and y_point coordinate pairs from lists of coordinates
     into an alternative projection defined by trg_crs.
@@ -535,23 +535,19 @@ def coordinate_transform(src_crs, trg_crs, y_points, x_points):
     Args:
         src_crs (cartopy.crs/None):
             Source coordinate system in cartopy format or None.
-
         trg_crs (cartopy.crs/None):
             Target coordinate system in cartopy format or None.
-
-        latitude (float):
-            Latitude coordinate.
-
-        longitude (float):
-            Longitude coordinate.
-
+        x_points (np.array):
+            Array containing the x coordinate values in the src_crs coordinate
+            system.
+        y_points (np.array):
+            Array containing the y coordinate values in the src_crs coordinate
+            system.
     Returns:
         x, y (floats):
-            Longitude and latitude transformed into the target coordinate
-            system.
-
+            x and y coordinates transformed into the target coordinate system.
     """
     if src_crs == trg_crs:
-        return y_points, x_points
+        return x_points, y_points
     else:
         return trg_crs.transform_points(src_crs, x_points, y_points)

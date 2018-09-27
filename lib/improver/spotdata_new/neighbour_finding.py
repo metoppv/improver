@@ -91,6 +91,7 @@ class NeighbourSelection(object):
         self.site_coordinate_system = site_coordinate_system
         self.site_x_axis = 'longitude'
         self.site_y_axis = 'latitude'
+        self.site_altitude = 'altitude'
         self.geodectic_coordinate_system = False
 
     def __repr__(self):
@@ -99,11 +100,27 @@ class NeighbourSelection(object):
                 'minimum_dz: {}>').format(self.land_constraint,
                                           self.minimum_dz)
 
-    def _transform_sites_coordinate_system(self, sites, orography):
+    def _transform_sites_coordinate_system(self, sites, cube):
+        """
+        Function to convert coordinate pairs that specify spot sites into the
+        coordinate system of the model from which data will be extracted.
 
-        target_coordinate_system = orography.coord_system().as_cartopy_crs()
-        y_points = np.array([site[self.site_y_axis] for site in sites])
+        Args:
+            sites (dict):
+                A dictionary containing the information about spot sites.
+            cube (iris.cube.Cube):
+                A cube from the model from which data will be extracted. This
+                provides the coordinate system onto which the spot site's
+                coordinates should be remapped.
+
+        Returns:
+            np.array:
+                An array containing the x and y coordinates of the spot sites
+                in the target coordinate system, shaped as (n_sites, 2).
+        """
+        target_coordinate_system = cube.coord_system().as_cartopy_crs()
         x_points = np.array([site[self.site_x_axis] for site in sites])
+        y_points = np.array([site[self.site_y_axis] for site in sites])
 
         return coordinate_transform(self.site_coordinate_system,
                                     target_coordinate_system,
@@ -116,26 +133,51 @@ class NeighbourSelection(object):
         grid points to a site.
 
         Args:
-            site_coords (list):
-                A list of shape (2, n_sites) that contains the x and y
+            site_coords (np.array):
+                An array of shape (n_sites, 2) that contains the x and y
                 coordinates of the sites.
             cube (iris.cube.Cube):
                 Cube containing a representative grid.
         Returns:
-            nearest_indices (list):
-                A list of shape (2, n_sites) that contains the x and y
-                indices of the nearest grid points to the sites.
+            nearest_indices (np.array):
+                A list of shape (2, n_sites) that contains the x and y indices
+                of the nearest grid points to the sites. Note that the shape of
+                the returned array is reversed to ease use beyond this point.
         """
-        nearest_indices = np.zeros((2, len(site_coords))).astype(np.int)
+        nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
         for index, (x_point, y_point) in enumerate(site_coords):
-            nearest_indices[0, index] = (
+            nearest_indices[index, 0] = (
                 cube.coord(axis='x').nearest_neighbour_index(x_point))
-            nearest_indices[1, index] = (
+            nearest_indices[index, 1] = (
                 cube.coord(axis='y').nearest_neighbour_index(y_point))
         return nearest_indices
 
     @staticmethod
     def geocentric_cartesian(cube, x_coords, y_coords):
+        """
+        A function to convert a geodetic (lat/lon) coordinate system into a
+        geocentric (3D trignonometric) system. This function ignores orographic
+        height differences between coordinates, giving a 2D projected
+        neighbourhood akin to selecting a neighbourhood of grid points about a
+        point without considering their vertical displacement.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube from which is taken the globe for which the geocentric
+                coordinates are being calculated.
+            x_coords (np.array):
+                An array of x coordinates that will represent one axis of the
+                mesh of coordinates to be transformed.
+            y_coords (np.array):
+                An array of y coordinates that will represent one axis of the
+                mesh of coordinates to be transformed.
+
+        Returns:
+            cartesian_nodes (np.array):
+                An array of all the xyz combinations that describe the nodes of
+                the grid, now in 3D geocentric cartesian coordinates. The shape
+                of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
+        """
         coordinate_system = cube.coord_system().as_cartopy_crs()
         cartesian_calculator = coordinate_system.as_geocentric()
         z_coords = np.zeros_like(x_coords)
@@ -148,7 +190,7 @@ class NeighbourSelection(object):
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)
         else:
-            included_points = np.where(np.isfinite(land.data.data))
+            included_points = np.where(np.isfinite(land_mask.data.data))
 
         x_indices = included_points[0]
         y_indices = included_points[1]
@@ -164,15 +206,47 @@ class NeighbourSelection(object):
 
         return spatial.cKDTree(nodes), index_nodes
 
-    def select_minimum_dz(self, site_coords, nearest_indices, land_mask):
+    def select_minimum_dz(self, orography, site_altitudes, index_nodes,
+                          index, distance, indices, land_mask):
 
-        for x_index, y_index in nearest_indices:
-            central_point = list_entry_from_index(nearest_indices, point)
+        # Values beyond the imposed search radius are set to inf,
+        # these need to be excluded.
+        valid_indices = np.where(np.isfinite(distance))
+        if valid_indices[0].shape[0] == 0:
+            return None
+        distance = distance[valid_indices]
+        indices = indices[valid_indices]
 
-            nbhood = self.neighbourhood_indices(*central_point, land_mask)
+        # If we have no site altitude information, return nearest neighbour.
+        # Must use the tree nearest to ensure a land point if required.
+        if site_altitudes[index] is None:
+            print ('BOOOOO, I need the nearest point returned from here')
+
+#        print('land indices', index_nodes[indices])
+        print('land mindz', land_mask.data[tuple(index_nodes[indices].T)])
+
+        # Calculate the difference in height between the spot site
+        # and grid point.
+        grid_point_altitudes = orography.data[tuple(index_nodes[indices].T)]
+        vertical_displacements = abs(grid_point_altitudes -
+                                     site_altitudes[index])
+
+        # The tree returns an ordered array, the first element
+        # being the closest. We search the array for the first
+        # element that matches the minimum vertical displacement
+        # found, giving us the nearest such point.
+        index_of_minimum = (
+            np.argmax(vertical_displacements ==
+                      vertical_displacements.min()))
+
+        grid_point = index_nodes[indices][index_of_minimum]
+        print('chosen point', grid_point, land_mask.data[tuple(grid_point)])
+        return grid_point
+
 
     def process(self, sites, orography, land_mask):
 
+        index_nodes = []
         # Check if we are dealing with a global grid
         self.geodetic_coordinate_system = (
             orography.coord_system().as_cartopy_crs().is_geodetic())
@@ -187,6 +261,10 @@ class NeighbourSelection(object):
 
         # Remap site coordinates on to coordinate system of the model grid.
         site_coords = self._transform_sites_coordinate_system(sites, orography)
+
+        # Create an array containing site altitudes.
+        site_altitudes = np.array([site.get(self.site_altitude, None)
+                                  for site in sites])
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
@@ -204,17 +282,51 @@ class NeighbourSelection(object):
             if not self.minimum_dz:
                 distances, node_indices = tree.query([site_coords])
                 land_neighbour_indices, = index_nodes[node_indices]
-                distances = np.array([distances[0], distances[0]])
+                distances = np.array([distances[0], distances[0]]).T
                 nearest_indices = np.where(distances < self.search_radius,
-                                               land_neighbour_indices.T,
-                                               nearest_indices)
+                                           land_neighbour_indices,
+                                           nearest_indices)
+                print('nearest', nearest_indices)
+                print('nearest land', land_mask.data[tuple(nearest_indices.T)])
+
+                unset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
+                if unset[0].shape == 0:
+                    print(unset[0])
+                    print('unset', sites[unset[0]])
+                    print('using', nearest_indices[unset[0]])
             else:
                 distances, node_indices = tree.query(
                     [site_coords], distance_upper_bound=self.search_radius,
                     k=36)
 
+                for index, (distance, indices) in enumerate(zip(
+                        distances[0], node_indices[0])):
+
+                    grid_point = self.select_minimum_dz(
+                        orography, site_altitudes, index_nodes, index,
+                        distance, indices, land_mask)
+                    if grid_point is not None:
+                        nearest_indices[index] = grid_point
+
         # Return cube of neighbours
         print("Returning cube of neighbours")
         print(nearest_indices.T)
-        print('Land?', land_mask.data[tuple(nearest_indices)])
-        return nearest_indices, site_coords
+        print('Land?', land_mask.data[tuple(nearest_indices.T)])
+        notset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
+        print(notset)
+        for item in notset[0]:
+            print('Still not land', sites[item])
+
+        return nearest_indices, sites, site_coords, index_nodes
+
+    def plotit(cube, nearest, site_coords):
+        import matplotlib.pyplot as plt
+        import iris.quickplot as qplt
+        import iris.plot as iplt
+        qplt.pcolormesh(cube)
+        for ii, site in enumerate(site_coords):
+            xx = cube.coord(axis='x').points[nearest[ii, 0]]
+            yy = cube.coord(axis='y').points[nearest[ii, 1]]
+            plt.plot(site_coords[ii, 0], site_coords[ii, 1], 'ro')
+            plt.plot([site_coords[ii, 0], xx], [site_coords[ii, 1], yy])
+        plt.show()
