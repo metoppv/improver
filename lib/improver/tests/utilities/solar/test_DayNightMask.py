@@ -86,10 +86,14 @@ class Test__daynight_lat_lon_cube(IrisTest):
         """Set up the cube for testing."""
         cube = set_up_cube_lat_long()
         lon_points = np.linspace(-8, 7, 16)
+        lon_points_360 = np.linspace(345, 360, 16)
         lat_points = np.linspace(49, 64, 16)
         cube.coord('latitude').points = lat_points
         cube.coord('longitude').points = lon_points
         self.mask_cube = DayNightMask()._create_daynight_mask(cube)[0]
+        cube_360 = cube.copy()
+        cube_360.coord('longitude').points = lon_points_360
+        self.mask_cube_360 = DayNightMask()._create_daynight_mask(cube_360)[0]
 
     def test_basic_lat_lon_cube(self):
         """ Test this create a blank mask cube"""
@@ -97,6 +101,17 @@ class Test__daynight_lat_lon_cube(IrisTest):
         utc_hour = 12.0
         expected_result = np.ones((16, 16))
         result = DayNightMask()._daynight_lat_lon_cube(self.mask_cube,
+                                                       day_of_year,
+                                                       utc_hour)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.data, expected_result)
+
+    def test_basic_lat_lon_cube_360(self):
+        """ Test this still works with 360 data"""
+        day_of_year = 10
+        utc_hour = 0.0
+        expected_result = np.zeros((16, 16))
+        result = DayNightMask()._daynight_lat_lon_cube(self.mask_cube_360,
                                                        day_of_year,
                                                        utc_hour)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -122,6 +137,9 @@ class Test_process(IrisTest):
         self.cube_lat_lon.coord('longitude').points = lon_points
         dt = self.cube_lat_lon.coord('time').points[0]
         self.cube_lat_lon.coord('time').points[0] = dt + 7.5 + 24.0
+        self.cube_lat_lon_360 = self.cube_lat_lon.copy()
+        lon_points_360 = np.linspace(345, 360, 16)
+        self.cube_lat_lon_360.coord('longitude').points = lon_points_360
 
     def test_basic_standard_grid_ccrs(self):
         """Test day_night mask with standard_grid_ccrs projection."""
@@ -167,6 +185,27 @@ class Test_process(IrisTest):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
         self.assertArrayEqual(result.data, expected_result)
 
+    def test_basic_lat_lon_360(self):
+        """Test day_night mask with lat lon data 360 data."""
+        result = DayNightMask().process(self.cube_lat_lon_360)
+        expected_result = np.array([[
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
+        self.assertArrayEqual(result.data, expected_result)
 
 if __name__ == '__main__':
     unittest.main()
