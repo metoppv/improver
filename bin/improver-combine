@@ -106,12 +106,12 @@ def main():
         # Read in extraction recipes for all diagnostics.
         with open(args.metadata_jsonfile, 'r') as input_file:
             new_metadata = json.load(input_file)
-            if 'coordinates' in new_metadata:
-                new_coords = new_metadata['coordinates']
-            if 'attributes' in new_metadata:
-                new_attr = new_metadata['attributes']
-            if 'expanded_coord' in new_metadata:
-                expanded_coord = new_metadata['expanded_coord']
+        if 'coordinates' in new_metadata:
+            new_coords = new_metadata['coordinates']
+        if 'attributes' in new_metadata:
+            new_attr = new_metadata['attributes']
+        if 'expanded_coord' in new_metadata:
+            expanded_coord = new_metadata['expanded_coord']
 
     result = (
         CubeCombiner(args.operation, warnings_on=args.warnings_on).process(

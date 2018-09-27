@@ -134,7 +134,7 @@ def _slice_over_coordinate(cubes, coord_to_slice_over):
     return sliced_by_coord_cubelist
 
 
-def _strip_var_names(cubes):
+def strip_var_names(cubes):
     """
     Strips var_name from the cube and from all coordinates
     to help concatenation.
@@ -257,7 +257,7 @@ def equalise_cubes(cubes_in, merging=True):
     for cube in cubes_in:
         cubes.append(cube.copy())
     _equalise_cube_attributes(cubes)
-    _strip_var_names(cubes)
+    strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)
         cubelist = _equalise_cell_methods(cubelist)

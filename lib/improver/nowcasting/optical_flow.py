@@ -44,6 +44,8 @@ from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_metadata import (
+    amend_metadata, add_history_attribute)
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
@@ -88,7 +90,7 @@ class AdvectField(object):
     dimensions
     """
 
-    def __init__(self, vel_x, vel_y):
+    def __init__(self, vel_x, vel_y, metadata_dict=None):
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
@@ -101,6 +103,14 @@ class AdvectField(object):
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
+
+        Keyword Args:
+            metadata_dict (dict):
+                Dictionary containing information for amending the metadata
+                of the output cube. Please see the
+                :func:`improver.utilities.cube_metadata.amend_metadata`
+                for information regarding the allowed contents of the metadata
+                dictionary.
         """
 
         # check each input velocity cube has precisely two non-scalar
@@ -122,9 +132,17 @@ class AdvectField(object):
         self.x_coord = vel_x.coord(axis="x")
         self.y_coord = vel_x.coord(axis="y")
 
+        # Initialise metadata dictionary.
+        if metadata_dict is None:
+            metadata_dict = {}
+        self.metadata_dict = metadata_dict
+
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<AdvectField>')
+        result = ('<AdvectField: vel_x={}, vel_y={}, '
+                  'metadata_dict={}>'.format(
+                      self.vel_x.name(), self.vel_y.name(),
+                      self.metadata_dict))
         return result
 
     @staticmethod
@@ -322,6 +340,16 @@ class AdvectField(object):
             pass
         advected_cube.add_aux_coord(forecast_period_coord)
 
+        # Modify the source attribute to describe the advected field as a
+        # Nowcast
+        if "institution" in advected_cube.attributes.keys():
+            advected_cube.attributes["source"] = (
+                "{} Nowcast".format(advected_cube.attributes["institution"]))
+        else:
+            advected_cube.attributes["source"] = "Nowcast"
+        add_history_attribute(advected_cube, ["add", "Nowcast"])
+
+        advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
         return advected_cube
 
 
@@ -331,7 +359,8 @@ class OpticalFlow(object):
     from time-separated fields using an optical flow algorithm
     """
 
-    def __init__(self, data_smoothing_method='box', iterations=100):
+    def __init__(self, data_smoothing_method='box', iterations=100,
+                 metadata_dict=None):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -344,6 +373,13 @@ class OpticalFlow(object):
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
                 The value for good convergence is 20 (Bowler et al. 2004).
+            metadata_dict (dict):
+                Dictionary containing information for amending the metadata
+                of the output cube. Please see the
+                :func:`improver.utilities.cube_metadata.amend_metadata`
+                for information regarding the allowed contents of the metadata
+                dictionary. This metadata_dict is used to amend both of the
+                resulting u and v cubes.
 
         Raises:
             ValueError:
@@ -374,14 +410,19 @@ class OpticalFlow(object):
         self.data2 = None
         self.shape = None
 
+        # Initialise metadata dictionary.
+        if metadata_dict is None:
+            metadata_dict = {}
+        self.metadata_dict = metadata_dict
+
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
                   'data_smoothing_method: {}, iterations: {}, '
-                  'point_weight: {}>')
+                  'point_weight: {}, metadata_dict: {}>')
         return result.format(
             self.data_smoothing_radius_km, self.data_smoothing_method,
-            self.iterations, self.point_weight)
+            self.iterations, self.point_weight, self.metadata_dict)
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
@@ -994,10 +1035,11 @@ class OpticalFlow(object):
             ucomp, long_name="precipitation_advection_x_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
+        ucube = amend_metadata(ucube, **self.metadata_dict)
 
         vcube = iris.cube.Cube(
             vcomp, long_name="precipitation_advection_y_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
-
+        vcube = amend_metadata(vcube, **self.metadata_dict)
         return ucube, vcube

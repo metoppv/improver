@@ -38,6 +38,7 @@ usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
+                                    [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                     INPUT_FILEPATH
@@ -63,6 +64,13 @@ optional arguments:
   --northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH
                         Path to input file containing Northward advection
                         velocities.
+  --json_file JSON_FILE
+                        Filename for the json file containing required changes
+                        to the metadata. Information describing the intended
+                        contents of the json file is available in
+                        improver.utilities.cube_metadata.amend_metadata.Every
+                        output cube will have the metadata_dict applied.
+                        Defaults to None.
   --max_lead_time MAX_LEAD_TIME
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL

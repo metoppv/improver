@@ -93,7 +93,10 @@ class Test__repr__(IrisTest):
         vel_x = set_up_xy_velocity_cube("advection_velocity_x")
         vel_y = set_up_xy_velocity_cube("advection_velocity_y")
         result = str(AdvectField(vel_x, vel_y))
-        self.assertEqual(result, '<AdvectField>')
+        expected_result = (
+            '<AdvectField: vel_x=advection_velocity_x, '
+            'vel_y=advection_velocity_y, metadata_dict={}>')
+        self.assertEqual(result, expected_result)
 
 
 class Test__increment_output_array(IrisTest):
@@ -232,6 +235,14 @@ class Test_process(IrisTest):
         vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
         vel_y.rename("advection_velocity_y")
         self.plugin = AdvectField(vel_x, vel_y)
+        self.metadata_dict = {"attributes": {
+                                 "mosg__grid_version": "1.0.0",
+                                 "mosg__model_configuration": "nc_det",
+                                 "source": "Met Office Nowcast",
+                                 "institution": "Met Office",
+                                 "title": "Nowcast on UK 2 km Standard Grid"}}
+        self.plugin_with_meta = AdvectField(vel_x, vel_y,
+                                            metadata_dict=self.metadata_dict)
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
@@ -252,6 +263,36 @@ class Test_process(IrisTest):
         """Test plugin returns a cube"""
         result = self.plugin.process(self.cube, self.timestep)
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_metadata(self):
+        """Test plugin returns a cube with the desired metadata."""
+        result = self.plugin_with_meta.process(self.cube, self.timestep)
+        result.attributes.pop("history")
+        self.assertEqual(result.attributes, self.metadata_dict["attributes"])
+
+    def test_check_source_metadata(self):
+        """Test plugin returns a cube with the desired source attribute."""
+        institution_cube = self.cube.copy()
+        institution_cube.attributes["institution"] = "Met Office"
+        expected_source = "Met Office Nowcast"
+        result = self.plugin.process(institution_cube, self.timestep)
+        self.assertEqual(result.attributes["source"], expected_source)
+
+    def test_check_source_metadata_no_institution(self):
+        """Test plugin returns a cube with the desired source attribute
+        without an institution."""
+        institution_cube = self.cube.copy()
+        expected_source = "Nowcast"
+        result = self.plugin.process(institution_cube, self.timestep)
+        self.assertEqual(result.attributes["source"], expected_source)
+
+    def test_check_history_metadata(self):
+        """Test plugin returns a cube with the desired metadata."""
+        expected_pattern = (r'[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+                            r'[0-9]{2}:[0-9]{2}:[0-9]{2}Z: Nowcast')
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertTrue("history" in result.attributes.keys())
+        self.assertRegex(result.attributes['history'], expected_pattern)
 
     def test_advected_values(self):
         """Test output cube data is as expected"""
