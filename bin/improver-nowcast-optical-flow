@@ -146,7 +146,7 @@ def main():
             AdvectField(umean, vmean, metadata_dict=metadata_dict))
 
         # generate list of lead times in minutes
-        lead_times = np.arange(args.lead_time_interval, args.max_lead_time+1,
+        lead_times = np.arange(0, args.max_lead_time+1,
                                args.lead_time_interval)
 
         if args.nowcast_filepaths:
