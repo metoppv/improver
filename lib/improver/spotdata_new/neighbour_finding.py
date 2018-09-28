@@ -217,16 +217,8 @@ class NeighbourSelection(object):
         if valid_indices[0].shape[0] == 0:
             return None
 
-        # If we have no site altitude information, return nearest neighbour.
-        # Must use the tree nearest to ensure a land point if required.
-        if site_altitudes[index] is None:
-            return index_nodes[indices[0]]
-
         distance = distance[valid_indices]
         indices = indices[valid_indices]
-
-#        print('land indices', index_nodes[indices])
-        print('land mindz', land_mask.data[tuple(index_nodes[indices].T)])
 
         # Calculate the difference in height between the spot site
         # and grid point.
@@ -243,7 +235,7 @@ class NeighbourSelection(object):
                       vertical_displacements.min()))
 
         grid_point = index_nodes[indices][index_of_minimum]
-        print('chosen point', grid_point, land_mask.data[tuple(grid_point)])
+
         return grid_point
 
 
@@ -265,12 +257,16 @@ class NeighbourSelection(object):
         # Remap site coordinates on to coordinate system of the model grid.
         site_coords = self._transform_sites_coordinate_system(sites, orography)
 
-        # Create an array containing site altitudes.
-        site_altitudes = np.array([site.get(self.site_altitude, None)
-                                  for site in sites])
-
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
+
+        # Create an array containing site altitudes, using the nearest point
+        # orography height for any that are unset.
+        site_altitudes = np.array([site.get(self.site_altitude, None)
+                                  for site in sites])
+        site_altitudes = np.where(np.isnan(site_altitudes.astype(float)),
+                                  orography.data[tuple(nearest_indices.T)],
+                                  site_altitudes)
 
         # If further constraints are being applied, build a KD Tree which
         # includes points filtered by constraint.
@@ -289,14 +285,6 @@ class NeighbourSelection(object):
                 nearest_indices = np.where(distances < self.search_radius,
                                            land_neighbour_indices,
                                            nearest_indices)
-                print('nearest', nearest_indices)
-                print('nearest land', land_mask.data[tuple(nearest_indices.T)])
-
-                unset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
-                if unset[0].shape == 0:
-                    print(unset[0])
-                    print('unset', sites[unset[0]])
-                    print('using', nearest_indices[unset[0]])
             else:
                 distances, node_indices = tree.query(
                     [site_coords], distance_upper_bound=self.search_radius,
@@ -304,18 +292,21 @@ class NeighbourSelection(object):
 
                 for index, (distance, indices) in enumerate(zip(
                         distances[0], node_indices[0])):
-                    print('Going in', nearest_indices[index])
+
                     grid_point = self.select_minimum_dz(
                         orography, site_altitudes, index_nodes, index,
                         distance, indices, land_mask)
                     if grid_point is not None:
                         nearest_indices[index] = grid_point
 
-        # Return cube of neighbours
-        print('Land?', land_mask.data[tuple(nearest_indices.T)])
-        notset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
-        for item in notset[0]:
-            print('Still not land', sites[item])
-            print('{} {}'.format(sites[item]['latitude'], sites[item]['longitude']))
+        vertical_displacements = (site_altitudes -
+                                  orography.data[tuple(nearest_indices.T)])
 
-        return nearest_indices, site_coords
+        # Return cube of neighbours
+#        print('Land?', land_mask.data[tuple(nearest_indices.T)])
+#        notset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
+#        for item in notset[0]:
+#            print('Still not land', sites[item])
+#            print('{} {}'.format(sites[item]['latitude'], sites[item]['longitude']))
+
+        return nearest_indices, vertical_displacements, site_coords
