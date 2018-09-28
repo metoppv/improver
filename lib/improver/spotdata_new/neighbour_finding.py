@@ -212,15 +212,18 @@ class NeighbourSelection(object):
         # Values beyond the imposed search radius are set to inf,
         # these need to be excluded.
         valid_indices = np.where(np.isfinite(distance))
+
+        # If no valid neighbours are available in the tree, return None.
         if valid_indices[0].shape[0] == 0:
             return None
-        distance = distance[valid_indices]
-        indices = indices[valid_indices]
 
         # If we have no site altitude information, return nearest neighbour.
         # Must use the tree nearest to ensure a land point if required.
         if site_altitudes[index] is None:
-            print ('BOOOOO, I need the nearest point returned from here')
+            return index_nodes[indices[0]]
+
+        distance = distance[valid_indices]
+        indices = indices[valid_indices]
 
 #        print('land indices', index_nodes[indices])
         print('land mindz', land_mask.data[tuple(index_nodes[indices].T)])
@@ -301,7 +304,7 @@ class NeighbourSelection(object):
 
                 for index, (distance, indices) in enumerate(zip(
                         distances[0], node_indices[0])):
-
+                    print('Going in', nearest_indices[index])
                     grid_point = self.select_minimum_dz(
                         orography, site_altitudes, index_nodes, index,
                         distance, indices, land_mask)
@@ -309,24 +312,10 @@ class NeighbourSelection(object):
                         nearest_indices[index] = grid_point
 
         # Return cube of neighbours
-        print("Returning cube of neighbours")
-        print(nearest_indices.T)
         print('Land?', land_mask.data[tuple(nearest_indices.T)])
         notset = np.where(land_mask.data[tuple(nearest_indices.T)] == 0)
-        print(notset)
         for item in notset[0]:
             print('Still not land', sites[item])
+            print('{} {}'.format(sites[item]['latitude'], sites[item]['longitude']))
 
-        return nearest_indices, sites, site_coords, index_nodes
-
-    def plotit(cube, nearest, site_coords):
-        import matplotlib.pyplot as plt
-        import iris.quickplot as qplt
-        import iris.plot as iplt
-        qplt.pcolormesh(cube)
-        for ii, site in enumerate(site_coords):
-            xx = cube.coord(axis='x').points[nearest[ii, 0]]
-            yy = cube.coord(axis='y').points[nearest[ii, 1]]
-            plt.plot(site_coords[ii, 0], site_coords[ii, 1], 'ro')
-            plt.plot([site_coords[ii, 0], xx], [site_coords[ii, 1], yy])
-        plt.show()
+        return nearest_indices, site_coords
