@@ -117,7 +117,7 @@ def main():
         'requires a specific set of input diagnostics, where data\nmay be in '
         'any units to which the thresholds given below can\nbe converted:\n' +
         dlist.format(*diagnostics)
-        + '\n\n or for global data \n\n' +
+        + '\n\n or for global data\n\n' +
         dlist_global.format(*diagnostics_global),
         formatter_class=RawTextHelpFormatter)
 
@@ -130,7 +130,7 @@ def main():
                         default="uk",
                         choices=["uk", "global"],
                         help="Weather Code tree"
-                        " Default=uk ", type=str)
+                        " Default=uk", type=str)
 
     args = parser.parse_args()
 

@@ -207,5 +207,6 @@ class Test_process(IrisTest):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])
         self.assertArrayEqual(result.data, expected_result)
 
+
 if __name__ == '__main__':
     unittest.main()
