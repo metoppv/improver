@@ -57,9 +57,15 @@ class WeatherSymbols(object):
         the input diagnostics. Use this decision tree to allocate a weather
         symbol to each point.
 
+        Key Args:
+            wxtree (str):
+                Choose weather symbol decision tree. Default is 'uk'
+                'global' will load the global weather symbol decision tree.
+
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
         """
+        self.wxtree = wxtree
         if wxtree == 'global':
             self.queries = wxcode_decision_tree_global()
         else:
@@ -68,7 +74,7 @@ class WeatherSymbols(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return '<WeatherSymbols>'
+        return '<WeatherSymbols tree={}>'.format(self.wxtree)
 
     def check_input_cubes(self, cubes):
         """
