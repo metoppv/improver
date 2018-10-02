@@ -35,6 +35,7 @@
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
 
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
@@ -119,14 +120,11 @@ def main():
                              'blending has been applied in the format '
                              'YYYYMMDDTHHMMZ.')
     args = parser.parse_args()
+
     # Fix default value for cval. The argparser default value isn't
     # used for this, because it would make it impossible to tell whether a
     # a value was user inputted (which is needed for wrong_args_error calls).
-    if args.cval:
-        cval = args.cval
-    else:
-        cval = 0.85
-
+    cval = args.cval if args.cval else 0.85
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
     elif ((args.wts_calc_method == "nonlinear") and
@@ -143,19 +141,34 @@ def main():
     cubelist = load_cubelist(args.input_filepaths)
     cube = merge_cubes(cubelist)
 
-    if args.wts_calc_method == "linear":
-        weights = ChooseDefaultWeightsLinear(
-            y0val=args.y0val, ynval=args.ynval).process(
+    # if the coord for blending does not exist or has only one value,
+    # no processing is needed
+    coord_names = [coord.name() for coord in cube.coords()]
+    if (args.coordinate not in coord_names) or (
+            len(cube.coord(args.coordinate).points) == 1):
+        result = cube.copy()
+        forecast_reference_time = '{}{}'.format(
+            args.cycletime[:8], args.cycletime[9:13])
+        update_cube_blended_metadata(
+            result, args.coordinate, datetime.strptime(
+                forecast_reference_time, '%Y%m%d%H%M'))
+
+    # otherwise blend across specified dimension
+    else:
+        if args.wts_calc_method == "linear":
+            weights = ChooseDefaultWeightsLinear(
+                y0val=args.y0val, ynval=args.ynval).process(
+                    cube, args.coordinate, coord_unit=coord_unit)
+
+        else:
+            weights = ChooseDefaultWeightsNonLinear(cval).process(
                 cube, args.coordinate, coord_unit=coord_unit)
 
-    else:
-        weights = ChooseDefaultWeightsNonLinear(cval).process(
-            cube, args.coordinate, coord_unit=coord_unit)
+        BlendingPlugin = WeightedBlendAcrossWholeDimension(
+            args.coordinate, args.weighting_mode,
+            cycletime=args.cycletime)
+        result = BlendingPlugin.process(cube, weights)
 
-    BlendingPlugin = WeightedBlendAcrossWholeDimension(
-        args.coordinate, args.weighting_mode,
-        cycletime=args.cycletime)
-    result = BlendingPlugin.process(cube, weights)
     save_netcdf(result, args.output_filepath)
 
 
