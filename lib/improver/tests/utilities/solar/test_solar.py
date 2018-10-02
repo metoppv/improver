@@ -143,7 +143,7 @@ class Test_calc_solar_elevation(IrisTest):
         """Test the solar elevation for lons > 180."""
         longitudes = np.array([355.0, 0.0, 5.0])
         expected_array = np.array([-3.1423043, -0.46061176, 2.09728301])
-        result = calc_solar_elevation(self.latitudes, self.longitudes,
+        result = calc_solar_elevation(self.latitudes, longitudes,
                                       self.day_of_year, self.utc_hour)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_array)
