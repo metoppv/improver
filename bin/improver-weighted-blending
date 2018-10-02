@@ -39,9 +39,10 @@ from datetime import datetime
 
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
-from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.blending.weighted_blend import (
+    WeightedBlendAcrossWholeDimension, conform_metadata)
 from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.cube_metadata import update_cube_blended_metadata
+#from improver.utilities.cube_metadata import update_cube_blended_metadata
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
@@ -147,11 +148,7 @@ def main():
     if (args.coordinate not in coord_names) or (
             len(cube.coord(args.coordinate).points) == 1):
         result = cube.copy()
-        forecast_reference_time = '{}{}'.format(
-            args.cycletime[:8], args.cycletime[9:13])
-        update_cube_blended_metadata(
-            result, args.coordinate, datetime.strptime(
-                forecast_reference_time, '%Y%m%d%H%M'))
+        conform_metadata(result, cube, args.coordinate)
 
     # otherwise blend across specified dimension
     else:
