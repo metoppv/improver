@@ -31,6 +31,7 @@
 
 """Neighbour finding for the Improver site specific process chain."""
 
+import warnings
 import numpy as np
 from scipy import spatial
 
@@ -62,7 +63,8 @@ class NeighbourSelection(object):
 
     def __init__(self, land_constraint=False, minimum_dz=False,
                  search_radius=1.0E4,
-                 site_coordinate_system=ccrs.PlateCarree()):
+                 site_coordinate_system=ccrs.PlateCarree(),
+                 site_x_coordinate='longitude', site_y_coordinate='latitude'):
         """
         Args:
             land_constraint (bool):
@@ -86,16 +88,19 @@ class NeighbourSelection(object):
         self.land_constraint = land_constraint
         self.search_radius = search_radius
         self.site_coordinate_system = site_coordinate_system
-        self.site_x_axis = 'longitude'
-        self.site_y_axis = 'latitude'
+        self.site_x_coordinate = site_x_coordinate
+        self.site_y_coordinate = site_y_coordinate
         self.site_altitude = 'altitude'
-        self.geodectic_coordinate_system = False
+        self.geodetic_coordinate_system = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return ('<NeighbourSelection: land_constraint: {}, ' +
-                'minimum_dz: {}>').format(self.land_constraint,
-                                          self.minimum_dz)
+                'minimum_dz: {}, search_radius: {}, site_coordinate_system'
+                ': {}, site_x_coordinate:{}, site_y_coordinate: {}>').format(
+            self.land_constraint, self.minimum_dz, self.search_radius,
+            self.site_coordinate_system.__class__, self.site_x_coordinate,
+            self.site_y_coordinate)
 
     def neighbour_finding_method_name(self):
         """
@@ -137,6 +142,57 @@ class NeighbourSelection(object):
         return coordinate_transform(self.site_coordinate_system,
                                     target_coordinate_system,
                                     x_points, y_points)[:, 0:2]
+
+    @staticmethod
+    def check_sites_are_within_domain(sites, site_coords, site_x_coords,
+                                      site_y_coords, cube):
+        """
+        A function to remove sites from consideration if they fall outside the
+        domain of the provided model cube. A warning is raised and the details
+        of each rejected site are printed.
+
+        Args:
+            sites (dict):
+                A dictionary defining the spot sites for which neighbours are
+                to be found.
+            site_coords (np.array):
+                An array of shape (n_sites, 2) that contains the spot site
+                coordinates in the coordinate system of the model cube.
+            site_x_coords/site_y_coords (np.array):
+                The coordinates of the spot sites in their original coordinate
+                system, from which any invalid sites must be removed.
+            cube (iris.cube.Cube):
+                A cube that is representative of the model/grid from which spot
+                data will be extracted.
+        """
+        # Get the grid domain limits
+        x_min = cube.coord(axis='x').bounds[0][0]
+        x_max = cube.coord(axis='x').bounds[-1][1]
+        y_min = cube.coord(axis='y').bounds[0][0]
+        y_max = cube.coord(axis='y').bounds[-1][1]
+
+        domain_valid = np.where(
+            (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
+            (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+
+        domain_invalid = np.where(
+            (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
+            (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+
+        if domain_invalid[0].shape[0] > 0:
+            msg = ("{} spot sites fall outside the grid domain and will not be"
+                   " processed. These sites are:\n".format(
+                    len(domain_invalid[0])))
+            dyn_msg = '{}\n'
+            for site in np.array(sites)[domain_invalid]:
+                msg = msg + dyn_msg.format(site)
+            warnings.warn(msg)
+
+        sites = np.array(sites)[domain_valid]
+        site_coords = site_coords[domain_valid]
+        site_x_coords = site_x_coords[domain_valid]
+        site_y_coords = site_y_coords[domain_valid]
+        return sites, site_coords, site_x_coords, site_y_coords
 
     @staticmethod
     def get_nearest_indices(site_coords, cube):
@@ -236,7 +292,8 @@ class NeighbourSelection(object):
 
         return spatial.cKDTree(nodes), index_nodes
 
-    def select_minimum_dz(self, orography, site_altitude, index_nodes,
+    @staticmethod
+    def select_minimum_dz(orography, site_altitude, index_nodes,
                           distance, indices):
         """
         Given a selection of nearest neighbours to a given site, this function
@@ -331,10 +388,18 @@ class NeighbourSelection(object):
                         land_mask.coord(axis='y').name()])
 
         # Remap site coordinates on to coordinate system of the model grid.
-        site_x_coords = np.array([site[self.site_x_axis] for site in sites])
-        site_y_coords = np.array([site[self.site_y_axis] for site in sites])
+        site_x_coords = np.array([site[self.site_x_coordinate]
+                                  for site in sites])
+        site_y_coords = np.array([site[self.site_y_coordinate]
+                                  for site in sites])
         site_coords = self._transform_sites_coordinate_system(
             site_x_coords, site_y_coords, orography)
+
+        # Exclude any sites falling outside the domain given by the cube and
+        # notify the user.
+        sites, site_coords, site_x_coords, site_y_coords = (
+            self.check_sites_are_within_domain(
+                sites, site_coords, site_x_coords, site_y_coords, orography))
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)

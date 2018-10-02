@@ -547,7 +547,4 @@ def coordinate_transform(src_crs, trg_crs, x_points, y_points):
         x, y (floats):
             x and y coordinates transformed into the target coordinate system.
     """
-    if src_crs == trg_crs:
-        return x_points, y_points
-    else:
-        return trg_crs.transform_points(src_crs, x_points, y_points)
+    return trg_crs.transform_points(src_crs, x_points, y_points)
