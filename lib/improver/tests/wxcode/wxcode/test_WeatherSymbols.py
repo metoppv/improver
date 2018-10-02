@@ -696,5 +696,6 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.data,
                               expected_wxcode)
 
+
 if __name__ == '__main__':
     unittest.main()
