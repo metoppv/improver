@@ -94,6 +94,7 @@ class Test_maximum_within_vicinity(IrisTest):
     def setUp(self):
         """Set up distance."""
         self.distance = 2000
+        self.grid_values = np.arange(0.0, 10000.0, 2000.0)
 
     def test_basic(self):
         """Test for binary events to determine where there is an occurrence
@@ -107,10 +108,9 @@ class Test_maximum_within_vicinity(IrisTest):
         data = np.zeros((1, 1, 5, 5))
         data[0, 0, 0, 1] = 1.0
         data[0, 0, 2, 3] = 1.0
-        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
-                           y_dimension_values=y_dimension_values,
-                           x_dimension_values=y_dimension_values)
+                           y_dimension_values=self.grid_values,
+                           x_dimension_values=self.grid_values)
         cube = cube[0, 0, :, :]
         result = OccurrenceWithinVicinity(
             self.distance).maximum_within_vicinity(cube)
@@ -129,10 +129,9 @@ class Test_maximum_within_vicinity(IrisTest):
         data = np.zeros((1, 1, 5, 5))
         data[0, 0, 0, 1] = 1.0
         data[0, 0, 2, 3] = 0.5
-        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
-                           y_dimension_values=y_dimension_values,
-                           x_dimension_values=y_dimension_values)
+                           y_dimension_values=self.grid_values,
+                           x_dimension_values=self.grid_values)
         cube = cube[0, 0, :, :]
         result = OccurrenceWithinVicinity(
             self.distance).maximum_within_vicinity(cube)
@@ -151,16 +150,41 @@ class Test_maximum_within_vicinity(IrisTest):
         data = np.zeros((1, 1, 5, 5))
         data[0, 0, 0, 1] = 1.0
         data[0, 0, 2, 3] = 1.0
-        y_dimension_values = np.arange(0.0, 10000.0, 2000.0)
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
-                           y_dimension_values=y_dimension_values,
-                           x_dimension_values=y_dimension_values)
+                           y_dimension_values=self.grid_values,
+                           x_dimension_values=self.grid_values)
         cube = cube[0, 0, :, :]
         distance = 4000.0
         result = OccurrenceWithinVicinity(
             distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_masked_data(self):
+        """Test works OK for masked data."""
+        expected = np.array(
+            [[1., 1., 1., 0., 10.],
+             [1., 1., 1., 1., 1.],
+             [0., 0., 1., 1., 1.],
+             [0., 0., 1., 1., 1.],
+             [0., 0., 0., 0., 0.]])
+        data = np.zeros((1, 1, 5, 5))
+        data[0, 0, 0, 1] = 1.0
+        data[0, 0, 2, 3] = 1.0
+        data[0, 0, 0, 4] = 10.0
+        mask = np.zeros((1, 1, 5, 5))
+        mask[0, 0, 0, 4] = 1
+        masked_data = np.ma.array(data, mask=mask)
+        cube = set_up_cube(masked_data, "lwe_precipitation_rate", "m s-1",
+                           y_dimension_values=self.grid_values,
+                           x_dimension_values=self.grid_values)
+        cube = cube[0, 0, :, :]
+        result = OccurrenceWithinVicinity(
+            self.distance).maximum_within_vicinity(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(result.data, np.ma.core.MaskedArray)
+        self.assertArrayAlmostEqual(result.data.data, expected)
+        self.assertArrayAlmostEqual(result.data.mask, mask[0, 0, :, :])
 
 
 class Test_process(IrisTest):
