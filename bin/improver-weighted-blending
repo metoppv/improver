@@ -42,7 +42,6 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.temporal import (
     forecast_period_coord, unify_forecast_reference_time)
-#from improver.utilities.cube_metadata import update_cube_blended_metadata
 
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
@@ -145,12 +144,13 @@ def main():
     cube = merge_cubes(cubelist)
 
     # if the coord for blending does not exist or has only one value,
-    # no processing is needed
+    # update metadata only
     coord_names = [coord.name() for coord in cube.coords()]
     if (args.coordinate not in coord_names) or (
             len(cube.coord(args.coordinate).points) == 1):
         result = cube.copy()
-        conform_metadata(result, cube, args.coordinate)
+        conform_metadata(
+            result, cube, args.coordinate, cycletime=args.cycletime)
 
     # otherwise blend across specified dimension
     else:
@@ -169,7 +169,7 @@ def main():
             cubes = unify_forecast_reference_time(cube)
             cube = merge_cubes(cubes)
 
-        # blend according to user-specified method
+        # calculate blending weights
         if args.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
                 y0val=args.y0val, ynval=args.ynval).process(
@@ -179,6 +179,7 @@ def main():
             weights = ChooseDefaultWeightsNonLinear(cval).process(
                 cube, args.coordinate, coord_unit=coord_unit)
 
+        # blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.coordinate, args.weighting_mode,
             cycletime=args.cycletime)

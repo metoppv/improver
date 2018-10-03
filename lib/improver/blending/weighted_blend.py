@@ -93,6 +93,7 @@ def conform_metadata(
             Cube containing the adjusted metadata.
 
     """
+    # unify time coordinates for cycle and grid (model) blends
     if coord in ["forecast_reference_time", "model"]:
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
@@ -126,17 +127,31 @@ def conform_metadata(
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 
+    # update blended cube attributes
+    if "title" not in cube.attributes.keys():
+        cube.attributes["title"] = "IMPROVER Model Forecast"
+
+    if ("model" in coord) and any(
+            "mosg__" in key for key in cube_orig.attributes.keys()):
+        cube.attributes["mosg__model_configuration"] = "blend"
+
+    # inherit grid attributes
+    for key in cube_orig.attributes.keys():
+        if "mosg__grid" in key:
+            cube.attributes[key] = cube_orig.attributes[key]
+
+    # remove appropriate scalar coordinates
     for coord in ["model_id", "model_realization", "realization"]:
         if cube.coords(coord) and cube.coord(coord).shape == (1,):
             cube.remove_coord(coord)
 
-    if coords_for_bounds_removal is None:
-        coords_for_bounds_removal = []
+    # remove bounds from specified scalar coordinates
+    if coords_for_bounds_removal is not None:
+        for coord in cube.coords():
+            if coord.name() in coords_for_bounds_removal:
+                if coord.shape == (1,) and coord.has_bounds():
+                    coord.bounds = None
 
-    for coord in cube.coords():
-        if coord.name() in coords_for_bounds_removal:
-            if coord.shape == (1,) and coord.has_bounds():
-                coord.bounds = None
     return cube
 
 
