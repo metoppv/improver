@@ -53,8 +53,8 @@ class Test_NeighbourSelection(IrisTest):
         land_data[0:2, 4] = 1
         land_data[4, 4] = 1
         orography_data = np.zeros((9, 9))
-        orography_data[0, :] = 1
-        orography_data[1, :] = 5
+        orography_data[0, 4] = 1
+        orography_data[1, 4] = 5
 
         # Global coordinates and cubes
         projection = iris.coord_systems.GeogCS(6371229.0)
