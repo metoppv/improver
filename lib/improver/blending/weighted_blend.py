@@ -37,11 +37,57 @@ import iris
 from iris.analysis import Aggregator
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import (add_renamed_cell_method,
-                                                  sort_coord_in_cube)
+from improver.utilities.cube_manipulation import (
+    add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.temporal import (
-    cycletime_to_number, forecast_period_coord)
+    cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
+    forecast_period_coord, unify_forecast_reference_time)
+
+
+def rationalise_blend_time_coords(
+    cube, blend_coord, cycletime=None, weighting_coord=None):
+    """
+    Updates time coordinates on a cube before blending depending on
+    the coordinate over which the blend will be performed.  Modifies
+    cube in place
+
+    If blend_coord is forecast_reference_time, ensures the cube has
+    a forecast_period dimension.  If blend_coord is forecast_period,
+    equalises forecast_reference_time points before blending.
+
+    Args:
+        cube (iris.cube.Cube):
+            Merged list of cubes with different times to be blended
+        blend_coord (str):
+            Name of coordinate over which the blend will be performed
+
+    Kwargs:
+        cycletime (str or None):
+            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
+        weighting_coord (str or None):
+            The weighting coordinate 
+    """
+    if "forecast_reference_time" in blend_coord:
+        coord_names = [x.name() for x in cube.coords()]
+        frt_dim, = cube.coord_dims(blend_coord)
+        if "forecast_period" not in coord_names:
+            forecast_period = forecast_period_coord(cube)
+            cube.add_aux_coord(forecast_period, data_dims=frt_dim)
+
+    # if blending models using weights by forecast period, set forecast
+    # reference times to current cycle time
+    if "model" in blend_coord and "forecast_period" in weighting_coord:
+        if cycletime is None:
+            # take maximum of available forecast reference times
+            dummy_cube = sort_coord_in_cube(cube, "forecast_reference_time")
+            frt_point = dummy_cube.coord("forecast_reference_time").points[-1]
+            dummy_coord = cube.coord("forecast_reference_time").copy(frt_point)
+            cycletime, = iris_time_to_datetime(dummy_coord)
+        else:
+            cycletime = cycletime_to_datetime(cycletime)
+        cubes = unify_forecast_reference_time(cube, cycletime)
+        cube = merge_cubes(cubes)
 
 
 def conform_metadata(

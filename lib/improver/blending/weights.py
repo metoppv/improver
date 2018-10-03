@@ -645,7 +645,7 @@ class ChooseWeightsLinear(object):
         self.config_coord_name dimension.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cubes containing the coordinate (source point) information
                 that will be used for setting up the interpolation.
 
@@ -664,6 +664,9 @@ class ChooseWeightsLinear(object):
                 weights_cubes instead of a weights dict.
                 DimCoords (such as model_id) will be in sorted-ascending order.
         """
+        if isinstance(cubes, iris.cube.Cube):
+            cubes = [cubes]
+
         if not self.config_dict:
             if isinstance(weights_cubes, iris.cube.Cube):
                 weights_cubes = iris.cube.CubeList([weights_cubes])

@@ -550,6 +550,9 @@ def unify_forecast_reference_time(cubes, cycletime):
         result_cubes (iris.cube.CubeList):
             Cubes that have had their forecast_reference_time unified.
 
+    Raises:
+        ValueError: from replace_coord, if forecast_reference_time is a
+            dimension coordinate (can only replace scalar or aux coords)
     """
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])

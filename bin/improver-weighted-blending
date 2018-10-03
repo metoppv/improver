@@ -41,13 +41,12 @@ from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.temporal import (
-    forecast_period_coord, unify_forecast_reference_time)
 
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.blending.weighted_blend import (
-    WeightedBlendAcrossWholeDimension, conform_metadata)
+    conform_metadata, rationalise_blend_time_coords,
+    WeightedBlendAcrossWholeDimension)
 
 
 def main():
@@ -194,31 +193,19 @@ def main():
 
     # otherwise blend across specified dimension
     else:
-        # if blending across forecast_reference_time, check the
-        # forecast period coordinate exists and add if necessary
-        if "forecast_reference_time" in args.coordinate:
-            coord_names = [x.name() for x in cube.coords()]
-            frt_dim, = cube.coord_dims(args.coordinate)
-            if "forecast_period" not in coord_names:
-                forecast_period = forecast_period_coord(cube)
-                cube.add_aux_coord(forecast_period, data_dims=frt_dim)
-
-        # if blending across forecast period, unify forecast reference
-        # times for different models
-        if "forecast_period" in args.coordinate:
-            cubes = unify_forecast_reference_time(cube)
-            cube = merge_cubes(cubes)
+        # add forecast period and / or unify forecast reference times
+        # for cycle blending NOTE ambiguity here, not what we want
+        rationalise_blend_time_coords(
+            cube, args.coordinate, cycletime=args.cycletime,
+            weighting_coord=args.weighting_coord)
 
         # calculate blending weights
         if args.wts_calc_method == "dict":
+            # calculate linear weights from a dictionary
             weights_dict = json.load(args.wts_dict)
-            # TODO will this work for cycle blending or only for grid blending?
-            #           Can we catch misuse issues here?
             weights_cube = ChooseWeightsLinear(
                 args.weighting_coord, config_coord_name=args.coord,
-                config_dict=weights_dict).process([cube])
-            # TODO make plugin accept a single cube?  Or don't bother
-            #           to merge cubes at start?
+                config_dict=weights_dict).process(cube)
 
         elif args.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
