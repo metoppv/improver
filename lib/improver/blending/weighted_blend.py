@@ -430,9 +430,9 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Args:
             cube (iris.cube.Cube):
-                   Cube to blend across the coord.
+                Cube to blend across the coord.
             weights (Optional list or np.array of weights):
-                     or None (equivalent to equal weights).
+                or None (equivalent to equal weights).
 
         Returns:
             result (iris.cube.Cube):
@@ -441,20 +441,21 @@ class WeightedBlendAcrossWholeDimension(object):
         Raises:
             TypeError : If the first argument not a cube.
             ValueError : If coordinate to be collapsed not found in cube.
+            ValueError : If coordinate to be collapsed is not a dimension.
             ValueError : If there is a percentile coord and it is not a
-                           dimension coord in the cube.
+                dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
-                            point, we need at least two points in order to do
-                            the blending.
+                point, we need at least two points in order to do
+                the blending.
             ValueError : If there are more than one percentile coords
-                           in the cube.
+                in the cube.
             ValueError : If there is a percentile dimension on the cube and the
-                         mode for blending is 'weighted_maximum'
+                mode for blending is 'weighted_maximum'
             ValueError : If the weights shape do not match the dimension
-                           of the coord we are blending over.
+                of the coord we are blending over.
         Warns:
             Warning : If trying to blend across a scalar coordinate with only
-                        one value. Returns the original cube in this case.
+                one value. Returns the original cube in this case.
 
         """
         if not isinstance(cube, iris.cube.Cube):
@@ -466,6 +467,10 @@ class WeightedBlendAcrossWholeDimension(object):
         if not cube.coords(self.coord):
             msg = ('Coordinate to be collapsed not found in cube.')
             raise CoordinateNotFoundError(msg)
+
+        coord_dim = cube.coord_dims(self.coord)
+        if not coord_dim:
+            raise ValueError('{} is not a dim coord'.format(self.coord))
 
         # Ensure input cube is ascending along specified coordinate
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
@@ -519,121 +524,114 @@ class WeightedBlendAcrossWholeDimension(object):
                            str(cube.coord(self.coord).points.shape)))
                 raise ValueError(msg)
 
-        # If coord to blend over is a scalar_coord warn
-        # and return original cube.
-        coord_dim = cube.coord_dims(self.coord)
-        if not coord_dim:
-            msg = ('Trying to blend across a scalar coordinate with only one'
-                   ' value. Returning original cube')
-            warnings.warn(msg)
-            result = cube
+        # create slices over threshold coordinate
+        try:
+            cube.coord('threshold')
+        except iris.exceptions.CoordinateNotFoundError:
+            slices_over_threshold = [cube]
         else:
-            try:
-                cube.coord('threshold')
-            except iris.exceptions.CoordinateNotFoundError:
-                slices_over_threshold = [cube]
+            if self.coord != 'threshold':
+                slices_over_threshold = cube.slices_over('threshold')
             else:
-                if self.coord != 'threshold':
-                    slices_over_threshold = cube.slices_over('threshold')
-                else:
-                    slices_over_threshold = [cube]
+                slices_over_threshold = [cube]
 
-            cubelist = iris.cube.CubeList([])
-            for cube_thres in slices_over_threshold:
-                # Blend the cube across the coordinate
-                # Use percentile Aggregator if required
-                if perc_coord and self.mode == "weighted_mean":
-                    percentiles = np.array(
-                        perc_coord.points, dtype=np.float32)
-                    perc_dim, = cube_thres.coord_dims(perc_coord.name())
+        cubelist = iris.cube.CubeList([])
+        for cube_thres in slices_over_threshold:
+            # Blend the cube across the coordinate
+            # Use percentile Aggregator if required
+            if perc_coord and self.mode == "weighted_mean":
+                percentiles = np.array(
+                    perc_coord.points, dtype=np.float32)
+                perc_dim, = cube_thres.coord_dims(perc_coord.name())
 
-                    # The iris.analysis.Aggregator moves the coordinate being
-                    # collapsed to index=-1 in initialisation, before the
-                    # aggregation method is called. This reduces by 1 the index
-                    # of all coordinates with an initial index higher than the
-                    # collapsing coordinate. As we need to know the index of
-                    # the percentile coordinate at a later step, if it will be
-                    # changed by this process, we adjust our record (perc_dim)
-                    # here.
-                    if cube_thres.coord_dims(self.coord)[0] < perc_dim:
-                        perc_dim -= 1
+                # The iris.analysis.Aggregator moves the coordinate being
+                # collapsed to index=-1 in initialisation, before the
+                # aggregation method is called. This reduces by 1 the index
+                # of all coordinates with an initial index higher than the
+                # collapsing coordinate. As we need to know the index of
+                # the percentile coordinate at a later step, if it will be
+                # changed by this process, we adjust our record (perc_dim)
+                # here.
+                if cube_thres.coord_dims(self.coord)[0] < perc_dim:
+                    perc_dim -= 1
 
-                    # Set equal weights if none are provided
-                    if weights is None:
-                        num = len(cube_thres.coord(self.coord).points)
-                        weights = (np.ones(num, dtype=np.float32) /
-                                   np.float32(num))
-                    # Set up aggregator
-                    PERCENTILE_BLEND = (Aggregator(
-                        'mean',  # Use CF-compliant cell method.
-                        PercentileBlendingAggregator.aggregate))
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    PERCENTILE_BLEND,
-                                                    arr_percent=percentiles,
-                                                    arr_weights=weights,
-                                                    perc_dim=perc_dim)
-                    # Ensure collapsed coordinates do not promote themselves
-                    # to float64.
-                    for coord in cube_new.coords():
-                        if coord.points.dtype == np.float64:
-                            coord.points = coord.points.astype(np.float32)
+                # Set equal weights if none are provided
+                if weights is None:
+                    num = len(cube_thres.coord(self.coord).points)
+                    weights = (np.ones(num, dtype=np.float32) /
+                                np.float32(num))
+                # Set up aggregator
+                PERCENTILE_BLEND = (Aggregator(
+                    'mean',  # Use CF-compliant cell method.
+                    PercentileBlendingAggregator.aggregate))
+                cube_new = cube_thres.collapsed(self.coord,
+                                                PERCENTILE_BLEND,
+                                                arr_percent=percentiles,
+                                                arr_weights=weights,
+                                                perc_dim=perc_dim)
+                # Ensure collapsed coordinates do not promote themselves
+                # to float64.
+                for coord in cube_new.coords():
+                    if coord.points.dtype == np.float64:
+                        coord.points = coord.points.astype(np.float32)
 
-                # Else do a simple weighted average
-                elif self.mode == "weighted_mean":
-                    # Equal weights are used as default.
-                    weights_array = None
-                    # Else broadcast the weights to be used by the aggregator.
-                    coord_dim_thres = cube_thres.coord_dims(self.coord)
-                    if weights is not None:
-                        weights_array = (
-                            iris.util.broadcast_to_shape(
-                                np.array(weights, dtype=np.float32),
-                                cube_thres.shape,
-                                coord_dim_thres)
-                        )
-                    orig_cell_methods = cube_thres.cell_methods
-                    # Calculate the weighted average.
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    iris.analysis.MEAN,
-                                                    weights=weights_array)
-                    # Update the name of the cell_method created by Iris to
-                    # 'weighted_mean' to be consistent.
-                    new_cell_methods = cube_new.cell_methods
-                    extra_cm = (set(new_cell_methods) -
-                                set(orig_cell_methods)).pop()
-                    add_renamed_cell_method(cube_new,
-                                            extra_cm,
-                                            'mean')
+            # Else do a simple weighted average
+            elif self.mode == "weighted_mean":
+                # Equal weights are used as default.
+                weights_array = None
+                # Else broadcast the weights to be used by the aggregator.
+                coord_dim_thres = cube_thres.coord_dims(self.coord)
+                if weights is not None:
+                    weights_array = (
+                        iris.util.broadcast_to_shape(
+                            np.array(weights, dtype=np.float32),
+                            cube_thres.shape,
+                            coord_dim_thres)
+                    )
+                orig_cell_methods = cube_thres.cell_methods
+                # Calculate the weighted average.
+                cube_new = cube_thres.collapsed(self.coord,
+                                                iris.analysis.MEAN,
+                                                weights=weights_array)
+                # Update the name of the cell_method created by Iris to
+                # 'weighted_mean' to be consistent.
+                new_cell_methods = cube_new.cell_methods
+                extra_cm = (set(new_cell_methods) -
+                            set(orig_cell_methods)).pop()
+                add_renamed_cell_method(cube_new,
+                                        extra_cm,
+                                        'mean')
 
-                # Else use the maximum probability aggregator.
-                elif self.mode == "weighted_maximum":
-                    # Set equal weights if none are provided
-                    if weights is None:
-                        num = len(cube_thres.coord(self.coord).points)
-                        weights = (np.ones(num, np.float32) /
-                                   np.float32(num))
-                    # Set up aggregator
-                    MAX_PROBABILITY = (Aggregator(
-                        'maximum',  # Use CF-compliant cell method.
-                        MaxProbabilityAggregator.aggregate))
+            # Else use the maximum probability aggregator.
+            elif self.mode == "weighted_maximum":
+                # Set equal weights if none are provided
+                if weights is None:
+                    num = len(cube_thres.coord(self.coord).points)
+                    weights = (np.ones(num, np.float32) /
+                                np.float32(num))
+                # Set up aggregator
+                MAX_PROBABILITY = (Aggregator(
+                    'maximum',  # Use CF-compliant cell method.
+                    MaxProbabilityAggregator.aggregate))
 
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    MAX_PROBABILITY,
-                                                    arr_weights=weights)
-                cube_new = conform_metadata(
-                    cube_new, cube_thres, coord=self.coord,
-                    cycletime=self.cycletime,
-                    coords_for_bounds_removal=self.coords_for_bounds_removal)
-                cubelist.append(cube_new)
-            result = cubelist.merge_cube()
+                cube_new = cube_thres.collapsed(self.coord,
+                                                MAX_PROBABILITY,
+                                                arr_weights=weights)
+            cube_new = conform_metadata(
+                cube_new, cube_thres, coord=self.coord,
+                cycletime=self.cycletime,
+                coords_for_bounds_removal=self.coords_for_bounds_removal)
+            cubelist.append(cube_new)
+        result = cubelist.merge_cube()
 
-            # Add a source realizations attribute if collapsing realizations.
-            if self.coord == "realization":
-                result.attributes['source_realizations'] = (
-                    cube.coord(self.coord).points)
+        # Add a source realizations attribute if collapsing realizations.
+        if self.coord == "realization":
+            result.attributes['source_realizations'] = (
+                cube.coord(self.coord).points)
 
-            if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
-                result.data = np.ma.array(result.data)
+        if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
+            result.data = np.ma.array(result.data)
+
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
