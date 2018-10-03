@@ -38,10 +38,13 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
+                                  [--cycletime CYCLETIME]
                                   [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
-                                  [--cycletime CYCLETIME]
+                                  [--wts_dict WEIGHTS_DICTIONARY]
+                                  [--weighting_coord WEIGHTING_COORD]
+                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
@@ -50,7 +53,9 @@ Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
 apply these weights to the dataset using the BasicWeightedAverage plugin.
 Required for ChooseDefaultWeightsLinear: y0val and ynval. Required for
-ChooseDefaultWeightsNonLinear: cval.
+ChooseDefaultWeightsNonLinear: cval. Required for ChooseWeightsLinear with
+dict: wts_dict. Required for ChooseWeightsLinear with cube:
+wts_mask_constraint.
 
 positional arguments:
   COORDINATE_TO_AVERAGE_OVER
@@ -74,7 +79,10 @@ optional arguments:
                         "linear" (default): calculate linearly varying
                         blending weights. "nonlinear": calculate blending
                         weights that decrease exponentially with increasing
-                        blending coordinate.
+                        blending coordinate. "dict": calculate weights using a
+                        dictionary passed in as a command line argument.
+                        "mask": calculate spatially varying weights from the
+                        mask on an input data cube.
   --coordinate_unit UNIT_STRING
                         Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00
@@ -103,6 +111,28 @@ nonlinear weights options:
                         Factor used to determine how skewed the non linear
                         weights will be. A value of 1 implies equal weighting.
                         If not set, a default value of cval=0.85 is set.
+
+dict weights options:
+  Options for linear weights to be calculated based on parameters read from
+  a json file dict
+
+  --wts_dict WEIGHTS_DICTIONARY
+                        Path to json file containing dictionary from which to
+                        calculate blending weights.
+  --weighting_coord WEIGHTING_COORD
+                        Name of coordinate over which linear weights should be
+                        scaled.
+
+mask weights options:
+  Options for spatially varying linear weights to be calculated based on an
+  input cube mask.
+
+  --wts_mask_constraint WEIGHTS_MASK_CONSTRAINT
+                        Constraint by which to identify the cube whose mask
+                        should be used to calculate spatially varying blending
+                        weights.
+
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }

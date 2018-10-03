@@ -32,8 +32,9 @@
 
 """Script to run weighted blending."""
 
-import iris
 import numpy as np
+import json
+import iris
 from cf_units import Unit
 
 from improver.argparser import ArgParser
@@ -59,17 +60,23 @@ def main():
         'ChooseDefaultWeightsNonLinear plugins. Then apply these '
         'weights to the dataset using the BasicWeightedAverage plugin.'
         ' Required for ChooseDefaultWeightsLinear: y0val and ynval.'
-        ' Required for ChooseDefaultWeightsNonLinear: cval.')
+        ' Required for ChooseDefaultWeightsNonLinear: cval.'
+        ' Required for ChooseWeightsLinear with dict: wts_dict.'
+        ' Required for ChooseWeightsLinear with cube: wts_mask_constraint.')
+
     parser.add_argument('--wts_calc_method',
                         metavar='WEIGHTS_CALCULATION_METHOD',
-                        choices=['linear', 'nonlinear'],
-                        default='linear',
-                        help='Method to use to calculate weights used in '
-                             'blending. "linear" (default): calculate linearly'
-                             ' varying blending weights. "nonlinear": '
-                             'calculate blending weights that decrease '
-                             'exponentially with increasing blending '
-                             'coordinate.')
+                        choices=['linear', 'nonlinear', 'dict', 'mask'],
+                        default='linear', help='Method to use to calculate '
+                        'weights used in blending. "linear" (default): '
+                        'calculate linearly varying blending weights. '
+                        '"nonlinear": calculate blending weights that decrease'
+                        ' exponentially with increasing blending coordinate. '
+                        '"dict": calculate weights using a dictionary passed '
+                        'in as a command line argument.  "mask": calculate '
+                        'spatially varying weights from the mask on an input '
+                        'data cube.')
+
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
@@ -80,6 +87,11 @@ def main():
                              'hours since 1970-01-01 00:00:00')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         help='Calendar for time coordinate. Default=gregorian')
+    parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
+                        help='The forecast_reference_time to be used after '
+                             'blending has been applied in the format '
+                             'YYYYMMDDTHHMMZ.')
+
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -88,6 +100,7 @@ def main():
                              '"weighted_maximum": multiplies the values in the'
                              ' coordinate by the weights, and then takes the'
                              ' maximum.')
+
     parser.add_argument('input_filepaths', metavar='INPUT_FILES',
                         nargs="+",
                         help='Paths to input files to be blended.')
@@ -108,6 +121,7 @@ def main():
                              'This must be a positive float or 0. If not set, '
                              'default values of y0val=20.0 and ynval=2.0 '
                              'are set.')
+
     nonlinear = parser.add_argument_group('nonlinear weights options',
                                           'Options for the non-linear '
                                           'weights calculation in '
@@ -117,19 +131,45 @@ def main():
                                 'non linear weights will be. '
                                 'A value of 1 implies equal weighting. If not '
                                 'set, a default value of cval=0.85 is set.')
-    parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
-                        help='The forecast_reference_time to be used after '
-                             'blending has been applied in the format '
-                             'YYYYMMDDTHHMMZ.')
+
+    wts_dict = parser.add_argument_group('dict weights options',
+                                         'Options for linear weights to be '
+                                         'calculated based on parameters '
+                                         'read from a json file dict')
+    wts_dict.add_argument('--wts_dict', metavar='WEIGHTS_DICTIONARY',
+                          help='Path to json file containing dictionary '
+                          'from which to calculate blending weights.')
+    wts_dict.add_argument('--weighting_coord', metavar='WEIGHTING_COORD',
+                          default='forecast_period', help='Name of '
+                          'coordinate over which linear weights should be '
+                          'scaled.')
+
+    wts_mask = parser.add_argument_group('mask weights options',
+                                         'Options for spatially varying linear'
+                                         ' weights to be calculated based on '
+                                         'an input cube mask.')
+    wts_mask.add_argument('--wts_mask_constraint',
+                          metavar='WEIGHTS_MASK_CONSTRAINT', help='Constraint '
+                          'by which to identify the cube whose mask should be '
+                          'used to calculate spatially varying blending '
+                          'weights.')
+
     args = parser.parse_args()
 
     # if the linear weights method is called with non-linear args or vice
     # versa, exit with error
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
-    elif ((args.wts_calc_method == "nonlinear") and
+    if ((args.wts_calc_method == "nonlinear") and
           np.any([args.y0val, args.ynval])):
         parser.wrong_args_error('y0val, ynval', 'non-linear')
+    if (args.wts_calc_method == "dict") and not args.wts_dict:
+        parser.error('Dictionary is required if --wts_calc_method="dict"')
+
+    # temporary error - remove once this method is fully developed
+    if args.wts_calc_method == "mask":
+        parser.error('Calculation of weights from a cube mask is not yet '
+                     'supported')
 
     # set blending coordinate units
     if "time" in args.coordinate:
@@ -170,7 +210,17 @@ def main():
             cube = merge_cubes(cubes)
 
         # calculate blending weights
-        if args.wts_calc_method == "linear":
+        if args.wts_calc_method == "dict":
+            weights_dict = json.load(args.wts_dict)
+            # TODO will this work for cycle blending or only for grid blending?
+            #           Can we catch misuse issues here?
+            weights_cube = ChooseWeightsLinear(
+                args.weighting_coord, config_coord_name=args.coord,
+                config_dict=weights_dict).process([cube])
+            # TODO make plugin accept a single cube?  Or don't bother
+            #           to merge cubes at start?
+
+        elif args.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
                 y0val=args.y0val, ynval=args.ynval).process(
                     cube, args.coordinate, coord_unit=coord_unit)

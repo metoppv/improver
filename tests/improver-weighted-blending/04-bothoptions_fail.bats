@@ -42,14 +42,17 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
+                                  [--cycletime CYCLETIME]
                                   [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--cval NON_LINEAR_FACTOR]
-                                  [--cycletime CYCLETIME]
+                                  [--wts_dict WEIGHTS_DICTIONARY]
+                                  [--weighting_coord WEIGHTING_COORD]
+                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear')
+improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict', 'mask')
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
