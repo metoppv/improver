@@ -35,17 +35,19 @@
 import iris
 import numpy as np
 from cf_units import Unit
-from datetime import datetime
+
+from improver.argparser import ArgParser
+from improver.utilities.load import load_cubelist
+from improver.utilities.save import save_netcdf
+from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.temporal import (
+    forecast_period_coord, unify_forecast_reference_time)
+#from improver.utilities.cube_metadata import update_cube_blended_metadata
 
 from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
 from improver.blending.weighted_blend import (
     WeightedBlendAcrossWholeDimension, conform_metadata)
-from improver.utilities.cube_manipulation import merge_cubes
-#from improver.utilities.cube_metadata import update_cube_blended_metadata
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -122,23 +124,23 @@ def main():
                              'YYYYMMDDTHHMMZ.')
     args = parser.parse_args()
 
-    # Fix default value for cval. The argparser default value isn't
-    # used for this, because it would make it impossible to tell whether a
-    # a value was user inputted (which is needed for wrong_args_error calls).
-    cval = args.cval if args.cval else 0.85
+    # if the linear weights method is called with non-linear args or vice
+    # versa, exit with error
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
     elif ((args.wts_calc_method == "nonlinear") and
           np.any([args.y0val, args.ynval])):
         parser.wrong_args_error('y0val, ynval', 'non-linear')
 
-    if args.coordinate == 'time':
+    # set blending coordinate units
+    if "time" in args.coordinate:
         coord_unit = Unit(args.coordinate_unit, args.calendar)
     elif args.coordinate_unit != 'hours since 1970-01-01 00:00:00.':
         coord_unit = args.coordinate_unit
     else:
         coord_unit = 'no_unit'
 
+    # load and merge cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
     cube = merge_cubes(cubelist)
 
@@ -152,12 +154,28 @@ def main():
 
     # otherwise blend across specified dimension
     else:
+        # if blending across forecast_reference_time, check the
+        # forecast period coordinate exists and add if necessary
+        if "forecast_reference_time" in args.coordinate:
+            coord_names = [x.name() for x in cube.coords()]
+            frt_dim, = cube.coord_dims(args.coordinate)
+            if "forecast_period" not in coord_names:
+                forecast_period = forecast_period_coord(cube)
+                cube.add_aux_coord(forecast_period, data_dims=frt_dim)
+
+        # if blending across forecast period, unify forecast reference
+        # times for different models
+        if "forecast_period" in args.coordinate:
+            cubes = unify_forecast_reference_time(cube)
+            cube = merge_cubes(cubes)
+
+        # blend according to user-specified method
         if args.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
                 y0val=args.y0val, ynval=args.ynval).process(
                     cube, args.coordinate, coord_unit=coord_unit)
-
         else:
+            cval = args.cval if args.cval else 0.85
             weights = ChooseDefaultWeightsNonLinear(cval).process(
                 cube, args.coordinate, coord_unit=coord_unit)
 
