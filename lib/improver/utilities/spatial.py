@@ -525,26 +525,3 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
     i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
     j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
     return i_latitude, j_longitude
-
-
-def coordinate_transform(src_crs, trg_crs, x_points, y_points):
-    """
-    Transforms x_point and y_point coordinate pairs from lists of coordinates
-    into an alternative projection defined by trg_crs.
-
-    Args:
-        src_crs (cartopy.crs/None):
-            Source coordinate system in cartopy format or None.
-        trg_crs (cartopy.crs/None):
-            Target coordinate system in cartopy format or None.
-        x_points (np.array):
-            Array containing the x coordinate values in the src_crs coordinate
-            system.
-        y_points (np.array):
-            Array containing the y coordinate values in the src_crs coordinate
-            system.
-    Returns:
-        x, y (floats):
-            x and y coordinates transformed into the target coordinate system.
-    """
-    return trg_crs.transform_points(src_crs, x_points, y_points)

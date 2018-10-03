@@ -33,10 +33,8 @@
 import unittest
 import numpy as np
 import scipy
-from cf_units import Unit
 
 import iris
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import cartopy.crs as ccrs
 
@@ -76,7 +74,8 @@ class Test_NeighbourSelection(IrisTest):
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
         global_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+            attributes={'mosg__grid_domain': 'global'})
 
         # Regional grid coordinates and cubes
         projection = iris.coord_systems.LambertAzimuthalEqualArea(
@@ -96,12 +95,8 @@ class Test_NeighbourSelection(IrisTest):
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
         region_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
-
-        # Regional sites need to be converted to lat/lon as this is the
-        # standard site list input coordinate system.
-        x = np.array([-4E4, 7.5E4])
-        y = np.array([0, 0])
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+            attributes={'mosg__grid_domain': 'region'})
 
         # Create site lists
         self.global_sites = [
@@ -263,7 +258,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
                 self.region_orography))
 
         self.assertArrayEqual(sites_out, sites)
-        self.assertArrayEqual(site_coords, site_coords)
+        self.assertArrayEqual(site_coords_out, site_coords)
         self.assertArrayEqual(out_x, x_points)
         self.assertArrayEqual(out_y, y_points)
 
@@ -284,7 +279,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
                 self.region_orography))
 
         self.assertArrayEqual(sites_out, sites[0:2])
-        self.assertArrayEqual(site_coords[0:2], site_coords[0:2])
+        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
         self.assertArrayEqual(out_x, x_points[0:2])
         self.assertArrayEqual(out_y, y_points[0:2])
 
@@ -509,6 +504,18 @@ class Test_process(Test_NeighbourSelection):
 
     """Test the process method of the NeighbourSelection class."""
 
+    def test_global_attribute(self):
+        """Test that a cube is returned with an attribute identifying the
+        grid domain."""
+
+        plugin = NeighbourSelection()
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
+
+        expected = {'mosg__grid_domain': 'global'}
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertDictEqual(result.attributes, expected)
+
     def test_global_nearest(self):
         """Test that a cube is returned, here using a conventional site list
         with lat/lon site coordinates. Neighbour coordinates of [2, 4] are
@@ -547,6 +554,44 @@ class Test_process(Test_NeighbourSelection):
         expected = [[[0, 4, 1]]]
 
         self.assertArrayEqual(result.data, expected)
+
+    def test_global_dateline(self):
+        """Test that for a global grid with a circular longitude coordinate,
+        the code selects the nearest neighbour matching constraints even if it
+        falls at the opposite edge of the grid. The spot site is nearest to
+        grid point [6, 4], and the nearest land point is at [4, 4]. However
+        by imposing a minimum vertical displacement constraint the code will
+        return a point across the dateline at [0, 4]. We can be sure we have
+        crossed the dateline by the fact that there is an island of land with
+        the same vertical displacment to the spot site between the point and
+        the grid point returned. Therefore, the short path must be across the
+        dateline, rather than across this island travelling west."""
+
+        self.global_sites[0]['longitude'] = 64.
+        self.global_sites[0]['altitude'] = 3.
+
+        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True,
+                                    search_radius=1E8)
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
+        expected = [[[0, 4, 2]]]
+
+        self.assertArrayEqual(result.data, expected)
+
+    def test_region_attribute(self):
+        """Test that a cube is returned with an attribute identifying the
+        grid domain."""
+
+        plugin = NeighbourSelection(
+            site_coordinate_system=self.region_projection.as_cartopy_crs(),
+            site_x_coordinate='projection_x_coordinate',
+            site_y_coordinate='projection_y_coordinate')
+        result = plugin.process(self.region_sites, self.region_orography,
+                                self.region_land_mask)
+
+        expected = {'mosg__grid_domain': 'region'}
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertDictEqual(result.attributes, expected)
 
     def test_region_nearest(self):
         """Test that a cube is returned, this time using the site list in

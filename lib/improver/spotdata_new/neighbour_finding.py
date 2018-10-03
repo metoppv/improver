@@ -35,10 +35,8 @@ import warnings
 import numpy as np
 from scipy import spatial
 
-import iris
 import cartopy.crs as ccrs
 
-from improver.utilities.spatial import coordinate_transform
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
 
@@ -55,7 +53,9 @@ class NeighbourSelection(object):
     2. minimum_dz which minimises the vertical displacement between the
        given coordinate (when an altitude is provided) and the grid point
        where its altitude is provided by the relevant model or high resolution
-       orography.
+       orography. Note that spot coordinates provided without an altitude are
+       given the altitude of the nearest grid point taken from the orography
+       cube.
     3. A combination of the above, where the land constraint is primary and out
        of available land points, the one with the minimal vertical displacement
        is chosen.
@@ -64,7 +64,8 @@ class NeighbourSelection(object):
     def __init__(self, land_constraint=False, minimum_dz=False,
                  search_radius=1.0E4,
                  site_coordinate_system=ccrs.PlateCarree(),
-                 site_x_coordinate='longitude', site_y_coordinate='latitude'):
+                 site_x_coordinate='longitude', site_y_coordinate='latitude',
+                 grid_metadata_identifier='mosg'):
         """
         Args:
             land_constraint (bool):
@@ -74,15 +75,25 @@ class NeighbourSelection(object):
                 If True the selected neighbouring grid point must be chosen to
                 minimise the vertical displacement compared to the site
                 altitude.
-            neighbourhood_size (int):
-                The length/width of a square neighbourhood centred upon the
-                nearest neighbour within which to find a neighbour that matches
-                the applied constraints. This number should typically be small
-                as we are looking for a nearby point.
+            search_radius (int or float):
+                The radius in units of the provided area grid coordinates (e.g.
+                metres for a Lambert Azimuthal Equal Areas grid defined in
+                metres), or always in metres for a lat/lon grid.
             site_coordinate_system (cartopy coordinate system):
                 The coordinate system of the sitelist coordinates that will be
                 provided. This defaults to be a latitude/longitude grid, a
                 PlateCarree projection.
+            site_x_coordinate (str):
+                The key that identifies site x coordinates in the provided site
+                dictionary. Defaults to longitude.
+            site_y_coordinate (str):
+                The key that identifies site y coordinates in the provided site
+                dictionary. Defaults to latitude.
+            grid_metadata_identifier (str):
+                A string to search for in the input cube attributes that
+                identifies the grid for which neighbours are being found. For
+                example, the default 'mosg' will return the Met Office grid
+                attributes mosg__grid_domain, mosg__grid_type, etc.
         """
         self.minimum_dz = minimum_dz
         self.land_constraint = land_constraint
@@ -92,15 +103,16 @@ class NeighbourSelection(object):
         self.site_y_coordinate = site_y_coordinate
         self.site_altitude = 'altitude'
         self.geodetic_coordinate_system = False
+        self.grid_metadata_identifier = grid_metadata_identifier
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return ('<NeighbourSelection: land_constraint: {}, ' +
                 'minimum_dz: {}, search_radius: {}, site_coordinate_system'
                 ': {}, site_x_coordinate:{}, site_y_coordinate: {}>').format(
-            self.land_constraint, self.minimum_dz, self.search_radius,
-            self.site_coordinate_system.__class__, self.site_x_coordinate,
-            self.site_y_coordinate)
+                    self.land_constraint, self.minimum_dz, self.search_radius,
+                    self.site_coordinate_system.__class__,
+                    self.site_x_coordinate, self.site_y_coordinate)
 
     def neighbour_finding_method_name(self):
         """
@@ -139,9 +151,9 @@ class NeighbourSelection(object):
                 in the target coordinate system, shaped as (n_sites, 2).
         """
         target_coordinate_system = cube.coord_system().as_cartopy_crs()
-        return coordinate_transform(self.site_coordinate_system,
-                                    target_coordinate_system,
-                                    x_points, y_points)[:, 0:2]
+
+        return target_coordinate_system.transform_points(
+            self.site_coordinate_system, x_points, y_points)[:, 0:2]
 
     @staticmethod
     def check_sites_are_within_domain(sites, site_coords, site_x_coords,
@@ -158,9 +170,12 @@ class NeighbourSelection(object):
             site_coords (np.array):
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
-            site_x_coords/site_y_coords (np.array):
-                The coordinates of the spot sites in their original coordinate
-                system, from which any invalid sites must be removed.
+            site_x_coords (np.array):
+                The x coordinates of the spot sites in their original
+                coordinate system, from which invalid sites must be removed.
+            site_y_coords (np.array):
+                The y coordinates of the spot sites in their original
+                coordinate system, from which invalid sites must be removed.
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
@@ -182,7 +197,7 @@ class NeighbourSelection(object):
         if domain_invalid[0].shape[0] > 0:
             msg = ("{} spot sites fall outside the grid domain and will not be"
                    " processed. These sites are:\n".format(
-                    len(domain_invalid[0])))
+                       len(domain_invalid[0])))
             dyn_msg = '{}\n'
             for site in np.array(sites)[domain_invalid]:
                 msg = msg + dyn_msg.format(site)
@@ -208,9 +223,8 @@ class NeighbourSelection(object):
                 Cube containing a representative grid.
         Returns:
             nearest_indices (np.array):
-                A list of shape (2, n_sites) that contains the x and y indices
-                of the nearest grid points to the sites. Note that the shape of
-                the returned array is reversed to ease use beyond this point.
+                A list of shape (n_sites, 2) that contains the x and y indices
+                of the nearest grid points to the sites.
         """
         nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
         for index, (x_point, y_point) in enumerate(site_coords):
@@ -407,7 +421,7 @@ class NeighbourSelection(object):
         # Create an array containing site altitudes, using the nearest point
         # orography height for any that are unset.
         site_altitudes = np.array([site.get(self.site_altitude, None)
-                                  for site in sites])
+                                   for site in sites])
         site_altitudes = np.where(np.isnan(site_altitudes.astype(float)),
                                   orography.data[tuple(nearest_indices.T)],
                                   site_altitudes)
@@ -463,7 +477,12 @@ class NeighbourSelection(object):
         neighbour_cube = build_spotdata_cube(
             data, 'grid_neighbours', 1, site_altitudes,
             site_y_coords, site_x_coords, wmo_ids,
-            neighbour_methods= [method_name],
+            neighbour_methods=[method_name],
             grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
+
+        # Apply the grid identifiers from the input cubes to the output cube.
+        neighbour_cube.attributes = {
+            k: v for (k, v) in orography.attributes.items()
+            if self.grid_metadata_identifier in k}
 
         return neighbour_cube
