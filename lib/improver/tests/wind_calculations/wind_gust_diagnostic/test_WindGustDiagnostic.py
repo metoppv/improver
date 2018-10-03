@@ -43,11 +43,12 @@ from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-def create_cube_with_percentile_coord(data=None,
-                                      standard_name=None,
-                                      perc_values=None,
-                                      perc_name='percentile_over_nbhood',
-                                      units=None):
+def create_cube_with_percentile_coord(
+        data=None,
+        standard_name=None,
+        perc_values=None,
+        perc_name='percentile_over_neighbourhood',
+        units=None):
     """Create a cube with percentile coord."""
     if perc_values is None:
         perc_values = [50.0]
@@ -154,7 +155,7 @@ class Test_update_metadata_after_max(IrisTest):
                                               perc_values=percentile_values,
                                               standard_name=gust))
         self.perc_coord = DimCoord(percentile_values,
-                                   long_name="percentile_over_nbhood",
+                                   long_name="percentile_over_neighbourhood",
                                    units="%")
         self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
 
@@ -241,8 +242,8 @@ class Test_extract_percentile_data(IrisTest):
             plugin.extract_percentile_data(self.cube_wg,
                                            self.wg_perc,
                                            "wind_speed_of_gust"))
-        self.assertEqual(perc_coord.name(), "percentile_over_nbhood")
-        self.assertEqual(result.coord("percentile_over_nbhood").points,
+        self.assertEqual(perc_coord.name(), "percentile_over_neighbourhood")
+        self.assertEqual(result.coord("percentile_over_neighbourhood").points,
                          [self.wg_perc])
 
 

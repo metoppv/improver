@@ -159,7 +159,7 @@ class Test__interpolate_percentiles(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        self.perc_coord = "percentile_over_nbhood"
+        self.perc_coord = "percentile_over_neighbourhood"
         cube = set_up_cube(data, "air_temperature", "degreesC")
         cube.coord("realization").rename(self.perc_coord)
         cube.coord(self.perc_coord).points = (
@@ -456,7 +456,7 @@ class Test_process(IrisTest):
             np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
-        self.perc_coord_mismatch = "percentile_over_nbhood"
+        self.perc_coord_mismatch = "percentile_over_neighbourhood"
         cube_mismatch = set_up_cube(data, "air_temperature", "degreesC")
         cube_mismatch.coord("realization").rename(self.perc_coord_mismatch)
         cube_mismatch.coord(self.perc_coord_mismatch).points = (

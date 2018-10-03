@@ -100,8 +100,8 @@ class Test_process(IrisTest):
         """Check this still works if a different percentile coord used."""
         cube = self.current_temperature_cube
         cube.coord("percentile_over_realization").rename(
-            "percentile_over_nbhood")
-        plen = len(cube.coord("percentile_over_nbhood").points)
+            "percentile_over_neighbourhood")
+        plen = len(cube.coord("percentile_over_neighbourhood").points)
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertEqual(len(result.coord("realization").points), plen)
