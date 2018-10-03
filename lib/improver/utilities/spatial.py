@@ -380,7 +380,8 @@ class OccurrenceWithinVicinity(object):
             scipy.ndimage.filters.maximum_filter(unmasked_cube_data,
                                                  size=grid_cells))
         if np.ma.is_masked(cube.data):
-            max_cube.data[~cube.data.mask] = max_data[~cube.data.mask]
+            # Update only the unmasked values
+            max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
         else:
             max_cube.data = max_data
         return max_cube

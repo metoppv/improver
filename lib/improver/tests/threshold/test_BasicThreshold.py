@@ -242,6 +242,23 @@ class Test_process(IrisTest):
             1, 1, 5, 5)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def test_masked_array(self):
+        """Test masked array works."""
+        cube = self.cube.copy()
+        data = np.zeros((1, 5, 5))
+        mask = np.zeros((1, 5, 5))
+        data[0][2][2] = 0.5
+        data[0][0][0] = -32768.0
+        mask[0][0][0] = 1
+        masked_data = np.ma.MaskedArray(data, mask=mask)
+        cube.data = masked_data
+        plugin = Threshold(0.1)
+        result = plugin.process(cube)
+        expected_result_array = data.reshape(1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1.0
+        self.assertArrayAlmostEqual(result.data.data, expected_result_array)
+        self.assertArrayEqual(result.data.mask, mask.reshape(1, 1, 5, 5))
+
     def test_threshold_fuzzy(self):
         """Test when a point is in the fuzzy threshold area."""
         plugin = Threshold(0.6, fuzzy_factor=self.fuzzy_factor)
