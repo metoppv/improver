@@ -548,7 +548,8 @@ class WeightedBlendAcrossWholeDimension(object):
             cube (iris.cube.Cube):
                 Cube to blend across the coord.
             weights (Optional list or np.array of weights):
-                or None (equivalent to equal weights).
+                1D, ordered by blending coordinate value.  If None, cube is
+                blended with equal weights across the blending dimension.
 
         Returns:
             result (iris.cube.Cube):
@@ -589,7 +590,8 @@ class WeightedBlendAcrossWholeDimension(object):
             raise ValueError(
                 '{} has no associated dimension'.format(self.coord))
 
-        # Ensure input cube is ascending along blending coordinate
+        # Ensure input cube is ascending along blending coordinate, so that
+        # weights match cube slices
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
 
         # Check that the points within the time coordinate are equal

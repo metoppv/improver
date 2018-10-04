@@ -82,6 +82,14 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
             Gradient parameter for default linear weights plugin
         cval (float):
             Parameter for default non-linear weights plugin
+
+    Returns:
+        weights (np.ndarray):
+            1D array of weights corresponding to slices in ascending order
+            of blending coordinate.  (Note: ChooseLinearWeights has the
+            option to create a 3D array of spatially-varying weights with the
+            "mask" option, however this is not currently supported by the
+            blending plugin.)
     """
     # sort input cube by blending coordinate
     cube = sort_coord_in_cube(cube, blend_coord, order="ascending")
