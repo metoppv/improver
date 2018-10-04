@@ -40,9 +40,60 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import (
     add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_manipulation import build_coordinate, merge_cubes
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
-    forecast_period_coord, unify_forecast_reference_time)
+    forecast_period_coord)
+
+
+def unify_forecast_reference_time(cubes, cycletime):
+    """Function to unify the forecast_reference_time across the input cubes
+    provided. The cycletime specified is used as the forecast_reference_time.
+    This function is intended for use in grid blending, where the models
+    being blended may not have been run at the same cycle time, but should
+    be given the same forecast period weightings.
+
+    Args:
+        cubes (iris.cube.CubeList or iris.cube.Cube):
+            Cubes that will have their forecast_reference_time unified.
+            If a single cube is provided the forecast_reference_time will be
+            updated. Any bounds on the forecast_reference_time coord will be
+            discarded.
+        cycletime (datetime.datetime):
+            Datetime for the cycletime that will be used to replace the
+            forecast_reference_time on the individual cubes.
+
+    Returns:
+        result_cubes (iris.cube.CubeList):
+            Cubes that have had their forecast_reference_time unified.
+
+    Raises:
+        ValueError: if forecast_reference_time is a dimension coordinate
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    result_cubes = iris.cube.CubeList([])
+    for cube in cubes:
+        frt_units = cube.coord('forecast_reference_time').units
+        frt_points = [frt_units.date2num(cycletime)]
+        frt_coord = build_coordinate(
+            frt_points, standard_name="forecast_reference_time", bounds=None,
+            template_coord=cube.coord('forecast_reference_time'))
+        cube.remove_coord("forecast_reference_time")
+        cube.add_aux_coord(frt_coord, data_dims=None)
+
+        # If a forecast period coordinate already exists on a cube, replace
+        # this coordinate, otherwise create a new coordinate.
+        fp_units = "seconds"
+        if cube.coords("forecast_period"):
+            fp_units = cube.coord("forecast_period").units
+            cube.remove_coord("forecast_period")
+        fp_coord = forecast_period_coord(
+            cube, force_lead_time_calculation=True, result_units=fp_units)
+        cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time"))
+        result_cubes.append(cube)
+    return result_cubes
 
 
 def rationalise_blend_time_coords(
@@ -79,7 +130,7 @@ def rationalise_blend_time_coords(
     # reference times to current cycle time
     if "model" in blend_coord and "forecast_period" in weighting_coord:
         if cycletime is None:
-            # take maximum of available forecast reference times
+            # take latest available forecast reference times
             dummy_cube = sort_coord_in_cube(cube, "forecast_reference_time")
             frt_point = dummy_cube.coord("forecast_reference_time").points[-1]
             dummy_coord = cube.coord("forecast_reference_time").copy(frt_point)

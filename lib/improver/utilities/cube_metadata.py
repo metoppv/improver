@@ -39,7 +39,6 @@ import iris
 
 from improver.utilities.cube_manipulation import (compare_coords,
                                                   build_coordinate)
-from improver.utilities.temporal import unify_forecast_reference_time
 
 
 # Define correct v1.2.0 meta-data for v1.1.0 data.

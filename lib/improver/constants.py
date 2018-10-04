@@ -93,3 +93,13 @@ U_EARTH_REPSILON = make_constant_with_units(EARTH_REPSILON, "1")
 # Dry Adiabatic Lapse Rate (DALR) in unit of K m-1
 DALR = -0.0098
 U_DALR = make_constant_with_units(DALR, "K m-1")
+
+# Define model_id keys to match mosg__model_configuration values
+MODEL_ID_DICT = {
+    1000: 'gl_det',
+    2000: 'gl_ens',
+    3000: 'uk_det',
+    4000: 'uk_ens',
+    5000: 'nc_det',
+    6000: 'nc_ens'
+    }
