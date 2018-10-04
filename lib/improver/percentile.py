@@ -124,6 +124,8 @@ class PercentileConverter(object):
                 percent=self.percentiles,
                 fast_percentile_method=self.fast_percentile_method)
             result.data = result.data.astype(data_type)
+            for coord in self.collapse_coord:
+                result.remove_coord(coord)
             return result
 
         raise CoordinateNotFoundError(

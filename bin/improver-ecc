@@ -113,7 +113,7 @@ def main():
         'Rebadging options', 'Options for rebadging the input percentiles '
         'as ensemble realizations.')
     rebadging.add_argument('--realization_numbers', default=None,
-                           metavar='REALIZATION_NUMBERS',
+                           metavar='REALIZATION_NUMBERS', nargs="+",
                            help='A list of ensemble realization numbers to '
                                 'use when rebadging the percentiles '
                                 'into realizations.')
