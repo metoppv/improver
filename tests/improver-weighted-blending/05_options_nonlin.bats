@@ -36,7 +36,7 @@
   KGO="weighted_blending/options_nonlin/kgo.nc"
 
   # Run weighted blending with non linear weights and sub-options and check it passes.
-  run improver weighted-blending 'nonlinear' 'time' 'weighted_mean' --cval 1.0 \
+  run improver weighted-blending 'nonlinear' 'forecast_reference_time' 'weighted_mean' --cval 1.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

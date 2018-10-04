@@ -38,7 +38,7 @@
   # Run weighted blending with expected coordinate values.
   run improver weighted-blending 'nonlinear' \
       --coord_exp_val "415635.0, 415636.0, 415637.0, 415638.0" \
-      'time' 'weighted_mean' \
+      'forecast_reference_time' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

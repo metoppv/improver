@@ -36,7 +36,7 @@
   KGO="weighted_blending/coord_adj/kgo.nc"
 
   # Run linear weighted blending with coord adj option.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' \
+  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc" \
       --coord_adj "lambda pnts: pnts[len(pnts)/2]"
