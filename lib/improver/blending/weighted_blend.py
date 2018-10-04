@@ -101,7 +101,7 @@ def rationalise_blend_time_coords(
     """
     Updates time coordinates on a cube before blending depending on
     the coordinate over which the blend will be performed.  Modifies
-    cube in place
+    cube in place.
 
     If blend_coord is forecast_reference_time, ensures the cube has
     a forecast_period dimension.  If blend_coord is forecast_period,
@@ -139,7 +139,10 @@ def rationalise_blend_time_coords(
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubes = unify_forecast_reference_time(cube, cycletime)
-        cube = merge_cubes(cubes)
+        if len(cubes) == 1:
+            cube, = cubes
+        else:
+            cube = merge_cubes(cubes)
 
 
 def conform_metadata(
@@ -549,7 +552,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Returns:
             result (iris.cube.Cube):
-                     containing the weighted blend across the chosen coord.
+                containing the weighted blend across the chosen coord.
 
         Raises:
             TypeError : If the first argument not a cube.
@@ -583,9 +586,10 @@ class WeightedBlendAcrossWholeDimension(object):
 
         coord_dim = cube.coord_dims(self.coord)
         if not coord_dim:
-            raise ValueError('{} is not a dim coord'.format(self.coord))
+            raise ValueError(
+                '{} has no associated dimension'.format(self.coord))
 
-        # Ensure input cube is ascending along specified coordinate
+        # Ensure input cube is ascending along blending coordinate
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
 
         # Check that the points within the time coordinate are equal

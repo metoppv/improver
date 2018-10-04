@@ -41,7 +41,6 @@ from iris.tests import IrisTest
 from iris.coords import AuxCoord, DimCoord
 
 from improver.blending.weighted_blend import rationalise_blend_time_coords
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_rationalise_blend_time_coords(IrisTest):
@@ -86,8 +85,6 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(self.cube, "forecast_reference_time")
         self.assertEqual(self.cube.coord("forecast_period"), reference_coord)
 
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences"])
     def test_unify_frt(self):
         """Test function equalises forecast reference times if weighting a
         model blend by forecast_period"""

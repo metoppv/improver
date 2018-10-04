@@ -40,13 +40,75 @@ from cf_units import Unit
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation import (
+    merge_cubes, sort_coord_in_cube)
 
 from improver.blending.weights import (
-    ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear)
+    ChooseWeightsLinear, ChooseDefaultWeightsLinear,
+    ChooseDefaultWeightsNonLinear)
 from improver.blending.weighted_blend import (
     conform_metadata, rationalise_blend_time_coords,
     WeightedBlendAcrossWholeDimension)
+
+
+def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
+                               weighting_coord=None, coord_unit=None,
+                               y0val=None, ynval=None, cval=None):
+    """
+    Wrapper for plugins to calculate blending weights using the command line
+    options specified.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube of input data to be blended
+        blend_coord (str):
+            Coordinate over which blending will be performed (eg "model" for
+            grid blending)
+        method (str):
+            Weights calculation method ("linear", "nonlinear", "dict" or
+            "mask")
+
+    Kwargs:
+        wts_dict (str):
+            File path to json file with parameters for linear weights
+            calculation
+        weighting_coord (str):
+            Coordinate over which linear weights should be calculated from dict
+        coord_unit (str or cf_units.Unit):
+            Unit of blending coordinate (for default weights plugins)
+        y0val (float):
+            Intercept parameter for default linear weights plugin
+        ynval (float):
+            Gradient parameter for default linear weights plugin
+        cval (float):
+            Parameter for default non-linear weights plugin
+    """
+    # sort input cube by blending coordinate
+    cube = sort_coord_in_cube(cube, blend_coord, order="ascending")
+
+    # calculate blending weights
+    if method == "dict":
+        # calculate linear weights from a dictionary
+        weights_dict = json.load(args.wts_dict)
+        weights_cube = ChooseWeightsLinear(
+            weighting_coord, config_coord_name=blend_coord,
+            config_dict=weights_dict).process(cube)
+
+        # sort weights cube by blending coordinate and extract
+        # data array as input to blending plugin
+        weights = sort_coord_in_cube(
+            weights_cube, blend_coord, order="ascending").data
+
+    elif method == "linear":
+        weights = ChooseDefaultWeightsLinear(
+            y0val=y0val, ynval=ynval).process(
+                cube, blend_coord, coord_unit=coord_unit)
+    else:
+        cvalue = cval if cval else 0.85
+        weights = ChooseDefaultWeightsNonLinear(cvalue).process(
+            cube, blend_coord, coord_unit=coord_unit)
+
+    return weights
 
 
 def main():
@@ -190,30 +252,17 @@ def main():
         conform_metadata(
             result, cube, args.coordinate, cycletime=args.cycletime)
 
-    # otherwise blend across specified dimension
+    # otherwise, calculate weights and blend across specified dimension
     else:
-        # add forecast period and / or unify forecast reference times
-        # for cycle blending NOTE ambiguity here, not what we want
         rationalise_blend_time_coords(
             cube, args.coordinate, cycletime=args.cycletime,
             weighting_coord=args.weighting_coord)
 
-        # calculate blending weights
-        if args.wts_calc_method == "dict":
-            # calculate linear weights from a dictionary
-            weights_dict = json.load(args.wts_dict)
-            weights_cube = ChooseWeightsLinear(
-                args.weighting_coord, config_coord_name=args.coord,
-                config_dict=weights_dict).process(cube)
-
-        elif args.wts_calc_method == "linear":
-            weights = ChooseDefaultWeightsLinear(
-                y0val=args.y0val, ynval=args.ynval).process(
-                    cube, args.coordinate, coord_unit=coord_unit)
-        else:
-            cval = args.cval if args.cval else 0.85
-            weights = ChooseDefaultWeightsNonLinear(cval).process(
-                cube, args.coordinate, coord_unit=coord_unit)
+        weights = calculate_blending_weights(
+            cube, args.coordinate, args.wts_calc_method,
+            wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
+            coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
+            cval=args.cval)
 
         # blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(

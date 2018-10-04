@@ -805,7 +805,8 @@ class ChooseDefaultWeightsLinear(object):
                        "evenly", "proportional".
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -900,7 +901,8 @@ class ChooseDefaultWeightsNonLinear(object):
                         "evenly", "proportional".
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -1012,7 +1014,8 @@ class ChooseDefaultWeightsTriangular(object):
 
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
