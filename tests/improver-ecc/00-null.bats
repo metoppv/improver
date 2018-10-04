@@ -39,7 +39,7 @@ usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
                     [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS]
+                    [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                     INPUT_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]

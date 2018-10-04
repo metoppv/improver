@@ -63,7 +63,9 @@ optional arguments:
                         'latitude longitude'. This argument must be provided
                         when collapsing a coordinate or coordinates to create
                         percentiles, but is redundant when converting
-                        probabilities to percentiles and may be omitted.
+                        probabilities to percentiles and may be omitted. This
+                        coordinate(s) will be removed from and replaced by a
+                        percentile coordinate.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
                         calculate data, e.g. --percentiles 0 33.3 66.6 100
