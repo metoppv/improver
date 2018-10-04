@@ -97,7 +97,7 @@ def unify_forecast_reference_time(cubes, cycletime):
 
 
 def rationalise_blend_time_coords(
-    cube, blend_coord, cycletime=None, weighting_coord=None):
+        cube, blend_coord, cycletime=None, weighting_coord=None):
     """
     Updates time coordinates on a cube before blending depending on
     the coordinate over which the blend will be performed.  Modifies
@@ -117,7 +117,8 @@ def rationalise_blend_time_coords(
         cycletime (str or None):
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
         weighting_coord (str or None):
-            The weighting coordinate 
+            The coordinate across which weights will be scaled in a
+            multi-model blend
     """
     if "forecast_reference_time" in blend_coord:
         coord_names = [x.name() for x in cube.coords()]
@@ -671,7 +672,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 if weights is None:
                     num = len(cube_thres.coord(self.coord).points)
                     weights = (np.ones(num, dtype=np.float32) /
-                                np.float32(num))
+                               np.float32(num))
                 # Set up aggregator
                 PERCENTILE_BLEND = (Aggregator(
                     'mean',  # Use CF-compliant cell method.
@@ -720,7 +721,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 if weights is None:
                     num = len(cube_thres.coord(self.coord).points)
                     weights = (np.ones(num, np.float32) /
-                                np.float32(num))
+                               np.float32(num))
                 # Set up aggregator
                 MAX_PROBABILITY = (Aggregator(
                     'maximum',  # Use CF-compliant cell method.

@@ -111,9 +111,8 @@ def main():
                                        'calculation in '
                                        'ChooseDefaultWeightsLinear')
     linear.add_argument('--ynval', metavar='LINEAR_END_POINT',
-                          type=float,
-                          help='The relative value of the weighting end '
-                               'point for choosing default linear weights.')
+                        type=float, help='The relative value of the weighting '
+                        'end point for choosing default linear weights.')
     linear.add_argument('--y0val', metavar='LINEAR_STARTING_POINT', type=float,
                         help='The relative value of the weighting start '
                              'point for choosing default linear weights. '
@@ -159,8 +158,8 @@ def main():
     # versa, exit with error
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
-    if ((args.wts_calc_method == "nonlinear") and
-          np.any([args.y0val, args.ynval])):
+    if ((args.wts_calc_method == "nonlinear") and np.any([args.y0val,
+                                                          args.ynval])):
         parser.wrong_args_error('y0val, ynval', 'non-linear')
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')

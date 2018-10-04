@@ -736,8 +736,8 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     if isinstance(coord_to_sort, DimCoord):
         if coord_to_sort.circular:
             msg = ("The {} coordinate is circular. If the values in the "
-                  "coordinate span a boundary then the sorting may "
-                  "return an undesirable result.".format(coord_to_sort.name()))
+                   "coordinate span a boundary then the sorting may return "
+                   "an undesirable result.".format(coord_to_sort.name()))
             warnings.warn(msg)
     dim, = cube.coord_dims(coord_to_sort)
     index = [slice(None)] * cube.ndim
