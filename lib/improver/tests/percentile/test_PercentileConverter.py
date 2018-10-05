@@ -108,9 +108,6 @@ class Test_process(IrisTest):
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 1, 11))
-        # Check demoted longitude coordinate exists as scalar with bounds.
-        self.assertArrayEqual(result.coord('longitude').bounds,
-                              [[-180., 180.]])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -136,10 +133,6 @@ class Test_process(IrisTest):
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 1))
-        # Check demoted dimension coordinates exists as scalars with bounds.
-        self.assertArrayEqual(result.coord('longitude').bounds,
-                              [[-180., 180.]])
-        self.assertArrayEqual(result.coord('latitude').bounds, [[-90., 90.]])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -169,9 +162,6 @@ class Test_process(IrisTest):
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 1, 11))
-        # Check demoted longitude coordinate exists as scalar with bounds.
-        self.assertArrayEqual(result.coord('longitude').bounds,
-                              [[-180., 180.]])
 
     def test_unavailable_collapse_coord(self):
         """Test that the plugin handles a collapse_coord that is not

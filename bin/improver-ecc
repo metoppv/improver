@@ -113,7 +113,7 @@ def main():
         'Rebadging options', 'Options for rebadging the input percentiles '
         'as ensemble realizations.')
     rebadging.add_argument('--realization_numbers', default=None,
-                           metavar='REALIZATION_NUMBERS',
+                           metavar='REALIZATION_NUMBERS', nargs="+",
                            help='A list of ensemble realization numbers to '
                                 'use when rebadging the percentiles '
                                 'into realizations.')
@@ -148,6 +148,9 @@ def main():
             result_cube, raw_forecast, random_ordering=args.random_ordering,
             random_seed=args.random_seed)
     elif args.rebadging:
+        if args.realization_numbers is not None:
+            args.realization_numbers = (
+                [int(num) for num in args.realization_numbers])
         result_cube = RebadgePercentilesAsRealizations().process(
             result_cube, ensemble_realization_numbers=args.realization_numbers)
 

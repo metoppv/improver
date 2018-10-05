@@ -39,7 +39,7 @@ usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
                     (--reordering | --rebadging)
                     [--raw_forecast_filepath RAW_FORECAST_FILE]
                     [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS]
+                    [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                     INPUT_FILE OUTPUT_FILE
 
 Apply Ensemble Copula Coupling to a file whose data can be loaded as a single
@@ -93,7 +93,7 @@ Reordering options:
 Rebadging options:
   Options for rebadging the input percentiles as ensemble realizations.
 
-  --realization_numbers REALIZATION_NUMBERS
+  --realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]
                         A list of ensemble realization numbers to use when
                         rebadging the percentiles into realizations.
 __HELP__

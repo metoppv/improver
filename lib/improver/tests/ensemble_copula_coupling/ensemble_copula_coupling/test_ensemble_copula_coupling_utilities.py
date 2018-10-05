@@ -352,7 +352,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube_name = "air_temperature"
         cube_units = Unit("degreesC")
-        bounds_pairing = (-40, 50)
+        bounds_pairing = (-140, 60)
         result = (
             get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
@@ -365,7 +365,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube_name = "air_temperature"
         cube_units = Unit("fahrenheit")
-        bounds_pairing = (-40, 122)  # In fahrenheit
+        bounds_pairing = (-220, 140)  # In fahrenheit
         result = (
             get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)

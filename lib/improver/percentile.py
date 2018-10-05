@@ -53,7 +53,9 @@ class PercentileConverter(object):
 
         Args:
             collapse_coord (str or list of str):
-                The name of the coordinate(s) to collapse over.
+                The name of the coordinate(s) to collapse over. This
+                coordinate(s) will no longer be present on the output cube, as
+                it will have been replaced by the percentile coordinate.
 
             percentiles (Iterable list of floats or None):
                 Percentile values at which to calculate; if not provided uses
@@ -124,6 +126,8 @@ class PercentileConverter(object):
                 percent=self.percentiles,
                 fast_percentile_method=self.fast_percentile_method)
             result.data = result.data.astype(data_type)
+            for coord in self.collapse_coord:
+                result.remove_coord(coord)
             return result
 
         raise CoordinateNotFoundError(

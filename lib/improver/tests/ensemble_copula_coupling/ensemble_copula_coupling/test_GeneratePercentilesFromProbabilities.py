@@ -536,15 +536,15 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific number of percentiles.
         """
-        data = np.array([[[[21.5, 8.75, 11.],
-                           [8.33333333, 8.75, -16.],
-                           [-16., -25., -28.]]],
-                         [[[31., 10., 12.],
+        data = np.array([[[[24., 8.75, 11.],
+                           [8.33333333, 8.75, -66.],
+                           [-66., -93.75, -103.]]],
+                         [[[36., 10., 12.],
                            [10., 10., 8.],
-                           [8., -10., -16.]]],
-                         [[[40.5, 11.66666667, 31.],
+                           [8., -47.5, -66.]]],
+                         [[[48., 11.66666667, 36.],
                            [11.66666667, 11., 10.5],
-                           [9.66666667, 5., -4.]]]])
+                           [9.66666667, -1.25, -29.]]]])
 
         cube = self.current_temperature_forecast_cube
         no_of_percentiles = 3
@@ -561,9 +561,9 @@ class Test_process(IrisTest):
         data values for a specific percentile passes in as a single realization
         list.
         """
-        data = np.array([[[[21.5, 8.75, 11.],
-                           [8.33333333, 8.75, -16.],
-                           [-16., -25., -28.]]]])
+        data = np.array([[[[24., 8.75, 11.],
+                           [8.33333333, 8.75, -66.],
+                           [-66., -93.75, -103.]]]])
 
         cube = self.current_temperature_forecast_cube
         percentiles = [25]
@@ -579,9 +579,9 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific percentile passed in as a value.
         """
-        data = np.array([[[[21.5, 8.75, 11.],
-                           [8.33333333, 8.75, -16.],
-                           [-16., -25., -28.]]]])
+        data = np.array([[[[24., 8.75, 11.],
+                           [8.33333333, 8.75, -66.],
+                           [-66., -93.75, -103.]]]])
 
         cube = self.current_temperature_forecast_cube
         percentiles = 25
@@ -597,15 +597,15 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific set of percentiles.
         """
-        data = np.array([[[[21.5, 8.75, 11.],
-                           [8.33333333, 8.75, -16.],
-                           [-16., -25., -28.]]],
-                         [[[31., 10., 12.],
+        data = np.array([[[[24., 8.75, 11.],
+                           [8.33333333, 8.75, -66.],
+                           [-66., -93.75, -103.]]],
+                         [[[36., 10., 12.],
                            [10., 10., 8.],
-                           [8., -10., -16.]]],
-                         [[[40.5, 11.66666667, 31.],
+                           [8., -47.5, -66.]]],
+                         [[[48., 11.66666667, 36.],
                            [11.66666667, 11., 10.5],
-                           [9.66666667, 5., -4.]]]])
+                           [9.66666667, -1.25, -29.]]]])
 
         cube = self.current_temperature_forecast_cube
         percentiles = [25, 50, 75]
@@ -621,15 +621,15 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values without specifying the number of percentiles.
         """
-        data = np.array([[[[21.5, 8.75, 11.],
-                           [8.33333333, 8.75, -16.],
-                           [-16., -25., -28.]]],
-                         [[[31., 10., 12.],
+        data = np.array([[[[24., 8.75, 11.],
+                           [8.33333333, 8.75, -66.],
+                           [-66., -93.75, -103.]]],
+                         [[[36., 10., 12.],
                            [10., 10., 8.],
-                           [8., -10., -16.]]],
-                         [[[40.5, 11.66666667, 31.],
+                           [8., -47.5, -66.]]],
+                         [[[48., 11.66666667, 36.],
                            [11.66666667, 11., 10.5],
-                           [9.66666667, 5., -4.]]]])
+                           [9.66666667, -1.25, -29.]]]])
 
         cube = self.current_temperature_forecast_cube
         plugin = Plugin()
