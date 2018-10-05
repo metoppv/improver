@@ -148,6 +148,9 @@ def main():
             result_cube, raw_forecast, random_ordering=args.random_ordering,
             random_seed=args.random_seed)
     elif args.rebadging:
+        if args.realization_numbers is not None:
+            args.realization_numbers = (
+                [int(num) for num in args.realization_numbers])
         result_cube = RebadgePercentilesAsRealizations().process(
             result_cube, ensemble_realization_numbers=args.realization_numbers)
 
