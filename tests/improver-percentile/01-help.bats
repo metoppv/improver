@@ -64,7 +64,7 @@ optional arguments:
                         when collapsing a coordinate or coordinates to create
                         percentiles, but is redundant when converting
                         probabilities to percentiles and may be omitted. This
-                        coordinate(s) will be removed from and replaced by a
+                        coordinate(s) will be removed and replaced by a
                         percentile coordinate.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to

@@ -69,7 +69,7 @@ def main():
                         "must be provided when collapsing a coordinate or "
                         "coordinates to create percentiles, but is redundant "
                         "when converting probabilities to percentiles and may "
-                        "be omitted. This coordinate(s) will be removed from "
+                        "be omitted. This coordinate(s) will be removed "
                         "and replaced by a percentile coordinate.")
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--percentiles", metavar="PERCENTILES",
