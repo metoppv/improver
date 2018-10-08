@@ -538,7 +538,7 @@ class Test_determine_schema(IrisTest):
         cubes = CubeList([set_up_spot_cube(280)])
         self.plugin = SpotDatabase("csv", "output", "improver", "time",
                                    "index")
-        self.dataframe = self.plugin.to_dataframe(cubes)
+        self.plugin.to_dataframe(cubes)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
