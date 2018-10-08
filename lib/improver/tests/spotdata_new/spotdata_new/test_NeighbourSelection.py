@@ -75,7 +75,11 @@ class Test_NeighbourSelection(IrisTest):
         global_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes={'mosg__grid_domain': 'global'})
+            attributes={
+                'mosg__grid_domain': 'global',
+                'mosg__grid_type': 'standard',
+                'mosg__grid_version': '1.2.0',
+                'mosg__model_configuration': 'gl_det'})
 
         # Regional grid coordinates and cubes
         projection = iris.coord_systems.LambertAzimuthalEqualArea(
@@ -96,7 +100,11 @@ class Test_NeighbourSelection(IrisTest):
         region_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes={'mosg__grid_domain': 'region'})
+            attributes={
+                'mosg__grid_domain': 'region',
+                'mosg__grid_type': 'standard',
+                'mosg__grid_version': '1.2.0',
+                'mosg__model_configuration': 'region_det'})
 
         # Create site lists
         self.global_sites = [
@@ -246,10 +254,14 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
     def test_all_valid(self):
         """Test case in which all sites are valid and fall within domain."""
         plugin = NeighbourSelection()
-        sites = [{'longitude': 1.0E4, 'latitude': 1.0E4},
-                 {'longitude': 1.0E5, 'latitude': 5.0E4}]
-        x_points = np.array([site['longitude'] for site in sites])
-        y_points = np.array([site['latitude'] for site in sites])
+        sites = [{'projection_x_coordinate': 1.0E4,
+                  'projection_y_coordinate': 1.0E4},
+                 {'projection_x_coordinate': 1.0E5,
+                  'projection_y_coordinate': 5.0E4}]
+        x_points = np.array(
+            [site['projection_x_coordinate'] for site in sites])
+        y_points = np.array(
+            [site['projection_y_coordinate'] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
         sites_out, site_coords_out, out_x, out_y = (
@@ -449,7 +461,9 @@ class Test_build_KDTree(Test_NeighbourSelection):
 class Test_select_minimum_dz(Test_NeighbourSelection):
 
     """Test extraction of the minimum height difference points from a provided
-    array of neighbours."""
+    array of neighbours. Note that the region orography has a series of islands
+    at a y index of 4, changing elevation with x. As such the nodes are chosen
+    along this line, e.g. [0, 4], [1, 4], etc."""
 
     def test_basic(self):
         """Test a simple case where the first element in the provided lists
@@ -458,7 +472,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         site_altitude = 3.
-        nodes = np.array([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]])
+        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.arange(5)
         indices = np.arange(5)
 
@@ -475,7 +489,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         site_altitude = 5.
-        nodes = np.array([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]])
+        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.array([0, 1, 2, 3, np.inf])
         indices = np.arange(5)
 
@@ -504,6 +518,28 @@ class Test_process(Test_NeighbourSelection):
 
     """Test the process method of the NeighbourSelection class."""
 
+    def test_non_metre_spatial_dimensions(self):
+        """Test an error is raised if a regional grid is provided for which the
+        spatial coordinates do not have units of metres."""
+
+        self.region_orography.coord(axis='x').convert_units('feet')
+        msg = 'Cube spatial coordinates for regional grids'
+
+        plugin = NeighbourSelection()
+        with self.assertRaisesRegex(ValueError, msg):
+            result = plugin.process(self.region_sites, self.region_orography,
+                                    self.region_land_mask)
+
+    def test_different_cube_grids(self):
+        """Test an error is raised if the land mask and orography cubes
+        provided are on different grids."""
+
+        msg = 'Orography and land_mask cubes are not on the same'
+        plugin = NeighbourSelection()
+        with self.assertRaisesRegex(ValueError, msg):
+            result = plugin.process(self.region_sites, self.region_orography,
+                                    self.global_land_mask)
+
     def test_global_attribute(self):
         """Test that a cube is returned with an attribute identifying the
         grid domain."""
@@ -512,9 +548,27 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(self.global_sites, self.global_orography,
                                 self.global_land_mask)
 
-        expected = {'mosg__grid_domain': 'global'}
+        expected = {'mosg__grid_domain': 'global',
+                    'mosg__grid_type': 'standard',
+                    'mosg__grid_version': '1.2.0',
+                    'mosg__model_configuration': 'gl_det'}
+
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertDictEqual(result.attributes, expected)
+
+    def test_wmo_ids(self):
+        """Test that the returned cube has the wmo_ids present when they are
+        available. Should be None when they are not provided."""
+
+        plugin = NeighbourSelection()
+        sites = self.global_sites + [self.global_sites.copy()[0].copy()]
+        sites[1]['wmo_id'] = None
+        expected = [1, None]
+
+        result = plugin.process(sites, self.global_orography,
+                                self.global_land_mask)
+
+        self.assertArrayEqual(result.coord('wmo_id').points, expected)
 
     def test_global_nearest(self):
         """Test that a cube is returned, here using a conventional site list
@@ -589,7 +643,11 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(self.region_sites, self.region_orography,
                                 self.region_land_mask)
 
-        expected = {'mosg__grid_domain': 'region'}
+        expected = {'mosg__grid_domain': 'region',
+                    'mosg__grid_type': 'standard',
+                    'mosg__grid_version': '1.2.0',
+                    'mosg__model_configuration': 'region_det'}
+
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertDictEqual(result.attributes, expected)
 

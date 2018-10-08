@@ -75,10 +75,9 @@ class NeighbourSelection(object):
                 If True the selected neighbouring grid point must be chosen to
                 minimise the vertical displacement compared to the site
                 altitude.
-            search_radius (int or float):
-                The radius in units of the provided area grid coordinates (e.g.
-                metres for a Lambert Azimuthal Equal Areas grid defined in
-                metres), or always in metres for a lat/lon grid.
+            search_radius (float):
+                The radius in metres from a spot site within which to search
+                for a grid point neighbour.
             site_coordinate_system (cartopy coordinate system):
                 The coordinate system of the sitelist coordinates that will be
                 provided. This defaults to be a latitude/longitude grid, a
@@ -132,7 +131,9 @@ class NeighbourSelection(object):
     def _transform_sites_coordinate_system(self, x_points, y_points, cube):
         """
         Function to convert coordinate pairs that specify spot sites into the
-        coordinate system of the model from which data will be extracted.
+        coordinate system of the model from which data will be extracted. Note
+        that the cartopy functionality returns a z-coordinate which we do not
+        want in this case, as such only the first two columns are returned.
 
         Args:
             x_points (np.array):
@@ -148,7 +149,8 @@ class NeighbourSelection(object):
         Returns:
             np.array:
                 An array containing the x and y coordinates of the spot sites
-                in the target coordinate system, shaped as (n_sites, 2).
+                in the target coordinate system, shaped as (n_sites, 2). The
+                z coordinate column is excluded from the return.
         """
         target_coordinate_system = cube.coord_system().as_cartopy_crs()
 
@@ -164,9 +166,9 @@ class NeighbourSelection(object):
         of each rejected site are printed.
 
         Args:
-            sites (dict):
-                A dictionary defining the spot sites for which neighbours are
-                to be found.
+            sites (list of dicts):
+                A list of dictionaries defining the spot sites for which
+                neighbours are to be found.
             site_coords (np.array):
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
@@ -194,10 +196,10 @@ class NeighbourSelection(object):
             (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
             (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
 
-        if domain_invalid[0].shape[0] > 0:
+        num_invalid = len(domain_invalid[0])
+        if num_invalid > 0:
             msg = ("{} spot sites fall outside the grid domain and will not be"
-                   " processed. These sites are:\n".format(
-                       len(domain_invalid[0])))
+                   " processed. These sites are:\n".format(num_invalid))
             dyn_msg = '{}\n'
             for site in np.array(sites)[domain_invalid]:
                 msg = msg + dyn_msg.format(site)
@@ -374,9 +376,9 @@ class NeighbourSelection(object):
         of the selected grid point neighbour.
 
         Args:
-            sites (dict):
-                A dictionary defining the spot sites for which neighbours are
-                to be found.
+            sites (list of dicts):
+                A list of dictionaries defining the spot sites for which
+                neighbours are to be found.
             orography (iris.cube.Cube):
                 A cube of orography, used to obtain the grid point altitudes.
             land_mask (iris.cube.Cube):
@@ -389,9 +391,22 @@ class NeighbourSelection(object):
                 imposed constraints.
         """
         index_nodes = []
-        # Check if we are dealing with a global grid
+        # Check if we are dealing with a global grid.
         self.geodetic_coordinate_system = (
             orography.coord_system().as_cartopy_crs().is_geodetic())
+
+        # Exclude regional grids with spatial dimensions other than metres.
+        if not self.geodetic_coordinate_system:
+            if not orography.coord(axis='x').units == 'metres':
+                msg = ('Cube spatial coordinates for regional grids must be'
+                       'in metres to match the defined search_radius.')
+                raise ValueError(msg)
+
+        # Ensure land_mask and orography are on the same grid.
+        if not orography.dim_coords == land_mask.dim_coords:
+            msg = ('Orography and land_mask cubes are not on the same '
+                   'grid.')
+            raise ValueError(msg)
 
         # Enforce x-y coordinate order for input cubes.
         orography = enforce_coordinate_ordering(
@@ -463,7 +478,7 @@ class NeighbourSelection(object):
                                   orography.data[tuple(nearest_indices.T)])
 
         # Create a list of WMO IDs if available.
-        wmo_ids = [site.get('wmo_id', 0) for site in sites]
+        wmo_ids = [site.get('wmo_id', None) for site in sites]
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name
