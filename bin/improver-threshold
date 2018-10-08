@@ -161,8 +161,8 @@ def main():
     else:
         # Raise warning if result_no_collapse_coord is masked array
         if np.ma.isMaskedArray(result_no_collapse_coord.data):
-             warnings.warn("Collapse-coord option not fully tested with "
-                           "masked data.")
+            warnings.warn("Collapse-coord option not fully tested with "
+                          "masked data.")
         """ This is where we fix values for y0val, slope and weighting_mode.
             In this case they are fixed to the values required for realization
             collapse. This can be changed if other functionality needs to be
