@@ -161,7 +161,7 @@ class Test_maximum_within_vicinity(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_masked_data(self):
-        """Test works OK for masked data."""
+        """Test masked values are ignored in OccurrenceWithinVicinity."""
         expected = np.array(
             [[1., 1., 1., 0., 10.],
              [1., 1., 1., 1., 1.],

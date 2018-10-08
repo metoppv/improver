@@ -243,7 +243,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_masked_array(self):
-        """Test masked array works."""
+        """Test masked array are handled correctly.
+        Masked values are preserverd following thresholding."""
         cube = self.cube.copy()
         data = np.zeros((1, 5, 5))
         mask = np.zeros((1, 5, 5))
