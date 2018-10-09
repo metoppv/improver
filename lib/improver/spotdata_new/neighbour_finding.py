@@ -65,7 +65,7 @@ class NeighbourSelection(object):
                  search_radius=1.0E4,
                  site_coordinate_system=ccrs.PlateCarree(),
                  site_x_coordinate='longitude', site_y_coordinate='latitude',
-                 grid_metadata_identifier='mosg'):
+                 grid_metadata_identifier='mosg', node_limit=36):
         """
         Args:
             land_constraint (bool):
@@ -93,6 +93,10 @@ class NeighbourSelection(object):
                 identifies the grid for which neighbours are being found. For
                 example, the default 'mosg' will return the Met Office grid
                 attributes mosg__grid_domain, mosg__grid_type, etc.
+            node_limit (int):
+                The upper limit for the number of nearest neighbours to return
+                when querying the tree for a selection of neighbours from which
+                one matching the minimum_dz constraint will be picked.
         """
         self.minimum_dz = minimum_dz
         self.land_constraint = land_constraint
@@ -103,6 +107,7 @@ class NeighbourSelection(object):
         self.site_altitude = 'altitude'
         self.geodetic_coordinate_system = False
         self.grid_metadata_identifier = grid_metadata_identifier
+        self.node_limit = node_limit
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -308,16 +313,17 @@ class NeighbourSelection(object):
 
         return spatial.cKDTree(nodes), index_nodes
 
-    @staticmethod
-    def select_minimum_dz(orography, site_altitude, index_nodes,
+    def select_minimum_dz(self, orography, site_altitude, index_nodes,
                           distance, indices):
         """
         Given a selection of nearest neighbours to a given site, this function
         calculates the absolute vertical displacement between the site and the
         neighbours. It then returns grid indices of the neighbour with the
         minimum vertical displacement (i.e. at the most similar altitude). The
-        number of neighbours to consider is a maximum of 36, but these may be
-        limited by the imposed search_radius.
+        number of neighbours to consider is a maximum of node_limit, but these
+        may be limited by the imposed search_radius, or this limit may be
+        insufficient to reach the search radius, in which case a warning is
+        raised.
 
         Args:
             orography (iris.cube.Cube):
@@ -346,6 +352,14 @@ class NeighbourSelection(object):
         # If no valid neighbours are available in the tree, return None.
         if valid_indices[0].shape[0] == 0:
             return None
+
+        # If the last distance is finite the number of tree nodes may not be
+        # sufficient to fill the search radius, raise a warning.
+        if np.isfinite(distance[-1]):
+            msg = ('Limit on number of nearest neighbours to return, {}, may '
+                   'not be sufficiently large to fill search_radius {}'.format(
+                    self.node_limit, self.search_radius))
+            warnings.warn(msg)
 
         distance = distance[valid_indices]
         indices = indices[valid_indices]
@@ -461,7 +475,7 @@ class NeighbourSelection(object):
             else:
                 distances, node_indices = tree.query(
                     [site_coords], distance_upper_bound=self.search_radius,
-                    k=36)
+                    k=self.node_limit)
 
                 for index, (distance, indices) in enumerate(zip(
                         distances[0], node_indices[0])):

@@ -278,11 +278,17 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
     def test_some_invalid(self, warning_list=None):
         """Test case with some sites falling outside the regional domain."""
         plugin = NeighbourSelection()
-        sites = [{'longitude': 1.0E4, 'latitude': 1.0E4},
-                 {'longitude': 1.0E5, 'latitude': 5.0E4},
-                 {'longitude': 1.0E6, 'latitude': 1.0E5}]
-        x_points = np.array([site['longitude'] for site in sites])
-        y_points = np.array([site['latitude'] for site in sites])
+        sites = [{'projection_x_coordinate': 1.0E4,
+                  'projection_y_coordinate': 1.0E4},
+                 {'projection_x_coordinate': 1.0E5,
+                  'projection_y_coordinate': 5.0E4},
+                 {'projection_x_coordinate': 1.0E6,
+                  'projection_y_coordinate': 1.0E5}]
+
+        x_points = np.array(
+            [site['projection_x_coordinate'] for site in sites])
+        y_points = np.array(
+            [site['projection_y_coordinate'] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
         sites_out, site_coords_out, out_x, out_y = (
@@ -465,7 +471,8 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
     at a y index of 4, changing elevation with x. As such the nodes are chosen
     along this line, e.g. [0, 4], [1, 4], etc."""
 
-    def test_basic(self):
+    @ManageWarnings(record=True)
+    def test_basic(self, warning_list=True):
         """Test a simple case where the first element in the provided lists
         has the smallest vertical displacement to the site. Expect the
         coordinates of the first node to be returned."""
@@ -504,7 +511,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         site_altitude = 5.
-        nodes = np.array([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]])
+        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.full(5, np.inf)
         indices = np.arange(5)
 
@@ -512,6 +519,27 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
                                           site_altitude, nodes,
                                           distance, indices)
         self.assertEqual(result, None)
+
+    @ManageWarnings(record=True)
+    def test_incomplete_search(self, warning_list=None):
+        """Test a warning is raised when the number of nearest neighbours
+        searched for the minimum dz neighbour does not exhaust the
+        search_radius."""
+
+        plugin = NeighbourSelection(search_radius=6)
+        site_altitude = 3.
+        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
+        distance = np.arange(5)
+        indices = np.arange(5)
+
+        result = plugin.select_minimum_dz(self.region_orography,
+                                          site_altitude, nodes,
+                                          distance, indices)
+
+        msg = "Limit on number of nearest neighbours"
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        assert issubclass(warning_list[0].category, UserWarning)
+
 
 
 class Test_process(Test_NeighbourSelection):
