@@ -254,6 +254,11 @@ class BasicThreshold(object):
                 truth_value = 1. - truth_value
 
             cube.data = truth_value
+            # Overwrite masked values that have been thresholded
+            # with the un-thresholded values from the input cube.
+            if np.ma.is_masked(cube.data):
+                cube.data[input_cube.data.mask] = (
+                    input_cube.data[input_cube.data.mask])
             coord = iris.coords.DimCoord(
                 np.array([threshold], dtype=np.float32),
                 long_name="threshold",

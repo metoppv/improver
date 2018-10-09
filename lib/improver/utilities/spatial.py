@@ -370,10 +370,20 @@ class OccurrenceWithinVicinity(object):
         grid_cells = (2 * grid_cell_y) + 1
 
         max_cube = cube.copy()
+        unmasked_cube_data = cube.data.copy()
+        if np.ma.is_masked(cube.data):
+            unmasked_cube_data = cube.data.data.copy()
+            unmasked_cube_data[cube.data.mask] = np.nan
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
-        max_cube.data = (
-            scipy.ndimage.filters.maximum_filter(cube.data, size=grid_cells))
+        max_data = (
+            scipy.ndimage.filters.maximum_filter(unmasked_cube_data,
+                                                 size=grid_cells))
+        if np.ma.is_masked(cube.data):
+            # Update only the unmasked values
+            max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
+        else:
+            max_cube.data = max_data
         return max_cube
 
     def process(self, cube):
