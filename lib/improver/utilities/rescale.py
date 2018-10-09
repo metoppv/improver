@@ -117,9 +117,9 @@ def apply_double_scaling(data_cube, scaled_cube,
             This array will have the same dimensions as scaled_cube.
     """
     # Where data are below the specified mid-point (data_vals[1]):
-    #   Set rescaled_data to be a rescaled value between the first and mid-point
+    #  Set rescaled_data to be a rescaled value between the first and mid-point
     # Elsewhere
-    #   Set rescaled_data to be a rescaled value between the mid- and last point
+    #  Set rescaled_data to be a rescaled value between the mid- and last point
     rescaled_data = np.where(
         data_cube.data < data_vals[1],
         rescale(data_cube.data,
