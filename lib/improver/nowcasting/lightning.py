@@ -63,12 +63,11 @@ class NowcastLightning(object):
             -1: No lightning at point or within 50 km
 
     precipitation mapping (for prob(precip > 0.5 mm/hr)):
-        upper:  precip probability >= 0.1 =>
-            max lightning prob 1.0 (LR1)
-        middle: precip probability >= 0.05 => 
-            max lightning prob 0.25 (LR2)
-        lower:  precip probability >= 0.0 => 
-            max lightning prob 0.0067 (LR3)
+        upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
+
+        middle: precip probability >= 0.05 => max lightning prob 0.25 (LR2)
+
+        lower:  precip probability >= 0.0 => max lightning prob 0.0067 (LR3)
 
         heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25 (LR2)
                 equiv radar refl 37dBZ
@@ -76,12 +75,11 @@ class NowcastLightning(object):
                 equiv radar refl 48dBZ
 
     VII (vertically-integrated ice) mapping (kg/m2):
-        upper:  VII 2.0 => 
-            max lightning prob 0.9
-        middle: VII 1.0 => 
-            max lightning prob 0.5
-        lower:  VII 0.5 => 
-            max lightning prob 0.1
+        upper:  VII 2.0 => max lightning prob 0.9
+
+        middle: VII 1.0 => max lightning prob 0.5
+
+        lower:  VII 0.5 => max lightning prob 0.1
     """
     def __init__(self, radius=10000.):
         """
@@ -172,7 +170,7 @@ class NowcastLightning(object):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
-            1. Rename to 
+            1. Rename to
                 "probability_of_lightning"
             2. Remove "threshold" coord
                 (or causes iris.exceptions.CoordinateNotFoundError)
