@@ -527,8 +527,8 @@ class Test_process(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         with self.assertRaisesRegex(ValueError, msg):
-            result = plugin.process(self.region_sites, self.region_orography,
-                                    self.region_land_mask)
+            plugin.process(self.region_sites, self.region_orography,
+                           self.region_land_mask)
 
     def test_different_cube_grids(self):
         """Test an error is raised if the land mask and orography cubes
