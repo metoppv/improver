@@ -47,6 +47,10 @@ class NowcastLightning(object):
     based on information from the nowcast. The default behaviour makes
     these adjustments to the upper and lower limits of lightning probability:
 
+    In this doc-string, LR is an abbreviation for the Lightning Risk index
+    output by the CDP (Convection Diagnosis Procedure) and the Met Office
+    nowcast. LR can take five values. 5 is the lowest risk and 1 is highest.
+
     lightning mapping (lightning rate in "min^-1"):
         upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
             The <function> returns a linear value from 0.5 to 2.5 over a
@@ -55,12 +59,16 @@ class NowcastLightning(object):
 
         There are two special values in the lightning rate field:
             0: No lightning at point, but lightning present within 50 km
+
             -1: No lightning at point or within 50 km
 
     precipitation mapping (for prob(precip > 0.5 mm/hr)):
-        upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
-        middle: precip probability >= 0.05 => max lightning prob 0.25 (LR2)
-        lower:  precip probability >= 0.0 => max lightning prob 0.0067 (LR3)
+        upper:  precip probability >= 0.1 =>
+            max lightning prob 1.0 (LR1)
+        middle: precip probability >= 0.05 => 
+            max lightning prob 0.25 (LR2)
+        lower:  precip probability >= 0.0 => 
+            max lightning prob 0.0067 (LR3)
 
         heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25 (LR2)
                 equiv radar refl 37dBZ
@@ -68,9 +76,12 @@ class NowcastLightning(object):
                 equiv radar refl 48dBZ
 
     VII (vertically-integrated ice) mapping (kg/m2):
-        upper:  VII 2.0 => max lightning prob 0.9
-        middle: VII 1.0 => max lightning prob 0.5
-        lower:  VII 0.5 => max lightning prob 0.1
+        upper:  VII 2.0 => 
+            max lightning prob 0.9
+        middle: VII 1.0 => 
+            max lightning prob 0.5
+        lower:  VII 0.5 => 
+            max lightning prob 0.1
     """
     def __init__(self, radius=10000.):
         """
@@ -161,10 +172,11 @@ class NowcastLightning(object):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
-        1. Rename to "probability_of_lightning"
-        2. Remove "threshold" coord
-            (or causes iris.exceptions.CoordinateNotFoundError)
-        3. Discard all cell_methods
+            1. Rename to 
+                "probability_of_lightning"
+            2. Remove "threshold" coord
+                (or causes iris.exceptions.CoordinateNotFoundError)
+            3. Discard all cell_methods
 
         Args:
             cube (iris.cube.Cube):
@@ -423,20 +435,23 @@ class NowcastLightning(object):
 
         Args:
             cubelist (iris.cube.CubeList):
+                Where thresholds are listed, only these threshold values will
+                be used.
                 Contains cubes of
                     * First-guess lightning probability
                     * Nowcast precipitation probability
-                        (threshold > 0.5, 7., 35.)
+                        (required thresholds: > 0.5, 7., 35. mm hr-1)
                     * Nowcast lightning rate
                     * (optional) Analysis of vertically integrated ice (VII)
                       from radar thresholded into probability slices for
-                      0.5, 1.0, 2.0 kg m-2
+                      >0.5, 1.0, 2.0 kg m-2
 
         Returns:
             new_cube (iris.cube.Cube):
                 Output cube containing Nowcast lightning probability.
                 This cube will have the same dimensions as the input
-                Nowcast precipitation probability.
+                Nowcast precipitation probability after the threshold coord
+                has been removed.
 
         Raises:
             iris.exceptions.ConstraintMismatchError:
@@ -453,6 +468,7 @@ class NowcastLightning(object):
             "probability_of_vertical_integral_of_ice")
         if prob_vii_cube:
             prob_vii_cube = prob_vii_cube.merge_cube()
+        prob_precip_cube.coord('threshold').convert_units('mm hr-1')
         precip_slice = prob_precip_cube.extract(
             iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
         if not isinstance(precip_slice, iris.cube.Cube):

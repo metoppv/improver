@@ -839,8 +839,8 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the threshold coord is
         omitted from the precip_cube"""
         self.precip_cube.remove_coord('threshold')
-        msg = (r"Cannot find prob\(precip > 0.5\) cube in cubelist.")
-        with self.assertRaisesRegex(ConstraintMismatchError, msg):
+        msg = (r"Expected to find exactly 1 threshold coordinate, but found n")
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin.process(CubeList([
                 self.fg_cube,
                 self.ltng_cube,
