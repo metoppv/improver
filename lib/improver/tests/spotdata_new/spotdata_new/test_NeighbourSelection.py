@@ -541,7 +541,6 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         assert issubclass(warning_list[0].category, UserWarning)
 
 
-
 class Test_process(Test_NeighbourSelection):
 
     """Test the process method of the NeighbourSelection class."""
