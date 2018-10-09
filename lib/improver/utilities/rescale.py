@@ -88,16 +88,17 @@ def apply_double_scaling(data_cube, scaled_cube,
                          combine_function=np.minimum):
     """
     From data_cube, an array of limiting values is created based on a linear
-    rescaling from three data_vals to three scaling_vals
+    rescaling from three data_vals to three scaling_vals.
     The three values refer to a lower-bound, a mid-point and an upper-bound.
-    The scaled_cube is updated so that its data are at least or at most the
-    value of the limiting values array.
+    This rescaled data_cube is combined with scaled_cube to produce an array
+    containing either the higher or lower value as needed.
 
     Args:
         data_cube (iris.cube.Cube):
-            Data with which to modify scaled_cube.data
+            Data from which to create a rescaled data array
         scaled_cube (iris.cube.Cube):
-            Input cube to modify
+            Data already in the rescaled frame of reference which will be
+            combined with the rescaled data_cube using the combine_function.
         data_vals (tuple of three values):
             Lower, mid and upper points to rescale data_cube from
         scaling_vals (tuple of three values):
@@ -111,10 +112,15 @@ def apply_double_scaling(data_cube, scaled_cube,
 
     Returns:
         data (numpy.array):
-            Output data from scaled_cube after modification.
+            Output data from data_cube after rescaling and combining with
+            scaled_cube.
             This array will have the same dimensions as scaled_cube.
     """
-    local_limit = np.where(
+    # Where data are below the specified mid-point (data_vals[1]):
+    #   Set rescaled_data to be a rescaled value between the first and mid-point
+    # Elsewhere
+    #   Set rescaled_data to be a rescaled value between the mid- and last point
+    rescaled_data = np.where(
         data_cube.data < data_vals[1],
         rescale(data_cube.data,
                 data_range=(data_vals[0], data_vals[1]),
@@ -124,5 +130,5 @@ def apply_double_scaling(data_cube, scaled_cube,
                 data_range=(data_vals[1], data_vals[2]),
                 scale_range=(scaling_vals[1], scaling_vals[2]),
                 clip=True))
-    # Ensure scaled_cube is no larger or smaller than the local_limit:
-    return combine_function(scaled_cube.data, local_limit)
+    # Ensure scaled_cube is no larger or smaller than the rescaled_data:
+    return combine_function(scaled_cube.data, rescaled_data)
