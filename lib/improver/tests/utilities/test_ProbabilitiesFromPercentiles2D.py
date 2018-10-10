@@ -235,7 +235,7 @@ class Test_percentile_interpolation(IrisTest):
     def test_equal_percentiles(self):
         """Test for sensible behaviour when some percentile levels are
         equal."""
-        self.percentiles_cube.data[0].fill(300.)
+        self.percentiles_cube.data[0, :, :].fill(300.)
         expected = set_reference_probabilities()
         expected[np.where(expected < 0.25)] = 0.
         probability_cube = ProbabilitiesFromPercentiles2D(
@@ -260,7 +260,7 @@ class Test_percentile_interpolation(IrisTest):
     def test_equal_percentiles_inverse_ordering(self):
         """Test for sensible behaviour when some percentile levels are equal
         in the case of inverse ordering (as described above)."""
-        self.percentiles_cube.data[0].fill(300.)
+        self.percentiles_cube.data[0, :, :].fill(300.)
         # Invert the values associated with the percentiles.
         self.percentiles_cube.data = np.flipud(self.percentiles_cube.data)
         expected = set_reference_probabilities()
