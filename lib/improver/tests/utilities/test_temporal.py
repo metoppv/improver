@@ -120,6 +120,7 @@ class Test_forecast_period_coord(IrisTest):
     """Test determining of the lead times present within the input cube."""
 
     def setUp(self):
+        """Set up for tests."""
         self.expected_dtype = np.float32
 
     def test_basic(self):
