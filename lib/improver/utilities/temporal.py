@@ -136,16 +136,15 @@ def forecast_period_coord(
     result_units = "seconds"
     # Try to return forecast period coordinate in hours.
     if cube.coords("forecast_period") and not force_lead_time_calculation:
-        fp_coord = cube.coord("forecast_period").copy()
+        result_coord = cube.coord("forecast_period").copy()
         try:
-            fp_coord.convert_units(result_units)
+            result_coord.convert_units(result_units)
         except ValueError as err:
             msg = "For forecast_period: {}".format(err)
             raise ValueError(msg)
-        return fp_coord
 
     # Try to return forecast_reference_time - time coordinate.
-    if cube.coords("time") and cube.coords("forecast_reference_time"):
+    elif cube.coords("time") and cube.coords("forecast_reference_time"):
         time_units = cube.coord("time").units
         t_coord = cube.coord("time")
         fr_coord = cube.coord("forecast_reference_time")
@@ -183,13 +182,18 @@ def forecast_period_coord(
                        cube.coord("time").points,
                        cube.coord("forecast_reference_time").points)
             warnings.warn(msg)
-        return result_coord
-    msg = ("The forecast period coordinate is not available "
-           "within {}."
-           "The time coordinate and forecast_reference_time "
-           "coordinate were also not available for calculating "
-           "the forecast_period.".format(cube))
-    raise CoordinateNotFoundError(msg)
+    else:
+        msg = ("The forecast period coordinate is not available within {}."
+               "The time coordinate and forecast_reference_time "
+               "coordinate were also not available for calculating "
+               "the forecast_period.".format(cube))
+        raise CoordinateNotFoundError(msg)
+
+    result_coord.points = result_coord.points.astype(np.float32)
+    if result_coord.bounds is not None:
+        result_coord.bounds = result_coord.bounds.astype(np.float32)
+
+    return result_coord
 
 
 def iris_time_to_datetime(time_coord):
