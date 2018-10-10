@@ -119,6 +119,9 @@ class Test_forecast_period_coord(IrisTest):
 
     """Test determining of the lead times present within the input cube."""
 
+    def setUp(self):
+        self.expected_dtype = np.float32
+
     def test_basic(self):
         """Test that an iris.coord.DimCoord is returned."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
@@ -134,8 +137,8 @@ class Test_forecast_period_coord(IrisTest):
 
     def test_check_coordinate(self):
         """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a forecast_period coordinate.
-        """
+        expected units and dtype, when the input cube has a forecast_period
+        coordinate."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         fp_coord = cube.coord("forecast_period").copy()
         fp_coord.convert_units("seconds")
@@ -144,11 +147,12 @@ class Test_forecast_period_coord(IrisTest):
         result = forecast_period_coord(cube)
         self.assertArrayAlmostEqual(result.points, expected_points)
         self.assertEqual(str(result.units), expected_units)
+        self.assertEqual(result.dtype, self.expected_dtype)
 
     def test_check_coordinate_force_lead_time_calculation(self):
         """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a forecast_period coordinate.
-        """
+        expected units and dtype, when the input cube has a forecast_period
+        coordinate."""
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
         fp_coord = cube.coord("forecast_period").copy()
         fp_coord.convert_units("seconds")
@@ -158,6 +162,7 @@ class Test_forecast_period_coord(IrisTest):
             cube, force_lead_time_calculation=True)
         self.assertArrayAlmostEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
+        self.assertEqual(result.dtype, self.expected_dtype)
 
     def test_check_coordinate_without_forecast_period(self):
         """Test that the data within the coord is as expected with the
