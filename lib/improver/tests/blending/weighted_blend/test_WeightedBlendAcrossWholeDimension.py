@@ -244,7 +244,7 @@ class Test_process(IrisTest):
         coord = "dummy_scalar_coord"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         weights = np.array([1.0])
-        msg = 'is not a dim coord'
+        msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
             _ = plugin.process(self.cube_with_scalar, weights)
 
