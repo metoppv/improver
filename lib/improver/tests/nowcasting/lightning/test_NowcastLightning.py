@@ -277,15 +277,14 @@ class Test__modify_first_guess(IrisTest):
         # Set lightning data to "no-data" so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
-        plugin = Plugin(0.)
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_vii_large(self):
@@ -295,15 +294,14 @@ class Test__modify_first_guess(IrisTest):
         self.ltng_cube.data[0, 7, 7] = -1.
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
-        plugin = Plugin(0.)
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.9
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            self.vii_cube)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 self.vii_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_null(self):
@@ -314,18 +312,17 @@ class Test__modify_first_guess(IrisTest):
         # Set lightning data to -1 so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
-        plugin = Plugin(0.)
         expected = self.fg_cube.copy()
         # expected.data should be an unchanged copy of fg_cube.
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_lrate_large(self):
-        """Test that large lightning rates increase lightning risk"""
+        """Test that large lightning rates increase zero lightning risk"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones
         # Set precip data to 1. so it has a Null impact
@@ -335,17 +332,61 @@ class Test__modify_first_guess(IrisTest):
         # Set first-guess data zero point that will be increased
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
-        plugin = Plugin(0.)
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
-    def test_lrate_halo(self):
-        """Test that lightning in 50 km vicinity / halo (encoded as lightning
-        rate zero) increases lightning risk at point"""
+    def test_lrate_large_shortfc(self):
+        """Test that nearly-large lightning rates increases zero lightning risk
+        when forecast_period is non-zero"""
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
+        # Set precip data to 1. so it has a Null impact
+        # Set prob(precip) data for lowest threshold to to 1., so it has a Null
+        # impact when lightning is present.
+        self.precip_cube.data[0, 0, 7, 7] = 1.
+        # Test the impact of the lightning-rate function.
+        # A highish lightning value at one-hour lead time isn't high enough to
+        # get to the high lightning category.
+        self.ltng_cube.data[0, 7, 7] = 0.8
+        self.cube.coord('forecast_period').points = [1.]  # hours
+        # Set first-guess data zero point that will be increased
+        self.fg_cube.data[0, 7, 7] = 0.
+        # This time, lightning probability increases only to 0.25, not 1.
+        expected.data[0, 7, 7] = 0.25
+        # No halo - we're only testing this method.
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_lrate_large_null(self):
+        """Test that large lightning rates do not increase high lightning
+        risk"""
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
+        # Set precip data to 1. so it has a Null impact
+        # Set prob(precip) data for lowest threshold to to 1., so it has a Null
+        # impact when lightning is present.
+        self.precip_cube.data[0, 0, 7, 7] = 1.
+        # Set first-guess data zero point that will be increased
+        self.fg_cube.data[0, 7, 7] = 1.
+        # No halo - we're only testing this method.
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_lrate_small(self):
+        """Test that lightning nearby (encoded as lightning rate zero)
+        increases lightning risk at point"""
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
         self.precip_cube.data[0, 0, 7, 7] = 1.
@@ -354,15 +395,14 @@ class Test__modify_first_guess(IrisTest):
         # Set first-guess data zero point that will be increased
         self.fg_cube.data[0, 7, 7] = 0.
         # No halo - we're only testing this method.
-        plugin = Plugin(0.)
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.25
-        result = plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
+        result = self.plugin._modify_first_guess(self.cube,
+                                                 self.fg_cube,
+                                                 self.ltng_cube,
+                                                 self.precip_cube,
+                                                 None)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
 
@@ -456,7 +496,7 @@ class Test_apply_precip(IrisTest):
             self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_precip_zero(self):
-        """Test that zero precip probs reduce lightning risk"""
+        """Test that zero precip probs reduce high lightning risk a lot"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 7, 7] = 0.0067
@@ -464,7 +504,7 @@ class Test_apply_precip(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_small(self):
-        """Test that small precip probs reduce lightning risk"""
+        """Test that small precip probs reduce high lightning risk a bit"""
         self.precip_cube.data[:, 0, 7, 7] = 0.
         self.precip_cube.data[0, 0, 7, 7] = 0.075
         expected = self.fg_cube.copy()
@@ -474,7 +514,7 @@ class Test_apply_precip(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_heavy(self):
-        """Test that prob of heavy precip increases lightning risk"""
+        """Test that prob of heavy precip increases zero lightning risk"""
         self.precip_cube.data[0, 0, 7, 7] = 1.0
         self.precip_cube.data[1, 0, 7, 7] = 0.5
         # Set first-guess to zero
@@ -487,7 +527,7 @@ class Test_apply_precip(IrisTest):
 
     def test_precip_heavy_null(self):
         """Test that low prob of heavy precip does not increase
-        lightning risk"""
+        low lightning risk"""
         self.precip_cube.data[0, 0, 7, 7] = 1.0
         self.precip_cube.data[1, 0, 7, 7] = 0.3
         # Set first-guess to zero
@@ -499,7 +539,7 @@ class Test_apply_precip(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_intense(self):
-        """Test that prob of intense precip increases lightning risk"""
+        """Test that prob of intense precip increases zero lightning risk"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones
         self.precip_cube.data[0, 0, 7, 7] = 1.0
@@ -512,7 +552,7 @@ class Test_apply_precip(IrisTest):
 
     def test_precip_intense_null(self):
         """Test that low prob of intense precip does not increase
-        lightning risk"""
+        low lightning risk"""
         self.precip_cube.data[0, 0, 7, 7] = 1.0
         self.precip_cube.data[1, 0, 7, 7] = 1.0
         self.precip_cube.data[2, 0, 7, 7] = 0.1
@@ -607,9 +647,9 @@ class Test_apply_ice(IrisTest):
             self.plugin.apply_ice(self.fg_cube, self.ice_cube)
 
     def test_ice_null(self):
-        """Test that small VII probs do not increase lightning risk"""
+        """Test that small VII probs do not increase moderate lightning risk"""
         self.ice_cube.data[:, 7, 7] = 0.
-        self.ice_cube.data[0, 7, 7:9] = 0.5
+        self.ice_cube.data[0, 7, 7] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.25
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
@@ -619,7 +659,7 @@ class Test_apply_ice(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_zero(self):
-        """Test that zero VII probs do not increase lightning risk"""
+        """Test that zero VII probs do not increase zero lightning risk"""
         self.ice_cube.data[:, 7, 7] = 0.
         self.fg_cube.data[0, 7, 7] = 0.
         expected = self.fg_cube.copy()
@@ -630,7 +670,7 @@ class Test_apply_ice(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_small(self):
-        """Test that small VII probs do increase lightning risk"""
+        """Test that small VII probs do increase zero lightning risk"""
         self.ice_cube.data[:, 7, 7] = 0.
         self.ice_cube.data[0, 7, 7] = 0.5
         self.fg_cube.data[0, 7, 7] = 0.
@@ -642,7 +682,7 @@ class Test_apply_ice(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_ice_large(self):
-        """Test that large VII probs do increase lightning risk"""
+        """Test that large VII probs do increase zero lightning risk"""
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.
         expected = self.fg_cube.copy()
@@ -652,8 +692,21 @@ class Test_apply_ice(IrisTest):
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
+    def test_ice_large_short_fc(self):
+        """Test that large VII probs do increase zero lightning risk when
+        forecast lead time is non-zero"""
+        self.ice_cube.data[:, 7, 7] = 1.
+        self.fg_cube.data[0, 7, 7] = 0.
+        self.fg_cube.coord('forecast_period').points = [1.]  # hours
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones except:
+        expected.data[0, 7, 7] = 0.54
+        result = self.plugin.apply_ice(self.fg_cube,
+                                       self.ice_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
     def test_ice_large_long_fc(self):
-        """Test that large VII probs do not increase lightning risk when
+        """Test that large VII probs do not increase zero lightning risk when
         forecast lead time is large"""
         self.ice_cube.data[:, 7, 7] = 1.
         self.fg_cube.data[0, 7, 7] = 0.

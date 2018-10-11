@@ -44,23 +44,30 @@ class NowcastLightning(object):
 
     This Plugin selects a first-guess lightning probability field from
     MOGREPS-UK data matching the nowcast validity-time, and modifies this
-    based on information from the nowcast. The default behaviour makes
-    these adjustments to the upper and lower limits of lightning probability:
+    based on information from the nowcast.
+
+    For each forecast time, the closest-in-time first-guess lightning
+    probability slice is copied and modified thus:
+    1: Increase lightning probability where lightning is observed or is
+        nearby.
+    2: Increase lightning probability where heavy or intense precipitation
+        is observed
+    3: Reduce lightning probability where precipitation is light or
+        absent
+    4: Increase lightning probability where ice is likely in the observed
+        radar column.
 
     In this doc-string, LR is an abbreviation for the Lightning Risk index
     output by the CDP (Convection Diagnosis Procedure) and the Met Office
     nowcast. LR can take five values. 5 is the lowest risk and 1 is highest.
 
+    The default behaviour makes
+    these adjustments to the upper and lower limits of lightning probability:
     lightning mapping (lightning rate in "min^-1"):
         upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
             The <function> returns a linear value from 0.5 to 2.5 over a
             6-hour forecast_period.
         lower: lightning rate == 0.0 => min lightning prob 0.25 (LR2)
-
-        There are two special values in the lightning rate field:
-            0: No lightning at point, but lightning present within 50 km
-
-            -1: No lightning at point or within 50 km
 
     precipitation mapping (for prob(precip > 0.5 mm/hr)):
         upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
@@ -194,38 +201,40 @@ class NowcastLightning(object):
 
     def _modify_first_guess(self, cube, first_guess_lightning_cube,
                             lightning_rate_cube, prob_precip_cube,
-                            prob_vii_cube):
+                            prob_vii_cube=None):
         """
-        Modify first-guess lightning probability with nowcast data
+        Modify first-guess lightning probability with nowcast data.
 
         Args:
             cube (iris.cube.Cube):
                 Provides the meta-data for the Nowcast lightning probability
-                output cube
+                output cube.
 
             first_guess_lightning_cube (iris.cube.Cube):
-                First-guess lightning probability
-                Must have same x & y dimensions as cube
+                First-guess lightning probability.
+                Must have same x & y dimensions as cube.
                 Time dimension should overlap that of cube (closest slice in
                 time is used with a maximum time mismatch of 2 hours).
                 This is included to allow this cube to come from a different
                 modelling system, such as the UM.
 
             lightning_rate_cube (iris.cube.Cube):
-                Nowcast lightning rate
-                Must have same dimensions as cube
+                Nowcast lightning rate.
+                Must have same dimensions as cube.
 
             prob_precip_cube (iris.cube.Cube):
-                Nowcast precipitation probability (threshold > 0.5, 7, 35)
-                Must have same other dimensions as cube
+                Nowcast precipitation probability (threshold > 0.5, 7, 35).
+                Must have same other dimensions as cube.
+
+        Keyword Args:
 
             prob_vii_cube (iris.cube.Cube):
-                Radar-derived vertically integrated ice content (VII)
-                Must have same x and y dimensions as cube
-                Time should be a scalar coordinate
-                Must have a threshold coordinate with points matching
-                self.vii_thresholds
-                Can be <No cube> or None or anything that evaluates to False
+                Radar-derived vertically integrated ice content (VII).
+                Must have same x and y dimensions as cube.
+                Time should be a scalar coordinate.
+                Must have a threshold coordinate with points matching.
+                self.vii_thresholds.
+                Can be <No cube> or None or anything that evaluates to False.
 
         Returns:
             new_prob_lightning_cube (iris.cube.Cube):
@@ -242,7 +251,7 @@ class NowcastLightning(object):
             this_point = cube_slice.coord('time').points[0]
             this_time = iris_time_to_datetime(
                 cube_slice.coord('time').copy())[0]
-            prob_lightning_slice = lightning_rate_cube.extract(
+            lightning_rate_slice = lightning_rate_cube.extract(
                 iris.Constraint(time=this_time))
             first_guess_time = iris_time_to_datetime(
                 first_guess_lightning_cube.coord('time').copy())[
@@ -252,7 +261,7 @@ class NowcastLightning(object):
             first_guess_slice = first_guess_lightning_cube.extract(
                 iris.Constraint(time=first_guess_time))
             err_string = "No matching {} cube for {}"
-            if not isinstance(prob_lightning_slice,
+            if not isinstance(lightning_rate_slice,
                               iris.cube.Cube):
                 raise ConstraintMismatchError(
                     err_string.format("lightning", this_time))
@@ -261,26 +270,28 @@ class NowcastLightning(object):
             if abs((first_guess_time - this_time).total_seconds()) > 7201.:
                 raise ConstraintMismatchError(
                     err_string.format("first-guess", this_time))
-            cube_slice.data = first_guess_slice.data
-            cube_slice.coord('forecast_period').convert_units('minutes')
-            fcmins = cube_slice.coord('forecast_period').points[0]
+            first_guess_slice = cube_slice.copy(data=first_guess_slice.data)
+            first_guess_slice.coord('forecast_period').convert_units('minutes')
+            fcmins = first_guess_slice.coord('forecast_period').points[0]
 
-            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when within
-            #   lightning halo (lrt_lev2; 50km of an observed ATDNet strike):
-            cube_slice.data = np.where(
-                (prob_lightning_slice.data >= self.lrt_lev2) &
-                (cube_slice.data < self.pl_dict[2]),
-                self.pl_dict[2], cube_slice.data)
-            lratethresh = self.lrt_lev1(fcmins)
+            # Increase prob(lightning) to Risk 2 (pl_dict[2]) when
+            #   lightning nearby (lrt_lev2)
+            # (and leave unchanged when condition is not met):
+            first_guess_slice.data = np.where(
+                (lightning_rate_slice.data >= self.lrt_lev2) &
+                (first_guess_slice.data < self.pl_dict[2]),
+                self.pl_dict[2], first_guess_slice.data)
 
             # Increase prob(lightning) to Risk 1 (pl_dict[1]) when within
-            #   lightning storm (lrt_lev1; ~5km of an observed ATDNet strike):
-            cube_slice.data = np.where(
-                (prob_lightning_slice.data >= lratethresh) &
-                (cube_slice.data < self.pl_dict[1]),
-                self.pl_dict[1], cube_slice.data)
+            #   lightning storm (lrt_lev1):
+            # (and leave unchanged when condition is not met):
+            lratethresh = self.lrt_lev1(fcmins)
+            first_guess_slice.data = np.where(
+                (lightning_rate_slice.data >= lratethresh) &
+                (first_guess_slice.data < self.pl_dict[1]),
+                self.pl_dict[1], first_guess_slice.data)
 
-            new_cube_list.append(cube_slice)
+            new_cube_list.append(first_guess_slice)
 
         new_prob_lightning_cube = new_cube_list.merge_cube()
         new_prob_lightning_cube = check_cube_coordinates(
@@ -304,7 +315,6 @@ class NowcastLightning(object):
         Args:
             prob_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability.
-                Units of forecast_period coord modified in-place to minutes
 
             prob_precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability
@@ -321,7 +331,6 @@ class NowcastLightning(object):
             iris.exceptions.ConstraintMismatchError:
                 If prob_precip_cube does not contain the expected thresholds.
         """
-        prob_lightning_cube.coord('forecast_period').convert_units('minutes')
         new_cube_list = iris.cube.CubeList([])
         # check prob-precip threshold units are as expected
         prob_precip_cube.coord('threshold').convert_units('mm hr-1')
@@ -361,7 +370,7 @@ class NowcastLightning(object):
                 (cube_slice.data < self.pl_dict[1]),
                 self.pl_dict[1], cube_slice.data)
 
-            # Decrease prob(lightning) where prob(precip > 0) is low.
+            # Decrease prob(lightning) where prob(precip > 0.5 mm hr-1) is low.
             cube_slice.data = apply_double_scaling(
                 this_precip, cube_slice, self.precipthr, self.ltngthr)
 
@@ -383,7 +392,7 @@ class NowcastLightning(object):
                 The forecast_period coord is modified in-place to "minutes".
             ice_cube (iris.cube.Cube):
                 Analysis of vertically integrated ice (VII) from radar
-                thresholded at 0.5, 1.0, 2.0 kg m^-2
+                thresholded at self.ice_thresholds
                 Units of threshold coord modified in-place to kg m^-2
 
         Returns:
@@ -429,7 +438,7 @@ class NowcastLightning(object):
 
     def process(self, cubelist):
         """
-        Produce Nowcast of lightning probability
+        Produce Nowcast of lightning probability.
 
         Args:
             cubelist (iris.cube.CubeList):
@@ -471,7 +480,7 @@ class NowcastLightning(object):
             iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
         if not isinstance(precip_slice, iris.cube.Cube):
             raise ConstraintMismatchError(
-                "Cannot find prob(precip > 0.5) cube in cubelist.")
+                "Cannot find prob(precip > 0.5 mm hr-1) cube in cubelist.")
         template_cube = self._update_metadata(precip_slice)
         new_cube = self._modify_first_guess(
             template_cube, first_guess_lightning_cube, lightning_rate_cube,
