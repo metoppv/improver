@@ -532,9 +532,9 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         distance = np.arange(5)
         indices = np.arange(5)
 
-        result = plugin.select_minimum_dz(self.region_orography,
-                                          site_altitude, nodes,
-                                          distance, indices)
+        plugin.select_minimum_dz(self.region_orography,
+                                 site_altitude, nodes,
+                                 distance, indices)
 
         msg = "Limit on number of nearest neighbours"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
@@ -564,8 +564,8 @@ class Test_process(Test_NeighbourSelection):
         msg = 'Orography and land_mask cubes are not on the same'
         plugin = NeighbourSelection()
         with self.assertRaisesRegex(ValueError, msg):
-            result = plugin.process(self.region_sites, self.region_orography,
-                                    self.global_land_mask)
+            plugin.process(self.region_sites, self.region_orography,
+                           self.global_land_mask)
 
     def test_global_attribute(self):
         """Test that a cube is returned with an attribute identifying the
