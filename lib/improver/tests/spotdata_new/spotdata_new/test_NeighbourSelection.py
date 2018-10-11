@@ -471,8 +471,8 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
     at a y index of 4, changing elevation with x. As such the nodes are chosen
     along this line, e.g. [0, 4], [1, 4], etc."""
 
-    @ManageWarnings(record=True)
-    def test_basic(self, warning_list=True):
+    @ManageWarnings(ignored_messages=["Limit on number of nearest neighbours"])
+    def test_basic(self):
         """Test a simple case where the first element in the provided lists
         has the smallest vertical displacement to the site. Expect the
         coordinates of the first node to be returned."""
