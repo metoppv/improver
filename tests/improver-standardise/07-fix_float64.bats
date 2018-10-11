@@ -35,7 +35,7 @@
   improver_check_skip_acceptance
   KGO="standardise/float64/kgo.nc"
 
-  # Run cube regrid processing and check it passes.
+  # Run fix float64 processing and check it passes.
   run improver standardise \
       "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" \
       --output_filepath "$TEST_DIR/output.nc" \

@@ -37,7 +37,7 @@
 
   JSONFILE="$IMPROVER_ACC_TEST_DIR/standardise/metadata/metadata.json"
 
-  # Run cube regrid processing and check it passes.
+  # Change cube metadata and check it passes.
   run improver standardise \
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
