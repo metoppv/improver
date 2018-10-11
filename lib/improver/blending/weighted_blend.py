@@ -97,19 +97,19 @@ def unify_forecast_reference_time(cubes, cycletime):
 
 
 def rationalise_blend_time_coords(
-        cube, blend_coord, cycletime=None, weighting_coord=None):
+        cubelist, blend_coord, cycletime=None, weighting_coord=None):
     """
-    Updates time coordinates on a cube before blending depending on
-    the coordinate over which the blend will be performed.  Modifies
-    cube in place.
+    Updates time coordinates on unmerged input cubes before blending depending
+    on the coordinate over which the blend will be performed.  Modifies cubes
+    in place.
 
     If blend_coord is forecast_reference_time, ensures the cube has
     a forecast_period dimension.  If blend_coord is forecast_period,
-    equalises forecast_reference_time points before blending.
+    equalises forecast_reference_time on each cube before blending.
 
     Args:
-        cube (iris.cube.Cube):
-            Merged list of cubes with different times to be blended
+        cubelist (iris.cube.CubeList):
+            List of cubes containing data to be blended
         blend_coord (str):
             Name of coordinate over which the blend will be performed
 
@@ -119,30 +119,42 @@ def rationalise_blend_time_coords(
         weighting_coord (str or None):
             The coordinate across which weights will be scaled in a
             multi-model blend
+
+    Raises:
+        ValueError: if forecast_reference_time (to be unified) is a
+            dimension coordinate
     """
+
     if "forecast_reference_time" in blend_coord:
-        coord_names = [x.name() for x in cube.coords()]
-        frt_dim, = cube.coord_dims(blend_coord)
-        if "forecast_period" not in coord_names:
-            forecast_period = forecast_period_coord(cube)
-            cube.add_aux_coord(forecast_period, data_dims=frt_dim)
+        for cube in cubelist:
+            coord_names = [x.name() for x in cube.coords()]
+            if "forecast_period" not in coord_names:
+                forecast_period = forecast_period_coord(cube)
+                cube.add_aux_coord(forecast_period, data_dims=None)
 
     # if blending models using weights by forecast period, set forecast
     # reference times to current cycle time
     if "model" in blend_coord and "forecast_period" in weighting_coord:
         if cycletime is None:
-            # take latest available forecast reference times
-            dummy_cube = sort_coord_in_cube(cube, "forecast_reference_time")
-            frt_point = dummy_cube.coord("forecast_reference_time").points[-1]
-            dummy_coord = cube.coord("forecast_reference_time").copy(frt_point)
-            cycletime, = iris_time_to_datetime(dummy_coord)
+            # get cycle time as latest forecast reference time
+            if cubelist[0].coord_dims("forecast_reference_time"):
+                raise ValueError(
+                    "Expecting scalar forecast_reference_time for each input "
+                    "cube - cannot replace a dimension coordinate")
+
+            frt_coord = cubelist[0].coord("forecast_reference_time").copy()
+            for cube in cubelist:
+                next_coord = cube.coord("forecast_reference_time").copy()
+                next_coord.convert_units(frt_coord.units)
+                if next_coord.points[0] > frt_coord.points[0]:
+                    frt_coord = next_coord
+
+            cycletime, = (frt_coord.units).num2date(frt_coord.points)
+
+            #cycletime, = iris_time_to_datetime(frt_coord)
         else:
             cycletime = cycletime_to_datetime(cycletime)
-        cubes = unify_forecast_reference_time(cube, cycletime)
-        if len(cubes) == 1:
-            cube, = cubes
-        else:
-            cube = merge_cubes(cubes)
+        cubelist = unify_forecast_reference_time(cubelist, cycletime)
 
 
 def conform_metadata(

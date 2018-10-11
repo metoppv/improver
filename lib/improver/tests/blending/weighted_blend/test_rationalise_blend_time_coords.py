@@ -40,6 +40,7 @@ import iris
 from iris.tests import IrisTest
 from iris.coords import AuxCoord, DimCoord
 
+from improver.utilities.cube_manipulation import merge_cubes
 from improver.blending.weighted_blend import rationalise_blend_time_coords
 
 
@@ -47,13 +48,12 @@ class Test_rationalise_blend_time_coords(IrisTest):
     """Tests for the rationalise_cycle_blend_time_coords function"""
 
     def setUp(self):
-        """Set up a multi-model cube with some probability data in it."""
-        data = np.full((2, 3, 3), 0.6, dtype=np.float)
+        """Set up a list of cubes from different models with some probability
+        data in them."""
+        data = np.full((3, 3), 0.6, dtype=np.float)
 
         y_coord = DimCoord([40., 45., 50.], 'latitude', 'degrees')
         x_coord = DimCoord([-5., 0., 5.], 'longitude', 'degrees')
-        model_coord = DimCoord([3000, 4000], long_name='model')
-        model_id_coord = AuxCoord(['uk_det', 'uk_ens'], long_name='model_id')
 
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
@@ -61,44 +61,64 @@ class Test_rationalise_blend_time_coords(IrisTest):
         dt = datetime(2017, 1, 10, 3, 0)
         dt_num = date2num(dt, time_origin, calendar)
         time_coord = AuxCoord(dt_num, "time", units=tunit)
-        frt_coord = AuxCoord(
-            [dt_num-4, dt_num-3], "forecast_reference_time", units=tunit)
-        fp_coord = AuxCoord([4, 3], "forecast_period", units="hours")
-        self.cube = iris.cube.Cube(
+
+        base_cube = iris.cube.Cube(
             data, long_name="probability_of_air_temperature", units="1",
-            dim_coords_and_dims=[(model_coord, 0), (y_coord, 1), (x_coord, 2)],
-            aux_coords_and_dims=[(frt_coord, 0), (fp_coord, 0),
-                                 (time_coord, None)])
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+            aux_coords_and_dims=[(time_coord, None)])
+
+        ukv_frt_coord = AuxCoord(
+            dt_num-4, "forecast_reference_time", units=tunit)
+        ukv_fp_coord = AuxCoord(4, "forecast_period", units="hours")
+
+        self.ukv_cube = base_cube.copy()
+        self.ukv_cube.add_aux_coord(ukv_frt_coord)
+        self.ukv_cube.add_aux_coord(ukv_fp_coord)
+        self.ukv_cube.attributes['mosg__model_configuration'] = 'uk_det'
+
+        enuk_frt_coord = AuxCoord(
+            dt_num-3, "forecast_reference_time", units=tunit)
+        enuk_fp_coord = AuxCoord(3, "forecast_period", units="hours")
+
+        self.enuk_cube = base_cube.copy()
+        self.enuk_cube.add_aux_coord(enuk_frt_coord)
+        self.enuk_cube.add_aux_coord(enuk_fp_coord)
+        self.enuk_cube.attributes['mosg__model_configuration'] = 'uk_ens'
+
+        self.cubelist = iris.cube.CubeList([self.ukv_cube, self.enuk_cube])
+        self.cube = merge_cubes(self.cubelist)
 
     def test_null(self):
         """Test function does nothing if not given a relevant coord"""
-        reference_cube = self.cube.copy()
-        rationalise_blend_time_coords(self.cube, "realization")
-        self.assertEqual(self.cube, reference_cube)
+        reference_cubelist = self.cubelist.copy()
+        rationalise_blend_time_coords(self.cubelist, "realization")
+        self.assertEqual(self.cubelist, reference_cubelist)
 
     def test_create_fp(self):
         """Test function creates forecast_period coord if blending over
         forecast_reference_time"""
         reference_coord = self.cube.coord("forecast_period")
-        reference_coord.convert_units('seconds')
-        self.cube.remove_coord("forecast_period")
-        rationalise_blend_time_coords(self.cube, "forecast_reference_time")
-        self.assertEqual(self.cube.coord("forecast_period"), reference_coord)
+        reference_coord.convert_units("seconds")
+        for cube in self.cubelist:
+            cube.remove_coord("forecast_period")
+        rationalise_blend_time_coords(self.cubelist, "forecast_reference_time")
+        merged_cube = merge_cubes(self.cubelist)
+        self.assertEqual(merged_cube.coord("forecast_period"), reference_coord)
 
     def test_unify_frt(self):
         """Test function equalises forecast reference times if weighting a
         model blend by forecast_period"""
-        expected_frt = np.max(
-            self.cube.coord("forecast_reference_time").points)
+        expected_frt, = self.enuk_cube.coord("forecast_reference_time").points
         expected_fp = 3.
         rationalise_blend_time_coords(
-            self.cube, "model", weighting_coord="forecast_period")
+            self.cubelist, "model", weighting_coord="forecast_period")
+        merged_cube = merge_cubes(self.cubelist)
         for coord in ["forecast_reference_time", "forecast_period"]:
-            self.assertEqual(len(self.cube.coord(coord).points), 1)
+            self.assertEqual(len(merged_cube.coord(coord).points), 1)
         self.assertAlmostEqual(
-            self.cube.coord("forecast_reference_time").points[0], expected_frt)
+            merged_cube.coord("forecast_reference_time").points[0], expected_frt)
         self.assertAlmostEqual(
-            self.cube.coord("forecast_period").points[0], expected_fp)
+            merged_cube.coord("forecast_period").points[0], expected_fp)
 
 
 if __name__ == '__main__':

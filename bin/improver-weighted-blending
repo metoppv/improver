@@ -247,8 +247,20 @@ def main():
     else:
         coord_unit = 'no_unit'
 
-    # load and merge cubes to be blended
+    # load cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
+
+    # determine whether or not to equalise forecast periods for model
+    # blending weights calculation
+    weighting_coord = (args.weighting_coord if args.weighting_coord
+                       else "forecast_period")
+
+    # update forecast periods and reference times
+    rationalise_blend_time_coords(
+        cubelist, args.coordinate, cycletime=args.cycletime,
+        weighting_coord=weighting_coord)
+
+    # merge cube list
     cube = merge_cubes(cubelist)
 
     # if the coord for blending does not exist or has only one value,
@@ -262,10 +274,6 @@ def main():
 
     # otherwise, calculate weights and blend across specified dimension
     else:
-        rationalise_blend_time_coords(
-            cube, args.coordinate, cycletime=args.cycletime,
-            weighting_coord=args.weighting_coord)
-
         weights = calculate_blending_weights(
             cube, args.coordinate, args.wts_calc_method,
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
