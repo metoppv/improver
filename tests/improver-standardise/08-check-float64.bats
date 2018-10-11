@@ -31,15 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "regrid" {
+@test "standardise" {
   improver_check_skip_acceptance
-  KGO="regrid/basic/kgo.nc"
+  KGO="standardise/float64/kgo.nc"
 
   # Run cube regrid processing and check it passes.
-  run improver regrid \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/global_cutout.nc" \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/ukvx_grid.nc" \
-      "$TEST_DIR/output.nc"
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/float64/float_64_data.nc" --check_float64
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

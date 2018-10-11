@@ -29,22 +29,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "regrid" {
-  improver_check_skip_acceptance
-  KGO="regrid/nearest/kgo.nc"
-
-  # Run cube regrid processing and check it passes.
-  run improver regrid \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/global_cutout.nc" \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/ukvx_grid.nc" \
-      "$TEST_DIR/output.nc" --nearest
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+@test "standardise no arguments" {
+  run improver standardise
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
+                            [--output_filepath OUTPUT_FILE]
+                            [--target_grid_filepath TARGET_GRID]
+                            [--fix_float64] [--check_float64]
+                            [--change_metadata] [--regrid] [--nearest]
+                            [--extrapolation_mode EXTRAPOLATION_MODE]
+                            [--json_file JSON_FILE]
+                            SOURCE_DATA
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

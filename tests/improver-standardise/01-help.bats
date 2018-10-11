@@ -29,40 +29,54 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "regrid -h" {
-  run improver regrid -h
+@test "standardise -h" {
+  run improver standardise -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
-                       [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
-                       [--json_file JSON_FILE]
-                       SOURCE_DATA TARGET_GRID OUTPUT_FILE
+usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
+                            [--output_filepath OUTPUT_FILE]
+                            [--target_grid_filepath TARGET_GRID]
+                            [--fix_float64] [--check_float64]
+                            [--change_metadata] [--regrid] [--nearest]
+                            [--extrapolation_mode EXTRAPOLATION_MODE]
+                            [--json_file JSON_FILE]
+                            SOURCE_DATA
 
-Regrid data from source_data on to the grid contained within target_grid using
-iris.analysis.Linear() or optionally iris.analysis.Nearest(). Meta-data
-attributes starting with "mosg__" or "institution" are copied from the input
-cube to the output cube before applying any attributes from a json file
+Standardise a source data cube. Options are to regrid with further options to
+fix float64 data, change metatdata, use iris nearest and extrapolation modes
+as part of the regridding process. In addition separate standalone checks can
+be made for float64 data, and updating cube metadata
 
 positional arguments:
-  SOURCE_DATA           A cube of data that is to be regridded onto the
-                        target_grid.
-  TARGET_GRID           A cube containing the grid to which the source_data is
-                        to be regridded.
-  OUTPUT_FILE           The output path for the processed NetCDF
+  SOURCE_DATA           A cube of data that is to be standardised and
+                        optionally, fixed for float64 data, regridded and meta
+                        data changed
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --output_filepath OUTPUT_FILE
+                        The output path for the processed NetCDF
+  --target_grid_filepath TARGET_GRID
+                        A cube containing the grid to which the source_data is
+                        to be regridded.
+  --fix_float64         Check and fix cube for float64 data. Without this
+                        option a warning will be raised if float64 data is
+                        found but no fix applied.
+  --check_float64       Check the cube for float64 data. If float64 data is
+                        found a warning will be raised but no fix applied.
+  --change_metadata     Change cube metadata using a specified JSON file
+  --regrid              regrid cube.....
   --nearest             If True, regridding will be performed using
-                        iris.analysis.Nearest() instead of Linear(). Use for
+                        iris.analysis.Nearest() instead of Linear().Use for
                         less continuous fields, e.g. precipitation.
   --extrapolation_mode EXTRAPOLATION_MODE
                         Mode to use for extrapolating data into regions beyond
-                        the limits of the source_data domain. Modes are:
-                        extrapolate - The extrapolation points will take their
-                        value from the nearest source point. nan - The
+                        the limits of the source_data domain. Modes
+                        are:extrapolate - The extrapolation points will take
+                        their value from the nearest source point. nan - The
                         extrapolation points will be be set to NaN. error - A
                         ValueError exception will be raised, notifying an
                         attempt to extrapolate. mask - The extrapolation
