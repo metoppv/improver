@@ -31,18 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "regrid" {
+@test "standardise" {
   improver_check_skip_acceptance
-  KGO="regrid/metadata/kgo.nc"
+  KGO="standardise/metadata/changed_metadata_kgo.nc"
 
-  JSONFILE="$IMPROVER_ACC_TEST_DIR/regrid/metadata/metadata.json"
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/standardise/metadata/metadata.json"
 
-  # Run cube regrid processing and check it passes.
-  run improver regrid \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/global_cutout.nc" \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/ukvx_grid.nc" \
-      "$TEST_DIR/output.nc" \
-      "--json_file" "$JSONFILE"
+  # Change cube metadata and check it passes.
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --output_filepath "$TEST_DIR/output.nc" \
+      --json_file "$JSONFILE"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
