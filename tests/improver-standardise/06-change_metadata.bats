@@ -41,7 +41,7 @@
   run improver standardise \
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
-      --change_metadata --json_file "$JSONFILE"
+      --json_file "$JSONFILE"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

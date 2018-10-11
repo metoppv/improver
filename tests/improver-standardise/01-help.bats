@@ -36,8 +36,8 @@
 usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
                             [--target_grid_filepath TARGET_GRID]
-                            [--fix_float64] [--check_float64]
-                            [--change_metadata] [--regrid] [--nearest]
+                            [--fix_float64] [--check_float64] [--regrid]
+                            [--nearest]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--json_file JSON_FILE]
                             SOURCE_DATA
@@ -67,7 +67,6 @@ optional arguments:
                         found but no fix applied.
   --check_float64       Check the cube for float64 data. If float64 data is
                         found a warning will be raised but no fix applied.
-  --change_metadata     Change cube metadata using a specified JSON file
   --regrid              regrid cube.....
   --nearest             If True, regridding will be performed using
                         iris.analysis.Nearest() instead of Linear().Use for

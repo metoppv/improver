@@ -79,10 +79,6 @@ def main():
                             "data is found a warning will be raised but "
                             "no fix applied.")
 
-    parser.add_argument("--change_metadata", action='store_true', default=False,
-                        help='Change cube metadata using a specified '
-                             'JSON file')
-
     parser.add_argument("--regrid", action='store_true', default=False,
                         help="regrid cube.....")
 
@@ -150,7 +146,7 @@ def main():
              if 'mosg__' in k or 'institution' in k})
         amend_metadata(source_on_target, attributes=target_grid_attributes)
 
-        if args.json_file and args.change_metadata:
+        if args.json_file:
             with open(args.json_file, 'r') as input_file:
                 metadata_dict = json.load(input_file)
             amend_metadata(source_on_target, **metadata_dict)
@@ -160,7 +156,7 @@ def main():
     # Change metadata only option:
     # if output file path and json metadata file specified,
     # change the metadata
-    elif args.output_filepath and args.json_file and args.change_metadata:
+    elif args.output_filepath and args.json_file:
         with open(args.json_file, 'r') as input_file:
             metadata_dict = json.load(input_file)
         new_data = amend_metadata(source_data, **metadata_dict)
