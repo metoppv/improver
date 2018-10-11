@@ -75,9 +75,9 @@ def main():
                              "data is found but no fix applied.")
 
     parser.add_argument("--check_float64", action='store_true', default=False,
-                       help="Check the cube for float64 data. If float64 "
-                            "data is found a warning will be raised but "
-                            "no fix applied.")
+                        help="Check the cube for float64 data. If float64 "
+                             "data is found a warning will be raised but "
+                             "no fix applied.")
 
     parser.add_argument("--regrid", action='store_true', default=False,
                         help="regrid cube.....")
