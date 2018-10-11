@@ -33,11 +33,11 @@
 
 @test "standardise" {
   improver_check_skip_acceptance
-  KGO="standardise/basic/kgo.nc"
+  KGO="standardise/float64/kgo.nc"
 
   # Run cube regrid processing and check it passes.
   run improver standardise \
-      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
       --fix_float64
   [[ "$status" -eq 0 ]]

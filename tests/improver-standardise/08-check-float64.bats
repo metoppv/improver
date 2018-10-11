@@ -37,7 +37,7 @@
 
   # Run cube regrid processing and check it passes.
   run improver standardise \
-      "$IMPROVER_ACC_TEST_DIR/standardise/float64/float_64_data.nc" --check_float64
+      "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" --check_float64
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
