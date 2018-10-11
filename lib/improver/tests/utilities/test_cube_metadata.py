@@ -50,6 +50,7 @@ from improver.utilities.cube_metadata import (
     stage_v110_to_v120,
     update_cell_methods,
     update_coord,
+    update_cube_blended_metadata,
     update_attribute)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.ensemble_calibration.ensemble_calibration.\
