@@ -94,6 +94,11 @@ class NowcastLightning(object):
 
         lower:  VII 0.5 => max lightning prob 0.1
     """
+    #: (tuple): Expected thresholds for vertically-integrated-ice (VII) data.
+    #: These are used for increasing prob(lightning) with column-ice data.
+    #: Units are kg/m2.
+    ice_thresholds = (0.5, 1.0, 2.0)
+
     def __init__(self, radius=10000.):
         """
         Initialise class for Nowcast of lightning probability.
@@ -155,11 +160,6 @@ class NowcastLightning(object):
         self.phighthresh = 0.4
         self.ptorrthresh = 0.2
 
-        # Set values for handling vertically-integrated-ice (VII) data
-        #    ice_thresholds (tuple):
-        #        Values for increasing prob(lightning) with column-ice data.
-        #        These are the three VII thresholds in kg/m2.
-        self.ice_thresholds = (0.5, 1.0, 2.0)
         #    ice_scaling (tuple):
         #        Values for increasing prob(lightning) with VII data.
         #        These are the three prob(lightning) values to scale to.
@@ -399,7 +399,7 @@ class NowcastLightning(object):
                 The forecast_period coord is modified in-place to "minutes".
             ice_cube (iris.cube.Cube):
                 Analysis of vertically integrated ice (VII) from radar
-                thresholded at self.ice_thresholds
+                thresholded at self.ice_thresholds.
                 Units of threshold coord modified in-place to kg m^-2
 
         Returns:
@@ -457,8 +457,9 @@ class NowcastLightning(object):
                         (required thresholds: > 0.5, 7., 35. mm hr-1)
                     * Nowcast lightning rate
                     * (optional) Analysis of vertically integrated ice (VII)
-                      from radar thresholded into probability slices for
-                      >0.5, 1.0, 2.0 kg m-2
+                      from radar thresholded into probability slices
+                      at self.ice_thresholds.
+
 
         Returns:
             new_cube (iris.cube.Cube):
