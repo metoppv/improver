@@ -50,7 +50,7 @@ class Test_rationalise_blend_time_coords(IrisTest):
     def setUp(self):
         """Set up a list of cubes from different models with some probability
         data in them."""
-        data = np.full((3, 3), 0.6, dtype=np.float)
+        data = np.full((3, 3), 0.6, dtype=np.float32)
 
         y_coord = DimCoord([40., 45., 50.], 'latitude', 'degrees')
         x_coord = DimCoord([-5., 0., 5.], 'longitude', 'degrees')

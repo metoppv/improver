@@ -79,7 +79,8 @@ def unify_forecast_reference_time(cubes, cycletime):
         frt_points = [frt_units.date2num(cycletime)]
         frt_coord = build_coordinate(
             frt_points, standard_name="forecast_reference_time", bounds=None,
-            template_coord=cube.coord('forecast_reference_time'))
+            template_coord=cube.coord('forecast_reference_time'),
+            data_type=np.float64)
         cube.remove_coord("forecast_reference_time")
         cube.add_aux_coord(frt_coord, data_dims=None)
 
@@ -124,7 +125,6 @@ def rationalise_blend_time_coords(
         ValueError: if forecast_reference_time (to be unified) is a
             dimension coordinate
     """
-
     if "forecast_reference_time" in blend_coord:
         for cube in cubelist:
             coord_names = [x.name() for x in cube.coords()]
@@ -148,10 +148,7 @@ def rationalise_blend_time_coords(
                 next_coord.convert_units(frt_coord.units)
                 if next_coord.points[0] > frt_coord.points[0]:
                     frt_coord = next_coord
-
             cycletime, = (frt_coord.units).num2date(frt_coord.points)
-
-            #cycletime, = iris_time_to_datetime(frt_coord)
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
