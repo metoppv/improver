@@ -165,32 +165,6 @@ def set_up_wxcubes_global():
                                           2.77777778e-08,
                                           2.77777778e-07])))
 
-    data_snow_conv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
-    snowfall_conv = (
-        set_up_probability_above_threshold_cube(
-            data_snow_conv,
-            'lwe_convective_snowfall_rate',
-            'm s-1',
-            forecast_thresholds=np.array([8.33333333e-09,
-                                          2.77777778e-08,
-                                          2.77777778e-07])))
-
-    data_rain_conv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
-    rainfall_conv = (
-        set_up_probability_above_threshold_cube(
-            data_rain_conv,
-            'convective_rainfall_rate',
-            'm s-1',
-            forecast_thresholds=np.array([8.33333333e-09,
-                                          2.77777778e-08,
-                                          2.77777778e-07])))
-
     data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                            0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
                            0.0, 0.0, 1.0]).reshape(2, 1, 3, 3)
@@ -222,7 +196,6 @@ def set_up_wxcubes_global():
     visibility.attributes['relative_to_threshold'] = 'below'
 
     cubes = iris.cube.CubeList([snowfall_rate, rainfall_rate,
-                                snowfall_conv, rainfall_conv,
                                 cloud, cloud_below_1000ft,
                                 visibility])
     return cubes
@@ -294,7 +267,7 @@ class Test_check_input_cubes(IrisTest):
     def test_raises_error_missing_cubes_global(self):
         """Test check_input_cubes method raises error if data is missing"""
         plugin = WeatherSymbols(wxtree='global')
-        cubes = self.cubes
+        cubes = set_up_wxcubes_global()[0:3]
         msg = 'Weather Symbols input cubes are missing'
         with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
@@ -665,14 +638,6 @@ class Test_process(IrisTest):
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
                               0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
-        data_snow_conv = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                   0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0,
-                                   0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-                                   1.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
-        data_rain_conv = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                   1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                   1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-                                   0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
                                0.0, 1.0, 1.0]).reshape(2, 1, 3, 3)
@@ -684,11 +649,9 @@ class Test_process(IrisTest):
         cubes = set_up_wxcubes_global()
         cubes[0].data = data_snow
         cubes[1].data = data_rain
-        cubes[2].data = data_snow_conv
-        cubes[3].data = data_rain_conv
-        cubes[4].data = data_cloud
-        cubes[5].data = data_cld_1000ft
-        cubes[6].data = data_vis
+        cubes[2].data = data_cloud
+        cubes[3].data = data_cld_1000ft
+        cubes[4].data = data_vis
         result = plugin.process(cubes)
         expected_wxcode = np.array([14, 15, 17,
                                     18, 23, 24,
