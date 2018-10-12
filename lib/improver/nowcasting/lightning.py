@@ -48,12 +48,16 @@ class NowcastLightning(object):
 
     For each forecast time, the closest-in-time first-guess lightning
     probability slice is copied and modified thus:
+
     1: Increase lightning probability where lightning is observed or is
         nearby.
+
     2: Increase lightning probability where heavy or intense precipitation
-        is observed
+        is observed.
+
     3: Reduce lightning probability where precipitation is light or
-        absent
+        absent.
+
     4: Increase lightning probability where ice is likely in the observed
         radar column.
 
@@ -64,10 +68,12 @@ class NowcastLightning(object):
     The default behaviour makes
     these adjustments to the upper and lower limits of lightning probability:
     lightning mapping (lightning rate in "min^-1"):
-        upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
-            The <function> returns a linear value from 0.5 to 2.5 over a
-            6-hour forecast_period.
-        lower: lightning rate == 0.0 => min lightning prob 0.25 (LR2)
+
+    upper: lightning rate >= <function> => lightning prob = 1.0 (LR1)
+        The <function> returns a linear value from 0.5 to 2.5 over a
+        6-hour forecast_period.
+
+    lower: lightning rate == 0.0 => min lightning prob 0.25 (LR2)
 
     precipitation mapping (for prob(precip > 0.5 mm/hr)):
         upper:  precip probability >= 0.1 => max lightning prob 1.0 (LR1)
@@ -177,11 +183,12 @@ class NowcastLightning(object):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
-            1. Rename to
-                "probability_of_lightning"
-            2. Remove "threshold" coord
-                (or causes iris.exceptions.CoordinateNotFoundError)
-            3. Discard all cell_methods
+        1. Rename to "probability_of_lightning"
+
+        2. Remove "threshold" coord
+        (or causes iris.exceptions.CoordinateNotFoundError)
+
+        3. Discard all cell_methods
 
         Args:
             cube (iris.cube.Cube):
@@ -443,7 +450,7 @@ class NowcastLightning(object):
         Args:
             cubelist (iris.cube.CubeList):
                 Where thresholds are listed, only these threshold values will
-                be used.
+                    be used.
                 Contains cubes of
                     * First-guess lightning probability
                     * Nowcast precipitation probability
