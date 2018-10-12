@@ -43,21 +43,22 @@ from improver.utilities.cube_metadata import amend_metadata
 
 
 def main():
-    """Regrid data from a source cube on to a target grid described by another
-       cube."""
-
+    """Standardise a source cube. Standardisation options include regridding
+    (with options to fix float64 data, use Iris nearest and extrapolate
+    modes and update metadata. Standalone options included checking/fixing
+    float64 data and updating metadata"""
     parser = ArgParser(
-        description='Standardise a source data cube. Options are to regrid '
-                    'with further options to fix float64 data, change '
-                    'metatdata, use iris nearest and extrapolation modes as '
-                    'part of the regridding process. In addition separate '
-                    'standalone checks can be made for float64 data, '
-                    'and updating cube metadata'
-    )
+        description='Standardise a source data cube. Three main options are '
+                    'available; checking and optionally fixing float64 data, '
+                    'regridding and updating metadata. If regridding then '
+                    'additional options are available to specify Iris nearest '
+                    'and extrapolation modes. If only a source file is '
+                    'specified with no other arguments, then an exception '
+                    'will be raised if float64 data is found on the source.')
 
     parser.add_argument('source_data_filepath', metavar='SOURCE_DATA',
                         help='A cube of data that is to be standardised and '
-                             'optionally, fixed for float64 data, regridded '
+                             'optionally fixed for float64 data, regridded '
                              'and meta data changed')
 
     parser.add_argument("--output_filepath", metavar="OUTPUT_FILE",
@@ -65,32 +66,24 @@ def main():
                         help="The output path for the processed NetCDF")
 
     parser.add_argument("--target_grid_filepath", metavar="TARGET_GRID",
-                        help='A cube containing the grid to which '
-                             'the source_data is to be regridded.')
+                        help='If specified then regridding of the source '
+                             'against the target grid is enabled.')
 
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "
-                             "this option a warning will be raised if float64 "
-                             "data is found but no fix applied.")
-
-    parser.add_argument("--check_float64", action='store_true', default=False,
-                        help="Check the cube for float64 data. If float64 "
-                             "data is found a warning will be raised but "
-                             "no fix applied.")
-
-    parser.add_argument("--regrid", action='store_true', default=False,
-                        help="regrid cube.....")
+                             "this option an exception will be raised if "
+                             "float64 data is found but no fix applied.")
 
     parser.add_argument("--nearest", action='store_true', default=False,
                         help='If True, regridding will be performed using '
-                             'iris.analysis.Nearest() instead of Linear().'
+                             'iris.analysis.Nearest() instead of Linear(). '
                              'Use for less continuous fields, '
                              'e.g. precipitation.')
 
     parser.add_argument("--extrapolation_mode", default='nanmask',
                         help='Mode to use for extrapolating data into regions '
                              'beyond the limits of the source_data domain. '
-                             'Modes are:'
+                             'Modes are: '
                              'extrapolate - The extrapolation points will '
                              'take their value from the nearest source point. '
                              'nan - The extrapolation points will be be '
@@ -107,18 +100,31 @@ def main():
 
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
-                             'changes to the metadata. Defaults to None.')
+                             'changes that will be applied '
+                             'to the metadata. Defaults to None.')
 
     args = parser.parse_args()
 
     # source file data path is a mandatory argument
     source_data = load_cube(args.source_data_filepath)
 
+    if args.fix_float64:
+        check_cube_not_float64(source_data, fix=True)
+    else:
+        check_cube_not_float64(source_data, fix=False)
+
+    if args.target_grid_filepath or args.json_file or args.fix_float64:
+        if not args.output_filepath:
+            msg = "An argument has been specified that requires an output \
+                  filepath but none has been provided"
+            raise ValueError(msg)
+
     # Re-grid with options:
-    # if a target grid file, output file path and regrid options have been
-    # specified, then regrid optionally applying float64 data check, metadata
-    # change, iris nearest and extrapolation mode as required
-    if args.target_grid_filepath and args.output_filepath and args.regrid:
+    # if a target grid file has been specified, then regrid optionally
+    # applying float64 data check, metadata change, Iris nearest and
+    # extrapolation mode as required.
+
+    if args.target_grid_filepath:
 
         target_grid = load_cube(args.target_grid_filepath)
 
@@ -165,14 +171,6 @@ def main():
     elif args.fix_float64 and args.output_filepath:
         check_cube_not_float64(source_data, fix=True)
         save_netcdf(source_data, args.output_filepath)
-
-    # Check but don't fix float64 in source file (only arguments provided are
-    # the mandatory source file path and --check_float64)
-    # 'check_cube_not_float64' from improver utilities will raise TypeError if
-    # float64 data found on the cube.
-    elif args.check_float64:
-        check_cube_not_float64(source_data, fix=False)
-        print('No float64 data found on source file')
 
 
 if __name__ == "__main__":

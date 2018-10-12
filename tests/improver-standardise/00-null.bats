@@ -36,8 +36,7 @@
 usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
                             [--target_grid_filepath TARGET_GRID]
-                            [--fix_float64] [--check_float64] [--regrid]
-                            [--nearest]
+                            [--fix_float64] [--nearest]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--json_file JSON_FILE]
                             SOURCE_DATA

@@ -39,7 +39,7 @@
   run improver standardise \
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
       --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/ukvx_grid.nc" \
-      --output_filepath "$TEST_DIR/output.nc" --regrid --fix_float64
+      --output_filepath "$TEST_DIR/output.nc" --fix_float64
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
