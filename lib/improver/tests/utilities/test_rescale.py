@@ -109,8 +109,8 @@ class Test_apply_double_scaling(IrisTest):
         precipitation_amount / (kg m^-2)
         Dimension coordinates:
             time: 1;
-            projection_y_coordinate: 16;
-            projection_x_coordinate: 16;
+            projection_y_coordinate: 4;
+            projection_x_coordinate: 4;
         Auxiliary coordinates:
             forecast_period (on time coord): 0.0 hours
         Scalar coordinates:
@@ -122,10 +122,12 @@ class Test_apply_double_scaling(IrisTest):
                 All points contain float(1.)
         """
         self.cube_a = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            set_up_cube_with_no_realizations(zero_point_indices=[],
+                                             num_grid_points=4),
             fp_point=0.0)
         self.cube_b = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]),
+            set_up_cube_with_no_realizations(zero_point_indices=[],
+                                             num_grid_points=4),
             fp_point=0.0)
         self.thr_a = (0.1, 0.5, 0.8)
         self.thr_b = (0.0, 0.5, 0.9)
@@ -155,23 +157,19 @@ class Test_apply_double_scaling(IrisTest):
         # Create an array of correct shape and fill with expected value
         expected = np.full_like(self.cube_a.data, 0.9)
         # Row zero should be changed to all-zeroes
-        expected[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                             0., 0., 0., 0., 0., 0., 0., 0.]
+        expected[0, 0, :] = [0., 0., 0., 0.]
         # Row one should be like cube_a but with most values reduced to 0.5
-        expected[0, 1, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.5, 0.5,
-                             0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+        expected[0, 1, :] = [0.0, 0.4, 
+                             0.5, 0.5]
         # Row two should be like cube_a but with late values limited to 0.9
-        expected[0, 2, :] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,
-                             0.8, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]
-        self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                                     0., 0., 0., 0., 0., 0., 0., 0.]
-        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                                     0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        self.cube_a.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
-                                     1., 1., 1., 1., 1., 1., 1., 1.]
-        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.1)
-        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.1)
-        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        expected[0, 2, :] = [0.0, 0.4,
+                             0.8, 0.9]
+        self.cube_a.data[0, 0, :] = [0., 0., 0., 0.]
+        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5]
+        self.cube_a.data[0, 2, :] = [1., 1., 1., 1.]
+        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.4)
+        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.4)
+        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.4)
         result = apply_double_scaling(self.cube_a,
                                       self.cube_b,
                                       self.thr_a,
@@ -183,22 +181,19 @@ class Test_apply_double_scaling(IrisTest):
         function"""
         expected = self.cube_a.data.copy()
         # Row zero should be unchanged from ltng_cube
-        expected[0, 0, :] = np.arange(0., 1.6, 0.1)
+        expected[0, 0, :] = np.arange(0., 1.6, 0.4)
         # Row one should be like cube_a but with early values raised to 0.5
-        expected[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.6, 0.7,
-                             0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        expected[0, 1, :] = [0.5, 0.5,
+                             0.8, 1.2]
         # Row two should be like cube_a but with most values raised to 0.9
-        expected[0, 2, :] = [0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9,
-                             0.9, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-        self.cube_a.data[0, 0, :] = [0., 0., 0., 0., 0., 0., 0., 0.,
-                                     0., 0., 0., 0., 0., 0., 0., 0.]
-        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
-                                     0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
-        self.cube_a.data[0, 2, :] = [1., 1., 1., 1., 1., 1., 1., 1.,
-                                     1., 1., 1., 1., 1., 1., 1., 1.]
-        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.1)
-        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.1)
-        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.1)
+        expected[0, 2, :] = [0.9, 0.9,
+                             0.9, 1.2]
+        self.cube_a.data[0, 0, :] = [0., 0., 0., 0.]
+        self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5]
+        self.cube_a.data[0, 2, :] = [1., 1., 1., 1.]
+        self.cube_b.data[0, 0, :] = np.arange(0., 1.6, 0.4)
+        self.cube_b.data[0, 1, :] = np.arange(0., 1.6, 0.4)
+        self.cube_b.data[0, 2, :] = np.arange(0., 1.6, 0.4)
         result = apply_double_scaling(self.cube_a,
                                       self.cube_b,
                                       self.thr_a,
