@@ -700,9 +700,13 @@ class Test_process(Test_NeighbourSelection):
         imposed. Here we expect to go 'west' to the first island of land
         which has an altitude of 5m. So we expect [1, 4, -3]."""
 
-        plugin = NeighbourSelection(land_constraint=True, search_radius=1E7)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        plugin = NeighbourSelection(
+            land_constraint=True, search_radius=2E5,
+            site_coordinate_system=self.region_projection.as_cartopy_crs(),
+            site_x_coordinate='projection_x_coordinate',
+            site_y_coordinate='projection_y_coordinate')
+        result = plugin.process(self.region_sites, self.region_orography,
+                                self.region_land_mask)
         expected = [[[1, 4, -3]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -713,11 +717,67 @@ class Test_process(Test_NeighbourSelection):
         'west' to the second band of land that we encounter, which has an
         altitude closer to that of the site. So we expect [0, 4, 1]."""
 
-        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True,
-                                    search_radius=1E8)
+        plugin = NeighbourSelection(
+            land_constraint=True, minimum_dz=True, search_radius=2E5,
+            site_coordinate_system=self.region_projection.as_cartopy_crs(),
+            site_x_coordinate='projection_x_coordinate',
+            site_y_coordinate='projection_y_coordinate')
+        result = plugin.process(self.region_sites, self.region_orography,
+                                self.region_land_mask)
+        expected = [[[0, 4, 1]]]
+
+        self.assertArrayEqual(result.data, expected)
+
+    def test_global_tied_case_nearest(self):
+        """Test which neighbour is returned in an artificial case in which two
+        neighbouring grid points are identically close. First with no
+        constraints using the iris method. We put a site exactly half way
+        between the two islands at -60 degrees longitude ([1, 4] and [4, 4] are
+        equal distances either side of the site). This consistently returns the
+        western island. Note that nudging the value to -59.9 will return the
+        island to the east as expected."""
+
+        self.global_sites[0]['longitude'] = -60.
+        plugin = NeighbourSelection()
         result = plugin.process(self.global_sites, self.global_orography,
                                 self.global_land_mask)
-        expected = [[[0, 4, 1]]]
+        expected = [[[2, 4, 2]]]
+
+        self.assertArrayEqual(result.data, expected)
+
+    def test_global_tied_case_nearest_land(self):
+        """Test which neighbour is returned in an artificial case in which two
+        neighbouring grid points are identically close. Identical to the test
+        above except for the land constraint is now applied, so the neigbour is
+        found using the KDTree. Using the KDTree the neighbour to the east is
+        returned everytime the test is run."""
+
+        self.global_sites[0]['longitude'] = -60.0
+        plugin = NeighbourSelection(land_constraint=True, search_radius=1E8)
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
+        expected = [[[4, 4, 2]]]
+
+        self.assertArrayEqual(result.data, expected)
+
+    def test_global_tied_case_nearest_land_min_dz(self):
+        """Test which neighbour is returned in an artificial case in which two
+        neighbouring grid points are identically close. Identical to the test
+        above except for now with both a land constraint and minimum dz
+        constraint. The neighbouring islands have been set to have the
+        same vertical displacement as each other from the spot site. The
+        neigbour is found using the KDTree.  Using the KDTree the neighbour to
+        the east is returned everytime the test is run."""
+
+        self.global_sites[0]['longitude'] = -60.0
+        self.global_sites[0]['altitude'] = 5.
+        self.global_orography.data[4, 4] = 5.
+
+        plugin = NeighbourSelection(land_constraint=True, search_radius=1E8,
+                                    minimum_dz=True)
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
+        expected = [[[4, 4, 0]]]
 
         self.assertArrayEqual(result.data, expected)
 

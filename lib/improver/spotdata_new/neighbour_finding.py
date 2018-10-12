@@ -33,7 +33,7 @@
 
 import warnings
 import numpy as np
-from scipy import spatial
+from scipy.spatial import cKDTree
 
 import cartopy.crs as ccrs
 
@@ -105,9 +105,11 @@ class NeighbourSelection(object):
         self.site_x_coordinate = site_x_coordinate
         self.site_y_coordinate = site_y_coordinate
         self.site_altitude = 'altitude'
-        self.geodetic_coordinate_system = False
         self.grid_metadata_identifier = grid_metadata_identifier
         self.node_limit = node_limit
+        # This is a global flag that will be set to True if the input cubes are
+        # geodetic, which here means they are global grids.
+        self.geodetic_coordinate_system = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -173,7 +175,11 @@ class NeighbourSelection(object):
         Args:
             sites (list of dicts):
                 A list of dictionaries defining the spot sites for which
-                neighbours are to be found.
+                neighbours are to be found. e.g.:
+
+                   [{'altitude': 11.0, 'latitude': 57.867000579833984,
+                    'longitude': -5.632999897003174, 'wmo_id': 3034}]
+
             site_coords (np.array):
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
@@ -186,12 +192,16 @@ class NeighbourSelection(object):
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
+        Returns:
+           sites, site_coords, site_x_coords, site_y_coords (as above):
+               The inputs modified to filter out the sites falling outside the
+               grid domain of the cube.
         """
         # Get the grid domain limits
-        x_min = cube.coord(axis='x').bounds[0][0]
-        x_max = cube.coord(axis='x').bounds[-1][1]
-        y_min = cube.coord(axis='y').bounds[0][0]
-        y_max = cube.coord(axis='y').bounds[-1][1]
+        x_min = cube.coord(axis='x').bounds.min()
+        x_max = cube.coord(axis='x').bounds.max()
+        y_min = cube.coord(axis='y').bounds.min()
+        y_max = cube.coord(axis='y').bounds.max()
 
         domain_valid = np.where(
             (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
@@ -311,7 +321,7 @@ class NeighbourSelection(object):
 
         index_nodes = np.array(list(zip(x_indices, y_indices)))
 
-        return spatial.cKDTree(nodes), index_nodes
+        return cKDTree(nodes), index_nodes
 
     def select_minimum_dz(self, orography, site_altitude, index_nodes,
                           distance, indices):
@@ -341,9 +351,10 @@ class NeighbourSelection(object):
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
         Returns:
-            grid_point (np.array):
+            grid_point (np.array or None):
                 A 2-element array giving the x and y indices of the chosen grid
-                point neighbour.
+                point neighbour. Returns None if no valid neighbours were found
+                in the tree query.
         """
         # Values beyond the imposed search radius are set to inf,
         # these need to be excluded.
@@ -358,7 +369,7 @@ class NeighbourSelection(object):
         if np.isfinite(distance[-1]):
             msg = ('Limit on number of nearest neighbours to return, {}, may '
                    'not be sufficiently large to fill search_radius {}'.format(
-                    self.node_limit, self.search_radius))
+                       self.node_limit, self.search_radius))
             warnings.warn(msg)
 
         distance = distance[valid_indices]
@@ -376,7 +387,6 @@ class NeighbourSelection(object):
         index_of_minimum = (
             np.argmax(vertical_displacements ==
                       vertical_displacements.min()))
-
         grid_point = index_nodes[indices][index_of_minimum]
 
         return grid_point
@@ -458,6 +468,8 @@ class NeighbourSelection(object):
         # If further constraints are being applied, build a KD Tree which
         # includes points filtered by constraint.
         if self.land_constraint or self.minimum_dz:
+            # Build the KDTree, an internal test for the land_constraint checks
+            # whether to exclude sea points from the tree.
             tree, index_nodes = self.build_KDTree(land_mask)
 
             # Site coordinates made cartesian for global coordinate system
@@ -466,23 +478,31 @@ class NeighbourSelection(object):
                     orography, site_coords[:, 0], site_coords[:, 1])
 
             if not self.minimum_dz:
+                # Query the tree for the nearest neighbour, in this case a land
+                # neighbour is returned along with the distance to it.
                 distances, node_indices = tree.query([site_coords])
+                # Look up the grid coordinates that correspond to the tree node
                 land_neighbour_indices, = index_nodes[node_indices]
+                # Use the found land neighbour if it is within the
+                # search_radius, otherwise use the nearest neighbour.
                 distances = np.array([distances[0], distances[0]]).T
                 nearest_indices = np.where(distances < self.search_radius,
                                            land_neighbour_indices,
                                            nearest_indices)
             else:
+                # Query the tree for self.node_limit nearby neighbours.
                 distances, node_indices = tree.query(
                     [site_coords], distance_upper_bound=self.search_radius,
                     k=self.node_limit)
-
+                # Loop over the sites and for each choose the returned
+                # neighbour with the minimum vertical displacement.
                 for index, (distance, indices) in enumerate(zip(
                         distances[0], node_indices[0])):
-
                     grid_point = self.select_minimum_dz(
                         orography, site_altitudes[index], index_nodes,
                         distance, indices)
+                    # None is returned if the tree query returned no neighbours
+                    # within the search radius.
                     if grid_point is not None:
                         nearest_indices[index] = grid_point
 
