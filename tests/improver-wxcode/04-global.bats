@@ -38,9 +38,7 @@
   # Run wxcode processing and check it passes.
   run improver wxcode --wxtree='global' \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_rainfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_rainfall_rate_from_convection.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_snowfall_rate.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_snowfall_rate_from_convection.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_visibility_at_screen_level.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_cloud_area_fraction.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \

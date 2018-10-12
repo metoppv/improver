@@ -122,7 +122,7 @@ def main():
         formatter_class=RawTextHelpFormatter)
 
     parser.add_argument(
-        'input_filepaths', metavar='INPUT_FILES', nargs=n_files,
+        'input_filepaths', metavar='INPUT_FILES', nargs="+",
         help='Paths to files containing the required input diagnostics.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
