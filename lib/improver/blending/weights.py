@@ -647,7 +647,10 @@ class ChooseWeightsLinear(object):
         Args:
             cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cubes containing the coordinate (source point) information
-                that will be used for setting up the interpolation.
+                that will be used for setting up the interpolation.  Each cube
+                should have "self.config_coord_name" as a scalar dimension; if
+                a merged cube is passed in, the plugin will split this into a
+                list cubes.
 
         Kwargs:
             weights_cubes (iris.cube.CubeList):
@@ -664,8 +667,26 @@ class ChooseWeightsLinear(object):
                 weights_cubes instead of a weights dict.
                 DimCoords (such as model_id) will be in sorted-ascending order.
         """
+        # create iris.cube.CubeList of 2D cubes
         if isinstance(cubes, iris.cube.Cube):
-            cubes = [cubes]
+            # check how many points there are in the config coordinate
+            if len(cubes.coord(self.config_coord_name).points) == 1:
+                cubes = [next(cube.slices([cube.coord(axis='y'),
+                                           cube.coord(axis='x')]))]
+            else:
+                # if passed a merged cube, split this up into a cube list
+                cubelist = []
+                for cube in cubes.slices_over(
+                        cubes.coord(self.config_coord_name)):
+                    cubelist.append(next(cube.slices([cube.coord(axis='y'),
+                                                      cube.coord(axis='x')])))
+                cubes = cubelist
+        else:
+            cubelist = []
+            for cube in cubes:
+                cubelist.append(next(cube.slices([cube.coord(axis='y'),
+                                                  cube.coord(axis='x')])))
+            cubes = cubelist
 
         if not self.config_dict:
             if isinstance(weights_cubes, iris.cube.Cube):

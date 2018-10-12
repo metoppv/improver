@@ -97,7 +97,8 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
     # calculate blending weights
     if method == "dict":
         # calculate linear weights from a dictionary
-        weights_dict = json.load(args.wts_dict)
+        with open(wts_dict, 'r') as wts:
+            weights_dict = json.load(wts)
         weights_cube = ChooseWeightsLinear(
             weighting_coord, config_coord_name=blend_coord,
             config_dict=weights_dict).process(cube)
