@@ -36,11 +36,13 @@ from iris.util import squeeze
 from iris.coords import DimCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
+from iris.util import squeeze
 from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
 import numpy as np
 import cf_units
 
 from improver.nowcasting.lightning import NowcastLightning as Plugin
+from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_with_no_realizations)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
@@ -515,6 +517,16 @@ class Test_apply_precip(IrisTest):
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
+    def test_precip_light(self):
+        """Test that high probs of light precip do not reduce high lightning
+        risk"""
+        self.precip_cube.data[:, 0, 1, 1] = 0.
+        self.precip_cube.data[0, 0, 1, 1] = 0.8
+        expected = self.fg_cube.copy()
+        # expected.data contains all ones
+        result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+
     def test_precip_heavy(self):
         """Test that prob of heavy precip increases zero lightning risk"""
         self.precip_cube.data[0, 0, 1, 1] = 1.0
@@ -696,28 +708,22 @@ class Test_apply_ice(IrisTest):
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
-    def test_ice_large_short_fc(self):
+    def test_ice_large_with_fc(self):
         """Test that large VII probs do increase zero lightning risk when
-        forecast lead time is non-zero"""
+        forecast lead time is non-zero (two forecast_period points)"""
         self.ice_cube.data[:, 1, 1] = 1.
         self.fg_cube.data[0, 1, 1] = 0.
         self.fg_cube.coord('forecast_period').points = [1.]  # hours
+        fg_cube_next = self.fg_cube.copy()
+        time_pt, = self.fg_cube.coord('time').points
+        fg_cube_next.coord('time').points = [time_pt + 2.]  # hours
+        fg_cube_next.coord('forecast_period').points = [3.]  # hours
+        self.fg_cube = CubeList([squeeze(self.fg_cube),
+                                 squeeze(fg_cube_next)]).merge_cube()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 1, 1] = 0.54
-        result = self.plugin.apply_ice(self.fg_cube,
-                                       self.ice_cube)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_ice_large_long_fc(self):
-        """Test that large VII probs do not increase zero lightning risk when
-        forecast lead time is large"""
-        self.ice_cube.data[:, 1, 1] = 1.
-        self.fg_cube.data[0, 1, 1] = 0.
-        self.fg_cube.coord('forecast_period').points = [3.]  # hours
-        expected = self.fg_cube.copy()
-        # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.0
+        expected.data[1, 1, 1] = 0.0
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -845,12 +851,16 @@ class Test_process(IrisTest):
         return expected
 
     def test_basic(self):
-        """Test that the method returns the expected cube type"""
+        """Test that the method returns the expected cube type with coords"""
         result = self.plugin.process(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube]))
         self.assertIsInstance(result, Cube)
+        # We expect the threshold coordinate to have been removed.
+        self.assertCountEqual(find_dimension_coordinate_mismatch(
+                result, self.precip_cube), ['threshold'])
+        self.assertTrue(result.name() == 'probability_of_lightning')
 
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type when vii is
@@ -861,6 +871,10 @@ class Test_process(IrisTest):
             self.precip_cube,
             self.vii_cube]))
         self.assertIsInstance(result, Cube)
+        # We expect the threshold coordinate to have been removed.
+        self.assertCountEqual(find_dimension_coordinate_mismatch(
+                result, self.precip_cube), ['threshold'])
+        self.assertTrue(result.name() == 'probability_of_lightning')
 
     def test_no_first_guess_cube(self):
         """Test that the method raises an error if the first_guess cube is

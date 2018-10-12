@@ -159,11 +159,9 @@ class Test_apply_double_scaling(IrisTest):
         # Row zero should be changed to all-zeroes
         expected[0, 0, :] = [0., 0., 0., 0.]
         # Row one should be like cube_a but with most values reduced to 0.5
-        expected[0, 1, :] = [0.0, 0.4, 
-                             0.5, 0.5]
+        expected[0, 1, :] = [0.0, 0.4, 0.5, 0.5]
         # Row two should be like cube_a but with late values limited to 0.9
-        expected[0, 2, :] = [0.0, 0.4,
-                             0.8, 0.9]
+        expected[0, 2, :] = [0.0, 0.4, 0.8, 0.9]
         self.cube_a.data[0, 0, :] = [0., 0., 0., 0.]
         self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5]
         self.cube_a.data[0, 2, :] = [1., 1., 1., 1.]
@@ -183,11 +181,9 @@ class Test_apply_double_scaling(IrisTest):
         # Row zero should be unchanged from ltng_cube
         expected[0, 0, :] = np.arange(0., 1.6, 0.4)
         # Row one should be like cube_a but with early values raised to 0.5
-        expected[0, 1, :] = [0.5, 0.5,
-                             0.8, 1.2]
+        expected[0, 1, :] = [0.5, 0.5, 0.8, 1.2]
         # Row two should be like cube_a but with most values raised to 0.9
-        expected[0, 2, :] = [0.9, 0.9,
-                             0.9, 1.2]
+        expected[0, 2, :] = [0.9, 0.9, 0.9, 1.2]
         self.cube_a.data[0, 0, :] = [0., 0., 0., 0.]
         self.cube_a.data[0, 1, :] = [0.5, 0.5, 0.5, 0.5]
         self.cube_a.data[0, 2, :] = [1., 1., 1., 1.]
