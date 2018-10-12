@@ -66,21 +66,14 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        # Have to pass in a lambda to ensure two strings match the same
-        # function address.
-        def local_function(mins):
-            """To ensure plugin lambda function is expressed fairly in repr."""
-            return lambda mins: mins
-        set_lightning_thresholds = local_function
         plugin = Plugin()
-        plugin.lrt_lev1 = set_lightning_thresholds
         result = str(plugin)
         msg = ("""<NowcastLightning: radius={radius},
  lightning mapping (lightning rate in "min^-1"):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 >""".format(radius=10000.,
-            lthru=set_lightning_thresholds, lthrl=0.,
+            lthru="<class 'function'>", lthrl=0.,
             lprobu=1., lprobl=0.25)
               )
         self.assertEqual(result, msg)

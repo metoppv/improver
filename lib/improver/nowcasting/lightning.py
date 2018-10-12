@@ -169,7 +169,7 @@ class NowcastLightning(object):
    upper: lightning rate {lthru} => min lightning prob {lprobu}
    lower: lightning rate {lthrl} => min lightning prob {lprobl}
 >""".format(radius=self.radius,
-            lthru=self.lrt_lev1, lthrl=self.lrt_lev2,
+            lthru=self.lrt_lev1.__class__, lthrl=self.lrt_lev2,
             lprobu=self.pl_dict[1], lprobl=self.pl_dict[2])
 
     @staticmethod
@@ -471,6 +471,8 @@ class NowcastLightning(object):
         lightning_rate_cube.convert_units("min^-1")  # Ensure units are correct
         prob_precip_cube = cubelist.extract(
             "probability_of_precipitation", strict=True)
+        # Now find prob_vii_cube. Can't use strict=True here as cube may not be
+        # present, so will use a normal extract and then merge_cube if needed.
         prob_vii_cube = cubelist.extract(
             "probability_of_vertical_integral_of_ice")
         if prob_vii_cube:
