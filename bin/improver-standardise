@@ -115,8 +115,8 @@ def main():
 
     if args.target_grid_filepath or args.json_file or args.fix_float64:
         if not args.output_filepath:
-            msg = "An argument has been specified that requires an output " \
-                  "filepath but none has been provided"
+            msg = ("An argument has been specified that requires an output "
+                   "filepath but none has been provided")
             raise ValueError(msg)
 
     # Re-grid with options:
