@@ -183,6 +183,7 @@ class NowcastLightning(object):
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
+
         1. Rename to "probability_of_lightning"
 
         2. Remove "threshold" coord

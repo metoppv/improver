@@ -36,7 +36,6 @@ from iris.util import squeeze
 from iris.coords import DimCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
-from iris.util import squeeze
 from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
 import numpy as np
 import cf_units
