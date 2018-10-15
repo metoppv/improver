@@ -402,7 +402,11 @@ class NeighbourSelection(object):
         Args:
             sites (list of dicts):
                 A list of dictionaries defining the spot sites for which
-                neighbours are to be found.
+                neighbours are to be found. e.g.:
+
+                   [{'altitude': 11.0, 'latitude': 57.867000579833984,
+                    'longitude': -5.632999897003174, 'wmo_id': 3034}]
+
             orography (iris.cube.Cube):
                 A cube of orography, used to obtain the grid point altitudes.
             land_mask (iris.cube.Cube):
