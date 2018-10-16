@@ -133,7 +133,8 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
                                 standard_name="time", units=tunit), 1)
 
     step_size = 2000
-    y_points = np.arange(0, step_size*num_grid_points, step_size)
+    y_points = np.arange(0., step_size*num_grid_points, step_size,
+                         dtype=np.float32)
     cube.add_dim_coord(
         DimCoord(
             y_points,
@@ -144,7 +145,8 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
         2
     )
 
-    x_points = np.arange(-50000, (step_size*num_grid_points)-50000, step_size)
+    x_points = np.arange(-50000., (step_size*num_grid_points)-50000, step_size,
+                         dtype=np.float32)
     cube.add_dim_coord(
         DimCoord(
             x_points,
