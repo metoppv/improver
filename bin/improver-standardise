@@ -167,6 +167,7 @@ def main():
     # Check and fix for float64 data only option:
     elif args.fix_float64 and args.output_filepath:
         check_cube_not_float64(source_data, fix=True)
+    if args.output_filepath:
         save_netcdf(source_data, args.output_filepath)
 
 
