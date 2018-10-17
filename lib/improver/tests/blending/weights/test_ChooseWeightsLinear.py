@@ -33,6 +33,7 @@
 import unittest
 
 import iris
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
 from copy import deepcopy
@@ -557,6 +558,58 @@ class Test__calculate_weights(IrisTest):
                                weights_cube.metadata)
 
 
+class Test__slice_input_cubes(IrisTest):
+    """Test the _slice_input_cubes method"""
+
+    def setUp(self):
+        """Set up plugin with suitable parameters (used for dict only)"""
+        self.plugin = ChooseWeightsLinear(
+            "forecast_period", config_dict=CONFIG_DICT_UKV)
+
+        # create a cube with unnecessary realization coordinate (dimensions:
+        # model_id: 2; realization: 1; time: 3; latitude: 2; longitude: 2)
+        cube = add_model_id_and_model_configuration(
+            set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=[412235.0, 412247.0, 412278.0],
+            fp_point=[8., 20., 51.])
+
+        # create a reference cube as above WITHOUT realization
+        new_data = self.cube.data[:, 0, :, :, :]
+        dim_coords = [(self.cube.coord("model_id"), 0),
+                      (self.cube.coord("time"), 1),
+                      (self.cube.coord("latitude"), 2),
+                      (self.cube.coord("longitude"), 3)]
+        aux_coords = [(self.cube.coord("model_configuration"), 0),
+                      (self.cube.coord("forecast_period"), 1),
+                      (self.cube.coord("forecast_reference_time"), None)]
+        self.reference_cube = iris.cube.Cube(
+            new_data, "air_temperature", units="K",
+            dim_coords_and_dims=dim_coords,
+            aux_coords_and_dims=aux_coords)
+        self.reference_cube.add_aux_coord(AuxCoord(0, "realization"))
+
+        # split into a cubelist for each model
+        self.reference_cubelist = iris.cube.CubeList([self.reference_cube[0],
+                                                      self.reference_cube[1]])
+
+    def test_slices(self):
+        """Test function slices out extra dimensions"""
+        result = self.plugin._slice_input_cubes(self.cube)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        for cube, refcube in zip(result, self.reference_cubelist):
+            self.assertArrayAlmostEqual(cube.data, refcube.data)
+            self.assertEqual(cube.metadata, refcube.metadata)
+
+    def test_cubelist(self):
+        """Test function creates cubelist with same dimensions where needed"""
+        result = self.plugin._slice_input_cubes(self.reference_cube)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        for cube, refcube in zip(result, self.reference_cubelist):
+            self.assertArrayAlmostEqual(cube.data, refcube.data)
+            self.assertEqual(cube.metadata, refcube.metadata)
+
+
 class Test_process(IrisTest):
     """Test the process method"""
 
@@ -570,6 +623,17 @@ class Test_process(IrisTest):
                                "uk_ens": {"forecast_period": [7, 12, 48, 54],
                                           "weights": [0, 1, 1, 0],
                                           "units": "hours"}}
+
+    def test_error_incorrect_args(self):
+        """Test error is raised if both config_dict and weights_cubes are set
+        """
+        plugin = ChooseWeightsLinear(
+            self.weighting_coord_name, config_dict=self.config_dict_fp)
+        cubes = set_up_temperature_cube(timesteps=3)
+        weights_cubes = set_up_weights_cube(timesteps=3)
+        msg = 'Cannot calculate weights from both dict and cube'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = plugin.process(cubes, weights_cubes)
 
     def test_forecast_period_and_model_configuration_cubes(self):
         """Test when forecast_period is the weighting_coord_name. This
@@ -639,7 +703,7 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("model_id"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[1., 1., 0.8]], [[0., 0., 0.2]]])
+        expected_weights = np.array([[1., 1., 0.8], [0., 0., 0.2]])
 
         plugin = ChooseWeightsLinear(
             self.weighting_coord_name, config_dict=self.config_dict_fp)
@@ -736,9 +800,9 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("model_id"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[1., 1., 0.72]],
-                                     [[0., 0., 0.18]],
-                                     [[0., 0., 0.1]]])
+        expected_weights = np.array([[1., 1., 0.72],
+                                     [0., 0., 0.18],
+                                     [0., 0., 0.1]])
 
         self.config_dict_fp["gl_ens"] = {"forecast_period": [7, 16, 48, 54],
                                          "weights": [0, 1, 1, 1],
@@ -821,8 +885,8 @@ class Test_process(IrisTest):
         for cube_slice in cube.slices_over("realization"):
             cubes.append(cube_slice)
 
-        expected_weights = np.array([[[1.], [0.5]],
-                                     [[0.], [0.5]]])
+        expected_weights = np.array([[1., 0.5],
+                                     [0., 0.5]])
 
         config_dict = {0: {"height": [15, 25],
                            "weights": [1, 0],
@@ -833,6 +897,7 @@ class Test_process(IrisTest):
         plugin = ChooseWeightsLinear(
             "height", config_coord_name="realization", config_dict=config_dict)
         result = plugin.process(cubes)
+
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.name(), "weights")
