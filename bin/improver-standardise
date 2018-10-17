@@ -133,7 +133,6 @@ def main():
 
         # check_cube_not_float64 will raise TypeError if float64 data found
         else:
-            check_cube_not_float64(source_data, fix=False)
             check_cube_not_float64(target_grid, fix=False)
 
         regridder = iris.analysis.Linear(
