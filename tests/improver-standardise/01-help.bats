@@ -59,7 +59,9 @@ optional arguments:
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
   --output_filepath OUTPUT_FILE
-                        The output path for the processed NetCDF
+                        The output path for the processed NetCDF. If only a
+                        source file is specified and no output file, then the
+                        source will be checkedfor float64 data.
   --target_grid_filepath TARGET_GRID
                         If specified then regridding of the source against the
                         target grid is enabled.
