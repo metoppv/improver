@@ -659,10 +659,9 @@ class ChooseWeightsLinear(object):
         Returns:
             cubelist (iris.cube.CubeList):
                 List of cubes (from which to calculate weights) with
-                dimensions:
-
-                    [y, x] - if weighting_coord is scalar on the input cube
-                    [weighting_coord, y, x] - if weighting_coord is non-scalar
+                dimensions (y, x) if weighting_coord is scalar on the input
+                cube, or (weighting_coord, y, x) if weighting_coord is
+                non-scalar
         """
         if isinstance(cubes, iris.cube.Cube):
             # check how many points there are in the config coordinate
@@ -719,7 +718,8 @@ class ChooseWeightsLinear(object):
                 'Cannot calculate weights from both dict and cube')
 
         if self.config_dict:
-            # create 2D cube lists with relevant dimensions only for dict processing
+            # create 2D cube lists with relevant dimensions only for dict
+            # processing
             cubes = self._slice_input_cubes(cubes)
         else:
             if isinstance(cubes, iris.cube.Cube):

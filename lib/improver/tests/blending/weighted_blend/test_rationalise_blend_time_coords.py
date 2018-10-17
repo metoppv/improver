@@ -116,7 +116,8 @@ class Test_rationalise_blend_time_coords(IrisTest):
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertEqual(len(merged_cube.coord(coord).points), 1)
         self.assertAlmostEqual(
-            merged_cube.coord("forecast_reference_time").points[0], expected_frt)
+            merged_cube.coord("forecast_reference_time").points[0],
+            expected_frt)
         self.assertAlmostEqual(
             merged_cube.coord("forecast_period").points[0], expected_fp)
 
