@@ -111,12 +111,12 @@ def main():
     args = parser.parse_args()
 
     # source file data path is a mandatory argument
-    source_data = load_cube(args.source_data_filepath)
+    output_data = load_cube(args.source_data_filepath)
 
     if args.fix_float64:
-        check_cube_not_float64(source_data, fix=True)
+        check_cube_not_float64(output_data, fix=True)
     else:
-        check_cube_not_float64(source_data, fix=False)
+        check_cube_not_float64(output_data, fix=False)
 
     if args.target_grid_filepath or args.json_file or args.fix_float64:
         if not args.output_filepath:
@@ -133,15 +133,6 @@ def main():
 
         target_grid = load_cube(args.target_grid_filepath)
 
-        if args.fix_float64:
-            # check_cube_not_float64(source_data, fix=True)
-            check_cube_not_float64(target_grid, fix=True)
-
-        # check_cube_not_float64 will raise TypeError if float64 data found
-        else:
-            # check_cube_not_float64(source_data, fix=False)
-            check_cube_not_float64(target_grid, fix=False)
-
         regridder = iris.analysis.Linear(
             extrapolation_mode=args.extrapolation_mode)
 
@@ -149,33 +140,27 @@ def main():
             regridder = iris.analysis.Nearest(
                 extrapolation_mode=args.extrapolation_mode)
 
-        source_on_target = source_data.regrid(target_grid, regridder)
+        output_data = output_data.regrid(target_grid, regridder)
 
         target_grid_attributes = (
             {k: v for (k, v) in target_grid.attributes.items()
              if 'mosg__' in k or 'institution' in k})
-        amend_metadata(source_on_target, attributes=target_grid_attributes)
-
-        if args.json_file:
-            with open(args.json_file, 'r') as input_file:
-                metadata_dict = json.load(input_file)
-            amend_metadata(source_on_target, **metadata_dict)
-
-        save_netcdf(source_on_target, args.output_filepath)
+        amend_metadata(output_data, attributes=target_grid_attributes)
 
     # Change metadata only option:
     # if output file path and json metadata file specified,
     # change the metadata
-    elif args.output_filepath and args.json_file:
+    if args.json_file:
         with open(args.json_file, 'r') as input_file:
             metadata_dict = json.load(input_file)
-        new_data = amend_metadata(source_data, **metadata_dict)
-        save_netcdf(new_data, args.output_filepath)
+        output_data = amend_metadata(output_data, **metadata_dict)
 
     # Check and fix for float64 data only option:
-    elif args.fix_float64 and args.output_filepath:
-        check_cube_not_float64(source_data, fix=True)
-        save_netcdf(source_data, args.output_filepath)
+    if args.fix_float64:
+        check_cube_not_float64(output_data, fix=True)
+
+    if args.output_filepath:
+        save_netcdf(output_data, args.output_filepath)
 
 
 if __name__ == "__main__":
