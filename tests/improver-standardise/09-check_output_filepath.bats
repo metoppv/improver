@@ -38,3 +38,4 @@ ValueError: An argument has been specified that requires an output filepath but 
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
+

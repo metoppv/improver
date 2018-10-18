@@ -38,3 +38,4 @@ TypeError: 64 bit cube not allowed
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
+
