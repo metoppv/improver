@@ -153,7 +153,7 @@ def main():
     if args.json_file:
         with open(args.json_file, 'r') as input_file:
             metadata_dict = json.load(input_file)
-        new_data = amend_metadata(output_data, **metadata_dict)
+        output_data = amend_metadata(output_data, **metadata_dict)
 
     # Check and fix for float64 data only option:
     if args.fix_float64:
