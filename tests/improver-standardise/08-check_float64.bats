@@ -29,7 +29,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "standardise no arguments" {
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "standardise check for float64 data" {
+  improver_check_skip_acceptance
+
   run improver standardise \
        "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc"
   [[ "$status" -eq 1 ]]
