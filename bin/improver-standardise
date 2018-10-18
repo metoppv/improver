@@ -133,13 +133,6 @@ def main():
 
         target_grid = load_cube(args.target_grid_filepath)
 
-        if args.fix_float64:
-            check_cube_not_float64(target_grid, fix=True)
-
-        # check_cube_not_float64 will raise TypeError if float64 data found
-        else:
-            check_cube_not_float64(target_grid, fix=False)
-
         regridder = iris.analysis.Linear(
             extrapolation_mode=args.extrapolation_mode)
 
