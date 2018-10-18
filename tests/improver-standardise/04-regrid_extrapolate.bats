@@ -31,15 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "regrid" {
+@test "standardise" {
   improver_check_skip_acceptance
-  KGO="regrid/nearest/kgo.nc"
+  KGO="standardise/regrid-extrapolate/kgo.nc"
 
-  # Run cube regrid processing and check it passes.
-  run improver regrid \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/global_cutout.nc" \
-      "$IMPROVER_ACC_TEST_DIR/regrid/basic/ukvx_grid.nc" \
-      "$TEST_DIR/output.nc" --nearest
+  # Run cube regrid processing with iris extrapolate mode and check it passes.
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/ukvx_grid.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --output_filepath "$TEST_DIR/output.nc" \
+      --nearest --extrapolation_mode extrapolate
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

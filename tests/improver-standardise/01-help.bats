@@ -29,32 +29,45 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "regrid -h" {
-  run improver regrid -h
+@test "standardise -h" {
+  run improver standardise -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-regrid [-h] [--profile] [--profile_file PROFILE_FILE]
-                       [--nearest] [--extrapolation_mode EXTRAPOLATION_MODE]
-                       [--json_file JSON_FILE]
-                       SOURCE_DATA TARGET_GRID OUTPUT_FILE
+usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
+                            [--output_filepath OUTPUT_FILE]
+                            [--target_grid_filepath TARGET_GRID]
+                            [--fix_float64] [--nearest]
+                            [--extrapolation_mode EXTRAPOLATION_MODE]
+                            [--json_file JSON_FILE]
+                            SOURCE_DATA
 
-Regrid data from source_data on to the grid contained within target_grid using
-iris.analysis.Linear() or optionally iris.analysis.Nearest(). Meta-data
-attributes starting with "mosg__" or "institution" are copied from the input
-cube to the output cube before applying any attributes from a json file
+Standardise a source data cube. Three main options are available; checking and
+optionally fixing float64 data, regridding and updating metadata. If
+regridding then additional options are available to specify Iris nearest and
+extrapolation modes. If only a source file is specified with no other
+arguments, then an exception will be raised if float64 data is found on the
+source.
 
 positional arguments:
-  SOURCE_DATA           A cube of data that is to be regridded onto the
-                        target_grid.
-  TARGET_GRID           A cube containing the grid to which the source_data is
-                        to be regridded.
-  OUTPUT_FILE           The output path for the processed NetCDF
+  SOURCE_DATA           A cube of data that is to be standardised and
+                        optionally fixed for float64 data, regridded and meta
+                        data changed
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --output_filepath OUTPUT_FILE
+                        The output path for the processed NetCDF. If only a
+                        source file is specified and no output file, then the
+                        source will be checkedfor float64 data.
+  --target_grid_filepath TARGET_GRID
+                        If specified then regridding of the source against the
+                        target grid is enabled.
+  --fix_float64         Check and fix cube for float64 data. Without this
+                        option an exception will be raised if float64 data is
+                        found but no fix applied.
   --nearest             If True, regridding will be performed using
                         iris.analysis.Nearest() instead of Linear(). Use for
                         less continuous fields, e.g. precipitation.
@@ -73,7 +86,8 @@ optional arguments:
                         nanmask.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
-                        to the metadata. Defaults to None.
+                        that will be applied to the metadata. Defaults to
+                        None.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
