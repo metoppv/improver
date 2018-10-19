@@ -148,7 +148,8 @@ def rationalise_blend_time_coords(
                 next_coord.convert_units(frt_coord.units)
                 if next_coord.points[0] > frt_coord.points[0]:
                     frt_coord = next_coord
-            cycletime, = (frt_coord.units).num2date(frt_coord.points)
+            cycletime, = (frt_coord.units).num2date(
+                frt_coord.points.astype(np.float64))
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
