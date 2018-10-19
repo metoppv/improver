@@ -61,28 +61,30 @@ class Test_rationalise_blend_time_coords(IrisTest):
         dt_num = date2num(dt, time_origin, calendar)
         time_coord = AuxCoord(dt_num, "time", units=tunit)
 
-        # create a simple data cube with suitable coordinates
+        # create a simple data cube with suitable dimension coordinates from
+        # which to derive model test cubes
         base_cube = iris.cube.Cube(
             data, long_name="probability_of_air_temperature", units="1",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
             aux_coords_and_dims=[(time_coord, None)])
 
+        # make a cube with a forecast reference time and period labelled as
+        # coming from the UKV
         ukv_frt_coord = AuxCoord(
             dt_num-4, "forecast_reference_time", units=tunit)
         ukv_fp_coord = AuxCoord(4, "forecast_period", units="hours")
 
-        # make a cube with data labelled as coming from the UKV
         self.ukv_cube = base_cube.copy()
         self.ukv_cube.add_aux_coord(ukv_frt_coord)
         self.ukv_cube.add_aux_coord(ukv_fp_coord)
         self.ukv_cube.attributes['mosg__model_configuration'] = 'uk_det'
 
+        # make a cube labelled as coming from MOGREPS-UK, with a different
+        # forecast reference time from the UKV cube
         enuk_frt_coord = AuxCoord(
             dt_num-3, "forecast_reference_time", units=tunit)
         enuk_fp_coord = AuxCoord(3, "forecast_period", units="hours")
 
-        # make a cube with data labelled as coming from MOGREPS-UK, with a
-        # different forecast reference time from the UKV cube
         self.enuk_cube = base_cube.copy()
         self.enuk_cube.add_aux_coord(enuk_frt_coord)
         self.enuk_cube.add_aux_coord(enuk_fp_coord)
