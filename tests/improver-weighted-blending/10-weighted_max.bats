@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate weighted_maximum input output" {
+@test "weighted-blending weighted max" {
   improver_check_skip_acceptance
   KGO="weighted_blending/basic_weighted_max/kgo.nc"
 

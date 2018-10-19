@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear input output cval" {
+@test "weighted-blending percentile blending" {
   improver_check_skip_acceptance
   KGO="weighted_blending/percentiles/kgo.nc"
 

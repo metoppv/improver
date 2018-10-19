@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-@test "weighted-blending --linear --nonlinear" {
+@test "weighted-blending invalid method" {
   # Run blending with linear and nonlinear: check it fails.
   run improver weighted-blending --wts_calc_method 'linear nonlinear' 'time'  'weighted_mean'\
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \

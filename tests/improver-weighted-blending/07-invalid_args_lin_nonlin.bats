@@ -31,9 +31,9 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --cval" {
-  # Run blending with non-linear weights calculation but linear args: check it fails.
-  run improver weighted-blending --wts_calc_method 'nonlinear' 'time' 'weighted_mean' --ynval 1 --y0val 0\
+@test "weighted-blending linear invalid options" {
+  # Run blending with linear weights calculation but nonlinear args: check it fails.
+  run improver weighted-blending 'time' 'weighted_mean' --ynval 1 --cval 0.5\
       "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
@@ -53,7 +53,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, ynval
+improver-weighted-blending: error: Method: linear does not accept arguments: cval
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

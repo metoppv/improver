@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear coordinate input output y0val ynval" {
+@test "weighted-blending linear options" {
   improver_check_skip_acceptance
   KGO="weighted_blending/options_lin/kgo.nc"
 

@@ -105,7 +105,7 @@ def rationalise_blend_time_coords(
     in place.
 
     If blend_coord is forecast_reference_time, ensures the cube has
-    a forecast_period dimension.  If blend_coord is forecast_period,
+    a forecast_period dimension.  If weighting_coord is forecast_period,
     equalises forecast_reference_time on each cube before blending.
 
     Args:

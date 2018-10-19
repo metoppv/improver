@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear input output" {
+@test "weighted-blending nonlinear default" {
   improver_check_skip_acceptance
   KGO="weighted_blending/basic_nonlin/kgo.nc"
 
