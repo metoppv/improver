@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import (
     add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.cube_manipulation import build_coordinate, merge_cubes
+from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
     forecast_period_coord)

@@ -41,8 +41,6 @@ from improver.tests.blending.weights.helper_functions import (
     set_up_temperature_cube, add_model_id_and_model_configuration)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing \
-    import set_up_cube
 from improver.blending.weighted_blend import unify_forecast_reference_time
 
 
