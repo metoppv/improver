@@ -191,7 +191,7 @@ class Test_conform_metadata(IrisTest):
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertFalse(result.coord("forecast_period").bounds)
 
-    def test_with_model_model_id_and_model_realization(self):
+    def test_with_model_id_and_model_realization(self):
         """Test that a cube is dealt with correctly, if the cube contains a
         model, model_id and model_realization coordinate."""
         coord = "model_id"
@@ -199,7 +199,7 @@ class Test_conform_metadata(IrisTest):
         self.assertFalse(result.coords("model_id"))
         self.assertFalse(result.coords("model_realization"))
 
-    def test_scalar_coordinate_bound_removal(self):
+    def test_scalar_coordinate_bounds_removal(self):
         """Test that if a cube contains scalar coordinates, these coordinates
         do not have bounds."""
         cube = self.cube
@@ -210,6 +210,26 @@ class Test_conform_metadata(IrisTest):
             self.cube, self.cube_orig, self.coord,
             coords_for_bounds_removal=["height"])
         self.assertFalse(result.coord("height").bounds)
+
+    def test_forecast_coordinate_bounds_removal(self):
+        """Test that if a cube has bounds on the forecast period and reference
+        time, that these are removed"""
+        self.cube_orig.coord("forecast_period").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+                "forecast_period").points])
+        self.cube_orig.coord("forecast_reference_time").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+                "forecast_reference_time").points])
+        self.cube.coord("forecast_period").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
+                "forecast_period").points])
+        self.cube.coord("forecast_reference_time").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
+                "forecast_reference_time").points])
+        result = conform_metadata(
+            self.cube, self.cube_orig, "forecast_reference_time")
+        self.assertIsNone(result.coord("forecast_reference_time").bounds)
+        self.assertIsNone(result.coord("forecast_period").bounds)
 
 
 if __name__ == '__main__':
