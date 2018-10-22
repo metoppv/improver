@@ -616,7 +616,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up some cubes and plugin inputs"""
         self.weighting_coord_name = "forecast_period"
-        self.plugin_cube = ChooseWeightsLinear(self.weighting_coord_name)
+        self.plugin = ChooseWeightsLinear(self.weighting_coord_name)
         self.config_dict_fp = {"uk_det": {"forecast_period": [7, 12],
                                           "weights": [1, 0],
                                           "units": "hours"},
@@ -684,7 +684,7 @@ class Test_process(IrisTest):
                                        [[1., 1.],
                                         [1., 1.]]]]])
 
-        result = self.plugin_cube.process(cubes, weights_cubes)
+        result = self.plugin.process(cubes, weights_cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.metadata,
@@ -779,7 +779,7 @@ class Test_process(IrisTest):
                                        [[0.5, 0.5],
                                         [0.5, 0.5]]]]])
 
-        result = self.plugin_cube.process(cubes, weights_cubes)
+        result = self.plugin.process(cubes, weights_cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.metadata,

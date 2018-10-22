@@ -54,7 +54,7 @@ class Test_conform_metadata(IrisTest):
         data = np.full((3, 1, 3, 3), 275.15, dtype=np.float)
         cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube(data, "air_temperature", "Kelvin"))
-        cube = cube[0]
+        cube = cube[0]  # slice out realization dimension
         cube.remove_coord("realization")
         cube.coord("time").points = 412228.0
         self.cube = cube
@@ -71,7 +71,7 @@ class Test_conform_metadata(IrisTest):
                     fp_point=fp_point))
         cube_orig = temp_cubes.merge_cube()
         cube_orig.transpose([1, 0, 2, 3])
-        cube_orig = cube_orig[0]
+        cube_orig = cube_orig[0]  # slice out realization dimension
         cube_orig.remove_coord("realization")
 
         cube_orig.attributes["mosg__grid_type"] = "standard"
