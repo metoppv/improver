@@ -131,14 +131,6 @@ class Test__check_config_dict(IrisTest):
             _ = ChooseWeightsLinear(
                 self.weighting_coord_name, config_dict=self.config_dict)
 
-    def test_dictionary_key_match(self):
-        """Test that an exception is not raised when the dictionary keys
-        match in length as expected."""
-        plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict)
-        result = plugin._check_config_dict()
-        self.assertIsNone(result)
-
     def test_error_weighting_coord_not_in_dict(self):
         """Test that an exception is raised when the required weighting_coord
         is not in the configuration dictionary"""
