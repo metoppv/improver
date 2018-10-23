@@ -86,13 +86,15 @@ class Test_calc_solar_hour_angle(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
-    def test_solar_hour_raises_exception_lon(self):
-        """Test an exception is raised if longitudes out of range"""
-        longitudes = np.array([0.0, 10.0, -10.0, 181.0, -179.0])
-        msg = 'Longitudes must be between -180.0 and 180.0'
-        with self.assertRaisesRegex(ValueError, msg):
-            calc_solar_hour_angle(longitudes, self.day_of_year,
-                                  self.utc_hour)
+    def test_basic_solar_hour_angle_array_360(self):
+        """Test the calc of solar hour_angle for longitudes > 180"""
+        longitudes = np.array([0.0, 10.0, 350.0, 180.0, 181.0])
+        result = calc_solar_hour_angle(longitudes, self.day_of_year,
+                                       self.utc_hour)
+        expected_result = np.array([-1.7832741, 8.2167259, 360.0-11.7832741,
+                                    178.2167259, 360.0-180.7832741])
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_result)
 
     def test_solar_hour_raises_exception_day_of_year(self):
         """Test an exception is raised if day of year out of range"""
@@ -137,13 +139,14 @@ class Test_calc_solar_elevation(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_array)
 
-    def test_solar_elevation_raises_exception_lon(self):
-        """Test an exception is raised if longitudes out of range"""
-        longitudes = np.array([-205.0, 0.0, 5.0])
-        msg = 'Longitudes must be between -180.0 and 180.0'
-        with self.assertRaisesRegex(ValueError, msg):
-            calc_solar_elevation(self.latitudes, longitudes,
-                                 self.day_of_year, self.utc_hour)
+    def test_basic_solar_elevation_array_360(self):
+        """Test the solar elevation for lons > 180."""
+        longitudes = np.array([355.0, 0.0, 5.0])
+        expected_array = np.array([-3.1423043, -0.46061176, 2.09728301])
+        result = calc_solar_elevation(self.latitudes, longitudes,
+                                      self.day_of_year, self.utc_hour)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_array)
 
     def test_solar_elevation_raises_exception_lat(self):
         """Test an exception is raised if latitudes out of range"""
@@ -205,13 +208,34 @@ class Test_daynight_terminator(IrisTest):
                                   -81.07852035, -82.41166928, -82.7926115])
         self.assertArrayAlmostEqual(result, expected_lats)
 
-    def test_daynight_terminator_raises_exception_lon(self):
-        """Test an exception is raised if longitudes out of range"""
-        longitudes = np.array([-205.0, 0.0, 5.0])
-        msg = 'Longitudes must be between -180.0 and 180.0'
-        with self.assertRaisesRegex(ValueError, msg):
-            daynight_terminator(longitudes,
-                                self.day_of_year, self.utc_hour)
+    def test_basic_winter_360(self):
+        """Test we get the terminator in winter with lon > 180."""
+        longitudes = np.linspace(0.0, 360.0, 21)
+        result = daynight_terminator(longitudes, 10, 12.0)
+        expected_lats = np.array([67.79151577, 66.97565648,
+                                  63.73454167, 56.33476507, 39.67331783,
+                                  4.36090124, -34.38678745, -54.03238506,
+                                  -62.69165892, -66.55543647, -67.79151577,
+                                  -66.97565648, -63.73454167,
+                                  -56.33476507, -39.67331783, -4.36090124,
+                                  34.38678745, 54.03238506, 62.69165892,
+                                  66.55543647, 67.79151577])
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_lats)
+
+    def test_basic_sprint_360(self):
+        """Test we get the terminator in spring with lon > 180."""
+        longitudes = np.linspace(0.0, 360.0, 21)
+        result = daynight_terminator(longitudes, 100, 0.0)
+        expected_lats = np.array([82.7926115, 82.44008918,
+                                  81.15273499, 77.95206547, 68.09955141,
+                                  2.64493534, -67.37718951, -77.7625883,
+                                  -81.07852035, -82.41166928, -82.7926115,
+                                  -82.44008918, -81.15273499,
+                                  -77.9520655, -68.09955141, -2.64493534,
+                                  67.37718951, 77.7625883, 81.07852035,
+                                  82.41166928, 82.7926115])
+        self.assertArrayAlmostEqual(result, expected_lats)
 
     def test_daynight_terminator_raises_exception_day_of_year(self):
         """Test an exception is raised if day of year out of range"""
