@@ -51,7 +51,7 @@ class WeatherSymbols(object):
     defined in the input cubes.
     """
 
-    def __init__(self, wxtree='uk'):
+    def __init__(self, wxtree='high_resolution'):
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -59,7 +59,8 @@ class WeatherSymbols(object):
 
         Key Args:
             wxtree (str):
-                Choose weather symbol decision tree. Default is 'uk'
+                Choose weather symbol decision tree.
+                Default is 'high_resolution'
                 'global' will load the global weather symbol decision tree.
 
         float_tolerance defines the tolerance when matching thresholds to allow

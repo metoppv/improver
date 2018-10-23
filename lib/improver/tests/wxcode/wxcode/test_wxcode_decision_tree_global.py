@@ -65,7 +65,7 @@ class Test_wxcode_decision_tree_global(IrisTest):
         self.assertIsInstance(result, dict)
 
     def test_keywords(self):
-        """Test that the only permissible keywords are used."""
+        """Test that only permissible keywords are used."""
         tree = wxcode_decision_tree_global()
         all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
         for node in tree:

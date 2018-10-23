@@ -32,6 +32,7 @@
 """CLI to generate weather symbols."""
 
 from improver.argparser import ArgParser
+import argparse
 import numpy as np
 from argparse import RawTextHelpFormatter
 
@@ -59,7 +60,7 @@ def interrogate_decision_tree(wxtree):
 
     # Get current weather symbol decision tree and populate a list of
     # required inputs for printing.
-    if wxtree == 'uk':
+    if wxtree == 'high_resolution':
         queries = wxcode_decision_tree()
     elif wxtree == 'global':
         queries = wxcode_decision_tree_global()
@@ -104,7 +105,7 @@ def main():
     the weather symbols plugin.
     """
 
-    diagnostics = interrogate_decision_tree('uk')
+    diagnostics = interrogate_decision_tree('high_resolution')
     n_files = len(diagnostics)
     dlist = (' - {}\n'*n_files)
 
@@ -116,8 +117,8 @@ def main():
         description='Calculate gridded weather symbol codes.\nThis plugin '
         'requires a specific set of input diagnostics, where data\nmay be in '
         'any units to which the thresholds given below can\nbe converted:\n' +
-        dlist.format(*diagnostics)
-        + '\n\n or for global data\n\n' +
+        dlist.format(*diagnostics) +
+        '\n\n or for global data\n\n' +
         dlist_global.format(*diagnostics_global),
         formatter_class=RawTextHelpFormatter)
 
@@ -127,14 +128,22 @@ def main():
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument("--wxtree", metavar="WXTREE",
-                        default="uk",
-                        choices=["uk", "global"],
-                        help="Weather Code tree"
-                        " Default=uk", type=str)
+                        default="high_resolution",
+                        choices=["high_resolution", "global"],
+                        help="Weather Code tree.\n"
+                        "Choices are high_resolution or global.\n"
+                        "Default=high_resolution.", type=str)
 
     args = parser.parse_args()
 
     cubes = load_cubelist(args.input_filepaths)
+
+    required_number_of_inputs = n_files
+    if args.wxtree == 'global':
+        required_number_of_inputs = n_files_global
+    if len(cubes) != required_number_of_inputs:
+        msg = 'Incorrect number of inputs'
+        raise argparse.ArgumentTypeError(msg)
 
     result = (WeatherSymbols(wxtree=args.wxtree).process(cubes))
     save_netcdf(result, args.output_filepath)

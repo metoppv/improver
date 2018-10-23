@@ -208,7 +208,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeatherSymbols())
-        msg = '<WeatherSymbols tree=uk>'
+        msg = '<WeatherSymbols tree=high_resolution>'
         self.assertEqual(result, msg)
 
     def test_global(self):
@@ -258,7 +258,7 @@ class Test_check_input_cubes(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_input_cubes(self.cubes)
 
-    def test_basic_globa(self):
+    def test_basic_global(self):
         """Test check_input_cubes method has no error if global data is OK"""
         plugin = WeatherSymbols(wxtree='global')
         cubes = set_up_wxcubes_global()

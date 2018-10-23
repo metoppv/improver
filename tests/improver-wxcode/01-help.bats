@@ -66,7 +66,9 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --wxtree WXTREE       Weather Code tree Default=uk
+  --wxtree WXTREE       Weather Code tree.
+                        Choices are high_resolution or global.
+                        Default=high_resolution.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
