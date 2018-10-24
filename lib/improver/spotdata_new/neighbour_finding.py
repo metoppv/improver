@@ -115,10 +115,12 @@ class NeighbourSelection(object):
         """Represent the configured plugin instance as a string."""
         return ('<NeighbourSelection: land_constraint: {}, ' +
                 'minimum_dz: {}, search_radius: {}, site_coordinate_system'
-                ': {}, site_x_coordinate:{}, site_y_coordinate: {}>').format(
+                ': {}, site_x_coordinate:{}, site_y_coordinate: {}, '
+                'grid_metadata_identifier: {}>').format(
                     self.land_constraint, self.minimum_dz, self.search_radius,
                     self.site_coordinate_system.__class__,
-                    self.site_x_coordinate, self.site_y_coordinate)
+                    self.site_x_coordinate, self.site_y_coordinate,
+                    self.grid_metadata_identifier)
 
     def neighbour_finding_method_name(self):
         """
@@ -519,18 +521,18 @@ class NeighbourSelection(object):
         wmo_ids = [site.get('wmo_id', None) for site in sites]
 
         # Construct a name to describe the neighbour finding method employed
-        method_name = self.neighbour_finding_method_name
+        method_name = self.neighbour_finding_method_name()
 
         # Create an array of indices and displacements to return
         data = np.stack((nearest_indices[:, 0], nearest_indices[:, 1],
                          vertical_displacements), axis=1)
-        data = np.expand_dims(data, 1)
+        data = np.expand_dims(data, 1).astype(np.float32)
 
         # Create a cube of neighbours
         neighbour_cube = build_spotdata_cube(
-            data, 'grid_neighbours', 1, site_altitudes,
-            site_y_coords, site_x_coords, wmo_ids,
-            neighbour_methods=[method_name],
+            data, 'grid_neighbours', 1, site_altitudes.astype(np.float32),
+            site_y_coords.astype(np.float32), site_x_coords.astype(np.float32),
+            wmo_ids, neighbour_methods=[method_name],
             grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
 
         # Apply the grid identifiers from the input cubes to the output cube.
