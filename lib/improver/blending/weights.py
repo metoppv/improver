@@ -636,15 +636,26 @@ class ChooseWeightsLinear(object):
 
         return new_weights_cube
 
-    def _create_slice_iter(self, cube):
-        """Returns an iterator over which to slice each input cube"""
+    def _define_slice(self, cube):
+        """
+        Returns a list of coordinates over which to slice the input cube to
+        create a list of cubes for blending.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube input to plugin
+
+        Returns:
+            slice_list (list):
+                List of coordinates defining the slice to iterate over
+        """
         if cube.coord_dims(self.weighting_coord_name):
-            slice_iterator = [
+            slice_list = [
                 cube.coord(self.weighting_coord_name),
                 cube.coord(axis='y'), cube.coord(axis='x')]
         else:
-            slice_iterator = [cube.coord(axis='y'), cube.coord(axis='x')]
-        return slice_iterator
+            slice_list = [cube.coord(axis='y'), cube.coord(axis='x')]
+        return slice_list
 
     def _slice_input_cubes(self, cubes):
         """
@@ -666,19 +677,19 @@ class ChooseWeightsLinear(object):
         if isinstance(cubes, iris.cube.Cube):
             # check how many points there are in the config coordinate
             if len(cubes.coord(self.config_coord_name).points) == 1:
-                cubelist = [next(cubes.slices(self._create_slice_iter(cubes)))]
+                cubelist = [next(cubes.slices(self._define_slice(cubes)))]
             else:
                 # if passed a merged cube, split this up into a cube list
                 cubelist = []
                 for cube in cubes.slices_over(
                         cubes.coord(self.config_coord_name)):
                     cubelist.append(
-                        next(cube.slices(self._create_slice_iter(cube))))
+                        next(cube.slices(self._define_slice(cube))))
         else:
             cubelist = []
             for cube in cubes:
                 cubelist.append(
-                    next(cube.slices(self._create_slice_iter(cube))))
+                    next(cube.slices(self._define_slice(cube))))
 
         return iris.cube.CubeList(cubelist)
 

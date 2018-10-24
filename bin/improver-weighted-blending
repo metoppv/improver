@@ -112,7 +112,9 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         weights = ChooseDefaultWeightsLinear(
             y0val=y0val, ynval=ynval).process(
                 cube, blend_coord, coord_unit=coord_unit)
-    else:
+    elif method == "nonlinear":
+        # this is set here rather than in the CLI arguments in order to check
+        # for invalid argument combinations
         cvalue = cval if cval else 0.85
         weights = ChooseDefaultWeightsNonLinear(cvalue).process(
             cube, blend_coord, coord_unit=coord_unit)

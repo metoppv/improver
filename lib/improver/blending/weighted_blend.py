@@ -137,7 +137,8 @@ def rationalise_blend_time_coords(
     if "model" in blend_coord and "forecast_period" in weighting_coord:
         if cycletime is None:
             # get cycle time as latest forecast reference time
-            if cubelist[0].coord_dims("forecast_reference_time"):
+            if any([cube.coord_dims("forecast_reference_time")
+                    for cube in cubelist]):
                 raise ValueError(
                     "Expecting scalar forecast_reference_time for each input "
                     "cube - cannot replace a dimension coordinate")
@@ -507,7 +508,8 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Args:
             coord (string):
-                The name of a coordinate dimension in the cube.
+                The name of the coordinate dimension over which the cube will
+                be blended.
             weighting_mode (string):
                 One of 'weighted_maximum' or 'weighted_mean':
                  - Weighted mean: a normal weighted average over the coordinate
@@ -597,8 +599,8 @@ class WeightedBlendAcrossWholeDimension(object):
 
         coord_dim = cube.coord_dims(self.coord)
         if not coord_dim:
-            raise ValueError(
-                '{} has no associated dimension'.format(self.coord))
+            raise ValueError('Blending coordinate {} has no associated '
+                             'dimension'.format(self.coord))
 
         # Ensure input cube is ascending along blending coordinate, so that
         # weights match cube slices
