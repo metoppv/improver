@@ -39,8 +39,8 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
-                                  [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
+                                  [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
@@ -88,20 +88,26 @@ optional arguments:
                         1970-01-01 00:00:00
   --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --cycletime CYCLETIME
-                        The forecast_reference_time to be used after blending
-                        has been applied in the format YYYYMMDDTHHMMZ.
+                        The forecast reference time to be used after blending
+                        has been applied, in the format YYYYMMDDTHHMMZ. If not
+                        provided, the blended file will take the latest
+                        available forecast reference time from the input cubes
+                        supplied.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
 
-  --ynval LINEAR_END_POINT
-                        The relative value of the weighting end point for
-                        choosing default linear weights.
   --y0val LINEAR_STARTING_POINT
-                        The relative value of the weighting start point for
-                        choosing default linear weights. This must be a
-                        positive float or 0. If not set, default values of
-                        y0val=20.0 and ynval=2.0 are set.
+                        The relative value of the weighting start point
+                        (lowest value of blend coord) for choosing default
+                        linear weights. This must be a positive float or 0.
+  --ynval LINEAR_END_POINT
+                        The relative value of the weighting end point (highest
+                        value of blend coord) for choosing default linear
+                        weights. This must be a positive float or 0. Note that
+                        if blending over forecast reference time, ynval >=
+                        y0val would normally be expected (to give greater
+                        weight to the more recent forecast).
 
 nonlinear weights options:
   Options for the non-linear weights calculation in
@@ -118,10 +124,13 @@ dict weights options:
 
   --wts_dict WEIGHTS_DICTIONARY
                         Path to json file containing dictionary from which to
-                        calculate blending weights.
+                        calculate blending weights. Dictionary format is as
+                        specified in the
+                        improver.blending.weights.ChooseWeightsLinear plugin.
   --weighting_coord WEIGHTING_COORD
                         Name of coordinate over which linear weights should be
-                        scaled.
+                        scaled. This coordinate must be avilable in the
+                        weights dictionary.
 
 mask weights options:
   Options for spatially varying linear weights to be calculated based on an
