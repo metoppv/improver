@@ -601,6 +601,16 @@ class Test__slice_input_cubes(IrisTest):
             self.assertArrayAlmostEqual(cube.data, refcube.data)
             self.assertEqual(cube.metadata, refcube.metadata)
 
+    def test_single_cube(self):
+        """Test function populates a cubelist if given a cube with a scalar
+        blending coordinate"""
+        single_cube = self.reference_cube[0]
+        result = self.plugin._slice_input_cubes(single_cube)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 1)
+        self.assertArrayAlmostEqual(result[0].data, single_cube.data)
+        self.assertEqual(result[0].metadata, single_cube.metadata)
+
 
 class Test_process(IrisTest):
     """Test the process method"""
