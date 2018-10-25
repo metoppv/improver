@@ -54,8 +54,7 @@ ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
 apply these weights to the dataset using the BasicWeightedAverage plugin.
 Required for ChooseDefaultWeightsLinear: y0val and ynval. Required for
 ChooseDefaultWeightsNonLinear: cval. Required for ChooseWeightsLinear with
-dict: wts_dict. Required for ChooseWeightsLinear with cube:
-wts_mask_constraint.
+dict: wts_dict.
 
 positional arguments:
   COORDINATE_TO_AVERAGE_OVER
@@ -81,8 +80,6 @@ optional arguments:
                         weights that decrease exponentially with increasing
                         blending coordinate. "dict": calculate weights using a
                         dictionary passed in as a command line argument.
-                        "mask": calculate spatially varying weights from the
-                        mask on an input data cube.
   --coordinate_unit UNIT_STRING
                         Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00
@@ -131,16 +128,12 @@ dict weights options:
                         Name of coordinate over which linear weights should be
                         scaled. This coordinate must be avilable in the
                         weights dictionary.
-
-mask weights options:
-  Options for spatially varying linear weights to be calculated based on an
-  input cube mask.
-
   --wts_mask_constraint WEIGHTS_MASK_CONSTRAINT
-                        Constraint by which to identify the cube whose mask
-                        should be used to calculate spatially varying blending
+                        Optional constraint by which to identify an input cube
+                        whose mask should be used to calculate spatially
+                        varying blending weights. These are then scaled along
+                        the weighting coordinate using the dictionary derived
                         weights.
-
 
 __HELP__
   [[ "$output" == "$expected" ]]

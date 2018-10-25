@@ -43,8 +43,8 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
-                                  [--ynval LINEAR_END_POINT]
                                   [--y0val LINEAR_STARTING_POINT]
+                                  [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
@@ -52,7 +52,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict', 'mask')
+improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict')
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
