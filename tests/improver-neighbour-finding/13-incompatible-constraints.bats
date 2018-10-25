@@ -33,23 +33,32 @@
 
 @test "neighbour-finding" {
   improver_check_skip_acceptance
-  KGO="neighbour-finding/outputs/nearest_global_kgo.nc"
 
   # Run cube extraction processing and check it passes.
   run improver neighbour-finding \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/LAEA_grid_sites.json" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/global_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/global_landmask.nc" \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/uk_sites.json" \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
       "$TEST_DIR/output.nc" \
-      --site_coordinate_system "LambertAzimuthalEqualArea(central_latitude=54.9, central_longitude=-2.5, false_easting=0.0, false_northing=0.0, globe=ccrs.Globe(semimajor_axis=6378137.0, semiminor_axis=6356752.314140356))" \
-      --site_x_coordinate 'projection_x_coordinate' \
-      --site_y_coordinate 'projection_y_coordinate'
-  [[ "$status" -eq 0 ]]
-
-  # Run nccmp to compare the output and kgo.
-  # Note this is a special case. The site coordinates are different, but the
-  # data (neighbour indices and vertical displacements) should be identical
-  # to the 07 test in which sites were defined with latitudes and longitudes.
-  # For this reason we invoke nccmp here directly to use different options.
-  run nccmp -dm "$TEST_DIR/output.nc" "$IMPROVER_ACC_TEST_DIR/$KGO"
+      --land_constraint --all_methods
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Cannot use all_methods option with other constraints.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -118,7 +118,7 @@ Metadata:
                         A string to identify attributes from the netCDF files
                         that should be copied onto the output cube. Attributes
                         are compared for a partial match. The default is
-                        'mosg_' which corresponds to Met Office Standard Grid
+                        'mosg' which corresponds to Met Office Standard Grid
                         attributes which should be copied across.
 __HELP__
   [[ "$output" == "$expected" ]]
