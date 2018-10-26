@@ -31,26 +31,25 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --cval" {
+@test "weighted-blending linear invalid options" {
   # Run blending with linear weights calculation but nonlinear args: check it fails.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1 --cval 0.5\
+  run improver weighted-blending 'time' 'weighted_mean' --ynval 1 --cval 0.5\
       "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
+                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   [--cycletime CYCLETIME]
-                                  [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
-                                  WEIGHTS_CALCULATION_METHOD
+                                  [--y0val LINEAR_STARTING_POINT]
+                                  [--ynval LINEAR_END_POINT]
+                                  [--cval NON_LINEAR_FACTOR]
+                                  [--wts_dict WEIGHTS_DICTIONARY]
+                                  [--weighting_coord WEIGHTING_COORD]
+                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE

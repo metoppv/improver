@@ -54,7 +54,7 @@ class Test_conform_metadata(IrisTest):
         data = np.full((3, 1, 3, 3), 275.15, dtype=np.float)
         cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube(data, "air_temperature", "Kelvin"))
-        cube = cube[0]
+        cube = cube[0]  # slice out realization dimension
         cube.remove_coord("realization")
         cube.coord("time").points = 412228.0
         self.cube = cube
@@ -71,8 +71,13 @@ class Test_conform_metadata(IrisTest):
                     fp_point=fp_point))
         cube_orig = temp_cubes.merge_cube()
         cube_orig.transpose([1, 0, 2, 3])
-        cube_orig = cube_orig[0]
+        cube_orig = cube_orig[0]  # slice out realization dimension
         cube_orig.remove_coord("realization")
+
+        cube_orig.attributes["mosg__grid_type"] = "standard"
+        cube_orig.attributes["mosg__grid_domain"] = "uk_extended"
+        cube_orig.attributes["mosg__grid_version"] = "1.2.0"
+
         self.cube_orig = cube_orig
 
         # Cube without forecast_period.
@@ -106,6 +111,21 @@ class Test_conform_metadata(IrisTest):
         """Test that conform_metadata returns a cube."""
         result = conform_metadata(self.cube, self.cube_orig, self.coord)
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_cycle_blended_attributes(self):
+        """Test that correct metadata are added to cycle blends"""
+        expected_attributes = self.cube_orig.attributes
+        expected_attributes["title"] = "IMPROVER Model Forecast"
+        result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_grid_blended_attributes(self):
+        """Test that correct metadata are added to grid blends"""
+        expected_attributes = self.cube_orig.attributes
+        expected_attributes["title"] = "IMPROVER Model Forecast"
+        expected_attributes["mosg__model_configuration"] = "blend"
+        result = conform_metadata(self.cube, self.cube_orig, "model")
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_with_forecast_period(self):
         """Test that a cube is dealt with correctly, if the cube contains
@@ -171,7 +191,7 @@ class Test_conform_metadata(IrisTest):
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertFalse(result.coord("forecast_period").bounds)
 
-    def test_with_model_model_id_and_model_realization(self):
+    def test_with_model_id_and_model_realization(self):
         """Test that a cube is dealt with correctly, if the cube contains a
         model, model_id and model_realization coordinate."""
         coord = "model_id"
@@ -179,7 +199,7 @@ class Test_conform_metadata(IrisTest):
         self.assertFalse(result.coords("model_id"))
         self.assertFalse(result.coords("model_realization"))
 
-    def test_scalar_coordinate_bound_removal(self):
+    def test_scalar_coordinate_bounds_removal(self):
         """Test that if a cube contains scalar coordinates, these coordinates
         do not have bounds."""
         cube = self.cube
@@ -190,6 +210,26 @@ class Test_conform_metadata(IrisTest):
             self.cube, self.cube_orig, self.coord,
             coords_for_bounds_removal=["height"])
         self.assertFalse(result.coord("height").bounds)
+
+    def test_forecast_coordinate_bounds_removal(self):
+        """Test that if a cube has bounds on the forecast period and reference
+        time, that these are removed"""
+        self.cube_orig.coord("forecast_period").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+                "forecast_period").points])
+        self.cube_orig.coord("forecast_reference_time").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+                "forecast_reference_time").points])
+        self.cube.coord("forecast_period").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
+                "forecast_period").points])
+        self.cube.coord("forecast_reference_time").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
+                "forecast_reference_time").points])
+        result = conform_metadata(
+            self.cube, self.cube_orig, "forecast_reference_time")
+        self.assertIsNone(result.coord("forecast_reference_time").bounds)
+        self.assertIsNone(result.coord("forecast_period").bounds)
 
 
 if __name__ == '__main__':

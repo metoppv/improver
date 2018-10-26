@@ -31,14 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear input output cval" {
+@test "weighted-blending weighted max" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/percentiles/kgo.nc"
+  KGO="weighted_blending/basic_weighted_max/kgo.nc"
 
-  # Run weighted blending with non linear weights and sub-options and check it passes.
-
-  run improver weighted-blending 'nonlinear' 'forecast_reference_time' 'weighted_mean' --cval 1.0 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/percentiles/input.nc" \
+  # Run weighted blending with linear weights and weighted_maximum method
+  # and check it passes.
+  run improver weighted-blending 'forecast_reference_time' 'weighted_maximum' \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

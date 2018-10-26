@@ -563,7 +563,6 @@ class ChooseWeightsLinear(object):
                 (self.config_dict is None), this is based on "weights_cube",
                 otherwise on "cube".
         """
-
         if self.config_dict:
             cubelist = iris.cube.CubeList([])
             for cube_slice, weight in (
@@ -637,6 +636,63 @@ class ChooseWeightsLinear(object):
 
         return new_weights_cube
 
+    def _define_slice(self, cube):
+        """
+        Returns a list of coordinates over which to slice the input cube to
+        create a list of cubes for blending.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube input to plugin
+
+        Returns:
+            slice_list (list):
+                List of coordinates defining the slice to iterate over
+        """
+        if cube.coord_dims(self.weighting_coord_name):
+            slice_list = [
+                cube.coord(self.weighting_coord_name),
+                cube.coord(axis='y'), cube.coord(axis='x')]
+        else:
+            slice_list = [cube.coord(axis='y'), cube.coord(axis='x')]
+        return slice_list
+
+    def _slice_input_cubes(self, cubes):
+        """
+        From input iris.cube.Cube or iris.cube.CubeList, create a list of
+        cubes with different values of the config coordinate (over which to
+        blend), with irrelevant dimensions sliced out.
+
+        Args:
+            cubes (iris.cube.Cube or iris.cube.CubeList):
+                Cubes passed into the plugin.
+
+        Returns:
+            cubelist (iris.cube.CubeList):
+                List of cubes (from which to calculate weights) with
+                dimensions (y, x) if weighting_coord is scalar on the input
+                cube, or (weighting_coord, y, x) if weighting_coord is
+                non-scalar
+        """
+        if isinstance(cubes, iris.cube.Cube):
+            # check how many points there are in the config coordinate
+            if len(cubes.coord(self.config_coord_name).points) == 1:
+                cubelist = [next(cubes.slices(self._define_slice(cubes)))]
+            else:
+                # if passed a merged cube, split this up into a cube list
+                cubelist = []
+                for cube in cubes.slices_over(
+                        cubes.coord(self.config_coord_name)):
+                    cubelist.append(
+                        next(cube.slices(self._define_slice(cube))))
+        else:
+            cubelist = []
+            for cube in cubes:
+                cubelist.append(
+                    next(cube.slices(self._define_slice(cube))))
+
+        return iris.cube.CubeList(cubelist)
+
     def process(self, cubes, weights_cubes=None):
         """Calculation of linear weights based on an input weights cube
         or dictionary.  If self.config_dict == None, weights are calculated
@@ -645,9 +701,12 @@ class ChooseWeightsLinear(object):
         self.config_coord_name dimension.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cubes containing the coordinate (source point) information
-                that will be used for setting up the interpolation.
+                that will be used for setting up the interpolation.  Each cube
+                should have "self.config_coord_name" as a scalar dimension; if
+                a merged cube is passed in, the plugin will split this into a
+                list cubes.
 
         Kwargs:
             weights_cubes (iris.cube.CubeList):
@@ -664,7 +723,18 @@ class ChooseWeightsLinear(object):
                 weights_cubes instead of a weights dict.
                 DimCoords (such as model_id) will be in sorted-ascending order.
         """
-        if not self.config_dict:
+        # check for invalid arguments
+        if self.config_dict and weights_cubes is not None:
+            raise ValueError(
+                'Cannot calculate weights from both dict and cube')
+
+        if self.config_dict:
+            # create 2D cube lists with relevant dimensions only for dict
+            # processing
+            cubes = self._slice_input_cubes(cubes)
+        else:
+            if isinstance(cubes, iris.cube.Cube):
+                cubes = [cubes]
             if isinstance(weights_cubes, iris.cube.Cube):
                 weights_cubes = iris.cube.CubeList([weights_cubes])
 
@@ -802,7 +872,8 @@ class ChooseDefaultWeightsLinear(object):
                        "evenly", "proportional".
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -897,7 +968,8 @@ class ChooseDefaultWeightsNonLinear(object):
                         "evenly", "proportional".
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -1009,7 +1081,8 @@ class ChooseDefaultWeightsTriangular(object):
 
             Returns:
                 weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
+                    1D array of normalised (sum = 1.0) weights matching length
+                    of cube dimension to be blended
 
             Raises:
                 TypeError : input is not a cube

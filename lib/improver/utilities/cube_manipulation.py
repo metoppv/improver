@@ -38,17 +38,8 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from improver.constants import MODEL_ID_DICT
 from improver.utilities.cube_checker import check_cube_coordinates
-
-# Define model_id keys to match mosg__model_configuration values
-MODEL_ID_DICT = {
-    1000: 'gl_det',
-    2000: 'gl_ens',
-    3000: 'uk_det',
-    4000: 'uk_ens',
-    5000: 'nc_det',
-    6000: 'nc_ens'
-    }
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -742,11 +733,12 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
     """
     coord_to_sort = cube.coord(coord)
-    if coord_to_sort.circular:
-        msg = ("The {} coordinate is circular. If the values in the "
-               "coordinate span a boundary then the sorting may "
-               "return an undesirable result.".format(coord_to_sort.name()))
-        warnings.warn(msg)
+    if isinstance(coord_to_sort, DimCoord):
+        if coord_to_sort.circular:
+            msg = ("The {} coordinate is circular. If the values in the "
+                   "coordinate span a boundary then the sorting may return "
+                   "an undesirable result.".format(coord_to_sort.name()))
+            warnings.warn(msg)
     dim, = cube.coord_dims(coord_to_sort)
     index = [slice(None)] * cube.ndim
     index[dim] = np.argsort(coord_to_sort.points)

@@ -31,14 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate input input output" {
+@test "weighted-blending dict" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/model/kgo.nc"
+  KGO="weighted_blending/weights_from_dict/kgo.nc"
 
   # Run weighted blending with linear weights for two input files and check it
   # passes.
-  run improver weighted-blending 'linear' 'model_configuration' 'weighted_mean' \
-      --slope 0 --y0val 1 \
+  run improver weighted-blending --wts_calc_method 'dict' \
+      --wts_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/weights_from_dict/input_dict.json" \
+      --weighting_coord 'forecast_period' 'model_configuration' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"

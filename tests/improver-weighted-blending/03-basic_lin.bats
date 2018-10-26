@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear input output cval" {
+@test "weighted-blending linear default" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/options_nonlin/kgo.nc"
+  KGO="weighted_blending/basic_lin/kgo.nc"
 
-  # Run weighted blending with non linear weights and sub-options and check it passes.
-  run improver weighted-blending 'nonlinear' 'forecast_reference_time' 'weighted_mean' --cval 1.0 \
+  # Run weighted blending with linear weights and check it passes.
+  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

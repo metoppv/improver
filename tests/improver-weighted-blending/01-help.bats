@@ -35,17 +35,16 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
+                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
                                   [--cycletime CYCLETIME]
-                                  [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
-                                  WEIGHTS_CALCULATION_METHOD
+                                  [--y0val LINEAR_STARTING_POINT]
+                                  [--ynval LINEAR_END_POINT]
+                                  [--cval NON_LINEAR_FACTOR]
+                                  [--wts_dict WEIGHTS_DICTIONARY]
+                                  [--weighting_coord WEIGHTING_COORD]
+                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
@@ -53,15 +52,11 @@ usage: improver-weighted-blending [-h] [--profile]
 Calculate the default weights to apply in weighted blending plugins using the
 ChooseDefaultWeightsLinear or ChooseDefaultWeightsNonLinear plugins. Then
 apply these weights to the dataset using the BasicWeightedAverage plugin.
-Required for ChooseDefaultWeightsLinear: y0val and ONE of slope, ynval.
-Required for ChooseDefaultWeightsNonLinear: cval.
+Required for ChooseDefaultWeightsLinear: y0val and ynval. Required for
+ChooseDefaultWeightsNonLinear: cval. Required for ChooseWeightsLinear with
+dict: wts_dict.
 
 positional arguments:
-  WEIGHTS_CALCULATION_METHOD
-                        Method to use to calculate weights used in blending.
-                        "linear": calculate linearly varying blending weights.
-                        "nonlinear": calculate blending weights that decrease
-                        exponentially with increasing blending coordinate.
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.
@@ -78,43 +73,38 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --coord_exp_val COORD_EXPECTED_VALUES
-                        Optional string of expected coordinate points
-                        seperated by , e.g. "1496289600, 1496293200"
+  --wts_calc_method WEIGHTS_CALCULATION_METHOD
+                        Method to use to calculate weights used in blending.
+                        "linear" (default): calculate linearly varying
+                        blending weights. "nonlinear": calculate blending
+                        weights that decrease exponentially with increasing
+                        blending coordinate. "dict": calculate weights using a
+                        dictionary passed in as a command line argument.
   --coordinate_unit UNIT_STRING
-                        Units for time coordinate. Default= hours since
+                        Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00
   --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
-  --coord_adj COORD_ADJUSTMENT_FUNCTION
-                        Function to apply to the coordinate after the blending
-                        has been applied.
-  --wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS
-                        The method to use when redistributing weights in cases
-                        where forecasts are missing. Options: "evenly":
-                        redistribute weights evenly between the forecasts that
-                        are available. "proportional": redistribute weights
-                        using the original weighting function.
   --cycletime CYCLETIME
-                        The forecast_reference_time to be used after blending
-                        has been applied in the format YYYYMMDDTHHMMZ.
-  --coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]
-                        The forecast_reference_time to be used after blending
-                        has been applied in the format YYYYMMDDTHHMMZ.
+                        The forecast reference time to be used after blending
+                        has been applied, in the format YYYYMMDDTHHMMZ. If not
+                        provided, the blended file will take the latest
+                        available forecast reference time from the input cubes
+                        supplied.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
 
-  --slope LINEAR_SLOPE  The slope of the line used for choosing default linear
-                        weights. Only one of ynval and slope may be set.
-  --ynval LINEAR_END_POINT
-                        The relative value of the weighting end point for
-                        choosing default linear weights. Only one of ynval and
-                        slope may be set.
   --y0val LINEAR_STARTING_POINT
-                        The relative value of the weighting start point for
-                        choosing default linear weights. This must be a
-                        positive float or 0. If not set, default values of
-                        y0val=20.0 and ynval=2.0 are set.
+                        The relative value of the weighting start point
+                        (lowest value of blend coord) for choosing default
+                        linear weights. This must be a positive float or 0.
+  --ynval LINEAR_END_POINT
+                        The relative value of the weighting end point (highest
+                        value of blend coord) for choosing default linear
+                        weights. This must be a positive float or 0. Note that
+                        if blending over forecast reference time, ynval >=
+                        y0val would normally be expected (to give greater
+                        weight to the more recent forecast).
 
 nonlinear weights options:
   Options for the non-linear weights calculation in
@@ -124,6 +114,27 @@ nonlinear weights options:
                         Factor used to determine how skewed the non linear
                         weights will be. A value of 1 implies equal weighting.
                         If not set, a default value of cval=0.85 is set.
+
+dict weights options:
+  Options for linear weights to be calculated based on parameters read from
+  a json file dict
+
+  --wts_dict WEIGHTS_DICTIONARY
+                        Path to json file containing dictionary from which to
+                        calculate blending weights. Dictionary format is as
+                        specified in the
+                        improver.blending.weights.ChooseWeightsLinear plugin.
+  --weighting_coord WEIGHTING_COORD
+                        Name of coordinate over which linear weights should be
+                        scaled. This coordinate must be avilable in the
+                        weights dictionary.
+  --wts_mask_constraint WEIGHTS_MASK_CONSTRAINT
+                        Optional constraint by which to identify an input cube
+                        whose mask should be used to calculate spatially
+                        varying blending weights. These are then scaled along
+                        the weighting coordinate using the dictionary derived
+                        weights.
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }
