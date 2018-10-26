@@ -531,15 +531,12 @@ class OrographicEnhancement(object):
                     orogenh_standard_grid.coord(axis=axis).bounds.astype(
                         np.float32))
 
-        # add relevant grid definition attributes
-        try:
-            if 'StaGE' in reference_cube.attributes['history']:
-                for attr in ['mosg__grid_type', 'mosg__grid_domain',
-                             'mosg__grid_version']:
-                    orogenh_standard_grid.attributes[attr] = (
-                        reference_cube.attributes[attr])
-        except KeyError:
-            pass
+        # add any relevant grid definition attributes
+        for data_cube, grid_cube in zip([orogenh, orogenh_standard_grid],
+                                        [self.topography, reference_cube]):
+            for key, val in grid_cube.attributes.items():
+                if 'mosg__grid' in key:
+                    data_cube.attributes[key] = val
 
         return orogenh, orogenh_standard_grid
 

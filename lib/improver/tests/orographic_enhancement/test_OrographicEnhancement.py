@@ -118,6 +118,10 @@ def set_up_orography_cube(data, xo=400000., yo=0.):
 
     cube = iris.cube.Cube(data, long_name="topography", units="m",
                           dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+    cube.attributes['mosg__grid_type'] = 'standard'
+    cube.attributes['mosg__grid_version'] = '1.0.0'
+    cube.attributes['mosg__grid_domain'] = 'uk'
+
     return cube
 
 
@@ -627,10 +631,16 @@ class Test__create_output_cubes(IrisTest):
         topography = set_up_orography_cube(np.zeros((3, 4), dtype=np.float32))
         self.plugin.topography = sort_coord_in_cube(
             topography, topography.coord(axis='y'))
+
         self.temperature = set_up_variable_cube(
             np.full((2, 4), 280.15), units='kelvin', xo=398000.)
         self.temperature.attributes['institution'] = 'Met Office'
         self.temperature.attributes['source'] = 'Met Office Unified Model'
+        self.temperature.attributes['mosg__grid_type'] = 'standard'
+        self.temperature.attributes['mosg__grid_version'] = '1.2.0'
+        self.temperature.attributes['mosg__grid_domain'] = 'uk_extended'
+        self.temperature.attributes['mosg__model_configuration'] = 'uk_det'
+
         self.orogenh = np.array([[1.1, 1.2, 1.5, 1.4],
                                  [1.0, 1.3, 1.4, 1.6],
                                  [0.8, 0.9, 1.2, 0.9]])
@@ -659,11 +669,12 @@ class Test__create_output_cubes(IrisTest):
 
     def test_metadata(self):
         """Check output metadata on both cubes is as expected"""
+        hi_res_attributes = self.temperature.attributes
+        for key, val in self.plugin.topography.attributes.items():
+            hi_res_attributes[key] = val
+
         tref = sort_coord_in_cube(
             self.temperature, self.temperature.coord(axis='y'))
-        expected_attributes = {'institution': 'Met Office',
-                               'source': 'Met Office Unified Model'}
-
         output, regridded_output = self.plugin._create_output_cubes(
             self.orogenh, self.temperature)
 
@@ -680,26 +691,26 @@ class Test__create_output_cubes(IrisTest):
                             'forecast_reference_time']:
                 self.assertEqual(
                     cube.coord(t_coord), self.temperature.coord(t_coord))
-            self.assertDictEqual(cube.attributes, expected_attributes)
+        self.assertDictEqual(
+            regridded_output.attributes, self.temperature.attributes)
+        self.assertDictEqual(output.attributes, hi_res_attributes)
 
     def test_grid_metadata(self):
-        """Test correct grid metadata inheritance from a StaGE cube"""
-        self.temperature.attributes['history'] = 'StaGE Decoupler'
-        self.temperature.attributes['mosg__grid_type'] = 'standard'
-        self.temperature.attributes['mosg__grid_version'] = '1.2.0'
-        self.temperature.attributes['mosg__grid_domain'] = 'uk_extended'
-        self.temperature.attributes['mosg__model_configuration'] = 'uk_det'
-
+        """Test specific grid and model metadata inheritance"""
         output, regridded_output = self.plugin._create_output_cubes(
             self.orogenh, self.temperature)
 
         for attr in ['mosg__grid_type', 'mosg__grid_version',
-                     'mosg__grid_domain', 'mosg__model_configuration']:
+                     'mosg__grid_domain']:
             self.assertEqual(regridded_output.attributes[attr],
                              self.temperature.attributes[attr])
-        self.assertEqual(
-            output.attributes['mosg__model_configuration'],
-            self.temperature.attributes['mosg__model_configuration'])
+            self.assertEqual(output.attributes[attr],
+                             self.plugin.topography.attributes[attr])
+
+        for cube in [output, regridded_output]:
+            self.assertEqual(
+                cube.attributes['mosg__model_configuration'],
+                self.temperature.attributes['mosg__model_configuration'])
 
 
 class Test_process(DataCubeTest):
