@@ -31,11 +31,9 @@
 """Unit tests for argparser.safe_eval."""
 
 
-import os
 import unittest
 import cartopy.crs as ccrs
 import iris
-import iris.coords as ic
 from improver.argparser import safe_eval
 
 
