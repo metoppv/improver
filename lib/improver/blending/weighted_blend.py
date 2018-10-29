@@ -77,10 +77,11 @@ def unify_forecast_reference_time(cubes, cycletime):
     for cube in cubes:
         frt_units = cube.coord('forecast_reference_time').units
         frt_points = [frt_units.date2num(cycletime)]
+        frt_type = cube.coord('forecast_reference_time').dtype
         frt_coord = build_coordinate(
             frt_points, standard_name="forecast_reference_time", bounds=None,
             template_coord=cube.coord('forecast_reference_time'),
-            data_type=np.float64)
+            data_type=frt_type)
         cube.remove_coord("forecast_reference_time")
         cube.add_aux_coord(frt_coord, data_dims=None)
 
@@ -145,13 +146,15 @@ def rationalise_blend_time_coords(
                     "cube - cannot replace a dimension coordinate")
 
             frt_coord = cubelist[0].coord("forecast_reference_time").copy()
+            # Preserve the data type to avoid converting ints to floats.
+            frt_type = frt_coord.dtype
             for cube in cubelist:
                 next_coord = cube.coord("forecast_reference_time").copy()
                 next_coord.convert_units(frt_coord.units)
                 if next_coord.points[0] > frt_coord.points[0]:
                     frt_coord = next_coord
-            cycletime, = (frt_coord.units).num2date(
-                frt_coord.points.astype(np.float64))
+            cycletime, = frt_coord.units.num2date(
+                frt_coord.points)
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
@@ -221,8 +224,8 @@ def conform_metadata(
                     cycletime, time_unit=cycletime_units,
                     calendar=cycletime_calendar)
                 # Preserve the data type to avoid converting ints to floats.
-                fr_type = cube.coord("forecast_reference_time").dtype
-                new_cycletime = np.round(new_cycletime).astype(fr_type)
+                frt_type = cube.coord("forecast_reference_time").dtype
+                new_cycletime = np.round(new_cycletime).astype(frt_type)
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
