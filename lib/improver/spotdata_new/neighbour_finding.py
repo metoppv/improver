@@ -116,11 +116,11 @@ class NeighbourSelection(object):
         return ('<NeighbourSelection: land_constraint: {}, ' +
                 'minimum_dz: {}, search_radius: {}, site_coordinate_system'
                 ': {}, site_x_coordinate:{}, site_y_coordinate: {}, '
-                'grid_metadata_identifier: {}>').format(
+                'grid_metadata_identifier: {}, node_limit: {}>').format(
                     self.land_constraint, self.minimum_dz, self.search_radius,
                     self.site_coordinate_system.__class__,
                     self.site_x_coordinate, self.site_y_coordinate,
-                    self.grid_metadata_identifier)
+                    self.grid_metadata_identifier, self.node_limit)
 
     def neighbour_finding_method_name(self):
         """

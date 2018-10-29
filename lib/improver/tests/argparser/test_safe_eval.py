@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
@@ -28,23 +28,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Unit tests for argparser.safe_eval."""
 
-@test "neighbour-finding no arguments" {
-  run improver neighbour-finding
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-neighbour-finding [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--all_methods] [--land_constraint]
-                                  [--minimum_dz]
-                                  [--search_radius SEARCH_RADIUS]
-                                  [--node_limit NODE_LIMIT]
-                                  [--site_coordinate_system SITE_COORDINATE_SYSTEM]
-                                  [--site_x_coordinate SITE_X_COORDINATE]
-                                  [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                                  SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
-                                  LANDMASK_FILEPATH OUTPUT_FILEPATH
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+
+import os
+import unittest
+import cartopy.crs as ccrs
+import iris
+import iris.coords as ic
+from improver.argparser import safe_eval
+
+
+class Test_safe_eval(unittest.TestCase):
+
+    """Test function for safely using the eval command."""
+
+    def test_iris_coords(self):
+        """Test the return of an iris.coords component."""
+        allowed = ['coords']
+        result = safe_eval('coords', iris, allowed=allowed)
+        self.assertEqual(result, iris.coords)
+
+    def test_cartopy_projection(self):
+        """Test the return of a cartopy projection."""
+        allowed = ['Mercator', 'Miller']
+        result = safe_eval('Mercator', ccrs, allowed=allowed)
+        self.assertEqual(result, ccrs.Mercator)
+
+    def test_unallowed_cartopy(self):
+        """Test the raising of an error when requesting a projection not in the
+        allowed list."""
+        allowed = ['Mercator']
+        msg = 'Function/method/object "Miller" not available in module'
+        with self.assertRaisesRegex(TypeError, msg):
+            safe_eval('Miller', ccrs, allowed=allowed)
+
+
+if __name__ == '__main__':
+    unittest.main()

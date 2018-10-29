@@ -42,7 +42,7 @@
       "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
       "$TEST_DIR/output.nc" \
       --land_constraint \
-      --minimum_dz --search_radius 50000
+      --minimum_dz --search_radius 50000 --node_limit 100
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

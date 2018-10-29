@@ -38,6 +38,7 @@ usage: improver-neighbour-finding [-h] [--profile]
                                   [--all_methods] [--land_constraint]
                                   [--minimum_dz]
                                   [--search_radius SEARCH_RADIUS]
+                                  [--node_limit NODE_LIMIT]
                                   [--site_coordinate_system SITE_COORDINATE_SYSTEM]
                                   [--site_x_coordinate SITE_X_COORDINATE]
                                   [--site_y_coordinate SITE_Y_COORDINATE]
@@ -75,12 +76,10 @@ optional arguments:
                         grid point neighbours to spot sites as defined by each
                         possible combination of constraints.
 
-Ensure neighbour is a land point:
+Apply constraints to neighbour choice:
   --land_constraint     If set this will return a cube containing the nearest
                         grid point neighbours to spot sites that are also land
                         points. May be used with the minimum_dz option.
-
-Minimise neighbour height difference:
   --minimum_dz          If set this will return a cube containing the nearest
                         grid point neighbour to each spot site that is found,
                         within a given search radius, to minimise the height
@@ -88,9 +87,18 @@ Minimise neighbour height difference:
                         land_constraint option.
   --search_radius SEARCH_RADIUS
                         The radius in metres about a spot site within which to
-                        search for a grid point neighbour with a smaller
-                        height difference than the nearest. The default value
-                        is 10000m (10km).
+                        search for a grid point neighbour that is land or
+                        which has a smaller height difference than the
+                        nearest. The default value is 10000m (10km).
+  --node_limit NODE_LIMIT
+                        When searching within the defined search_radius for
+                        suitable neighbours, a KDTree is constructed. This
+                        node_limit prevents the tree from becoming too large
+                        for large search radii. A default of 36 is set, which
+                        is to say the nearest 36 grid points will be
+                        considered. If the search_radius is likely to contain
+                        more than 36 points, this value should be increased to
+                        ensure all points are considered.
 
 Site list options:
   --site_coordinate_system SITE_COORDINATE_SYSTEM
@@ -103,15 +111,15 @@ Site list options:
                         required to modify a default system, e.g.
                         Miller(central_longitude=90). If a globe is required
                         this can be specified as e.g.
-                        ccrs.Globe(semimajor_axis=100, semiminor_axis=100).
+                        Globe(semimajor_axis=100, semiminor_axis=100).
   --site_x_coordinate SITE_X_COORDINATE
-                        The x coordinate key within the JSON file. The default
-                        is'longitude', but can be changed using this option if
-                        required.
+                        The x coordinate key within the JSON file. The plugin
+                        default is 'longitude', but can be changed using this
+                        option if required.
   --site_y_coordinate SITE_Y_COORDINATE
-                        The y coordinate key within the JSON file. The default
-                        is'latitude', but can be changed using this option if
-                        required.
+                        The y coordinate key within the JSON file. The plugin
+                        default is 'latitude', but can be changed using this
+                        option if required.
 
 Metadata:
   --grid_metadata_identifier GRID_METADATA_IDENTIFIER

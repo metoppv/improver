@@ -48,17 +48,3 @@ ValueError: Cannot use all_methods option with other constraints.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

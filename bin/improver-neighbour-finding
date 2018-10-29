@@ -38,7 +38,7 @@ from textwrap import wrap
 
 import iris
 import cartopy.crs as ccrs
-from improver.argparser import ArgParser
+from improver.argparser import ArgParser, safe_eval
 from improver.spotdata_new.neighbour_finding import NeighbourSelection
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -90,14 +90,12 @@ def main():
         " neighbours to spot sites as defined by each possible combination of"
         " constraints.")
 
-    l_group = parser.add_argument_group('Ensure neighbour is a land point')
-    l_group.add_argument(
+    group = parser.add_argument_group('Apply constraints to neighbour choice')
+    group.add_argument(
         "--land_constraint", default=False, action='store_true',
         help="If set this will return a cube containing the nearest grid point"
         " neighbours to spot sites that are also land points. May be used with"
         " the minimum_dz option.")
-
-    group = parser.add_argument_group('Minimise neighbour height difference')
     group.add_argument(
         "--minimum_dz", default=False, action='store_true',
         help="If set this will return a cube containing the nearest grid point"
@@ -107,8 +105,18 @@ def main():
     group.add_argument(
         "--search_radius", metavar="SEARCH_RADIUS", type=float,
         help="The radius in metres about a spot site within which to search"
-        " for a grid point neighbour with a smaller height difference than the"
-        " nearest. The default value is 10000m (10km).")
+        " for a grid point neighbour that is land or which has a smaller "
+        " height difference than the nearest. The default value is 10000m "
+        "(10km).")
+    group.add_argument(
+        "--node_limit", metavar="NODE_LIMIT", type=int,
+        help="When searching within the defined search_radius for suitable "
+        "neighbours, a KDTree is constructed. This node_limit prevents the "
+        "tree from becoming too large for large search radii. A default of 36"
+        " is set, which is to say the nearest 36 grid points will be "
+        "considered. If the search_radius is likely to contain more than 36 "
+        "points, this value should be increased to ensure all points are "
+        "considered.")
 
     s_group = parser.add_argument_group('Site list options')
     s_group.add_argument(
@@ -120,15 +128,15 @@ def main():
         " complete definition, including parameters required to modify a"
         " default system, e.g. Miller(central_longitude=90). If a globe is"
         " required this can be specified as e.g."
-        " ccrs.Globe(semimajor_axis=100, semiminor_axis=100).")
+        " Globe(semimajor_axis=100, semiminor_axis=100).")
     s_group.add_argument(
         "--site_x_coordinate", metavar="SITE_X_COORDINATE",
-        help="The x coordinate key within the JSON file. The default is"
-        "'longitude', but can be changed using this option if required.")
+        help="The x coordinate key within the JSON file. The plugin default is"
+        " 'longitude', but can be changed using this option if required.")
     s_group.add_argument(
         "--site_y_coordinate", metavar="SITE_Y_COORDINATE",
-        help="The y coordinate key within the JSON file. The default is"
-        "'latitude', but can be changed using this option if required.")
+        help="The y coordinate key within the JSON file. The plugin default is"
+        " 'latitude', but can be changed using this option if required.")
 
     m_group = parser.add_argument_group('Metadata')
     m_group.add_argument(
@@ -151,25 +159,16 @@ def main():
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
     kwarg_list = ['land_constraint', 'minimum_dz', 'search_radius',
-                  'site_coordinate_system', 'site_x_coordinate',
+                  'site_coordinate_system', 'site_x_coordinate', 'node_limit',
                   'site_y_coordinate', 'grid_metadata_identifier']
     kwargs = {k: v for (k, v) in vars(args).items() if k in kwarg_list and
               v is not None}
 
     # Deal with coordinate systems for sites other than PlateCarree.
     if 'site_coordinate_system' in kwargs.keys():
-        safe_dict = {k: ccrs.__dict__.get(k, None) for k in PROJECTION_LIST}
-        safe_dict['ccrs'] = ccrs
-        no_builtins = {"__builtins__": None}
-
         scrs = kwargs['site_coordinate_system']
-        try:
-            site_crs = eval('ccrs.{}'.format(scrs), no_builtins, safe_dict)
-        except AttributeError:
-            raise AttributeError(
-                'Provided site_coordinate_system is not a recognised cartopy '
-                'coordinate system')
-        kwargs['site_coordinate_system'] = site_crs
+        kwargs['site_coordinate_system'] = safe_eval(scrs, ccrs,
+                                                     PROJECTION_LIST)
 
     # Check valid options have been selected.
     if args.all_methods is True and (kwargs['land_constraint'] is True or
@@ -178,9 +177,7 @@ def main():
             'Cannot use all_methods option with other constraints.')
 
     # Call plugin to generate neighbour cubes
-    if args.all_methods is False:
-        result = NeighbourSelection(**kwargs).process(*fargs)
-    else:
+    if args.all_methods:
         methods = []
         methods.append({
             **kwargs, 'land_constraint': False, 'minimum_dz': False})
@@ -198,6 +195,8 @@ def main():
         for index, cube in enumerate(all_methods):
             cube.coord('neighbour_selection_method').points = index
         result = merge_cubes(all_methods)
+    else:
+        result = NeighbourSelection(**kwargs).process(*fargs)
 
     result = enforce_coordinate_ordering(
         result,
