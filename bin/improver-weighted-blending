@@ -35,6 +35,7 @@
 import numpy as np
 import json
 import iris
+import warnings
 from cf_units import Unit
 
 from improver.argparser import ArgParser
@@ -112,8 +113,8 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         # weights cube to create final weights cube
         if wts_mask_constraint is not None:
             # NOTE this functionality is not yet coded, so raise a warning
-            raise UserWarning('Calculation of spatially varying weights is '
-                              'not yet supported - using dict only')
+            warnings.warn('Calculation of spatially varying weights is '
+                          'not yet supported - using dict only')
 
         # sort weights cube by blending coordinate and extract
         # data array as input to blending plugin
@@ -287,8 +288,8 @@ def main():
         # raise a warning if this happened because the blend coordinate
         # doesn't exist
         if args.coordinate not in coord_names:
-            raise UserWarning('Blend coordinate {} is not present on input '
-                              'data'.format(args.coordinate))
+            warnings.warn('Blend coordinate {} is not present on input '
+                          'data'.format(args.coordinate))
 
     # otherwise, calculate weights and blend across specified dimension
     else:
