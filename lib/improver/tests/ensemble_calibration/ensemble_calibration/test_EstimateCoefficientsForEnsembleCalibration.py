@@ -164,11 +164,12 @@ class Test__init__(IrisTest):
         if not statsmodels_found:
             plugin = Plugin(distribution, desired_units,
                             predictor_of_mean_flag=predictor_of_mean_flag)
+            warning_msg = "The statsmodels can not be imported"
             self.assertTrue(len(warning_list) == 1)
             self.assertTrue(any(item.category == ImportWarning
                                 for item in warning_list))
-            self.assertTrue("The statsmodels can not be imported"
-                            in str(warning_list[0]))
+            self.assertTrue(any(warning_msg in str(item)
+                                for item in warning_list))
 
 
 class Test_compute_initial_guess(IrisTest):
@@ -755,11 +756,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "is not a Cube or CubeList"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("is not a Cube or CubeList"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_historic_forecast_cubes_is_fake_catch_warning(self,
@@ -781,11 +783,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "is not a Cube or CubeList"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("is not a Cube or CubeList"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_truth_data_is_fake_catch_warning(self, warning_list=None):
@@ -806,11 +809,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "is not a Cube or CubeList"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("is not a Cube or CubeList"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_current_forecast_cubes_len_zero_catch_warning(self,
@@ -832,11 +836,13 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "Insufficient input data present to estimate "
+        "coefficients using NGR."
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Insufficient input data present to estimate "
-                        "coefficients using NGR." in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_historic_forecast_cubes_len_zero_catch_warning(self,
@@ -858,11 +864,13 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "Insufficient input data present to estimate "
+        "coefficients using NGR."
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Insufficient input data present to estimate "
-                        "coefficients using NGR." in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_truth_data_length_zero_catch_warning(self, warning_list=None):
@@ -883,11 +891,13 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "Insufficient input data present to estimate "
+        "coefficients using NGR."
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Insufficient input data present to estimate "
-                        "coefficients using NGR." in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_truth_data_has_wrong_time_catch_warning(self, warning_list=None):
@@ -909,11 +919,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
+        warning_msg = "Unable to calibrate for the time points"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Unable to calibrate for the time points"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 if __name__ == '__main__':

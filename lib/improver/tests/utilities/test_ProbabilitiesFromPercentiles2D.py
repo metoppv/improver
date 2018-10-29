@@ -369,10 +369,11 @@ class Test_process(IrisTest):
                                                              (grid_y, 1),
                                                              (grid_x, 2)])
 
-        msg = 'threshold cube has too many'
+        warning_msg = 'threshold cube has too many'
         probability_cube = self.plugin_instance.process(threshold_cube)
         self.assertTrue(warning_list[0].category == UserWarning)
-        self.assertTrue(msg in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
         self.assertSequenceEqual(probability_cube.shape,
                                  self.reference_cube.shape)

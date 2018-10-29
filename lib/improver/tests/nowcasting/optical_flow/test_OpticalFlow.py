@@ -486,12 +486,13 @@ class Test__zero_advection_velocities_warning(IrisTest):
             np.array([[3., 5., 7.],
                       [0., 2., 1.],
                       [1., 1., 1.]]))
+        warning_msg = "cells within the domain have zero advection"
         self.plugin._zero_advection_velocities_warning(
             greater_than_10_percent_zeroes_array, self.rain_mask)
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
-        self.assertIn("cells within the domain have zero advection",
-                      str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_no_warning_raised_if_no_zeroes(self, warning_list=None):
@@ -745,9 +746,11 @@ class Test_process(IrisTest):
         cube1 = self.cube1.copy(data=null_data)
         cube2 = self.cube2.copy(data=null_data)
         ucube, vcube = self.plugin.process(cube1, cube2)
+        warning_msg = "No non-zero data in input fields"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
-        self.assertIn("No non-zero data in input fields", str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
         self.assertArrayAlmostEqual(ucube.data, null_data)
         self.assertArrayAlmostEqual(vcube.data, null_data)
 
@@ -765,10 +768,11 @@ class Test_process(IrisTest):
         self.cube1.rename("snowfall_rate")
         self.cube2.rename("snowfall_rate")
         _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        warning_msg = "Input data are of non-precipitation type"
         self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
-        self.assertIn("Input data are of non-precipitation type",
-                      str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 if __name__ == '__main__':
