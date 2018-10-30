@@ -198,7 +198,6 @@ class Test_forecast_period_coord(IrisTest):
         cube.coord("time").points = 402192.5
         warning_msg = "The values for the time"
         forecast_period_coord(cube)
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -306,7 +305,6 @@ class Test_extract_cube_at_time(Test_common_functions):
         cubes = CubeList([self.cube])
         plugin(cubes, time_dt, time_extract)
         warning_msg = "Forecast time"
-        self.assertTrue(len(warning_list), 1)
         self.assertTrue(issubclass(warning_list[0].category, UserWarning))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))

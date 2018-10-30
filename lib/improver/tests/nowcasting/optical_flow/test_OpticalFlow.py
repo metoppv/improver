@@ -489,7 +489,6 @@ class Test__zero_advection_velocities_warning(IrisTest):
         warning_msg = "cells within the domain have zero advection"
         self.plugin._zero_advection_velocities_warning(
             greater_than_10_percent_zeroes_array, self.rain_mask)
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
@@ -747,7 +746,6 @@ class Test_process(IrisTest):
         cube2 = self.cube2.copy(data=null_data)
         ucube, vcube = self.plugin.process(cube1, cube2)
         warning_msg = "No non-zero data in input fields"
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
@@ -769,7 +767,6 @@ class Test_process(IrisTest):
         self.cube2.rename("snowfall_rate")
         _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         warning_msg = "Input data are of non-precipitation type"
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(warning_list[0].category == UserWarning)
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))

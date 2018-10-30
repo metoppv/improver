@@ -463,7 +463,6 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -499,7 +498,6 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
-        self.assertTrue(len(warning_list) == 2)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg_min in str(item)
@@ -709,7 +707,6 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -747,7 +744,6 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
-        self.assertTrue(len(warning_list) == 2)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg_min in str(item)

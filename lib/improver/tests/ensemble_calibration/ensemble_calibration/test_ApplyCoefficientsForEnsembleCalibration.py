@@ -19,7 +19,7 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARITCULAR PURPOSE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 # LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 # CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -888,7 +888,6 @@ class Test__apply_params(IrisTest):
             self.coeff_names, predictor_of_mean_flag)
 
         warning_msg = "Ensemble calibration not available"
-        self.assertTrue(len(warning_list) == 1)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
