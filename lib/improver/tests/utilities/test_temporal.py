@@ -47,7 +47,7 @@ from improver.utilities.temporal import (
     iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times)
 from improver.tests.blending.weights.helper_functions import (
-    set_up_temperature_cube, add_model_id_and_model_configuration)
+    set_up_temperature_cube)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (

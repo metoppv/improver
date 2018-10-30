@@ -39,7 +39,6 @@ from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord, AuxCoord
 from cf_units import Unit
-from datetime import datetime
 
 from improver.utilities.cube_metadata import (
     add_coord,
@@ -54,7 +53,6 @@ from improver.utilities.cube_metadata import (
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
-from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import forecast_period_coord
 
 
