@@ -520,7 +520,7 @@ class Test_extract_ad_at_time(Test_common_functions):
         warning_msg = "Forecast time"
         assert issubclass(warning_list[0].category, UserWarning)
         self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list)
+                            for item in warning_list))
 
 
 class Test_construct_neighbour_hash(Test_common_functions):
