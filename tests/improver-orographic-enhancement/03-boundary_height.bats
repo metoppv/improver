@@ -43,7 +43,7 @@
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/pressure.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_speed.nc" \
       "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/wind_direction.nc" \
-      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/constant_u1096_ng_dtm_height_orography_1km.nc" \
+      "$IMPROVER_ACC_TEST_DIR/orographic_enhancement/basic/orography_uk-standard_1km.nc" \
       "$TEST_DIR" --boundary_height=500. --boundary_height_units=m
   [[ "$status" -eq 0 ]]
 
